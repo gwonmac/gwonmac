@@ -15,7 +15,7 @@ import { createWorldMapAnchorSpikeReader } from "./world-map-anchor-observer.js"
 import { eliteMapSurfaces } from "./elite-map-projection.js";
 import { ensureToolsStylesheet } from "../../../renderer/tools-stylesheet.js";
 import { requireToolsApi } from "../../../renderer/tools-native-api.js";
-import { createNonActivatingSurface } from "../../../renderer/non-activating-surface.js";
+import { createNonActivatingSurface, isolateFromGame } from "../../../renderer/non-activating-surface.js";
 import { createEliteMapGraphics } from "./elite-map-graphics.js";
 import { EMPTY_ELITE_SCENE, type PlacedEliteMarker } from "../../../shared/elite-map-scene.js";
 import { installEliteMapPointer, type EliteMapPointerSurface } from "../../../shared/ui/elite-map-pointer.js";
@@ -51,10 +51,7 @@ export function createEliteMapInstallation(options: {
       document.body.append(root);
       const surface = window.gwSurfaces.register({ root, priority: 4, dismiss: () => app?.close() });
       const input = createNonActivatingSurface(root, () => canvas);
-      for (const name of ["keydown", "keyup", "pointerdown", "pointerup", "pointermove", "mousedown", "mouseup", "mousemove", "click", "contextmenu"]) {
-        root.addEventListener(name, (event) => event.stopPropagation());
-      }
-      root.addEventListener("wheel", (event) => event.stopPropagation(), { passive: true });
+      isolateFromGame(root);
       root.addEventListener("pointerdown", () => surface.raise(), true);
       remove = () => { surface.dispose(); input.dispose(); root.remove(); };
       const releaseHost = remove;

@@ -25,6 +25,7 @@
  * native sheet opens only after the press that asked for it has ended.
  */
 import { focusable, focusableElements } from "../shared/ui/focusable.js";
+import { isolateFromGame } from "./non-activating-surface.js";
 
 type Surface = Readonly<{
   root: HTMLElement;
@@ -433,16 +434,11 @@ export function installSurfaceController(
         // belongs to the remaining parent modal or no modal replaced it.
         restoreFocus();
       };
-      const stop = (event: Event) => event.stopPropagation();
-      const isolatedEvents = [
-        "keydown", "keyup", "pointerdown", "pointerup", "pointermove",
-        "mousedown", "mouseup", "mousemove", "click", "wheel", "contextmenu",
-      ] as const;
       dialog.root.addEventListener("cancel", onCancel);
       dialog.root.addEventListener("pointerdown", onPointerDown);
       dialog.root.addEventListener("click", onClick);
       dialog.root.addEventListener("close", onClose);
-      for (const name of isolatedEvents) dialog.root.addEventListener(name, stop);
+      const removeIsolation = isolateFromGame(dialog.root);
 
       return Object.freeze({
         show() {
@@ -472,7 +468,7 @@ export function installSurfaceController(
           dialog.root.removeEventListener("pointerdown", onPointerDown);
           dialog.root.removeEventListener("click", onClick);
           dialog.root.removeEventListener("close", onClose);
-          for (const name of isolatedEvents) dialog.root.removeEventListener(name, stop);
+          removeIsolation();
         },
       });
     },
