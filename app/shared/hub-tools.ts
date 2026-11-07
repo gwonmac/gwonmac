@@ -20,14 +20,14 @@ export type HubToolEntry = Readonly<{
   /** The feature whose activation shows the row. */
   feature: FeatureId;
   title: string;
-  /** The tool's Settings words and the row's own. */
+  /** The tool's `keywords`, which Settings search matches too. */
   keywords: string;
-}> & Omit<HubToolRow, "keywords">;
+}> & HubToolRow;
 
 /** The Tools rows Core draws, in their order. */
 export const HUB_TOOL_ROWS: readonly HubToolEntry[] = Object.freeze(hubTools.flatMap(({ feature, tool, hub }): HubToolEntry[] => {
   if (!("row" in hub)) return [];
   const row: HubToolRow = hub.row;
   return [{ detail: row.detail, open: row.open, ...(row.action ? { action: row.action } : {}), ...(row.aliases ? { aliases: row.aliases } : {}),
-    id: hub.command, feature, title: tool.label, keywords: ["keywords" in tool ? tool.keywords : "", row.keywords ?? ""].filter(Boolean).join(" ") }];
+    id: hub.command, feature, title: tool.label, keywords: "keywords" in tool ? tool.keywords : "" }];
 }));

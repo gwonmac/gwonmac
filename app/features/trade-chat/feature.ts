@@ -14,10 +14,10 @@ export default defineFeature({
     id: "trade-chat",
     label: "Trade Chat",
     description: "Browse the trade feed.",
-    keywords: "kamadan prices trading market",
+    keywords: "kamadan prices trading market trader",
     hub: {
       command: "trade", order: 4, keyOrder: 3,
-      row: { detail: "Find offers and contact sellers", keywords: "trader", open: { event: "gw:trade-toggle", show: true } },
+      row: { detail: "Find offers and contact sellers", open: { event: "gw:trade-toggle", show: true } },
     },
   },
   shortcuts: [{ action: "trade.toggle", binding: { key: "k", shift: false, option: false }, menuItem: "toggle-trade" }],

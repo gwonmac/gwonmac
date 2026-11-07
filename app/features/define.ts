@@ -15,14 +15,13 @@ import type { SettingSpecs } from "../shared/settings/define.js";
 import type { SettingsSection } from "../shared/settings-catalogue.js";
 
 /**
- * A Tools row Core draws for a tool without loading its code: its detail, the words it adds to
- * the tool's `keywords`, its action name (`Open <label>` by default) and how it opens. A tool
+ * A Tools row Core draws for a tool without loading its code: its detail, its action name
+ * (`Open <label>` by default) and how it opens; it matches the tool's `keywords`. A tool
  * opens through its own event, asked to `show` (never to close), as a Hub page (`page`, so
  * Right Arrow opens it too) or after the Hub closes (`closesHub`); or at a Settings section.
  */
 export type HubToolRow = Readonly<{
   detail: string;
-  keywords?: string;
   action?: string;
   aliases?: readonly string[];
   open: Readonly<{ event: string; show?: true; page?: true; closesHub?: true }> | Readonly<{ settings: SettingsSection }>;
@@ -53,7 +52,7 @@ export type FeatureDefinition = Readonly<{
     id: string;
     label: string;
     description: string;
-    /** Extra words Settings search matches. */
+    /** Extra words Settings search and the tool's Hub row match. */
     keywords?: string;
     /**
      * The Hub's Tools row that runs this tool and shows its shortcut, by its id `command`.
