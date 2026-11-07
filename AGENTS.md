@@ -28,13 +28,13 @@ cannot prove stays off, and the untouched official client stays playable.
 ```bash
 pnpm install --frozen-lockfile   # Apple Silicon, Node >= 22.19, pnpm 11, Rust via rustup
 pnpm dev                         # build and open the real launcher
-pnpm check                       # fast check: typecheck, lint, links, unit, policy, Tools and launcher UI tests
+pnpm check                       # fast check: typecheck, lint, unit, policy, Tools and launcher UI tests
 pnpm typecheck                   # all TypeScript projects
 ```
 
 Never run Electron or Playwright UI suites locally (`pnpm test:electron`,
-`pnpm tools:test:e2e`, `pnpm verify*`, packaged tests). They take focus from
-the person working on this Mac. CI runs them.
+`pnpm --filter @gwonmac/tools-ui test:e2e`, `pnpm verify*`, packaged tests).
+They take focus from the person working on this Mac. CI runs them.
 
 ## Must stay
 
@@ -46,9 +46,9 @@ Players install 1.0.0 over the old app and keep everything. Do not change:
 - the ability to read every player data file the current app writes (settings,
   builds, templates, accounts, launcher state, game files and chunk store).
   Delete only code that serves going back to older versions;
-- the format of `apps/website/public/launcher/news-v1.json` (old installed apps
+- the format of `website/public/launcher/news-v1.json` (old installed apps
   read it);
-- the certification proofs and verifier in `src/main/certification/` and their
+- the certification proofs and verifier in `app/client/certification/` and their
   tests: `tests/unit/client-certification*`, `tests/unit/enhancement-*`,
   `tests/client-artifact/`.
 
@@ -56,19 +56,20 @@ Players install 1.0.0 over the old app and keep everything. Do not change:
 
 | Path | Owns |
 | --- | --- |
-| `src/main/` | native resources, files, network policy, credentials, windows, updates, client lifecycle |
-| `src/main/certification/` | client certification and deterministic WASM transforms |
-| `src/preload/` | the small validated capability bridge; no domain policy |
-| `src/renderer/` | game host, input, in-game presentation; no Node.js |
-| `src/shared/` | contracts and validation used by two or more processes |
-| `src/companion-kernel/`, `src/cartography-reachability-kernel/` | read-only Rust kernels |
-| `apps/launcher/`, `apps/tools/` | Vue launcher and Tools UI |
-| `apps/website/` | www.gwonmac.com and all player docs |
+| `app/main/` | native resources, files, network policy, credentials, windows, updates |
+| `app/client/` | client lifecycle: download, chunk store, activation, rollback |
+| `app/client/certification/` | client certification and deterministic WASM transforms |
+| `app/preload/` | the small validated capability bridge; no domain policy |
+| `app/renderer/` | game host, input, in-game presentation; no Node.js |
+| `app/shared/` | contracts and validation used by two or more processes |
+| `app/native/` | native host addon and the game-archive decoder (C++, Objective-C++) |
+| `app/tools-cli/` | maintainer commands compiled with the app (certification, diagnostics) |
+| `kernels/companion/`, `kernels/reachability/` | read-only Rust kernels |
+| `app/ui/launcher/`, `app/ui/tools/` | Vue launcher and Tools UI |
+| `website/` | www.gwonmac.com and all player docs |
+| `scripts/` | build, packaging, release, and development scripts |
 | `tests/` | `unit`, `policy`, `client-artifact`, `integration`, `electron` (CI only) |
 | `docs/` | maintainer docs (below) |
-
-A move to `app/ client/ features/ kernels/ website/` is coming; update this map
-when it lands.
 
 ## Working rules
 
@@ -78,7 +79,7 @@ when it lands.
   Fix the owning doc in the same change.
 - Validate the sender and the value at every IPC boundary. Keep domain decisions
   out of transport handlers.
-- Every module under `src/` starts with a block comment that says what it owns.
+- Every module under `app/` starts with a block comment that says what it owns.
 - Use offline fixtures in tests. Do not commit client files, game data,
   credentials, diagnostics, or private traffic.
 - Do not claim that gameplay, graphics, or input feel passed unless a person
@@ -88,7 +89,7 @@ when it lands.
 
 ## Where docs live
 
-- Players: https://www.gwonmac.com/docs (source in `apps/website/content`).
+- Players: https://www.gwonmac.com/docs (source in `website/content`).
 - Maintainers: `docs/`. Start with [process-model.md](docs/process-model.md),
   [wasm-host.md](docs/wasm-host.md),
   [enhancement-development.md](docs/enhancement-development.md),

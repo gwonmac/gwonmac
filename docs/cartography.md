@@ -254,9 +254,7 @@ kernel is unavailable. The summary labels amber as an estimate and includes the
 exact current-instance failure reason.
 
 Reports contain no account name, character name, route, chat, pointer, free
-text, or raw memory. Use `pnpm cartography:validate`,
-`pnpm cartography:compare`, and `pnpm cartography:merge` to inspect reports.
-Merged evidence is review input and never becomes shipped truth automatically.
+text, or raw memory.
 
 ## Verification
 

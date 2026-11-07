@@ -16,7 +16,7 @@ Core is required and has no player switch: file compatibility, the Guild Wars
 cursor, native double-click, Scry (Command-R), Character Switch (Command-E), and
 pre-game reload. Optional Tools are off by default. The first enable selects a
 Tools-capable module and needs a restart; after that, every tool has its own
-live switch. `src/shared/settings-catalogue.ts` lists the shipped tools, and the
+live switch. `app/shared/settings-catalogue.ts` lists the shipped tools, and the
 [website feature pages](https://www.gwonmac.com/docs) describe them for players.
 
 Rules every feature keeps:
@@ -95,7 +95,7 @@ confirm submitted-offer clicks and Change Offer recovery in a developer build,
 with storage open and closed. Automated fixtures do not establish live gameplay.
 
 The renderer sends two modifier bits and owns the scratch region defined by
-[the shared contract](../src/shared/quick-item-move-contract.ts). Its 64 temporary
+[the shared contract](../app/shared/quick-item-move-contract.ts). Its 64 temporary
 move claims record source locations, source remainders, expected destination
 quantities, and the native start time.
 Claims prevent repeated source moves and overfilled destinations before the
@@ -152,21 +152,6 @@ See [Research a new client fact](#research-a-new-client-fact) for inspection and
 `certification doctor` reads the local profile and published client. It does not
 start Electron. It does not contact ArenaNet. It cannot inspect provisioned
 Keychain data.
-
-Use the visual fixture for presentation work:
-
-```bash
-pnpm enhancements:visual -- target
-pnpm enhancements:visual -- map
-pnpm enhancements:visual -- skill-keys \
-  --font=/tmp/gwonmac-font-calibration-display/font.ttf \
-  --reference=/path/to/native-skill-badge.png
-```
-
-The fixture is developer-only. It must not become packaged navigation or a
-second production UI. The skill-key run renders the production component at
-1×, 1.5×, and 2×, places the native crop beside the custom `7`, and reports
-each badge's dimensions and fixed right/bottom inset as JSON.
 
 ## Live Tools feedback loop
 
@@ -350,13 +335,13 @@ Use only the layers the feature needs:
 
 | Concern | One owner | Reusable contract |
 | --- | --- | --- |
-| Saved player choice | [`AppSettings` and `DEFAULT_SETTINGS`](../src/shared/contracts.ts), plus [`parseSettings` and `parseSettingsPatch`](../src/main/core/settings.ts) | Add one shape, durable default, and strict full/patch parser only when the feature needs player configuration. |
-| Product activation and coarse region rule | [`FEATURE_SELECTION_POLICIES`](../src/shared/feature-contracts.ts) | Add one stable `FeatureId`. The runtime policy must project that exact ID. |
-| Certified client support | [`enhancement-contracts.ts`](../src/shared/enhancement-contracts.ts) and `src/main/certification/` | Add an independently provable capability. Keep defaults, validators and verifier consumers aligned; the [typed verifier fixture](../tests/electron/fixtures/local-verifier-app/main.mjs) uses canonical defaults instead of a second complete capability list. A product setting cannot grant native authority. |
-| Fixed native publication | [`createCompanionRegionInstallation`](../src/renderer/companion-region-installation.ts) | Own allocation, activation withdrawal, freshness, and disposal for one bounded region. |
-| Live settings and map policy | [`createCompanionPolicySource`](../src/renderer/companion-policy-source.ts) | Consume one immutable snapshot. Do not subscribe to Settings or classify play regions again. |
+| Saved player choice | [`AppSettings` and `DEFAULT_SETTINGS`](../app/shared/contracts.ts), plus [`parseSettings` and `parseSettingsPatch`](../app/main/core/settings.ts) | Add one shape, durable default, and strict full/patch parser only when the feature needs player configuration. |
+| Product activation and coarse region rule | [`FEATURE_SELECTION_POLICIES`](../app/shared/feature-contracts.ts) | Add one stable `FeatureId`. The runtime policy must project that exact ID. |
+| Certified client support | [`enhancement-contracts.ts`](../app/shared/enhancement-contracts.ts) and `app/client/certification/` | Add an independently provable capability. Keep defaults, validators and verifier consumers aligned; the [typed verifier fixture](../tests/electron/fixtures/local-verifier-app/main.mjs) uses canonical defaults instead of a second complete capability list. A product setting cannot grant native authority. |
+| Fixed native publication | [`createCompanionRegionInstallation`](../app/renderer/companion-region-installation.ts) | Own allocation, activation withdrawal, freshness, and disposal for one bounded region. |
+| Live settings and map policy | [`createCompanionPolicySource`](../app/renderer/companion-policy-source.ts) | Consume one immutable snapshot. Do not subscribe to Settings or classify play regions again. |
 | Domain behavior | A named renderer or command module | Own decoding, formatting, state transitions, and user-facing refusal in the feature domain. |
-| Composition and safety order | [`installCertifiedCompanion`](../src/renderer/certified-companion-installation.ts) | Allocate and validate first, enable the game hook last, disable it first, and tear down in explicit dependency-safe phases. |
+| Composition and safety order | [`installCertifiedCompanion`](../app/renderer/certified-companion-installation.ts) | Allocate and validate first, enable the game hook last, disable it first, and tear down in explicit dependency-safe phases. |
 
 The feature registry and the live policy use the same IDs. Type checking and a
 runtime contract test fail when one side changes without the other. Derived
@@ -458,9 +443,9 @@ Do not build a speculative global game model. Use a tick snapshot for current
 state. Add an event ring only when a proven user feature cannot be represented
 by current state.
 
-Keep build facts in `src/main/certification/`, capability order in `src/shared/`,
-bounded reads in `src/companion-kernel/`, presentation in its renderer domain,
-and Team Apply policy in `src/shared/builds/`. The installer owns installation,
+Keep build facts in `app/client/certification/`, capability order in `app/shared/`,
+bounded reads in `kernels/companion/`, presentation in its renderer domain,
+and Team Apply policy in `app/shared/builds/`. The installer owns installation,
 not domain rules. Do not move rules into preload, IPC, or a generic bridge.
 
 ## Live scenarios

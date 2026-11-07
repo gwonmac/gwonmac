@@ -30,7 +30,7 @@ respective owners and are not covered by this project's GPL license.
 
 ## Browser fixture skill artwork
 
-`apps/tools/src/assets/fixture-skills/` contains original skill icons from Guild
+`app/ui/tools/src/assets/fixture-skills/` contains original skill icons from Guild
 Wars Wiki for the offline browser fixture. File links and attribution are recorded
 in that directory's README. ArenaNet/NCsoft retain ownership; these images are
 excluded from GPL licensing and used under ArenaNet's
@@ -39,7 +39,7 @@ Production skill previews use the existing native catalogue and icon route.
 
 ## ArenaNet visual material
 
-The launcher video, poster, and logo in `src/renderer/images/` were published
+The launcher video, poster, and logo in `app/renderer/images/` were published
 by ArenaNet for Guild Wars Reforged. The installer, project website, and
 documentation also include Guild Wars Reforged logos, backgrounds, and
 screenshots that show Guild Wars imagery.
@@ -73,13 +73,13 @@ must not be reused separately. They are included under ArenaNet's current
 this independent fan project; those terms, not this repository's GPL license,
 govern their use.
 
-`src/native/gw-dat/vendor/` is a source port from
+`app/native/gw-dat/vendor/` is a source port from
 [GWToolbox++](https://github.com/gwdevhub/GWToolboxpp), which distributes it
 under the MIT License and identifies it as derived from
 [GuildWarsMapBrowser](https://github.com/Jonathan-Greve/GuildWarsMapBrowser) by
 Jonathan Bjørn Greve. It decompresses an archive stream and decodes a texture.
 
-`src/renderer/cartography-spike/toolbox-cartography-data.ts` contains compact
+`app/renderer/cartography-spike/toolbox-cartography-data.ts` contains compact
 cell masks converted from GWToolbox++ `CartographyData.h` at commit
 `cbe940d3edcc0c47fc02a59079a8f6e08d11f4cf`. They identify standable and
 creditable cartography cells without bundling map textures or annotations.
@@ -150,7 +150,7 @@ SOFTWARE.
 
 ## Kenney Input Prompts
 
-`src/renderer/images/playstation-controller-prompts.png` is composed from the
+`app/renderer/images/playstation-controller-prompts.png` is composed from the
 PlayStation Series icons in [Kenney Input Prompts](https://kenney.nl/assets/input-prompts),
 version 1.1. The selected files came from the public
 [`tanuki-billie/kenney-input-prompts`](https://github.com/tanuki-billie/kenney-input-prompts)
@@ -175,7 +175,7 @@ using its reviewed geographic sections. Game names remain ArenaNet material.
 
 ## Guild Wars Wiki stat icons
 
-The unmodified PNGs in `apps/tools/src/assets/skill-stats/` are the Tango-style
+The unmodified PNGs in `app/ui/tools/src/assets/skill-stats/` are the Tango-style
 activation, adrenaline, energy, overcast, recharge, and sacrifice icons from
 [Guild Wars Wiki](https://wiki.guildwars.com/wiki/Category:Tango_icons).
 [LordBiro](https://wiki.guildwars.com/wiki/User:LordBiro) created these icons;
@@ -196,7 +196,7 @@ Original files and attribution histories:
 
 ### Tango profession icons
 
-The unmodified 48×48 PNGs in `src/shared/images/professions/` are by
+The unmodified 48×48 PNGs in `app/shared/images/professions/` are by
 [LordBiro](https://wiki.guildwars.com/wiki/User:LordBiro), distributed under the
 same GFDL terms above. They replace the earlier circular profession artwork.
 File numbers follow the game's profession IDs, from Warrior (1) to Dervish (10).
@@ -698,8 +698,8 @@ THE SOFTWARE.
 
 ### Classic window frame
 
-The original Guild Wars window frame regions in `src/shared/ui/frame/` are
+The original Guild Wars window frame regions in `app/shared/ui/frame/` are
 ArenaNet artwork used in this noncommercial fan project under the content
 terms cited above. They are not covered by this repository's GPL license.
 Source texture identifiers, reconstruction measurements and hashes are in
-[src/shared/ui/frame/README.md](src/shared/ui/frame/README.md).
+[app/shared/ui/frame/README.md](app/shared/ui/frame/README.md).

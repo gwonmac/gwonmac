@@ -50,7 +50,7 @@ publish trade listings in Guild Wars. The Trader prices view does not estimate
 player-market prices, and Trade never sends or automates game chat or executes
 trades. Team Apply is a
 bounded configuration action that checks fresh game state after each step.
-**Tools Beta** describes feature maturity, not an update track.
+**Tools Beta** describes feature maturity.
 
 Texture packs: players import legacy 32-bit TexMod `.tpf` interface packs and
 choose one appearance for newly opened game windows. Packs replace matching

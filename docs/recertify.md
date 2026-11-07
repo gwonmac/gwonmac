@@ -2,7 +2,7 @@
 
 Maintainer runbook. Use it when the bounded certification tools refuse a new
 ArenaNet client. Runtime rules live in [ArenaNet compatibility](arenanet-compatibility.md)
-and the code under `src/main/certification/`. Exact values live in code and
+and the code under `app/client/certification/`. Exact values live in code and
 tests.
 
 ## Safe result
@@ -281,7 +281,7 @@ A new client can need all of these:
 - the friend lifecycle family, which changes `FRIEND_OBSERVER_SEMANTIC_SHA256`;
 - a Cartography memory layout with its Compass, Mission Map, and World Map
   certificates. The reachability kernel in
-  `src/cartography-reachability-kernel/lib.rs` holds the context root and agent
+  `kernels/reachability/lib.rs` holds the context root and agent
   array per layout, so a new layout also changes the kernel. Run the compiled
   kernel for each accepted layout: checked arithmetic keeps it free of static
   panic formatting;

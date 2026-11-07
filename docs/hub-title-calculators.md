@@ -38,7 +38,7 @@ These calculations remain available when the Trade tool is disabled.
 
 ## Canonical data and sources
 
-`src/shared/title-calculator.ts` owns the title thresholds, item point values,
+`app/shared/title-calculator.ts` owns the title thresholds, item point values,
 exact aliases, and parser. The renderer only presents its results. Data was checked
 against these Guild Wars Wiki pages on 2026-09-07:
 
@@ -64,4 +64,4 @@ and offline operation. Browser journeys cover editable examples, the progress-to
 shopping flow, Zaishen requirements, and inline corrections without modal views.
 
 Progress queries accept the same short track names as point queries. The track
-aliases in `src/shared/title-calculator.ts` own both forms.
+aliases in `app/shared/title-calculator.ts` own both forms.

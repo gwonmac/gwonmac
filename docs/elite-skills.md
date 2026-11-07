@@ -181,7 +181,7 @@ the real client. Tools component tests cover searching, tracking, character
 changes, learned status, Mission Map modes, marker activation, pointer claiming,
 failure recovery, and marker placement.
 
-Run `pnpm tools:dev`, then open `/?elites` for an offline interaction fixture.
+Run `pnpm --filter @gwonmac/tools-ui dev`, then open `/?elites` for an offline interaction fixture.
 It uses six illustrative skill records and synthetic map frames. A plain canvas
 uses the same marker painter and pointer rules. Add `&fullCatalogue` to exercise
 a full-length list with synthetic skill names. It does not prove native

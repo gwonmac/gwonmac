@@ -111,14 +111,14 @@ live QA for real drink types, map travel, visual alignment, and input feel.
 ## Native drawing
 
 Skill shortcuts, skill cooldowns, and effect timers share the detached atlas in
-[`native-hud-layer.ts`](../src/renderer/native-hud-layer.ts). Timer changes update
+[`native-hud-layer.ts`](../app/renderer/native-hud-layer.ts). Timer changes update
 small glyph meshes. Cached digits and all three urgency colors avoid repeated
 pixel uploads. Digits share fixed-width cells with centered glyphs so changing
 numbers does not shift their alignment. Effect labels retain their resource slots when another effect
 expires. Effect numbers sit inside the lower-right artwork with a proportional
 inset. The bottom duration bar and icon border remain clear.
 
-[`native-hud-transform.ts`](../src/main/certification/native-hud-transform.ts)
+[`native-hud-transform.ts`](../app/client/certification/native-hud-transform.ts)
 attaches those meshes after each native icon's last visible descendant, in the
 final clipped draw category. Each skill icon has one draw and one mesh containing
 its keycap triangles followed by its cooldown triangles. Separate native draw

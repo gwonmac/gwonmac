@@ -10,7 +10,7 @@ gameplay input.
 The certified ArenaNet module is identified by SHA-256
 `b8cc509714b82b69fdfd79a26ba257aa4c9ef23d90bca9dfcbbd044e371cfb17`.
 The feature proof is owned by
-[`enhancement-skill-cooldown-proof.ts`](../src/main/certification/enhancement-skill-cooldown-proof.ts):
+[`enhancement-skill-cooldown-proof.ts`](../app/client/certification/enhancement-skill-cooldown-proof.ts):
 
 - Function 8704 is the unique `(i32, i32, i32) -> i32` body with SHA-256
   `de894c4032f9c9cf7a50a8f36ad1174446ead7246bf9ae830f43d8e45eb0d697`.
@@ -25,10 +25,10 @@ The feature proof is owned by
   cooldown capability.
 
 The exact build record is in
-[`enhancement-builds.ts`](../src/main/certification/enhancement-builds.ts), and
+[`enhancement-builds.ts`](../app/client/certification/enhancement-builds.ts), and
 the skill-owned body and call-site checks are in
-[`enhancement-skill-transform.ts`](../src/main/certification/enhancement-skill-transform.ts).
-The root [`enhancement-transform.ts`](../src/main/certification/enhancement-transform.ts)
+[`enhancement-skill-transform.ts`](../app/client/certification/enhancement-skill-transform.ts).
+The root [`enhancement-transform.ts`](../app/client/certification/enhancement-transform.ts)
 still owns exact-input selection, cross-feature ordering, and assembly.
 Mutation tests independently alter the reader bound and timer operand and prove
 that cooldown certification withdraws while the other Tools capabilities stay
@@ -36,7 +36,7 @@ available.
 
 ## Runtime boundary
 
-[`skill_cooldowns.rs`](../src/companion-kernel/skill_cooldowns.rs) owns native
+[`skill_cooldowns.rs`](../kernels/companion/skill_cooldowns.rs) owns native
 collection. It resolves the certified player, selects exactly one matching bar,
 caches stable player/bar identity, and reads exactly eight timestamps on
 ordinary ticks. A bounded full-table audit runs every 30 ticks, and every tick
@@ -49,10 +49,10 @@ The shared record is fixed at 60 bytes and uses an odd/even publication
 sequence. The renderer reads the sequence before and after the payload and
 withdraws torn or stale publications. Geometry and recharge data remain
 separate until the presentation coordinator in
-[`skill-overlays-installation.ts`](../src/renderer/skill-overlays-installation.ts)
+[`skill-overlays-installation.ts`](../app/renderer/skill-overlays-installation.ts)
 joins their lifecycles. Both HUDs use the single coordinate conversion in
-[`skill-slot-projection.ts`](../src/renderer/skill-slot-projection.ts), and
-[`skill-cooldown-overlay-consumer.ts`](../src/renderer/skill-cooldown-overlay-consumer.ts)
+[`skill-slot-projection.ts`](../app/renderer/skill-slot-projection.ts), and
+[`skill-cooldown-overlay-consumer.ts`](../app/renderer/skill-cooldown-overlay-consumer.ts)
 joins the two complete eight-slot records.
 
 Text updates are bounded by the formatter's visible output. Above three seconds
@@ -64,7 +64,7 @@ stale, malformed, loading, or denied by the existing Tools/PvE policy.
 ## Presentation and remaining acceptance
 
 The native HUD uses a cached glyph atlas in
-[`native-hud-layer.ts`](../src/renderer/native-hud-layer.ts), the extracted
+[`native-hud-layer.ts`](../app/renderer/native-hud-layer.ts), the extracted
 `Guild Wars Original Display` font, and the existing formatter and color setting.
 Digits use equal-width cells and centered visible glyph bounds. Changing a digit
 preserves its cell position even when the original font has different widths or

@@ -183,7 +183,7 @@ The export uses separate protections for separate data classes.
 ### Closed event schema
 
 Current structured events use the discriminated union in
-`src/main/diagnostics/schema.ts`. Fields contain numbers, booleans, closed
+`app/main/diagnostics/schema.ts`. Fields contain numbers, booleans, closed
 enums, or fixed-format values.
 
 The event API does not accept general message text. Producers use closed error
@@ -238,25 +238,25 @@ reports keep the exclusion list above.
 Run the validator before you trust an export:
 
 ```bash
-pnpm diagnostics:validate <capture.zip>
+node --import ./scripts/ts-hook.mjs app/tools-cli/diagnostics/validate.ts <capture.zip>
 ```
 
 Start with the summary:
 
 ```bash
-pnpm diagnostics:summarize <capture.zip>
+node --import ./scripts/ts-hook.mjs app/tools-cli/diagnostics/summarize.ts <capture.zip>
 ```
 
 Compare clean captures with:
 
 ```bash
-pnpm diagnostics:compare <before.zip> <after.zip>
+node --import ./scripts/ts-hook.mjs app/tools-cli/diagnostics/compare.ts <before.zip> <after.zip>
 ```
 
 Analyze synchronized visual stages with:
 
 ```bash
-pnpm diagnostics:visual <capture.zip> [output-directory]
+node --import ./scripts/ts-hook.mjs app/tools-cli/diagnostics/visual.ts <capture.zip> [output-directory]
 ```
 
 The analyzer writes exact metrics, lossless difference images, and a cautious
@@ -279,13 +279,13 @@ Use a Level 1 capture to attribute visible frame gaps to composition loss, the
 main process, or the renderer:
 
 ```bash
-pnpm diagnostics:attribute-frames <capture.zip> [threshold-ms]
+node --import ./scripts/ts-hook.mjs app/tools-cli/diagnostics/attribute-frames.ts <capture.zip> [threshold-ms]
 ```
 
 Use a Level 2 capture to inspect CPU stacks and overlapping trace events:
 
 ```bash
-pnpm diagnostics:attribute-stalls <capture.zip> [threshold-ms]
+node --import ./scripts/ts-hook.mjs app/tools-cli/diagnostics/attribute-stalls.ts <capture.zip> [threshold-ms]
 ```
 
 The tools warn about different hardware, operating systems, application

@@ -28,10 +28,8 @@ Follow [Build from source](README.md#build-from-source), then read
 - `pnpm dev` opens the real launcher with the normal `Guild Wars` profile.
   `pnpm dev --isolated` uses a fresh profile and prints it; reuse it with
   `pnpm dev --profile /absolute/path`.
-- `pnpm launcher:fixture fresh` opens a disposable offline launcher
-  (also `single`, `multi`, `mixed`, `interrupted`, `corrupt`; add `--keep`).
-- `pnpm tools:dev` and `pnpm hub:dev` open the Tools and Hub UI in a browser
-  with fixtures, without the game.
+- `pnpm --filter @gwonmac/tools-ui dev` opens the Tools UI in a browser with
+  fixtures, without the game; add `/?hub` to the URL for the Hub.
 - Keep logs, screenshots, and profiles in the ignored `test-results/` folder.
 
 ## Pull requests

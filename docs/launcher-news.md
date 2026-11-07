@@ -1,12 +1,12 @@
 # Launcher news and release notes
 
-The website Markdown files are the one source of truth for GWonMac release notes and curated event stories. The website renders the full article and generates the launcher's small static feed at `apps/website/public/launcher/news-v1.json`.
+The website Markdown files are the one source of truth for GWonMac release notes and curated event stories. The website renders the full article and generates the launcher's small static feed at `website/public/launcher/news-v1.json`.
 
 Keep the `news-v1.json` format unchanged: installed older apps read it, and it carries the announcement that tells their players to download the new app.
 
 ## Publish a GWonMac release note
 
-Every release gets one post in `apps/website/content/en/2.blog`. That post is the changelog: the website shows it, the launcher shows it under **GWonMac** in the news list, and the Discord announcement is a copy of it. The GitHub release keeps only the technical record.
+Every release gets one post in `website/content/en/2.blog`. That post is the changelog: the website shows it, the launcher shows it under **GWonMac** in the news list, and the Discord announcement is a copy of it. The GitHub release keeps only the technical record.
 
 ### Frontmatter
 
@@ -50,7 +50,7 @@ Restores every GWonMac feature after the large Guild Wars update of October 22. 
 4. **Optional sections**, in this order and only when they have content: `## Known issues`, `## Notes`. Notes are for things players must do or know, for example "Restart Guild Wars once after the update."
 5. **End with the technical record link.**
 
-The Markdown subset is paragraphs, `##` headings, bullet lists, bold text, inline code, links, and images. Images must be stored under `apps/website/public` and referenced with a website-relative path. The launcher renders this safe subset as native Vue elements; it never injects HTML.
+The Markdown subset is paragraphs, `##` headings, bullet lists, bold text, inline code, links, and images. Images must be stored under `website/public` and referenced with a website-relative path. The launcher renders this safe subset as native Vue elements; it never injects HTML.
 
 ### Announce it
 
@@ -77,8 +77,8 @@ Curate only events that help players plan. The launcher fetches ordinary game up
 Run:
 
 ```sh
-pnpm --dir apps/website generate:launcher-news
-pnpm --dir apps/website check
+pnpm --dir website generate:launcher-news
+pnpm --dir website check
 ```
 
 Commit the Markdown and regenerated JSON together. The check fails for duplicate IDs, unsupported fields, invalid channels, a summary over 360 characters, or a stale generated feed. The feed carries the newest 24 posts; older posts stay on the website.
@@ -97,9 +97,9 @@ Commit the Markdown and regenerated JSON together. The check fails for duplicate
 The launcher bundles two parts of the website at build time, so they work offline and match the installed version:
 
 - **What's new.** The release post whose `launcherId` is `gwonmac-<version with dashes>` is bundled with that version. After an update, the launcher opens it once as an article in **News**. Write the next release's post with `draft: true` in its frontmatter: the website and the news feed leave a draft out, but the app build includes it. Remove `draft: true` when you publish the release.
-- **Guide.** The pages listed in `PAGE_PATHS` (`apps/launcher/src/guide.ts`) become **Help**: the feature pages in `apps/website/content/en/1.docs/4.features`, plus Build templates, Performance, Troubleshooting, and Known issues from `1.guides`. `7.known-issues.md` is also the Known issues list. Install and mobile linking stay on the website.
-- **Links.** `:setting[Label]{to="<section>/<control>"}` opens that setting in the launcher and shows as bold text on the website; the IDs come from `src/shared/settings-catalogue.ts`. It is an inline component, not a link: the website's render policy refuses any link that is not https, mailto, tel, or a relative path. `$docs/features/<page>` and `$docs/guides/<page>` open the Guide page when the Guide has it, otherwise the website.
-- **Media.** Images must be under `apps/website/public/docs` (Guide) or `apps/website/public/blog` (release notes). A screenshot or video that is still to be made is written as a placeholder, shown as a dashed box in both places:
+- **Guide.** The pages listed in `PAGE_PATHS` (`app/ui/launcher/src/guide.ts`) become **Help**: the feature pages in `website/content/en/1.docs/4.features`, plus Build templates, Performance, Troubleshooting, and Known issues from `1.guides`. `7.known-issues.md` is also the Known issues list. Install and mobile linking stay on the website.
+- **Links.** `:setting[Label]{to="<section>/<control>"}` opens that setting in the launcher and shows as bold text on the website; the IDs come from `app/shared/settings-catalogue.ts`. It is an inline component, not a link: the website's render policy refuses any link that is not https, mailto, tel, or a relative path. `$docs/features/<page>` and `$docs/guides/<page>` open the Guide page when the Guide has it, otherwise the website.
+- **Media.** Images must be under `website/public/docs` (Guide) or `website/public/blog` (release notes). A screenshot or video that is still to be made is written as a placeholder, shown as a dashed box in both places:
 
   ```md
   ::media-placeholder{type="video"}
@@ -107,4 +107,4 @@ The launcher bundles two parts of the website at build time, so they work offlin
   ::
   ```
 
-`apps/launcher/src/guide.test.ts` fails when a Guide link or image does not resolve. Game updates in News come from the wiki page source of the five newest `Feedback:Game updates/` pages and are shown in full.
+`app/ui/launcher/src/guide.test.ts` fails when a Guide link or image does not resolve. Game updates in News come from the wiki page source of the five newest `Feedback:Game updates/` pages and are shown in full.

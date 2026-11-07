@@ -24,8 +24,8 @@ a third component system for a new style.
 
 | File | Owner |
 | --- | --- |
-| [`src/shared/ui/tokens.css`](../../src/shared/ui/tokens.css) | Colors, materials, edges, corners, motion durations, and layers |
-| [`src/shared/ui/components.css`](../../src/shared/ui/components.css) | Reusable panels, controls, fields, rows, slots, feedback, and resize controls |
+| [`app/shared/ui/tokens.css`](../../shared/ui/tokens.css) | Colors, materials, edges, corners, motion durations, and layers |
+| [`app/shared/ui/components.css`](../../shared/ui/components.css) | Reusable panels, controls, fields, rows, slots, feedback, and resize controls |
 
 The main renderer loads both files. Embedded Tools uses the same loaded styles.
 The standalone Tools fixture imports the files because it has no parent
@@ -64,12 +64,12 @@ weight families use the same semantic weight tokens at 500, 600, and 700.
 ## Component rules
 
 - Use `.ui-frame` for a framed panel. Hub and floating work windows attach
-  [`frame.ts`](../../src/shared/ui/frame.ts) for the accepted Classic artwork.
+  [`frame.ts`](../../shared/ui/frame.ts) for the accepted Classic artwork.
   Vue windows use `useClassicFrame`. Both use the shared `--ui-art-*` chrome
   projection. The canvas is decorative and is removed on disposal. Its empty
   centre preserves one application of the saved panel material and opacity.
   Source regions and asset notices are in the
-  [frame provenance](../../src/shared/ui/frame/README.md).
+  [frame provenance](../../shared/ui/frame/README.md).
 - Keep Travel, Characters, settings and build search/application inside Hub.
   Build Library in Home browses saved builds and the existing Guild Wars template
   folders. With Hub open, the Build shortcut enters this browser. Outside Hub, it opens
@@ -101,7 +101,7 @@ Elite skills extends the shared frames, controls, skill slots, and skill details
 Classic, Modern, and Custom keep the same layout and interaction. Interface
 type serves controls and Reading serves encounter notes. Capture data and
 tracking behavior belong in
-[`docs/elite-skills.md`](../../docs/elite-skills.md).
+[`docs/elite-skills.md`](../../../docs/elite-skills.md).
 
 - Anchor the trigger and planner inside the world map's upper-right corner.
   Keep the planner compact (356px, capped by viewport width) and within the
@@ -250,7 +250,7 @@ detailed game artwork.
 
 ### Legibility model
 
-[`appearance.ts`](../../src/renderer/appearance.ts) owns one worst-case model
+[`appearance.ts`](../../renderer/appearance.ts) owns one worst-case model
 for every text role. It measures the inks `tokens.css` paints, or the colours a
 player chose, against the panel at its effective opacity over snow and over a
 black scene, each with and without the accent hover layer. It includes actual

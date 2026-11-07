@@ -21,7 +21,7 @@ is briefly highlighted. Hub search does not change a setting in place.
 
 ## Rules
 
-1. **One setting, one name, one control.** `src/shared/settings-catalogue.ts`
+1. **One setting, one name, one control.** `app/shared/settings-catalogue.ts`
    lists the sections and the settings that search can open, with their stable
    IDs, labels and keywords. Each control carries `data-setting="<id>"`.
 2. **Every setting says when it applies**, in the same words everywhere:
@@ -43,20 +43,20 @@ is briefly highlighted. Hub search does not change a setting in place.
 
 ## Build and trust
 
-- `apps/launcher/src/components/SettingsView.vue` draws the page for both the
+- `app/ui/launcher/src/components/SettingsView.vue` draws the page for both the
   launcher and the Hub.
 - The launcher builds the page a second time as a module for the game window:
   `vite build --mode hub` writes `build/renderer/settings/settings-app.js` and
-  `.css` from `apps/launcher/src/hub-entry.ts`. `src/renderer/hub-settings-page.ts`
+  `.css` from `app/ui/launcher/src/hub-entry.ts`. `app/renderer/hub-settings-page.ts`
   loads it when Settings first opens. It is not part of the optional Tools
   bundle: Settings must work in a Core launch, because that is where Tools are
   turned on.
 - A game window gets a bounded `hubSettings` API: `get`, `update`, `capture` and
   `cancelCapture`. The main process checks each change with
   `parseHubSettingsChange` against `HUB_SETTINGS_FIELDS` in
-  `src/shared/hub-settings.ts`. It refuses unknown or launcher-only controls, a
+  `app/shared/hub-settings.ts`. It refuses unknown or launcher-only controls, a
   value of the wrong kind, and extra fields. The Hub sections come from
-  `HUB_SECTIONS` in `src/shared/settings-catalogue.ts`.
+  `HUB_SECTIONS` in `app/shared/settings-catalogue.ts`.
 
 ## The tree
 

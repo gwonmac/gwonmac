@@ -133,26 +133,6 @@ missing or ArenaNet changes its format, the request fails closed and the theme
 uses its existing Palatino-compatible serif fallback. Characters outside basic
 ASCII also use that fallback.
 
-### Font calibration
-
-Run `pnpm font:calibrate` after changing the body converter. Add
-`-- --role display` to calibrate the display face. The
-command reads the selected bounded strike from the local installed game,
-renders all 94 glyphs through Chromium at the strike's native physical size, and
-writes reference, rendered, difference, and numeric-error results under `/tmp`.
-The JSON report includes each character's error, coverage change, and missing
-glyph status for each threshold. Add `--text "Primary Quests"` to inspect a
-specific string and its spacing instead of the complete character grid.
-
-The decoded grayscale strike is the rendering reference. This comparison cannot
-detect a decoder error shared by both images. Independent synthetic tests cover
-run polarity, palette levels, bounds, character mapping, and outline bearings.
-Inspect symbols in the grid as well as the aggregate score. Generated
-reports are disposable local evidence and must not be committed because they
-contain ArenaNet glyph pixels. The converter's default contour threshold is the
-best measured candidate across the grid, while a final visual check still guards
-against a metric rewarding an obviously poor shape.
-
 At startup, the native store scans chunk residency once. It updates the
 in-memory residency set after publication. A range request does not rescan the
 chunk directory.

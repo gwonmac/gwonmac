@@ -31,7 +31,7 @@ behaves correctly.
 ## Testers and rollback
 
 - Testers: publish the draft as a pre-release. The feed ignores pre-releases,
-  so testers download them by hand. The app has no Beta lane.
+  so testers download them by hand.
 - Rollback: delete the release or mark it as a pre-release. The feed falls back
   to the previous release. The app never downgrades itself.
 

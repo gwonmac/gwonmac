@@ -17,7 +17,7 @@ macOS supplies interaction.
 - Use one gold accent (`#e8b75c`) for selection and primary action. Reserve red
   for destructive actions and green for an already-open account.
 - The launcher names every colour, radius, and type size once, in the `:root`
-  tokens of `apps/launcher/src/style.css`. Shell rules and components use only
+  tokens of `app/ui/launcher/src/style.css`. Shell rules and components use only
   those names; a policy test rejects raw colours and undefined tokens. Settings
   keeps its own `--settings-*` set because the game's Hub draws it too.
 - The launcher has one button vocabulary: `.primary` (gold, one per view),

@@ -123,27 +123,31 @@ selection.
 
 | Path | Responsibility |
 | --- | --- |
-| `src/main/main.ts` | Composition root and application lifecycle |
-| `src/main/active-client.ts` | Immutable active-generation slot |
-| `src/main/client-runtime.ts` | Client activation, health proof, rollback, and content downloads |
-| `src/main/core/patch-client.ts` | ArenaNet manifest and artifact preparation |
-| `src/main/core/` | Native storage, sockets, DNS, credentials, settings, and window state |
-| `src/main/certification/` | Client certification and deterministic WASM transforms |
-| `src/main/protocol.ts` | `gw://app` routing and range responses |
-| `src/main/ipc.ts` | Validated IPC registration |
-| `src/main/launcher-ipc.ts` | Launcher-only IPC registration and sender validation |
-| `src/main/launcher-orchestrator.ts` | Revisioned launcher projection and queued profile launch commands |
-| `src/main/core/launcher-state.ts` | Atomic presentation-only launcher preferences |
-| `src/main/settings-actions.ts` | Confirmed settings actions and recovery requests |
-| `src/main/app-updater.ts` | Updates for the `gwonmac` application |
-| `src/main/diagnostics.ts` and `src/main/diagnostics/` | Diagnostics entry point and implementation |
-| `src/preload/preload.launcher.cjs` | Reduced sandboxed Vue-launcher preload body |
-| `src/preload/preload.body.cjs` | Sandboxed game preload body |
-| `apps/launcher/` | Vue launcher shell and deterministic development fixtures |
-| `src/renderer/` | Game host, input, presentation, in-game Tools, and diagnostics UI |
-| `src/companion-kernel/` | Read-only companion WASM for certified Core and Tools features |
-| `src/shared/` | Contracts and validation used by more than one process |
-| `src/tools/` and `tools/` | Maintainer commands and binary research tools |
+| `app/main/main.ts` | Composition root and application lifecycle |
+| `app/client/active-client.ts` | Immutable active-generation slot |
+| `app/client/client-runtime.ts` | Client activation, health proof, rollback, and content downloads |
+| `app/client/patch-client.ts` | ArenaNet manifest and artifact preparation |
+| `app/client/chunk-store.ts`, `published-client.ts`, `client-compatibility.ts`, `derived-wasm.ts` | Chunk scheduling, the installed-generation manifest, crash-loop markers, and derived WASM caching |
+| `app/main/core/` | Native storage, sockets, DNS, credentials, settings, and window state |
+| `app/client/certification/` | Client certification and deterministic WASM transforms |
+| `app/main/protocol.ts` | `gw://app` routing and range responses |
+| `app/main/ipc.ts` | Validated IPC registration |
+| `app/main/launcher-ipc.ts` | Launcher-only IPC registration and sender validation |
+| `app/main/launcher-orchestrator.ts` | Revisioned launcher projection and queued profile launch commands |
+| `app/main/core/launcher-state.ts` | Atomic presentation-only launcher preferences |
+| `app/main/settings-actions.ts` | Confirmed settings actions and recovery requests |
+| `app/main/app-updater.ts` | Updates for the `gwonmac` application |
+| `app/main/diagnostics.ts` and `app/main/diagnostics/` | Diagnostics entry point and implementation |
+| `app/preload/preload.launcher.cjs` | Reduced sandboxed Vue-launcher preload body |
+| `app/preload/preload.body.cjs` | Sandboxed game preload body |
+| `app/ui/launcher/` | Vue launcher shell and deterministic development fixtures |
+| `app/ui/tools/` | Vue Tools and Hub UI |
+| `app/renderer/` | Game host, input, presentation, in-game Tools, and diagnostics UI |
+| `kernels/companion/` | Read-only companion WASM for certified Core and Tools features |
+| `kernels/reachability/` | Read-only cartography reachability WASM |
+| `app/shared/` | Contracts and validation used by more than one process |
+| `app/tools-cli/` and `tools/` | Maintainer commands and binary research tools |
+| `website/` | www.gwonmac.com and the player docs |
 
 The preload remains self-contained CommonJS. Electron's sandboxed preload
 loader does not load a local ESM dependency graph. The build generates the
@@ -173,7 +177,7 @@ Guild Wars uses animation frames for its main loop, so background throttling
 would delay network updates and enabled background audio until the window
 became visible again. The launcher keeps normal background throttling.
 
-The renderer owns one input policy in `src/renderer/input.ts`. Mouse and
+The renderer owns one input policy in `app/renderer/input.ts`. Mouse and
 trackpad actions go to Guild Wars without a selectable input mode. A real focus
 or visibility loss releases all held input. Pointer-only interruptions release
 only mouse buttons; they do not stop keyboard movement.

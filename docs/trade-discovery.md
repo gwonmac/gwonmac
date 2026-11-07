@@ -281,7 +281,7 @@ like a compact working tool, consistent with Hero/Build management.
 - Message and sender text remains selectable and uses bidirectional isolation.
 - Reduced-motion mode removes nonessential arrival and selection motion.
 - Both interface styles and all supported opacity values meet the contrast
-  rules in `apps/tools/DESIGN.md`.
+  rules in `app/ui/tools/DESIGN.md`.
 
 The Trade Chat window must receive input only inside its controls. Guild Wars
 keeps normal pointer and keyboard input everywhere else.

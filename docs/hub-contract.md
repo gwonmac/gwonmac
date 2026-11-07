@@ -1,12 +1,12 @@
 # Hub interaction contract
 
 The Hub presents commands over Guild Wars. Its state and presentation belong to
-`src/renderer/hub.ts`. This document records intent and links to current owners.
+`app/renderer/hub.ts`. This document records intent and links to current owners.
 Code and tests own exact values and accepted states.
 
 ## Keyboard and actions
 
-List movement uses `src/shared/ui/list-keys.ts` and never wraps. Enter runs the
+List movement uses `app/shared/ui/list-keys.ts` and never wraps. Enter runs the
 named footer primary. Modified Enter does not run it. Right opens a result page;
 text fields keep their caret keys. Command-J opens the existing Actions menu.
 Escape closes the innermost menu, disclosure, prompt, query, page, then Hub.
@@ -24,13 +24,13 @@ Views use `HubViewFooter`; they do not add another footer or Actions menu.
 Team review opens with focus on the review surface at its top. Its refusal
 appears before the roster. The footer keeps the named Apply action.
 A running primary shows progress without an Enter keycap.
-Search uses the shared grammar and ranking in `src/shared/hub.ts`.
+Search uses the shared grammar and ranking in `app/shared/hub.ts`.
 An owned list refreshes from its own source. Other observations update navigation
 facts without rebuilding that list. Home searches all enabled sources.
 
 Conflicting stored exact phrases require a choice. Both stores remain intact.
-Tool labels come from `src/shared/tool-presentation.ts`. Settings copy comes from
-`src/shared/setting-copy.ts`. Neither surface owns another copy of those labels.
+Tool labels come from `app/shared/tool-presentation.ts`. Settings copy comes from
+`app/shared/setting-copy.ts`. Neither surface owns another copy of those labels.
 
 [Settings](settings.md) owns preferences and durable writes.
 [Whispers](whispers.md) owns the floating conversation window.

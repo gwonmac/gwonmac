@@ -12,7 +12,7 @@ and walkability layer over Guild Wars' native maps.
 3. Start the evidence runner:
 
    ```sh
-   pnpm recon:cartography-live
+   GW_LIVE_SMOKE=1 GW_CARTOGRAPHY_LIVE=1 pnpm enhancements:live -- --scenario cartography-probe --leave-open
    ```
 
 4. Open one game account when requested. Wait about one second after each
@@ -35,7 +35,8 @@ diagnostics. It must not store texture pixels or WASM pointers.
 
 ### Compass ranges
 
-Enable **Compass ranges** and run `pnpm recon:compass-ranges`. The rings must
+Enable **Compass ranges** and run
+`GW_LIVE_SMOKE=1 GW_COMPASS_RANGE_LIVE=1 pnpm enhancements:live -- --scenario cartography-probe --leave-open`. The rings must
 stay centred on the player marker, scale from the native Compass edge, and
 remain visible without opening the Mission Map. The Cartography and range
 controls must remain centred as one stack.

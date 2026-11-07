@@ -66,6 +66,6 @@ dispatcher. It does not reuse an assumed empty slot. Exact functions, table
 slots, hashes, and output profiles belong to the compiled certification tables.
 
 The application owns the complete transform chain in
-`src/main/certification/client-module.ts`. Analysis output and
+`app/client/certification/client-module.ts`. Analysis output and
 `certificates/certified-client.json` do not grant runtime authority. See the
 [Enhancement runbook](../docs/enhancement-development.md) before a live run.
