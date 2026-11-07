@@ -12,13 +12,14 @@ Every release gets one post in `website/content/en/2.blog`. That post is the cha
 
 ```yaml
 ---
-title: GWonMac 1.0.0
-description: Restores every GWonMac feature after the large Guild Wars update of October 22. Nothing else changes.
+title: GWonMac 1.0.1
+description: Restores every GWonMac feature after the latest Guild Wars update. Nothing else changes.
 badge: Release
-date: 2026-10-23
+date: 2026-12-01
 readingTime: 1 min read
 author: authors/matamo
-launcherId: gwonmac-1-0-0
+draft: true
+launcherId: gwonmac-1-0-1
 launcherSource: launcher
 launcherChannel: stable
 launcherFeatured: true
@@ -26,13 +27,15 @@ launcherFeatured: true
 ```
 
 - `title` is `GWonMac` and the version, nothing else.
+- `launcherId` is `gwonmac-` and the version with dashes. The app bundles the post with this ID as its "What's new", and `app/ui/launcher/src/release-notes.test.ts` fails when the version in `package.json` has none.
+- Keep `draft: true` until the release is published (see [Releasing](releasing.md)).
 - `description` repeats the summary paragraph. The launcher shows it under the title, so it must stand alone. Keep it under 360 characters; the generator refuses longer text.
 - Set `launcherFeatured: true` only on the newest release, and set it back to `false` on the post it replaces.
 
 ### Body
 
 ```md
-Restores every GWonMac feature after the large Guild Wars update of October 22. Nothing else changes.
+Restores every GWonMac feature after the latest Guild Wars update. Nothing else changes.
 
 - **Compatibility:** Tools, Quick Travel, Xunlai Chest and the skill overlays work again with the new client.
 - **Settings → Tools:** a new option is named in bold, with where to find it and what it does.
@@ -41,11 +44,11 @@ Restores every GWonMac feature after the large Guild Wars update of October 22. 
 
 - Adrenaline skill icons can flicker. This also happens in ArenaNet's phone app.
 
-[Technical release record](https://github.com/gwonmac/gwonmac/releases/tag/v1.0.0){target="_blank"}
+[Technical release record](https://github.com/gwonmac/gwonmac/releases/tag/v1.0.1){target="_blank"}
 ```
 
 1. **Summary paragraph first.** One to three sentences: what is different for the player and why it matters. Lead with the biggest change. If a release only restores compatibility, say so plainly.
-2. **One bullet per change**, most noticeable first. Start with the place or feature in bold, then say what the player sees now: "now …", "no longer …". Name where to find it (`Settings → Display`) and its shortcut (`⌘T`).
+2. **One bullet per change**, most noticeable first. Start with the place or feature in bold, then say what the player sees now: "now …", "no longer …". Name where to find it (`Settings → Appearance`) and its shortcut (`⌘T`).
 3. **Player words only.** Describe what changed in the game, not how: no PR numbers, proofs, certification, refactors, or release tooling. If players cannot notice a change, leave it out.
 4. **Optional sections**, in this order and only when they have content: `## Known issues`, `## Notes`. Notes are for things players must do or know, for example "Restart Guild Wars once after the update."
 5. **End with the technical record link.**
