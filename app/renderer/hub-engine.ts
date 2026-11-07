@@ -53,10 +53,11 @@ export type HubState<S extends Located, V extends Located> = Readonly<{
   /** The page a blur or another window left, when, and the session that suspension ended. */
   suspended: Readonly<{ page: HubPage<S, V>; at: number; session: number }> | null;
   /**
-   * The row action that started on `session`: while that session lasts, the footer names it and
-   * a repeated Enter answers `again` instead of starting another (HUB-083).
+   * The row or view action that started on `session`: while that session lasts, the footer names
+   * it and a repeated Enter answers `again` instead of starting another (HUB-083). A view action
+   * keeps where the keyboard was, so a page it opens returns there (HUB-019).
    */
-  running: Readonly<{ session: number; label: string; again: string }> | null;
+  running: Readonly<{ session: number; label: string; again: string; focus?: HubFocusTarget }> | null;
   /** A failure while the Hub was closed: the next opening within the resume window names it. */
   carried: Readonly<{ message: string; at: number }> | null;
 }>;
@@ -106,8 +107,13 @@ export type HubEvent<S extends Located, V extends Located> =
   /** An action of `session` succeeded; with a receipt it names what it did. */
   | Readonly<{ type: 'done'; session: number; receipt?: string }>
   | Readonly<{ type: 'failed'; session: number; message: string }>
-  /** A row action starts on this page: `label` names it while it runs, `again` answers a repeated Enter. */
-  | Readonly<{ type: 'start'; label: string; again: string }>
+  /**
+   * The footer primary, a row's Actions entry or a view's primary asks to run: it runs unless an
+   * action of this page still runs, which it names instead (HUB-083).
+   */
+  | Readonly<{ type: 'activate'; view?: boolean }>
+  /** A row or view action starts on this page: `label` names it while it runs, `again` answers a repeated Enter. */
+  | Readonly<{ type: 'start'; label: string; again: string; focus?: HubFocusTarget }>
   /** The action that started on `session` ended. */
   | Readonly<{ type: 'end'; session: number }>
   /** A failure while the Hub is closed waits for the next opening. */
@@ -258,10 +264,16 @@ export function hubReduce<S extends Located, V extends Located>(state: HubState<
       return event.receipt ? step(state, { type: 'notify', message: event.receipt }) : step(state);
     case 'failed':
       return hubTaskLive(state, event.session) ? step(state, { type: 'report', message: event.message }) : step(state, { type: 'notify', message: event.message, failed: true });
-    case 'start': return step({ ...state, running: { session: state.session, label: event.label, again: event.again } });
+    case 'activate': return activate(state, !!event.view);
+    case 'start': return step({ ...state, running: { session: state.session, label: event.label, again: event.again, ...(event.focus ? { focus: event.focus } : {}) } });
     case 'end': return step(state.running?.session === event.session ? { ...state, running: null } : state);
     case 'carry': return step({ ...state, carried: { message: event.message, at: env.now } });
     case 'uncarry': return step(state.carried?.message === event.message ? { ...state, carried: null } : state);
+  }
+
+  function activate(from: State, view: boolean): HubStep<S, V> {
+    const running = hubRunning(from);
+    return running ? step(from, { type: 'report', message: running.again }) : step(from, { type: view ? 'run-view' : 'run' });
   }
 
   function key(from: State, pressed: HubKey, where: HubKeyPlace): HubStep<S, V> {
@@ -283,8 +295,7 @@ export function hubReduce<S extends Located, V extends Located>(state: HubState<
         // Only a plain Enter runs the named primary; a modified Enter is never a second route to it.
         // While a row action runs, Enter names it instead of starting another (HUB-083).
         if (pressed.key === 'Enter' && plain(pressed)) {
-          const running = hubRunning(from);
-          return claimed(pressed.repeat ? none : running ? step(from, { type: 'report', message: running.again }) : step(from, { type: 'run' }));
+          return claimed(pressed.repeat ? none : activate(from, false));
         }
         return none;
       }
@@ -313,10 +324,11 @@ export function hubReduce<S extends Located, V extends Located>(state: HubState<
       case 'view':
         // ⌘↵ submits a form from any of its fields: the view's named primary, as Enter in a text field (HUB-152).
         if (pressed.key === 'Enter' && pressed.meta && !pressed.ctrl && !pressed.alt && !pressed.shift && !pressed.composing && where.primary && where.form) {
-          return claimed(pressed.repeat ? none : step(from, { type: 'run-view' }));
+          return claimed(pressed.repeat ? none : activate(from, true));
         }
-        // Enter in a view runs its named primary, except on a control that Enter activates itself.
-        if (pressed.key === 'Enter' && plain(pressed) && !pressed.composing && where.primary && !where.activates) return claimed(step(from, { type: 'run-view' }));
+        // Enter in a view runs its named primary, except on a control that Enter activates itself;
+        // while it runs, Enter names it, as on a list (HUB-083).
+        if (pressed.key === 'Enter' && plain(pressed) && !pressed.composing && where.primary && !where.activates) return claimed(activate(from, true));
         return none;
     }
   }

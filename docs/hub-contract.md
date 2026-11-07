@@ -3,7 +3,8 @@
 The Hub presents commands over Guild Wars. Its navigation and keys belong to the
 pure engine in `app/renderer/hub-engine.ts`, tested in Node by
 `tests/unit/hub-engine.test.ts`: the page stack, the query, the selection and
-menu, the page session, the row action running on it and a failure carried
+menu, the page session, the row or view action running on it (one at a
+time: Enter, the footer and Actions name it while it runs) and a failure carried
 across a close. What a list shows and which row it selects (its ranking with
 pins, phrases and commands, ties, the initial row and a selection handed on by
 a loading row) are pure functions in `app/renderer/hub-results.ts`, tested by

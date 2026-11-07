@@ -6,7 +6,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { HubDestination } from '../../app/shared/hub.js';
 import {
-  HUB_RESUME_MS, hubInitialState, hubReduce, hubSuspendedOn,
+  HUB_RESUME_MS, hubInitialState, hubReduce, hubRunning, hubSuspendedOn,
   type HubEnv, type HubEvent, type HubKey, type HubKeyPlace, type HubPlace, type HubState, type HubStep,
 } from '../../app/renderer/hub-engine.js';
 
@@ -251,6 +251,29 @@ test('Back passes over pages whose source went away, to Home when none is left',
 });
 
 // hub-intent.spec.ts 'temporary blur resumes the stage and focus while explicit close starts fresh'
+// hub-keyboard-model.spec.ts 'a view's primary runs once per Enter' and HUB-083 for a view's footer action
+test('a view action runs as the page\'s running action: Enter, ⌘↵ and the footer name it until it ends', () => {
+  const page = opened(enter({ scope: travel, view: settings })).state;
+  const where = { zone: 'view', key: 'settings-save' } as const;
+  const started = reduce(page, { type: 'start', label: 'Save', again: 'Save is still running.', focus: where }).state;
+  const again = [{ type: 'report', message: 'Save is still running.' }];
+  const submit = press(key('Enter', { meta: true }), view({ form: true }));
+  const cases: [string, State, Event, unknown[]][] = [
+    ['Enter runs the named primary', page, press(key('Enter'), view()), [{ type: 'run-view' }]],
+    ['⌘↵ submits the form', page, submit, [{ type: 'run-view' }]],
+    ['the footer runs it', page, { type: 'activate', view: true }, [{ type: 'run-view' }]],
+    ['Enter while it runs names it', started, press(key('Enter'), view()), again],
+    ['⌘↵ while it runs names it', started, submit, again],
+    ['the footer while it runs names it', started, { type: 'activate', view: true }, again],
+    ['a row Actions entry while it runs names it', started, { type: 'activate' }, again],
+    ['after its own end Enter runs again', reduce(started, { type: 'end', session: started.session }).state, press(key('Enter'), view()), [{ type: 'run-view' }]],
+  ];
+  for (const [name, state, event, effects] of cases) assert.deepEqual(reduce(state, event).effects, effects, name);
+  // A page the action opens returns where the keyboard was when it started (HUB-019); a new page ends that.
+  assert.deepEqual(hubRunning(started)?.focus, where);
+  assert.equal(hubRunning(reduce(started, enter({ scope: builds, view: null })).state), null);
+});
+
 // hub-session.spec.ts 'a carried failure expires with the existing 90-second Hub resume window'
 test('a suspended page resumes inside the 90-second window, and later the Hub opens fresh at Home', () => {
   const page = opened(enter({ scope: travel, view: null }, 'lion'), { type: 'select', id: 'lions-arch' });
@@ -327,6 +350,29 @@ test('a repeated Enter names the running action; the action ends only its own ru
   const restarted = reduce(typed, { type: 'start', label: 'Traveling…', again: 'Travel is still running.' }).state;
   assert.equal(reduce(restarted, { type: 'end', session }).state.running?.label, 'Traveling…');
   assert.equal(reduce(started.state, { type: 'end', session }).state.running, null);
+});
+
+// hub-keyboard-model.spec.ts 'a view's primary runs once per Enter' and HUB-083 for a view's footer action
+test('a view action runs as the page\'s running action: Enter, ⌘↵ and the footer name it until it ends', () => {
+  const page = opened(enter({ scope: travel, view: settings })).state;
+  const where = { zone: 'view', key: 'settings-save' } as const;
+  const started = reduce(page, { type: 'start', label: 'Save', again: 'Save is still running.', focus: where }).state;
+  const again = [{ type: 'report', message: 'Save is still running.' }];
+  const submit = press(key('Enter', { meta: true }), view({ form: true }));
+  const cases: [string, State, Event, unknown[]][] = [
+    ['Enter runs the named primary', page, press(key('Enter'), view()), [{ type: 'run-view' }]],
+    ['⌘↵ submits the form', page, submit, [{ type: 'run-view' }]],
+    ['the footer runs it', page, { type: 'activate', view: true }, [{ type: 'run-view' }]],
+    ['Enter while it runs names it', started, press(key('Enter'), view()), again],
+    ['⌘↵ while it runs names it', started, submit, again],
+    ['the footer while it runs names it', started, { type: 'activate', view: true }, again],
+    ['a row Actions entry while it runs names it', started, { type: 'activate' }, again],
+    ['after its own end Enter runs again', reduce(started, { type: 'end', session: started.session }).state, press(key('Enter'), view()), [{ type: 'run-view' }]],
+  ];
+  for (const [name, state, event, effects] of cases) assert.deepEqual(reduce(state, event).effects, effects, name);
+  // A page the action opens returns where the keyboard was when it started (HUB-019); a new page ends that.
+  assert.deepEqual(hubRunning(started)?.focus, where);
+  assert.equal(hubRunning(reduce(started, enter({ scope: builds, view: null })).state), null);
 });
 
 // hub-session.spec.ts 'a carried failure expires with the existing 90-second Hub resume window'

@@ -128,7 +128,6 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
   /** The mounted view's footer: its named primary and secondary. */
   type ViewFooter = { primary: HubViewAction | null; secondary: HubViewAction | null };
   let viewFooter: ViewFooter | null = null;
-  let viewRunning = false;
   let viewArming: { label: string; arming: ReturnType<typeof armConfirmation> } | null = null;
   let disposeView: (() => void) | null = null;
   /** The search names what it searches, as placeholder and accessible name alike (HUB-096). */
@@ -137,10 +136,8 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     const name = content ? `Search ${content}…` : page ? `Search in ${page}…` : 'Search people, places, builds…';
     patch('search', { placeholder: name, label: name });
   };
-  /** Where the keyboard was when the running view action started: a page it opens returns there (HUB-019). */
-  let actionFocus: HubFocusTarget | null = null;
-  /** Where the keyboard is, as the target a page returns to. */
-  const focusTarget = () => actionFocus ?? ui.focus.capture();
+  /** Where the keyboard is, as the target a page returns to; a running view action's page returns where it started (HUB-019). */
+  const focusTarget = () => hubRunning(state)?.focus ?? ui.focus.capture();
   const pageTitle = (page: Place) => page.view?.title ?? page.scope?.title ?? 'Home';
   const sourceLive = (owner: HubSource) => sources.has(owner) && sourceEnabled(owner);
   const pageLive = (page: Place) =>
@@ -156,8 +153,8 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     if (!state.menu && !model.menu.hidden) { patch('menu', { hidden: true, items: NONE }); patch('actions', { expanded: false }); }
     return next;
   }
-  /** What an effect needs from the DOM event that caused it, and a direct destination's way to open. */
-  type Cause = Readonly<{ event?: Event; open?: () => void }>;
+  /** What an effect needs from the DOM event that caused it, a direct destination's way to open, and the Actions entry to run. */
+  type Cause = Readonly<{ event?: Event; open?: () => void; action?: HubAction }>;
   const send = (event: HubEvent<RowScope, MountedView>, cause: Cause = {}) => apply(step(event), cause);
   function apply(next: HubStep<RowScope, MountedView>, cause: Cause = {}) {
     if (next.claim && cause.event) { cause.event.preventDefault(); if (next.claim.stop) cause.event.stopPropagation(); }
@@ -173,7 +170,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
       case 'announce': announceDestination(); return;
       case 'select': if (effect.hover === 'hold') hover.hold(); else hover.release(); select(effect.id, !!effect.scroll); return;
       case 'focus': requestFocus(effect.target); return;
-      case 'run': void run(); return;
+      case 'run': void run(cause.action); return;
       case 'navigate': { const row = rows.find(row => row.id === state.selected); if (row?.navigate) { const task = startTask(); callOut(() => row.navigate?.(task)); } return; }
       case 'run-view': void runViewAction(viewFooter?.primary ?? null, cause.event); return;
       case 'open-menu': openMenu(); return;
@@ -313,8 +310,8 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
   const setActions = (disabled: boolean) => patch('actions', { keys: true, disabled });
   /** `aria-busy` and the thin bar under the search while this page's action runs or the status line shows progress. */
   function paintBusy() {
-    const working = busy() || ((viewRunning || viewFooter?.primary?.running) && !!viewFooter) || progressInStatus;
-    put('busy', { panel: working, list: busy(), view: !!(viewRunning || viewFooter?.primary?.running) && !!viewFooter });
+    const view = !!viewFooter && (busy() || !!viewFooter.primary?.running);
+    put('busy', { panel: busy() || view || progressInStatus, list: busy() && !viewFooter, view });
   }
   /** The footer's key legend names only keys that act here and now. */
   function paintLegend(row: HubRow | undefined) {
@@ -334,31 +331,39 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     if (!viewFooter) return;
     const action = viewFooter.primary ?? done;
     // Enter runs a named primary, so only that one carries the keycap, and not while it runs.
-    setPrimary({ label: action.label, keycap: !!viewFooter.primary && !viewRunning && !action.running,
-      disabled: !!action.disabled || viewRunning || !!action.running, variant: action.destructive ? 'danger' : 'primary' });
+    const running = busy();
+    setPrimary({ label: action.label, keycap: !!viewFooter.primary && !running && !action.running,
+      disabled: !!action.disabled || running || !!action.running, variant: action.destructive ? 'danger' : 'primary' });
     if (!action.armed) { viewArming?.arming.disarm(); viewArming = null; }
     else if (viewArming?.label !== action.label) {
       viewArming?.arming.disarm(); viewArming = { label: action.label, arming: armConfirmation(primary) }; viewArming.arming.arm();
     }
     // A footer update invalidates menu snapshots before their actions can be activated.
     closeMenu(false);
-    setActions(!viewFooter.secondary || viewRunning);
+    setActions(!viewFooter.secondary || running);
     put('count', '');
     paintLegend(undefined);
     paintBusy();
   }
-  /** Runs a view's footer action once; an armed primary refuses anything before it arms and any multi-click. */
+  /**
+   * Runs a view's footer action once, as the engine's running action of this page; an armed
+   * primary refuses anything before it arms and any multi-click.
+   */
   async function runViewAction(action: HubViewAction | null, event?: Event) {
     const current = viewFooter;
-    if (!current || !action || action.disabled || viewRunning) return;
+    if (!current || !action || action.disabled || busy()) return;
     if (action.armed && !viewArming?.arming.accepts(event)) return;
-    const task = startTask();
+    const task = startTask(), started = state.session;
     // The footer slot disables while its action runs; a page the action opens still returns to it.
-    actionFocus = focusTarget();
-    viewRunning = true; report(''); paintViewFooter();
+    step({ type: 'start', label: action.label, again: `${action.label} is still running.`, focus: focusTarget() });
+    report(''); paintViewFooter();
     try { await callOut(() => action.run(task)); }
     catch (error) { task.fail(error); }
-    finally { task.end(); if (viewFooter === current) { actionFocus = null; viewRunning = false; paintViewFooter(); } }
+    finally {
+      task.end();
+      if (state.running?.session === started) step({ type: 'end', session: started });
+      if (viewFooter === current) paintViewFooter();
+    }
   }
   const hover = createHoverSelection();
   const pointerRow = (event: Event) => {
@@ -386,7 +391,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
   // Enter on the picker copies the card it prices, as Enter on the search does (HUB-022).
   list.addEventListener('keydown', entry((event: KeyboardEvent) => {
     if (!onRates(event) || !(event.target instanceof HTMLSelectElement)) return;
-    if (event.key === 'Enter' && !event.repeat && !event.isComposing && !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey) { event.preventDefault(); void run(); }
+    if (event.key === 'Enter' && !event.repeat && !event.isComposing && !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey) { event.preventDefault(); send({ type: 'activate' }); }
   }));
   // Source notifications change context and lifecycle facts, not the current page or search.
   function paintSourceFacts() {
@@ -529,14 +534,15 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
       end: entry(() => { if (progress?.owner !== token) return; progress = null; if (progressInStatus) report(''); }),
     };
   }
-  /** Runs the selected row's primary, or one of its Actions (HubRow `actions`), as a task of this page. */
+  /**
+   * Runs the selected row's primary, or one of its Actions (HubRow `actions`), as a task of this
+   * page. Only the engine's `run` effect calls it, so an action of this page that still runs is
+   * named instead of started again (HUB-083).
+   */
   async function run(chosen?: HubAction) {
     const row = chosen ? undefined : rows.find(row => row.id === state.selected);
     const action = chosen ?? (row && { ...row, label: row.action });
     if (!action) return;
-    // One action at a time per page: Enter names the running one instead of starting another.
-    const working = hubRunning(state);
-    if (working) { report(working.again); return; }
     if (action.unavailable) { report(action.unavailable); return; }
     const task = startTask(), started = state.session;
     step({ type: 'start', label: action.pending?.label ?? action.label, again: action.pending?.again ?? `${action.label} is still running.` });
@@ -560,7 +566,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
   function resetView() {
     keepDrafts(); modal.pageChanged(); closeMenu(false);
     disposeView?.(); disposeView = null; content.replaceChildren(); patch('view', { hidden: true });
-    viewFooter = null; viewRunning = false; actionFocus = null; viewArming?.arming.disarm(); viewArming = null;
+    viewFooter = null; viewArming?.arming.disarm(); viewArming = null;
     patch('search', { hidden: false }); patch('results', { hidden: false });
   }
   /** Draws Home with the query the engine brought back. */
@@ -722,12 +728,12 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
    * the Hub can keep (HUB-040, HUB-184).
    */
   function menuEntries(row: HubRow): MenuEntry[] {
-    const entries: MenuEntry[] = [{ label: row.action, section: 'Primary', keys: ['↵'], ...(row.destructive ? { destructive: true } : {}), disabled: !!row.unavailable, ...(row.unavailable ? { reason: row.unavailable } : {}), run: () => run() }];
+    const entries: MenuEntry[] = [{ label: row.action, section: 'Primary', keys: ['↵'], ...(row.destructive ? { destructive: true } : {}), disabled: !!row.unavailable, ...(row.unavailable ? { reason: row.unavailable } : {}), run: () => send({ type: 'activate' }) }];
     for (const action of row.actions?.() ?? []) entries.push({
       label: action.label, section: 'Details', disabled: !!action.unavailable,
       ...(action.unavailable ? { reason: action.unavailable } : {}),
       ...(action.destructive ? { destructive: true } : {}),
-      run: () => run(action),
+      run: () => send({ type: 'activate' }, { action }),
     });
     if (isHubShortcuts([{ id: row.id, phrase: '', pinned: false }]) && lookup(row.id)) {
       const pinned = shortcuts().some(entry => entry.id === row.id && entry.pinned);
@@ -755,7 +761,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
   /** Opens the current page's Actions over the footer; the page, query and selection stay. */
   function openMenu() {
     const row = rows.find(row => row.id === state.selected);
-    if (busy() || viewRunning || (!viewFooter && !row)) return;
+    if (busy() || (!viewFooter && !row)) return;
     const entries = viewFooter ? viewMenuEntries(viewFooter) : menuEntries(row!);
     if (entries.length < 2) return;
     step({ type: 'menu', row: viewFooter ? null : row!.id });
@@ -782,7 +788,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
   closeButton.onclick = entry(() => close());
   // The primary acts once per click run, so a double-click on it runs its action once.
   backButton.onclick = entry(back);
-  primary.onclick = entry((event: MouseEvent) => { if (event.detail > 1) return; if (viewFooter) void runViewAction(viewFooter.primary ?? done, event); else void run(); });
+  primary.onclick = entry((event: MouseEvent) => { if (event.detail > 1) return; if (viewFooter) void runViewAction(viewFooter.primary ?? done, event); else send({ type: 'activate' }); });
   root.addEventListener('close', entry(() => { if (!root.open && !state.suspended) close(); }));
   const onBlur = entry(() => suspend());
   const onSettings = entry(() => {
