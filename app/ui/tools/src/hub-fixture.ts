@@ -11,7 +11,7 @@ import { resolveShortcuts, shortcutConflict, shortcutFromInput, shortcutReserved
 /** Disposable Hub workbench: synthetic state, no native IPC or game commands. */
 // Offline fixture exercises the production Hub mounting owner.
 // eslint-disable-next-line no-restricted-imports
-import { toggleHubWhispers, whisperFocusReturn } from '../../../renderer/hub-whisper';
+import { toggleHubWhispers, whisperFocusReturn } from '../../../features/whispers/renderer/hub-whisper';
 // eslint-disable-next-line no-restricted-imports
 import type {} from '../../../renderer/gw-native';
 // eslint-disable-next-line no-restricted-imports

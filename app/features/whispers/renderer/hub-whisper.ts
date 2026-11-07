@@ -2,9 +2,9 @@
  * Routes Hub and shortcut entry points to the one floating whisper session.
  * The existing session retains drafts and transcripts when its window is hidden.
  */
-import type { WhisperSession } from '../shared/whisper-session.js';
-import type { Hub } from './hub.js';
-import { focusable } from '../shared/ui/focusable.js';
+import type { WhisperSession } from '../../../shared/whisper-session.js';
+import type { Hub } from '../../../renderer/hub.js';
+import { focusable } from '../../../shared/ui/focusable.js';
 
 export function toggleHubWhispers(event: Event, hub: Hub, root: HTMLElement, session: WhisperSession) {
   event.preventDefault();

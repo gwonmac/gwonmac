@@ -2,7 +2,7 @@
  * Owns input isolation and Vue lifetime for the optional whisper surface.
  * Temporary region withdrawal hides the view without losing its placement.
  */
-import { toggleHubWhispers, whisperFocusReturn } from '../../../renderer/hub-whisper.js';
+import { toggleHubWhispers, whisperFocusReturn } from './hub-whisper.js';
 import type { WhisperSession } from "../../../shared/whisper-session.js";
 import type { EmbeddedToolsBundle } from "../../../shared/tools-bundle-contracts.js";
 import { createNonActivatingSurface, isolateFromGame } from "../../../renderer/non-activating-surface.js";
