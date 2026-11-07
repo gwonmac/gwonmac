@@ -1,11 +1,13 @@
 /* The launcher's design tokens: every launcher colour, and its radius and type
-   scales, named once. The launcher window reads them from :root. The game's Hub
-   draws the Settings page without the launcher's stylesheet, so .settings-view
-   carries the same names there; hub-settings.css re-points the --settings-*
-   tokens that follow the Hub's theme.
+   scales, named once. The launcher window reads them from its <html data-launcher>.
+   The game's Hub draws the Settings page without the launcher's stylesheet, so
+   .settings-view carries the same names there, and only there: the game
+   document's :root never gets a launcher name, so a Tools rule that reads one
+   finds nothing. hub-settings.css re-points the --settings-* tokens that follow
+   the Hub's theme.
    tests/unit/the-ui-system-has-one-place-to-change-a-colour.test.ts enforces
    that launcher rules use only these names. */
-:root, .settings-view {
+:root[data-launcher], .settings-view {
   /* Surfaces, darkest to lightest. */
   --bg: #090907;
   --sunken: #0c0c0a;
@@ -84,8 +86,8 @@
   --font-display: "GW Display", Georgia, serif;
 }
 @media (prefers-reduced-transparency: reduce) {
-  :root, .settings-view { --chrome: var(--sunken); }
+  :root[data-launcher], .settings-view { --chrome: var(--sunken); }
 }
 @media (prefers-contrast: more) {
-  :root, .settings-view { --line: rgba(255, 255, 255, .35); --muted: #d4cec5; }
+  :root[data-launcher], .settings-view { --line: rgba(255, 255, 255, .35); --muted: #d4cec5; }
 }

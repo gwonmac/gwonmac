@@ -2,10 +2,14 @@
 // component is invisible in review and becomes an accidental second style.
 //
 // - The launcher names its colours once, in `app/ui/launcher/src/tokens.css`.
-//   The launcher window and the Hub's copy of the Settings page both load it.
-// - Everything drawn in the game (the Hub, the Tools, the renderer's own
-//   overlays) resolves through `app/shared/ui/tokens.css`. That is what makes
-//   `--ui-radius: 0` square the whole interface instead of most of it.
+//   Those names apply on the launcher's `<html data-launcher>` and on
+//   `.settings-view` only, so the Hub's copy of the Settings page has them and
+//   the rest of the game document does not.
+// - Every other stylesheet drawn in the game (the Hub, the Tools, the renderer
+//   and feature overlay .css files) reads only names from
+//   `app/shared/ui/tokens.css` or names it sets itself. Files on
+//   `NOT_YET_TOKENISED`, and overlays that set colours from TypeScript, are
+//   outside what this test can see.
 //
 // So the claim is enforced rather than asserted, over every stylesheet and
 // every `.vue` `<style>` block, found by glob: a new file is covered the day it
@@ -117,6 +121,36 @@ const excused = (path: string, rule: Rule) => NOT_YET_TOKENISED[path]?.rules.inc
 const checked = (rule: Rule) => files.filter(({ path }) => !excused(path, rule));
 const file = (path: string) => files.find((entry) => entry.path === path)!;
 
+/** CSS named colours. `transparent`, `currentColor` and `inherit` are not paint of their own. */
+const NAMED_COLOURS = new Set(`aliceblue antiquewhite aqua aquamarine azure beige bisque black blanchedalmond blue
+blueviolet brown burlywood cadetblue chartreuse chocolate coral cornflowerblue cornsilk crimson cyan darkblue
+darkcyan darkgoldenrod darkgray darkgreen darkgrey darkkhaki darkmagenta darkolivegreen darkorange darkorchid
+darkred darksalmon darkseagreen darkslateblue darkslategray darkslategrey darkturquoise darkviolet deeppink
+deepskyblue dimgray dimgrey dodgerblue firebrick floralwhite forestgreen fuchsia gainsboro ghostwhite gold
+goldenrod gray green greenyellow grey honeydew hotpink indianred indigo ivory khaki lavender lavenderblush
+lawngreen lemonchiffon lightblue lightcoral lightcyan lightgoldenrodyellow lightgray lightgreen lightgrey
+lightpink lightsalmon lightseagreen lightskyblue lightslategray lightslategrey lightsteelblue lightyellow lime
+limegreen linen magenta maroon mediumaquamarine mediumblue mediumorchid mediumpurple mediumseagreen
+mediumslateblue mediumspringgreen mediumturquoise mediumvioletred midnightblue mintcream mistyrose moccasin
+navajowhite navy oldlace olive olivedrab orange orangered orchid palegoldenrod palegreen paleturquoise
+palevioletred papayawhip peachpuff peru pink plum powderblue purple rebeccapurple red rosybrown royalblue
+saddlebrown salmon sandybrown seagreen seashell sienna silver skyblue slateblue slategray slategrey snow
+springgreen steelblue tan teal thistle tomato turquoise violet wheat white whitesmoke yellow yellowgreen`.split(/\s+/u));
+
+/** Properties whose value is or holds a colour. A custom property counts: `--x: white` is still a raw colour. */
+const COLOUR_PROPERTY = /^(?:--[a-z0-9-]+|color|background(?:-color|-image)?|border(?:-[a-z]+)*|outline(?:-color)?|(?:box|text)-shadow|fill|stroke|caret-color|accent-color|text-decoration(?:-color)?|column-rule(?:-color)?|scrollbar-color|-webkit-text-fill-color|-webkit-tap-highlight-color|filter)$/u;
+
+/** The first named colour a line paints with, if any. */
+function namedColour(line: string): string | undefined {
+  for (const [, property, value] of line.matchAll(/([a-z-]+)\s*:\s*([^;{}]*)/gu)) {
+    if (!COLOUR_PROPERTY.test(property!)) continue;
+    const words = value!.replace(/url\([^)]*\)|"[^"]*"|'[^']*'|--[a-z0-9-]+/gu, " ").match(/(?<![-\w.#])[a-z]+(?![-\w])/giu) ?? [];
+    const found = words.find((word) => NAMED_COLOURS.has(word.toLowerCase()));
+    if (found) return found;
+  }
+  return undefined;
+}
+
 /** A token source may hold literals only where it declares a token. */
 const withoutTokenDeclarations = (css: string) =>
   css.replace(/--[a-z0-9-]+\s*:[^;}]*/g, (declaration) => declaration.replace(/[^\n]/g, " "));
@@ -134,7 +168,7 @@ function offences(rule: Rule, { path, css }: StyleFile): string[] {
       const hex = line.match(/#[0-9a-fA-F]{3,8}\b/);
       const fn = line.match(/\b(rgba?|hsla?|oklch|lab|lch)\(/);
       const mix = !TOKEN_SOURCES.has(path) && path !== "app/shared/ui/components.css" && line.match(/\bcolor-mix\(/);
-      if (hex || fn || mix) found.push(at + line.trim());
+      if (hex || fn || mix || namedColour(line)) found.push(at + line.trim());
     } else if (rule === "radius") {
       // Every radius declaration on the line, not just the first: a rule
       // written on one line would otherwise hide behind its neighbour.
@@ -176,6 +210,18 @@ const local = (source: string) => new Set([...source.matchAll(/['"](--[a-z0-9-]+
 
 const tokens = readFileSync(TOKENS, "utf8");
 const inGameTokens = declared(tokens, "--ui-");
+const inGameNames = declared(tokens);
+/** Names an in-game file may read without declaring them, each with the reason. */
+const IN_GAME_PROVIDED: Record<string, string> = {
+  "--ui-profession": "set per element from TypeScript to the profession's colour",
+  "--cartography-control-size": "overlay-controls.ts sets it from COMPASS_CONTROL_SIZE",
+  "--cartography-panel-width": "overlay-controls.ts sets it from PANEL_WIDTH",
+  "--cartography-trigger-border": "overlay-controls.ts sets it from the active map style's boundary colour",
+  "--compass-range-control-size": "compass-range-controls.ts sets it from COMPASS_CONTROL_SIZE",
+  "--compass-range-panel-width": "compass-range-controls.ts sets it from PANEL_WIDTH",
+  "--compass-range-color": "compass-range-controls.ts sets it per range from compass-ranges.ts",
+  "--character-cards": "character-switch-palette.ts sets the carousel's card count",
+};
 const launcherTokens = declared(readFileSync(LAUNCHER_TOKENS, "utf8"));
 const settingsTokens = declared(readFileSync(SETTINGS, "utf8"), "--settings-");
 
@@ -269,7 +315,10 @@ test("the Hub's Settings page loads the launcher tokens it reads", () => {
   // on .settings-view there, every launcher colour on the page drops out.
   const hubEntry = readFileSync("app/ui/launcher/src/hub-entry.ts", "utf8");
   assert.match(hubEntry, /import "\.\/tokens\.css";\s*import "\.\/settings-view\.css";/u);
-  assert.match(code(readFileSync(LAUNCHER_TOKENS, "utf8")), /^:root, \.settings-view \{/mu);
+  assert.match(code(readFileSync(LAUNCHER_TOKENS, "utf8")), /^:root\[data-launcher\], \.settings-view \{/mu);
+  // Only the launcher's own document carries the attribute, so the names never
+  // reach the game document's :root.
+  assert.match(readFileSync("app/ui/launcher/index.html", "utf8"), /<html [^>]*\bdata-launcher\b/u);
 });
 
 /** Each rule as its at-rule context, its selectors and its property names. */
@@ -316,17 +365,19 @@ test("Settings sets each property of a selector in one rule", () => {
 
 test("every token a stylesheet uses is actually declared", () => {
   // An undeclared token is a declaration the browser drops: the rule silently
-  // loses its colour. In-game files read `--ui-*` from tokens.css; launcher
-  // files read the launcher's own `:root` names and the `--settings-*` set.
+  // loses its colour. In-game files read app/shared/ui/tokens.css and their
+  // own names: a launcher name read there passes in the launcher's tests and
+  // paints nothing in the game. Launcher files read the launcher tokens and
+  // the `--settings-*` set.
   const missing: string[] = [];
   for (const { path, system, css, source } of files) {
+    const own = new Set([...declared(css), ...local(source)]);
     if (system === "in-game") {
-      for (const name of referenced(css, "--ui-")) {
-        if (name !== "--ui-profession" && !inGameTokens.has(name)) missing.push(`${path}: ${name}`);
+      for (const name of referenced(css)) {
+        if (!inGameNames.has(name) && !own.has(name) && !(name in IN_GAME_PROVIDED)) missing.push(`${path}: ${name}`);
       }
       continue;
     }
-    const own = new Set([...declared(css), ...local(source)]);
     for (const name of referenced(css)) {
       if (!launcherTokens.has(name) && !settingsTokens.has(name) && !own.has(name)) missing.push(`${path}: ${name}`);
     }
@@ -344,7 +395,7 @@ test("every token declared is actually read", () => {
 
   const usedByLauncher = new Set(files.filter(({ system }) => system === "launcher").flatMap(({ css }) => [...referenced(css)]));
   const unusedByLauncher = [...launcherTokens].filter((name) => !usedByLauncher.has(name));
-  assert.deepEqual(unusedByLauncher, [], `declared in style.css but never read: ${unusedByLauncher.join(", ")}`);
+  assert.deepEqual(unusedByLauncher, [], `declared in the launcher tokens.css but never read: ${unusedByLauncher.join(", ")}`);
 });
 
 test("no token reference carries a leftover alpha suffix", () => {

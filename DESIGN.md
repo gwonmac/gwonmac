@@ -18,13 +18,16 @@ macOS supplies interaction.
   for destructive actions and green for an already-open account.
 - The launcher names every colour once, in `app/ui/launcher/src/tokens.css`,
   beside its radius and type scales. Shell rules and components use only those
-  names. The game's Hub draws the Settings page too and loads the same file;
-  the `--settings-*` tokens are the part the Hub re-points to its theme in
-  `hub-settings.css`. Settings sets each property of a selector in one rule.
+  names. The game's Hub draws the Settings page too and loads the same file,
+  whose names apply only on the launcher's `<html data-launcher>` and on
+  `.settings-view`, never on the game's `:root`; the `--settings-*` tokens are
+  the part the Hub re-points to its theme in `hub-settings.css`. Everything
+  else drawn in the game reads `app/shared/ui/tokens.css`. Settings sets each
+  property of a selector in one rule.
   `tests/unit/the-ui-system-has-one-place-to-change-a-colour.test.ts` checks
   every stylesheet and `.vue` style block, found by glob: it rejects raw
-  colours, undefined tokens, and corners or stacking orders that are not
-  tokens. Files that cannot meet a rule yet are listed there with the reason.
+  colours (hex, colour functions and named colours), tokens the file's system
+  does not declare, and corners or stacking orders that are not tokens. Files that cannot meet a rule yet are listed there with the reason.
 - The launcher has one button vocabulary: `.primary` (gold, one per view),
   `.secondary`, `.quiet`, `.icon-button`, and `.small` for rows. Settings draws
   the same classes in one dense size of its own, because the Hub has no
