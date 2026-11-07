@@ -73,6 +73,7 @@ const NOT_YET_TOKENISED: Record<string, { rules: Rule[]; reason: string }> = {
   },
   [SETTINGS]: { rules: ["radius", "z-index"], reason: LAUNCHER_SCALE },
   "app/ui/launcher/src/style.css": { rules: ["radius", "z-index"], reason: LAUNCHER_SCALE },
+  "app/ui/launcher/src/components/BaseModal.vue": { rules: ["z-index"], reason: LAUNCHER_SCALE },
   "app/ui/launcher/src/components/ColorControl.vue": { rules: ["radius"], reason: LAUNCHER_SCALE },
   "app/ui/launcher/src/components/HomeView.vue": { rules: ["radius", "z-index"], reason: LAUNCHER_SCALE },
   "app/ui/launcher/src/components/MapStylePreview.vue": { rules: ["radius"], reason: LAUNCHER_SCALE },

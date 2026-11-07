@@ -4,6 +4,8 @@ import type { LauncherNativeApi, LauncherSnapshot } from "@shared/launcher-contr
 import { SETTINGS, type SettingsTarget } from "@shared/settings-catalogue";
 import SettingsView from "./SettingsView.vue";
 import { fixtureSnapshot } from "../fixtures";
+import { CARTOGRAPHY_BUILTIN_PRESETS } from "@shared/cartography-overlay";
+import { addCartographyPreset } from "@shared/cartography-presets";
 
 const allToolsOn: LauncherSnapshot = {
   ...fixtureSnapshot,
@@ -182,6 +184,19 @@ describe("Settings page", () => {
     expect(wrapper.get(".settings-fields h1").text()).toBe("Tools");
     await openSection(wrapper, "Maps");
     expect(wrapper.get(".settings-fields h1").text()).toBe("Maps");
+  });
+
+  it("in the Hub, opens a Settings dialog inside the page, where the launcher tokens apply", async () => {
+    // The game document carries no launcher tokens or modal styles on <body>.
+    const { tools, shortcuts } = fixtureSnapshot;
+    const library = addCartographyPreset(fixtureSnapshot.settings.cartographyPresetLibrary, { id: "test-style", name: "My map", style: CARTOGRAPHY_BUILTIN_PRESETS.cartographer.style })!;
+    const settings = { ...fixtureSnapshot.settings, cartographyPresetLibrary: library };
+    const wrapper = mount(SettingsView, { props: { snapshot: { settings, tools, shortcuts }, native: undefined, openInLauncher: vi.fn(), target: { section: "maps" } } });
+    await flushPromises();
+    await wrapper.findAll("button").find(button => button.text() === "Delete custom style")!.trigger("click");
+    await flushPromises();
+    expect(wrapper.element.querySelector(".settings-view [role='dialog']")?.textContent).toContain("Delete My map?");
+    wrapper.unmount();
   });
 
   it("loads real cache information when Game Files opens", async () => {
