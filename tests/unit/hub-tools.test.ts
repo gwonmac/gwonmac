@@ -35,13 +35,19 @@ const everyFeature = Object.fromEntries(Object.values(FEATURE_SELECTION_POLICIES
 
 test('every word a Tools row answered still finds it', () => {
   // The Tools rows as the Hub's built-in commands draw them (hub-commands.ts).
+  const previous = Object.getOwnPropertyDescriptor(globalThis, 'window');
   Object.assign(globalThis, { window: { gwToolsSettings: () => everyFeature } });
-  const hub = { close() {}, show() {}, showRows() {}, suspend() {}, shortcuts: { lookup: () => undefined } };
-  const { commands } = createHubCommands(hub, () => async () => {});
-  assert.ok(commands);
-  const rows = commands('').filter(row => row.group === 'Tools');
-  assert.deepEqual(rows.map(row => row.id), HUB_TOOL_ROWS.map(tool => tool.id));
-  for (const [id, words] of OLD_HUB_WORDS) for (const word of words.split(' ')) {
-    assert.ok(matchHubRows(rows, word).some(row => row.id === id), `${word} finds ${id}`);
+  try {
+    const hub = { close() {}, show() {}, showRows() {}, suspend() {}, shortcuts: { lookup: () => undefined } };
+    const { commands } = createHubCommands(hub, () => async () => {});
+    assert.ok(commands);
+    const rows = commands('').filter(row => row.group === 'Tools');
+    assert.deepEqual(rows.map(row => row.id), HUB_TOOL_ROWS.map(tool => tool.id));
+    for (const [id, words] of OLD_HUB_WORDS) for (const word of words.split(' ')) {
+      assert.ok(matchHubRows(rows, word).some(row => row.id === id), `${word} finds ${id}`);
+    }
+  } finally {
+    // Other tests in this process see the global they had.
+    if (previous) Object.defineProperty(globalThis, 'window', previous); else Reflect.deleteProperty(globalThis, 'window');
   }
 });
