@@ -15,7 +15,7 @@ import type { WindowRegistry } from "./window-registry.js";
 export type Parser<In> = (args: readonly unknown[]) => In;
 type Run<In, Out> = (win: BrowserWindow, input: In) => Out | Promise<Out>;
 
-interface ChannelDef<In, Out> {
+export interface ChannelDef<In, Out> {
   readonly parse: Parser<In>;
   readonly run: Run<In, Out>;
   readonly role: "game" | "launcher" | "any";
