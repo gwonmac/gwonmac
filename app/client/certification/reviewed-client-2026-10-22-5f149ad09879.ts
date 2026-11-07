@@ -36,5 +36,7 @@ const BUILD: KnownEnhancementBuild = Object.freeze({
 export const OCTOBER_22_REBUILD_FACTS: ClientGeneration = Object.freeze({
   id: "2026-10-22-5f149ad09879",
   builds: Object.freeze([BUILD]),
+  memoryCodeSha256: "5fc5ebe2fc2de26fa9b3b2c00077cb7afd80a34a73d0f4dacaa6b81ba43dc0ed",
+  // Every identity this client gives is already in the October 22 table.
   identities: Object.freeze({}),
 });

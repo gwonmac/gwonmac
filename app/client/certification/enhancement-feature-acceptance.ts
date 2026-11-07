@@ -171,6 +171,30 @@ function matchesGameThreadSafePoint(
     && isDeepStrictEqual(candidate.results, expected.results);
 }
 
+type GuildHall = NonNullable<NonNullable<KnownEnhancementBuild["travelAction"]>["guildHall"]>;
+type DerivedFunction = Readonly<{
+  functionIndex: number; bodySha256: string; params: readonly string[]; results: readonly string[];
+}>;
+
+/** The verifier proved the body; only its index and digest may differ from the record. */
+function matchesDerivedFunction(candidate: DerivedFunction, expected: DerivedFunction): boolean {
+  return isIndex(candidate.functionIndex)
+    && isDigest(candidate.bodySha256)
+    && isDeepStrictEqual(candidate.params, expected.params)
+    && isDeepStrictEqual(candidate.results, expected.results);
+}
+
+function matchesGuildHall(candidate: GuildHall, expected: GuildHall | undefined): boolean {
+  return expected !== undefined
+    && candidate.enqueueExport === expected.enqueueExport
+    && candidate.enterMessageId === expected.enterMessageId
+    && candidate.leaveMessageId === expected.leaveMessageId
+    && isDeepStrictEqual(candidate.layout, expected.layout)
+    && matchesDerivedFunction(candidate.keyAccessor, expected.keyAccessor)
+    && matchesDerivedFunction(candidate.areaTypeAccessor, expected.areaTypeAccessor)
+    && matchesDerivedFunction(candidate.producer, expected.producer);
+}
+
 function matchesTravelAction(
   build: SemanticBuild,
   baseline: KnownEnhancementBuild,
@@ -178,13 +202,14 @@ function matchesTravelAction(
   const candidate = build.travelAction;
   if (candidate === undefined) return true;
   const expected = baseline.travelAction;
+  const guildHall = candidate.guildHall;
   return expected !== undefined
     && candidate.enqueueExport === expected.enqueueExport
     && candidate.configureExport === expected.configureExport
     && candidate.toggleExport === expected.toggleExport
     && candidate.messageId === expected.messageId
-    && (candidate.guildHall === undefined || reviewedBuilds().some(known =>
-      isDeepStrictEqual(candidate.guildHall, known.travelAction?.guildHall)))
+    && (guildHall === undefined || reviewedBuilds().some(known =>
+      matchesGuildHall(guildHall, known.travelAction?.guildHall)))
     && isIndex(candidate.producer.functionIndex)
     && isDigest(candidate.producer.bodySha256)
     && isDeepStrictEqual(candidate.producer.params, expected.producer.params)
@@ -442,9 +467,34 @@ function matchesPlayerSkillbarObservation(
 }
 
 /** Accessor identities with the build-specific function index removed. */
-function withoutIndices(accessors: object): unknown {
-  return Object.fromEntries(Object.entries(accessors)
-    .map(([name, accessor]) => [name, { ...(accessor as object), functionIndex: 0 }]));
+type QuickItemMove = NonNullable<KnownEnhancementBuild["quickItemMove"]>;
+const QUICK_ITEM_MOVE_FUNCTIONS = [
+  "inventorySlot", "materialStorageSlot", "numberPreference", "moveItem", "timer",
+] as const satisfies readonly (keyof QuickItemMove)[];
+
+/** Every reviewed Quick Item Move fact except its five located functions. */
+function quickItemMoveFields(value: QuickItemMove) {
+  const {
+    inventorySlot: _inventorySlot, materialStorageSlot: _materialStorageSlot,
+    numberPreference: _numberPreference, moveItem: _moveItem, timer: _timer, ...fields
+  } = value;
+  return fields;
+}
+
+function matchesQuickItemMove(candidate: QuickItemMove, expected: QuickItemMove): boolean {
+  return isDeepStrictEqual(quickItemMoveFields(candidate), quickItemMoveFields(expected))
+    && QUICK_ITEM_MOVE_FUNCTIONS.every((name) => matchesDerivedFunction(candidate[name], expected[name]));
+}
+
+type ProgressAccessors = NonNullable<KnownEnhancementBuild["progressObservation"]>["accessors"];
+
+function matchesProgressAccessors(candidate: ProgressAccessors, expected: ProgressAccessors): boolean {
+  const expectedByName = new Map<string, DerivedFunction>(Object.entries(expected));
+  const entries = Object.entries(candidate);
+  return entries.length === expectedByName.size && entries.every(([name, accessor]) => {
+    const reviewed = expectedByName.get(name);
+    return reviewed !== undefined && matchesDerivedFunction(accessor, reviewed);
+  });
 }
 
 type OptionalKeys<Value> = {
@@ -493,31 +543,35 @@ const FACT_RULES: Readonly<Record<EnhancementFact, FactRule>> = Object.freeze({
   },
   whisperChat: { independent: (build) => isResignNativeSender(build.whisperChat) },
   resignAction: { independent: (build) => isResignNativeSender(build.resignAction) },
-  // The validator may move between builds; its exact body and signature may not.
+  // The verifier proves the validator's body; index and digest may move.
   chatPrint: {
-    independent: (build) => isIndex(build.chatPrint?.validator.functionIndex)
-      && reviewedBuilds().some((baseline) => baseline.chatPrint !== undefined
-        && isDeepStrictEqual(
-          { ...build.chatPrint?.validator, functionIndex: 0 },
-          { ...baseline.chatPrint.validator, functionIndex: 0 },
-        )),
+    independent: (build) => {
+      const validator = build.chatPrint?.validator;
+      return validator !== undefined && reviewedBuilds().some((baseline) =>
+        baseline.chatPrint !== undefined
+        && matchesDerivedFunction(validator, baseline.chatPrint.validator));
+    },
   },
-  // Accessors may move between builds; their exact bodies and layout may not.
+  // The verifier proves each accessor's body; the layout may not move.
   progressObservation: {
     independent: (build) => reviewedBuilds().some((baseline) =>
       baseline.progressObservation !== undefined
       && build.progressObservation !== undefined
       && isDeepStrictEqual(build.progressObservation.layout, baseline.progressObservation.layout)
-      && isDeepStrictEqual(
-        withoutIndices(build.progressObservation.accessors),
-        withoutIndices(baseline.progressObservation.accessors),
+      && matchesProgressAccessors(
+        build.progressObservation.accessors,
+        baseline.progressObservation.accessors,
       )),
   },
-  // Item and trade fields are reviewed for one exact post-template input.
+  // The verifier proves the module's memory-accessing code equals the
+  // reviewed module's; the reviewed fields may not move.
   quickItemMove: {
-    independent: (build) => reviewedBuilds().some((baseline) =>
-      baseline.sha256 === build.sha256
-      && isDeepStrictEqual(build.quickItemMove, baseline.quickItemMove)),
+    independent: (build) => {
+      const candidate = build.quickItemMove;
+      return candidate !== undefined && reviewedBuilds().some((baseline) =>
+        baseline.quickItemMove !== undefined
+        && matchesQuickItemMove(candidate, baseline.quickItemMove));
+    },
   },
 });
 

@@ -50,8 +50,6 @@ const TARGET_CONTEXT_ROOT_ROLE = semanticRole(
   mutableSpans([[11, 16, "context.root"]]),
   [],
   [],
-  // November 3 client: callee indices and static addresses moved.
-  ["202b2877e9f09f10e195d2fad9f1e84fa80e1441e40f755faa7e008c753e4b47"],
 );
 
 const TARGET_SELECTOR_ROLE = semanticRole(
@@ -97,8 +95,6 @@ const TARGET_RESET_ROLE = semanticRole(
   ]),
   [],
   [],
-  // November 3 client: callee indices and static addresses moved.
-  ["bfe9fef37f8493258ba1aad86dc771e9cd73397c3c63de911494da4e691cdea0"],
 );
 
 const TARGET_CALLER_ROLE = semanticRole(
@@ -146,17 +142,12 @@ const TARGET_SELECTOR_ROLES = [
   ], ["i32", "i32"], [],
   // October 22 client: identical control flow; the related target fields
   // moved with the shared observation storage.
-  ["3789c63f2f9c7189d49ac9d02ba40a7c555fb5f07027d34c6872ff079ee97d16",
-    // November 3 client: callee indices and static addresses moved.
-    "dec129d2452d74af4ad804903de6e7a8461d59bec69fce0c3eaee85bbf0943fa",
-  ]),
+  ["3789c63f2f9c7189d49ac9d02ba40a7c555fb5f07027d34c6872ff079ee97d16"]),
 ];
 const TARGET_CALLER_ROLES = [
   TARGET_CALLER_ROLE,
   semanticRole(214, "a8dcb08cbc985ec871d8537d056bb9a702c0b3dd33c1efdf19dfc6ba6cfbcd4c",
-    TARGET_CALLER_ROLE.spans, ["i32"], [],
-    // November 3 client: callee indices and static addresses moved.
-    ["da100aafc52c295c6e93e2e8905956e728b0b99fa3b025b8ed2dfb53e458968c"]),
+    TARGET_CALLER_ROLE.spans, ["i32"], []),
 ];
 
 const AGENT_ARRAY_LIFECYCLE_ROLE = semanticRole(
@@ -168,8 +159,6 @@ const AGENT_ARRAY_LIFECYCLE_ROLE = semanticRole(
   ]),
   ["i32"],
   [],
-  // November 3 client: callee indices and static addresses moved.
-  ["64adc3404d2ff0e81ed26e45cef55e77c86c5607d252b066c5b1c3b5df0f1414"],
 );
 
 const AGENT_ARRAY_ACCESSOR_ROLE = semanticRole(
@@ -208,18 +197,15 @@ const AREA_TABLE_CERTIFICATES = Object.freeze([
     sentinelRows: 595,
     lookupFingerprint: "bd4e7ffc1a5f105cac4588c61229977f7617d871438ce8c604feff9a39b4e0db",
     normalizedTableSha256: "5bcfe11516ffb36ada1f259e55d4390443cb2d45e0d1d1886167920dbbb19019",
-    // October 22 client: same layout and bound. Content changed only in the
+    // October 22 client: same layout and bound. Content changed in the
     // default of field 56 (1465 -> 1477, a count-style sentinel like field 60)
     // and two text identifiers of row 886. No proved field reads either.
-    // November 3 client: same layout and bound; the field 56 default moved
-    // again (1477 -> 1480). The lookup's assert callee index moved.
-    reviewedTableSha256: Object.freeze([
-      "8f473df78116172e5f6f4c4cc4e6a6bc1e02cadbd7d592eaa2da60e633106df2",
-      "a2dfacbc2c575a32b5012cbe6176a83fd422794564992185f4bbfdcf2bb973e8",
-    ]),
-    reviewedLookupFingerprints: Object.freeze([
-      "3ac5e4e190500ae3258eb58f046f53b92a704589dc2c4312d67a0fc4fdcd57d4",
-    ]),
+    // Field 56 holds its default in `fieldDefaultRows` rows; the default value
+    // itself is erased, so a later client that only moves it (November 3:
+    // 1477 -> 1480) keeps this certificate. Xunlai binds its reader's constant
+    // to the derived default.
+    fieldDefaultRows: 881,
+    defaultNormalizedTableSha256: "6676acd85f6e30139833bfecb1741202f145b775e3076eab6c1496d6bc3a7d84",
   }),
 ]);
 
@@ -229,7 +215,6 @@ const AREA_LOOKUP_ROLES = AREA_TABLE_CERTIFICATES.map((certificate) => semanticR
   AREA_LOOKUP_SPANS,
   ["i32"],
   ["i32"],
-  "reviewedLookupFingerprints" in certificate ? certificate.reviewedLookupFingerprints : [],
 ));
 
 const PLAY_REGION_SEMANTIC_ROLES = Object.freeze({
@@ -242,8 +227,6 @@ const PLAY_REGION_SEMANTIC_ROLES = Object.freeze({
     ]),
     ["i32", "i32"],
     [],
-  // November 3 client: callee indices and static addresses moved.
-  ["a97d5b0022492b9cd7913a015b7041d3b044375afbe513118fbde2c9dfcead4c"],
   ),
   areaCount: semanticRole(
     137,
@@ -255,8 +238,6 @@ const PLAY_REGION_SEMANTIC_ROLES = Object.freeze({
     ]),
     ["i32", "i32", "i32"],
     ["i32"],
-  // November 3 client: callee indices and static addresses moved.
-  ["95867045d496b9bcb0455ad29e81dcb05bd2e88500e570516930c05b6069c68c"],
   ),
   areaFlags: semanticRole(
     23,
@@ -448,6 +429,69 @@ export function inspectTargetRoleCandidates(
   }
 }
 
+/** Row field that holds a count-style default in most published areas. */
+const AREA_FIELD_DEFAULT_OFFSET = 56;
+/** Row field whose value equals the table capacity in sentinel rows. */
+const AREA_FIELD_SENTINEL_OFFSET = 60;
+
+type AreaTableEvidence = Readonly<{
+  sentinelRows: number;
+  /** The table with capacity sentinels erased. */
+  tableSha256: string;
+  /** The value most rows hold in the default field, if more than half do. */
+  fieldDefault: number | null;
+  fieldDefaultRows: number;
+  /** The table with capacity sentinels and the field default erased. */
+  defaultNormalizedSha256: string;
+}>;
+
+function areaTableEvidence(table: Uint8Array, stride: number, capacity: number): AreaTableEvidence {
+  const normalized = table.slice();
+  const view = new DataView(normalized.buffer, normalized.byteOffset, normalized.byteLength);
+  let sentinelRows = 0;
+  for (let row = 0; row < capacity; row += 1) {
+    const offset = row * stride + AREA_FIELD_SENTINEL_OFFSET;
+    if (view.getUint32(offset, true) === capacity) {
+      view.setUint32(offset, 0, true);
+      sentinelRows += 1;
+    }
+  }
+  const tableSha256 = createHash("sha256").update(normalized).digest("hex");
+  const counts = new Map<number, number>();
+  for (let row = 0; row < capacity; row += 1) {
+    const value = view.getUint32(row * stride + AREA_FIELD_DEFAULT_OFFSET, true);
+    counts.set(value, (counts.get(value) ?? 0) + 1);
+  }
+  const [fieldDefault, fieldDefaultRows] = [...counts].find(([, rows]) => rows * 2 > capacity)
+    ?? [null, 0];
+  for (let row = 0; row < capacity && fieldDefault !== null; row += 1) {
+    const offset = row * stride + AREA_FIELD_DEFAULT_OFFSET;
+    if (view.getUint32(offset, true) === fieldDefault) view.setUint32(offset, 0, true);
+  }
+  return Object.freeze({
+    sentinelRows,
+    tableSha256,
+    fieldDefault,
+    fieldDefaultRows,
+    defaultNormalizedSha256: createHash("sha256").update(normalized).digest("hex"),
+  });
+}
+
+/**
+ * The count-style default of the proved area table's field 56, or null when
+ * the play-region proof refuses. Xunlai's area-type reader compares that field
+ * with this value.
+ */
+export function deriveAreaFieldDefault(module: ModuleShape): number | null {
+  const layout = derivePlayRegionLayout(module);
+  const lookup = areaLookup(module);
+  if (!layout || !lookup) return null;
+  const table = staticBytes(module, layout.areaInfo, lookup.certificate.capacity * layout.areaInfoStride);
+  return table
+    ? areaTableEvidence(table, layout.areaInfoStride, lookup.certificate.capacity).fieldDefault
+    : null;
+}
+
 /** Exact, agent-independent authority for loading and PvE/PvP policy. */
 export function derivePlayRegionLayout(
   module: ModuleShape,
@@ -544,30 +588,13 @@ export function derivePlayRegionLayout(
     lookup.certificate.capacity * observation.areaInfoStride,
   );
   if (!table) return null;
-  const normalizedTable = table.slice();
-  const tableView = new DataView(
-    normalizedTable.buffer,
-    normalizedTable.byteOffset,
-    normalizedTable.byteLength,
-  );
-  let sentinelRows = 0;
-  for (let row = 0; row < lookup.certificate.capacity; row += 1) {
-    const offset = row * observation.areaInfoStride + 60;
-    if (tableView.getUint32(offset, true) === lookup.certificate.capacity) {
-      tableView.setUint32(offset, 0, true);
-      sentinelRows += 1;
-    }
-  }
-  const tableSha256 = createHash("sha256").update(normalizedTable).digest("hex");
-  const reviewedTables: readonly string[] = [
-    lookup.certificate.normalizedTableSha256,
-    ...("reviewedTableSha256" in lookup.certificate
-      ? lookup.certificate.reviewedTableSha256
-      : []),
-  ];
+  const evidence = areaTableEvidence(table, observation.areaInfoStride, lookup.certificate.capacity);
+  const defaultMatches = "defaultNormalizedTableSha256" in lookup.certificate
+    && evidence.fieldDefaultRows === lookup.certificate.fieldDefaultRows
+    && evidence.defaultNormalizedSha256 === lookup.certificate.defaultNormalizedTableSha256;
   if (
-    sentinelRows !== lookup.certificate.sentinelRows
-    || !reviewedTables.includes(tableSha256)
+    evidence.sentinelRows !== lookup.certificate.sentinelRows
+    || (evidence.tableSha256 !== lookup.certificate.normalizedTableSha256 && !defaultMatches)
   ) return null;
 
   return verifyLayout(observation, {

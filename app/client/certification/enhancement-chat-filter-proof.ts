@@ -75,7 +75,7 @@ export function deriveChatFiltering(
 /**
  * Proves the encoded-text validator that the certified producer asserts on.
  * Its index comes from the producer's own `chat.valid-message` call, and its
- * exact body and signature must match the reviewed baseline.
+ * body must match the reviewed baseline exactly or by relocation identity.
  */
 export function deriveChatPrint(
   module: ModuleShape,
@@ -87,5 +87,9 @@ export function deriveChatPrint(
   const values = valuesForRole(functionBody(module, chatFiltering.producer.functionIndex), CHAT_LOG_PRODUCER_ROLE);
   const functionIndex = soleValue(values, "chat.valid-message");
   if (uniqueExactFunction(module, expected.validator.bodySha256, ["i32"], ["i32"]) !== functionIndex) return null;
-  return Object.freeze({ validator: Object.freeze({ ...expected.validator, functionIndex }) });
+  return Object.freeze({ validator: Object.freeze({
+    ...expected.validator,
+    functionIndex,
+    bodySha256: functionBodySha256(module, functionIndex),
+  }) });
 }

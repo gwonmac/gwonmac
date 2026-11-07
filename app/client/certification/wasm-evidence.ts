@@ -27,7 +27,7 @@ export { decodeFunctions } from "./wasm-instruction-evidence.js";
 import { EvidenceError } from "./wasm-evidence-error.js";
 import { dataEvidence, type WasmDataEvidence } from "./wasm-data-evidence.js";
 import { readonlyMapView } from "./readonly-map-view.js";
-import { functionIdentity } from "./relocation-identity.js";
+import { functionIdentity, functionRoleIdentity } from "./relocation-identity.js";
 import { recordExactMatch, reviewedIdentities } from "./reviewed-facts.js";
 export { EvidenceError } from "./wasm-evidence-error.js";
 
@@ -572,15 +572,11 @@ export function signatureMatches(
  * function's relocation identity for the literal. A relink therefore keeps the
  * match; any other change to the body or to a callee's body refuses it.
  */
-function identityReviewedFor(
-  module: ModuleShape,
-  functionIndex: number,
-  literals: readonly string[],
-): boolean {
+function identityReviewedFor(literals: readonly string[], identity: () => string): boolean {
   const reviewed = literals.map(reviewedIdentities).filter((identities) => identities.size > 0);
   if (reviewed.length === 0) return false;
-  const identity = functionIdentity(module, functionIndex);
-  return reviewed.some((identities) => identities.has(identity));
+  const measured = identity();
+  return reviewed.some((identities) => identities.has(measured));
 }
 
 /** The body of `functionIndex` is the reviewed body `bodySha256`. */
@@ -593,7 +589,7 @@ export function functionMatchesReviewedBody(
     recordExactMatch(bodySha256, () => functionIdentity(module, functionIndex));
     return true;
   }
-  return identityReviewedFor(module, functionIndex, [bodySha256]);
+  return identityReviewedFor([bodySha256], () => functionIdentity(module, functionIndex));
 }
 
 /** The reviewed body digest among `bodySha256s` that names `functionIndex`. */
@@ -614,15 +610,12 @@ export function functionMatchesRole(
   const body = functionBody(module, functionIndex);
   if (body.byteLength !== role.bodyLength) return false;
   const fingerprint = relocationAwareFingerprint(body, role.spans);
+  const identity = () => functionRoleIdentity(module, functionIndex, role.spans);
   if (fingerprint === role.fingerprint || (role.reviewedVariants?.includes(fingerprint) ?? false)) {
-    recordExactMatch(fingerprint, () => functionIdentity(module, functionIndex));
+    recordExactMatch(fingerprint, identity);
     return true;
   }
-  return identityReviewedFor(
-    module,
-    functionIndex,
-    [role.fingerprint, ...(role.reviewedVariants ?? [])],
-  );
+  return identityReviewedFor([role.fingerprint, ...(role.reviewedVariants ?? [])], identity);
 }
 
 export function uniqueRoleFunction(module: ModuleShape, role: SemanticRole): number | null {

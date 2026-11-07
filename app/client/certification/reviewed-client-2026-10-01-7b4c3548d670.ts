@@ -831,5 +831,20 @@ const BUILD: KnownEnhancementBuild = Object.freeze({
 export const OCTOBER_1_FACTS: ClientGeneration = Object.freeze({
   id: "2026-10-01-7b4c3548d670",
   builds: Object.freeze([BUILD]),
+  // Complete October bodies retain the collection and frame layouts. Their
+  // native effect-dirty message changed with its producer and consumer together.
+  playerEffectBodies: Object.freeze({
+    "7340dbe70f3f4bf731d23f80882df99553e837f825d8bbebee7f8eac45d8ef58": "20aad705e846ffd764f7de00845f7767b080329264e2526480ddb6d9d02df259",
+    "fe97a736b61e83cc5ea5a84f38aecedd384476339c5b02594fcefeebc5ce5203": "af1e0115d7251d12cc1ffe344d00d89f667c914b2cf7820bd2b8faca28e3c3a2",
+    "cafd172e56cbc1efcc64eb281fd8dadcfb6aa305eb4c165c0959f0903f98f769": "b63732a3016e26c6785f1e8e3f8c7391f163c4dba7c43e8fdd097a5549a77894",
+    "7df2376537653cac9b32172fb51073fa57503b1a2bcceb317a6d282d1e13fb0b": "8bbf0be7d8031c7a3ebb9a6d9311d4849f120352bd61e0a1abfc02735107686c",
+    "18899c4be6bf2fd51f6dbf6e52241456cdaed94d912ed23f307c95917bf615b8": "d420d0eabfb51b9ecdb930d532f282b101febd003fffd8c993ebc9fdcd4dd33b",
+    "1f2d462100add0c160d62265d2eaf292a00bfd1cde84c38c1e51f2aac0a2cc57": "4737741bf201a48b379bbee09bc56731be209b5c886c4215c42bf8c3dc9abd88",
+    "a560a223d9756fc3579f057137601853ec23c2b6bbd57248216b77ce550d29af": "fc2afe3ac91e845eae941170a63964156daad419c4d82d54e17227b694bac250",
+    "ecfa62c1bfaaebe98c2047ad986e137e9695a3cf2f0f7d5f6367b6e44cc10894": "9a39085dfb13220e6f834ec96f99df624116e8a207c57c07f22466705530c5e8",
+    "3fecf883ff7543db3cfdd8f3d77fc5cf3ef1e78282252f4f3caedbbe4f80bac0": "72adab1b90ab319ebf714722d199675dabdbf945affaabecabaa215cbcb858ac",
+    "9267c76c395a6ca5bc2efd0f9eb1cd3234feb5c95041a3e6230c98f23f9a4d60": "da295c351454465ef69d27ca0eea9cec827c779767eb55db8093fba71b34da44",
+    "d5e3a36c3336cf3e42867228919ae973072dc54fb442d80244067a3f308b5fd5": "1a93ec1b273d42e3af7c36ecfd2737dd1537cc47c47671a576f66df01e2c0ca2",
+  }),
   identities: Object.freeze({}),
 });

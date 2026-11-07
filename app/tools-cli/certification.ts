@@ -59,6 +59,9 @@ import {
 } from "./client-qualification.js";
 import { formatWatchReport } from "./watch-report.js";
 import { withIdentityRecorder } from "../client/certification/reviewed-facts.js";
+import { memoryCodeSha256 } from "../client/certification/relocation-identity.js";
+import { preparePostTemplateSaveModule } from "../client/certification/template-save-verifier.js";
+import { enhancementProofContext } from "../client/certification/wasm-evidence.js";
 
 import { inspectWasmBytes } from "./wasm-inspection.js";
 
@@ -71,7 +74,7 @@ const USAGE =
   + "  qualify WASM JS OUTPUT_DIR           run the release battery on one exact client\n"
   + "  watch-report GENERATION.json         render the client-watch issue table\n"
   + "  reviewed-identities [PATH/Gw.jspi.wasm]\n"
-  + "                                       list the relocation identities a reviewed client gives\n"
+  + "                                       print a reviewed client's identity table and memory-code digest\n"
   + "  template [PATH/Gw.jspi.wasm] [--emit-ts] [--write] [--expect-certified]\n"
   + "                                       re-derive the template-save build entry\n"
   + "  transform INPUT.wasm OUTPUT.wasm     write the derived Enhancement module\n"
@@ -381,7 +384,12 @@ async function reviewedIdentities(argv: readonly string[]): Promise<void> {
   });
   const entries = [...table].sort(([left], [right]) => left.localeCompare(right))
     .map(([literal, identities]) => [literal, [...identities].sort()] as const);
-  process.stdout.write(`${JSON.stringify(Object.fromEntries(entries), null, 2)}\n`);
+  const templateOutput = preparePostTemplateSaveModule(official)?.bytes;
+  const context = templateOutput ? enhancementProofContext(templateOutput) : null;
+  process.stdout.write(`${JSON.stringify({
+    memoryCodeSha256: context ? memoryCodeSha256(context.moduleView()) : null,
+    identities: Object.fromEntries(entries),
+  }, null, 2)}\n`);
 }
 
 const COMMANDS = Object.freeze({

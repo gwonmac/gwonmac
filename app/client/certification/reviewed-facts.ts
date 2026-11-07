@@ -30,19 +30,31 @@ export type ClientGeneration = Readonly<{
    * identities of the bodies it named on this generation's modules.
    */
   identities: Readonly<Record<string, readonly string[]>>;
+  /**
+   * Player-effect bodies of this client, keyed by the August reference digest.
+   * That proof's boundary accepts only reviewed digests, so a relink of these
+   * bodies needs a new entry.
+   */
+  playerEffectBodies?: Readonly<Record<string, string>>;
+  /**
+   * `memoryCodeSha256` of this generation's template output. Facts reviewed
+   * only as structure offsets (Quick Item Move's item and trade fields) carry
+   * to a module with the same digest.
+   */
+  memoryCodeSha256?: string;
 }>;
 
 /**
- * Every reviewed generation. The order is the historic record order, which
- * the verifier's oldest-match and newest-baseline rules read; the rebuild
- * record joined last.
+ * Every reviewed generation, oldest client first. The verifier's oldest-match
+ * and newest-baseline rules read this order, and the offline replay judges a
+ * client with the generations before it.
  */
 export const REVIEWED_GENERATIONS: readonly ClientGeneration[] = Object.freeze([
   AUGUST_FACTS,
   OCTOBER_1_FACTS,
   OCTOBER_22_FACTS,
-  NOVEMBER_3_FACTS,
   OCTOBER_22_REBUILD_FACTS,
+  NOVEMBER_3_FACTS,
 ]);
 
 let active: readonly ClientGeneration[] = REVIEWED_GENERATIONS;
@@ -59,6 +71,15 @@ export function withReviewedFacts<Value>(
   } finally {
     active = previous;
   }
+}
+
+export function reviewedGenerations(): readonly ClientGeneration[] {
+  return active;
+}
+
+/** The active generation that holds `build`, if any. */
+export function generationOf(build: KnownEnhancementBuild): ClientGeneration | null {
+  return active.find((generation) => generation.builds.includes(build)) ?? null;
 }
 
 export function reviewedBuilds(): readonly KnownEnhancementBuild[] {
