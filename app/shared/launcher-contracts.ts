@@ -77,7 +77,8 @@ export type LauncherInstallationKind =
   | "migrated-multi"
   | "mixed";
 
-export type LauncherContentKind = "news" | "dailies";
+export const LAUNCHER_CONTENT_KINDS = ["news", "dailies"] as const;
+export type LauncherContentKind = (typeof LAUNCHER_CONTENT_KINDS)[number];
 
 export type LauncherPlayPage = "home" | "accounts";
 
