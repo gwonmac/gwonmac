@@ -46,8 +46,8 @@ import { logEvent, resetRendererDiagnostics } from "./diagnostics.js";
 import { isCanonicalRendererUrl } from "./core/renderer-trust.js";
 import { isQuitting } from "./lifecycle.js";
 import { gamePaths, preloadPath } from "./paths.js";
-import { editWindowText, sendRendererCommand } from "./renderer-commands.js";
-import { isMapLayerShortcut, SHORTCUT_COMMANDS, SHORTCUT_MAP_LAYERS } from "../shared/shortcut-commands.js";
+import { editWindowText, runShortcut, sendRendererCommand } from "./renderer-commands.js";
+import { isMapLayerShortcut, SHORTCUT_MAP_LAYERS } from "../shared/shortcut-commands.js";
 import {
   installApplicationMenu,
   type AccountMenuActions,
@@ -670,16 +670,7 @@ export function createMainWindow(
           const key = SHORTCUT_MAP_LAYERS[action];
           return host.updateSettings({ [key]: !settings[key] });
         }).catch((error) => console.error("Map layer shortcut failed", error));
-      } else {
-        // The commands are shared with the Hub fixture (app/shared/shortcut-commands.ts).
-        void (async () => {
-          for (const command of SHORTCUT_COMMANDS[action]) {
-            const outcome = await sendRendererCommand(win, command);
-            // Tools refuses outright on a launch without the Toolbox capability; only a log says so.
-            if (command.type === "tools.toggle" && outcome !== "completed") logEvent({ k: "tools.toggleRefused", outcome }, diagnosticOwnerId);
-          }
-        })();
-      }
+      } else void runShortcut(win, action);
     },
     edit(command) {
       void editWindowText(win, command);

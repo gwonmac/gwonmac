@@ -15,13 +15,16 @@ export const SHORTCUT_MAP_LAYERS = {
   "cartography.walkability.toggle": "cartographyOverlayEnabled",
 } as const satisfies Partial<Record<ShortcutAction, keyof AppSettings>>;
 
-type CommandAction = Exclude<ShortcutAction, keyof typeof SHORTCUT_MAP_LAYERS>;
+export type ShortcutCommandAction = Exclude<ShortcutAction, keyof typeof SHORTCUT_MAP_LAYERS>;
 /**
- * The commands each shortcut sends. An action that opens a surface over the game clears held
- * input first. Main sends Resign's through `showResignGame` (window-menu.ts), which checks the
- * switch again and holds the key until they are sent.
+ * The commands each shortcut sends; main's one sender is `runShortcut` (app/main/renderer-commands.ts),
+ * for the shortcut and its menu item alike. An action that opens a surface over the game clears
+ * held input first: a sheet or palette takes focus, and ⌘⇧C can lose its modifier releases in
+ * AppKit after Chromium forwarded Shift. The overlays (Build Library, Trade Chat, Whispers) take
+ * no focus, so a held movement key keeps acting. Resign runs through `showResignGame`
+ * (window-menu.ts), which checks its switch again first.
  */
-export const SHORTCUT_COMMANDS: Readonly<Record<CommandAction, readonly RendererCommand[]>> = {
+export const SHORTCUT_COMMANDS: Readonly<Record<ShortcutCommandAction, readonly RendererCommand[]>> = {
   "game.call-target": [{ type: "game.call-target" }],
   "game.resign": [{ type: "input.reset" }, { type: "game.resign" }],
   "character.switch": [{ type: "input.reset" }, { type: "character.toggle" }],
@@ -34,7 +37,7 @@ export const SHORTCUT_COMMANDS: Readonly<Record<CommandAction, readonly Renderer
 
 export const isMapLayerShortcut = (action: ShortcutAction): action is keyof typeof SHORTCUT_MAP_LAYERS => action in SHORTCUT_MAP_LAYERS;
 
-const isCommandAction = (action: string): action is CommandAction => Object.hasOwn(SHORTCUT_COMMANDS, action);
+const isCommandAction = (action: string): action is ShortcutCommandAction => Object.hasOwn(SHORTCUT_COMMANDS, action);
 const definitions: readonly FeatureDefinition[] = FEATURES;
 /**
  * The renderer event each tool command fires: the `event` of the tool whose shortcut sends
