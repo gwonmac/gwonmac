@@ -8,11 +8,13 @@ export default defineConfig({
   outputDir: "../../../test-results/tools-e2e",
   testDir: "./tests",
   timeout: 20_000,
-  // Timing budgets need one browser worker without competing test workloads.
-  workers: 1,
+  // Timing budgets (performance-budget.ts) need one browser worker without
+  // competing test workloads. Every spec that uses one carries @macos, and only
+  // macOS runs @macos, so Linux runs two workers.
+  workers: process.platform === "darwin" ? 1 : 2,
   fullyParallel: true,
-  ...(process.env.CI ? { maxFailures: 1 } : {}),
   forbidOnly: !!process.env.CI,
+  reporter: process.env.CI ? [["github"], ["line"]] : "list",
   use: {
     baseURL: `http://127.0.0.1:${port}`,
     colorScheme: "dark",
