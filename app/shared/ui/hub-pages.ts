@@ -65,6 +65,17 @@ export type HubPriceDetailsProps = Readonly<{ entries: readonly (readonly [label
 export type HubBuildDetail = HubSummary | (Readonly<Pick<HubRow, 'title' | 'detail' | 'skills' | 'attributes' | 'professions' | 'attributeStatus' | 'folder'>> & Readonly<{ workspace?(): void }>);
 export type HubBuildDetailsProps = Readonly<{ builds: readonly HubBuildDetail[] }>;
 
+/**
+ * "Leave this area?" (D-27): the question, its consequence and the leave button's name. Stay
+ * here takes the keyboard (`focus`). The leave button shows when it is `armed`; `depart` before
+ * then does nothing.
+ */
+export type HubLeaveAreaProps = Readonly<{
+  question: string; detail: string; leave: string; armed: boolean; focus?: HubPageFocus;
+  stay(): void;
+  depart(): void;
+}>;
+
 /** The host the launcher's Settings page mounts into; `failed` when that page could not load. */
 export type HubSettingsHostProps = Readonly<{ failed: boolean }>;
 
@@ -80,6 +91,7 @@ export interface HubPageProps {
   rates: HubRatesProps;
   priceDetails: HubPriceDetailsProps;
   buildDetails: HubBuildDetailsProps;
+  leaveArea: HubLeaveAreaProps;
   settingsHost: HubSettingsHostProps;
 }
 /** The Hub's pages, drawn by the kit into a view's target. */
