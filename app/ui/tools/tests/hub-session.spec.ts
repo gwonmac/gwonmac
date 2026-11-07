@@ -1,5 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
 import { timeBudget } from './performance-budget.js';
+import type { HubFixtureWindow } from './fixture-window.js';
+// The workbench page this spec drives sets the fixture hooks; they are required here.
+declare const window: HubFixtureWindow;
 
 /**
  * Async actions belong to the Hub page that started them (HUB-004, HUB-016, HUB-083,

@@ -1,4 +1,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import type { HubFixtureWindow } from './fixture-window.js';
+// The workbench page this spec drives sets the fixture hooks; they are required here.
+declare const window: HubFixtureWindow;
 
 test('the smallest Hub keeps room for three results (HUB-238)', async ({ page }) => {
   await page.goto('/?hub');

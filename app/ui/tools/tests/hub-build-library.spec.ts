@@ -1,4 +1,7 @@
 import { expect, test } from '@playwright/test';
+import type { HubFixtureWindow } from './fixture-window.js';
+// The workbench page this spec drives sets the fixture hooks; they are required here.
+declare const window: HubFixtureWindow;
 
 test('template folders and explicit self application stay inside Hub', async ({ page }, info) => {
   await page.goto('/?hub');

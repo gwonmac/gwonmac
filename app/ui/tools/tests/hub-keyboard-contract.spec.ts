@@ -1,5 +1,8 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
+import type { HubFixtureWindow } from './fixture-window.js';
+// The workbench page this spec drives sets the fixture hooks; they are required here.
+declare const window: HubFixtureWindow;
 
 /**
  * The keyboard contract as a golden matrix: every key in every view, each cell

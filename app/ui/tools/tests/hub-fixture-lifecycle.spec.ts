@@ -1,4 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
+import type { HubFixtureWindow } from './fixture-window.js';
+// The workbench page this spec drives sets the fixture hooks; they are required here.
+declare const window: HubFixtureWindow;
 
 // The fixture's game lifecycle, shortcut routing and main-process models must
 // match production, or fixture journeys hide production defects (HUB-239).

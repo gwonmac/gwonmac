@@ -1,6 +1,9 @@
 import { test, expect, type Locator, type Page } from '@playwright/test';
 import { PNG } from 'pngjs';
 import type { CustomUiTheme } from '../../../shared/ui-theme';
+import type { HubFixtureWindow } from './fixture-window.js';
+// The workbench page this spec drives sets the fixture hooks; they are required here.
+declare const window: HubFixtureWindow;
 
 for (const ratio of [1, 2]) {
   test.describe(`Classic frame at ${ratio}×`, () => {

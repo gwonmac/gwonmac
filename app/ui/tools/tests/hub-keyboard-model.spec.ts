@@ -1,4 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
+import type { HubFixtureWindow } from './fixture-window.js';
+// The workbench page this spec drives sets the fixture hooks; they are required here.
+declare const window: HubFixtureWindow;
 
 /**
  * One keyboard model across the Hub and its popouts: the shared list keys never

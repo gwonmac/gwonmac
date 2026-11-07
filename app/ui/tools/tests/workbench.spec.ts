@@ -1,5 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
 import { PNG } from "pngjs";
+import type { HubFixtureWindow } from './fixture-window.js';
+// The workbench page this spec drives sets the fixture hooks; they are required here.
+declare const window: HubFixtureWindow;
 
 async function openBuild(page: Page, name = /Word of Healing/) {
   await page.getByRole("tab", { name: /Builds/ }).click();

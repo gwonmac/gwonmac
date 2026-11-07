@@ -1,4 +1,7 @@
 import { expect, test } from '@playwright/test';
+import type { HubFixtureWindow } from './fixture-window.js';
+// The workbench page this spec drives sets the fixture hooks; they are required here.
+declare const window: HubFixtureWindow;
 
 test('template folders use loaded folder glyphs, not image URLs (HUB-089)', async ({ page }) => {
   await page.goto('/?hub');

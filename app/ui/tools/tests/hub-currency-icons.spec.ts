@@ -1,4 +1,7 @@
 import { expect, test } from '@playwright/test';
+import type { HubFixtureWindow } from './fixture-window.js';
+// The workbench page this spec drives sets the fixture hooks; they are required here.
+declare const window: HubFixtureWindow;
 
 for (const style of ['guild-wars', 'obsidian'] as const) {
   test(`native currency input keeps text and caret boundaries in ${style}`, async ({ page }) => {
