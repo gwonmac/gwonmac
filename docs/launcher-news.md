@@ -22,7 +22,7 @@ draft: true
 launcherId: gwonmac-1-0-1
 launcherSource: launcher
 launcherChannel: stable
-launcherFeatured: true
+launcherFeatured: false
 ---
 ```
 
@@ -30,7 +30,7 @@ launcherFeatured: true
 - `launcherId` is `gwonmac-` and the version with dashes. The app bundles the post with this ID as its "What's new", and `app/ui/launcher/src/release-notes.test.ts` fails when the version in `package.json` has none.
 - Keep `draft: true` until the release is published (see [Releasing](releasing.md)).
 - `description` repeats the summary paragraph. The launcher shows it under the title, so it must stand alone. Keep it under 360 characters; the generator refuses longer text.
-- Set `launcherFeatured: true` only on the newest release, and set it back to `false` on the post it replaces.
+- Keep `launcherFeatured: false` while the post is a draft. On release day, step 7 of [Releasing](releasing.md) moves `launcherFeatured: true` to it from the post it replaces, so only the newest published release is featured.
 
 ### Body
 
