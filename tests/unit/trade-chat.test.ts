@@ -73,7 +73,7 @@ describe("trade chat contracts", () => {
     }));
   });
 
-  it("validates bounded saved offers and players without accepting duplicates", () => {
+  it("validates bounded saved offers and players", () => {
     const saved = parseTradeSavedState({
       offers: [{
         source: "kamadan",
@@ -86,13 +86,24 @@ describe("trade chat contracts", () => {
     });
     assert.equal(saved.offers[0]?.message, "WTS Glacial Blade");
     assert.equal(saved.players[0]?.sender, "Angel Trader");
-    assert.throws(() => parseTradeSavedState({
+  });
+
+  it("keeps the first saved spelling of a character and drops later ones", () => {
+    // Spacing and case variants share one characterKey; the old parser kept both
+    // spacing variants, which the Trade UI shows as one player.
+    const saved = parseTradeSavedState({
       offers: [],
       players: [
         { sender: "Angel Trader", savedAt: 20 },
         { sender: "angel trader", savedAt: 21 },
+        { sender: "Angel  Trader", savedAt: 22 },
+        { sender: "Mesmer Kid", savedAt: 23 },
       ],
-    }));
+    });
+    assert.deepEqual(saved.players, [
+      { sender: "Angel Trader", savedAt: 20 },
+      { sender: "Mesmer Kid", savedAt: 23 },
+    ]);
   });
 
   it("normalizes bounded trader quotes and price history", () => {
