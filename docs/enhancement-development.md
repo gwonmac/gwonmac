@@ -335,7 +335,7 @@ Use only the layers the feature needs:
 
 | Concern | One owner | Reusable contract |
 | --- | --- | --- |
-| Saved player choice | [`AppSettings` and `DEFAULT_SETTINGS`](../app/shared/contracts.ts), plus [`parseSettings` and `parseSettingsPatch`](../app/main/core/settings.ts) | Add one shape, durable default, and strict full/patch parser only when the feature needs player configuration. |
+| Saved player choice | The feature's `settings` in `app/features/<id>/feature.ts`, built with [`setting`](../app/shared/settings/) | Types, defaults, parsing, Hub rows and the renderer projection derive from that one table. Add an entry only when the feature needs player configuration. |
 | Product activation and coarse region rule | [`FEATURE_SELECTION_POLICIES`](../app/shared/feature-contracts.ts) | Add one stable `FeatureId`. The runtime policy must project that exact ID. |
 | Certified client support | [`enhancement-contracts.ts`](../app/shared/enhancement-contracts.ts) and `app/client/certification/` | Add an independently provable capability. Keep defaults, validators and verifier consumers aligned; the [typed verifier fixture](../tests/electron/fixtures/local-verifier-app/main.mjs) uses canonical defaults instead of a second complete capability list. A product setting cannot grant native authority. |
 | Fixed native publication | [`createCompanionRegionInstallation`](../app/renderer/companion-region-installation.ts) | Own allocation, activation withdrawal, freshness, and disposal for one bounded region. |
@@ -344,6 +344,24 @@ Use only the layers the feature needs:
 | Game-host code of a feature | `app/features/<id>/companion.ts` and one line in [`COMPANION_PARTS`](../app/features/companion-parts.ts) | A part says what it does in each installer phase ([contract](../app/renderer/tools-companion-part.ts)). Feeds that several features read stay in the [shared substrates](../app/renderer/tools-companion-substrates.ts); a part adds its demand to them. A part that allocates keeps its registry place, which is the heap layout. |
 | Main-process channels and files of a feature | `app/features/<id>/main.ts` and one line in [`MAIN_PARTS`](../app/features/main-parts.ts) | The part owns its stores and channels ([contract](../app/main/tools-main-part.ts)); the runtime gives it a file gate. A Tools channel without an owner fails to compile. |
 | Composition and safety order | [`installCertifiedCompanion`](../app/renderer/certified-companion-installation.ts) | Allocate and validate first, enable the game hook last, disable it first, and tear down in explicit dependency-safe phases. |
+
+A feature folder holds every file that only that feature uses:
+
+```
+app/features/<id>/
+  feature.ts     manifest: settings, activation, region, tool, shortcut (all processes)
+  companion.ts   the game-host part (renderer)
+  main.ts        the main-process part
+  renderer/      renderer-only modules: DOM, game host, overlays (no Node.js)
+  main/          main-process-only modules: stores, files, IPC parsing
+  shared/        contracts and pure logic that two processes use
+```
+
+Code that several features use stays where it is: the capability registry and
+the proofs in `app/client/certification/`, the kernels, the shared substrates,
+`app/shared/`, and the Vue views in `app/ui/tools/`. Tests stay in `tests/`.
+tsconfig.renderer.json checks `companion.ts` and `renderer/`; the root program
+checks the rest.
 
 The feature registry and the live policy use the same IDs. Type checking and a
 runtime contract test fail when one side changes without the other. Derived

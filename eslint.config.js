@@ -181,7 +181,7 @@ export default tseslint.config(
     // The renderer owns presentation and the game host; it never reaches
     // into the main process. Every renderer source extension, not only .js:
     // app/renderer/gw-native.d.ts is a real tracked file.
-    files: ["app/renderer/**/*.{js,mjs,cjs,ts}"],
+    files: ["app/renderer/**/*.{js,mjs,cjs,ts}", "app/features/*/companion.ts", "app/features/companion-parts.ts", "app/features/*/renderer/**/*.ts"],
     rules: {
       "no-restricted-imports": [
         "error",
@@ -234,7 +234,9 @@ export default tseslint.config(
     },
   },
   {
-    files: ["app/main/**/*.ts", "app/client/**/*.ts", "app/shared/**/*.ts", "app/tools-cli/**/*.ts"],
+    files: ["app/main/**/*.ts", "app/client/**/*.ts", "app/shared/**/*.ts", "app/tools-cli/**/*.ts", "app/features/**/*.ts"],
+    // A feature's renderer half belongs to tsconfig.renderer.json, which the service does not reach.
+    ignores: ["app/features/*/companion.ts", "app/features/companion-parts.ts", "app/features/*/renderer/**/*.ts"],
     languageOptions: {
       parserOptions: {
         projectService: true,
@@ -258,7 +260,7 @@ export default tseslint.config(
     // tsconfig.renderer.json, which the service does not reach from the root
     // tsconfig.json, and neither rule needs type information.
     // app/preload is bundled the same way and held to the same two rules.
-    files: ["app/renderer/**/*.ts", "app/preload/**/*.ts"],
+    files: ["app/renderer/**/*.ts", "app/preload/**/*.ts", "app/features/*/companion.ts", "app/features/companion-parts.ts", "app/features/*/renderer/**/*.ts"],
     rules: {
       "@typescript-eslint/no-unused-vars": [
         "error",
