@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { installMacosCommandKeyUps } from "../../app/main/macos-command-key-ups.js";
+import { installMacosCommandKeyUps } from "../../app/main/native-host.js";
 
 describe("macOS Command-held key releases", () => {
   it("consumes only mapped releases routed to the focused game", () => {

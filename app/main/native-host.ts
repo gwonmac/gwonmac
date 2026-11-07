@@ -4,8 +4,13 @@
  * A packaged build resolves it inside `app.asar.unpacked` because a `.node`
  * binary cannot load from within an archive. The boundary is shape-checked so
  * a stale or mismatched addon fails before it can own secrets or native input.
+ *
+ * The host also reports macOS Command-held key releases that AppKit consumes
+ * before Chromium sees them. The focused game window receives one physical-key
+ * release through the existing renderer command boundary.
  */
 import { createRequire } from "node:module";
+import { physicalCodeForMacKeyCode } from "./core/macos-key-code.js";
 import type { NativeKeychain } from "./core/native-keychain.js";
 import { unpackedPath, type BundleLayout } from "./core/paths.js";
 
@@ -41,4 +46,23 @@ export function loadNativeHost(layout: NativeHostLayout): NativeHost {
     throw new TypeError("native host module has an invalid shape");
   }
   return loaded;
+}
+
+export interface MacosCommandKeyUpRouting<T> {
+  focusedGameTarget(): T | null;
+  release(target: T, code: string): void;
+}
+
+export function installMacosCommandKeyUps<T>(
+  nativeHost: Pick<NativeHost, "monitorCommandKeyUps">,
+  routing: MacosCommandKeyUpRouting<T>,
+): () => void {
+  return nativeHost.monitorCommandKeyUps((keyCode) => {
+    const code = physicalCodeForMacKeyCode(keyCode);
+    if (!code) return false;
+    const target = routing.focusedGameTarget();
+    if (!target) return false;
+    routing.release(target, code);
+    return true;
+  });
 }

@@ -113,8 +113,7 @@ import {
   VolatileNativeKeychain,
   type NativeKeychain,
 } from "./core/native-keychain.js";
-import { loadNativeHost } from "./native-host.js";
-import { installMacosCommandKeyUps } from "./macos-command-key-ups.js";
+import { installMacosCommandKeyUps, loadNativeHost } from "./native-host.js";
 import { recordMainInput } from './input-trace.js';
 import { cleanupLegacySecretFiles } from "./core/legacy-secret-cleanup.js";
 import {
