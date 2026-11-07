@@ -2,18 +2,17 @@
  * Builds the launcher's small, static news contract from canonical website
  * Markdown. Only posts with launcherId participate; the website remains the
  * authoring and presentation owner while this file is a rebuildable projection.
+ * Every story and the whole feed pass the app's own news-v1 parser before the
+ * feed is written or checked, so the website cannot publish what apps refuse.
  */
 import { readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { MAX_NEWS_STORIES, NEWS_FEED_VERSION, parseNewsStory, parseProjectNewsFeed } from "../../app/shared/launcher-news-feed.ts";
 
 const root = path.resolve(import.meta.dirname, "..");
 const contentRoot = path.join(root, "content/en/2.blog");
 const outputPath = path.join(root, "public/launcher/news-v1.json");
 const check = process.argv.includes("--check");
-// The app refuses the whole feed beyond these limits (app/main/core/launcher-news.ts).
-const MAX_STORIES = 24;
-const MAX_TITLE = 140;
-const MAX_SUMMARY = 360;
 const allowed = new Set([
   "title", "description", "badge", "date", "readingTime", "author",
   "launcherId", "launcherSource", "launcherChannel", "launcherFeatured",
@@ -46,24 +45,16 @@ function storyFrom(name, source) {
   const { metadata, body } = frontmatter(source, name);
   // A draft is the next release's notes: the app bundles them, the feed waits for the release.
   if (!metadata.launcherId || metadata.draft === "true") return null;
-  const itemSource = required(metadata, "launcherSource", name);
-  const channel = required(metadata, "launcherChannel", name);
-  if (!["launcher", "event"].includes(itemSource)) throw new Error(`${name}: launcherSource is invalid`);
-  if (!["all", "stable", "beta"].includes(channel)) throw new Error(`${name}: launcherChannel is invalid`);
   if (metadata.launcherFeatured && metadata.launcherFeatured !== "true" && metadata.launcherFeatured !== "false") {
     throw new Error(`${name}: launcherFeatured must be true or false`);
   }
-  const title = required(metadata, "title", name);
-  const summary = required(metadata, "description", name);
-  if (title.length > MAX_TITLE) throw new Error(`${name}: title is longer than ${MAX_TITLE} characters`);
-  if (summary.length > MAX_SUMMARY) throw new Error(`${name}: description is longer than ${MAX_SUMMARY} characters`);
   const slug = name.replace(/\.md$/u, "").replace(/^\d+\./u, "");
-  return {
+  const story = {
     id: metadata.launcherId,
-    source: itemSource,
-    channel,
-    title,
-    summary,
+    source: required(metadata, "launcherSource", name),
+    channel: required(metadata, "launcherChannel", name),
+    title: required(metadata, "title", name),
+    summary: required(metadata, "description", name),
     publishedAt: `${required(metadata, "date", name)}T12:00:00Z`,
     featured: metadata.launcherFeatured === "true",
     // Relative, so every app resolves it against the origin it fetched the feed
@@ -73,6 +64,12 @@ function storyFrom(name, source) {
     ...(metadata.launcherEndsAt ? { endsAt: metadata.launcherEndsAt } : {}),
     body,
   };
+  try {
+    parseNewsStory(story);
+  } catch (error) {
+    throw new Error(`${name}: ${error.message}`, { cause: error });
+  }
+  return story;
 }
 
 const names = (await readdir(contentRoot)).filter((name) => name.endsWith(".md")).sort();
@@ -81,13 +78,10 @@ for (const name of names) {
   const story = storyFrom(name, await readFile(path.join(contentRoot, name), "utf8"));
   if (story) stories.push(story);
 }
-const ids = new Set();
-for (const story of stories) {
-  if (ids.has(story.id)) throw new Error(`duplicate launcher news id: ${story.id}`);
-  ids.add(story.id);
-}
 stories.sort((left, right) => right.publishedAt.localeCompare(left.publishedAt));
-const generated = `${JSON.stringify({ version: 1, stories: stories.slice(0, MAX_STORIES) }, null, 2)}\n`;
+const feed = { version: NEWS_FEED_VERSION, stories: stories.slice(0, MAX_NEWS_STORIES) };
+parseProjectNewsFeed(feed);
+const generated = `${JSON.stringify(feed, null, 2)}\n`;
 if (check) {
   const current = await readFile(outputPath, "utf8").catch(() => "");
   if (current !== generated) throw new Error("launcher news feed is stale; run pnpm --dir website generate:launcher-news");

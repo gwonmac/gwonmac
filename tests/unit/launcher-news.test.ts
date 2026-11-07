@@ -3,7 +3,8 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, it } from "node:test";
-import { LauncherNewsService, PROJECT_NEWS_URL, WIKI_UPDATES_URL, parseProjectNewsFeed } from "../../app/main/core/launcher-news.js";
+import { LauncherNewsService, PROJECT_NEWS_URL, WIKI_UPDATES_URL } from "../../app/main/core/launcher-news.js";
+import { parseProjectNewsFeed } from "../../app/shared/launcher-news-feed.js";
 import { DEFAULT_LAUNCHER_PREFERENCES } from "../../app/main/core/launcher-state.js";
 import { RELEASE_REPO_URL } from "../../app/shared/project-identity.js";
 
@@ -47,6 +48,11 @@ official notes. -->
 };
 
 describe("launcher news", () => {
+  it("accepts the feed the website publishes", async () => {
+    const published = JSON.parse(await readFile("website/public/launcher/news-v1.json", "utf8"));
+    assert.ok(parseProjectNewsFeed(published).length > 0);
+  });
+
   it("rejects untrusted story links", () => {
     const input = feed();
     input.stories[0]!.url = "https://example.com/tracker";
