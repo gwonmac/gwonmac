@@ -3,10 +3,8 @@
  * what any individual setting means.
  *
  * Unknown fields are ignored on read and are not preserved on the next write;
- * this is deliberate, not a compatibility bag. The signed release proof protects
- * every Stable-owned field. Returning to an older Stable can discard additive
- * candidate preferences; release planning must disclose that loss. A malformed
- * known value is refused. A format version this build does not recognise is
+ * this is deliberate, not a compatibility bag. A malformed known value is
+ * refused. A format version this build does not recognise is
  * moved aside intact and defaults are used, so an unreadable profile costs a
  * player their preferences and never their downloaded game data.
  *

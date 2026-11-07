@@ -1,6 +1,6 @@
 /**
- * The restart-required graphics isolation profile, persisted outside ordinary
- * settings so a Stable rollback cannot reinterpret or erase player settings.
+ * The restart-required graphics isolation profile, persisted in its own file
+ * beside settings.json.
  */
 import { readFile } from "node:fs/promises";
 import {

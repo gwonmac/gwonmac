@@ -22,11 +22,14 @@ One maintainer, about 15 minutes of attention:
 
 | Step | Who | What |
 | --- | --- | --- |
-| 1 | maintainer | **Actions → Release → Run workflow** on `main`, version `1.4.0`. |
-| 2 | `release` reviewer | Approve the `release` environment once. |
-| 3 | machines | `qualify` checks the build against the current ArenaNet client (no secrets). In parallel, `build` signs, notarizes, and staples the app and DMG, checks the pinned Developer ID, runs the packaged and Keychain tests, and attests the ZIP and DMG. `draft` then tags the commit `v1.4.0` and creates a draft release with the ZIP, DMG, `RELEASES.json`, and `SHA256SUMS.txt`. Nothing is committed. |
-| 4 | maintainer | `pnpm release:test v1.4.0` on an Apple Silicon Mac, then play for 10 minutes on the real client. |
-| 5 | maintainer | Click **Publish release** on the draft. |
+| 1 | maintainer | Merge the release post for `1.4.0` with `draft: true` ([Launcher news](launcher-news.md)). The app bundles it as "What's new"; the website and the news feed leave it out until step 7. |
+| 2 | maintainer | **Actions → Release → Run workflow** on `main`, version `1.4.0`. |
+| 3 | `release` reviewer | Approve the `release` environment once. |
+| 4 | machines | `qualify` checks the build against the current ArenaNet client (no secrets). In parallel, `build` signs, notarizes, and staples the app and DMG, checks the pinned Developer ID, runs the packaged and Keychain tests, and attests the ZIP and DMG. `draft` then tags the commit `v1.4.0` and creates a draft release with the ZIP, DMG, `RELEASES.json`, and `SHA256SUMS.txt`. Nothing is committed. |
+| 5 | maintainer | `pnpm release:test v1.4.0` on an Apple Silicon Mac, then play for 10 minutes on the real client. |
+| 6 | maintainer | Click **Publish release** on the draft. |
+| 7 | maintainer | Remove `draft: true` from the post, move `launcherFeatured: true` to it, run `pnpm --dir website generate:launcher-news`, and merge. The website and News in every installed app show it. |
+| 8 | maintainer | `node --import ./scripts/ts-hook.mjs tests/fixtures/player-data/generate.ts v1.4.0`, add the tag to `tests/unit/player-data-fixtures.test.ts`, and merge. Later versions must read what this one wrote ([player data fixtures](../tests/fixtures/player-data/README.md)). |
 
 The workflow never publishes. Only a person decides that the game looks and
 behaves correctly. After publishing, confirm the feed:

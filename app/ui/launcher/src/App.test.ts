@@ -197,11 +197,11 @@ describe("unified launcher shell", () => {
       return heading;
     };
 
-    expect(await launch(at("2026.11.0", "pending"))).toBeNull();
+    expect(await launch(at("1.0.0", "pending"))).toBeNull();
     localStorage.clear();
-    expect(await launch(at("2026.11.0", "complete"))).toBe("GWonMac 2026.11.0");
-    expect(await launch(at("2026.11.0", "complete"))).toBeNull();
-    expect(await launch(at("2026.12.0-dev", "complete"))).toBeNull();
+    expect(await launch(at("1.0.0", "complete"))).toBe("GWonMac 1.0.0");
+    expect(await launch(at("1.0.0", "complete"))).toBeNull();
+    expect(await launch(at("1.1.0-dev", "complete"))).toBeNull();
   });
 
   it("sends Help feedback through the native bridge", async () => {

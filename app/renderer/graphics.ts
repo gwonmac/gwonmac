@@ -7,6 +7,7 @@ import {
   createVisualFrameCapture,
   visualCaptureError,
 } from './visual-frame-capture.js';
+import type { RenderScale } from '../shared/settings/core.js';
 
 let diagnosticsFrame = 0;
 let visualFrameSequence = 0;
@@ -68,7 +69,7 @@ interface PresentationCanvas extends HTMLCanvasElement {
 function scheduleDiagnostics(
   visible: HTMLCanvasElement,
   offscreen: OffscreenCanvas | HTMLCanvasElement,
-  renderScale: 1 | 1.5 | 2,
+  renderScale: RenderScale,
   log: (...values: unknown[]) => void,
 ) {
   cancelAnimationFrame(diagnosticsFrame);
@@ -116,7 +117,7 @@ function scheduleDiagnostics(
 export const installGraphics = (options: {
   env: ArenaNetEglImports;
   module: ArenaNetGraphicsModule;
-  renderScale: () => 1 | 1.5 | 2;
+  renderScale: () => RenderScale;
   presentationPath?: 'offscreen' | 'direct';
   firstFrame: () => void;
   log: (...values: unknown[]) => void;

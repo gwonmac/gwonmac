@@ -6,6 +6,7 @@
  */
 import type { LauncherNewsStory } from "@shared/launcher-contracts";
 import { parseMarkdown } from "@shared/launcher-markdown";
+import { readFrontMatter } from "@shared/website-content";
 import { guideLink } from "./guide";
 
 const posts = import.meta.glob<string>("../../../../website/content/en/2.blog/*.md", { query: "?raw", import: "default", eager: true });
@@ -15,19 +16,18 @@ export const releaseStoryId = (version: string) => `gwonmac-${version.replaceAll
 
 export function releaseNotesFor(version: string): LauncherNewsStory | null {
   const id = releaseStoryId(version);
-  const source = Object.values(posts).map((post) => post.replace(/\r/gu, "")).find((post) => post.includes(`\nlauncherId: ${id}\n`));
-  const match = source && /^---\n([\s\S]*?)\n---\n([\s\S]*)$/u.exec(source);
-  if (!match) return null;
-  const field = (key: string) => new RegExp(`^${key}:\\s*(.+)$`, "mu").exec(match[1]!)?.[1]?.replace(/^"(.*)"$/u, "$1") ?? "";
+  const post = Object.values(posts).map(readFrontMatter).find((candidate) => candidate.fields.launcherId === id);
+  if (!post) return null;
+  const { fields, body } = post;
   return {
     id,
     source: "launcher",
-    channel: field("launcherChannel") === "beta" ? "beta" : "stable",
-    title: field("title"),
-    summary: field("description"),
-    publishedAt: `${field("date")}T12:00:00Z`,
+    channel: fields.launcherChannel === "beta" ? "beta" : "stable",
+    title: fields.title ?? "",
+    summary: fields.description ?? "",
+    publishedAt: `${fields.date}T12:00:00Z`,
     featured: false,
     action: "article",
-    body: parseMarkdown(match[2]!, { link: (href) => guideLink(href), image: (src) => images[`../../website/public${src}`] ?? null }, 200),
+    body: parseMarkdown(body, { link: (href) => guideLink(href), image: (src) => images[`../../website/public${src}`] ?? null }, 200),
   };
 }

@@ -1,6 +1,5 @@
 /**
- * Defines Travel-only preferences.
- * Keeps their persistence contract safe across Stable rollbacks.
+ * Defines Travel-only preferences and their travel-preferences.json document.
  */
 import { TRAVEL_DESTINATIONS, travelDestination } from "./travel-destinations.js";
 import { normaliseTravelTerm } from "./travel-search.js";

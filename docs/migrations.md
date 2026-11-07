@@ -8,17 +8,6 @@ rollback or downgrade is not tracked here; delete it. Code that reads data an
 older app wrote stays, because players install 1.0.0 over the old app and keep
 their data.
 
-## Alcohol Timer corner placement
-
-- Why: early developer builds saved offsets relative to live Effects icons. The
-  timer now saves fixed pixel gaps from a game-window corner. The renderer
-  converts an old offset once with the Effects geometry and saves the corner
-  position.
-- Introduced: 2026-09-12, after developer commit `12da0dbd`.
-- Depends on it: developer profiles that saved `{ x, y, locked }`.
-- Remove when: no known profile lacks the `corner` field. Remove the untagged
-  settings alternative, the legacy anchor helper, and the conversion tests.
-
 ## Adopted Main account storage
 
 - Why: the launcher presents Single Account data from older releases as a
@@ -31,24 +20,13 @@ their data.
   the fixed Keychain items into a normal profile partition. Remove the storage
   adapter, the additive marker, and their tests.
 
-## Skill-label enablement inference
-
-- Why: releases before the individual Tools settings treated any configured
-  skill-key label as the opt-in. Those profiles have bindings but no
-  `skillKeyLabelsEnabled` field, so the reader infers `true` once.
-- Introduced: 2026-08-26 with the individual Tools settings.
-- Depends on it: players who configured a skill-key label before the separate
-  switch existed and have not saved settings since.
-- Remove when: a one-time migration writes `skillKeyLabelsEnabled` for every
-  profile. Remove the missing-field inference and its parser test.
-
 ## Read aliases for old player data
 
-These are permanent readers, not migrations. Keep them; only their rollback
-write paths go away with the clean cut.
+These are permanent readers, not migrations. Keep them.
 
-- Travel reads Piken Square (pre-Searing) map ID 778, which v2026.8.10 wrote,
-  as the official ID 779.
+- Travel reads Piken Square (pre-Searing) map ID 778, which Stable releases
+  v2026.8.9 to v2026.8.12 wrote, as the official ID 779
+  (`app/shared/travel-map-id.ts`).
 - The settings parser reads the legacy `teamManagement` shape into
   `buildLibrary`. `AppSettings` must stay free of `teamManagement`.
 
