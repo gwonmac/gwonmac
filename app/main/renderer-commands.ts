@@ -148,12 +148,15 @@ export async function editWindowText(
  * share this one sender; a second copy is how the routes quietly stop agreeing.
  */
 export async function runShortcut(win: BrowserWindow, action: ShortcutCommandAction): Promise<void> {
+  // Resolved before the first await: a window that closes while its commands run has no
+  // owner afterwards, and its refusal is still logged under the owner it had.
+  const owner = windowRegistry.diagnosticOwnerForWindow(win);
   for (const command of SHORTCUT_COMMANDS[action]) {
     const outcome = await sendRendererCommand(win, command);
     // The renderer refuses Tools outright on a launch without the Toolbox capability, the
     // ordinary case on a launch that did not ask for it; only this log says so.
-    if (command.type === "tools.toggle" && outcome !== "completed") {
-      logEvent({ k: "tools.toggleRefused", outcome }, windowRegistry.requireDiagnosticOwnerForWindow(win));
+    if (command.type === "tools.toggle" && outcome !== "completed" && owner !== null) {
+      logEvent({ k: "tools.toggleRefused", outcome }, owner);
     }
   }
 }
