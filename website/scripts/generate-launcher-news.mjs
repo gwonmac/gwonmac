@@ -7,6 +7,7 @@
  */
 import { readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { readFrontMatter } from "../../app/shared/website-content.ts";
 import { MAX_NEWS_STORIES, NEWS_FEED_VERSION, parseNewsStory, parseProjectNewsFeed } from "../../app/shared/launcher-news-feed.ts";
 
 const root = path.resolve(import.meta.dirname, "..");
@@ -19,63 +20,51 @@ const allowed = new Set([
   "launcherExternalUrl", "launcherStartsAt", "launcherEndsAt",
 ]);
 
-function frontmatter(source, name) {
-  const match = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/u.exec(source);
-  if (!match) throw new Error(`${name}: frontmatter is missing`);
-  const metadata = {};
-  for (const line of match[1].split("\n")) {
-    if (!line.trim()) continue;
-    const separator = line.indexOf(":");
-    if (separator < 1) throw new Error(`${name}: unsupported frontmatter line`);
-    const key = line.slice(0, separator).trim();
-    const value = line.slice(separator + 1).trim();
-    if (key.startsWith("launcher") && !allowed.has(key)) throw new Error(`${name}: unknown launcher frontmatter field ${key}`);
-    metadata[key] = value;
-  }
-  return { metadata, body: match[2].trim() };
-}
-
-function required(metadata, key, name) {
-  const value = metadata[key];
-  if (!value) throw new Error(`${name}: ${key} is required for launcher news`);
+function required(fields, key) {
+  const value = fields[key];
+  if (!value) throw new Error(`${key} is required for launcher news`);
   return value;
 }
 
 function storyFrom(name, source) {
-  const { metadata, body } = frontmatter(source, name);
+  const { fields, body, draft } = readFrontMatter(source);
+  for (const key of Object.keys(fields)) {
+    if (key.startsWith("launcher") && !allowed.has(key)) throw new Error(`unknown launcher frontmatter field ${key}`);
+  }
   // A draft is the next release's notes: the app bundles them, the feed waits for the release.
-  if (!metadata.launcherId || metadata.draft === "true") return null;
-  if (metadata.launcherFeatured && metadata.launcherFeatured !== "true" && metadata.launcherFeatured !== "false") {
-    throw new Error(`${name}: launcherFeatured must be true or false`);
+  if (!fields.launcherId || draft) return null;
+  if (fields.launcherFeatured && fields.launcherFeatured !== "true" && fields.launcherFeatured !== "false") {
+    throw new Error("launcherFeatured must be true or false");
   }
   const slug = name.replace(/\.md$/u, "").replace(/^\d+\./u, "");
   const story = {
-    id: metadata.launcherId,
-    source: required(metadata, "launcherSource", name),
-    channel: required(metadata, "launcherChannel", name),
-    title: required(metadata, "title", name),
-    summary: required(metadata, "description", name),
-    publishedAt: `${required(metadata, "date", name)}T12:00:00Z`,
-    featured: metadata.launcherFeatured === "true",
+    id: fields.launcherId,
+    source: required(fields, "launcherSource"),
+    channel: required(fields, "launcherChannel"),
+    title: required(fields, "title"),
+    summary: required(fields, "description"),
+    publishedAt: `${required(fields, "date")}T12:00:00Z`,
+    featured: fields.launcherFeatured === "true",
     // Relative, so every app resolves it against the origin it fetched the feed
     // from: released betas still read it from the website's old address.
-    url: metadata.launcherExternalUrl || `/blog/${slug}`,
-    ...(metadata.launcherStartsAt ? { startsAt: metadata.launcherStartsAt } : {}),
-    ...(metadata.launcherEndsAt ? { endsAt: metadata.launcherEndsAt } : {}),
-    body,
+    url: fields.launcherExternalUrl || `/blog/${slug}`,
+    ...(fields.launcherStartsAt ? { startsAt: fields.launcherStartsAt } : {}),
+    ...(fields.launcherEndsAt ? { endsAt: fields.launcherEndsAt } : {}),
+    body: body.trim(),
   };
-  try {
-    parseNewsStory(story);
-  } catch (error) {
-    throw new Error(`${name}: ${error.message}`, { cause: error });
-  }
+  parseNewsStory(story);
   return story;
 }
 
 const names = (await readdir(contentRoot)).filter((name) => name.endsWith(".md")).sort();
 const stories = [];
 for (const name of names) {
-  const story = storyFrom(name, await readFile(path.join(contentRoot, name), "utf8"));
+  let story;
+  try {
+    story = storyFrom(name, await readFile(path.join(contentRoot, name), "utf8"));
+  } catch (error) {
+    throw new Error(`${name}: ${error.message}`, { cause: error });
+  }
   if (story) stories.push(story);
 }
 stories.sort((left, right) => right.publishedAt.localeCompare(left.publishedAt));
