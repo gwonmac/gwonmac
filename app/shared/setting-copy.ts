@@ -7,9 +7,9 @@ import { CARTOGRAPHY_REVEAL_MODES, type CartographyRevealMode } from "./cartogra
 import { CONTROLLER_PROMPT_STYLES, RENDER_SCALES, type ControllerPromptStyle, type RenderScale } from "./settings/core.js";
 
 /**
- * The value a select shows, found among the values it offers. A select's value is
- * a string, so this is how it becomes a setting value without a cast; it is
- * undefined when no value matches, and then nothing is saved.
+ * The value a select shows, found among the setting's allowed values. A select's
+ * value is a string, so this is how it becomes a setting value without a cast; it
+ * is undefined when no allowed value matches, and then nothing is saved.
  */
 export function optionFor<T extends string | number>(values: readonly T[], raw: string): T | undefined {
   return values.find((value) => String(value) === raw);

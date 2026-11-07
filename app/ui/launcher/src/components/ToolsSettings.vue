@@ -10,10 +10,9 @@ import { SKILL_COOLDOWN_PRESETS, isSkillCooldownCustomHex, skillCooldownCssColor
 import ColorControl from "./ColorControl.vue";
 import ShortcutSetting from "./ShortcutSetting.vue";
 import { saveChoice } from "../select-choice";
-
-const COOLDOWN_CHOICES = [...SKILL_COOLDOWN_PRESETS, "custom"] as const;
 import SkillLabelsSettings from "./SkillLabelsSettings.vue";
 
+const COOLDOWN_CHOICES = [...SKILL_COOLDOWN_PRESETS, "custom"] as const;
 const props = defineProps<{ snapshot: InGameSnapshot; api?: InGameNative | undefined; profiles?: LauncherSnapshot["profiles"] | undefined; save: (patch: InGamePatch) => Promise<void>; performSave?: (action: () => Promise<unknown>) => Promise<void> }>();
 const emit = defineEmits<{ maps: [] }>();
 const message = ref("");
