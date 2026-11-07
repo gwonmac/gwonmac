@@ -12,7 +12,6 @@ import {
 import type { TradeHost } from "./trade-host";
 import {
   TRADE_LIMITS,
-  type TradeConnectionState,
   type TradeEvent,
   type TradeMessage,
   type TradeSavedOffer,
@@ -20,12 +19,18 @@ import {
   type TradeSource,
 } from "../../../shared/trade-chat";
 import {
-  insertTradeMessage,
+  applyTradeMessage,
+  commitPendingTrade,
+  emptyTradeSource,
+  keepOrSelectFirst,
+  tradeAge,
   tradeLedgerRows,
   tradeMatchSegments,
   tradeMessageIntents,
   tradeTextMatches,
+  type TradeFollow,
   type TradeIntent,
+  type TradeSourceState,
 } from "./trade-ledger";
 import { useClassicFrame } from "./ui/use-classic-frame";
 import { listIndexAfter, listKeyStep, listPage } from "../../../shared/ui/list-keys";
@@ -41,15 +46,6 @@ const props = defineProps<{
   visible: boolean;
 }>();
 const emit = defineEmits<{ close: []; ready: [] }>();
-
-type SourceState = {
-  status: TradeConnectionState;
-  live: TradeMessage[];
-  pending: TradeMessage[];
-  search: TradeMessage[];
-  selection: number | null;
-  savedSelection: number | null;
-};
 
 type PlayerReturnState = {
   scrollTop: number;
@@ -93,9 +89,9 @@ const searchInput = ref<HTMLInputElement | null>(null);
 const list = ref<HTMLElement | null>(null);
 /** A ledger row holds the keyboard, so ↵ and ⌘↵ act on the selected offer. */
 const rowFocused = ref(false);
-const states = reactive<Record<TradeSource, SourceState>>({
-  kamadan: state(),
-  "pre-searing": state(),
+const states = reactive<Record<TradeSource, TradeSourceState>>({
+  kamadan: emptyTradeSource(),
+  "pre-searing": emptyTradeSource(),
 });
 const { panel, resizeGrip, panelStyle, startDrag } = useFloatingWindow({
   mode: props.mode,
@@ -312,21 +308,13 @@ function clearSearch(): void {
   keepOrSelectFirst(current.value, filtered.value);
 }
 
-function sameSender(left: TradeMessage | undefined, right: TradeMessage): boolean {
-  return left?.sender.toLocaleLowerCase() === right.sender.toLocaleLowerCase();
-}
-
-/**
- * A re-post replaces the seller's older message. The selection follows it only to the
- * same seller and only once the new row is shown; other arrivals never move the
- * selection or the keyboard (HUB-013).
- */
-function followReplacement(target: SourceState, message: TradeMessage, replaced: TradeMessage | undefined): void {
-  if (target.selection !== message.replacementTimestamp || !sameSender(replaced, message)) return;
-  const focused = document.activeElement instanceof HTMLElement
-    && document.activeElement.dataset.timestamp === String(message.replacementTimestamp);
-  target.selection = message.timestamp;
-  if (focused) focusRow(message.timestamp);
+/** The keyboard follows a re-post only from the row it replaced; other arrivals never move it (HUB-013). */
+function followFocus(follows: readonly TradeFollow[]): void {
+  for (const { from, to } of follows) {
+    if (document.activeElement instanceof HTMLElement && document.activeElement.dataset.timestamp === String(from)) {
+      focusRow(to);
+    }
+  }
 }
 
 function onTradeEvent(event: TradeEvent): void {
@@ -336,49 +324,19 @@ function onTradeEvent(event: TradeEvent): void {
     if (event.source === source.value) void sendQueuedSearch();
     return;
   }
-  const message = event.message;
-  const replacedAt = message.replacementTimestamp;
-  const replaced = replacedAt === undefined ? undefined
-    : [...target.live, ...target.pending, ...target.search, ...playerMessages.value]
-      .find((candidate) => candidate.timestamp === replacedAt);
-  if (replacedAt !== undefined) {
-    // Search results and a player's listings are snapshots: a re-post updates its row in place.
-    const inPlace = (messages: readonly TradeMessage[]) =>
-      messages.map((candidate) => candidate.timestamp === replacedAt ? message : candidate);
-    target.search = inPlace(target.search);
-    if (event.source === source.value) playerMessages.value = inPlace(playerMessages.value);
-  }
-  if ([...target.live, ...target.pending].some((candidate) => candidate.timestamp === message.timestamp)) {
-    followReplacement(target, message, replaced);
-    return;
-  }
-  const readingLive = event.source === source.value && !submittedQuery.value && !playerName.value;
-  if (readingLive && list.value && list.value.scrollTop >= 36) {
-    // Away from the top the reader's rows hold still: the replaced row stays until the queue merges.
-    target.pending = insertTradeMessage(target.pending, message);
-  } else {
-    target.live = insertTradeMessage(target.live, message);
-    target.pending = target.pending.filter((candidate) => candidate.timestamp !== replacedAt);
-    followReplacement(target, message, replaced);
-  }
-}
-
-function commitPending(): void {
-  const target = current.value;
-  if (!target.pending.length) return;
-  const arrivals = target.pending;
-  target.pending = [];
-  for (const message of arrivals) {
-    const replaced = target.live.find((candidate) => candidate.timestamp === message.replacementTimestamp);
-    target.live = insertTradeMessage(target.live, message);
-    followReplacement(target, message, replaced);
-  }
+  const shown = event.source === source.value;
+  // Away from the top of the live rows, the reader's rows hold still until they scroll back.
+  const holdArrivals = shown && !submittedQuery.value && !playerName.value
+    && !!list.value && list.value.scrollTop >= 36;
+  const arrival = applyTradeMessage(target, event.message, { holdArrivals, player: playerMessages.value });
+  if (shown) playerMessages.value = arrival.player;
+  if (arrival.followed) followFocus([arrival.followed]);
 }
 
 function onListScroll(event: Event): void {
   const target = event.currentTarget;
   if (!(target instanceof HTMLElement)) return;
-  if (target.scrollTop <= 2) commitPending();
+  if (target.scrollTop <= 2) followFocus(commitPendingTrade(current.value));
   const remaining = target.scrollHeight - target.clientHeight - target.scrollTop;
   if (remaining <= 96 && visibleLimit.value < filtered.value.length) {
     visibleLimit.value = Math.min(visibleLimit.value + 25, TRADE_LIMITS.searchResults);
@@ -867,30 +825,8 @@ onBeforeUnmount(() => {
   void props.host.unsubscribe();
 });
 
-function state(): SourceState {
-  return {
-    status: "unavailable",
-    live: [],
-    pending: [],
-    search: [],
-    selection: null,
-    savedSelection: null,
-  };
-}
-/** Loading or returning to a list keeps a shown selection and otherwise starts on the first row. */
-function keepOrSelectFirst(target: SourceState, messages: readonly TradeMessage[]): void {
-  if (target.savedSelection !== null) return;
-  if (!messages.some((message) => message.timestamp === target.selection)) {
-    target.selection = messages[0]?.timestamp ?? null;
-  }
-}
 function age(timestamp: number): string {
-  const seconds = Math.max(0, Math.floor((now.value - timestamp) / 1000));
-  if (seconds < 60) return "now";
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m`;
-  const hours = Math.floor(minutes / 60);
-  return hours < 24 ? `${hours}h` : `${Math.floor(hours / 24)}d`;
+  return tradeAge(timestamp, now.value);
 }
 function relativeAge(timestamp: number): string {
   const short = age(timestamp);
