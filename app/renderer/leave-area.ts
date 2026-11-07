@@ -1,11 +1,12 @@
 /**
  * Owns the one "Leave this area?" step (D-27). Every Hub action that leaves an
- * explorable instance (Travel, Travel and invite, a character switch) asks it
- * with the same words, the same safe default and the same arming: Stay here
- * leads and has the keyboard, and "Leave and …" accepts nothing until it has
- * armed, and never the later click of a multi-click (HUB-242, HUB-027).
+ * explorable instance asks it with the same words, the same safe default and the
+ * same arming: Stay here leads and has the keyboard, and "Leave and …" accepts
+ * nothing until it has armed, and never the later click of a multi-click
+ * (HUB-242, HUB-027). Travel and Travel and invite ask on the step's own page;
+ * Characters asks inside its page with these words and this arming time.
  */
-import { armConfirmation, CONFIRMATION_ARMING_MS } from "./surface-controller.js";
+import { CONFIRMATION_ARMING_MS } from "./surface-controller.js";
 import type { HubViewMount } from "../shared/hub.js";
 import type { HubLeaveAreaProps } from "../shared/ui/hub-pages.js";
 
@@ -27,33 +28,6 @@ export function leaveAreaCopy(action: "travel" | "switch", target: string): Leav
       detail: "Switching characters will leave this explorable area. You may lose progress in this instance.",
       leave: `Leave and switch to ${target}`,
     };
-}
-
-/**
- * Wires the two choices: the leave button arms a moment after `arm()` and then
- * takes one deliberate press; ← and → move between the two buttons.
- */
-export function bindLeaveAreaChoice(stay: HTMLButtonElement, leave: HTMLButtonElement) {
-  const arming = armConfirmation(leave);
-  const step = (event: KeyboardEvent) => {
-    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
-    if (event.target !== stay && event.target !== leave) return;
-    event.preventDefault();
-    (event.key === "ArrowLeft" ? stay : leave).focus({ preventScroll: true });
-  };
-  stay.addEventListener("keydown", step);
-  leave.addEventListener("keydown", step);
-  return Object.freeze({
-    /** Starts the arming window; Stay here takes the keyboard. */
-    arm() { arming.arm(); stay.focus({ preventScroll: true }); },
-    disarm: arming.disarm,
-    accepts: arming.accepts,
-    dispose() {
-      arming.disarm();
-      stay.removeEventListener("keydown", step);
-      leave.removeEventListener("keydown", step);
-    },
-  });
 }
 
 type LeaveAreaHub = Readonly<{

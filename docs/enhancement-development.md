@@ -354,6 +354,7 @@ app/features/<id>/
   main.ts        the main-process part
   renderer/      renderer-only modules: DOM, game host, overlays, stylesheets (no Node.js)
   renderer/host.ts  the one entry for a feature the game host starts itself (Maps, Character Switch)
+  hub-views/     the feature's own Hub pages: Vue components the kit draws, their props and an index.ts
   main/          main-process-only modules: stores, files, IPC parsing
   shared/        contracts and pure logic that two processes use
 ```

@@ -18,10 +18,13 @@ export function mountPage<Props extends object>(component: Component, target: HT
   return { element, update: next => { draw(next); }, dispose: () => render(null, target) };
 }
 
-/** Puts the keyboard on the page's control with the requested key, once per request. */
-export function usePageFocus(root: Ref<HTMLElement | undefined>, request: () => HubPageFocus | undefined) {
+/**
+ * Puts the keyboard on the page's control with the requested key, once per request. A page that
+ * scrolls its own content into view (a carousel) focuses without scrolling.
+ */
+export function usePageFocus(root: Ref<HTMLElement | undefined>, request: () => HubPageFocus | undefined, options: FocusOptions = {}) {
   watch(() => request()?.seq, () => {
     const key = request()?.key;
-    if (key && root.value) findFocusKey(root.value, key)?.focus();
+    if (key && root.value) findFocusKey(root.value, key)?.focus(options);
   }, { flush: 'post' });
 }

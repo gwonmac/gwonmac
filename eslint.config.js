@@ -285,8 +285,9 @@ export default tseslint.config(
   },
   {
     files: ["app/main/**/*.ts", "app/client/**/*.ts", "app/shared/**/*.ts", "app/tools-cli/**/*.ts", "app/features/**/*.ts"],
-    // A feature's renderer half belongs to tsconfig.renderer.json, which the service does not reach.
-    ignores: ["app/features/*/companion.ts", "app/features/companion-parts.ts", "app/features/*/renderer/**/*.ts"],
+    // A feature's renderer half belongs to tsconfig.renderer.json, which the service does not reach;
+    // its Hub pages (hub-views/) belong to the Tools program.
+    ignores: ["app/features/*/companion.ts", "app/features/companion-parts.ts", "app/features/*/renderer/**/*.ts", "app/features/*/hub-views/**/*.ts"],
     languageOptions: {
       parserOptions: {
         projectService: true,
