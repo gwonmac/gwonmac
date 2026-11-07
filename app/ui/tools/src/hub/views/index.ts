@@ -3,6 +3,7 @@
  * view module, so Core draws them without the Tools application.
  */
 import type { HubPages } from '../../../../../shared/ui/hub-pages';
+import HubBuildDetails from './builds/HubBuildDetails.vue';
 import HubPriceDetails from './calculator/HubPriceDetails.vue';
 import HubRatesForm from './calculator/HubRatesForm.vue';
 import HubConfirm from './confirm/HubConfirm.vue';
@@ -17,5 +18,6 @@ export const HUB_PAGES: HubPages<HTMLElement> = {
   preferences: (target, props) => mountPage(HubPreferences, target, props),
   rates: (target, props) => mountPage(HubRatesForm, target, props),
   priceDetails: (target, props) => mountPage(HubPriceDetails, target, props),
+  buildDetails: (target, props) => mountPage(HubBuildDetails, target, props),
   settingsHost: (target, props) => mountPage(HubSettingsHost, target, props),
 };

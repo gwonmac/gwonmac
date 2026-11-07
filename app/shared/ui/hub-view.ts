@@ -108,7 +108,6 @@ export type HubViewElements = Readonly<{
   back: HTMLButtonElement; close: HTMLButtonElement; input: HTMLInputElement;
   results: HTMLElement; view: HTMLElement; primary: HTMLButtonElement; actions: HTMLButtonElement; menu: HTMLElement;
 }>;
-export type HubBuildDetails = readonly (HubSummary | HubRow)[];
 /** Where the keyboard is, read from the view's focus zones. */
 export type HubFocusReader = Readonly<{
   /** The keyboard's place as a target a later paint can restore. */
@@ -140,8 +139,6 @@ export type HubViewHandle = Readonly<{
   focus: HubFocusReader;
   layout: HubLayoutReader;
   drafts: HubDraftFields;
-  /** Mounts Build details into a view host; returns its section and its disposal. */
-  mountBuildDetails(target: HTMLElement, builds: HubBuildDetails): Readonly<{ element: HTMLElement; dispose(): void }>;
   /** The Hub's own pages, which the controller hands to every view it mounts. */
   pages: HubPages<HTMLElement>;
   dispose(): void;

@@ -43,14 +43,23 @@ export type HubRow = Readonly<{
   unavailable?: string;
   /** Inspection remains available, but this row cannot apply its game action. */
   readOnly?: true;
-  /** Opens the canonical saved record in its existing authoring workspace, named `HUB_WORKSPACE_ACTION`. */
-  workspace?(): void;
-  /** A second way into this row; its Actions menu lists it when `actionsLabel` names it. */
-  actions?(): void;
-  actionsLabel?: string;
-  /** Named person actions, shared with its child page and run through the Hub task owner. */
-  menuActions?(): readonly HubRow[];
+  /**
+   * The row's other actions, in the order its Actions menu (⌘J) lists them after the primary
+   * and before Pin and the source's `personalize` entries: build details, the rates, a person's
+   * actions. Each runs as a Hub task, as the primary does.
+   */
+  actions?(): readonly HubAction[];
   /** How the footer and a repeated Enter name this row's action while it runs (HUB-083). */
+  pending?: Readonly<{ label: string; again: string }>;
+  run(task: HubTask): void | Promise<void>;
+}>;
+/** One entry of a row's Actions menu after its primary (HubRow `actions`). */
+export type HubAction = Readonly<{
+  label: string;
+  /** Why it cannot run now; the menu shows it disabled with this reason. */
+  unavailable?: string;
+  destructive?: boolean;
+  /** How the footer and a repeated Enter name it while it runs (HUB-083). */
   pending?: Readonly<{ label: string; again: string }>;
   run(task: HubTask): void | Promise<void>;
 }>;
@@ -162,7 +171,7 @@ export function matchHubRows(rows: readonly HubRow[], query: string, ordered = f
     .sort((a, b) => tiers.get(a)! - tiers.get(b)! || (ordered ? 0 : a.title.localeCompare(b.title) || a.id.localeCompare(b.id)));
 }
 
-/** The name of a row's `workspace` action, in its Actions and on Build details. */
+/** The action that opens a saved build or team in its authoring workspace, in its Actions and on Build details. */
 export const HUB_WORKSPACE_ACTION = 'Open in Build Library';
 
 /**
@@ -190,7 +199,11 @@ export function rankHubRows(rows: readonly HubRow[], query: string, options: Rea
     || (ranked ? tierOf(a) - tierOf(b) : 0) || priority(a) - priority(b));
 }
 
-export type HubSummary = Readonly<Pick<HubRow, 'title' | 'detail' | 'skills' | 'attributes' | 'professions' | 'attributeStatus' | 'folder' | 'workspace'> & { label: string }>;
+export type HubSummary = Readonly<Pick<HubRow, 'title' | 'detail' | 'skills' | 'attributes' | 'professions' | 'attributeStatus' | 'folder'> & {
+  label: string;
+  /** Opens the saved build in its authoring workspace (`HUB_WORKSPACE_ACTION`). */
+  workspace?(): void;
+}>;
 
 /** One footer action of a mounted view. `armed` holds a destructive primary until it has armed (~400 ms). */
 export type HubViewAction = Readonly<{ label: string; run(task: HubTask): void | Promise<void>; disabled?: boolean; running?: boolean; destructive?: boolean; armed?: boolean }>;

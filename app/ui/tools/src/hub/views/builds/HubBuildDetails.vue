@@ -1,11 +1,11 @@
 <script setup lang="ts">
 /** The Build details page: each build's skills with their descriptions and its invested attributes. */
-import { HUB_WORKSPACE_ACTION } from '../../../../shared/hub';
-import type { HubBuildDetails } from '../../../../shared/ui/hub-view';
-import HubBuildInfo from './HubBuildInfo.vue';
+import { HUB_WORKSPACE_ACTION } from '../../../../../../shared/hub';
+import type { HubBuildDetail, HubBuildDetailsProps } from '../../../../../../shared/ui/hub-pages';
+import HubBuildInfo from '../../HubBuildInfo.vue';
 
-defineProps<{ builds: HubBuildDetails }>();
-type Build = HubBuildDetails[number];
+defineProps<HubBuildDetailsProps>();
+type Build = HubBuildDetail;
 const heading = (build: Build) => 'label' in build ? `${build.label}: ${build.title}` : `${build.title} · ${build.detail}`;
 const attributes = (build: Build) => build.attributeStatus ?? build.attributes?.flatMap(group => group.attributes.map(attribute =>
   `${attribute.name} ${attribute.rank}${attribute.nextRank !== undefined && attribute.nextRank !== attribute.rank ? ` → ${attribute.nextRank}` : ''}`)).join(' · ') ?? '';

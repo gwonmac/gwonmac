@@ -4,7 +4,7 @@
  * page's controller in app/renderer owns its state, validation and IPC; the kit owns its DOM,
  * keys and focus. The Hub hands these pages to every view it mounts (HubViewMount).
  */
-import type { HubRow } from '../hub.js';
+import type { HubRow, HubSummary } from '../hub.js';
 
 /** A focus request a page applies once per new `seq`: the control with this `data-focus-key`. */
 export type HubPageFocus = Readonly<{ key: string; seq: number }>;
@@ -56,6 +56,14 @@ export type HubRatesProps = Readonly<{
 /** The evidence behind a market estimate, as label and value pairs, with a way to the rates. */
 export type HubPriceDetailsProps = Readonly<{ entries: readonly (readonly [label: string, value: string])[]; editRates(): void }>;
 
+/**
+ * Build details: each build's skills with their descriptions and its invested attributes. A
+ * summary names its role (`label`), e.g. the build to apply beside a hero's current one; a
+ * build with `workspace` offers to open it in the Build Library.
+ */
+export type HubBuildDetail = HubSummary | (Readonly<Pick<HubRow, 'title' | 'detail' | 'skills' | 'attributes' | 'professions' | 'attributeStatus' | 'folder'>> & Readonly<{ workspace?(): void }>);
+export type HubBuildDetailsProps = Readonly<{ builds: readonly HubBuildDetail[] }>;
+
 /** The host the launcher's Settings page mounts into; `failed` when that page could not load. */
 export type HubSettingsHostProps = Readonly<{ failed: boolean }>;
 
@@ -66,5 +74,6 @@ export type HubPages<Target> = Readonly<{
   preferences: HubPageMount<HubPreferencesProps, Target>;
   rates: HubPageMount<HubRatesProps, Target>;
   priceDetails: HubPageMount<HubPriceDetailsProps, Target>;
+  buildDetails: HubPageMount<HubBuildDetailsProps, Target>;
   settingsHost: HubPageMount<HubSettingsHostProps, Target>;
 }>;

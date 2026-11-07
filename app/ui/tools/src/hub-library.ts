@@ -3,7 +3,8 @@ import { TOOL_PRESENTATION } from '../../../shared/tool-presentation';
 import { watch } from 'vue';
 import { diffBuilds, diffSummary } from '../../../shared/builds/diff';
 import { buildAttributes, buildProfessions } from '../../../shared/builds/presentation';
-import { hubMatch, parseHubQuery, type HubPresenter, type HubRow, type HubSource, type HubTask } from '../../../shared/hub';
+import { HUB_WORKSPACE_ACTION, hubMatch, parseHubQuery, type HubAction, type HubPresenter, type HubRow, type HubSource, type HubTask } from '../../../shared/hub';
+import type { HubBuildDetail } from '../../../shared/ui/hub-pages';
 import { buildId, skillId, type Build, type Team, type HeroId } from '../../../shared/builds/library';
 import { heroLabel, PROFESSIONS } from '../../../shared/builds/heroes';
 import { decodeSkillTemplate } from '../../../shared/builds/skill-template';
@@ -251,6 +252,13 @@ export function createHubLibrary(controller: LibraryController, host: ToolsHost,
     } finally { applying = false; progress = ''; refresh(); }
   }
   const workspace = (build: Build) => templateFolder(build) === null && openWorkspace ? { workspace: () => openWorkspace(build) } : {};
+  /** Opens a saved build or team in the Build Library; Guild Wars templates have no record there. */
+  const workspaceActions = (item: Item): HubAction[] => openWorkspace && (item.kind === 'team' || templateFolder(item.value) === null)
+    ? [{ label: HUB_WORKSPACE_ACTION, run: () => openWorkspace(item.value) }] : [];
+  /** Build details: every build row's skills and attributes, beside the build to apply on a target page. */
+  const detailsAction = (builds: readonly HubBuildDetail[]): HubAction => ({ label: 'Show build details', run: () => hub.showView('Build details', (target, _back, _footer, pages) => {
+    const page = pages.buildDetails(target, { builds }); page.element.focus(); return page.dispose;
+  }, undefined, undefined, source) });
   function chooseBuild(item: Item & { kind: 'build' }, recentHero?: HeroId | null) {
     const expected = revision(item);
     const summary = { ...workspace(item.value), label: 'Build to apply', title: item.value.name, detail: '', folder: templateFolder(item.value), skills: skillPreview(item.value), attributes: buildAttributes(item.value.attributes), professions: buildProfessions(item.value.professions) };
@@ -264,8 +272,10 @@ export function createHubLibrary(controller: LibraryController, host: ToolsHost,
         action: applyAction(item.value, hero), consequential: true, pending: applyPending(item.value.name),
         ...(refusal ? { unavailable: refusal } : {}), run: task => apply(item, expected, hero, task) };
     };
+    // Every row on a target page shows the build to apply beside the target's own in Build details.
+    const withDetails = (rows: readonly HubRow[]) => rows.map((row): HubRow => ({ ...row, actions: () => [detailsAction([summary, row])] }));
     function compareTarget(hero: HeroId | null) {
-      hub.showRows(targetName(hero), () => [applyRow(hero, hero === null ? 'Apply to me' : `Apply to ${targetName(hero)}`)], summary, undefined, source);
+      hub.showRows(targetName(hero), () => withDetails([applyRow(hero, hero === null ? 'Apply to me' : `Apply to ${targetName(hero)}`)]), summary, undefined, source);
     }
     function chooseHero() {
       hub.showRows('Heroes', () => {
@@ -283,20 +293,22 @@ export function createHubLibrary(controller: LibraryController, host: ToolsHost,
             preferred: !refusal, consequential: !refusal, action: refusal ? 'Review availability' : applyAction(item.value, id), ...(refusal ? { readOnly: true } : { pending: applyPending(item.value.name) }),
             navigate: () => compareTarget(id), run: (task: HubTask) => refusal ? compareTarget(id) : apply(item, expected, id, task) };
         }).sort((a, b) => Number(a.group !== 'In your party') - Number(b.group !== 'In your party') || (a.group === 'In your party' ? 0 : a.title.localeCompare(b.title)));
-        return rows.length ? rows : [{ id: 'heroes-unavailable', title: 'No heroes observed', detail: 'Enter a PvE outpost to read your heroes.', group: 'Heroes', action: 'Choose hero', unavailable: 'Hero information is not available yet.', run() {} }];
+        return withDetails(rows.length ? rows : [{ id: 'heroes-unavailable', title: 'No heroes observed', detail: 'Enter a PvE outpost to read your heroes.', group: 'Heroes', action: 'Choose hero', unavailable: 'Hero information is not available yet.', run() {} }]);
       }, summary, undefined, source);
     }
     if (recentHero !== undefined) { compareTarget(recentHero); return; }
-    hub.showRows(item.value.name, () => [
+    hub.showRows(item.value.name, () => withDetails([
       { ...applyRow(null, 'Apply to me'), detail: `${playerName()} · ${equipped(null, item.value).detail}`, group: 'Targets' },
       { id: 'choose-hero', title: 'Apply to hero', detail: 'Compare your heroes’ current builds', group: 'Targets', action: 'Choose hero', navigate: chooseHero, run: chooseHero },
-    ], summary, undefined, source);
+    ]), summary, undefined, source);
   }
-  const buildRow = (item: Item & { kind: 'build' }, duplicate = all().some(other => other.kind === 'build' && other.value.id !== item.value.id && other.value.name === item.value.name)): HubRow => ({
-    ...workspace(item.value), id: `build:${item.value.id}`, title: item.value.name, detail: duplicate ? (templateFolder(item.value) === null ? 'Saved library' : 'Guild Wars templates') : '', matches: query => buildMatcher(query)(item.value), folder: templateFolder(item.value), professions: buildProfessions(item.value.professions),
+  function buildRow(item: Item & { kind: 'build' }, duplicate = all().some(other => other.kind === 'build' && other.value.id !== item.value.id && other.value.name === item.value.name)): HubRow {
+    const row: HubRow = { id: `build:${item.value.id}`, title: item.value.name, detail: duplicate ? (templateFolder(item.value) === null ? 'Saved library' : 'Guild Wars templates') : '', matches: query => buildMatcher(query)(item.value), folder: templateFolder(item.value), professions: buildProfessions(item.value.professions),
     keywords: [item.value.professions[0], PROFESSIONS[item.value.professions[0]].name, ...item.value.tags, templateFolder(item.value)?.replaceAll('/', ' ') ?? '', templateFolder(item.value) ?? ''].join(' '),
-    group: 'Builds', attributes: buildAttributes(item.value.attributes), skills: skillPreview(item.value), action: 'Choose target', navigate: () => chooseBuild(item), run: () => chooseBuild(item), actions: () => chooseBuild(item),
-  });
+    group: 'Builds', attributes: buildAttributes(item.value.attributes), skills: skillPreview(item.value), action: 'Choose target', navigate: () => chooseBuild(item), run: () => chooseBuild(item),
+    actions: () => [detailsAction([{ ...row, ...workspace(item.value) }]), ...workspaceActions(item)] };
+    return row;
+  }
   const templateStates = (): HubRow[] => [
     ...(reading ? [{ id: 'templates-reading', title: 'Reading Guild Wars templates…', detail: 'Saved library results remain available.', group: 'Sources', action: 'Reading', unavailable: 'Reading templates…', run() {} }] : []),
     ...(templateProblem ? [{ id: 'templates-retry', title: 'Could not read templates', detail: 'Showing previously read templates. Retry to refresh.', group: 'Sources', action: 'Retry', run: async () => { await readTemplates(); refresh(); } }] : []),
@@ -401,9 +413,9 @@ export function createHubLibrary(controller: LibraryController, host: ToolsHost,
     // Browsing never needs an apply snapshot; only an explicit unique team action does.
     const expected = direct ? revision(item) : '';
     const refusal = direct ? assess(item, null) : null;
-    return { ...(openWorkspace ? { workspace: () => openWorkspace(item.value) } : {}), id: `team:${item.value.id}`, title: item.value.name, detail: teamDetail(item),
+    return { id: `team:${item.value.id}`, title: item.value.name, detail: teamDetail(item),
       group: 'Teams', preview: preview(item), action: direct ? `Apply team ${item.value.name}` : `Review ${item.value.name}`, consequential: direct, navigate: () => review(item),
-      ...(refusal ? { unavailable: refusal } : {}), ...(direct ? { pending: applyPending(item.value.name) } : {}), actions: () => review(item),
+      ...(refusal ? { unavailable: refusal } : {}), ...(direct ? { pending: applyPending(item.value.name) } : {}), actions: () => workspaceActions(item),
       run: task => direct ? apply(item, expected, null, task) : review(item) };
   }
   const source: HubSource = {

@@ -22,7 +22,7 @@ import { composeHubResults, chooseHubSelection } from './hub-results.js';
 import { HUB_FALLBACK, hubAtHome, hubInitialState, hubKey, hubReduce, hubRunning, hubSuspendedOn, hubTaskLive, type HubEffect, type HubEvent, type HubPage, type HubPlace, type HubStep } from './hub-engine.js';
 import { createHoverSelection } from '../shared/ui/hover-selection.js';
 import { FEATURES, featureActivationRequested } from '../shared/feature-contracts.js';
-import { HUB_LOCATED_DESTINATIONS, HUB_WORKSPACE_ACTION, hubMatch, parseHubQuery, normaliseHubQuery, type HubDestination, type HubRow, type HubSource, type HubSummary, type HubTask, type HubViewAction, type HubViewFooter, type HubViewMount } from '../shared/hub.js';
+import { HUB_LOCATED_DESTINATIONS, hubMatch, parseHubQuery, normaliseHubQuery, type HubAction, type HubDestination, type HubRow, type HubSource, type HubSummary, type HubTask, type HubViewAction, type HubViewFooter, type HubViewMount } from '../shared/hub.js';
 import { hubPrimaryArt, hubRowPaintsSame, type EmbeddedHubView, type HubFocusTarget, type HubLegendEntry, type HubMenuItem, type HubPrimary, type HubViewModel } from '../shared/ui/hub-view.js';
 
 const NONE: readonly never[] = [];
@@ -529,24 +529,26 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
       end: entry(() => { if (progress?.owner !== token) return; progress = null; if (progressInStatus) report(''); }),
     };
   }
-  async function run(action?: HubRow) {
-    const row = action ?? rows.find(row => row.id === state.selected);
-    if (!row) return;
+  /** Runs the selected row's primary, or one of its Actions (HubRow `actions`), as a task of this page. */
+  async function run(chosen?: HubAction) {
+    const row = chosen ? undefined : rows.find(row => row.id === state.selected);
+    const action = chosen ?? (row && { ...row, label: row.action });
+    if (!action) return;
     // One action at a time per page: Enter names the running one instead of starting another.
     const working = hubRunning(state);
     if (working) { report(working.again); return; }
-    if (row.unavailable) { report(row.unavailable); return; }
+    if (action.unavailable) { report(action.unavailable); return; }
     const task = startTask(), started = state.session;
-    step({ type: 'start', label: row.pending?.label ?? row.action, again: row.pending?.again ?? `${row.action} is still running.` });
-    select(state.selected); report(''); if (row.pending) task.progress(row.pending.label);
+    step({ type: 'start', label: action.pending?.label ?? action.label, again: action.pending?.again ?? `${action.label} is still running.` });
+    select(state.selected); report(''); if (action.pending) task.progress(action.pending.label);
     try {
       // A command example fills Home's search and selects its argument; nothing runs.
-      if (row.searchQuery !== undefined) {
+      if (row?.searchQuery !== undefined) {
         send({ type: 'home' }); step({ type: 'type', query: row.searchQuery }); refresh(true);
         const argument = parseHubQuery(state.query).scope ? state.query.indexOf(' ') + 1 : 0;
         requestFocus({ zone: 'search', range: [argument, state.query.length] });
       }
-      else await callOut(() => row.run(task));
+      else await callOut(() => action.run(task));
     }
     catch (error) { task.fail(error); }
     finally {
@@ -713,33 +715,20 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     send({ type: 'key', key: hubKey(event), where: { at: 'view', primary: !!viewFooter?.primary, form: !!target.closest('form'),
       activates: target.matches('button,a[href],summary,select,textarea,input[type=checkbox],input[type=radio],input[type=range]') } }, { event });
   }));
-  function showBuildDetails(row: HubRow) {
-    const incoming = state.place.scope?.summary;
-    presenter.showView('Build details', target => {
-      const details = ui.mountBuildDetails(target, [...(incoming ? [incoming] : []), row]);
-      details.element.focus();
-      return details.dispose;
-    });
-  }
   type MenuEntry = Readonly<{ label: string; section: 'Primary' | 'Details' | 'Personalize'; keys?: readonly string[]; destructive?: boolean; disabled?: boolean; reason?: string; run(): void | Promise<void> }>;
   /**
-   * A row's Actions, verb first: its primary (↵), a second way into it (build details, rates),
-   * then pinning and a search phrase for rows the Hub can keep (HUB-040, HUB-184).
+   * A row's Actions, verb first: its primary (↵), the row's own actions in its source's order
+   * (build details, the rates, a person's actions), then pinning and a search phrase for rows
+   * the Hub can keep (HUB-040, HUB-184).
    */
   function menuEntries(row: HubRow): MenuEntry[] {
     const entries: MenuEntry[] = [{ label: row.action, section: 'Primary', keys: ['↵'], ...(row.destructive ? { destructive: true } : {}), disabled: !!row.unavailable, ...(row.unavailable ? { reason: row.unavailable } : {}), run: () => run() }];
-    for (const action of row.menuActions?.() ?? []) entries.push({
-      label: action.action, section: 'Details', disabled: !!action.unavailable,
+    for (const action of row.actions?.() ?? []) entries.push({
+      label: action.label, section: 'Details', disabled: !!action.unavailable,
       ...(action.unavailable ? { reason: action.unavailable } : {}),
       ...(action.destructive ? { destructive: true } : {}),
-      run: () => {
-        if (state.selected !== row.id || !rows.some(current => current.id === row.id)) { report('This person is no longer selected. Choose a result.'); return; }
-        return run(action);
-      },
+      run: () => run(action),
     });
-    if (row.skills || state.place.scope?.summary?.skills) entries.push({ label: 'Show build details', section: 'Details', run: () => showBuildDetails(row) });
-    else if (!row.menuActions && row.actions && row.actionsLabel) entries.push({ label: row.actionsLabel, section: 'Details', run: () => row.actions?.() });
-    if (row.workspace) entries.push({ label: HUB_WORKSPACE_ACTION, section: 'Details', run: row.workspace });
     if (isHubShortcuts([{ id: row.id, phrase: '', pinned: false }]) && lookup(row.id)) {
       const pinned = shortcuts().some(entry => entry.id === row.id && entry.pinned);
       entries.push({ label: pinned ? 'Unpin from Hub' : 'Pin to Hub', section: 'Personalize', run: async () => {

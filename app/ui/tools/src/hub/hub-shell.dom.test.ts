@@ -53,15 +53,20 @@ afterEach(() => { window.gwHub?.dispose(); vi.useRealTimers(); });
 const skills = Array.from({ length: 3 }, (_, index) => ({ name: `Skill ${index + 1}`, iconUrl: `skill-${index + 1}.png`, elite: index === 0, ...(index === 2 ? { changed: true, description: 'Hits hard.' } : {}) }));
 const attributes = [{ name: 'Healing Prayers', icon: 'monk.png', attributes: [{ name: 'Healing Prayers', label: 'HP', rank: 12, nextRank: 11 }, { name: 'Divine Favor', label: 'DF', rank: 9 }] }];
 const professions = [{ code: 'Mo', name: 'Monk', icon: 'mo.png' }, { code: 'Me', name: 'Mesmer', icon: 'me.png' }];
-const sectionRows = (): readonly HubRow[] => [
+/** Every row on a page with a build summary offers Build details beside it, as the Library's target pages do. */
+const details = (row: HubRow): HubRow => ({ ...row, actions: () => [...row.actions?.() ?? [], { label: 'Show build details', run: () => window.gwHub?.showView('Build details', (target, _back, _footer, pages) => {
+  const page = pages.buildDetails(target, { builds: [summary, row] }); page.element.focus(); return page.dispose;
+}) }] });
+const sectionBase: readonly HubRow[] = [
   { id: 'build:1', title: 'Healer', detail: 'Monk build', group: 'Builds', action: 'Apply build', skills, attributes, professions, folder: 'PvE', consequential: true, run() {} },
   { id: 'build:2', title: 'Status build', detail: 'No attributes', group: 'Builds', action: 'Apply build', skills: skills.slice(0, 1), attributeStatus: 'Attributes unavailable', folder: '', run() {} },
-  { id: 'quote:result', title: '1,000 gold', detail: 'From traders', group: 'Calculator', action: 'Copy 1,000 gold', conversion: { input: '1p', from: 'p', to: 'g' }, quoteBasis: { value: 'buy', options: [{ value: 'buy', label: 'Trader buys' }, { value: 'sell', label: 'Trader sells' }], choose() {}, details: { label: 'Refresh quotes', run() {} } }, actionsLabel: 'Refresh quotes', actions() {}, run() {} },
+  { id: 'quote:result', title: '1,000 gold', detail: 'From traders', group: 'Calculator', action: 'Copy 1,000 gold', conversion: { input: '1p', from: 'p', to: 'g' }, quoteBasis: { value: 'buy', options: [{ value: 'buy', label: 'Trader buys' }, { value: 'sell', label: 'Trader sells' }], choose() {}, details: { label: 'Refresh quotes', run() {} } }, run() {} },
   { id: 'place:1', title: 'Kamadan', detail: 'Outpost', group: 'Places', action: 'Travel', navigate() {}, leavesArea: true, run() {} },
-  { id: 'person:1', title: 'Friend', detail: 'Online', group: 'People', action: 'Whisper', icon: 'friend.png', menuActions: () => [{ id: 'person:1:invite', title: 'Invite', detail: '', group: 'People', action: 'Invite to party', run() {} }], run() {} },
+  { id: 'person:1', title: 'Friend', detail: 'Online', group: 'People', action: 'Whisper', icon: 'friend.png', actions: () => [{ label: 'Invite to party', run() {} }], run() {} },
   { id: 'danger:1', title: 'Delete', detail: 'Remove it', group: 'Commands', action: 'Delete', destructive: true, readOnly: true, preview: 'Line one\nLine two', run() {} },
   { id: 'off:1', title: 'Unavailable', detail: 'Not now', group: 'Commands', action: 'Use', unavailable: 'Not in an outpost.', run() {} },
 ];
+const sectionRows = (): readonly HubRow[] => sectionBase.map(details);
 const summary = { label: 'Current build', title: 'Healer', detail: 'Your build', skills, attributes, professions, folder: 'PvE' };
 
 test('the Hub keeps its DOM structure, classes, ARIA and focus in every main view', async () => {
