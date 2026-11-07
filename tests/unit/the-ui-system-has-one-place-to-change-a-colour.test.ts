@@ -1,11 +1,16 @@
-// Both interface styles are one system. One hardcoded colour in a
+// The interface has two token sources and no third. One hardcoded colour in a
 // component is invisible in review and becomes an accidental second style.
 //
-// So the claim is enforced rather than asserted. Neither `ui/components.css`
-// nor the two stylesheets that consume it may contain a colour or a corner —
-// every one has to resolve through a variable declared in `ui/tokens.css`.
-// That is what makes `--ui-radius: 0` square the whole interface instead of
-// most of it.
+// - The launcher window names its colours once, in the `:root` tokens of
+//   `app/ui/launcher/src/style.css`.
+// - Everything drawn in the game (the Hub, the Tools, the renderer's own
+//   overlays) resolves through `app/shared/ui/tokens.css`. That is what makes
+//   `--ui-radius: 0` square the whole interface instead of most of it.
+//
+// So the claim is enforced rather than asserted, over every stylesheet and
+// every `.vue` `<style>` block, found by glob: a new file is covered the day it
+// lands, without anyone remembering to list it. Files that cannot meet a rule
+// yet are on `NOT_YET_TOKENISED`, each with its reason.
 //
 // The test also runs the other way: a token nothing reads is dead weight in
 // the one file people open to find out what they are allowed to change.
@@ -13,141 +18,202 @@
 //   node --import ./scripts/ts-hook.mjs --test \
 //     tests/unit/the-ui-system-has-one-place-to-change-a-colour.test.ts
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { globSync, readFileSync } from "node:fs";
 import test from "node:test";
 
 const TOKENS = "app/shared/ui/tokens.css";
+const LAUNCHER_TOKENS = "app/ui/launcher/src/style.css";
+const SETTINGS = "app/ui/launcher/src/settings-view.css";
+/** Drawn only in the game's Hub: it maps Settings onto the in-game tokens. */
+const HUB_SETTINGS = "app/ui/launcher/src/hub-settings.css";
+const TOKEN_SOURCES = new Set([TOKENS, LAUNCHER_TOKENS]);
 
-/** Every stylesheet that is downstream of the tokens, and so may not hold a
- *  literal. The Tools workbench is on the list for the same reason the
- *  launcher is: two surfaces of one product cannot each own a palette. */
-const CONSUMERS = [
-  "app/shared/ui/components.css",
-  "app/renderer/cartography-overlay-controls.css",
-  "app/renderer/hub.css",
-  "app/ui/tools/src/styles.css",
-  "app/ui/tools/src/styles/base-shell.css",
-  "app/ui/tools/src/styles/library.css",
-  "app/ui/tools/src/styles/build.css",
-  "app/ui/tools/src/styles/catalogue.css",
-  "app/ui/tools/src/styles/team.css",
-  "app/ui/tools/src/styles/trade.css",
-];
+type Rule = "colour" | "radius" | "z-index";
+type System = "launcher" | "in-game";
+
+const LAUNCHER_SCALE =
+  "the launcher has no stacking scale, and these radii are off its --radius-* scale; choosing one is a visual change";
 
 /**
- * Surfaces that belong on `CONSUMERS` and are not there yet, each with the
- * reason. The renderer/game overlays predate the token system and still carry
- * literals; re-pointing them is its own visual change.
+ * Surfaces that cannot meet a rule yet, each with the rules it is excused from
+ * and the reason. Re-pointing them is its own visual change.
  *
  * The staleness test below is what stops this being a quiet exemption: the day
- * one of these files stops holding a literal, it fails here until it is moved
- * up into `CONSUMERS`, where the real rule applies.
+ * one of these files meets a rule it is excused from, it fails here until the
+ * rule is taken off its entry.
  */
-const NOT_YET_TOKENISED = ["app/renderer/harness.css", "app/renderer/character-switch.css"];
+const NOT_YET_TOKENISED: Record<string, { rules: Rule[]; reason: string }> = {
+  "app/renderer/harness.css": {
+    rules: ["colour", "radius", "z-index"],
+    reason: "the renderer's game overlays predate the token system",
+  },
+  "app/renderer/character-switch.css": {
+    rules: ["colour", "z-index"],
+    reason: "the renderer's game overlays predate the token system",
+  },
+  "app/renderer/loading.css": {
+    rules: ["colour", "radius", "z-index"],
+    reason: "the boot screen is a plain <link> in index.html and paints before the bundle brings tokens.css",
+  },
+  "app/ui/tools/src/styles/elite-skills.css": {
+    rules: ["colour", "radius", "z-index"],
+    reason: "opaque panel fills are derived in place with rgb(from …), and its layers and image corners are literal",
+  },
+  "app/ui/tools/src/WhispersApp.vue": {
+    rules: ["colour", "z-index"],
+    reason: "the window's background-opacity setting mixes tokens in place, and the options menu stacks with a literal 2 (the --ui-z-* scale has no menu layer)",
+  },
+  "app/ui/launcher/src/components/MarkdownInline.vue": {
+    rules: ["colour", "radius"],
+    reason: "the link underline mixes currentColor in place; " + LAUNCHER_SCALE,
+  },
+  [SETTINGS]: {
+    rules: ["colour", "radius", "z-index"],
+    reason: "Settings still types its own palette; " + LAUNCHER_SCALE,
+  },
+  [LAUNCHER_TOKENS]: { rules: ["radius", "z-index"], reason: LAUNCHER_SCALE },
+  "app/ui/launcher/src/components/ColorControl.vue": { rules: ["radius"], reason: LAUNCHER_SCALE },
+  "app/ui/launcher/src/components/HomeView.vue": { rules: ["radius", "z-index"], reason: LAUNCHER_SCALE },
+  "app/ui/launcher/src/components/MapStylePreview.vue": { rules: ["radius"], reason: LAUNCHER_SCALE },
+  "app/ui/launcher/src/components/NewsFeed.vue": { rules: ["radius", "z-index"], reason: LAUNCHER_SCALE },
+  "app/ui/launcher/src/components/NewsSourceMark.vue": { rules: ["radius"], reason: LAUNCHER_SCALE },
+  "app/ui/launcher/src/components/PanelStylePreview.vue": { rules: ["radius"], reason: LAUNCHER_SCALE },
+  "app/ui/launcher/src/components/ShortcutSetting.vue": { rules: ["radius", "z-index"], reason: LAUNCHER_SCALE },
+  "app/ui/launcher/src/components/SkillLabelsSettings.vue": { rules: ["radius"], reason: LAUNCHER_SCALE },
+};
+
+/** Strip comments (keeping line breaks), so prose about `oklch(20% …)` is not read as a declaration. */
+const code = (css: string) => css.replace(/\/\*[\s\S]*?\*\//g, (comment) => comment.replace(/[^\n]/g, " "));
+
+/** A `.vue` file's `<style>` blocks, with everything else blanked so line numbers stay the file's own. */
+function styleOf(path: string, source: string): string {
+  if (!path.endsWith(".vue")) return source;
+  let style = "";
+  let at = 0;
+  for (const match of source.matchAll(/(<style[^>]*>)([\s\S]*?)<\/style>/g)) {
+    const start = match.index + match[1]!.length;
+    style += source.slice(at, start).replace(/[^\n]/g, "") + match[2]!;
+    at = start + match[2]!.length;
+  }
+  return style;
+}
+
+type StyleFile = { path: string; system: System; css: string; source: string };
+
+/** Every stylesheet and every `.vue` `<style>` block of the interface. */
+const files: StyleFile[] = globSync([
+  "app/ui/*/src/**/*.{css,vue}",
+  "app/shared/ui/**/*.css",
+  "app/renderer/**/*.css",
+])
+  .sort()
+  .map((path) => {
+    const source = readFileSync(path, "utf8");
+    const system: System =
+      path.startsWith("app/ui/launcher/") && path !== HUB_SETTINGS ? "launcher" : "in-game";
+    return { path, system, source, css: code(styleOf(path, source)) };
+  })
+  .filter(({ css }) => css.trim() !== "");
+
+const excused = (path: string, rule: Rule) => NOT_YET_TOKENISED[path]?.rules.includes(rule) ?? false;
+const checked = (rule: Rule) => files.filter(({ path }) => !excused(path, rule));
+const file = (path: string) => files.find((entry) => entry.path === path)!;
+
+/** A token source may hold literals only where it declares a token. */
+const withoutTokenDeclarations = (css: string) =>
+  css.replace(/--[a-z0-9-]+\s*:[^;}]*/g, (declaration) => declaration.replace(/[^\n]/g, " "));
+
+/** The lines that break a rule, as `path:line: text`. */
+function offences(rule: Rule, { path, css }: StyleFile): string[] {
+  const lines = (TOKEN_SOURCES.has(path) && rule === "colour" ? withoutTokenDeclarations(css) : css).split("\n");
+  const found: string[] = [];
+  lines.forEach((line, index) => {
+    const at = `${path}:${index + 1}: `;
+    if (rule === "colour") {
+      // Hex literals, functional colour notations, and local mixes all
+      // create feature-owned paint. Mixtures belong in the shared
+      // projection/component layer where every surface gets the same state.
+      const hex = line.match(/#[0-9a-fA-F]{3,8}\b/);
+      const fn = line.match(/\b(rgba?|hsla?|oklch|lab|lch)\(/);
+      const mix = !TOKEN_SOURCES.has(path) && path !== "app/shared/ui/components.css" && line.match(/\bcolor-mix\(/);
+      if (hex || fn || mix) found.push(at + line.trim());
+    } else if (rule === "radius") {
+      // Every radius declaration on the line, not just the first: a rule
+      // written on one line would otherwise hide behind its neighbour.
+      for (const match of line.matchAll(/border(?:-[a-z]+)*-radius\s*:([^;}]*)/g)) {
+        // `0` is a real answer — a tab's bottom corners are square by
+        // design, and that is shape rather than a themeable length.
+        if (/\b\d+(\.\d+)?(px|rem|em|%)/.test(match[1]!)) found.push(at + match[0]!.trim());
+      }
+    } else {
+      // -1 and 1 park the on-screen-keyboard fields behind and in front of
+      // the canvas. They are not a layer in the interface's own stack.
+      const match = line.match(/z-index\s*:\s*(-?\d+)/);
+      if (match && Math.abs(Number(match[1])) > 1) found.push(at + line.trim());
+    }
+  });
+  return found;
+}
+
+/** Every `--…` declared on the left of a colon. */
+function declared(css: string, prefix = "--"): Set<string> {
+  const names = new Set<string>();
+  for (const match of code(css).matchAll(/(--[a-z0-9-]+)\s*:/g)) {
+    if (match[1]!.startsWith(prefix)) names.add(match[1]!);
+  }
+  return names;
+}
+
+/** Every `var(--…)` reference. */
+function referenced(css: string, prefix = "--"): Set<string> {
+  const names = new Set<string>();
+  for (const match of code(css).matchAll(/var\((--[a-z0-9-]+)/g)) {
+    if (match[1]!.startsWith(prefix)) names.add(match[1]!);
+  }
+  return names;
+}
+
+/** Custom properties a `.vue` file sets on its own elements (`:style="{ '--swatch': … }"`). */
+const local = (source: string) => new Set([...source.matchAll(/['"](--[a-z0-9-]+)['"]\s*:/g)].map((match) => match[1]!));
 
 const tokens = readFileSync(TOKENS, "utf8");
-const consumers = CONSUMERS.map(
-  (path) => [path, readFileSync(path, "utf8")] as const,
-);
+const inGameTokens = declared(tokens, "--ui-");
+const launcherTokens = declared(readFileSync(LAUNCHER_TOKENS, "utf8"));
+const settingsTokens = declared(readFileSync(SETTINGS, "utf8"), "--settings-");
 
-/** Strip comments, so prose about `oklch(20% …)` is not read as a declaration. */
-const code = (css: string) => css.replace(/\/\*[\s\S]*?\*\//g, "");
-
-const paletteCode = (_path: string, css: string): string => code(css);
-
-/** Every `--ui-…` declared on the left of a colon in tokens.css. */
-function declaredTokens(): Set<string> {
-  const names = new Set<string>();
-  for (const match of code(tokens).matchAll(/(--ui-[a-z0-9-]+)\s*:/g)) {
-    names.add(match[1]!);
+test("the glob finds both systems and both token sources", () => {
+  // A broken glob would pass every rule below by checking nothing.
+  const paths = files.map(({ path }) => path);
+  for (const path of [TOKENS, LAUNCHER_TOKENS, SETTINGS, HUB_SETTINGS, "app/shared/ui/components.css", "app/ui/tools/src/styles/trade.css", "app/ui/launcher/src/components/ShortcutSetting.vue"]) {
+    assert.ok(paths.includes(path), `${path} is checked`);
   }
-  return names;
-}
-
-/** Every `var(--ui-…)` reference in a stylesheet. */
-function referenced(css: string): Set<string> {
-  const names = new Set<string>();
-  for (const match of code(css).matchAll(/var\((--ui-[a-z0-9-]+)/g)) {
-    names.add(match[1]!);
-  }
-  return names;
-}
+  for (const path of Object.keys(NOT_YET_TOKENISED)) assert.ok(paths.includes(path), `${path} still exists`);
+});
 
 test("no component decides a colour for itself", () => {
-  const offenders: string[] = [];
-  for (const [path, css] of consumers) {
-    paletteCode(path, css)
-      .split("\n")
-      .forEach((line, index) => {
-        // Hex literals, functional colour notations, and local mixes all
-        // create feature-owned paint. Mixtures belong in the shared
-        // projection/component layer where every surface gets the same state.
-        const hex = line.match(/#[0-9a-fA-F]{3,8}\b/);
-        const fn = line.match(/\b(rgba?|hsla?|oklch|lab|lch)\(/);
-        const mix = path !== "app/shared/ui/components.css" && line.match(/\bcolor-mix\(/);
-        if (hex || fn || mix) offenders.push(`${path}:${index + 1}: ${line.trim()}`);
-      });
-  }
-  assert.deepEqual(
-    offenders,
-    [],
-    `every colour must resolve through a token:\n${offenders.join("\n")}`,
-  );
+  const offenders = checked("colour").flatMap((entry) => offences("colour", entry));
+  assert.deepEqual(offenders, [], `every colour must resolve through a token:\n${offenders.join("\n")}`);
 });
 
 test("no component decides a corner for itself", () => {
-  const offenders: string[] = [];
-  for (const [path, css] of consumers) {
-    paletteCode(path, css)
-      .split("\n")
-      .forEach((line, index) => {
-        // Every radius declaration on the line, not just the first: a rule
-        // written on one line would otherwise hide behind its neighbour.
-        for (const match of line.matchAll(/border(?:-[a-z]+)*-radius\s*:([^;}]*)/g)) {
-          // `0` is a real answer — a tab's bottom corners are square by
-          // design, and that is shape rather than a themeable length.
-          if (/\b\d+(\.\d+)?(px|rem|em|%)/.test(match[1]!)) {
-            offenders.push(`${path}:${index + 1}: ${match[0]!.trim()}`);
-          }
-        }
-      });
-  }
-  assert.deepEqual(
-    offenders,
-    [],
-    `border-radius must come from --ui-radius:\n${offenders.join("\n")}`,
-  );
+  const offenders = checked("radius").flatMap((entry) => offences("radius", entry));
+  assert.deepEqual(offenders, [], `border-radius must come from a radius token:\n${offenders.join("\n")}`);
 });
 
 test("no consumer invents a stacking order", () => {
   // Two surfaces that each pick their own z-index is how a toast ends up
   // behind the panel it is reporting on. The scale is in tokens.css.
-  const offenders: string[] = [];
-  for (const [path, css] of consumers) {
-    code(css)
-      .split("\n")
-      .forEach((line, index) => {
-        const match = line.match(/z-index\s*:\s*(-?\d+)/);
-        // -1 and 1 park the on-screen-keyboard fields behind and in front of
-        // the canvas. They are not a layer in the interface's own stack.
-        if (match && Math.abs(Number(match[1])) > 1) {
-          offenders.push(`${path}:${index + 1}: ${line.trim()}`);
-        }
-      });
-  }
-  assert.deepEqual(
-    offenders,
-    [],
-    `z-index must come from the --ui-z-* scale:\n${offenders.join("\n")}`,
-  );
+  const offenders = checked("z-index").flatMap((entry) => offences("z-index", entry));
+  assert.deepEqual(offenders, [], `z-index must come from the --ui-z-* scale:\n${offenders.join("\n")}`);
 });
 
 test("style projections stay in tokens and consumers do not branch", () => {
   const selectors = [...code(tokens).matchAll(/:root\[data-ui-style="([^"]+)"\]/gu)]
     .map((match) => match[1]);
   assert.deepEqual(selectors, ["obsidian"]);
-  for (const [, css] of consumers) {
-    assert.doesNotMatch(code(css), /\[data-ui-(?:style|theme|density)=/u);
+  for (const { path, css } of files) {
+    if (path === TOKENS) continue;
+    assert.doesNotMatch(css, /\[data-ui-(?:style|theme|density)=/u, path);
   }
 });
 
@@ -201,12 +267,20 @@ test("shared interaction feedback owns disabled, active, and error presentation"
 });
 
 test("every token a stylesheet uses is actually declared", () => {
-  const declared = declaredTokens();
+  // An undeclared token is a declaration the browser drops: the rule silently
+  // loses its colour. In-game files read `--ui-*` from tokens.css; launcher
+  // files read the launcher's own `:root` names and the `--settings-*` set.
   const missing: string[] = [];
-  for (const [path, css] of [...consumers, [TOKENS, tokens] as const]) {
+  for (const { path, system, css, source } of files) {
+    if (system === "in-game") {
+      for (const name of referenced(css, "--ui-")) {
+        if (name !== "--ui-profession" && !inGameTokens.has(name)) missing.push(`${path}: ${name}`);
+      }
+      continue;
+    }
+    const own = new Set([...declared(css), ...local(source)]);
     for (const name of referenced(css)) {
-      if (name === "--ui-profession") continue;
-      if (!declared.has(name)) missing.push(`${path}: ${name}`);
+      if (!launcherTokens.has(name) && !settingsTokens.has(name) && !own.has(name)) missing.push(`${path}: ${name}`);
     }
   }
   assert.deepEqual(missing, [], `undeclared tokens: ${missing.join(", ")}`);
@@ -215,13 +289,14 @@ test("every token a stylesheet uses is actually declared", () => {
 test("every token declared is actually read", () => {
   // The token file is the retheming documentation. A variable nothing reads is
   // a promise to a reader that changing it will do something.
-  const used = new Set([
-    ...consumers.flatMap(([, css]) => [...referenced(css)]),
-    ...NOT_YET_TOKENISED.flatMap((path) => [...referenced(readFileSync(path, "utf8"))]),
-    ...referenced(tokens),
-  ]);
-  const unused = [...declaredTokens()].filter((name) => !used.has(name));
-  assert.deepEqual(unused, [], `declared but never read: ${unused.join(", ")}`);
+  const inGame = files.filter(({ system }) => system === "in-game");
+  const usedInGame = new Set(inGame.flatMap(({ css }) => [...referenced(css, "--ui-")]));
+  const unusedInGame = [...inGameTokens].filter((name) => !usedInGame.has(name));
+  assert.deepEqual(unusedInGame, [], `declared in tokens.css but never read: ${unusedInGame.join(", ")}`);
+
+  const usedByLauncher = new Set(files.filter(({ system }) => system === "launcher").flatMap(({ css }) => [...referenced(css)]));
+  const unusedByLauncher = [...launcherTokens].filter((name) => !usedByLauncher.has(name));
+  assert.deepEqual(unusedByLauncher, [], `declared in style.css but never read: ${unusedByLauncher.join(", ")}`);
 });
 
 test("no token reference carries a leftover alpha suffix", () => {
@@ -231,8 +306,8 @@ test("no token reference carries a leftover alpha suffix", () => {
   // background. It renders as "nothing happened", which is the hardest kind of
   // CSS bug to see. The fix is `color-mix()`, which is themeable anyway.
   const offenders: string[] = [];
-  for (const [path, css] of [...consumers, [TOKENS, tokens] as const]) {
-    for (const match of code(css).matchAll(/var\(--ui-[a-z0-9-]+\)[0-9a-fA-F]{2}/g)) {
+  for (const { path, css } of files) {
+    for (const match of css.matchAll(/var\(--[a-z0-9-]+\)[0-9a-fA-F]{2}/g)) {
       offenders.push(`${path}: ${match[0]}`);
     }
   }
@@ -248,15 +323,13 @@ test("the measured Guild Wars radii are fixed in the token source", () => {
   }
 });
 
-test("a not-yet-tokenised surface is still not tokenised", () => {
-  // An exemption nobody rechecks becomes permission. Each entry has to still
-  // need the exemption: once a file resolves every colour through a token, it
-  // belongs on CONSUMERS, and this fails until someone moves it.
-  for (const path of NOT_YET_TOKENISED) {
-    const css = code(readFileSync(path, "utf8"));
-    assert.ok(
-      /#[0-9a-fA-F]{3,8}\b/.test(css) || /\b(rgba?|hsla?|oklch|lab|lch)\(/.test(css),
-      `${path} no longer holds a literal colour — move it to CONSUMERS`,
-    );
+test("a not-yet-tokenised surface still needs each rule it is excused from", () => {
+  // An exemption nobody rechecks becomes permission. Each excused rule has to
+  // still be broken: once a file meets it, this fails until someone takes the
+  // rule off the file's entry, where the real check then applies.
+  for (const [path, { rules }] of Object.entries(NOT_YET_TOKENISED)) {
+    for (const rule of rules) {
+      assert.ok(offences(rule, file(path)).length > 0, `${path} meets the ${rule} rule now — take it off NOT_YET_TOKENISED`);
+    }
   }
 });

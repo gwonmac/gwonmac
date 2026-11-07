@@ -1,7 +1,8 @@
 @font-face { font-family: "GW Display"; src: url("@site/fonts/QTFrizQuad.otf") format("opentype"); font-display: swap; }
 /* Design tokens. Every launcher colour lives here; rules below use only these
-   names (tests/policy/launcher-design-tokens.test.ts enforces it). Settings
-   keeps its own --settings-* set because the game's Hub draws it too. */
+   names (tests/unit/the-ui-system-has-one-place-to-change-a-colour.test.ts
+   enforces it). Settings keeps its own --settings-* set because the game's Hub
+   draws it too. */
 :root {
   color-scheme: dark;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;

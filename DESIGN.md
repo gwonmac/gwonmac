@@ -16,10 +16,14 @@ macOS supplies interaction.
   system type.
 - Use one gold accent (`#e8b75c`) for selection and primary action. Reserve red
   for destructive actions and green for an already-open account.
-- The launcher names every colour, radius, and type size once, in the `:root`
-  tokens of `app/ui/launcher/src/style.css`. Shell rules and components use only
-  those names; a policy test rejects raw colours and undefined tokens. Settings
-  keeps its own `--settings-*` set because the game's Hub draws it too.
+- The launcher names every colour once, in the `:root` tokens of
+  `app/ui/launcher/src/style.css`, beside its radius and type scales. Shell
+  rules and components use only those names.
+  `tests/unit/the-ui-system-has-one-place-to-change-a-colour.test.ts` checks
+  every stylesheet and `.vue` style block, found by glob: it rejects raw
+  colours, undefined tokens, and corners or stacking orders that are not
+  tokens. Files that cannot meet a rule yet are listed there with the reason.
+  Settings keeps its own `--settings-*` set because the game's Hub draws it too.
 - The launcher has one button vocabulary: `.primary` (gold, one per view),
   `.secondary`, `.quiet`, `.icon-button`, and `.small` for rows. Labels and
   statuses use `.chip`. No eyebrows: no small uppercase label above a heading;
