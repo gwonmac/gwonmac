@@ -150,9 +150,10 @@ selection.
 | `app/tools-cli/` and `tools/` | Maintainer commands and binary research tools |
 | `website/` | www.gwonmac.com and the player docs |
 
-The preload remains self-contained CommonJS. Electron's sandboxed preload
-loader does not load a local ESM dependency graph. The build generates the
-canonical channel constants that the preload uses.
+Each preload is one self-contained CommonJS file. Electron's sandboxed preload
+loader does not load a local ESM dependency graph, so Rollup bundles each
+entry with the app/shared modules it imports, including the canonical channel
+constants (`scripts/build-renderer.mjs`).
 
 ## Protocol boundary
 

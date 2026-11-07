@@ -1,6 +1,6 @@
 /**
  * Type-only declaration for the isolated Vue launcher document.
- * Runtime ownership stays in the generated launcher preload.
+ * Runtime ownership stays in the launcher preload (app/preload/launcher.ts).
  */
 import type { LauncherNativeApi } from "../shared/launcher-contracts.js";
 

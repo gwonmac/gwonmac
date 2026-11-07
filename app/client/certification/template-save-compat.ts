@@ -15,8 +15,8 @@
  */
 import { createHash } from "node:crypto";
 // The dirfd markers are canonical in app/shared because the renderer half needs
-// the same values and cannot import from here; the generated preload carries
-// them across. See WASM_BRIDGE_MARKERS.
+// the same values and cannot import from here; the Rollup-bundled preload
+// carries them across. See WASM_BRIDGE_MARKERS.
 import { WASM_BRIDGE_MARKERS } from "../../shared/contracts.js";
 import {
   concat,

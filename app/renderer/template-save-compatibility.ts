@@ -9,7 +9,7 @@
  * `__syscall_newfstatat` behind dirfd markers that no real call produces, and
  * they are answered here against the mounted IDBFS.
  * Not a mirror any more: the canonical values reach this sandboxed renderer
- * module through the generated preload, so the transform that writes the
+ * module through the bundled game preload, so the transform that writes the
  * markers into the module and the code that answers them cannot disagree.
  */
 const {
