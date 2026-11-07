@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 import { CartographyMapKnowledgeStore } from
-  "../../app/main/core/cartography-map-knowledge.js";
+  "../../app/features/cartography/main/cartography-map-knowledge.js";
 import { parseCartographyMapKnowledge } from
   "../../app/shared/cartography-map-knowledge.js";
 

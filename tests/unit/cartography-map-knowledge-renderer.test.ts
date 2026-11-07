@@ -4,7 +4,7 @@ import test from "node:test";
 import {
   cartographyKnowledgeWordsFingerprint,
   mergeCartographyMapKnowledge,
-} from "../../app/renderer/cartography-spike/map-knowledge.js";
+} from "../../app/features/cartography/renderer/map-knowledge.js";
 
 test("unions only matching continent knowledge for the selected reveal mode", () => {
   const records = [

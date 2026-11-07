@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createExplorationSpikeReader } from
-  "../../app/renderer/cartography-spike/exploration-observer.js";
+  "../../app/features/cartography/renderer/exploration-observer.js";
 import { EXPLORATION_SPIKE_GLOBALS } from
   "../../app/shared/cartography-spike.js";
 

@@ -2,9 +2,9 @@
  * Owns Cartography installation behind one observer, model, kernel, and UI lifecycle.
  * Partial installation is rolled back before control returns to the harness.
  */
-import { createNativeCompassRangesLayer } from "./native-compass-ranges-layer.js";
-import { createNativeMapGraphicsLayer } from "./native-map-graphics-layer.js";
-import { createNativeCompassTerrainLayer } from "./native-compass-terrain-layer.js";
+import { createNativeCompassRangesLayer } from "../../features/cartography/renderer/native-compass-ranges-layer.js";
+import { createNativeMapGraphicsLayer } from "../../features/cartography/renderer/native-map-graphics-layer.js";
+import { createNativeCompassTerrainLayer } from "../../features/cartography/renderer/native-compass-terrain-layer.js";
 import type {
   CartographyEvidenceCapture,
   CartographyEvidenceExportResult,
@@ -19,17 +19,17 @@ import type {
   WorldMapFrameSpikeDiagnostic,
 } from "../../shared/cartography-spike.js";
 import { disposeCartographyResources } from "../cartography-lifecycle.js";
-import { readCartographyPlayerState } from "../cartography-player-state.js";
-import { createCartographyContextReader } from "./context-observer.js";
-import { createExplorationSpikeReader } from "./exploration-observer.js";
+import { readCartographyPlayerState } from "../../features/cartography/renderer/cartography-player-state.js";
+import { createCartographyContextReader } from "../../features/cartography/renderer/context-observer.js";
+import { createExplorationSpikeReader } from "../../features/cartography/renderer/exploration-observer.js";
 import {
   createCompassFrameSpikeReader,
   createMissionMapFrameSpikeReader,
   createWorldMapFrameSpikeReader,
-} from "./frame-observer.js";
+} from "../../features/cartography/renderer/frame-observer.js";
 import { mountCartographyOverlay } from "./overlay.js";
-import { installCartographyReachabilityKernel } from "./reachability-kernel.js";
-import { createWorldMapAnchorSpikeReader } from "./world-map-anchor-observer.js";
+import { installCartographyReachabilityKernel } from "../../features/cartography/renderer/reachability-kernel.js";
+import { createWorldMapAnchorSpikeReader } from "../../features/cartography/renderer/world-map-anchor-observer.js";
 
 const unavailableCompass = Object.freeze({
   snapshot: () => null,

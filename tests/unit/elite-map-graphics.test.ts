@@ -1,7 +1,7 @@
 /** Verifies Elite markers stay world-anchored natively and repaint only when their drawing changes. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createEliteMapGraphics, type EliteMapGraphicsInput } from "../../app/renderer/elite-map-graphics.js";
+import { createEliteMapGraphics, type EliteMapGraphicsInput } from "../../app/features/cartography/renderer/elite-map-graphics.js";
 import { ELITE_MAP_GRAPHICS_SURFACES } from "../../app/shared/native-map-graphics.js";
 import type { EliteSceneMarker } from "../../app/shared/elite-map-scene.js";
 

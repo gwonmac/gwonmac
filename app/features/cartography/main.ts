@@ -4,10 +4,10 @@
  */
 import { dirname, join } from "node:path";
 import { shell, type BrowserWindow } from "electron";
-import { exportCartographyEvidence } from "../../main/cartography-evidence-export.js";
-import { parseCartographyEvidenceCapture } from "../../main/cartography-evidence/capture.js";
-import { CartographyMapKnowledgeStore } from "../../main/core/cartography-map-knowledge.js";
-import { EliteTrackingStore } from "../../main/core/elite-tracking.js";
+import { exportCartographyEvidence } from "./main/cartography-evidence-export.js";
+import { parseCartographyEvidenceCapture } from "./main/cartography-evidence/capture.js";
+import { CartographyMapKnowledgeStore } from "./main/cartography-map-knowledge.js";
+import { EliteTrackingStore } from "./main/elite-tracking.js";
 import { channel } from "../../main/ipc-channel-registry.js";
 import { one, type ToolsMainPart } from "../../main/tools-main-part.js";
 import { parseCartographyMapKnowledge } from "../../shared/cartography-map-knowledge.js";

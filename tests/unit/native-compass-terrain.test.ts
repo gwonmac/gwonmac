@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { CARTOGRAPHY_BUILTIN_PRESETS } from "../../app/shared/cartography-overlay.js";
 import test from "node:test";
-import { createNativeCompassTerrainLayer, nativeCompassTerrainTile, type NativeCompassTerrainInput } from "../../app/renderer/cartography-spike/native-compass-terrain-layer.js";
+import { createNativeCompassTerrainLayer, nativeCompassTerrainTile, type NativeCompassTerrainInput } from "../../app/features/cartography/renderer/native-compass-terrain-layer.js";
 import { NATIVE_COMPASS_TERRAIN_HEADER_BYTES, NATIVE_COMPASS_TERRAIN_MAGIC } from "../../app/shared/native-compass-terrain.js";
 
 test("nearby camera motion reuses a bounded terrain tile with a full Compass margin", () => {

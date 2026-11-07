@@ -4,7 +4,7 @@ import {
   createCompassFrameSpikeReader,
   createMissionMapFrameSpikeReader,
   createWorldMapFrameSpikeReader,
-} from "../../app/renderer/cartography-spike/frame-observer.js";
+} from "../../app/features/cartography/renderer/frame-observer.js";
 import {
   COMPASS_FRAME_SPIKE_GLOBALS,
   COMPASS_FRAME_SPIKE_SCALARS,
