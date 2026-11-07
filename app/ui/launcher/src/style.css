@@ -1,68 +1,10 @@
+/* The launcher window's global rules, buttons, shell and pages. Every colour comes from
+   tokens.css; the Settings page's own rules are in settings-view.css. */
 @font-face { font-family: "GW Display"; src: url("@site/fonts/QTFrizQuad.otf") format("opentype"); font-display: swap; }
-/* Design tokens. Every launcher colour lives here; rules below use only these
-   names (tests/unit/the-ui-system-has-one-place-to-change-a-colour.test.ts
-   enforces it). Settings keeps its own --settings-* set because the game's Hub
-   draws it too. */
 :root {
   color-scheme: dark;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
   font-synthesis: none;
-  /* Surfaces, darkest to lightest. */
-  --bg: #090907;
-  --sunken: #0c0c0a;
-  --field: #11110f;
-  --surface-solid: #181714;
-  --surface-raised: #1d1c19;
-  --surface-selected: #2a2824;
-  --surface: rgba(23, 21, 18, .92);
-  --surface-row: rgba(23, 21, 18, .6);
-  --chrome: rgba(10, 10, 8, .88);
-  --control: rgba(255, 255, 255, .065);
-  --surface-hover: rgba(240, 224, 197, .075);
-  --line: rgba(240, 224, 197, .14);
-  --line-strong: rgba(240, 224, 197, .26);
-  /* Text. */
-  --text: #f4efe7;
-  --text-soft: #ded8cf;
-  --muted: #aaa297;
-  /* The one accent: Guild Wars gold. */
-  --gold: #e8b75c;
-  --gold-text: #f3ca7a;
-  --gold-tint: rgba(232, 183, 92, .08);
-  --gold-tint-strong: rgba(232, 183, 92, .14);
-  --gold-line: rgba(232, 183, 92, .26);
-  --gold-gradient: linear-gradient(#f7d58d, #d7973a);
-  --on-gold: #211608;
-  --focus: #f1c875;
-  --scrollbar: rgba(232, 183, 92, .52);
-  /* Status. Colour never carries status alone; text and icons do too. */
-  --success: #a8d36d;
-  --success-tint: rgba(168, 211, 109, .1);
-  --warning: #efb65d;
-  --warning-tint: rgba(239, 182, 93, .11);
-  --danger: #ee806e;
-  --danger-text: #f5b7ab;
-  --danger-tint: rgba(230, 93, 69, .13);
-  /* Key art and depth. */
-  --glow: rgba(111, 65, 30, .16);
-  --art-shade: rgba(5, 5, 4, .15);
-  --scrim: rgba(0, 0, 0, .56);
-  --shadow-pop: 0 18px 56px rgba(0, 0, 0, .5);
-  --inset-highlight: inset 0 1px rgba(255, 255, 255, .7);
-  /* Shape and type scales. */
-  --radius-sm: 8px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
-  --radius-pill: 999px;
-  --fs-2xs: 11px;
-  --fs-xs: 12px;
-  --fs-sm: 13px;
-  --fs-md: 14px;
-  --fs-body: 16px;
-  --fs-lg: 18px;
-  --fs-xl: 22px;
-  --fs-page: 36px;
-  --font-display: "GW Display", Georgia, serif;
   color: var(--text);
   background: var(--bg);
 }
@@ -436,11 +378,7 @@ textarea { resize: vertical; }
   button, .modal, .toast { transition: transform .2s cubic-bezier(.16, 1, .3, 1), opacity .2s ease, background-color .15s ease, border-color .15s ease, color .15s ease; }
 }
 @media (prefers-reduced-transparency: reduce) {
-  :root { --chrome: var(--sunken); }
   .titlebar, .launchbar, .modal-backdrop { backdrop-filter: none; }
-}
-@media (prefers-contrast: more) {
-  :root { --line: rgba(255, 255, 255, .35); --muted: #d4cec5; }
 }
 
 /* Desktop preferences: quiet rows, fixed navigation, and controls aligned

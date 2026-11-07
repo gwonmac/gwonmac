@@ -1,0 +1,91 @@
+/* The launcher's design tokens: every launcher colour, and its radius and type
+   scales, named once. The launcher window reads them from :root. The game's Hub
+   draws the Settings page without the launcher's stylesheet, so .settings-view
+   carries the same names there; hub-settings.css re-points the --settings-*
+   tokens that follow the Hub's theme.
+   tests/unit/the-ui-system-has-one-place-to-change-a-colour.test.ts enforces
+   that launcher rules use only these names. */
+:root, .settings-view {
+  /* Surfaces, darkest to lightest. */
+  --bg: #090907;
+  --sunken: #0c0c0a;
+  --field: #11110f;
+  --surface-solid: #181714;
+  --surface-raised: #1d1c19;
+  --surface-selected: #2a2824;
+  --surface: rgba(23, 21, 18, .92);
+  --surface-row: rgba(23, 21, 18, .6);
+  --chrome: rgba(10, 10, 8, .88);
+  --control: rgba(255, 255, 255, .065);
+  --surface-hover: rgba(240, 224, 197, .075);
+  --line: rgba(240, 224, 197, .14);
+  --line-strong: rgba(240, 224, 197, .26);
+  /* Text. */
+  --text: #f4efe7;
+  --text-soft: #ded8cf;
+  --muted: #aaa297;
+  /* The one accent: Guild Wars gold. */
+  --gold: #e8b75c;
+  --gold-text: #f3ca7a;
+  --gold-tint: rgba(232, 183, 92, .08);
+  --gold-tint-strong: rgba(232, 183, 92, .14);
+  --gold-line: rgba(232, 183, 92, .26);
+  --gold-gradient: linear-gradient(#f7d58d, #d7973a);
+  --on-gold: #211608;
+  --focus: #f1c875;
+  --scrollbar: rgba(232, 183, 92, .52);
+  /* Status. Colour never carries status alone; text and icons do too. */
+  --success: #a8d36d;
+  --success-tint: rgba(168, 211, 109, .1);
+  --warning: #efb65d;
+  --warning-tint: rgba(239, 182, 93, .11);
+  --danger: #ee806e;
+  --danger-text: #f5b7ab;
+  --danger-tint: rgba(230, 93, 69, .13);
+  /* Key art and depth. */
+  --glow: rgba(111, 65, 30, .16);
+  --art-shade: rgba(5, 5, 4, .15);
+  --scrim: rgba(0, 0, 0, .56);
+  --shadow-pop: 0 18px 56px rgba(0, 0, 0, .5);
+  --inset-highlight: inset 0 1px rgba(255, 255, 255, .7);
+  /* Shades only the Settings page draws. Each sits close to a token above;
+     trading one for its neighbour changes what players see, so that waits for
+     a design decision. */
+  --sidebar: #12110f;
+  --scroll-track: rgba(255, 255, 255, .045);
+  --scroll-thumb-edge: #0d0d0b;
+  --selection-text: #17120b;
+  --link-text: #f0c56f;
+  --nav-active-text: #f4d394;
+  --nav-active-fill: rgba(232, 183, 92, .13);
+  --focus-wash: rgba(232, 183, 92, .1);
+  --search-fill: rgba(255, 255, 255, .05);
+  --search-ring: rgba(232, 183, 92, .22);
+  --switch-track: rgba(255, 255, 255, .18);
+  --switch-knob-shadow: 0 1px 2px rgba(0, 0, 0, .4);
+  --notice-fill: #252218;
+  --picked-fill: #25231d;
+  --pack-accent: #d99b42;
+  --danger-fill: rgba(164, 54, 35, .2);
+  --danger-fill-soft: rgba(164, 54, 35, .14);
+  /* Shape and type scales. */
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+  --fs-2xs: 11px;
+  --fs-xs: 12px;
+  --fs-sm: 13px;
+  --fs-md: 14px;
+  --fs-body: 16px;
+  --fs-lg: 18px;
+  --fs-xl: 22px;
+  --fs-page: 36px;
+  --font-display: "GW Display", Georgia, serif;
+}
+@media (prefers-reduced-transparency: reduce) {
+  :root, .settings-view { --chrome: var(--sunken); }
+}
+@media (prefers-contrast: more) {
+  :root, .settings-view { --line: rgba(255, 255, 255, .35); --muted: #d4cec5; }
+}

@@ -280,7 +280,7 @@ async function updateUnseen(patch: Partial<CartographyPresetStyle["grid"]["unsee
 .setting-group > label > span { min-width: 140px; flex: 1; }
 .compass-options > summary { padding: 12px 0; }
 .compass-options > label { display: flex; justify-content: space-between; gap: 16px; padding: 12px 0; }
-.compass-range-settings > p { margin: 8px 0; color: var(--muted); font-size: 13px; }
+.compass-range-settings > p { margin: 8px 0; color: var(--settings-muted); font-size: 13px; }
 .compass-range-theme { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 8px 0 12px; }
 .compass-range-setting > label { display: flex; align-items: center; gap: 10px; min-width: 140px; }
 </style>

@@ -1,8 +1,8 @@
 // The interface has two token sources and no third. One hardcoded colour in a
 // component is invisible in review and becomes an accidental second style.
 //
-// - The launcher window names its colours once, in the `:root` tokens of
-//   `app/ui/launcher/src/style.css`.
+// - The launcher names its colours once, in `app/ui/launcher/src/tokens.css`.
+//   The launcher window and the Hub's copy of the Settings page both load it.
 // - Everything drawn in the game (the Hub, the Tools, the renderer's own
 //   overlays) resolves through `app/shared/ui/tokens.css`. That is what makes
 //   `--ui-radius: 0` square the whole interface instead of most of it.
@@ -22,7 +22,7 @@ import { globSync, readFileSync } from "node:fs";
 import test from "node:test";
 
 const TOKENS = "app/shared/ui/tokens.css";
-const LAUNCHER_TOKENS = "app/ui/launcher/src/style.css";
+const LAUNCHER_TOKENS = "app/ui/launcher/src/tokens.css";
 const SETTINGS = "app/ui/launcher/src/settings-view.css";
 /** Drawn only in the game's Hub: it maps Settings onto the in-game tokens. */
 const HUB_SETTINGS = "app/ui/launcher/src/hub-settings.css";
@@ -67,11 +67,8 @@ const NOT_YET_TOKENISED: Record<string, { rules: Rule[]; reason: string }> = {
     rules: ["colour", "radius"],
     reason: "the link underline mixes currentColor in place; " + LAUNCHER_SCALE,
   },
-  [SETTINGS]: {
-    rules: ["colour", "radius", "z-index"],
-    reason: "Settings still types its own palette; " + LAUNCHER_SCALE,
-  },
-  [LAUNCHER_TOKENS]: { rules: ["radius", "z-index"], reason: LAUNCHER_SCALE },
+  [SETTINGS]: { rules: ["radius", "z-index"], reason: LAUNCHER_SCALE },
+  "app/ui/launcher/src/style.css": { rules: ["radius", "z-index"], reason: LAUNCHER_SCALE },
   "app/ui/launcher/src/components/ColorControl.vue": { rules: ["radius"], reason: LAUNCHER_SCALE },
   "app/ui/launcher/src/components/HomeView.vue": { rules: ["radius", "z-index"], reason: LAUNCHER_SCALE },
   "app/ui/launcher/src/components/MapStylePreview.vue": { rules: ["radius"], reason: LAUNCHER_SCALE },
@@ -264,6 +261,56 @@ test("shared interaction feedback owns disabled, active, and error presentation"
   assert.doesNotMatch(catalogue, /\.field-error\s*\{/u);
   assert.doesNotMatch(build, /\.authoring-tabs > button:focus-visible\s*\{/u);
   assert.match(components, /\.ui-frame :where\([^}]*\):focus-visible\s*\{/u);
+});
+
+test("the Hub's Settings page loads the launcher tokens it reads", () => {
+  // The Hub draws Settings without the launcher's stylesheet. Without tokens.css
+  // on .settings-view there, every launcher colour on the page drops out.
+  const hubEntry = readFileSync("app/ui/launcher/src/hub-entry.ts", "utf8");
+  assert.match(hubEntry, /import "\.\/tokens\.css";\s*import "\.\/settings-view\.css";/u);
+  assert.match(code(readFileSync(LAUNCHER_TOKENS, "utf8")), /^:root, \.settings-view \{/mu);
+});
+
+/** Each rule as its at-rule context, its selectors and its property names. */
+function rules(css: string, context = ""): { context: string; selectors: string[]; properties: string[] }[] {
+  const out: { context: string; selectors: string[]; properties: string[] }[] = [];
+  let at = 0;
+  for (let open = css.indexOf("{", at); open >= 0; open = css.indexOf("{", at)) {
+    let close = open + 1;
+    for (let depth = 1; depth > 0; close++) depth += css[close] === "{" ? 1 : css[close] === "}" ? -1 : 0;
+    const head = css.slice(at, open).trim();
+    const body = css.slice(open + 1, close - 1);
+    if (head.startsWith("@")) out.push(...rules(body, `${context}${head} `));
+    else {
+      out.push({
+        context,
+        selectors: head.split(/,(?![^(]*\))/u).map((selector) => selector.replace(/\s+/gu, " ").trim()),
+        properties: body.split(";").map((declaration) => declaration.split(":")[0]!.trim()).filter(Boolean),
+      });
+    }
+    at = close;
+  }
+  return out;
+}
+
+/** The shorthand a property belongs to, so `padding` and `padding-block` are one property. */
+const family = (property: string) =>
+  property.match(/^(?:padding|margin|inset|gap|overflow|background|outline|font|border-radius|border|flex(?=$|-(?:grow|shrink|basis)))/u)?.[0] ?? property;
+
+test("Settings sets each property of a selector in one rule", () => {
+  // The page was once three stacked copies of itself, where the last rule
+  // silently won and an edit to an earlier one did nothing.
+  const seen = new Map<string, number>();
+  for (const { context, selectors, properties } of rules(file(SETTINGS).css)) {
+    for (const selector of selectors) {
+      for (const property of new Set(properties.map(family))) {
+        const key = `${context}${selector} { ${property} }`;
+        seen.set(key, (seen.get(key) ?? 0) + 1);
+      }
+    }
+  }
+  const repeated = [...seen].filter(([, count]) => count > 1).map(([key]) => key);
+  assert.deepEqual(repeated, [], `set in more than one rule:\n${repeated.join("\n")}`);
 });
 
 test("every token a stylesheet uses is actually declared", () => {
