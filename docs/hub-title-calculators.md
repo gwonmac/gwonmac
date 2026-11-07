@@ -3,7 +3,7 @@
 Hub provides exact offline planning from entered quantities. These calculators
 do not read, change, or persist title progress, and they do not consume items or
 open chests. Mission, vanquish and Cartographer progress is read live on the
-[Progress](progress.md) page.
+Hub Progress page.
 
 ## Supported flows
 

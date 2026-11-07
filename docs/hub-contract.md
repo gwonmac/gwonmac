@@ -35,8 +35,7 @@ Tool labels come from `src/shared/tool-presentation.ts`. Settings copy comes fro
 [Settings](settings.md) owns preferences and durable writes.
 [Whispers](whispers.md) owns the floating conversation window.
 [Trade discovery](trade-discovery.md) owns the floating Trade Chat window.
-[The user guide](user-guide.md#hub-command-palette) describes the player workflow.
-[Hub verification](hub-verification.md) owns automated acceptance evidence.
+[The website Hub page](https://www.gwonmac.com/docs) describes the player workflow.
 
 Currency icons use the native search input and an inert measuring overlay.
 The overlay never rewrites text or owns editing, selection, composition, or undo.

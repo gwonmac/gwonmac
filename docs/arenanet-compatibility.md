@@ -3,9 +3,6 @@
 This document defines how `gwonmac` proves that its client-side repairs and
 Tools remain safe after ArenaNet rebuilds the official WebAssembly client.
 
-Audience: contributors who change client certification, deterministic
-transforms, patch-day automation, diagnostics, or release qualification.
-
 This document owns proof authority, feature refusal boundaries, retained
 evidence, and the patch-day playbook. Code and tests own exact signatures,
 message identifiers, offsets, hashes, ABI numbers, and time limits.
@@ -173,112 +170,45 @@ can still require a source change until the remaining locators are migrated to
 independent semantic witnesses. Do not describe the current implementation as
 automatically surviving every routine rebuild.
 
-The October recovery retains complete reviewed families for chat, effects,
-character controls, native rendering, friend lifecycle, and map surfaces. Select
-one coherent family. Do not mix matching functions from different families.
-Message identifiers and native guard operands can change independently. A
-matching whole function binds its operands; a shared numerical shift does not.
-
 Compiled feature records can be partial. Compose independently derived values
 per feature. An absent historic field must not erase a proved current feature.
 Conflicting non-null values refuse that feature and its declared dependants.
-Guild Hall has a separate proof inside Travel. A changed Guild Hall producer
-withdraws Guild Hall while ordinary Travel remains available. A changed shared
-Travel helper can withdraw both.
+Guild Hall has a separate proof inside Travel: a changed Guild Hall producer
+withdraws Guild Hall while ordinary Travel stays available.
 
-The offline release check must exercise every shipped profile through template,
+## Patch day
+
+Automation detects a changed ArenaNet code generation and runs the same
+non-authoritative evidence tools as a maintainer. It never uploads ArenaNet
+binaries and cannot grant runtime authority.
+
+- Equivalent rebuild: every feature proves locally. No source change, pull
+  request, or release is needed; players use the proved features at once.
+- Refusal: the official client stays playable and only the refusing feature
+  and its declared dependants turn off. Automation opens one issue that names
+  the failed invariant and, for ambiguity, the candidate count. A maintainer
+  then follows [Recover certification](recertify.md).
+
+A verifier change needs positive equivalent-relocation tests and adversarial
+change, duplicate, ambiguity, timeout, malformed-boundary, and output-mismatch
+tests. The offline check must exercise every shipped profile through template,
 Enhancement, Friends, Cartography, double-click, memory selection, and cache
-reuse. A list of proved Enhancement verdicts alone does not establish this
-complete chain. Native publisher tests must also execute the current queue and
-model guards, resource cleanup, clipping, and draw ordering. Live appearance,
-input feel, and command completion still require Matthias's Abnahme.
+reuse.
 
-## Patch-day playbook
+## Lessons that shaped these rules
 
-The scheduled recertification workflow detects a changed ArenaNet code
-generation and runs the same non-authoritative evidence tools used locally.
-It never uploads ArenaNet binaries and cannot publish source authority.
-
-For an equivalent rebuild:
-
-1. Verify the official manifest and exact JS/WASM pair.
-2. Run the isolated verifier with exact regression shortcuts disabled.
-3. Record each feature verdict, invariant, input hash, verifier ABI, and derived
-   output hash.
-4. Transform every effective capability profile and validate each output.
-5. Run friend observation, Cartography, native double-click, and 4 GB pair qualification independently.
-6. Store the signed machine-readable report and mark the generation as already
-   processed. The report remains evidence only.
-7. Open no source PR. Players use the locally proved features immediately.
-
-For a refusal:
-
-1. Keep the official client playable and disable only the refusing feature and
-   its explicit dependants.
-2. Open or update one tracking issue naming the failed invariant and candidate
-   count when applicable.
-3. Preserve the preceding and current private investigation bundles before
-   ArenaNet replaces either pair. Never commit or publicly upload them. Record
-   their generation, hashes, sizes, verifier ABI, source commit, reports, and
-   live-QA notes as defined in [the recovery guide](../internal/upstream/recertify.md).
-4. Reproduce with the exact shortcut tables disabled.
-5. Classify every changed operand. Do not approve a common delta, copied
-   address, unexplained constant, or partial occurrence ledger.
-6. Add positive equivalent-relocation tests and adversarial change, duplicate,
-   ambiguity, timeout, malformed-boundary, and output-mismatch tests.
-7. Run the complete acceptance chain before publishing a verifier change.
-
-The workflow's durable ledger prevents repeated expensive derivation. A closed
-proved issue or open refusal issue indexes each processed generation and
-verifier ABI. A GitHub attestation
-binds the privacy-safe `generation.json` record to the official WASM digest.
-The review artifact contains only that record and `carry-forward.md`, expires
-after 90 days, and contains no client bytes or locator internals. Detailed
-reports remain runner-temporary. None of this evidence can grant runtime
-authority.
-
-## Retained evidence and lessons
-
-GitHub issues and signed attestations own the automated generation index, exact
-content identities, outcomes, and evidence references. The
-[client generation ledger](../internal/upstream/client-generation-ledger.md)
-defines that schema and retains only bootstrap observations that predate the
-deployed automation.
-
-The retained generations taught these rules:
-
-- Whole-body hashes fail safe but cannot survive routine function-index or
-  static-address relocation. Relocatable operands need explicit relationships.
-- A shared movement of mutable addresses is not ownership proof. Complete
-  occurrence ledgers and independent content anchors are required.
+- Whole-body hashes fail safe but cannot survive routine relocation.
+  Relocatable operands need explicit relationships.
+- A shared movement of mutable addresses is not ownership proof.
 - A locator that collapses zero and multiple candidates hides the difference
-  between changed and ambiguous behavior. Candidate counts belong in reports.
+  between `changed` and `ambiguous`. Candidate counts belong in reports.
 - A capability can be proved yet ineffective because a dependency refused.
-  Status, manifest, parser generation, and runtime exports must all use the same
+  Status, manifest, parser generation, and runtime exports must use the same
   effective capability set.
-- Exact-known clients are the most important place to disable exact shortcuts;
-  otherwise regression fixtures can hide a missing structural witness.
-- Parse once and share an input-bound proof context. This keeps all-feature
-  verification comfortably within the utility-process timeout without weakening
-  evidence.
-- Preparation and production are separate trust boundaries. Preparation may
-  derive a candidate once; production must repeat the transform and validate
-  the exact output.
+- Disable exact shortcuts on exact-known clients too; otherwise regression
+  fixtures hide a missing structural witness.
+- Preparation and production are separate trust boundaries. Production repeats
+  the transform and validates the exact output.
 
-## Acceptance before merge or release
-
-The stack is mergeable only when:
-
-- full repository verification and exact-head CI pass for every layer;
-- retained regression artifacts pass with exact shortcuts disabled, and the
-  then-current public generation has a signed qualification or refusal record;
-- every proof-anchor mutation disables only its owning capability;
-- clicks, double-clicks, bursts, and drags emit no synthetic touch events;
-- all supported 4 GB profiles allocate above 3 GB, reject mixed generations and
-  corrupt caches, and prove that only the WASM memory maximum changes;
-- an exact-SHA ad-hoc developer build passes packaged smoke and the feature QA
-  checklist in [Release verification](release-verification.md) without claiming
-  release signing or saved-login authority.
-
-Stable publication remains a human product decision. Automation cannot decide
-whether the game looks and behaves correctly.
+Publishing a release stays a human decision. Automation cannot decide whether
+the game looks and behaves correctly.

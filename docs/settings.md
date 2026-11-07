@@ -83,13 +83,6 @@ section but edits only the in-game ones; the others (↗) open the launcher.
 | Hub search: a ↗ section | Launcher Settings, that section |
 | Memory warning › "Memory settings" | Hub Settings page, Game, Extended memory focused |
 
-## Acceptance
-
-- In a running game: ⌘R, type `memory`, ↵. The Hub Settings page opens at Game with Extended memory focused. It says the change applies after you restart GWonMac.
-- The memory warning's "Memory settings" opens the same control.
-- Every catalogue entry has exactly one control with the same label.
-- **Check for Updates…** opens the launcher at Updates.
-
 ## Calculator estimates
 
 Hub › Conversion rates saves the selected source and optional currency estimates
@@ -98,6 +91,4 @@ not change the game or replace observed prices. Automatic keeps the saved
 estimates for a later switch to Your rates.
 
 Older builds ignore `calculatorRates` and can discard that field on their next
-settings write. Release planning must account for this existing reader behavior
-before a public Beta writes the new field. Developer Builds can verify the editor
-and persistence without publishing a new release.
+settings write.

@@ -3,9 +3,6 @@
 This document gives the change procedure for certified Core features and
 optional Tools.
 
-Audience: contributors who change client transforms, companion snapshots,
-read-only observation, Tools presentation, or named game commands.
-
 This document owns the feature-development procedure. The local semantic
 verifier owns runtime proof. Exact build records are regression expectations.
 Tests own exact acceptance thresholds.
@@ -15,85 +12,28 @@ architecture.
 
 ## Current product boundary
 
-Core is required and has no player switch. Optional Tools are off by default.
-The first enable selects a Tools-capable module and requires a restart. The
-Current integrated features are:
+Core is required and has no player switch: file compatibility, the Guild Wars
+cursor, native double-click, Scry (Command-R), Character Switch (Command-E), and
+pre-game reload. Optional Tools are off by default. The first enable selects a
+Tools-capable module and needs a restart; after that, every tool has its own
+live switch. `src/shared/settings-catalogue.ts` lists the shipped tools, and the
+[website feature pages](https://www.gwonmac.com/docs) describe them for players.
 
-- **Scry** (Core): Command-R opens the shared command palette. The Core shell
-  imports no optional Tools implementation. Travel contributes its existing
-  command host and detailed view; people search consumes the same friend feed
-  as Travel and Whispers. Quick replies use the existing `WhisperSession` and
-  named sender. Party invites use the named invite export on the same certified
-  chat mailbox; see [Whispers](whispers.md#party-invite). No chat persistence or
-  observer is added.
-  Command-K belongs to Scry while it is open and falls back to its configured
-  action outside the palette. A saved Command-R override takes priority; Scry
-  remains available from View. Its default is not serialized as a new shortcut
-  key because older settings readers reject unknown keys.
-- **Character Switch** (Core): Command-E opens Characters in the Hub
-  independently of Tools. Its Hub carousel follows Guild Wars'
-  character-selection order, opens on the current character, and holds at
-  both navigation ends. Accounts that fit inside the visible carousel are centered
-  and shown in full. Bounded name and primary-profession search always shows.
-  Search matches word prefixes and excludes secondary professions. Character focus remains primary until typing starts a search.
-  The 1–9 and 0 keys select and reveal the first ten characters; only Enter
-  switches (D-5). The exact
-  companion projection owns the live records. Reload Guild Wars is in the View
-  menu.
+Rules every feature keeps:
 
-- **Resign**: an optional Tools switch, off by default. Its configurable shortcut
-  is unassigned by default and opens a small in-game confirmation before sending the fixed `/resign` command
-  through the certified native chat sender in PvE. It does not type into chat.
-  Turning off Resign or Tools disables the command and cancels a queued request.
-  Enter or the Resign button confirms once the dialog has armed (~400 ms after
-  it opens; a multi-click never confirms). Escape, Cancel, the close button, an
-  outside click, and losing window focus dismiss without sending.
-  A changed native chat path withdraws Resign until its exact bodies are reviewed.
-
-- **Build Library** (Beta): host-owned build and team authoring. Command-B
-  opens it when both Tools Beta and Build Library are enabled, and its Apply
-  Team action is available automatically in supported PvE outposts.
-- **Trade Chat** (Beta): read-only public listing and trader-price discovery.
-  Command-K or `/trade` opens it when both Tools Beta and Trade Chat are
-  enabled.
-- **Target distance and range** (Test): show the selected target's distance and
-  range band.
-- **Xunlai storage**: open the normal storage UI from the Tools title bar,
-  Command-Shift-C, `/chest`, or `/xunlai` in a certified PvE outpost. It
-  has a separate Settings opt-in and requires a live snapshot that proves the
-  current character can access storage. It does not depend on party observation.
-- **Quick Item Move**: Control-click moves a whole stack through an open
-  storage or player-trade window. Control-Shift-click uses Guild Wars' native
-  quantity dialog. Inventory clicks prefer an active trade; storage clicks
-  always withdraw; clicks on the player's own offer remove that complete offer.
-  Partner offers are never changed. The feature has one live Settings switch,
-  is off by default, and withdraws during confirmed PvP play.
-- **Travel**: Command-T or `/tp` opens host-owned destination
-  autocomplete and 1–9 shortcuts that select a favourite; only Enter travels. Search filters positively locked maps from
-  the current character's bounded unlock set, and Recent persists certified map
-  observations per privacy-safe character key. A named, bounded Travel action
-  rechecks the unlock at the game-thread drain. While the palette is open,
-  certified friend results show current reported outposts; unavailable rows stay
-  visible with a reason. Friend data expires when native updates stop and clears
-  when Travel closes. It has a separate Settings opt-in.
-- **Skill Key Labels**: show player-authored keyboard, mouse-button, and wheel
-  labels over certified skill-slot rectangles. The feature is display-only and
-  never changes or forwards game input.
-- **Skill Cooldowns**: show Guild Wars' existing recharge state over the
-  same certified player skill slots. The companion publishes bounded recharge
-  timestamps; the renderer owns formatting, color, and presentation.
-- **Chat Filters**: prevent selected item-drop, Hall of Heroes, and title
-  announcements from entering the game chat log. A certified game-module
-  pre-handler owns the fixed template checks; Electron receives no chat text.
-  The feature and its three categories change live outside PvP maps.
-- **Effect Timers**: show exact durations from the controlled player's bounded
-  effect collection over independently certified native Effects icons. Duplicate
-  records remain distinct in observation; presentation shows the longest finite
-  duration for each skill. Party and hostile-agent effects are not inferred.
-
-These features then change live. Live observers and commands stop when disabled
-or when map policy refuses them. Host-only authoring remains available without
-observation or command authority.
+- Display-only features (Skill Key Labels, Skill Cooldowns, Effect Timers,
+  Target distance) never change or forward game input.
+- A command (Travel, Xunlai, Team Apply, Resign, Quick Item Move, party invite)
+  is a named action through a certified sender or drain. Resign confirms in an
+  in-game dialog and never types into chat. Quick Item Move never changes a
+  partner's trade offer.
+- Chat Filters runs inside the game module; Electron receives no chat text.
+- Live observers and commands stop when disabled, in PvP, or when map policy
+  refuses them. Host-only authoring (Build Library) stays available without
+  observation or command authority.
+- Scry owns Command-K while it is open. A saved Command-R override wins. Do not
+  serialize a new default shortcut key: older settings readers reject unknown
+  keys.
 
 ## Launch boundary invariant
 
@@ -205,9 +145,9 @@ pnpm certification doctor
 pnpm enhancements:live --list
 ```
 
-Run `pnpm run check` for the final change. Build before verifying changed
+Run `pnpm check` for the final change. Build before verifying changed
 compiled behavior; run integration or live checks for the affected boundary.
-See [client research](client-research.md) for inspection and source lookup.
+See [Research a new client fact](#research-a-new-client-fact) for inspection and source lookup.
 
 `certification doctor` reads the local profile and published client. It does not
 start Electron. It does not contact ArenaNet. It cannot inspect provisioned
@@ -358,6 +298,46 @@ question when it will prevent repeated work; no fixed report template is needed.
 Do not add a renderer pointer chain, parallel JavaScript probe, general memory
 write, arbitrary game call, raw packet export, or renderer-side copy of the
 configuration order.
+
+## Research a new client fact
+
+Extend the closest owner first; do not create another reader for an accepted
+fact.
+
+| Need | Start here |
+| --- | --- |
+| Format or position an effect observation, or a persistent overlay | [Effect timers](effect-timers.md), `tests/unit/companion-effect-snapshot.test.ts`, `tests/electron/alcohol-timer.spec.ts` |
+| Extend map presentation | [Cartography](cartography.md), `tests/unit/compass-range-indicators.test.ts` |
+| Read a new native collection | `tests/client-artifact/friend-table-evidence.test.ts` |
+| Change a named command | Search `tests/` for `quick-item-move`, `travel`, or `character-switch` |
+
+Inspect without building or starting the game:
+
+```sh
+pnpm certification doctor
+pnpm certification inspect /path/to/Gw.jspi.wasm
+pnpm enhancements:live --list
+pnpm enhancements:live --describe effect-observer
+```
+
+`inspect` inventories imports, exports, memory, and tables without running game
+code. It reports a hash with unverified provenance and no runtime authority.
+It is not a semantic function map: for string, assertion, and message-builder
+candidates, use the [WASM tools](../tools/README.md). Decode LEB128 constants;
+do not assume a canonical byte encoding.
+
+Reference sources sit next to this checkout when present: `../GWToolboxpp`
+(C++ features, newer GWCA declarations, a WASM experiment) and `../GWCA`
+(historical native implementation). Use their algorithms, assertions, and call
+relationships as leads. Re-derive every WASM layout and signature: native
+addresses, function indices, and offsets are not cross-build identity, and
+generated `func_N` names are search aids, not proof. Record the source revision
+with a finding.
+
+Record an expensive finding where the next person looks: the domain document
+when behavior becomes current, otherwise the pull request or issue. Keep
+generated analysis and private traces out of tracked source. A decompilation or
+matching assertion is candidate evidence; neither proves live behavior.
 
 ## Internal feature extension contract
 
@@ -544,14 +524,12 @@ Use a clean Level 1 capture for acceptance. Use Level 2 only to locate a cause.
 
 The cursor path is shipped Core. Treat it as product code.
 
-The internal evidence proves that the official client already decodes the
-cursor, that the host must convert BGRA to RGBA, and that an art pointer is not a
-stable identity. The implementation uses bounded pixel content and a Retina
-cursor candidate.
+The official client already decodes the cursor. The host must convert BGRA to
+RGBA, and an art pointer is not a stable identity. The implementation uses
+bounded pixel content and a Retina cursor candidate.
 
 Do not reintroduce an artwork bundle, remote cursor download, user size setting,
-or parallel JavaScript decoder. Read the internal cursor evidence before you
-change these rules.
+or parallel JavaScript decoder.
 
 ## Command changes
 
@@ -575,104 +553,11 @@ domain outside the kernel.
 
 ## Recertify an ArenaNet client
 
-Start from the exact official artifact that triggered the compatibility notice.
-Do not clear the downloaded game data: the unsupported artifact and the
-retained preceding artifact are the most useful migration evidence.
-
-Read and follow the [ArenaNet compatibility patch-day playbook](arenanet-compatibility.md#patch-day-playbook).
-Routine equivalent rebuilds must pass locally without a source change. Use the
-commands below to investigate a refusal, not to publish a new hash allowlist.
-
-Run the bounded chain in order:
-
-```bash
-pnpm certification doctor
-pnpm certification template "/absolute/path/Gw.jspi.wasm" --emit-ts
-pnpm certification recertify "/absolute/path/Gw.jspi.wasm"
-```
-
-The tool first selects or derives file compatibility. It then inspects that
-output as the Core and Tools candidate. The transforms are not alternatives.
-
-Run the downstream chain with exact regression shortcuts disabled:
-
-```bash
-pnpm certification recertify "/absolute/path/Gw.jspi.wasm"
-pnpm certification double-click "/absolute/path/Gw.jspi.wasm"
-pnpm run check
-```
-
-`recertify` must report per-feature ABI/input-hash-bound verdicts, and
-`double-click` must prove one unique callback and the complete enqueue, pump,
-translator, mouse-dispatch, click-consumer, and flag-lift route before it
-checks the insertion and output. It derives one exact input/output transaction;
-there is no capability-profile predecessor table.
-
-Each recovered fact needs an independent semantic anchor. A common movement is
-not enough. Automated candidates are review evidence and cannot create runtime
-authority.
-
-Do not make the IPC boundary compare a candidate-derived raw body digest with a
-preceding generation. Call immediates and data operands legitimately change
-when ArenaNet relinks an equivalent client. The locator proves their typed
-relationships; the boundary accepts the resulting digest as an input-bound
-fact; the production transform verifies that digest against the same candidate
-bytes. Add a positive coherent-relocation fixture as well as refusal mutations.
-
-Recertification requires semantic identities, signatures, caller relationships,
-original-call preservation, complete address occurrence ledgers, table and
-allocation invariants, positive and negative layout evidence, lifecycle
-clearing, offline tests, clean teardown, and one bounded live semantic check per
-changed domain.
-
-For Xunlai storage, independently recover the player-record array, record
-stride, agent identifier, player number, access flags, and area type. External
-projects such as GWCA can explain semantics, but they are never runtime
-authority. Prove reader and handler roles, signatures, field offsets, and the
-game-thread drain from the current bytes. Do not copy them from a preceding
-build.
-The three player-record readers form one optional, all-or-nothing access proof.
-If that proof cannot be certified, omit it: the generated configuration then
-contains zero access words, Xunlai stays disabled, and the independently
-certified Travel action remains available. Never substitute party state or a
-guessed offset.
-
-Run `pnpm enhancements:live xunlai-storage` from a supported PvE outpost. The
-scenario records only the tri-state access result and two complete action
-cycles from the same named action used by the button and shortcut. Each cycle
-opens storage, closes it with Escape, and proves that bounded two-button
-movement changes the certified player position. A queued command is not a
-semantic success. Also enter `/chest`,
-`/xunlai`, and one near miss such as `/storage`; the first two must be consumed
-locally only after access is confirmed and the near miss must remain a normal
-Guild Wars command. Check one eligible character and the known restricted
-character, then switch accounts or characters without restarting and confirm
-that access is revoked and restored. A one-gold deposit and withdrawal requires
-explicit confirmation from the person operating the client.
-
-STOP if closing storage does not immediately restore click-to-walk, two-button
-movement, and merchant interaction. The DataWindow handler consumes two account
-pane flags in addition to the character/outpost access proof. Do not infer
-those flags from access, hard-code a different payload, or call the action safe
-because the mailbox drained. A release claim needs independent proof of those
-flags and the native storage open/close lifecycle, plus the recovery cycle
-above on accounts with and without each pane.
-
-Party certification must prove the complete owned roster, player and hero
-professions, hero unlocks, behaviour, skill bars, and attributes. Proving only
-the hero count or first hero is not enough for Apply team. Each optional party
-detail table is an independent observation: a rejected detail table must erase
-only its own facts and must never erase the verified roster or another valid
-detail group.
-
-The scheduled recertification workflow already detects a new ArenaNet
-generation, downloads and verifies its code artifacts, and publishes
-`enhancement.json` as review evidence. It does not write source, push a branch,
-or open a pull request. The isolated runtime verifier remains the sole launch
-authority; a CI report or exact table row cannot turn a refused feature on.
-
-When evidence is incomplete, grant no capability. The verified official client
-must remain playable.
+Follow [Recover certification](recertify.md). Start from the exact official
+artifact that triggered the refusal and do not clear downloaded game data: the
+refused artifact and the retained preceding one are the best evidence. Routine
+equivalent rebuilds must pass locally without a source change. When evidence
+is incomplete, grant no capability; the official client must stay playable.
 
 ## Done criteria
 
@@ -689,7 +574,7 @@ A Core or Tools change is done when all applicable statements are true:
 - performance remains within the code-owned budget;
 - shutdown has no trap, rejection, unknown socket, or orphan process;
 - the unsupported-build path remains playable;
-- the internal evidence records any costly fact that a future contributor must
-  not rediscover.
+- a costly fact that a future contributor must not rediscover is written in
+  the domain document.
 
 Stop when these criteria pass. Do not add a framework for a future feature.

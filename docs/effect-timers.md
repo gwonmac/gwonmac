@@ -58,13 +58,13 @@ and hero-removed checkpoints. This correlates stable party agent identities for
 later research; it does not add party effects to the player capability.
 
 Static proof and synthetic tests make the build eligible for live testing.
-Release acceptance still needs a Developer Build session that visually confirms
+Before release, a live session must visually confirm
 a finite effect, refresh, natural expiry, an indefinite or maintained effect,
 and travel/loading withdrawal.
 
 Party awareness and hostile-agent effects remain separate authority decisions.
 They must not reuse this player's capability or infer exact durations from broad
-condition/hex state flags. See [Future effect and debuff research](future-effect-durations.md).
+condition/hex state flags.
 
 ## Alcohol Timer
 
@@ -105,7 +105,7 @@ offsets convert once at their current visible position when geometry is availabl
 
 Automated evidence covers native countdown corrections, clock wrap, identity
 changes, notification rejection, snapshot validation, dragging, cancellation,
-locking, saved offsets, and launcher controls. A Developer Build still needs
+locking, saved offsets, and launcher controls. A live session still needs
 live QA for real drink types, map travel, visual alignment, and input feel.
 
 ## Native drawing
@@ -151,4 +151,3 @@ geometry changes and icon replacements wait, and a cache rebuild redraws the
 queued model unchanged.
 Missing native drawing support produces no browser fallback.
 
-Chat lines before an effect or alcohol runs out are described in [Reminders](reminders.md).

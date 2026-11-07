@@ -3,9 +3,6 @@
 This document explains the local diagnostics recorder, export protections, and
 performance measurement rules.
 
-Audience: contributors who add diagnostics, investigate failures, make
-performance claims, or choose verification for a change.
-
 This document owns evidence boundaries. It does not own exact schema members,
 capture budgets, benchmark thresholds, or release checks. Code and tests own
 those facts.
@@ -396,26 +393,13 @@ Use the fastest level that executes the invariant.
 | --- | --- | --- |
 | Parser, policy, transform, decoder, or state invariant | Unit test | None |
 | ArenaNet publication, corruption repair, cancellation, or rollback | Local integration fixture | Live patch-day check for the current service |
-| IPC, sandbox, navigation, launcher, settings, or renderer recovery | Electron test | Packaged test when package identity or resources matter |
-| Package files, fuses, generated preload, or ad-hoc package behavior | Packaged test | Signed test when Apple identity matters |
-| Keychain continuity, Developer ID, notarization, updater installation | Signed release test | Maintainer-owned live release check |
-| Stable and Beta profile continuity | Release-only signed Stable to candidate to Stable round-trip | Post-publication production-updater check |
-| Current ArenaNet client playability and certified Core behavior | Opt-in live canary | Release canary with a real account |
+| IPC, sandbox, navigation, launcher, settings, or renderer recovery | Electron test (CI) | Packaged test when package identity or resources matter |
+| Package files, fuses, generated preload, or ad-hoc package behavior | Packaged test (CI) | Signed test when Apple identity matters |
+| Keychain continuity, Developer ID, notarization, updater installation | Signed release test | [Release](releasing.md) check on the exact draft |
+| Current ArenaNet client playability and certified Core behavior | Opt-in live scenario | Real-account play before publishing |
 | Performance improvement | Repeated clean Level 1 comparison | Level 2 attribution before the change |
 
-Do not put signed, live-account, or production-updater checks in `pnpm run check`.
-They are release or patch-day gates because local fixtures cannot prove those
-external boundaries.
-
-## Live and release boundaries
-
-The weekly canary proves that today's official client starts, renders, reads
-snapshot data, and retains required certification. It does not prove
-real-account login on every supported Mac.
-
-The release approver owns the real-account, signed-identity, and production
-updater observations in [Verify a release](release-verification.md).
-
-Enhancement changes use the bounded workflow in
-[Enhancement development](enhancement-development.md). A live Enhancement run
-uses cached ArenaNet data unless the operator explicitly permits a game update.
+Do not put signed, live-account, or production-updater checks in the fast
+check. Local fixtures cannot prove those external boundaries. A live
+Enhancement run uses cached ArenaNet data unless the operator explicitly
+permits a game update.

@@ -1,7 +1,5 @@
 # Trade chat discovery
 
-Status: Accepted
-
 This document owns the product and interaction specification
 for the floating Trade Chat window in gwonmac.
 
@@ -69,58 +67,6 @@ observed problem: finding the other side of a trade.
 `PRODUCT.md` uses the narrower boundary established here: no automated trading,
 trade execution, listing publication, price manipulation, inventory automation,
 or chat automation.
-
-## What to learn from Toolbox++
-
-Keep these parts of the Toolbox++ model:
-
-- use the public Kamadan and Ascalon feeds instead of building another data
-  source;
-- show recent messages immediately;
-- let one search cover message text and sender names when the upstream service
-  supports it;
-- keep the full original message visible; and
-- make contacting the sender the end of the flow.
-
-Improve these parts:
-
-- use the existing gwonmac interface system and master-detail layout;
-- distinguish players who sell from players who buy;
-- preserve the reader's position when new messages arrive;
-- show clear connection and stale-data states;
-- handle upstream replacement messages instead of showing obsolete copies;
-- share source connections across Trade Chat windows;
-- keep the renderer isolated from network and game-client capabilities; and
-- use normal TLS certificate validation and bounded network input.
-
-Do not copy these Toolbox++ implementation choices:
-
-- one WebSocket connection per window;
-- disabled TLS certificate validation;
-- polling global worker state from the interface;
-- unbounded fragment or message accumulation; or
-- direct game-memory actions from the trade view.
-
-## Core user stories
-
-| Priority | As a player, I want to... | So that I can... |
-| --- | --- | --- |
-| P0 | see recent messages from either supported source | notice current offers without visiting a website |
-| P0 | switch between Kamadan and Pre-Searing | browse each economy without mixing their messages |
-| P0 | search for an item or player name | reduce a fast feed to relevant messages |
-| P0 | open a character's recent listings | compare everything that character posted |
-| P0 | show only `WTS` messages | find someone selling an item I want |
-| P0 | show only `WTB` messages | find someone buying an item I own |
-| P0 | compare the full message and its age | judge whether contacting the player is worthwhile |
-| P0 | copy the exact character name | contact the correct player in Guild Wars |
-| P0 | keep reading while new messages arrive | avoid losing my position in the feed |
-| P0 | keep useful results during a connection failure | continue my current search and recover clearly |
-| P0 | use Trade at narrow and wide window sizes | keep it useful beside the game |
-| P0 | use the complete flow with a keyboard | avoid switching repeatedly between input methods |
-| P0 | save an offer or follow a player | keep useful leads and recognize their new listings |
-| P0 | inspect current NPC trader quotes and history | compare buy and sell movement without leaving the game |
-| P0 | prepare an empty whisper to the selected character | contact the author through the existing enabled Whispers tool, with Send remaining explicit |
-| Later | save a useful search | repeat a proven search when actual use justifies persistence |
 
 ## Window and entry point
 
@@ -275,54 +221,6 @@ is unavailable or uncertified.
 
 The core Trade feature must not depend on this enhancement.
 
-## Primary user flows
-
-### Browse current offers
-
-1. The player opens the **Trade Chat** window.
-2. Cached messages appear immediately when available.
-3. The source connects and adds newer messages.
-4. The player selects a message and reads the complete text.
-5. The player copies the character name and contacts that character in game.
-
-### Find an item to buy
-
-1. The player enters an item name and submits the search.
-2. Search results appear newest first.
-3. The player chooses **Selling** to focus on `WTS` messages.
-4. The player selects a useful result and checks its exact age.
-5. The player copies the seller's character name.
-
-### Find a buyer for an item
-
-1. The player enters an item name and submits the search.
-2. The player chooses **Buying** to focus on `WTB` messages.
-3. The player compares recent messages without losing the result list.
-4. The player copies the buyer's character name.
-
-### Return to current activity
-
-1. The player clears the query.
-2. The preserved live feed returns at its previous position.
-3. Newer messages merge silently when the player returns fully to the top.
-
-### Compare one character's listings
-
-1. The player selects a character name in a result row or message detail.
-2. Trade Chat shows that character's recent messages from the active source.
-3. The player compares the individual messages or opens one message detail.
-4. The player selects **Back to results** or **Back to offers**.
-5. The prior ledger returns at its previous position.
-
-### Inspect trader prices
-
-1. The player selects **Trader prices** in the Trade Chat toolbar.
-2. The player browses Common, Rare, Runes, or Dyes, or searches the complete
-   catalogue.
-3. The player selects an item to compare the current buy and sell quotes.
-4. The player changes the chart range or moves to the previous or next item.
-5. The player selects **Back to listings** and returns to the preserved ledger.
-
 ## States and recovery
 
 | State | Required behavior |
@@ -462,51 +360,6 @@ service changes or becomes unavailable.
 
 Automated tests use recorded, anonymous fixtures. They must not depend on the
 live public service.
-
-## First-release acceptance criteria
-
-The feature is ready when all of these statements are true:
-
-- Opening the separate Trade Chat window shows recent valid messages without
-  opening or changing Builds and teams.
-- Switching between Kamadan and Pre-Searing replaces the complete source view
-  and never mixes their messages.
-- A player can submit a plain-text search and return to the live feed.
-- Search keeps every distinct matching message, including messages from the
-  same character.
-- Selecting a character shows that character's recent listings and returns to
-  the preserved ledger.
-- Trader prices shows the four supported categories, current buy and sell
-  quotes, and selectable history ranges without discarding the ledger.
-- **Selling** and **Buying** apply the defined `WTS` and `WTB` rules.
-- Results remain readable and stable while new live messages arrive.
-- Selecting a result shows the complete original message and exact age.
-- Copying a character name and message gives persistent, accessible feedback.
-- Replacement and duplicate messages do not leave obsolete duplicate rows.
-- Two Trade Chat windows on the same source share one upstream live connection.
-- Two windows on different sources use one lazy connection per active source.
-- Disconnection preserves existing rows, marks them stale, and reconnects with
-  bounded backoff.
-- A malformed or oversized response cannot grow memory without a bound or
-  crash the renderer.
-- Search queries, character names, and message text never enter diagnostics.
-- The interface works at narrow, wide, short, transparent, and opaque sizes in
-  both visual styles.
-- The complete flow works with keyboard only, without stealing Guild Wars input
-  outside the Trade window.
-- The core feature works without game-memory access or the optional whisper
-  capability.
-
-## Deliberate follow-ups
-
-Do not add these until first-release use shows a concrete need:
-
-1. A certified **Whisper** action can shorten the final contact step without
-   sending text.
-2. Saved searches and foreground-only alerts can help repeated item hunts, but
-   they add persistence, notification rules, and noise.
-Each follow-up needs its own acceptance criterion. None should delay the core
-find-and-contact experience.
 
 ## Hub inferred currency estimates
 

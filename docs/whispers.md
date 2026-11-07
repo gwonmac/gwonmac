@@ -1,21 +1,12 @@
 # Whispers
 
-Status: implemented locally; live gameplay validation remains with Matthias.
-
 Whispers is an optional, session-only companion to the original Guild Wars
 chat. Original chat remains authoritative and fully usable. The companion
 observes incoming and outgoing whisper log events and submits one explicit
 reply through the certified native chat sender. It does not simulate typing,
 replace chat handlers, block messages, or maintain a second delivery history.
 
-## Implementation layers
-
-1. `feat/whisper-integration`: bounded certified observation, named one-message
-   submission, original-call preservation, refusal and integration tests.
-2. `feat/whisper-messenger`: Vue presentation, session model, unread state,
-   friends, cleanup, sound, and combined interactive verification.
-
-Both layers include their own tests and documentation. Publication is separate.
+## Use and presentation
 
 Enable **Whispers** in launcher Tools settings (off by default). The panel is
 available in PvE while Tools is enabled. `pnpm tools:dev` with `?whispers` opens
@@ -36,51 +27,6 @@ Unavailable chat keeps a disabled result with its waiting reason.
 The Whispers surface retains its saved geometry. Its single **Hide Whispers**
 control preserves conversations and drafts. Its resize grip stays outside normal
 Tab navigation. Chat options retain mute, sound and guarded conversation closing.
-
-## Acceptance criteria
-
-- Incoming and outgoing whispers appear once in the companion, including
-  replies written in original chat. Identical repeated messages stay distinct.
-- Original chat receives all normal events unchanged. No renderer inserts a
-  message into original chat history.
-- Each Send gesture requests at most one native whisper on the game thread.
-  Busy, unavailable, malformed, stale-session and policy-refused requests
-  preserve the draft and never replay automatically.
-- Native observation owns displayed outgoing messages. Queue acceptance is
-  not a delivery receipt. Guild Wars does not expose remote read receipts.
-- Messages, drafts, recent contacts, and chat-participant suggestions remain in renderer memory and
-  clear when the client session ends. They never enter IPC, files or diagnostics.
-- A movable person icon shows unread messages without stealing focus. Collapse
-  restores the same recipient and keeps drafts. Close discards a conversation,
-  with an inline guard for an unsent draft. The Messenger window geometry and
-  icon position persist in the current account profile. The icon keeps its
-  pixel distance from the nearest corner when the game window changes size.
-- A conversation opens at its first unread message once. Its exact reading
-  position and keyboard focus then survive updates, conversation switches and
-  collapse/reopen. A jump-to-latest control appears without pulling a reader
-  away from older messages.
-- Up and Down in the companion composer cycle observed outgoing messages and
-  return to the unfinished draft. Original chat keeps its native message
-  history because the host continues forwarding its arrow-key events unchanged.
-- Friends reuse the existing certified observer. Recent people contains at most
-  ten closed non-friend conversations in which the player sent a message.
-  Remove and Clear recent affect contact suggestions only.
-- The bounded chat observer reads whispers and the certified write-with-sender
-  event used by public player chat. It observes names from Alliance, Allies,
-  All, Guild, Group, Trade, and Whisper chat. Non-whisper message bodies are
-  discarded in the native ring; the picker retains only the 50 most recent valid
-  character names for session-only prefix and word completion.
-- One `findPeople` search owns name matching for the Messenger picker and Hub.
-  It returns friends, open conversations, recent people and chat names once
-  each, ranked exact name, name prefix, word prefix, then every word prefixed.
-  Friends and Chat can be switched off in the picker; the switches are
-  session-only and apply to Hub too. The Hub `whisper` scope always offers an
-  exact typed name that is not already a known person. Names ignore case, repeated spaces, typographic
-  spaces and invisible format characters.
-- Sound offers Off, Background and Every incoming whisper. Muting a person
-  suppresses sound while retaining unread badges. There are no notification cards.
-- Unsupported client facts withdraw the optional feature. Original Guild Wars
-  remains playable. Existing Tools region policy remains in force.
 
 ## Party invite
 
@@ -131,10 +77,6 @@ after Hub moved on or closed.
 
 ## Reuse and evidence
 
-The older `gwonmac-whispers` worktree contains incoming-event research and a
-bounded companion ring. Its persistence, main-process message transport and
-native notifications do not fit this contract and are not adopted.
-
 GWCA `ChatMgr` submits a UTF-16 line beginning with a quote, followed by
 recipient, comma and message, with agent id zero. Current gwonmac Resign already
 certifies the native sender and game-thread command queue. Reuse that proven
@@ -183,12 +125,6 @@ game, changing character, or turning the feature off clears its session data.
 
 ## Verification boundary
 
-Offline generated-WASM and companion tests prove bounds, refusal, ordering,
-original-call preservation and lifecycle. The Tools fixture exercises the real
-Vue surface with synthetic messages. The repository check suite, production build, complete integration suite,
-compiled-kernel contract check, and current official-client whisper
-certification/mutation tests passed. Browser exploration covered sending,
-original-chat echo, focus, drafts, close guards, dragging and bubble wrapping.
-A narrow live two-account check is still
-required to establish current-game semantics; automated fixtures cannot claim
-that check passed. Do not send a live test message to an unspecified person.
+A narrow live two-account check establishes current-game semantics; automated
+fixtures cannot claim it. Do not send a live test message to an unspecified
+person.

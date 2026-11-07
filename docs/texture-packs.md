@@ -107,16 +107,10 @@ cannot be selected. The player can remove it and import the original TPF again.
 If all texture packs need to be bypassed, select **Official textures** before
 opening a new game window.
 
-## Release proof
+## Live check
 
-Automated tests own archive decoding, checksums, limits, managed-copy fidelity,
-deduplication, crash recovery, selection and removal, renderer heap restoration,
-compressed and RGBA replacement, preload vocabulary, and launcher behavior.
-Every release build also packages the PNG decoder as a runtime dependency.
-
-Live graphics certification remains a human check because the official client
-chooses which textures and compressed upload paths occur in a real session.
-The live check must import a known Guild Wars UI TPF, select it, open a fresh
-game window, confirm representative inventory and shared UI textures, return to
-Official textures, and verify a second fresh window. A live failure blocks the
-feature claim; it must not be hidden by accepting only part of a pack.
+Automated tests own archive decoding, limits, recovery, and replacement. The
+official client chooses which textures and upload paths occur in a real
+session, so a live check stays human: import a known Guild Wars UI TPF, select
+it, open a fresh game window, confirm inventory and shared UI textures, return
+to Official textures, and verify a second fresh window.

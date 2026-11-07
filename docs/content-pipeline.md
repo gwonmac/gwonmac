@@ -2,12 +2,8 @@
 
 This document explains how `gwonmac` gets and stores official Guild Wars data.
 
-Audience: contributors who change ArenaNet downloads, client generations,
-snapshot ranges, download progress, or recovery.
-
-This document owns the game-data flow. It does not own updates to the `gwonmac`
-application. [Verify a release](release-verification.md) owns application
-release operations.
+This document owns the game-data flow. Application releases are in
+[Releasing](releasing.md).
 
 ## Two independent update systems
 
@@ -16,7 +12,7 @@ release operations.
 | Update | Source | Runtime owner | Behavior |
 | --- | --- | --- | --- |
 | Guild Wars client and game data | ArenaNet patch service | `ClientRuntime` and `PatchClient` | Automatic background download |
-| `gwonmac` application | Published GitHub releases | `AppUpdater` | Stable or Beta, automatic or manual checks |
+| `gwonmac` application | Published GitHub releases | `AppUpdater` | Automatic or manual checks |
 
 These systems do not authorize each other. An ArenaNet update cannot install a
 new `gwonmac` release. A `gwonmac` release cannot make an unknown ArenaNet
@@ -237,12 +233,6 @@ artifacts.
 ## Application update boundary
 
 `AppUpdater` checks published `gwonmac` releases only when the signed Release
-identity permits it. Stable accepts final releases. Beta also accepts beta and
-release-candidate versions. Alpha versions are never public update candidates.
-
-Changing the update track or automatic-check setting does not start a request.
-A launch check, due background check, or manual **Check for Updates** action
-uses the saved choice.
-
-Application update behavior for players is in [Updates](user-guide.md#updates).
-Signing and publication behavior is in [Verify a release](release-verification.md).
+identity permits it, and ignores pre-releases. Changing the automatic-check
+setting does not start a request. A launch check, due background check, or
+manual **Check for Updates** action uses the saved choice.

@@ -3,9 +3,6 @@
 This document explains how `gwonmac` hosts the official Guild Wars WebAssembly
 client. It also explains how the app enables build-specific repairs and tools.
 
-Audience: contributors who change the Emscripten host, persistent game files,
-client transforms, companion kernel, or certification workflow.
-
 This document owns the stable architecture and failure rules. Code and tests
 own exact hashes, function indices, table slots, addresses, message IDs, ABI
 sizes, and time limits.
@@ -42,24 +39,41 @@ upload, and restores the client bytes in `finally`.
 
 A level-zero redefinition, partial or compressed update, texture deletion, or
 WebGL context reset withdraws the remembered match. This prevents a reused or
-changed texture from inheriting stale replacement state. Exact measurements and
-the recertification procedure are preserved in
-`internal/upstream/controller-prompt-atlas.md`.
+changed texture from inheriting stale replacement state.
+
+Certified atlas upload (`CONTROLLER_PROMPT_ATLAS_CERTIFICATIONS` owns the
+runtime values):
+
+| Fact | Value |
+| --- | --- |
+| Observed JSPi client SHA-256 values | `b8cc509714b82b69fdfd79a26ba257aa4c9ef23d90bca9dfcbbd044e371cfb17`, `3cd87bf15df6812073b558e9f365c8fb8e2a54b1b4c37028e5d3a6cbaf5e6f9e` |
+| WebGL upload | level 0, 256×512, RGBA/unsigned byte, 524,288 bytes |
+| Direct uMod running CRC-32 | `0x74eb6846` (transform `direct`) |
+| Matching candidates in the bounded diagnostic capture | 1 |
+| Replacement PNG SHA-256 | `d3dcb98fa3bbc9541f6456a36611ebad44e557ef1099aad328393b4eca25f294` |
+
+The client SHAs are evidence, not authority: the second client kept the same
+atlas content after an ArenaNet rebuild. To recertify changed atlas content:
+
+1. If ArenaNet now offers PlayStation symbols, delete the substitution.
+2. Start a development build with a controller, or call
+   `gwVirtualGamepad.activateUi()` in DevTools.
+3. Read `gwControllerPromptTextureStats()` after the controller UI appears.
+   Exactly one level-zero 256×512 RGBA candidate must be present; record all
+   four reported hashes and do not choose a nearest match.
+4. Confirm visually that replacing only this upload changes the controller
+   prompts and no unrelated texture.
+5. Add the observed hash and transform to
+   `CONTROLLER_PROMPT_ATLAS_CERTIFICATIONS` and update the table above.
+
+If the candidate is absent or ambiguous, leave the style off for that client.
+Never certify from dimensions, the legacy native checksum, or visual similarity.
 
 The replacement atlas is one removable static PNG composed from Kenney's CC0
-Input Prompts. Its byte hash and dimensions are pinned by policy tests, and its
-provenance is recorded in `THIRD-PARTY-NOTICES.md`. The saved setting has one
-source of truth; removing this feature later also removes the asset, wrapper,
-UI choice, and setting. The ordinary settings reader then ignores the retired
-key.
-
-This is not a Tools or Enhancement capability. It reads no game state, sends
-no command, and has no PvE/PvP policy. It is a launch-time renderer preference,
-like render scale. An ArenaNet rebuild that retains the certified atlas content
-keeps the setting working without an application release. An unknown atlas hash
-passes through unchanged. Supporting changed atlas content requires reviewing
-the new texture and adding its exact checksum; it never requires weakening the
-matcher or changing the Enhancement contract.
+Input Prompts; its provenance is in `THIRD-PARTY-NOTICES.md`. This is not a
+Tools or Enhancement capability. It reads no game state, sends no command, and
+is a launch-time renderer preference like render scale. An unknown atlas hash
+passes through unchanged.
 
 In an unpackaged development build, `gwVirtualGamepad` can expose Guild Wars'
 real gamepad UI without hardware. Run `gwVirtualGamepad.activateUi()` in the
@@ -145,9 +159,6 @@ A crash, timeout, changed file, malformed result, ambiguous match, unexpected
 layout, or transform error means no proof. The app then serves the verified
 official module.
 
-The costly defect and recertification evidence is in `internal/upstream/`. Read
-that archive before changing the transform.
-
 ## Effective feature status
 
 Main reports the effective served status for file saving, native double-click,
@@ -169,20 +180,10 @@ Launch intent is not runtime proof.
 ## Certification authority
 
 The isolated local semantic verifier is the sole runtime authority for file
-compatibility, Core, and Tools capabilities. Compiled exact-build facts are
-regression expectations only. Every requested capability is proved from the
-selected official bytes and bound to their hash and the verifier ABI.
-
-There is no remote certificate feed. A CI result, cache file, diagnostics file,
-or GitHub issue cannot grant runtime authority.
-
-An equivalent ArenaNet rebuild therefore needs no source change or application
-release. A semantic change disables only the affected capability and its
-explicit dependants. The official ArenaNet client remains playable.
-
-[ArenaNet client compatibility](arenanet-compatibility.md) owns the proof rules,
-feature refusal boundaries, retained evidence, and patch-day procedure.
-
+compatibility, Core, and Tools capabilities. There is no remote certificate
+feed. [ArenaNet client compatibility](arenanet-compatibility.md) owns the proof
+rules, feature refusal boundaries, and patch day;
+[Recover certification](recertify.md) is the maintainer runbook.
 ## Required compatibility and optional Tools
 
 Required compatibility has two certification stages. The file-compatibility
@@ -210,25 +211,11 @@ state and launch selection is the pending-unload state shown in Settings. A
 restart selects the Core preload and module graph; re-enabling before that
 restart reactivates the already-loaded Tools runtime and clears the notice.
 
-After that restart, these choices update during the session:
-
-- **Build Library** controls the host-owned build and team surface, its
-  Command-B shortcut, and the fixed Apply Team operations available in
-  supported PvE outposts.
-- **Trade Chat** controls the read-only Trade surface, Command-K, and `/trade`.
-- **Travel** controls the palette, Command-T, and `/tp`.
-- **Xunlai Storage** controls the named storage action, Command-Shift-C,
-  `/chest`, and `/xunlai`.
-- **Target distance and range** controls the shipped Test readout and its target
-  observation.
-- **Skill Key Labels** controls renderer-owned labels over the certified
-  skill-slot rectangles. All eight use the same keycap style: custom labels where
-  set, otherwise 1–8. Original keycaps return when the tool is off. Saved
-  bindings remain. The
-  companion publishes geometry, not bindings, and the renderer never turns a
-  label into game input.
-- **Skill Cooldowns** controls the display of observed recharge numbers. Its
-  saved colour remains when the tool is off.
+After that restart, each tool's own switch (Build Library, Trade Chat, Travel,
+Xunlai Storage, Target distance, Skill Key Labels, Skill Cooldowns) controls its
+surface, shortcut, and aliases during the session. Turning a tool off keeps its
+saved data. The companion publishes skill-slot geometry, not bindings, and the
+renderer never turns a label into game input.
 
 Native skill and effect drawing has a separate `nativeHudRendering` capability.
 The local verifier checks its exact draw owners, traversal, and resource functions.
@@ -369,27 +356,16 @@ positively locked destination. The small local catalogue can still show the
 reviewed current outpost as disabled when a ferry reached it without an unlock.
 History cannot authorize travel.
 
-Shortcut slots remain in `settings.json` using the district-bearing shape the
-published Stable understands. The current runtime projects those records to
-map IDs and ignores their old district values. Synonyms live in
-`travel-preferences.json`, a Travel-owned atomic document that Stable v2026.8.9
-reads as an exact four-field shape. The current runtime projects only
-synonyms, atomically clears withdrawn history on first load, and writes disabled,
-empty compatibility placeholders so rollback remains safe.
-
+Shortcut slots remain in `settings.json` in the district-bearing shape that
+older releases wrote. The runtime projects those records to map IDs and ignores
+their district values. Synonyms live in `travel-preferences.json`, a
+Travel-owned atomic document.
 Main exposes one composed Travel preference snapshot to every renderer. A save
 includes the snapshot the renderer edited. Main refuses the save if another
 window changed either durable owner first. One accepted save can change
 shortcut slots or the Travel-owned document, never both. Main also serializes
 ordinary `settings.json` writes with Travel writes, so a settings change cannot
 replace a concurrent shortcut change.
-
-The confirmed settings reset uses the same Main owner and lock. It resets
-`settings.json` first, including shortcut slots, then resets the Travel-owned
-document. A definite settings failure stops before the Travel write. A later
-Travel failure returns a partial result and keeps the completed settings reset;
-running the reset again safely finishes it. Window-position cleanup is a
-separate best-effort action and cannot change that result.
 
 Team Apply requires enabled Tools and Build Library, a proved Team Apply
 capability, a positively classified PvE outpost, fresh party state,
@@ -401,16 +377,6 @@ result. It is not inferred from a command builder's return value.
 
 The companion remains read-only. Command construction and confirmation stay in
 their named domains.
-
-## Patch-day flow
-
-The scheduled workflow detects ArenaNet code changes, runs the isolated
-per-feature verifier, and retains signed machine-readable evidence. It never
-uploads ArenaNet client bytes and cannot grant runtime authority. Equivalent
-rebuilds require no source PR; a refusal opens a tracking issue naming the exact
-failed invariant.
-
-Follow the complete [patch-day playbook](arenanet-compatibility.md#patch-day-playbook).
 
 ## Failure and teardown
 

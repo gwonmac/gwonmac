@@ -2,9 +2,6 @@
 
 This document explains the runtime boundaries in `gwonmac`.
 
-Audience: contributors who change the Electron host, client lifecycle, IPC,
-networking, input, persistence, or application updates.
-
 This document owns process and module responsibilities. It does not own exact
 client hashes, build numbers, wire schemas, or release steps. Code and tests own
 those facts.
@@ -88,8 +85,8 @@ window. The window coordinator owns show, hide, restore, focus, and Dock
 activation. Native code resolves a renderer only through the registry; it does
 not infer ownership from Electron's global window list or current focus.
 
-[Account profiles](multiple-accounts.md) owns the complete bootstrap, storage,
-and rollback contract.
+[Account profiles](multiple-accounts.md) owns the complete bootstrap and storage
+contract.
 
 ## Client generation ownership
 
@@ -380,10 +377,8 @@ authority.
 
 ## Saved login
 
-The Release and signed Development identities use separate Keychain authority.
-Historical signed Preview builds have their own retained identity too. Each
-identity can read only its own provisioned items; no new signed Preview is
-published.
+Release and signed Development builds use separate Keychain authority. Each
+identity can read only its own provisioned items.
 
 Each account scope has one item for the ArenaNet user name and password and one
 item for the Steam access token and expiry. The existing fixed items belong
@@ -400,29 +395,15 @@ success, failure, or cancellation.
 
 ## Distribution and application updates
 
-Release and Development are separate signed identities. Manual developer builds
-use the Preview application identity only to install beside Release; they are
-ad-hoc signed, carry no distribution marker, and cannot use saved login or the
-public application updater.
-
-Every application identity still uses the canonical `Guild Wars` user-data
-directory. A developer build can therefore change settings, game files, builds,
-templates, diagnostics, and caches even though Keychain access stays isolated.
-Run only a trusted commit and back up important player data before testing.
-
-Stable and Beta are update tracks inside the same Release identity. They share
-the same bundle identity, profile, Keychain authority, settings, and updater.
-The track changes release eligibility only.
+Every build uses the canonical `Guild Wars` user-data directory. An ad-hoc
+developer build can therefore change settings, game files, builds, templates,
+diagnostics, and caches even though Keychain access stays isolated. Run only a
+trusted commit and back up important player data before testing.
 
 `AppUpdater` is the only runtime owner of `gwonmac` application updates. ArenaNet
 game updates cannot authorize an application update. Application releases
-cannot certify an ArenaNet client build.
-
-A return from a newer Beta or release candidate to an older Stable is a manual
-application install. The updater never performs an automatic downgrade.
-
-[Verify a release](release-verification.md) owns signing, publication, and
-rollback procedures.
+cannot certify an ArenaNet client build. The updater never downgrades.
+[Releasing](releasing.md) owns signing, publication, and rollback.
 
 ## Application lifecycle
 

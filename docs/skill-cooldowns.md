@@ -5,32 +5,6 @@ publishes one bounded eight-slot record, and draws text over the already
 certified skill-slot rectangles. It does not activate, intercept, remap, or send
 gameplay input.
 
-## Research leads
-
-The native projects explain the likely model, but they do not certify this
-client build:
-
-- Local `GWToolboxpp/GWToolboxdll/Widgets/SkillbarWidget.cpp:141-155` formats
-  recharge values, hides zero and values above 1,800,000 ms, uses a decimal
-  threshold, and optionally rounds whole seconds upward. Lines 212-258 read the
-  player's eight slots. Lines 261-307 center outlined text in each observed
-  skill frame.
-- Local `GWCA/Include/GWCA/GameEntities/Skill.h:80-105` documents an eight-slot
-  row: a 0xbc-byte `Skillbar`, 0x14-byte `SkillbarSkill` records, and the
-  recharge timestamp at slot offset 0x08.
-- Local `GWCA/Source/Skill.cpp:9-12` computes remaining recharge as
-  `recharge - MemoryMgr::GetSkillTimer()`.
-- Local `GWCA/Source/SkillbarMgr.cpp:636-649` chooses the row whose `agent_id`
-  equals the player agent ID.
-- Local `GWCA/Source/MemoryMgr.cpp:8-29` and
-  `GWCA/Include/GWCA/Managers/MemoryMgr.h:7-21` describe the precise native
-  skill timer. GWonMac does not copy that native pointer scan.
-- Local `GWCA/Include/GWCA/Packets/StoC.h:577-583` and `:1004-1009` document
-  recharge and recharged packet shapes. GWonMac does not add a packet hook.
-
-Toolbox effect monitoring is a separate data domain. See
-[Future effect and debuff research](future-effect-durations.md).
-
 ## Exact JSPi proof
 
 The certified ArenaNet module is identified by SHA-256
