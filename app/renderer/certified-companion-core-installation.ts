@@ -9,7 +9,6 @@ import {
 } from "../shared/enhancement-contracts.js";
 import { COMPANION_ABI, COMPANION_FEATURE_BITS } from "../shared/companion-abi.js";
 import { CHARACTER_SWITCH_ACTION_ABI } from "../shared/character-switch-action-abi.js";
-import { characterSwitchContext } from "./character-switch-model.js";
 import type {
   EnhancementObserverConsumer,
   RendererMilestone,
@@ -37,9 +36,10 @@ import {
   type CompanionCharacterListState,
 } from "./companion-character-list-snapshot.js";
 import {
+  characterSwitchContext,
   createCharacterSwitchController,
   type CharacterSwitchController,
-} from "./character-switch-controller.js";
+} from "../features/character-switch/renderer/host.js";
 
 let coreInstallations = 0;
 

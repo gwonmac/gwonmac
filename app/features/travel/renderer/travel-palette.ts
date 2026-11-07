@@ -3,6 +3,7 @@
  * The existing Travel host remains the command and preference owner.
  */
 import { TOOL_PRESENTATION } from '../../../shared/tool-presentation.js';
+import { featureActivationRequested } from '../../../shared/feature-contracts.js';
 import { currentTravelFriend, type TravelFriend, type TravelFriends } from '../../../shared/friends.js';
 import type { GameProgressState } from '../../../shared/game-progress.js';
 import type { TravelCommand, TravelGameState } from '../../../shared/travel-command.js';
@@ -13,7 +14,7 @@ import { askLeaveArea, leaveAreaCopy } from '../../../renderer/leave-area.js';
 import { requireToolsApi } from '../../../renderer/tools-native-api.js';
 
 /** The Travel tool is switched on; a map load, character select or PvP only makes it unavailable for now. */
-const toolOn = () => !!window.gwToolsSettings?.().gwonmacTools && !!window.gwToolsSettings?.().travelPalette;
+const toolOn = () => featureActivationRequested('travel', window.gwToolsSettings?.() ?? {});
 
 export function createTravelPalette(parent: HTMLElement, command: TravelCommand) {
   const installed = window.gwHub;
@@ -40,7 +41,7 @@ export function createTravelPalette(parent: HTMLElement, command: TravelCommand)
       const bundle: EmbeddedToolsBundle<HTMLElement> = await import(specifier);
       if (disposed) return;
       app = bundle.createHubTravel({ nativeApi: native, command, development: window.gwNative.init.development, hub,
-        leaveArea: (place, leave) => askLeaveArea(hub, leaveAreaCopy('travel', place), leave) });
+        leaveArea: (place, leave) => askLeaveArea(hub, leaveAreaCopy('travel', place), leave), toolOn });
       app.update(state); app.updateFriends(friends); app.updateProgress(progress);
       unsubscribe = app.source.subscribe(refresh);
       app.source.setVisible(enabled && hub.visible); refresh();

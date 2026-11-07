@@ -3,6 +3,7 @@ import { installFixtureMain, quitFixtureGame } from './hub-fixture-main';
 // eslint-disable-next-line no-restricted-imports
 import '../../../renderer/commands';
 import { globalToolPatch, launcherToolSettings } from '../../../shared/launcher-contracts';
+import { featureActivationRequested } from '../../../shared/feature-contracts';
 import { parseCalculatorRates } from '../../../shared/hub-calculator';
 import type { SettingsTarget } from '../../../shared/settings-catalogue';
 import { parseHubSettingsChange, type HubSettingsApi } from '../../../shared/hub-settings';
@@ -17,13 +18,15 @@ import type {} from '../../../renderer/gw-native';
 import { createHub } from '../../../renderer/hub';
 // eslint-disable-next-line no-restricted-imports
 import { withHubBuiltins } from '../../../renderer/hub-builtins';
+// eslint-disable-next-line no-restricted-imports
+import { createTradeWhispers } from '../../../renderer/trade-whispers';
 import { mountHubView } from './hub/embedded';
 // eslint-disable-next-line no-restricted-imports
 import { installSurfaceController } from '../../../renderer/surface-controller';
 // eslint-disable-next-line no-restricted-imports
 import { askLeaveArea, leaveAreaCopy } from '../../../renderer/leave-area';
 // eslint-disable-next-line no-restricted-imports
-import { installResignCommand } from '../../../renderer/resign';
+import { installResignCommand } from '../../../features/resign/renderer/resign-command';
 // eslint-disable-next-line no-restricted-imports
 import '../../../renderer/hub.css';
 // eslint-disable-next-line no-restricted-imports
@@ -31,12 +34,12 @@ import { createHubPeople } from '../../../renderer/hub-people';
 // eslint-disable-next-line no-restricted-imports
 import { createPartyInvite } from '../../../renderer/party-invite';
 // eslint-disable-next-line no-restricted-imports
-import type { CharacterSwitchActionState, CharacterSwitchFailureCode, CharacterSwitchSource } from '../../../renderer/character-switch-model';
+import type { CharacterSwitchActionState, CharacterSwitchFailureCode, CharacterSwitchSource } from '../../../features/character-switch/renderer/character-switch-model';
 import { createFixtureLifecycle, FIXTURE_LIFECYCLES, isFixtureLifecycle } from './hub-fixture-lifecycle';
 // eslint-disable-next-line no-restricted-imports
-import { installCharacterSwitchHost } from '../../../renderer/character-switch-host';
+import { installCharacterSwitchHost } from '../../../features/character-switch/renderer/host';
 // eslint-disable-next-line no-restricted-imports
-import '../../../renderer/character-switch.css';
+import '../../../features/character-switch/renderer/character-switch.css';
 // eslint-disable-next-line no-restricted-imports
 import { createToolboxFoundation } from '../../../renderer/toolbox-foundation';
 import { createDemoTradeHost } from './trade-host';
@@ -206,7 +209,7 @@ export function mountHubFixture(target: HTMLElement) {
     enhancement_configure_resign: () => 0,
     enhancement_resign: () => { record('RESIGN'); return 1; },
   } as unknown as WebAssembly.Exports);
-  resign.update(settings.gwonmacTools && settings.resignEnabled);
+  resign.update(featureActivationRequested('resign', settings));
   const foundation = createToolboxFoundation(document.body, {
     async mountTool(element, onVisibilityChange) {
       const app = mountToolsApp(element, { host: game.host, hub, mode: 'embedded', initiallyVisible: false, onVisibilityChange });
@@ -216,7 +219,7 @@ export function mountHubFixture(target: HTMLElement) {
     async mountTrade(element, onVisibilityChange) {
       const loadMs = Number(params.get("trade-load-ms")) || 0;
       if (loadMs) await new Promise(resolve => setTimeout(resolve, loadMs));
-      const demo = createDemoTradeHost();
+      const demo = createDemoTradeHost(createTradeWhispers());
       const offerCount = Number(params.get('trade-offers'));
       const host = offerCount > 0 ? { ...demo, subscribe: async (source: import('../../../shared/trade-chat').TradeSource) => ({
         source, status: 'live' as const, messages: Array.from({ length: offerCount }, (_, index) => ({
@@ -229,7 +232,7 @@ export function mountHubFixture(target: HTMLElement) {
       return { setVisible: visible => visible ? app.show() : app.hide(), requestClose: app.hide, stepBack: app.stepBack, search: app.search, update() {}, dispose: app.dispose };
     },
   });
-  const travel = createHubTravel(travelHost, hub, (place, leave) => askLeaveArea(hub, leaveAreaCopy('travel', place), leave));
+  const travel = createHubTravel(travelHost, hub, (place, leave) => askLeaveArea(hub, leaveAreaCopy('travel', place), leave), () => featureActivationRequested('travel', settings));
   // Progress follows the fixture's map, as the companion republishes it after each map change.
   watch(() => travelHost.state.value, state => travel.updateProgress(state.status === 'ready' ? progressFixture(state.mapId) : { status: 'waiting', reason: state.reason === 'loading' ? 'loading' : 'unavailable' }), { immediate: true });
   // `?travel-load-ms=` attaches Travel late, as the game loads its lazy bundle after the Hub opened.
@@ -301,20 +304,20 @@ export function mountHubFixture(target: HTMLElement) {
   window.addEventListener('hub-fixture-withdraw', () => people.updateFriends({ status: 'waiting', reason: 'unavailable' }));
   // The Travel and Whispers owners' command listeners (`travel-palette.ts`, `whisper-surface.ts`), over the fixture's hosts.
   window.addEventListener('gw:travel-toggle', event => {
-    if (!settings.gwonmacTools || !settings.travelPalette) return;
+    if (!featureActivationRequested('travel', settings)) return;
     event.preventDefault();
     hub.direct('travel', travel.open);
   });
   window.addEventListener('gw:whispers-toggle', event => {
-    if (!settings.gwonmacTools || !settings.whispersEnabled || !session.state.available) return;
+    if (!featureActivationRequested('whispers', settings) || !session.state.available) return;
     toggleHubWhispers(event, hub, messenger, session);
     if (session.state.visible) whisperSurface.raise();
   });
   window.addEventListener('hub-fixture-settings', event => { if (event instanceof CustomEvent) {
     settings = { ...settings, ...event.detail }; for (const listener of settingsListeners) listener(settings);
-    foundation.setAvailable({ builds: settings.gwonmacTools && settings.buildLibrary, trade: settings.gwonmacTools && settings.tradeChat });
-    people.setEnabled(settings.gwonmacTools && (settings.travelPalette || settings.whispersEnabled));
-    resign.update(settings.gwonmacTools && settings.resignEnabled);
+    foundation.setAvailable({ builds: featureActivationRequested('buildLibrary', settings), trade: featureActivationRequested('tradeChat', settings) });
+    people.setEnabled(featureActivationRequested('travel', settings) || featureActivationRequested('whispers', settings));
+    resign.update(featureActivationRequested('resign', settings));
     window.dispatchEvent(new Event('gw:tools-settings'));
   } });
   const controls = document.createElement('div'); controls.className = 'hub-fixture-controls';

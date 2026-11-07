@@ -23,7 +23,7 @@ const TOKENS = "app/shared/ui/tokens.css";
  *  launcher is: two surfaces of one product cannot each own a palette. */
 const CONSUMERS = [
   "app/shared/ui/components.css",
-  "app/renderer/cartography-overlay-controls.css",
+  "app/features/cartography/renderer/cartography-overlay-controls.css",
   "app/renderer/hub.css",
   "app/ui/tools/src/styles.css",
   "app/ui/tools/src/styles/base-shell.css",
@@ -43,7 +43,7 @@ const CONSUMERS = [
  * one of these files stops holding a literal, it fails here until it is moved
  * up into `CONSUMERS`, where the real rule applies.
  */
-const NOT_YET_TOKENISED = ["app/renderer/harness.css", "app/renderer/character-switch.css"];
+const NOT_YET_TOKENISED = ["app/renderer/harness.css", "app/features/character-switch/renderer/character-switch.css"];
 
 const tokens = readFileSync(TOKENS, "utf8");
 const consumers = CONSUMERS.map(

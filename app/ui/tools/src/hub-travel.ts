@@ -21,7 +21,8 @@ const PLACES_SHOWN = 8;
  */
 export type LeaveArea = (place: string, leave: () => Promise<void>) => Promise<void>;
 
-export function createHubTravel(host: TravelHost, hub: HubPresenter<HTMLElement>, leaveArea: LeaveArea) {
+/** `toolOn` answers whether the Travel tool is switched on; the renderer builds it from the feature manifest. */
+export function createHubTravel(host: TravelHost, hub: HubPresenter<HTMLElement>, leaveArea: LeaveArea, toolOn: () => boolean) {
   const preferences = useTravelPreferences(host);
   let visible = false;
   let active = false;
@@ -89,7 +90,7 @@ export function createHubTravel(host: TravelHost, hub: HubPresenter<HTMLElement>
     if (start) progressGoalChoice.set(start.campaign, start.goal);
     hub.showView('Progress', progressPage(start), available);
   }
-  const available = () => !disposed && !!window.gwToolsSettings?.().gwonmacTools && !!window.gwToolsSettings?.().travelPalette;
+  const available = () => !disposed && toolOn();
   function open() { hub.showView('Travel', page(), available, 'travel'); }
   /** The certified instance type, never the catalogue: a Guild Hall or an uncatalogued outpost is no explorable area. */
   const explorable = () => host.state.value.status === 'ready' && host.state.value.explorable;

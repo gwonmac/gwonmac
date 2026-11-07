@@ -1,6 +1,6 @@
 /**
  * Owns Cartography installation behind one observer, model, kernel, and UI lifecycle.
- * Partial installation is rolled back before control returns to the harness.
+ * Partial installation is rolled back before control returns to the Maps host.
  */
 import { createNativeCompassRangesLayer } from "./native-compass-ranges-layer.js";
 import { createNativeMapGraphicsLayer } from "./native-map-graphics-layer.js";
@@ -13,31 +13,31 @@ import type { AppSettings, RendererSettingsPatch } from "../../../shared/contrac
 import type { CartographyMapKnowledge } from
   "../../../shared/cartography-map-knowledge.js";
 import type {
-  CompassFrameSpikeController,
-  MissionMapFrameSpikeController,
-  WorldMapFrameSpikeController,
-  WorldMapFrameSpikeDiagnostic,
+  CompassFrameController,
+  MissionMapFrameController,
+  WorldMapFrameController,
+  WorldMapFrameDiagnostic,
 } from "../../../shared/cartography-spike.js";
-import { disposeCartographyResources } from "../../../renderer/cartography-lifecycle.js";
+import { disposeCartographyResources } from "./cartography-lifecycle.js";
 import { readCartographyPlayerState } from "./cartography-player-state.js";
 import { createCartographyContextReader } from "./context-observer.js";
-import { createExplorationSpikeReader } from "./exploration-observer.js";
+import { createExplorationReader } from "./exploration-observer.js";
 import {
-  createCompassFrameSpikeReader,
-  createMissionMapFrameSpikeReader,
-  createWorldMapFrameSpikeReader,
+  createCompassFrameReader,
+  createMissionMapFrameReader,
+  createWorldMapFrameReader,
 } from "./frame-observer.js";
 import { mountCartographyOverlay } from "./overlay.js";
 import { installCartographyReachabilityKernel } from "./reachability-kernel.js";
-import { createWorldMapAnchorSpikeReader } from "./world-map-anchor-observer.js";
+import { createWorldMapAnchorReader } from "./world-map-anchor-observer.js";
 
 const unavailableCompass = Object.freeze({
   snapshot: () => null,
-}) satisfies CompassFrameSpikeController;
+}) satisfies CompassFrameController;
 
 const unavailableMissionMap = Object.freeze({
   snapshot: () => null,
-}) satisfies MissionMapFrameSpikeController;
+}) satisfies MissionMapFrameController;
 
 const unavailableWorldMapDiagnostic = Object.freeze({
   status: null,
@@ -51,15 +51,15 @@ const unavailableWorldMapDiagnostic = Object.freeze({
   topLeftY: null,
   bottomRightX: null,
   bottomRightY: null,
-}) satisfies WorldMapFrameSpikeDiagnostic;
+}) satisfies WorldMapFrameDiagnostic;
 
 const unavailableWorldMap = Object.freeze({
   snapshot: () => null,
   diagnostics: () => unavailableWorldMapDiagnostic,
-}) satisfies WorldMapFrameSpikeController;
+}) satisfies WorldMapFrameController;
 
 /** Install the atomic evidence core; unavailable presentation surfaces stay isolated. */
-export async function installCartographySpike(options: Readonly<{
+export async function installCartography(options: Readonly<{
   exports: WebAssembly.Exports;
   parent: HTMLElement;
   canvas: HTMLCanvasElement;
@@ -75,11 +75,11 @@ export async function installCartographySpike(options: Readonly<{
   ): Promise<readonly CartographyMapKnowledge[]>;
 }>): Promise<() => void> {
   const context = createCartographyContextReader(options.exports);
-  const compassReader = createCompassFrameSpikeReader(options.exports);
-  const missionMapReader = createMissionMapFrameSpikeReader(options.exports);
-  const worldMapReader = createWorldMapFrameSpikeReader(options.exports);
-  const exploration = createExplorationSpikeReader(options.exports);
-  const anchor = createWorldMapAnchorSpikeReader(options.exports);
+  const compassReader = createCompassFrameReader(options.exports);
+  const missionMapReader = createMissionMapFrameReader(options.exports);
+  const worldMapReader = createWorldMapFrameReader(options.exports);
+  const exploration = createExplorationReader(options.exports);
+  const anchor = createWorldMapAnchorReader(options.exports);
   if (context === null || exploration === null || anchor === null) {
     const missing = [
       context === null ? "context" : null,
@@ -122,17 +122,17 @@ export async function installCartographySpike(options: Readonly<{
     cleanup.push(() => nativeMapGraphics.dispose());
     const compassTerrainLayer = createNativeCompassTerrainLayer(options.exports, options.parent.ownerDocument);
     cleanup.push(() => compassTerrainLayer.dispose());
-    if (compassReader !== null) window.gwCompassFrameSpike = compassReader;
-    if (missionMapReader !== null) window.gwMissionMapFrameSpike = missionMapReader;
-    if (worldMapReader !== null) window.gwWorldMapFrameSpike = worldMapReader;
-    window.gwWorldMapAnchorSpike = anchor;
-    window.gwExplorationSpike = exploration;
+    if (compassReader !== null) window.gwCompassFrame = compassReader;
+    if (missionMapReader !== null) window.gwMissionMapFrame = missionMapReader;
+    if (worldMapReader !== null) window.gwWorldMapFrame = worldMapReader;
+    window.gwWorldMapAnchor = anchor;
+    window.gwExploration = exploration;
     cleanup.push(() => {
-      if (window.gwCompassFrameSpike === compassReader) delete window.gwCompassFrameSpike;
-      if (window.gwMissionMapFrameSpike === missionMapReader) delete window.gwMissionMapFrameSpike;
-      if (window.gwWorldMapFrameSpike === worldMapReader) delete window.gwWorldMapFrameSpike;
-      if (window.gwWorldMapAnchorSpike === anchor) delete window.gwWorldMapAnchorSpike;
-      if (window.gwExplorationSpike === exploration) delete window.gwExplorationSpike;
+      if (window.gwCompassFrame === compassReader) delete window.gwCompassFrame;
+      if (window.gwMissionMapFrame === missionMapReader) delete window.gwMissionMapFrame;
+      if (window.gwWorldMapFrame === worldMapReader) delete window.gwWorldMapFrame;
+      if (window.gwWorldMapAnchor === anchor) delete window.gwWorldMapAnchor;
+      if (window.gwExploration === exploration) delete window.gwExploration;
     });
     const disposeOverlay = mountCartographyOverlay({
       compassTerrainLayer,

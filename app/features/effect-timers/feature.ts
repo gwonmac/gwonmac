@@ -16,5 +16,4 @@ export default defineFeature({
     description: "Show exact remaining time on your native Effects icons.",
     keywords: "effects buffs timers",
   },
-  capabilities: ["playerEffectObservation", "effectIconGeometry", "nativeHudRendering"],
 });

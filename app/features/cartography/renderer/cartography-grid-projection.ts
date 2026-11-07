@@ -4,9 +4,9 @@
  * source of truth across Compass and Mission Map presentation.
  */
 import type {
-  CompassFrameSpikeSnapshot,
-  MissionMapFrameSpikeSnapshot,
-  WorldMapFrameSpikeSnapshot,
+  CompassFrameSnapshot,
+  MissionMapFrameSnapshot,
+  WorldMapFrameSnapshot,
 } from "../../../shared/cartography-spike.js";
 import type { ScreenBox } from "./frame-placement.js";
 import {
@@ -82,7 +82,7 @@ export function cartographyCellAtScreenPoint(
   return cartographyCellAt(mapX, mapY);
 }
 
-function validFrameProjection(frame: MissionMapFrameSpikeSnapshot): boolean {
+function validFrameProjection(frame: MissionMapFrameSnapshot): boolean {
   return frame.status === 1
     && frame.projectionStatus === 1
     && frame.projectionGeneration === frame.generation
@@ -106,7 +106,7 @@ function validCellRange(first: number, last: number): boolean {
 
 /** Project the visible Mission Map rectangle, including one clipped edge cell. */
 export function projectCartographyGridToMissionMap(input: Readonly<{
-  frame: MissionMapFrameSpikeSnapshot;
+  frame: MissionMapFrameSnapshot;
   box: ScreenBox;
 }>): CartographyGridProjection | null {
   const { frame, box } = input;
@@ -145,7 +145,7 @@ export function projectCartographyGridToMissionMap(input: Readonly<{
 
 /** Project the visible dedicated World Map viewport on the global cell phase. */
 export function projectCartographyGridToWorldMap(input: Readonly<{
-  frame: WorldMapFrameSpikeSnapshot;
+  frame: WorldMapFrameSnapshot;
   box: ScreenBox;
 }>): CartographyGridProjection | null {
   const { frame, box } = input;
@@ -190,7 +190,7 @@ export function cartographyCellPixelSize(projection: CartographyGridProjection):
  */
 export function projectCartographyGridToCompass(input: Readonly<{
   frame: CompassCartographyAnchor;
-  compass: CompassFrameSpikeSnapshot;
+  compass: CompassFrameSnapshot;
   box: ScreenBox;
 }>): CartographyGridProjection | null {
   const { frame: anchor, compass, box } = input;

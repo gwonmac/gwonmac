@@ -9,7 +9,7 @@ import { watch } from 'vue';
 import { isPvpTravelDestination } from '../../../shared/travel';
 import type { TravelGameState } from '../../../shared/travel-command';
 // eslint-disable-next-line no-restricted-imports
-import { characterSwitchContext, type CharacterSwitchContext } from '../../../renderer/character-switch-model';
+import { characterSwitchContext, type CharacterSwitchContext } from '../../../features/character-switch/renderer/character-switch-model';
 // eslint-disable-next-line no-restricted-imports
 import type { CompanionPlayRegionState } from '../../../renderer/companion-play-region-snapshot';
 import type { TravelHost } from './travel-host';

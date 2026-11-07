@@ -62,7 +62,8 @@ Players install 1.0.0 over the old app and keep everything. Do not change:
 | `app/client/` | client lifecycle: download, chunk store, activation, rollback |
 | `app/client/certification/` | client certification and deterministic WASM transforms |
 | `app/preload/` | the small validated capability bridge; no domain policy |
-| `app/renderer/` | game host, input, in-game presentation; no Node.js |
+| `app/features/<id>/` | one feature: its manifest, game-host part, renderer, main and shared modules |
+| `app/renderer/` | game host, input, in-game presentation shared by features; no Node.js |
 | `app/shared/` | contracts and validation used by two or more processes |
 | `app/native/` | native host addon and the game-archive decoder (C++, Objective-C++) |
 | `app/tools-cli/` | maintainer commands compiled with the app (certification, diagnostics) |

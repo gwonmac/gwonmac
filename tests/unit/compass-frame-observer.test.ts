@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  createCompassFrameSpikeReader,
-  createMissionMapFrameSpikeReader,
-  createWorldMapFrameSpikeReader,
+  createCompassFrameReader,
+  createMissionMapFrameReader,
+  createWorldMapFrameReader,
 } from "../../app/features/cartography/renderer/frame-observer.js";
 import {
   COMPASS_FRAME_SPIKE_GLOBALS,
@@ -84,7 +84,7 @@ test("keeps native frame scalar allocation order explicit", () => {
 });
 
 test("reads only the certified Compass scalar surface", () => {
-  const reader = createCompassFrameSpikeReader(completeExports());
+  const reader = createCompassFrameReader(completeExports());
   assert.ok(reader);
   assert.deepEqual(reader.snapshot(), {
     status: 1,
@@ -106,21 +106,21 @@ test("reads only the certified Compass scalar surface", () => {
 test("refuses incomplete and non-finite Compass surfaces", () => {
   const incomplete = completeExports();
   delete incomplete[COMPASS_FRAME_SPIKE_GLOBALS.top];
-  assert.equal(createCompassFrameSpikeReader(incomplete), null);
+  assert.equal(createCompassFrameReader(incomplete), null);
 
   const invalid = completeExports();
   invalid[COMPASS_FRAME_SPIKE_GLOBALS.left] = scalar(Number.NaN, "f32");
-  assert.equal(createCompassFrameSpikeReader(invalid)?.snapshot(), null);
+  assert.equal(createCompassFrameReader(invalid)?.snapshot(), null);
 
   const invalidVisibility = completeExports();
   invalidVisibility[COMPASS_FRAME_SPIKE_GLOBALS.visible] = scalar(2);
-  assert.equal(createCompassFrameSpikeReader(invalidVisibility)?.snapshot(), null);
+  assert.equal(createCompassFrameReader(invalidVisibility)?.snapshot(), null);
 
   const trapping = completeExports();
   trapping[COMPASS_FRAME_SPIKE_GLOBALS.observe] = (() => {
     throw new WebAssembly.RuntimeError("stale frame table");
   }) as WebAssembly.ExportValue;
-  assert.equal(createCompassFrameSpikeReader(trapping)?.snapshot(), null);
+  assert.equal(createCompassFrameReader(trapping)?.snapshot(), null);
 });
 
 test("reads the Mission Map through the same closed frame boundary", () => {
@@ -149,7 +149,7 @@ test("reads the Mission Map through the same closed frame boundary", () => {
     [MISSION_MAP_PROJECTION_SPIKE_GLOBALS.nativeMapWidth]: scalar(1024, "f32"),
     [MISSION_MAP_PROJECTION_SPIKE_GLOBALS.nativeMapHeight]: scalar(768, "f32"),
   };
-  assert.deepEqual(createMissionMapFrameSpikeReader(exports)?.snapshot(), {
+  assert.deepEqual(createMissionMapFrameReader(exports)?.snapshot(), {
     status: 1,
     generation: 5,
     frameId: 14,
@@ -204,19 +204,19 @@ test("refuses incomplete, stale, and invalid Mission Map projection state", () =
 
   const incomplete = projectionExports();
   delete incomplete[MISSION_MAP_PROJECTION_SPIKE_GLOBALS.panY];
-  assert.equal(createMissionMapFrameSpikeReader(incomplete), null);
+  assert.equal(createMissionMapFrameReader(incomplete), null);
 
   const stale = projectionExports();
   stale[MISSION_MAP_PROJECTION_SPIKE_GLOBALS.generation] = scalar(4);
-  assert.equal(createMissionMapFrameSpikeReader(stale)?.snapshot(), null);
+  assert.equal(createMissionMapFrameReader(stale)?.snapshot(), null);
 
   const invalidZoom = projectionExports();
   invalidZoom[MISSION_MAP_PROJECTION_SPIKE_GLOBALS.zoom] = scalar(4, "f32");
-  assert.equal(createMissionMapFrameSpikeReader(invalidZoom)?.snapshot(), null);
+  assert.equal(createMissionMapFrameReader(invalidZoom)?.snapshot(), null);
 
   const invalidPan = projectionExports();
   invalidPan[MISSION_MAP_PROJECTION_SPIKE_GLOBALS.panX] = scalar(Number.NaN, "f32");
-  assert.equal(createMissionMapFrameSpikeReader(invalidPan)?.snapshot(), null);
+  assert.equal(createMissionMapFrameReader(invalidPan)?.snapshot(), null);
 });
 
 function worldMapExports(): WebAssembly.Exports {
@@ -231,7 +231,7 @@ function worldMapExports(): WebAssembly.Exports {
 }
 
 test("reads the dedicated World Map context atomically", () => {
-  assert.deepEqual(createWorldMapFrameSpikeReader(worldMapExports())?.snapshot(), {
+  assert.deepEqual(createWorldMapFrameReader(worldMapExports())?.snapshot(), {
     status: 1,
     sequence: 12,
     generation: 5,
@@ -252,7 +252,7 @@ test("reads the dedicated World Map context atomically", () => {
   });
   const invalid = worldMapExports();
   invalid[WORLD_MAP_FRAME_SPIKE_GLOBALS.bottomRightX] = scalar(0, "f32");
-  assert.equal(createWorldMapFrameSpikeReader(invalid)?.snapshot(), null);
+  assert.equal(createWorldMapFrameReader(invalid)?.snapshot(), null);
 });
 
 test("refreshes World Map visibility even when no new projection event arrives", () => {
@@ -261,7 +261,7 @@ test("refreshes World Map visibility even when no new projection event arrives",
   assert.ok(visible instanceof WebAssembly.Global);
   let showing = true;
   exports[WORLD_MAP_FRAME_SPIKE_GLOBALS.observe] = () => { if (!showing) visible.value = 0; };
-  const reader = createWorldMapFrameSpikeReader(exports);
+  const reader = createWorldMapFrameReader(exports);
   assert.ok(reader);
   assert.ok(reader.snapshot());
   showing = false;
@@ -272,7 +272,7 @@ test("refreshes World Map visibility even when no new projection event arrives",
   visible.value = 1;
   assert.ok(reader.snapshot());
   exports[WORLD_MAP_FRAME_SPIKE_GLOBALS.observe] = () => { throw new Error("unavailable"); };
-  assert.equal(createWorldMapFrameSpikeReader(exports)?.snapshot(), null);
+  assert.equal(createWorldMapFrameReader(exports)?.snapshot(), null);
   delete exports[WORLD_MAP_FRAME_SPIKE_GLOBALS.observe];
-  assert.equal(createWorldMapFrameSpikeReader(exports), null);
+  assert.equal(createWorldMapFrameReader(exports), null);
 });

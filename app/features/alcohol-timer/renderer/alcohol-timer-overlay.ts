@@ -5,7 +5,7 @@
 import { DEFAULT_ALCOHOL_TIMER_POSITION, formatAlcoholTimer, type AlcoholTimerPosition } from "../../../shared/alcohol-timer.js";
 import { captureCornerPosition, restoreCornerPosition } from "../../../shared/corner-position.js";
 import type { AlcoholState } from "../../../renderer/companion-alcohol-snapshot.js";
-import { createNonActivatingSurface } from "../../../renderer/non-activating-surface.js";
+import { createNonActivatingSurface, isolateFromGame } from "../../../renderer/non-activating-surface.js";
 
 export function createAlcoholTimerOverlay(parent: HTMLElement, canvas: HTMLCanvasElement,
   savePosition: (value: AlcoholTimerPosition) => Promise<unknown>) {
@@ -132,7 +132,7 @@ export function createAlcoholTimerOverlay(parent: HTMLElement, canvas: HTMLCanva
   });
   const escapeDrag = (event: KeyboardEvent) => { if (drag && event.key === "Escape") { event.preventDefault(); event.stopImmediatePropagation(); cancel(); } };
   view.addEventListener("keydown", escapeDrag, true);
-  for (const name of ["keydown", "keyup", "pointerdown", "pointerup", "pointermove", "mousedown", "mouseup", "mousemove", "click", "contextmenu"]) root.addEventListener(name, event => event.stopPropagation());
+  isolateFromGame(root);
   lock.addEventListener("click", lockPosition);
   view.addEventListener("blur", cancel); view.addEventListener("resize", render);
   return {

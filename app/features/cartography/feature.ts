@@ -97,5 +97,4 @@ export default defineFeature({
     { action: "cartography.grid.toggle", binding: null, label: "Exploration grid" },
     { action: "cartography.walkability.toggle", binding: null, label: "Walkable terrain" },
   ],
-  capabilities: ["targetObservation", "partyObservation"],
 });

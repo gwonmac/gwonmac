@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { createCharacterSwitchController } from "../../app/renderer/character-switch-controller.js";
+import { createCharacterSwitchController } from "../../app/features/character-switch/renderer/character-switch-controller.js";
 import type { CompanionCharacterListState } from "../../app/renderer/companion-character-list-snapshot.js";
 
 const ready = (sequence: number, selectedIndex: number): CompanionCharacterListState =>
