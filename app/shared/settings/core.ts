@@ -7,7 +7,7 @@ import { isDigest } from "../digest.js";
 import { DEFAULT_CALCULATOR_RATES, parseCalculatorRates, type CalculatorRates } from "../hub-calculator.js";
 import { isHubShortcuts, type HubShortcut } from "../hub-preferences.js";
 import { isShortcutOverrides, type ShortcutOverrides } from "../keyboard-shortcuts.js";
-import { DEFAULT_CUSTOM_UI_THEME, normaliseCustomUiTheme, type CustomUiTheme } from "../ui-theme.js";
+import { DEFAULT_CUSTOM_UI_THEME, normaliseCustomUiTheme } from "../ui-theme.js";
 import { setting } from "./define.js";
 
 export const UI_STYLES = ["guild-wars", "obsidian", "custom"] as const;

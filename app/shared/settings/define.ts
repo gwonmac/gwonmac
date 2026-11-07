@@ -51,12 +51,15 @@ export type SettingSpec<T> = SettingOptions & Readonly<{
 export type SettingSpecs = Readonly<Record<string, SettingSpec<unknown>>>;
 export type SettingValue<Spec> = Spec extends SettingSpec<infer T> ? T : never;
 
+/** A setting declared without options: no flags in its returned type. */
+type NoOptions = Record<never, never>;
+
 /**
  * Each helper keeps its options in the returned type, so ./index.ts can derive
  * typed key lists (`RendererWritableSetting`, `LauncherSettings`, …) from the flags.
  */
 export const setting = {
-  boolean: <const Options extends SettingOptions = {}>(
+  boolean: <const Options extends SettingOptions = NoOptions>(
     fallback: boolean,
     options: Options = {} as Options,
   ): SettingSpec<boolean> & Options => ({
@@ -71,7 +74,7 @@ export const setting = {
    * Refusing out-of-range keeps every reader from deciding what a nonsense value
    * should look like.
    */
-  integer: <const Options extends SettingOptions = {}>(
+  integer: <const Options extends SettingOptions = NoOptions>(
     fallback: number,
     range: Readonly<{ min: number; max: number }>,
     options: Options = {} as Options,
@@ -83,7 +86,7 @@ export const setting = {
     read: (value: unknown) => typeof value === "number" && Number.isSafeInteger(value)
       && value >= range.min && value <= range.max ? value : undefined,
   }),
-  enum: <const T extends string | number, const Options extends SettingOptions = {}>(
+  enum: <const T extends string | number, const Options extends SettingOptions = NoOptions>(
     values: readonly T[],
     fallback: NoInfer<T>,
     options: Options = {} as Options,
@@ -97,7 +100,7 @@ export const setting = {
    * Any other stored shape, read by its owner's validator; `read` returns a copy the
    * caller may keep. The stored type is `read`'s declared return type.
    */
-  value: <T, const Options extends SettingOptions & Readonly<{ fresh?: () => T }> = {}>(
+  value: <T, const Options extends SettingOptions & Readonly<{ fresh?: () => T }> = NoOptions>(
     fallback: NoInfer<T>,
     read: (value: unknown) => T | undefined,
     options: Options = {} as Options,

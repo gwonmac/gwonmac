@@ -28,7 +28,6 @@ function shippedSources(directory = "app"): string[] {
 const shippedApplication = shippedSources().map(read).join("\n");
 // Geometry is the sole Core browser-storage owner. Remove only these exact calls
 // from the secret-surface check; any new key, argument or storage API still fails.
-const hubPlacement = read("app/renderer/hub-window.ts");
 const placementCalls = /localStorage\.(?:getItem\(storageKey\)|setItem\(storageKey, intent\)|removeItem\(storageKey\))/gu;
 const withoutPlacementStorage = shippedSources().map(file => file === "app/renderer/hub-window.ts"
   ? read(file).replace(placementCalls, "approvedPlacementCall") : read(file)).join("\n");
