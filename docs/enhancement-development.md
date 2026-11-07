@@ -349,7 +349,7 @@ A feature folder holds every file that only that feature uses:
 
 ```
 app/features/<id>/
-  feature.ts     manifest: settings, activation, region, tool, shortcut (all processes)
+  feature.ts     manifest: settings, activation, region, tool, shortcut, capabilities (all processes)
   companion.ts   the game-host part (renderer)
   main.ts        the main-process part
   renderer/      renderer-only modules: DOM, game host, overlays (no Node.js)

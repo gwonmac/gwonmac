@@ -6,7 +6,7 @@
  *
  * These are types and frozen values only. Nothing here has behaviour, imports
  * Electron, or touches a filesystem, which is what lets both processes and the
- * generated preload share one definition rather than three copies that agree
+ * bundled preloads share one definition rather than three copies that agree
  * until they do not.
  *
  * The closed unions are the load-bearing part. A channel, a notice, a refusal
@@ -751,7 +751,7 @@ export const RENDERER_INIT_ARGUMENT = "--gw-renderer-init=";
  *
  * Canonical here rather than beside the transform because both halves need the
  * values and neither can import the other: the renderer is a sandboxed classic
- * script, so its copy travels through the generated preload. When the two were
+ * script, so its copy travels through the bundled game preload. When the two were
  * hand-mirrored, drift silently turned every bridged call into an ordinary
  * `stat` — no error, no log, just templates that stopped saving.
  */
@@ -1220,10 +1220,10 @@ type LaunchRendererInit<Tools extends boolean> = Omit<
 type LaunchGwNativeApi<Tools extends boolean> = Omit<CoreGwNativeApiBase, "init">
   & Readonly<{ init: LaunchRendererInit<Tools> }>;
 
-/** The capability surface generated into a Core preload. */
+/** The capability surface the Core preload exposes. */
 export type CoreGwNativeApi = LaunchGwNativeApi<false>;
 
-/** The complete API generated only into a Tools preload. */
+/** The complete API only the Tools preload exposes. */
 export type ToolsGwNativeApi = LaunchGwNativeApi<true> & ToolsNativeApiExtension;
 
 /** Historical full-bridge name retained for standalone Tools and fixtures. */

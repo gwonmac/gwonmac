@@ -394,7 +394,7 @@ Use the fastest level that executes the invariant.
 | Parser, policy, transform, decoder, or state invariant | Unit test | None |
 | ArenaNet publication, corruption repair, cancellation, or rollback | Local integration fixture | Live patch-day check for the current service |
 | IPC, sandbox, navigation, launcher, settings, or renderer recovery | Electron test (CI) | Packaged test when package identity or resources matter |
-| Package files, fuses, generated preload, or ad-hoc package behavior | Packaged test (CI) | Signed test when Apple identity matters |
+| Package files, fuses, bundled preloads, or ad-hoc package behavior | Packaged test (CI) | Signed test when Apple identity matters |
 | Keychain continuity, Developer ID, notarization, updater installation | Signed release test | [Release](releasing.md) check on the exact draft |
 | Current ArenaNet client playability and certified Core behavior | Opt-in live scenario | Real-account play before publishing |
 | Performance improvement | Repeated clean Level 1 comparison | Level 2 attribution before the change |

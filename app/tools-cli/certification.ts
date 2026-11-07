@@ -73,7 +73,7 @@ import {
 import { inspectWasmBytes } from "./wasm-inspection.js";
 
 const USAGE =
-  "usage: certification <command>\n"
+  "usage: pnpm certification <command>\n"
   + "  inspect [PATH/Gw.jspi.wasm]          inventory local bytes; no runtime authority\n"
   + "  doctor [--profile PATH]              why Enhancement is or is not running here\n"
   + "  recertify [PATH/Gw.jspi.wasm]        draft an Enhancement build entry, with evidence\n"
@@ -118,7 +118,7 @@ async function inspect(argv: readonly string[]): Promise<void> {
     process.exitCode = exitCode;
   };
   if (argv.length > 1 || argv.some((arg) => arg.startsWith("--"))) {
-    refuse("usage: inspect [PATH/Gw.jspi.wasm]", 2);
+    refuse("usage: pnpm certification inspect [PATH/Gw.jspi.wasm]", 2);
     return;
   }
   // Bound file allocation even if a supplied file grows after stat. The input

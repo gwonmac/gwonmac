@@ -56,7 +56,11 @@ export type FeatureDefinition = Readonly<{
     label?: string;
     menuItem?: string;
   }>[];
-  /** Capability ids this feature needs; references only, the registry stays in enhancement-contracts. */
+  /**
+   * Capability ids this feature needs: those its own code checks and those behind the
+   * shared feeds it subscribes to. References only; the registry in enhancement-contracts
+   * stays the owner and adds each capability's own dependencies. Empty when it needs none.
+   */
   capabilities?: readonly EnhancementCapability[];
 }>;
 

@@ -41,6 +41,11 @@ const OUT_OF_CERTIFICATION = String.raw`^(?!(?:\.\./){2,}shared/)(?!\.\./\.\./ma
 const CERTIFICATION_ELECTRON_CALLERS = String.raw`(?:^|/)(?:enhancement-policy|local-client-verifier-host)(?:\.js)?$`;
 // app/client was part of app/main before the move, so it stays out of the renderer's reach.
 const INTO_MAIN = String.raw`(?:^|/)(?:\.\.|app)/(?:main|client)/`;
+// The mirror of INTO_MAIN for app/client: the renderer, the Vue UIs, the
+// preloads, and a feature's renderer half (its renderer/ folder, companion.ts,
+// and companion-parts.ts, the files the renderer block below lints).
+// `shared/ui/` does not match: only `../ui/` or `app/ui/` names app/ui.
+const INTO_PRESENTATION = String.raw`(?:^|/)(?:\.\.|app)/(?:renderer|ui|preload)/|(?:^|/)features/(?:[^/]+/renderer/|[^/]+/companion(?:\.js)?$|companion-parts(?:\.js)?$)`;
 // Leaving website: any escape into the host application's app/ other than
 // app/shared. Naming main/renderer/preload alone let app/tools-cli/** through while
 // the message claimed only app/shared was reachable. The first alternative is
@@ -86,6 +91,8 @@ const NO_CERTIFICATION_ELECTRON_CALLERS =
   "app/client/certification/** must not import enhancement-policy.ts or local-client-verifier-host.ts; they are the chain's Electron callers, and the utilityProcess graph must not reach them.";
 const NO_UPWARD =
   "app/main/core/** must not import upward out of app/main/core. Invert the dependency.";
+const NO_PRESENTATION_FROM_CLIENT =
+  "app/client/** must not import from app/renderer/**, app/ui/**, app/preload/** or a feature's renderer half. Share the contract through app/shared/**.";
 const NO_MAIN_FROM_RENDERER =
   "app/renderer/** must not import from app/main/** or app/client/**. Cross the boundary through the preload bridge or app/shared/**.";
 const APP_SHARED_ONLY = "website/** and app/ui/tools/** may only reach into app/shared/**.";
@@ -132,6 +139,21 @@ export default tseslint.config(
         ...crossings(ELECTRON, NO_ELECTRON),
         ...crossings(OUT_OF_CORE, NO_UPWARD),
       ],
+    },
+  },
+  {
+    // The client lifecycle runs in the main process and never reaches into
+    // presentation code. It sits before the certification block on purpose:
+    // that block replaces both rules for its own files, and its upward ban
+    // already rejects every one of these targets. Its two Electron callers,
+    // which it ignores, keep this rule.
+    files: ["app/client/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        { patterns: [{ regex: INTO_PRESENTATION, message: NO_PRESENTATION_FROM_CLIENT }] },
+      ],
+      "no-restricted-syntax": ["error", ...crossings(INTO_PRESENTATION, NO_PRESENTATION_FROM_CLIENT)],
     },
   },
   {

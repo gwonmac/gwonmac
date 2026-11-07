@@ -1,5 +1,6 @@
 /**
- * `pnpm diagnostics:validate`: says whether one diagnostics ZIP is internally
+ * `node --import ./scripts/ts-hook.mjs app/tools-cli/diagnostics/validate.ts`:
+ * says whether one diagnostics ZIP is internally
  * consistent, and exits non-zero when it is not.
  *
  * Argument handling and one call into the shared reader. The rules it enforces
@@ -11,7 +12,9 @@ import { withCapture, validateCapture } from "./common.js";
 
 const input = process.argv[2];
 if (!input) {
-  console.error("usage: pnpm diagnostics:validate <capture.zip>");
+  console.error(
+    "usage: node --import ./scripts/ts-hook.mjs app/tools-cli/diagnostics/validate.ts <capture.zip>",
+  );
   process.exitCode = 2;
 } else {
   await withCapture(resolve(input), (capture) => {

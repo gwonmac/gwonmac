@@ -1,5 +1,6 @@
 /**
- * `pnpm diagnostics:compare`: two captures side by side.
+ * `node --import ./scripts/ts-hook.mjs app/tools-cli/diagnostics/compare.ts`:
+ * two captures side by side.
  *
  * The comparison is only as good as the pairing, so the mismatches that make
  * two captures incomparable — a different application version, a different
@@ -17,7 +18,9 @@ import {
 
 const [beforePath, afterPath] = process.argv.slice(2);
 if (!beforePath || !afterPath) {
-  console.error("usage: pnpm diagnostics:compare <before.zip> <after.zip>");
+  console.error(
+    "usage: node --import ./scripts/ts-hook.mjs app/tools-cli/diagnostics/compare.ts <before.zip> <after.zip>",
+  );
   process.exitCode = 2;
 } else {
   await withCapture(resolve(beforePath), async (before) => {

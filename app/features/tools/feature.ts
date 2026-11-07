@@ -12,4 +12,5 @@ export default defineFeature({
   // This value gates native consumers. The Library host separately keeps
   // saved authoring selected without requiring live observation.
   programs: ["toolbox-foundation", "toolbox-commands", "xunlai-storage"],
+  capabilities: ["partyObservation"],
 });

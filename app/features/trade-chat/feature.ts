@@ -18,4 +18,5 @@ export default defineFeature({
     hub: { command: "trade", keyOrder: 3 },
   },
   shortcuts: [{ action: "trade.toggle", binding: { key: "k", shift: false, option: false }, menuItem: "toggle-trade" }],
+  capabilities: ["chatAliases"],
 });

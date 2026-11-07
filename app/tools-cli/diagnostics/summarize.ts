@@ -1,5 +1,6 @@
 /**
- * `pnpm diagnostics:summarize`: the readable account of one capture — startup
+ * `node --import ./scripts/ts-hook.mjs app/tools-cli/diagnostics/summarize.ts`:
+ * the readable account of one capture — startup
  * milestones, frame and read percentiles, cache behaviour, socket volume.
  *
  * Presentation only. Every number is read from the export's own summary and
@@ -14,7 +15,9 @@ import { withCapture, validateCapture } from "./common.js";
 
 const input = process.argv[2];
 if (!input) {
-  console.error("usage: pnpm diagnostics:summarize <capture.zip>");
+  console.error(
+    "usage: node --import ./scripts/ts-hook.mjs app/tools-cli/diagnostics/summarize.ts <capture.zip>",
+  );
   process.exitCode = 2;
 } else {
   await withCapture(resolve(input), (capture) => {
