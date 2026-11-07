@@ -2,8 +2,8 @@
  * Decodes the fixed companion whisper ring into validated renderer records;
  * it exposes no generic memory or UI-event reader.
  */
-import { COMPANION_ABI } from "../shared/companion-abi.js";
-import type { ObservedChatEvent } from "../shared/whispers.js";
+import { COMPANION_ABI } from "../../../shared/companion-abi.js";
+import type { ObservedChatEvent } from "../../../shared/whispers.js";
 
 export const COMPANION_WHISPER_ABI = COMPANION_ABI.whispers.abi;
 export const COMPANION_WHISPER_BYTES = COMPANION_ABI.whispers.bytes;
