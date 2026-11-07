@@ -18,7 +18,7 @@ import { resolveShortcuts } from '../shared/keyboard-shortcuts.js';
 import { hubPhraseReserved, hubShortcutInScope, isHubShortcuts, isLibraryHubShortcut, LIBRARY_UNAVAILABLE, type HubShortcut } from '../shared/hub-preferences.js';
 import { currencyIcon } from '../shared/currency-assets.js';
 import { armConfirmation, closeDisclosure } from './surface-controller.js';
-import { HUB_FALLBACK, HUB_RESUME_MS, hubAtHome, hubInitialState, hubKey, hubReduce, hubSuspendedOn, hubTaskLive, type HubEffect, type HubEvent, type HubPage, type HubPlace, type HubStep } from './hub-engine.js';
+import { HUB_FALLBACK, hubAtHome, hubInitialState, hubKey, hubReduce, hubRunning, hubSuspendedOn, hubTaskLive, type HubEffect, type HubEvent, type HubPage, type HubPlace, type HubStep } from './hub-engine.js';
 import { createHoverSelection } from '../shared/ui/hover-selection.js';
 import { FEATURES, featureActivationRequested } from '../shared/feature-contracts.js';
 import { HUB_LOCATED_DESTINATIONS, HUB_WORKSPACE_ACTION, hubMatch, matchHubRows, parseHubQuery, normaliseHubQuery, hubTier, rankHubRows, type HubDestination, type HubRow, type HubSource, type HubSummary, type HubTask, type HubViewAction, type HubViewFooter, type HubViewMount } from '../shared/hub.js';
@@ -93,8 +93,8 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
   const hubWindow = installHubWindow(panel, heading, lock, resize);
   // A measuring layer adds artwork in native word gaps; the input remains the sole editor (HubSearchBar).
   function paintGlyphs() {
-    const calculation = root.open && !disposeView && !state.place.scope && !parseHubQuery(input.value).scope && /^\s*(?:\d|\.\d)/u.test(input.value);
-    patch('glyphs', { calculation, text: calculation ? input.value : '' });
+    const calculation = root.open && !state.place.view && !state.place.scope && !parseHubQuery(state.query).scope && /^\s*(?:\d|\.\d)/u.test(state.query);
+    patch('glyphs', { calculation, text: calculation ? state.query : '' });
   }
   let announceTimer: ReturnType<typeof setTimeout> | undefined;
   let resultAnnouncement = '';
@@ -119,7 +119,11 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
   type MountedView = { title: string; mount: HubViewMount<HTMLElement>; available?: () => boolean; destination?: HubDestination; owner?: HubSource };
   type Place = HubPlace<RowScope, MountedView>;
   type Page = HubPage<RowScope, MountedView>;
-  /** The page stack, query, selection, menu, session and suspended page: the engine's, never copied here. */
+  /**
+   * The page stack, query, selection, menu, session, running action, carried failure and
+   * suspended page: the engine's, never copied here. After each step the search shows the
+   * engine's query and a menu the engine closed is drawn closed.
+   */
   let state = hubInitialState<RowScope, MountedView>();
   /** The mounted view's footer: its named primary and secondary. */
   type ViewFooter = { primary: HubViewAction | null; secondary: HubViewAction | null };
@@ -148,6 +152,8 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
   function step(event: HubEvent<RowScope, MountedView>): HubStep<RowScope, MountedView> {
     const next = hubReduce(state, event, env());
     state = next.state;
+    if (input.value !== state.query) input.value = state.query;
+    if (!state.menu && !model.menu.hidden) { patch('menu', { hidden: true, items: NONE }); patch('actions', { expanded: false }); }
     return next;
   }
   /** What an effect needs from the DOM event that caused it, and a direct destination's way to open. */
@@ -163,7 +169,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
       case 'restore': restorePage(effect.page); return;
       case 'resume': resumePage(effect.page, effect.mounted); return;
       case 'close': close(effect.receipt); return;
-      case 'clear-query': input.value = ''; report(''); refresh(true); requestFocus(effect.focus); return;
+      case 'clear-query': report(''); refresh(true); requestFocus(effect.focus); return;
       case 'announce': announceDestination(); return;
       case 'select': if (effect.hover === 'hold') hover.hold(); else hover.release(); select(effect.id, !!effect.scroll); return;
       case 'focus': requestFocus(effect.target); return;
@@ -171,13 +177,12 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
       case 'navigate': { const row = rows.find(row => row.id === state.selected); if (row?.navigate) { const task = startTask(); callOut(() => row.navigate?.(task)); } return; }
       case 'run-view': void runViewAction(viewFooter?.primary ?? null, cause.event); return;
       case 'open-menu': openMenu(); return;
-      case 'close-menu': closeMenu(false); return;
       case 'close-disclosure': closeDisclosure(cause.event?.target ?? null, root); return;
       case 'focus-page': focusPage(); return;
       case 'show': show(); return;
       case 'open': cause.open?.(); return;
       case 'refresh': refresh(); return;
-      case 'report': report(effect.message); return;
+      case 'report': report(effect.message, effect.receipt); return;
       case 'notify': notify(effect.message, effect.failed ? 'failed' : undefined); return;
     }
   }
@@ -213,7 +218,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     resetView();
     if (page.view) mountView(page.view);
     else {
-      input.value = page.query; patch('caption', { text: page.scope?.title ?? 'Home' }); put('page', page.scope ? 'section' : 'home');
+      patch('caption', { text: page.scope?.title ?? 'Home' }); put('page', page.scope ? 'section' : 'home');
       nameSearch(page.scope?.title ?? null); report(''); refresh(true);
       // A card that changed state while the page was away still stands for the row it showed.
       const card = cards().find(candidate => candidate.restores.includes(page.selected ?? ''));
@@ -230,11 +235,8 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
    */
   const restoreParent = () => send({ type: 'parent' });
   let previousFocus: HTMLElement | null = null;
-  /** The row action running on this page; the footer and status name it until it ends (HUB-083). */
-  let running: { session: number; label: string; again: string } | null = null;
-  const busy = () => running !== null && running.session === state.session;
-  /** A closed-Hub failure names its action on the next opening within the resume window. */
-  let carriedFailure: {message: string; at: number} | null = null;
+  /** A row action runs on this page; the footer and status name it until it ends (HUB-083). */
+  const busy = () => !!hubRunning(state);
   /** A late task's receipt outlives the typing that ended its session; any other report replaces it. */
   let receiptInStatus = false;
   /**
@@ -250,7 +252,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     put('status', { text, busy: progressInStatus }); paintBusy();
   }
   /** The rows sources leave the Hub to match: they follow every result (HubSource `commands`). */
-  const commandRows = (query = input.value) => enabledSources().flatMap(source => source.commands?.(query) ?? []);
+  const commandRows = (query = state.query) => enabledSources().flatMap(source => source.commands?.(query) ?? []);
   const shortcuts = () => [...(window.gwToolsSettings?.().hubShortcuts ?? []), ...enabledSources().flatMap(source => source.shortcuts?.get() ?? [])];
   const lookup = (id: string): HubRow | undefined => enabledSources().map(source => source.lookup?.(id)).find(Boolean)
     ?? commandRows().find(row => row.id === id);
@@ -286,18 +288,18 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     }
 
     if (!row) patch('search', { activeDescendant: undefined });
-    patch('preview', { text: row?.preview ?? '', hidden: !row?.preview || !!disposeView });
+    patch('preview', { text: row?.preview ?? '', hidden: !row?.preview || !!state.place.view });
     // A row action that opened a view ends here: the view names the footer now.
     if (viewFooter) { paintViewFooter(); return; }
     // A running action keeps the footer: it names what runs, disabled, until it ends (HUB-083).
-    const working = busy() ? running : null;
+    const working = hubRunning(state);
     const art = !working ? hubPrimaryArt(row) : undefined;
     setPrimary({ label: working ? working.label : row ? row.action : 'Select a result', ...(art ? { art } : {}), keycap: !!row && !working,
       disabled: !row || !!row.unavailable || !!working, variant: row?.destructive ? 'danger' : 'primary' });
     // Footer slots never hide, so nothing slides under a resting pointer; they disable instead.
     // Actions opens only where it lists more than the primary (HUB-043).
     setActions(!row || !!working || menuEntries(row).length < 2);
-    if (!model.menu.hidden && state.menu?.row !== row?.id) closeMenu(false);
+    if (state.menu && state.menu.row !== row?.id) closeMenu(false);
     paintLegend(row);
     paintBusy();
   }
@@ -320,7 +322,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     if (!viewFooter && rows.length > 1 && !busy()) keys.push([['↑', '↓'], 'Select']);
     if (!viewFooter && row?.navigate) keys.push([['→'], 'Open']);
     // A list stage types into the Hub search; a view mounted here, into its own search, if any.
-    const typed = viewFooter ? !!disposeView && !!ui.focus.searchField()?.value : !!input.value;
+    const typed = viewFooter ? !!disposeView && !!ui.focus.searchField()?.value : !!state.query;
     keys.push([['⎋'], typed ? 'Clear' : state.history.length ? 'Back' : 'Close']);
     if (!atHome()) keys.push([['⌘', '⌫'], 'Back']);
     if (model.legend && JSON.stringify(model.legend) === JSON.stringify(keys)) return;
@@ -373,13 +375,13 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
   list.addEventListener('click', entry((event: MouseEvent) => {
     if (onRates(event)) return;
     const row = pointerRow(event); if (!row) return;
-    send({ type: 'press', id: row.id, count: event.detail, consequential: !!row.consequential, busy: busy() });
+    send({ type: 'press', id: row.id, count: event.detail, consequential: !!row.consequential });
   }));
   list.addEventListener('contextmenu', entry((event: MouseEvent) => {
     if (onRates(event)) return;
     const row = pointerRow(event); if (!row) return;
     event.preventDefault();
-    send({ type: 'context', id: row.id, busy: busy() });
+    send({ type: 'context', id: row.id });
   }));
   // Enter on the picker copies the card it prices, as Enter on the search does (HUB-022).
   list.addEventListener('keydown', entry((event: KeyboardEvent) => {
@@ -389,14 +391,14 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
   // Source notifications change context and lifecycle facts, not the current page or search.
   function paintSourceFacts() {
     const view = state.place.view;
-    const located = view ? !!view.destination && HUB_LOCATED_DESTINATIONS.includes(view.destination) : !state.place.scope && !input.value.trim();
+    const located = view ? !!view.destination && HUB_LOCATED_DESTINATIONS.includes(view.destination) : !state.place.scope && !state.query.trim();
     const context = located ? enabledSources().flatMap(source => source.context?.() ?? []) : [];
     put('context', context.join(' · '));
-    const lifecycleText = disposeView ? '' : enabledSources().map(source => source.lifecycle?.()).find(Boolean) ?? '';
+    const lifecycleText = state.place.view ? '' : enabledSources().map(source => source.lifecycle?.()).find(Boolean) ?? '';
     patch('lifecycle', { text: lifecycleText, hidden: !lifecycleText, ...((model.lifecycle.title ?? '') !== lifecycleText ? { title: lifecycleText } : {}) });
   }
   function paintNavigation() {
-    const summary = disposeView ? undefined : state.place.scope?.summary;
+    const summary = state.place.view ? undefined : state.place.scope?.summary;
     put('summary', summary ?? null);
     const currentTitle = pageTitle(state.place);
     patch('caption', { text: currentTitle });
@@ -410,12 +412,12 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     }
     const parent = state.history.at(-1);
     patch('back', { hidden: atHome(), destination: parent ? pageTitle(parent) : 'Home' });
-    const query = parseHubQuery(input.value);
-    put('scope', { text: query.scope ?? '', hidden: !!state.place.scope || !query.scope || !!disposeView || commandRows().some(row => normaliseHubQuery(row.title) === normaliseHubQuery(input.value)) });
+    const query = parseHubQuery(state.query);
+    put('scope', { text: query.scope ?? '', hidden: !!state.place.scope || !query.scope || !!state.place.view || commandRows().some(row => normaliseHubQuery(row.title) === normaliseHubQuery(state.query)) });
     // The page title leads, so a screen reader that lands in search after Back hears where it is.
     patch('search', { description: `${currentTitle}: ${state.place.scope ? 'search actions' : query.scope ? `search ${query.scope}` : 'search tools or use a command example'}` });
-    const hint = !state.place.scope && !query.scope && input.value.trim() ? enabledSources().map(source => source.hint?.(input.value)).find(Boolean) ?? '' : '';
-    put('hint', { text: hint, title: hint, hidden: !hint || !!disposeView });
+    const hint = !state.place.scope && !query.scope && state.query.trim() ? enabledSources().map(source => source.hint?.(state.query)).find(Boolean) ?? '' : '';
+    put('hint', { text: hint, title: hint, hidden: !hint || !!state.place.view });
   }
   /**
    * A long list paints its first rows at once and the rest one chunk per frame, so a 1000-build
@@ -458,19 +460,19 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     paintGlyphs();
     if (!root.open) return;
     // A mounted view keeps its header facts current, e.g. where the player is.
-    if (disposeView) { paintNavigation(); return; }
+    if (state.place.view) { paintNavigation(); return; }
     if (reset) hover.release();
     paintNavigation();
     const previousRows = rows;
-    const extra = state.place.scope ? state.place.scope.rows() : enabledSources().flatMap(source => source.search(input.value));
-    const parsed = parseHubQuery(input.value);
+    const extra = state.place.scope ? state.place.scope.rows() : enabledSources().flatMap(source => source.search(state.query));
+    const parsed = parseHubQuery(state.query);
     // A phrase saved before its words joined the grammar stays stored but no longer matches.
     const saved = shortcuts().filter(entry => !parsed.term ? entry.pinned : entry.phrase === parsed.term && !hubPhraseReserved(entry.phrase))
       .filter(entry => !parsed.scope || hubShortcutInScope(entry.id, parsed.scope));
     // A phrase answers with the row its owner gives this query (a scoped team applies), else the stored row.
     const savedRows = saved.flatMap(entry => { const row = extra.find(candidate => candidate.id === entry.id) ?? lookup(entry.id); return row ? [{ ...row, group: parsed.term ? row.group : 'Pinned' }] : []; });
     const ids = new Set([...extra, ...savedRows].map(row => row.id));
-    rows = state.place.scope ? matchHubRows(extra, input.value) : [...savedRows, ...extra.filter(row => !savedRows.some(saved => saved.id === row.id)), ...(parsed.term && parsed.scope ? commandRows().filter(row => !ids.has(row.id) && normaliseHubQuery(row.title) === normaliseHubQuery(input.value)) : matchHubRows(commandRows().filter(row => !ids.has(row.id)), input.value))];
+    rows = state.place.scope ? matchHubRows(extra, state.query) : [...savedRows, ...extra.filter(row => !savedRows.some(saved => saved.id === row.id)), ...(parsed.term && parsed.scope ? commandRows().filter(row => !ids.has(row.id) && normaliseHubQuery(row.title) === normaliseHubQuery(state.query)) : matchHubRows(commandRows().filter(row => !ids.has(row.id)), state.query))];
     // A tool or command row stands for its own setting (`Resign…`, Build Library); the setting row
     // stays findable while the tool is off.
     const actionName = (row: HubRow) => normaliseHubQuery(row.title.replace(/…$/, ''));
@@ -478,16 +480,16 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     rows = rows.filter(row => row.group !== 'Settings' || !actions.has(actionName(row)));
     // A saved phrase is the best answer of all; scoped lists keep their source's order (rankHubRows).
     const phraseIds = new Set(parsed.term ? [...savedRows, ...extra.filter(row => row.exactPhrase)].map(row => row.id) : []);
-    rows = rankHubRows(rows, input.value, { scoped: !!state.place.scope, phrases: phraseIds, answers });
+    rows = rankHubRows(rows, state.query, { scoped: !!state.place.scope, phrases: phraseIds, answers });
     const resultCount = `${rows.length} result${rows.length === 1 ? '' : 's'}`;
-    const message = !state.place.scope && !input.value.trim() ? '' : rows.length ? resultCount : 'No matches';
+    const message = !state.place.scope && !state.query.trim() ? '' : rows.length ? resultCount : 'No matches';
     put('count', message === 'No matches' ? '' : message);
     patch('empty', { hidden: rows.length > 0 }); patch('results', { hidden: !rows.length });
     patch('search', { expanded: rows.length > 0 });
     if (reset || message !== resultAnnouncement) {
       clearTimeout(announceTimer); resultAnnouncement = message;
       if (message) announceTimer = setTimeout(entry(() => {
-        if (root.open && !disposeView && model.announce !== message) put('announce', message);
+        if (root.open && !state.place.view && model.announce !== message) put('announce', message);
       }), 500);
     }
     const nextBindings = resolveShortcuts(window.gwToolsSettings?.().shortcutOverrides ?? {});
@@ -502,7 +504,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
       patch('results', { rows }); select(state.selected); return;
     }
     // The rebuilt list keeps the reader's place: the list paints the rows down to it (HubResultList).
-    const compactBuilds = !state.place.scope && !input.value.trim();
+    const compactBuilds = !state.place.scope && !state.query.trim();
     // Reserve the preview from the complete result set, before deferred rows reach the DOM.
     patch('results', { previewList: !compactBuilds && rows.some(row => !!row.preview), compact: compactBuilds, bindings });
     startPainting(rows);
@@ -510,7 +512,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     // names one row only when its existing stores agree. Pins on an empty Home are no tie (HUB-060).
     // A query that is a row's whole name, `trade chat` included, answers with that row (HUB-008).
     const phraseMatches = rows.filter(row => phraseIds.has(row.id));
-    const phraseHit = (phraseMatches.length === 1 ? phraseMatches[0] : undefined) ?? (parsed.scope ? rows.find(row => normaliseHubQuery(row.title) === normaliseHubQuery(input.value)) : undefined);
+    const phraseHit = (phraseMatches.length === 1 ? phraseMatches[0] : undefined) ?? (parsed.scope ? rows.find(row => normaliseHubQuery(row.title) === normaliseHubQuery(state.query)) : undefined);
     // A setting named like a command or tool (`travel`) yields to it: Settings rows tie only with each other.
     const exact = parsed.term ? rows.filter(row => hubTier(row, parsed.term) === 0) : [];
     const exactActions = exact.filter(row => row.group !== 'Settings');
@@ -520,7 +522,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     // A bare scope (`travel `) lists without a term, so nothing in it is an explicit result:
     // Enter never travels, invites, applies, switches or opens an account on a guess.
     // A fresh Home in an explorable area never starts on a row that leaves it (D-13).
-    const initial = !input.value.trim() ? rows.find(row => row.preferred && !row.unavailable) ?? rows.find(row => row.preferred !== false && !row.unavailable && !row.leavesArea) ?? rows.find(row => row.preferred !== false && !row.leavesArea)
+    const initial = !state.query.trim() ? rows.find(row => row.preferred && !row.unavailable) ?? rows.find(row => row.preferred !== false && !row.unavailable && !row.leavesArea) ?? rows.find(row => row.preferred !== false && !row.leavesArea)
       : !state.place.scope && parsed.scope && !parsed.term ? rows.find(row => !row.consequential && !row.unavailable)
       // A typed query starts on its best available answer, never on a disabled one (HUB-056).
       : phraseHit ?? rows.find(row => !row.unavailable) ?? rows[0];
@@ -570,22 +572,27 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     const row = action ?? rows.find(row => row.id === state.selected);
     if (!row) return;
     // One action at a time per page: Enter names the running one instead of starting another.
-    if (busy()) { report(running!.again); return; }
+    const working = hubRunning(state);
+    if (working) { report(working.again); return; }
     if (row.unavailable) { report(row.unavailable); return; }
-    const task = startTask();
-    const mine = { session: state.session, label: row.pending?.label ?? row.action, again: row.pending?.again ?? `${row.action} is still running.` };
-    running = mine; select(state.selected); report(''); if (row.pending) task.progress(row.pending.label);
+    const task = startTask(), started = state.session;
+    step({ type: 'start', label: row.pending?.label ?? row.action, again: row.pending?.again ?? `${row.action} is still running.` });
+    select(state.selected); report(''); if (row.pending) task.progress(row.pending.label);
     try {
       // A command example fills Home's search and selects its argument; nothing runs.
       if (row.searchQuery !== undefined) {
-        send({ type: 'home' }); input.value = row.searchQuery; step({ type: 'type', query: row.searchQuery }); refresh(true);
-        const argument = parseHubQuery(input.value).scope ? input.value.indexOf(' ') + 1 : 0;
-        requestFocus({ zone: 'search', range: [argument, input.value.length] });
+        send({ type: 'home' }); step({ type: 'type', query: row.searchQuery }); refresh(true);
+        const argument = parseHubQuery(state.query).scope ? state.query.indexOf(' ') + 1 : 0;
+        requestFocus({ zone: 'search', range: [argument, state.query.length] });
       }
       else await callOut(() => row.run(task));
     }
     catch (error) { task.fail(error); }
-    finally { task.end(); if (running === mine) { running = null; if (root.open) select(state.selected); } }
+    finally {
+      task.end();
+      // Only this action's own end frees the footer; one started later on a newer page keeps it.
+      if (state.running?.session === started) { step({ type: 'end', session: started }); if (root.open) select(state.selected); }
+    }
   }
   function resetView() {
     keepDrafts(); modal.pageChanged(); closeMenu(false);
@@ -595,7 +602,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
   }
   /** Draws Home with the query the engine brought back. */
   function drawHome(focus: HubFocusTarget) {
-    resetView(); input.value = state.query;
+    resetView();
     put('page', 'home'); patch('caption', { text: 'Home' }); nameSearch(null); report(''); refresh(true); requestFocus(focus);
   }
   const atHome = () => hubAtHome(state.place);
@@ -625,7 +632,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     if (root.open) frame = ui.layout.frame();
     step({ type: 'close' });
     resetView(); modal.close(); for (const source of sources.keys()) source.setVisible(false);
-    input.value = ''; report(''); put('announce', '');
+    report(''); put('announce', '');
     cancelAnimationFrame(refreshFrame); refreshFrame = 0;
     clearTimeout(announceTimer); resultAnnouncement = '';
     rows = []; stopPainting(); patch('results', { rows: NONE, painted: 0, selected: null }); patch('empty', { hidden: true }); patch('search', { activeDescendant: undefined });
@@ -639,13 +646,13 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
   function notify(message: string, outcome?: 'failed' | 'cleared') {
     // An observer withdraws only its own resolved failure, never another owner's outcome.
     if (outcome === 'cleared') {
-      if (carriedFailure?.message === message) carriedFailure = null;
+      step({ type: 'uncarry', message });
       if (receiptInStatus && statusText() === message) report('');
       if (model.receipt.text === message) { clearTimeout(receiptTimer); patch('receipt', { hidden: true, announcement: '' }); }
       return;
     }
     if (root.open) { report(message, true); return; }
-    if (outcome === 'failed') carriedFailure = {message, at: Date.now()};
+    if (outcome === 'failed') step({ type: 'carry', message });
     clearTimeout(receiptTimer);
     receiptTimer = setTimeout(entry(() => patch('receipt', { hidden: true, announcement: '' })), 8000);
     // A new object, so the view raises the receipt again above any popout opened since.
@@ -707,8 +714,6 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     window.dispatchEvent(new Event('gw:hub-visible'));
     for (const source of sources.keys()) source.setVisible(sourceEnabled(source));
     apply(opened);
-    if (carriedFailure && Date.now() - carriedFailure.at <= HUB_RESUME_MS) report(carriedFailure.message, true);
-    carriedFailure = null;
   }
   input.addEventListener('input', entry(() => { step({ type: 'type', query: input.value }); if (!receiptInStatus) report(''); refresh(true); }));
   // List stages keep DOM focus in search; the selection moves by aria-activedescendant (D-2).
@@ -717,7 +722,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     // Only paging needs row geometry; ordinary typing and arrows must not force this layout.
     const page = event.key === 'PageUp' || event.key === 'PageDown' ? ui.layout.pageRows() : 1;
     const caretAtEnd = input.selectionStart === input.value.length && input.selectionEnd === input.value.length;
-    send({ type: 'key', key: hubKey(event), where: { at: 'search', rows: rows.map(row => ({ id: row.id, navigate: !!row.navigate })), busy: busy(), page, caretAtEnd } }, { event });
+    send({ type: 'key', key: hubKey(event), where: { at: 'search', rows: rows.map(row => ({ id: row.id, navigate: !!row.navigate })), page, caretAtEnd } }, { event });
   }));
   // A press on a result keeps the keyboard in search.
   list.addEventListener('mousedown', event => {
@@ -811,9 +816,8 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
   }
   /** Closes the Actions menu; with `refocus` the keyboard goes to the Hub's fallback. Whether a menu was open. */
   function closeMenu(refocus = true) {
-    if (model.menu.hidden) return false;
-    patch('menu', { hidden: true, items: NONE }); patch('actions', { expanded: false });
-    if (state.menu) step({ type: 'menu-closed' });
+    if (!state.menu) return false;
+    step({ type: 'menu-closed' });
     // A menu that closes under the keyboard hands it on in this entry's paint (its focus zone), before the next key.
     if (refocus) requestFocus(HUB_FALLBACK);
     return true;
@@ -821,7 +825,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
   // The menu's own keys: its focus zone takes the shared list move; Esc closes only the menu, Tab leaves it.
   menu.addEventListener('keydown', entry((event: KeyboardEvent) => send({ type: 'key', key: hubKey(event), where: { at: 'menu' } }, { event })));
   // A press anywhere else in the Hub closes the menu; the Actions button toggles it itself.
-  root.addEventListener('pointerdown', entry((event: PointerEvent) => { if (!model.menu.hidden && event.target instanceof Node && !menu.contains(event.target) && !actionsButton.contains(event.target)) closeMenu(false); }), true);
+  root.addEventListener('pointerdown', entry((event: PointerEvent) => { if (state.menu && event.target instanceof Node && !menu.contains(event.target) && !actionsButton.contains(event.target)) closeMenu(false); }), true);
   // Every page uses the same Actions menu.
   // A double-click's second press never toggles the menu shut or runs anything (PTR-17).
   actionsButton.onclick = entry((event: MouseEvent) => { if (event.detail > 1) return; if (!closeMenu()) openMenu(); });
@@ -891,7 +895,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
       const scope: RowScope = { title, rows: getRows, ...(summary ? { summary } : {}), ...(destination ? { destination } : {}), ...(owner ? { owner } : {}) };
       enterPage(() => ({ scope, view: null }), query);
       resetView(); put('page', 'section'); patch('caption', { text: title });
-      nameSearch(title); input.value = query; if (!receiptInStatus) report(''); refresh(true); requestFocus({ zone: 'results' });
+      nameSearch(title); if (!receiptInStatus) report(''); refresh(true); requestFocus({ zone: 'results' });
     }),
     showView: entry((title: string, mount: HubViewMount<HTMLElement>, available?: () => boolean, destination?: HubDestination, owner?: HubSource) => {
       const view: MountedView = { title, mount, ...(available ? { available } : {}), ...(destination ? { destination } : {}), ...(owner ? { owner } : {}) };

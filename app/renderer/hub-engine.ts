@@ -1,7 +1,8 @@
 /**
- * Owns the Hub's navigation as a pure state machine: the page stack, the query a page returns
- * to, the selection, the open Actions menu, the page session late outcomes belong to, the
- * suspended page and its resume window (D-11), and what each key means. `hubReduce` takes a
+ * Owns the Hub's navigation as a pure state machine: the page stack, the query and the one a
+ * page returns to, the selection, the open Actions menu, the page session late outcomes belong
+ * to, the row action running on it, the suspended page and its resume window (D-11), a failure
+ * carried across a close, and what each key means. `hubReduce` takes a
  * state and an event and returns the next state with the effects the adapter (hub.ts) applies:
  * drawing a page, running a row, announcing, and where the keyboard goes as a focus target.
  * Nothing here touches the DOM, so Node tests hold the keyboard contract (docs/hub-contract.md).
@@ -51,16 +52,23 @@ export type HubState<S extends Located, V extends Located> = Readonly<{
   session: number;
   /** The page a blur or another window left, when, and the session that suspension ended. */
   suspended: Readonly<{ page: HubPage<S, V>; at: number; session: number }> | null;
+  /**
+   * The row action that started on `session`: while that session lasts, the footer names it and
+   * a repeated Enter answers `again` instead of starting another (HUB-083).
+   */
+  running: Readonly<{ session: number; label: string; again: string }> | null;
+  /** A failure while the Hub was closed: the next opening within the resume window names it. */
+  carried: Readonly<{ message: string; at: number }> | null;
 }>;
 export const hubInitialState = <S extends Located, V extends Located>(): HubState<S, V> => ({
   open: false, place: { scope: null, view: null }, history: [], query: '', restoreQuery: '',
-  selected: null, pressed: null, menu: null, session: 0, suspended: null,
+  selected: null, pressed: null, menu: null, session: 0, suspended: null, running: null, carried: null,
 });
 
 /** The facts a key needs from where it was pressed. */
 export type HubKeyPlace =
-  /** In the Hub search on a list stage: its rows, whether one runs, the rows a page holds, the caret. */
-  | Readonly<{ at: 'search'; rows: readonly Readonly<{ id: string; navigate: boolean }>[]; busy: boolean; page: number; caretAtEnd: boolean }>
+  /** In the Hub search on a list stage: its rows, the rows a page holds, the caret. */
+  | Readonly<{ at: 'search'; rows: readonly Readonly<{ id: string; navigate: boolean }>[]; page: number; caretAtEnd: boolean }>
   | Readonly<{ at: 'menu' }>
   /** Anywhere in the Hub: whether a view already answered the press, and whether it sits in an open disclosure. */
   | Readonly<{ at: 'hub'; handled: boolean; disclosure: boolean }>
@@ -90,14 +98,22 @@ export type HubEvent<S extends Located, V extends Located> =
   | Readonly<{ type: 'withdraw' }>
   | Readonly<{ type: 'select'; id: string | null }>
   /** A click on a row; `count` is the click run's length (event.detail). */
-  | Readonly<{ type: 'press'; id: string; count: number; consequential: boolean; busy: boolean }>
-  | Readonly<{ type: 'context'; id: string; busy: boolean }>
+  | Readonly<{ type: 'press'; id: string; count: number; consequential: boolean }>
+  | Readonly<{ type: 'context'; id: string }>
   | Readonly<{ type: 'menu'; row: string | null }>
   | Readonly<{ type: 'menu-closed' }>
   | Readonly<{ type: 'key'; key: HubKey; where: HubKeyPlace }>
   /** An action of `session` succeeded; with a receipt it names what it did. */
   | Readonly<{ type: 'done'; session: number; receipt?: string }>
-  | Readonly<{ type: 'failed'; session: number; message: string }>;
+  | Readonly<{ type: 'failed'; session: number; message: string }>
+  /** A row action starts on this page: `label` names it while it runs, `again` answers a repeated Enter. */
+  | Readonly<{ type: 'start'; label: string; again: string }>
+  /** The action that started on `session` ended. */
+  | Readonly<{ type: 'end'; session: number }>
+  /** A failure while the Hub is closed waits for the next opening. */
+  | Readonly<{ type: 'carry'; message: string }>
+  /** The failure's own observer resolved it: a waiting failure with this message is withdrawn. */
+  | Readonly<{ type: 'uncarry'; message: string }>;
 
 export type HubEffect<S extends Located, V extends Located> =
   | Readonly<{ type: 'home'; focus: HubFocusTarget }>
@@ -115,7 +131,6 @@ export type HubEffect<S extends Located, V extends Located> =
   | Readonly<{ type: 'navigate' }>
   | Readonly<{ type: 'run-view' }>
   | Readonly<{ type: 'open-menu' }>
-  | Readonly<{ type: 'close-menu' }>
   | Readonly<{ type: 'close-disclosure' }>
   /** The direct destination already shows: its search, else its first control, takes the keyboard. */
   | Readonly<{ type: 'focus-page' }>
@@ -124,7 +139,8 @@ export type HubEffect<S extends Located, V extends Located> =
   /** Open the direct destination as a new page. */
   | Readonly<{ type: 'open' }>
   | Readonly<{ type: 'refresh' }>
-  | Readonly<{ type: 'report'; message: string }>
+  /** Say this in the status line; a `receipt` outlives the typing that follows it. */
+  | Readonly<{ type: 'report'; message: string; receipt?: true }>
   | Readonly<{ type: 'notify'; message: string; failed?: true }>;
 
 export type HubStep<S extends Located, V extends Located> = Readonly<{
@@ -144,6 +160,8 @@ export const hubAtHome = (place: HubPlace<Located, Located>) => !place.scope && 
 export const hubDestination = (place: HubPlace<Located, Located>) => place.view ? place.view.destination : place.scope?.destination;
 /** Whether an action of `session` still owns the open page and may close or navigate it. */
 export const hubTaskLive = (state: HubState<Located, Located>, session: number) => state.open && state.session === session;
+/** The row action running on this page, or null once the player moved on or it ended. */
+export const hubRunning = (state: HubState<Located, Located>) => state.running && state.running.session === state.session ? state.running : null;
 /** Whether the next opening resumes the suspended page: its sources still exist and it is inside the window. */
 export const hubResumable = <S extends Located, V extends Located>(state: HubState<S, V>, env: HubEnv<S, V>) =>
   !state.open && !!state.suspended && env.live(state.suspended.page) && env.now - state.suspended.at <= HUB_RESUME_MS;
@@ -177,10 +195,13 @@ export function hubReduce<S extends Located, V extends Located>(state: HubState<
       if (state.open) return home({ ...state, restoreQuery: hubAtHome(state.place) ? state.query : state.restoreQuery });
       const resume = !event.fresh && hubResumable(state, env) ? state.suspended!.page : null;
       // A task left longer than the resume window starts fresh at Home.
-      const opened: State = { ...state, open: true, suspended: null, restoreQuery: !event.fresh && state.suspended && !resume ? '' : state.restoreQuery };
-      if (!resume) return home(opened);
-      const mounted = resume.view ? resume.view === state.place.view : !state.place.view && resume.scope === state.place.scope;
-      return step(mounted ? opened : leave({ ...opened, place: { scope: resume.scope, view: resume.view }, query: resume.view ? state.query : resume.query }), { type: 'resume', page: resume, mounted });
+      const opened: State = { ...state, open: true, suspended: null, carried: null, restoreQuery: !event.fresh && state.suspended && !resume ? '' : state.restoreQuery };
+      const mounted = !!resume && (resume.view ? resume.view === state.place.view : !state.place.view && resume.scope === state.place.scope);
+      const result = !resume ? home(opened)
+        : step(mounted ? opened : leave({ ...opened, place: { scope: resume.scope, view: resume.view }, query: resume.view ? state.query : resume.query }), { type: 'resume', page: resume, mounted });
+      // A failure from the closed Hub is named on this opening, inside the resume window only.
+      const carried = state.carried && env.now - state.carried.at <= HUB_RESUME_MS ? state.carried : null;
+      return carried ? { ...result, effects: [...result.effects, { type: 'report', message: carried.message, receipt: true }] } : result;
     }
     case 'close':
       return step(leave({ ...state, open: false, suspended: null, history: [], place: { scope: null, view: null }, query: '', restoreQuery: '', selected: null }));
@@ -222,13 +243,13 @@ export function hubReduce<S extends Located, V extends Located>(state: HubState<
     }
     case 'select': return step({ ...state, selected: event.id });
     case 'press': {
-      if (event.busy) return step(state);
+      if (hubRunning(state)) return step(state);
       // A game-changing row needs the footer or a double-click that began on this identity (D-24).
       if (event.count <= 1) return step({ ...state, pressed: event.id }, { type: 'select', id: event.id, hover: 'hold' }, { type: 'focus', target: RESULTS }, ...(event.consequential ? [] : [{ type: 'run' } as const]));
       return event.count === 2 && event.consequential && state.pressed === event.id && state.selected === event.id ? step(state, { type: 'run' }) : step(state);
     }
     case 'context':
-      return event.busy ? step(state) : step(state, { type: 'select', id: event.id, hover: 'hold' }, { type: 'focus', target: RESULTS }, { type: 'open-menu' });
+      return hubRunning(state) ? step(state) : step(state, { type: 'select', id: event.id, hover: 'hold' }, { type: 'focus', target: RESULTS }, { type: 'open-menu' });
     case 'menu': return step({ ...state, menu: { row: event.row } });
     case 'menu-closed': return step({ ...state, menu: null });
     case 'key': return key(state, event.key, event.where);
@@ -237,6 +258,10 @@ export function hubReduce<S extends Located, V extends Located>(state: HubState<
       return event.receipt ? step(state, { type: 'notify', message: event.receipt }) : step(state);
     case 'failed':
       return hubTaskLive(state, event.session) ? step(state, { type: 'report', message: event.message }) : step(state, { type: 'notify', message: event.message, failed: true });
+    case 'start': return step({ ...state, running: { session: state.session, label: event.label, again: event.again } });
+    case 'end': return step(state.running?.session === event.session ? { ...state, running: null } : state);
+    case 'carry': return step({ ...state, carried: { message: event.message, at: env.now } });
+    case 'uncarry': return step(state.carried?.message === event.message ? { ...state, carried: null } : state);
   }
 
   function key(from: State, pressed: HubKey, where: HubKeyPlace): HubStep<S, V> {
@@ -248,7 +273,7 @@ export function hubReduce<S extends Located, V extends Located>(state: HubState<
         const listStep = listKeyStep({ key: pressed.key, altKey: pressed.alt, metaKey: pressed.meta, shiftKey: pressed.shift, ctrlKey: pressed.ctrl }, where.page);
         // The list owns these keys even without results, so they never move the caret or drop a text selection.
         if (listStep !== null) {
-          if (!where.rows.length || where.busy) return claimed(none);
+          if (!where.rows.length || hubRunning(from)) return claimed(none);
           const target = where.rows[listIndexAfter(where.rows.findIndex(row => row.id === from.selected), where.rows.length, listStep)]!;
           return claimed(step(from, { type: 'select', id: target.id, scroll: true, hover: 'release' }));
         }
@@ -256,13 +281,17 @@ export function hubReduce<S extends Located, V extends Located>(state: HubState<
           return where.rows.find(row => row.id === from.selected)?.navigate ? claimed(step(from, { type: 'navigate' })) : none;
         }
         // Only a plain Enter runs the named primary; a modified Enter is never a second route to it.
-        if (pressed.key === 'Enter' && plain(pressed)) return claimed(pressed.repeat ? none : step(from, { type: 'run' }));
+        // While a row action runs, Enter names it instead of starting another (HUB-083).
+        if (pressed.key === 'Enter' && plain(pressed)) {
+          const running = hubRunning(from);
+          return claimed(pressed.repeat ? none : running ? step(from, { type: 'report', message: running.again }) : step(from, { type: 'run' }));
+        }
         return none;
       }
       case 'menu':
-        if (pressed.key === 'Escape' && !pressed.composing) return claimed(step({ ...from, menu: null }, { type: 'close-menu' }, { type: 'focus', target: HUB_FALLBACK }), true);
+        if (pressed.key === 'Escape' && !pressed.composing) return claimed(step({ ...from, menu: null }, { type: 'focus', target: HUB_FALLBACK }), true);
         // Tab leaves the menu to the browser's next control.
-        if (pressed.key === 'Tab') return step({ ...from, menu: null }, { type: 'close-menu' });
+        if (pressed.key === 'Tab') return step({ ...from, menu: null });
         return none;
       case 'hub': {
         // ⌘⌫ is Back from any focus inside the Hub, text fields included; ⌫ alone only edits text.
@@ -270,14 +299,14 @@ export function hubReduce<S extends Located, V extends Located>(state: HubState<
         if (isHubBackKey({ key: pressed.key, metaKey: pressed.meta, ctrlKey: pressed.ctrl, altKey: pressed.alt, shiftKey: pressed.shift, isComposing: pressed.composing })) {
           if (where.handled) return { ...none, claim: { stop: true } };
           if (pressed.repeat) return claimed(none, true);
-          if (from.menu) return claimed(step({ ...from, menu: null }, { type: 'close-menu' }, { type: 'focus', target: HUB_FALLBACK }), true);
+          if (from.menu) return claimed(step({ ...from, menu: null }, { type: 'focus', target: HUB_FALLBACK }), true);
           if (where.disclosure) return claimed(step(from, { type: 'close-disclosure' }), true);
           return claimed(hubReduce(from, { type: 'back' }, env), true);
         }
         // ⌘J opens and closes Actions from anywhere in the Hub (D-1).
         if (pressed.key.toLowerCase() === 'j' && pressed.meta && !pressed.ctrl && !pressed.alt && !pressed.shift && !pressed.composing) {
           if (pressed.repeat) return claimed(none, true);
-          return claimed(from.menu ? step({ ...from, menu: null }, { type: 'close-menu' }, { type: 'focus', target: HUB_FALLBACK }) : step(from, { type: 'open-menu' }), true);
+          return claimed(from.menu ? step({ ...from, menu: null }, { type: 'focus', target: HUB_FALLBACK }) : step(from, { type: 'open-menu' }), true);
         }
         return none;
       }

@@ -2,7 +2,9 @@
 
 The Hub presents commands over Guild Wars. Its navigation and keys belong to the
 pure engine in `app/renderer/hub-engine.ts`, tested in Node by
-`tests/unit/hub-engine.test.ts`. `app/renderer/hub.ts` owns search, rows,
+`tests/unit/hub-engine.test.ts`: the page stack, the query, the selection and
+menu, the page session, the row action running on it and a failure carried
+across a close. `app/renderer/hub.ts` owns search, rows,
 pins and phrases, receipts and the modal, and applies the engine's effects. It
 names no source: each source says what it adds through the optional
 `HubSource` fields in `app/shared/hub.ts`. The built-in sources (accounts, the
