@@ -35,6 +35,8 @@ pnpm typecheck                   # all TypeScript projects
 Never run Electron or Playwright UI suites locally (`pnpm test:electron`,
 `pnpm --filter @gwonmac/tools-ui test:e2e`, `pnpm verify*`, packaged tests).
 They take focus from the person working on this Mac. CI runs them.
+Add the label `mac` to PRs that touch `app/main`, `app/preload`, `app/native`,
+`packaging/`, or `forge.config.ts`, so `macos.yml` runs before the merge.
 
 ## Must stay
 
