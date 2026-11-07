@@ -6,7 +6,8 @@ import { isCharacterName, whisperLine, type ObservedChatEvent, type ObservedWhis
 import type { TravelFriend, TravelFriends } from "./friends.js";
 import { characterKey, normaliseCharacterName } from "./player-text.js";
 
-export type WhisperSound = "off" | "background" | "every";
+export const WHISPER_SOUNDS = ["off", "background", "every"] as const;
+export type WhisperSound = (typeof WHISPER_SOUNDS)[number];
 export type WhisperConversation = Readonly<{
   key: string; name: string; messages: readonly ObservedWhisper[];
   draft: string; readThrough: number; muted: boolean; sent: boolean;

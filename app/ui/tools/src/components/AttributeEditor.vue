@@ -23,12 +23,24 @@ import {
   PRIMARY_ATTRIBUTE,
 } from "../../../../shared/builds/validate";
 import type { BuildDraftController } from "../use-build-draft";
+import { optionFor } from "../../../../shared/setting-copy";
 
 const props = defineProps<{ editor: BuildDraftController }>();
 const professions = Object.entries(PROFESSIONS) as readonly [
   Profession,
   { id: number; name: string },
 ][];
+
+const professionCodes = professions.map(([code]) => code);
+/** The profession a select shows, found among the professions; "" or no match is null. */
+function chosenProfession(event: Event): Profession | null {
+  const select = event.target;
+  return (select instanceof HTMLSelectElement ? optionFor(professionCodes, select.value) : undefined) ?? null;
+}
+function choosePrimary(event: Event) {
+  const primary = chosenProfession(event);
+  if (primary) props.editor.setPrimary(primary);
+}
 
 const attributes = computed(() =>
   availableAttributes(props.editor.draft.value.professions),
@@ -116,7 +128,7 @@ function onRankKeydown(attribute: Attribute, event: KeyboardEvent): void {
         <select
           class="ui-select"
           :value="editor.draft.value.professions[0]"
-          @change="editor.setPrimary(($event.target as HTMLSelectElement).value as Profession)"
+          @change="choosePrimary"
         >
           <option v-for="[key, facts] in professions" :key="key" :value="key">
             {{ facts.name }} ({{ key }})
@@ -128,11 +140,7 @@ function onRankKeydown(attribute: Attribute, event: KeyboardEvent): void {
         <select
           class="ui-select"
           :value="editor.draft.value.professions[1] ?? ''"
-          @change="editor.setSecondary(
-            ($event.target as HTMLSelectElement).value
-              ? ($event.target as HTMLSelectElement).value as Profession
-              : null,
-          )"
+          @change="editor.setSecondary(chosenProfession($event))"
         >
           <option value="">None</option>
           <option

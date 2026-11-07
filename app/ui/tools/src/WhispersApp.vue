@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from "vue";
-import { findPeople, whisperUnread, type Person, type WhisperSession, type WhisperSound } from "../../../shared/whisper-session";
+import { findPeople, whisperUnread, WHISPER_SOUNDS, type Person, type WhisperSession, type WhisperSound } from "../../../shared/whisper-session";
+import { optionFor } from "../../../shared/setting-copy";
 import { characterKey } from "../../../shared/player-text";
 import { TRAVEL_DESTINATIONS } from "../../../shared/travel-destinations";
 import { WHISPER_LINE_UNITS, WHISPER_MESSAGE_UNITS } from "../../../shared/whispers";
@@ -309,8 +310,11 @@ watch(() => state.value.conversations, conversations => {
   oscillator.start(); oscillator.stop(audio.currentTime + 0.18);
   oscillator.onended = () => { oscillator.disconnect(); volume.disconnect(); };
 });
+const SOUND_LABELS: Readonly<Record<WhisperSound, string>> = { off: "Off", background: "When chat is in background", every: "Every incoming whisper" };
 function soundChange(event: Event) {
-  const value = (event.target as HTMLSelectElement).value as WhisperSound;
+  const select = event.target;
+  const value = select instanceof HTMLSelectElement ? optionFor(WHISPER_SOUNDS, select.value) : undefined;
+  if (value === undefined) return;
   props.session.setSound(value);
   if (value !== "off") enableAudio();
 }
@@ -466,7 +470,7 @@ useClassicFrame(panel);
         <summary data-variant="quiet" class="ui-button whisper-control whisper-icon" aria-label="Chat options" title="Chat options"><svg viewBox="0 0 24 24" aria-hidden="true"><circle class="whisper-icon-dot" cx="5" cy="12" r="1.5"/><circle class="whisper-icon-dot" cx="12" cy="12" r="1.5"/><circle class="whisper-icon-dot" cx="19" cy="12" r="1.5"/></svg></summary>
         <div class="ui-raised ui-scroll whisper-menu">
           <label for="whisper-sound">Sound alerts</label>
-          <select id="whisper-sound" class="ui-select" :value="state.sound" @change="soundChange"><option value="off">Off</option><option value="background">When chat is in background</option><option value="every">Every incoming whisper</option></select>
+          <select id="whisper-sound" class="ui-select" :value="state.sound" @change="soundChange"><option v-for="sound in WHISPER_SOUNDS" :key="sound" :value="sound">{{ SOUND_LABELS[sound] }}</option></select>
           <label class="ui-range-field whisper-opacity" for="whisper-opacity"><span><span id="whisper-opacity-label">Background</span><span class="whisper-opacity-value">{{ state.backgroundOpacity }}%</span></span><input id="whisper-opacity" aria-labelledby="whisper-opacity-label" :aria-valuetext="`${state.backgroundOpacity}%`" class="ui-range" type="range" min="15" max="100" step="5" :value="state.backgroundOpacity" @input="opacityChange"/></label>
           <button v-if="selected" data-variant="quiet" class="ui-button whisper-control" :aria-pressed="selected.muted" @click="session.mute(selected.key)">{{ selected.muted ? 'Unmute this conversation' : 'Mute this conversation' }}</button>
           <button v-if="selected" data-variant="quiet" class="ui-button whisper-control whisper-danger" :disabled="selected.sending" :aria-label="`Close conversation with ${selected.name}`" @click="close(selected.key)">Close conversation</button>
