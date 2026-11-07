@@ -9,11 +9,10 @@ import {
 import os from "node:os";
 import path from "node:path";
 import { describe, it } from "node:test";
+import { releaseAssets, releaseOf, releaseOfTag } from "../../scripts/release.ts";
 import {
   assertDraftMetadata,
   compareBundleVersions,
-  expectedAssets,
-  parseReleaseTestTag,
   runDraftReleaseTest,
   type DraftRelease,
   type ReleaseTestDependencies,
@@ -51,7 +50,7 @@ function fixture(): Fixture {
     isDraft: true,
     isPrerelease: false,
     targetCommitish: COMMIT,
-    assets: expectedAssets(VERSION).map((name) => ({ name })),
+    assets: releaseAssets(releaseOf(VERSION)).map((name) => ({ name })),
   };
   const calls: string[] = [];
   const logs: string[] = [];
@@ -79,7 +78,7 @@ function fixture(): Fixture {
     }
     if (command === "gh" && args[0] === "release" && args[1] === "download") {
       const directory = args[args.indexOf("--dir") + 1]!;
-      for (const asset of expectedAssets(VERSION)) writeFileSync(path.join(directory, asset), asset);
+      for (const asset of releaseAssets(releaseOf(VERSION))) writeFileSync(path.join(directory, asset), asset);
       writeFileSync(path.join(directory, "SHA256SUMS.txt"), `${CHECKSUM_ROWS.join("\n")}\n`);
       return "";
     }
@@ -141,18 +140,8 @@ describe("temporary exact-draft testing", () => {
     assert.throws(() => compareBundleVersions("bad", "100.1.31"));
   });
 
-  it("accepts Stable, Beta, and RC but refuses Alpha", () => {
-    assert.deepEqual(parseReleaseTestTag("v1.0.1"), {
-      version: "1.0.1",
-      prerelease: false,
-    });
-    assert.equal(parseReleaseTestTag("v1.0.1-beta.1").prerelease, true);
-    assert.equal(parseReleaseTestTag("v1.0.1-rc.1").prerelease, true);
-    assert.throws(() => parseReleaseTestTag("v1.0.1-alpha.1"), /Stable, Beta, or RC/u);
-  });
-
   it("requires GitHub prerelease metadata to match the tag", () => {
-    const releaseTag = parseReleaseTestTag("v1.0.1-beta.1");
+    const release = releaseOfTag("v1.0.1-beta.1");
     assert.throws(
       () => assertDraftMetadata(
         "v1.0.1-beta.1",
@@ -160,35 +149,35 @@ describe("temporary exact-draft testing", () => {
           isDraft: true,
           isPrerelease: false,
           targetCommitish: COMMIT,
-          assets: expectedAssets("1.0.1-beta.1").map((name) => ({ name })),
+          assets: releaseAssets(releaseOf("1.0.1-beta.1")).map((name) => ({ name })),
         },
-        releaseTag,
+        release,
       ),
       /inconsistent GitHub prerelease metadata/u,
     );
   });
 
   it("refuses non-drafts and changed asset inventories", () => {
-    const releaseTag = parseReleaseTestTag(TAG);
+    const release = releaseOfTag(TAG);
     const valid: DraftRelease = {
       isDraft: true,
       isPrerelease: false,
       targetCommitish: COMMIT,
-      assets: expectedAssets(VERSION).map((name) => ({ name })),
+      assets: releaseAssets(releaseOf(VERSION)).map((name) => ({ name })),
     };
     assert.throws(
-      () => assertDraftMetadata(TAG, { ...valid, isDraft: false }, releaseTag),
+      () => assertDraftMetadata(TAG, { ...valid, isDraft: false }, release),
       /not a draft/u,
     );
     assert.throws(
-      () => assertDraftMetadata(TAG, { ...valid, assets: [] }, releaseTag),
+      () => assertDraftMetadata(TAG, { ...valid, assets: [] }, release),
       /unexpected release assets/u,
     );
     assert.throws(
       () => assertDraftMetadata(
         TAG,
         { ...valid, targetCommitish: "main" },
-        releaseTag,
+        release,
       ),
       /one exact commit/u,
     );

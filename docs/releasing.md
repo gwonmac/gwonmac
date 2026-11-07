@@ -2,7 +2,12 @@
 
 gwonmac has one release line from 1.0.0, versioned with SemVer. `main` is the
 only long-lived branch. An urgent fix uses a `hotfix/*` branch from the last tag
-and the same workflow. `.github/workflows/release.yml` owns the exact steps.
+and the same workflow. `.github/workflows/release.yml` owns the jobs, the
+approval, and signing. `scripts/release.ts` owns the rules between them: which
+versions may ship (Stable `1.4.0`, Beta `1.4.0-beta.1`, or RC `1.4.0-rc.1`;
+Alpha is never published), the asset names, the tag check, and the draft on the
+exact commit. `pnpm release:test` reads the same rules, and `pnpm test` checks
+that it accepts the draft `scripts/release.ts` creates.
 
 An **ArenaNet game update** changes the official client or game data. A
 **gwonmac application update** is a release of this repository. They are
@@ -57,8 +62,8 @@ any 2026.x app, so 2026.x installs do not update to it by themselves.
 
 ## Release notes
 
-PR titles are Conventional Commits. The workflow groups GitHub's generated
-notes into Features (`feat`), Fixes (`fix`), and Other changes;
+PR titles are Conventional Commits. `scripts/release.ts` groups GitHub's
+generated notes into Features (`feat`), Fixes (`fix`), and Other changes;
 `.github/release.yml` hides Dependabot. Each release also gets one player post
 on the website, which feeds the launcher news. See
 [Launcher news](launcher-news.md).
