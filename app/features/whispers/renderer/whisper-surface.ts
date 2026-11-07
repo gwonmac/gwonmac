@@ -2,11 +2,11 @@
  * Owns input isolation and Vue lifetime for the optional whisper surface.
  * Temporary region withdrawal hides the view without losing its placement.
  */
-import { toggleHubWhispers, whisperFocusReturn } from './hub-whisper.js';
-import type { WhisperSession } from "../shared/whisper-session.js";
-import type { EmbeddedToolsBundle } from "../shared/tools-bundle-contracts.js";
-import { createNonActivatingSurface } from "./non-activating-surface.js";
-import { ensureToolsStylesheet } from "./tools-stylesheet.js";
+import { toggleHubWhispers, whisperFocusReturn } from '../../../renderer/hub-whisper.js';
+import type { WhisperSession } from "../../../shared/whisper-session.js";
+import type { EmbeddedToolsBundle } from "../../../shared/tools-bundle-contracts.js";
+import { createNonActivatingSurface } from "../../../renderer/non-activating-surface.js";
+import { ensureToolsStylesheet } from "../../../renderer/tools-stylesheet.js";
 
 export function createWhisperSurface(parent: HTMLElement, session: WhisperSession) {
   const document = parent.ownerDocument;
@@ -55,7 +55,7 @@ export function createWhisperSurface(parent: HTMLElement, session: WhisperSessio
     "mousedown", "mouseup", "mousemove", "click", "contextmenu"]) root.addEventListener(name, stop);
   root.addEventListener("wheel", stop, { passive: true });
   ensureToolsStylesheet(document);
-  const specifier = "./tools/tools-app.js";
+  const specifier = "../../../tools/tools-app.js";
   void import(specifier).then((bundle: EmbeddedToolsBundle<HTMLElement>) => {
     if (!disposed) app = bundle.mountWhispers(root, { session });
   }).catch(() => {

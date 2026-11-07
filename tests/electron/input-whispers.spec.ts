@@ -10,9 +10,9 @@ test("embedded whispers open on the first click and retain draft input when rais
     await page.evaluate(async () => {
       document.getElementById("loading")?.classList.add("gone");
       const modelPath = "./shared/whisper-session.js";
-      const surfacePath = "./whisper-surface.js";
+      const surfacePath = "./features/whispers/renderer/whisper-surface.js";
       const model = await import(modelPath) as typeof import("../../app/shared/whisper-session.js");
-      const surface = await import(surfacePath) as typeof import("../../app/renderer/whisper-surface.js");
+      const surface = await import(surfacePath) as typeof import("../../app/features/whispers/renderer/whisper-surface.js");
       const session = model.createWhisperSession(async () => {});
       session.setAvailable(true);
       session.observe(Array.from({ length: 30 }, (_, index) => ({
@@ -87,7 +87,7 @@ test("whisper toggle focuses the picker or draft and returns focus to the game",
     await page.evaluate(async () => {
       document.getElementById("loading")?.classList.add("gone");
       const modelPath = "./shared/whisper-session.js";
-      const surfacePath = "./whisper-surface.js";
+      const surfacePath = "./features/whispers/renderer/whisper-surface.js";
       const model = await import(modelPath);
       const surface = await import(surfacePath);
       const session = model.createWhisperSession(async () => {});
