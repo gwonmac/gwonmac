@@ -12,7 +12,7 @@ describe('Hub travel recents', () => {
   it('shows actionable recents and keeps unavailable places in explicit search', () => {
     const host = createDemoTravelHost();
     const hub = { showView: vi.fn(), showRows: vi.fn(), attach: vi.fn(), close: vi.fn(), notify: vi.fn() };
-    const travel = createHubTravel(host, hub, async (_place, leave) => leave());
+    const travel = createHubTravel(host, hub, async (_place, leave) => leave(), () => true);
     try {
       const state = host.state.value;
       if (state.status !== 'ready') throw new Error('Expected outpost fixture');
@@ -30,7 +30,7 @@ describe('Hub travel recents', () => {
     const host = createDemoTravelHost();
     await host.savePreferences({ synonyms: [{ term: 'fort', mapId: 857 }] });
     const hub = { showView: vi.fn(), showRows: vi.fn(), attach: vi.fn(), close: vi.fn(), notify: vi.fn() };
-    const travel = createHubTravel(host, hub, async (_place, leave) => leave());
+    const travel = createHubTravel(host, hub, async (_place, leave) => leave(), () => true);
     try {
       travel.source.setVisible?.(true);
       await vi.waitFor(() => expect(travel.source.search('fort')[0]?.id).toBe('place:857'));
@@ -54,7 +54,7 @@ describe('Hub travel recents', () => {
   it('marks places consequential, flags leaving an explorable area and names the game state', () => {
     const host = createDemoTravelHost();
     const hub = { showView: vi.fn(), showRows: vi.fn(), attach: vi.fn(), close: vi.fn(), notify: vi.fn() };
-    const travel = createHubTravel(host, hub, async (_place, leave) => leave());
+    const travel = createHubTravel(host, hub, async (_place, leave) => leave(), () => true);
     try {
       const state = host.state.value;
       if (state.status !== 'ready') throw new Error('Expected outpost fixture');
@@ -87,7 +87,7 @@ describe('Hub travel recents', () => {
   it('names a place by its Travel search phrase as exactly as by its name, so Hub refuses that phrase for another result (HUB-062)', async () => {
     const host = createDemoTravelHost();
     const hub = { showView: vi.fn(), showRows: vi.fn(), attach: vi.fn(), close: vi.fn(), notify: vi.fn() };
-    const travel = createHubTravel(host, hub, async (_place, leave) => leave());
+    const travel = createHubTravel(host, hub, async (_place, leave) => leave(), () => true);
     try {
       await host.savePreferences({ synonyms: [{ term: 'home', mapId: 194 }] });
       travel.source.setVisible(true);
@@ -99,7 +99,7 @@ describe('Hub travel recents', () => {
   it('reports a trip that fails after the quiet close once, and keeps success quiet (HUB-072)', () => {
     const host = createDemoTravelHost();
     const hub = { showView: vi.fn(), showRows: vi.fn(), attach: vi.fn(), close: vi.fn(), notify: vi.fn() };
-    const travel = createHubTravel(host, hub, async (_place, leave) => leave());
+    const travel = createHubTravel(host, hub, async (_place, leave) => leave(), () => true);
     try {
       host.notice.value = { message: 'Travelling to Kamadan…', level: 'info' };
       host.notice.value = { message: 'Travel started.', level: 'success' };
@@ -115,7 +115,7 @@ describe('Hub travel recents', () => {
   it('starts a trip from a row and ends only the Hub task that asked for it', async () => {
     const host = createDemoTravelHost();
     const hub = { showView: vi.fn(), showRows: vi.fn(), attach: vi.fn(), close: vi.fn(), notify: vi.fn() };
-    const travel = createHubTravel(host, hub, async (_place, leave) => leave());
+    const travel = createHubTravel(host, hub, async (_place, leave) => leave(), () => true);
     try {
       const done = vi.fn();
       await travel.source.search('kamadan').find(row => row.id === 'place:449')!.run({ live: () => false, progress() {}, done });
@@ -133,7 +133,7 @@ it('root Guild Hall travel asks before leaving an explorable area', async () => 
   host.state.value = {...state, mapId: 58, explorable: true};
   const leave = vi.fn(async () => {throw new DOMException('Stayed in area', 'AbortError');});
   const hub = {showView: vi.fn(), showRows: vi.fn(), attach: vi.fn(), close: vi.fn(), notify: vi.fn()};
-  const travel = createHubTravel(host, hub, leave);
+  const travel = createHubTravel(host, hub, leave, () => true);
   try {
     const row = travel.source.search('gh').find(row => row.id === 'place:guild-hall');
     expect(row).toBeDefined();
@@ -147,7 +147,7 @@ it('offers Progress once the reader publishes, opens a goal by its word and trav
   const host = createDemoTravelHost();
   const trip = vi.spyOn(host, 'travel');
   const hub = {showView: vi.fn(), showRows: vi.fn(), attach: vi.fn(), close: vi.fn(), notify: vi.fn()};
-  const travel = createHubTravel(host, hub, async (_place, leave) => leave());
+  const travel = createHubTravel(host, hub, async (_place, leave) => leave(), () => true);
   const target = document.createElement('div');
   document.body.append(target);
   try {
@@ -173,7 +173,7 @@ it('offers Progress once the reader publishes, opens a goal by its word and trav
 });
 
 it('keeps Progress hidden until the reader publishes a ready state, then through a map load', () => {
-  const travel = createHubTravel(createDemoTravelHost(), {showView: vi.fn(), showRows: vi.fn(), attach: vi.fn(), close: vi.fn(), notify: vi.fn()}, async (_place, leave) => leave());
+  const travel = createHubTravel(createDemoTravelHost(), {showView: vi.fn(), showRows: vi.fn(), attach: vi.fn(), close: vi.fn(), notify: vi.fn()}, async (_place, leave) => leave(), () => true);
   try {
     // A client without the certified reader only ever publishes "waiting".
     travel.updateProgress({status: 'waiting', reason: 'unavailable'});
@@ -187,7 +187,7 @@ it('keeps Progress hidden until the reader publishes a ready state, then through
 
 it('marks Progress goal rows unavailable with the reason Travel gives', () => {
   const host = createDemoTravelHost();
-  const travel = createHubTravel(host, {showView: vi.fn(), showRows: vi.fn(), attach: vi.fn(), close: vi.fn(), notify: vi.fn()}, async (_place, leave) => leave());
+  const travel = createHubTravel(host, {showView: vi.fn(), showRows: vi.fn(), attach: vi.fn(), close: vi.fn(), notify: vi.fn()}, async (_place, leave) => leave(), () => true);
   try {
     travel.updateProgress(progressFixture(55));
     expect(travel.source.search('vq').find(row => row.id === 'progress:vanquisher')?.unavailable).toBeUndefined();

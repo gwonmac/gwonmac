@@ -5,7 +5,7 @@
  * open together; the last interacted host owns visual stacking, Escape and
  * Tab. There is intentionally no registry or general layout system.
  */
-import { createNonActivatingSurface } from "./non-activating-surface.js";
+import { createNonActivatingSurface, isolateFromGame } from "./non-activating-surface.js";
 import { LIBRARY_UNAVAILABLE } from "../shared/hub-preferences.js";
 import type { ToolboxObservation } from "../shared/builds/live-party.js";
 
@@ -236,14 +236,7 @@ export function createToolboxFoundation(
     else requestClose(trade);
   };
 
-  const stopAtOverlay = (event: Event) => event.stopPropagation();
-  for (const name of [
-    "keydown", "keyup", "pointerdown", "pointerup", "pointermove",
-    "mousedown", "mouseup", "mousemove", "click", "contextmenu",
-  ]) root.addEventListener(name, stopAtOverlay);
-  // A non-passive wheel listener makes Chromium send native scrolling through
-  // the main thread. Tools only contains the event; it never cancels scrolling.
-  root.addEventListener("wheel", stopAtOverlay, { passive: true });
+  isolateFromGame(root);
 
   const mirrorCursor = () => { root.style.cursor = canvas.style.cursor; };
   const cursorMirror = new MutationObserver(mirrorCursor);

@@ -14,8 +14,8 @@ import { travelDestination } from "../../../shared/travel-destinations.js";
 import type {
   CharacterSwitchFailureCode,
   CharacterSwitchSource,
-} from "../../../renderer/character-switch-model.js";
-import { currentCharacterIndex } from "../../../renderer/character-switch-model.js";
+} from "./character-switch-model.js";
+import { currentCharacterIndex } from "./character-switch-model.js";
 import { closeDisclosure } from "../../../renderer/surface-controller.js";
 import { bindLeaveAreaChoice, leaveAreaCopy } from "../../../renderer/leave-area.js";
 import { listIndexAfter, listKeyStep } from "../../../shared/ui/list-keys.js";

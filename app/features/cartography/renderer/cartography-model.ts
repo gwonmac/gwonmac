@@ -6,11 +6,11 @@
 import type {
   CartographyContextController,
   CartographyLayoutId,
-  CompassFrameSpikeController,
-  ExplorationSpikeController,
-  MissionMapFrameSpikeController,
-  WorldMapAnchorSpikeController,
-  WorldMapFrameSpikeController,
+  CompassFrameController,
+  ExplorationController,
+  MissionMapFrameController,
+  WorldMapAnchorController,
+  WorldMapFrameController,
 } from "../../../shared/cartography-spike.js";
 import type { PublishedCompanionState } from "../../../renderer/companion-snapshot.js";
 import type { CartographyReachabilityController } from "./reachability-kernel.js";
@@ -107,26 +107,26 @@ export type CartographyState = Readonly<{
   continent: CartographyContinentState;
   currentInstance: CartographyCurrentInstanceState;
   surfaces: Readonly<{
-    compass: ReturnType<CompassFrameSpikeController["snapshot"]>;
-    missionMap: ReturnType<MissionMapFrameSpikeController["snapshot"]>;
-    worldMap: ReturnType<WorldMapFrameSpikeController["snapshot"]>;
+    compass: ReturnType<CompassFrameController["snapshot"]>;
+    missionMap: ReturnType<MissionMapFrameController["snapshot"]>;
+    worldMap: ReturnType<WorldMapFrameController["snapshot"]>;
   }>;
 }>;
 
 export type CartographyPresentation = Readonly<{
   player: GamePoint | null;
-  compass: ReturnType<CompassFrameSpikeController["snapshot"]>;
-  missionMap: ReturnType<MissionMapFrameSpikeController["snapshot"]>;
-  worldMap: ReturnType<WorldMapFrameSpikeController["snapshot"]>;
+  compass: ReturnType<CompassFrameController["snapshot"]>;
+  missionMap: ReturnType<MissionMapFrameController["snapshot"]>;
+  worldMap: ReturnType<WorldMapFrameController["snapshot"]>;
 }>;
 
 export type CartographyModelSources = Readonly<{
   context: CartographyContextController;
-  compass: CompassFrameSpikeController;
-  missionMap: MissionMapFrameSpikeController;
-  worldMap: WorldMapFrameSpikeController;
-  exploration: ExplorationSpikeController;
-  anchor: WorldMapAnchorSpikeController;
+  compass: CompassFrameController;
+  missionMap: MissionMapFrameController;
+  worldMap: WorldMapFrameController;
+  exploration: ExplorationController;
+  anchor: WorldMapAnchorController;
   kernel: CartographyReachabilityController;
   companion(): PublishedCompanionState | null | undefined;
   revealRadius(): 1 | 3;
@@ -136,7 +136,7 @@ const unavailable = (reason: CartographyUnavailableReason) =>
   Object.freeze({ status: "unavailable" as const, reason });
 
 const continentCache = new WeakMap<
-  ExplorationSpikeController,
+  ExplorationController,
   Readonly<{
     continent: number;
     generation: number;
@@ -237,7 +237,7 @@ function deriveContinent(
 }
 
 function deriveContinentCached(
-  source: ExplorationSpikeController,
+  source: ExplorationController,
   continent: number,
   generation: number,
   explorationSequence: number,

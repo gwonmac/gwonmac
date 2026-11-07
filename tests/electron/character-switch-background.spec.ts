@@ -1,7 +1,7 @@
 /** Real window focus changes exercise the shipped controller with offline actions. */
 import { expect, test } from "@playwright/test";
 import { closeOffline, launchPlayableClient } from "./fixtures.mjs";
-import type { CharacterSwitchController } from "../../app/renderer/character-switch-controller.js";
+import type { CharacterSwitchController } from "../../app/features/character-switch/renderer/character-switch-controller.js";
 
 type SwitchFixtureWindow = typeof window & {
   __backgroundSwitch: {
@@ -30,8 +30,8 @@ for (const [boundary, heldAction] of [["immediately", 1], ["after logout", 2], [
         });
         await expect.poll(() => page.evaluate(() => document.hasFocus())).toBe(true);
         await page.evaluate(async (hold) => {
-          const specifier = "gw://app/character-switch-controller.js";
-          const module: typeof import("../../app/renderer/character-switch-controller.js") = await import(specifier);
+          const specifier = "gw://app/features/character-switch/renderer/character-switch-controller.js";
+          const module: typeof import("../../app/features/character-switch/renderer/character-switch-controller.js") = await import(specifier);
           const memory = new WebAssembly.Memory({ initial: 1 });
           const pointer = 64;
           let enabled = false;

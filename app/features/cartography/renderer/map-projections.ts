@@ -3,8 +3,8 @@
  * Keeps surface-specific pan, zoom, rotation, and content bounds in one place.
  */
 import type {
-  MissionMapFrameSpikeSnapshot,
-  WorldMapFrameSpikeSnapshot,
+  MissionMapFrameSnapshot,
+  WorldMapFrameSnapshot,
 } from "../../../shared/cartography-spike.js";
 import type { ScreenBox } from "./frame-placement.js";
 import type { WalkableTerrainSurface } from "./walkable-terrain-surface.js";
@@ -79,7 +79,7 @@ export function projectMapUnitsToCompass(input: Readonly<{
 
 /** Derive the native drawable rectangle from its certified size and frame. */
 export function projectMissionMapContentBox(
-  frame: MissionMapFrameSpikeSnapshot,
+  frame: MissionMapFrameSnapshot,
   outerBox: ScreenBox,
 ): ScreenBox | null {
   const nativeWidth = frame.right - frame.left;
@@ -111,7 +111,7 @@ export function projectMissionMapContentBox(
 
 /** Current-map projection anchored to the live player, avoiding DAT map bounds. */
 export function projectGamePointToMissionMap(
-  frame: MissionMapFrameSpikeSnapshot,
+  frame: MissionMapFrameSnapshot,
   contentBox: ScreenBox,
   playerX: number,
   playerY: number,
@@ -130,7 +130,7 @@ export function projectGamePointToMissionMap(
 
 /** The one absolute world-map-unit projection used by every Mission Map layer. */
 export function projectMapUnitsToMissionMap(
-  frame: MissionMapFrameSpikeSnapshot,
+  frame: MissionMapFrameSnapshot,
   box: ScreenBox,
 ): MapUnitProjection | null {
   if (
@@ -168,7 +168,7 @@ export function projectMapUnitsToMissionMap(
 
 /** Toolbox-compatible projection from the dedicated World Map viewport. */
 export function projectMapUnitsToWorldMap(
-  frame: WorldMapFrameSpikeSnapshot,
+  frame: WorldMapFrameSnapshot,
   box: ScreenBox,
 ): MapUnitProjection | null {
   const spanX = frame.bottomRightX - frame.topLeftX;
@@ -218,7 +218,7 @@ function projectTerrain(
 }
 
 export function projectTerrainToMissionMap(input: Readonly<{
-  frame: MissionMapFrameSpikeSnapshot;
+  frame: MissionMapFrameSnapshot;
   box: ScreenBox;
   terrain: WalkableTerrainSurface;
 }>): InverseMaskProjection | null {

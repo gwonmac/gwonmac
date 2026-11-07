@@ -9,7 +9,7 @@
  * never app/shared/settings/index.ts, contracts.ts or keyboard-shortcuts.ts at
  * runtime, which import FEATURES themselves.
  */
-import type { EnhancementCapability, EnhancementProgram } from "../shared/enhancement-contracts.js";
+import type { EnhancementProgram } from "../shared/enhancement-contracts.js";
 import type { ShortcutBinding } from "../shared/keyboard-shortcuts.js";
 import type { SettingSpecs } from "../shared/settings/define.js";
 
@@ -56,12 +56,6 @@ export type FeatureDefinition = Readonly<{
     label?: string;
     menuItem?: string;
   }>[];
-  /**
-   * Capability ids this feature needs: those its own code checks and those behind the
-   * shared feeds it subscribes to. References only; the registry in enhancement-contracts
-   * stays the owner and adds each capability's own dependencies. Empty when it needs none.
-   */
-  capabilities?: readonly EnhancementCapability[];
 }>;
 
 export const defineFeature = <const Feature extends FeatureDefinition>(feature: Feature): Feature => feature;

@@ -27,12 +27,12 @@ export type GraphicsProbeSample = Readonly<{
   cartographyGrid: ReturnType<NonNullable<Window["gwCartographyGridStats"]>> | null;
   compassRanges: ReturnType<NonNullable<Window["gwCompassRangeStats"]>> | null;
   cartographyModel: ReturnType<NonNullable<Window["gwCartographyModelStats"]>> | null;
-  compassFrame: ReturnType<NonNullable<Window["gwCompassFrameSpike"]>["snapshot"]> | null;
-  missionMapFrame: ReturnType<NonNullable<Window["gwMissionMapFrameSpike"]>["snapshot"]> | null;
-  worldMapFrame: ReturnType<NonNullable<Window["gwWorldMapFrameSpike"]>["diagnostics"]> | null;
-  worldMapAnchor: ReturnType<NonNullable<Window["gwWorldMapAnchorSpike"]>["snapshot"]> | null;
+  compassFrame: ReturnType<NonNullable<Window["gwCompassFrame"]>["snapshot"]> | null;
+  missionMapFrame: ReturnType<NonNullable<Window["gwMissionMapFrame"]>["snapshot"]> | null;
+  worldMapFrame: ReturnType<NonNullable<Window["gwWorldMapFrame"]>["diagnostics"]> | null;
+  worldMapAnchor: ReturnType<NonNullable<Window["gwWorldMapAnchor"]>["snapshot"]> | null;
   exploration: Readonly<{
-    snapshot: ReturnType<NonNullable<Window["gwExplorationSpike"]>["snapshot"]>;
+    snapshot: ReturnType<NonNullable<Window["gwExploration"]>["snapshot"]>;
     cellX: number | null;
     cellY: number | null;
     neighborhood: readonly Readonly<{ x: number; y: number; explored: boolean | null }>[];
@@ -77,8 +77,8 @@ function readGraphicsProjection(page: Page): Promise<GraphicsProbeSample> {
       ?? offscreen?.getContext("webgl")
       ?? null;
     const companion = window.gwCompanionState;
-    const missionMapFrame = window.gwMissionMapFrameSpike?.snapshot() ?? null;
-    const explorationSnapshot = window.gwExplorationSpike?.snapshot() ?? null;
+    const missionMapFrame = window.gwMissionMapFrame?.snapshot() ?? null;
+    const explorationSnapshot = window.gwExploration?.snapshot() ?? null;
     const explorationCellX = missionMapFrame === null
       ? null
       : Math.floor(missionMapFrame.playerMapX / 32);
@@ -90,7 +90,7 @@ function readGraphicsProjection(page: Page): Promise<GraphicsProbeSample> {
       : Array.from({ length: 25 }, (_, index) => {
           const x = explorationCellX + index % 5 - 2;
           const y = explorationCellY + Math.floor(index / 5) - 2;
-          return { x, y, explored: window.gwExplorationSpike?.isExplored(x, y) ?? null };
+          return { x, y, explored: window.gwExploration?.isExplored(x, y) ?? null };
         });
     return {
       capturedAt: new Date().toISOString(),
@@ -115,10 +115,10 @@ function readGraphicsProjection(page: Page): Promise<GraphicsProbeSample> {
       cartographyGrid: window.gwCartographyGridStats?.() ?? null,
       compassRanges: window.gwCompassRangeStats?.() ?? null,
       cartographyModel: window.gwCartographyModelStats?.() ?? null,
-      compassFrame: window.gwCompassFrameSpike?.snapshot() ?? null,
+      compassFrame: window.gwCompassFrame?.snapshot() ?? null,
       missionMapFrame,
-      worldMapFrame: window.gwWorldMapFrameSpike?.diagnostics() ?? null,
-      worldMapAnchor: window.gwWorldMapAnchorSpike?.snapshot() ?? null,
+      worldMapFrame: window.gwWorldMapFrame?.diagnostics() ?? null,
+      worldMapAnchor: window.gwWorldMapAnchor?.snapshot() ?? null,
       exploration: explorationSnapshot === null ? null : {
         snapshot: explorationSnapshot,
         cellX: explorationCellX,

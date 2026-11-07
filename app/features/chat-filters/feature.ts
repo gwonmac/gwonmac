@@ -21,5 +21,4 @@ export default defineFeature({
     description: "Hide selected system notices before they enter chat.",
     keywords: "chat filter spam",
   },
-  capabilities: ["chatFiltering"],
 });

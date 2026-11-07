@@ -32,5 +32,4 @@ export default defineFeature({
     hub: { command: "travel", keyOrder: 0 },
   },
   shortcuts: [{ action: "travel.open", binding: { key: "t", shift: false, option: false }, menuItem: "open-travel" }],
-  capabilities: ["travelAction"],
 });

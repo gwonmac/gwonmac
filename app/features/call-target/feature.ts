@@ -16,5 +16,4 @@ export default defineFeature({
     keywords: "call target attack",
   },
   shortcuts: [{ action: "game.call-target", binding: { key: "g", shift: false, option: false } }],
-  capabilities: [],
 });

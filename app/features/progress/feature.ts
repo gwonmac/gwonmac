@@ -6,5 +6,4 @@ export default defineFeature({
   activation: { kind: "setting", setting: "travelPalette", master: "gwonmacTools" },
   region: "pve",
   programs: ["toolbox-commands", "xunlai-storage"],
-  capabilities: ["progressObservation"],
 });

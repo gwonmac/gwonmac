@@ -5,8 +5,8 @@
 import {
   EXPLORATION_SPIKE_GLOBALS,
   EXPLORATION_SPIKE_SCALARS,
-  type ExplorationSpikeController,
-  type ExplorationSpikeSnapshot,
+  type ExplorationController,
+  type ExplorationSnapshot,
 } from "../../../shared/cartography-spike.js";
 
 const MAX_GRID_AXIS = 8_192;
@@ -20,9 +20,9 @@ function numberGlobal(exports: WebAssembly.Exports, name: string): number | null
   return Number.isFinite(candidate.value) ? candidate.value : null;
 }
 
-export function createExplorationSpikeReader(
+export function createExplorationReader(
   exports: WebAssembly.Exports,
-): ExplorationSpikeController | null {
+): ExplorationController | null {
   const observe = exports[EXPLORATION_SPIKE_GLOBALS.observe];
   const readWord = exports[EXPLORATION_SPIKE_GLOBALS.readWord];
   if (
@@ -33,8 +33,8 @@ export function createExplorationSpikeReader(
     )
   ) return null;
 
-  let latest: ExplorationSpikeSnapshot | null = null;
-  const snapshot = (): ExplorationSpikeSnapshot | null => {
+  let latest: ExplorationSnapshot | null = null;
+  const snapshot = (): ExplorationSnapshot | null => {
     try {
       observe();
     } catch {

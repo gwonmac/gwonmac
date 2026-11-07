@@ -2,7 +2,7 @@
  * Owns presentation of immutable Cartography models through independent surfaces.
  * Native observation and semantic classification never occur on animation frames.
  */
-import { disposeCartographyResources } from "../../../renderer/cartography-lifecycle.js";
+import { disposeCartographyResources } from "./cartography-lifecycle.js";
 import { resolveCartographyPreset } from "../../../shared/cartography-presets.js";
 import type {
   CartographyEvidenceCapture,

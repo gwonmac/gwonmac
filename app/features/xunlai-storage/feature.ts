@@ -22,5 +22,4 @@ export default defineFeature({
     hub: { command: "storage" },
   },
   shortcuts: [{ action: "storage.open", binding: { key: "s", shift: false, option: false }, menuItem: "open-xunlai-storage" }],
-  capabilities: ["xunlaiAction"],
 });

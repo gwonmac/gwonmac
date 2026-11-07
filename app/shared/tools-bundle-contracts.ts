@@ -95,6 +95,18 @@ export type TradeChatHandle = Readonly<{
   dispose: () => void;
 }>;
 
+/**
+ * What Trade may ask of Whispers, which owns the conversation: whether the tool is
+ * switched on, and a request to open a conversation with a seller.
+ */
+export type TradeWhispersPort = Readonly<{
+  available(): boolean;
+  /** Calls back when `available` may have changed; returns the unsubscribe. */
+  onChange(listener: () => void): () => void;
+  /** "unavailable" while Whispers cannot take the conversation yet. */
+  open(sender: string): "opened" | "unavailable";
+}>;
+
 export type TradeChatMountOptions = Readonly<{
   initiallyVisible?: boolean;
   onVisibilityChange?: (visible: boolean) => void;
@@ -111,7 +123,7 @@ export type EmbeddedToolsBundle<Target> = Readonly<{
     options: ToolsAppMountOptions & Readonly<{ nativeApi: ToolsGwNativeApi; hub?: HubPresenter<Target> }>,
   ) => ToolsAppHandle;
   /** `leaveArea` asks "Leave this area?" before a trip out of an explorable area and rejects with an AbortError when the player stays. */
-  createHubTravel: (options: { nativeApi: ToolsGwNativeApi; command: TravelCommand; development: boolean; hub: HubPresenter<Target>; leaveArea(place: string, leave: () => Promise<void>): Promise<void> }) => {
+  createHubTravel: (options: { nativeApi: ToolsGwNativeApi; command: TravelCommand; development: boolean; hub: HubPresenter<Target>; leaveArea(place: string, leave: () => Promise<void>): Promise<void>; /** Whether the Travel tool is switched on. */ toolOn(): boolean }) => {
     source: HubSource;
     readonly active: boolean;
     open(): void;
@@ -126,6 +138,6 @@ export type EmbeddedToolsBundle<Target> = Readonly<{
   };
   mountTradeChat: (
     target: Target,
-    options: TradeChatMountOptions & Readonly<{ nativeApi: ToolsGwNativeApi }>,
+    options: TradeChatMountOptions & Readonly<{ nativeApi: ToolsGwNativeApi; whispers: TradeWhispersPort }>,
   ) => TradeChatHandle;
 }>;
