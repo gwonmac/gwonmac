@@ -1,54 +1,40 @@
-/** The one copy filter used by Forge and the packaged-app inventory proof. */
+/**
+ * What the packaged app ships, as one allowlist of archive-rooted paths, and
+ * the copy filter Forge derives from it. The packaged-app inventory proof
+ * (tests/helpers/package-inventory.ts) reads the same list.
+ */
+export const SHIPPED_PATHS = Object.freeze({
+  // Compiled trees, copied whole except source maps and declarations.
+  // build/features holds each feature's manifest and main-process part; the
+  // main runtime imports them through app/features/main-parts.ts.
+  compiled: ["/build/main", "/build/client", "/build/shared", "/build/features", "/build/renderer"],
+  // Production modules, copied whole. The main process imports the `ws`
+  // client at runtime. Cartography evidence previews are encoded in the main
+  // process with pngjs, which is dependency-free: only its runtime ships.
+  modules: ["/node_modules/ws", "/node_modules/pngjs/lib"],
+  files: [
+    "/package.json",
+    "/node_modules/pngjs/package.json",
+    "/build/preload/preload-core.cjs",
+    "/build/preload/preload-tools.cjs",
+    "/build/preload/preload-launcher.cjs",
+    "/build/native/host.node",
+    "/build/native/gw-dat-decode",
+  ],
+});
+
+const roots = [...SHIPPED_PATHS.compiled, ...SHIPPED_PATHS.modules, ...SHIPPED_PATHS.files];
+const inside = (p: string, tree: string) => p === tree || p.startsWith(`${tree}/`);
+
+/** True when Forge must not copy this repository path (leading "/" optional). */
 export function ignorePackageFile(file: string): boolean {
   if (!file || file === "/") return false;
   const p = file.startsWith("/") ? file : `/${file}`;
-  if (p === "/package.json") return false;
-  // The main process imports the production WebSocket client at runtime.
-  // Forge can classify `ws` as a production module only after node_modules is
-  // admitted to the copy walk, and the project filter must admit its files.
-  if (
-    p === "/node_modules"
-    || p === "/node_modules/ws"
-    || p.startsWith("/node_modules/ws/")
-  ) return false;
-  // Cartography evidence previews are encoded in the main process. pngjs is a
-  // dependency-free production module; admit only its manifest and runtime.
-  if (
-    p === "/node_modules/pngjs"
-    || p === "/node_modules/pngjs/package.json"
-    || p === "/node_modules/pngjs/lib"
-    || p.startsWith("/node_modules/pngjs/lib/")
-  ) return false;
-  // build/features holds each feature's manifest and main-process part; the main
-  // runtime imports them through app/features/main-parts.ts.
-  if (
-    p === "/build" || p === "/build/main" || p === "/build/client" || p === "/build/shared"
-    || p === "/build/features"
-  ) {
-    return false;
-  }
-  if (
-    p.startsWith("/build/main/") || p.startsWith("/build/client/") || p.startsWith("/build/shared/")
-    || p.startsWith("/build/features/")
-  ) {
-    return p.endsWith(".map") || p.endsWith(".d.ts") || p.endsWith(".d.ts.map");
-  }
-  if (p === "/build/renderer") return false;
-  if (p.startsWith("/build/renderer/")) {
+  // A directory that leads to a shipped path. Forge never descends into a
+  // directory the filter rejected, so node_modules itself must be admitted.
+  if (roots.some((root) => root.startsWith(`${p}/`))) return false;
+  if (SHIPPED_PATHS.compiled.some((tree) => inside(p, tree))) {
     return p.endsWith(".map") || p.endsWith(".d.ts");
   }
-  if (
-    p === "/build/preload"
-    || p === "/build/preload/preload-core.cjs"
-    || p === "/build/preload/preload-tools.cjs"
-    || p === "/build/preload/preload-launcher.cjs"
-  ) return false;
-  if (
-    p === "/build/native"
-    || p === "/build/native/host.node"
-    || p === "/build/native/gw-dat-decode"
-  ) {
-    return false;
-  }
-  return true;
+  return !SHIPPED_PATHS.modules.some((tree) => inside(p, tree)) && !SHIPPED_PATHS.files.includes(p);
 }
