@@ -352,7 +352,8 @@ app/features/<id>/
   feature.ts     manifest: settings, activation, region, tool, shortcut, capabilities (all processes)
   companion.ts   the game-host part (renderer)
   main.ts        the main-process part
-  renderer/      renderer-only modules: DOM, game host, overlays (no Node.js)
+  renderer/      renderer-only modules: DOM, game host, overlays, stylesheets (no Node.js)
+  renderer/host.ts  the one entry for a feature the game host starts itself (Maps, Character Switch)
   main/          main-process-only modules: stores, files, IPC parsing
   shared/        contracts and pure logic that two processes use
 ```
@@ -363,8 +364,11 @@ the proofs in `app/client/certification/`, the kernels, the shared substrates,
 When shared code uses part of a feature, the parts
 [contract](../app/renderer/tools-companion-part.ts) names that narrow surface
 (for example `FriendTravel`); shared code imports the contract, never a feature
-file. tsconfig.renderer.json checks `companion.ts` and `renderer/`; the root program
-checks the rest.
+file. ESLint enforces this for `app/renderer/`: it reaches a feature only
+through `companion-parts.ts` or the feature's `renderer/host.ts`, and
+`tests/policy/import-boundaries.test.ts` proves the rule rejects a crossing. A
+feature's stylesheet is listed in `scripts/copy-renderer.mjs`. tsconfig.renderer.json
+checks `companion.ts` and `renderer/`; the root program checks the rest.
 
 The feature registry and the live policy use the same IDs. Type checking and a
 runtime contract test fail when one side changes without the other. Derived
