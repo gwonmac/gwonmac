@@ -1026,12 +1026,13 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     /** Whether Esc on an empty query goes back to a parent page rather than closing the Hub. */
     get hasParent() { return state.history.length > 0; },
     attach: synced((next: HubSource) => {
-      sources.set(next, next.subscribe(() => {
+      // A notification is drawn before it returns, like any presenter call (HUB-111).
+      sources.set(next, next.subscribe(synced(() => {
         // A scoped list belongs to its source; peer observations only update navigation facts.
         const owner = state.place.scope?.owner;
         if (owner && owner !== next) { if (root.open) paintSourceFacts(); return; }
         scheduleRefresh();
-      })); next.setVisible(root.open && sourceEnabled(next)); refresh();
+      }))); next.setVisible(root.open && sourceEnabled(next)); refresh();
       return () => {
         sources.get(next)?.(); sources.delete(next); next.setVisible(false);
         withdrawPages();
