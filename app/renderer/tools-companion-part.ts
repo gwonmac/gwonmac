@@ -6,8 +6,13 @@
  * part through Core's phases in COMPANION_PARTS order, so a part only says what
  * it does in each phase. Adding a feature adds a part; the installer and Core
  * stay unchanged.
+ *
+ * It also names the narrow surfaces that shared Tools code borrows from a
+ * feature, so shared code imports this contract and never a feature file.
  */
 import type { EnhancementCapabilities, EnhancementProgram } from "../shared/enhancement-contracts.js";
+import type { TravelFriend } from "../shared/friends.js";
+import type { TravelCommand } from "../shared/travel-command.js";
 import type {
   CompanionExtensionActivation,
   CompanionObserverExtension,
@@ -21,6 +26,18 @@ import type { ToolsPolicySnapshot, ToolsSubstrates } from "./tools-companion-sub
 type Malloc = (bytes: number) => unknown;
 type Free = (pointer: number) => void;
 type CompanionPoller = CompanionObserverExtension["pollers"][number];
+
+/** What Hub people and party invites use of the Travel installation. */
+export type FriendTravel = Readonly<{
+  command(): Pick<TravelCommand, "unavailable"> | null;
+  travelToFriend(friend: TravelFriend, generation: number): Promise<void>;
+}>;
+
+/** What Hub people and party invites use of the Whispers installation. */
+export type WhisperInvites = Readonly<{
+  enabled: boolean;
+  invite(name: string): Promise<void>;
+}>;
 
 export const EMPTY_REGION: KernelRegion = Object.freeze({ pointer: 0, bytes: 0 });
 
