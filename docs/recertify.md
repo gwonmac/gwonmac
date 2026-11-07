@@ -273,19 +273,23 @@ so first check what still refuses.
    content counts). Bind an explained constant to the value it derives from,
    as the Xunlai area-type reader binds its default to the area table's.
    Read every control-flow change in full.
-4. Add a reviewed result only where the code really changed: a variant next to
-   the existing one (`reviewedVariants` on a semantic role, a reviewed table
-   digest, or a reviewed static-content digest). Keep the previous client
-   proving.
+4. Add a reviewed result only where the code really changed, and only in the
+   new client's generation file: an entry in `facts.alternatives` keyed by the
+   reviewed reference literal (another body digest, or a role fingerprint with
+   its body length), or the per-proof slot for a pinned fact (see below).
+   Proof files keep only the August and October 1 references. Keep the
+   previous client proving.
 5. Write the generation file `reviewed-client-<bundle-reference>.ts` with the
-   Enhancement record, and add it to `REVIEWED_GENERATIONS` in
+   Enhancement record and its `facts`, and add it to `REVIEWED_GENERATIONS` in
    `reviewed-facts.ts` in client order. Run
    `pnpm certification reviewed-identities PATH/Gw.jspi.wasm` on the new client
    and copy its `memoryCodeSha256` and the identity entries that no older
    generation already lists. Add `playerEffectBodies` when its effect bodies
    moved.
 6. Run the replay test again. It must pass, and the new client's record must
-   prove every feature it supports with every generation.
+   prove every feature it supports with every generation. A client that is not
+   a relink of the previous generation needs its patch-day template verdict
+   in `TEMPLATE_ON_PATCH_DAY`.
 7. Compare all members of one function family. A matching sender alone does not
    prove its editor, history, packet, lifecycle, or dispatcher.
 
@@ -302,16 +306,19 @@ callee bodies.
 A new client can need all of these:
 
 - the template-save record (`pnpm certification template --write`) and the
-  Tools record in `enhancement-builds.ts`;
-- the friend lifecycle family, which changes `FRIEND_OBSERVER_SEMANTIC_SHA256`;
+  Tools record in its generation file;
+- in its generation file's `facts`: alternatives, template-saving helper
+  bodies, resign and whisper chat paths, the native render family, pathing
+  families, the Guild Hall area-type family, the accepted Cartography layout,
+  and the friend lifecycle family (which changes
+  `FRIEND_OBSERVER_SEMANTIC_SHA256`);
 - a Cartography memory layout with its Compass, Mission Map, and World Map
-  certificates. The reachability kernel in
-  `kernels/reachability/lib.rs` holds the context root and agent
+  certificates and the World Map display owner in
+  `cartography-transform-internals.ts`. The reachability
+  kernel in `kernels/reachability/lib.rs` holds the context root and agent
   array per layout, so a new layout also changes the kernel. Run the compiled
   kernel for each accepted layout: checked arithmetic keeps it free of static
   panic formatting;
-- the World Map display owner, Compass owner, pathing hashes, Guild Hall
-  producer, area-type accessor, and the native render family;
 - `tests/fixtures/retained-client.ts`, which maps retained function indices and
   static addresses for the real-client tests; and
 - `tests/fixtures/native-friend-queue.ts`, which lists the friend queue roles

@@ -174,9 +174,25 @@ locator already meets the final relocation-resistant bar. At verifier ABI 10:
   transform rechecks the timer digest. A relocated effect body needs a
   `playerEffectBodies` entry in its generation file. Until then, player-effect
   observation, effect-icon geometry, and alcohol observation refuse; and
-- Resign and whisper keep index-bound chat paths per client, and template
-  saving keeps `MOVED_CALLEES`. The process boundary rejects a substituted
-  function index for those paths.
+- every per-client fact lives in that client's generation file
+  (`reviewed-client-<id>.ts`): its records, its identity table, and its
+  `facts` (alternatives to reviewed literals and the per-proof slots). Proof
+  files hold only the August and October 1 references. Some facts stay pinned
+  to one client's layout, so a relink that moves them refuses until a release
+  adds them:
+  - resign and whisper chat paths bind function indices, because the process
+    boundary has no client bytes and rejects a substituted index only against
+    reviewed (index, digest) pairs;
+  - the native render family (HUD draw ownership) binds function indices and
+    static addresses;
+  - pathing families bind function indices;
+  - Cartography memory layouts are compiled into the reachability kernel, so
+    a new layout changes the kernel;
+  - friend lifecycle role families feed `FRIEND_OBSERVER_SEMANTIC_SHA256`,
+    which the renderer pins;
+  - template saving's `MOVED_CALLEES` (in `template-save-callee-proof.ts`)
+    names each helper call that has moved. A relink that moves another call
+    needs a new entry there.
 
 These checks fail closed. They can therefore disable a feature after an
 equivalent ArenaNet rebuild even when game behavior did not change. A refusal
@@ -211,14 +227,21 @@ binaries and cannot grant runtime authority.
   like a semantic change.
 - Offline replay: `tests/client-artifact/patch-day-replay.test.ts` verifies
   each retained client that a reviewed record names with only the generations
-  older than it, as on its patch day. It asserts that every client proves all
-  features its own record supports with the record's outputs, that template
-  saving and its verdict never depend on a newer generation, and that a relink
-  of the previous generation (equal memory-code digest) proves every feature
-  with the record's outputs and no facts of its own. It prints each client's
-  refusals and skips without the maintainer evidence store. Retained clients
-  without a reviewed record, which includes every client before October 2026,
-  are out of scope.
+  older than it, as on its patch day. The replayed client loses every fact of
+  its own generation file, pinned ones included. The test asserts that:
+  - with every generation, each client proves all features its own record
+    supports, with the record's outputs;
+  - a relink of the previous generation (equal memory-code digest) needs no
+    fact of its own: the same template verdict, every feature with the
+    record's outputs, and native double-click, Cartography, and friend
+    observation on its file-compatible module;
+  - any other client gets the patch-day template verdict the test states for
+    it. October 1 and October 22 refuse (`template-shape-changed`: each
+    changed a reviewed helper body); November 3 proves.
+
+  It prints each client's refused features and module stages, and skips
+  without the maintainer evidence store. Retained clients without a reviewed
+  record, which includes every client before October 2026, are out of scope.
 - Refusal: the official client stays playable and only the refusing feature
   and its declared dependants turn off. Automation opens one issue with one
   row per verdict: template saving, every Enhancement feature, native
