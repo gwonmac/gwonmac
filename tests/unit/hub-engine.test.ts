@@ -330,12 +330,13 @@ test('a repeated Enter names the running action; the action ends only its own ru
 });
 
 // hub-keyboard-model.spec.ts 'a view's primary runs once per Enter' and HUB-083 for a view's footer action
-test('a view action runs as the page\'s running action: Enter, ⌘↵ and the footer name it until it ends', () => {
+test('a view action runs as the page\'s running action: Enter, ⌘↵ and the footer name it until it ends, across a blur', () => {
   const page = opened(enter({ scope: travel, view: settings })).state;
   const where = { zone: 'view', key: 'settings-save' } as const;
   const started = reduce(page, { type: 'start', label: 'Save', again: 'Save is still running.', focus: where }).state;
   const again = [{ type: 'report', message: 'Save is still running.' }];
   const submit = press(key('Enter', { meta: true }), view({ form: true }));
+  const resumed = run([{ type: 'suspend', scroll: 0, focus: where }, { type: 'show' }], started).state;
   const cases: [string, State, Event, unknown[]][] = [
     ['Enter runs the named primary', page, press(key('Enter'), view()), [{ type: 'run-view' }]],
     ['⌘↵ submits the form', page, submit, [{ type: 'run-view' }]],
@@ -345,6 +346,10 @@ test('a view action runs as the page\'s running action: Enter, ⌘↵ and the fo
     ['the footer while it runs names it', started, { type: 'activate', view: true }, again],
     ['a row Actions entry while it runs names it', started, { type: 'activate' }, again],
     ['after its own end Enter runs again', reduce(started, { type: 'end', session: started.session }).state, press(key('Enter'), view()), [{ type: 'run-view' }]],
+    // A blur suspends the page; it resumes still mounted, so it is the same page and its action still runs.
+    ['Enter after a suspend and resume names it', resumed, press(key('Enter'), view()), again],
+    ['the footer after a suspend and resume names it', resumed, { type: 'activate', view: true }, again],
+    ['its own end frees the resumed page', reduce(resumed, { type: 'end', session: started.session }).state, press(key('Enter'), view()), [{ type: 'run-view' }]],
   ];
   for (const [name, state, event, effects] of cases) assert.deepEqual(reduce(state, event).effects, effects, name);
   // A page the action opens returns where the keyboard was when it started (HUB-019); a new page ends that.

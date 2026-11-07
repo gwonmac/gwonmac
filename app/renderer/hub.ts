@@ -327,7 +327,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     catch (error) { task.fail(error); }
     finally {
       task.end();
-      if (state.running?.session === started) step({ type: 'end', session: started });
+      step({ type: 'end', session: started });
       if (viewFooter === current) paintViewFooter();
     }
   }
@@ -517,7 +517,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     finally {
       task.end();
       // Only this action's own end frees the footer; one started later on a newer page keeps it.
-      if (state.running?.session === started) { step({ type: 'end', session: started }); if (root.open) select(state.selected); }
+      if (state.running?.started === started) { step({ type: 'end', session: started }); if (root.open) select(state.selected); }
     }
   }
   function resetView() {
@@ -598,7 +598,11 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
    */
   function resumePage(page: Page, mounted: boolean) {
     if (!mounted) restorePage(page, true);
-    else { if (!page.view) refresh(); requestFocus(page.focus, { wait: true, select: true }); }
+    else {
+      // A view's footer names the action that still runs on it (HUB-083); a list repaints its facts.
+      if (page.view) paintViewFooter(); else refresh();
+      requestFocus(page.focus, { wait: true, select: true });
+    }
   }
   /** The page on top takes the keyboard unless it already holds it: its search, else its first control. */
   function focusPage() {

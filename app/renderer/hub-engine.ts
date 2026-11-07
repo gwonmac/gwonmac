@@ -53,11 +53,13 @@ export type HubState<S extends Located, V extends Located> = Readonly<{
   /** The page a blur or another window left, when, and the session that suspension ended. */
   suspended: Readonly<{ page: HubPage<S, V>; at: number; session: number }> | null;
   /**
-   * The row or view action that started on `session`: while that session lasts, the footer names
-   * it and a repeated Enter answers `again` instead of starting another (HUB-083). A view action
-   * keeps where the keyboard was, so a page it opens returns there (HUB-019).
+   * The row or view action running on the page of `session`: while that session lasts, the
+   * footer names it and a repeated Enter answers `again` instead of starting another (HUB-083).
+   * It began on session `started`, which its own end names. A suspended page that resumes still
+   * mounted is the same page, so its action carries into the session that resume starts. A view
+   * action keeps where the keyboard was, so a page it opens returns there (HUB-019).
    */
-  running: Readonly<{ session: number; label: string; again: string; focus?: HubFocusTarget }> | null;
+  running: Readonly<{ session: number; started: number; label: string; again: string; focus?: HubFocusTarget }> | null;
   /** A failure while the Hub was closed: the next opening within the resume window names it. */
   carried: Readonly<{ message: string; at: number }> | null;
 }>;
@@ -203,8 +205,10 @@ export function hubReduce<S extends Located, V extends Located>(state: HubState<
       // A task left longer than the resume window starts fresh at Home.
       const opened: State = { ...state, open: true, suspended: null, carried: null, restoreQuery: !event.fresh && state.suspended && !resume ? '' : state.restoreQuery };
       const mounted = !!resume && (resume.view ? resume.view === state.place.view : !state.place.view && resume.scope === state.place.scope);
+      // The page that comes back still mounted keeps the action that ran on it.
+      const kept: State = mounted && state.running?.session === state.suspended!.session ? { ...opened, running: { ...state.running, session: opened.session } } : opened;
       const result = !resume ? home(opened)
-        : step(mounted ? opened : leave({ ...opened, place: { scope: resume.scope, view: resume.view }, query: resume.view ? state.query : resume.query }), { type: 'resume', page: resume, mounted });
+        : step(mounted ? kept : leave({ ...opened, place: { scope: resume.scope, view: resume.view }, query: resume.view ? state.query : resume.query }), { type: 'resume', page: resume, mounted });
       // A failure from the closed Hub is named on this opening, inside the resume window only.
       const carried = state.carried && env.now - state.carried.at <= HUB_RESUME_MS ? state.carried : null;
       return carried ? { ...result, effects: [...result.effects, { type: 'report', message: carried.message, receipt: true }] } : result;
@@ -265,8 +269,8 @@ export function hubReduce<S extends Located, V extends Located>(state: HubState<
     case 'failed':
       return hubTaskLive(state, event.session) ? step(state, { type: 'report', message: event.message }) : step(state, { type: 'notify', message: event.message, failed: true });
     case 'activate': return activate(state, !!event.view);
-    case 'start': return step({ ...state, running: { session: state.session, label: event.label, again: event.again, ...(event.focus ? { focus: event.focus } : {}) } });
-    case 'end': return step(state.running?.session === event.session ? { ...state, running: null } : state);
+    case 'start': return step({ ...state, running: { session: state.session, started: state.session, label: event.label, again: event.again, ...(event.focus ? { focus: event.focus } : {}) } });
+    case 'end': return step(state.running?.started === event.session ? { ...state, running: null } : state);
     case 'carry': return step({ ...state, carried: { message: event.message, at: env.now } });
     case 'uncarry': return step(state.carried?.message === event.message ? { ...state, carried: null } : state);
   }
