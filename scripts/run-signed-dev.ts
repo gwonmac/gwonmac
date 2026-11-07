@@ -47,7 +47,7 @@ if (process.argv.slice(2).includes("--test-keychain")) {
   console.log(
     "Testing the signed Dev Keychain on this macOS account; the test refuses to overwrite an existing Dev login.",
   );
-  const tested = spawnSync("pnpm", ["test:signed-keychain"], {
+  const tested = spawnSync(process.execPath, ["--import", "./scripts/ts-hook.mjs", "tests/signed-keychain-runtime.ts"], {
     cwd: root,
     env: {
       ...environment,

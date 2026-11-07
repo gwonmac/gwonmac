@@ -61,7 +61,8 @@ export const GUILD_WARS_FONT_METRICS = GUILD_WARS_BODY_FONT;
 const MAX_RECTANGLES_PER_GLYPH = 2_048;
 const MAX_TOTAL_RECTANGLES = 65_536;
 const UNITS_PER_EM = 1024;
-// Measured by `pnpm font:calibrate` across all 94 decoded glyphs.
+// Measured across all 94 decoded glyphs: each candidate threshold was
+// rasterised by Chromium and scored against the decoded grayscale strike.
 const BODY_OUTLINE_THRESHOLD = 0xb4;
 const DISPLAY_OUTLINE_THRESHOLD = 0xc4;
 const OUTLINE_SAMPLE_SCALE = 4;

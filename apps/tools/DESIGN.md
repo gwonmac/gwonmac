@@ -237,11 +237,10 @@ normal keyboard and pointer input outside those controls.
 
 ## Verification
 
-Open [`docs/ui-gallery.html`](../../docs/ui-gallery.html) to inspect the shipped
-tokens and components. Run this command for the automated visual sweep:
+Run the browser checks for the shipped tokens and components:
 
 ```bash
-node scripts/ui-visual-sweep.mjs
+pnpm --filter @gwonmac/tools-ui test:e2e
 ```
 
 Check narrow, wide, short, transparent, and opaque states. Check the live

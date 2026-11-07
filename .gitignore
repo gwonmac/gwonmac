@@ -1,6 +1,5 @@
 # Credentials and private diagnostics ------------------------------------
-# access.key can be extracted by gwkey.py for offline analysis. The runtime
-# uses the public client key in source; neither private data nor exports belong
+# The runtime uses the public client key in source; neither private data nor exports belong
 # in git.
 access.key
 *.key
