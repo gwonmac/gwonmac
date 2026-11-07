@@ -3,6 +3,7 @@ import {
   CARTOGRAPHY_CONTROL_IDLE_OPACITY_MIN,
   CARTOGRAPHY_OPACITY_MAX,
   CARTOGRAPHY_OPACITY_MIN,
+  CARTOGRAPHY_REVEAL_MODES,
   DEFAULT_CARTOGRAPHY_PRESET_LIBRARY,
   normaliseCartographyPresetLibrary,
   type CartographyPresetLibrary,
@@ -56,7 +57,7 @@ export default defineFeature({
       launcherError: "Compass range theme is invalid",
     }),
     /** Persistent Compass footprint; Mission Map hover uses Shift or Option+Shift. */
-    cartographyRevealMode: setting.enum(["off", "normal", "birds-eye"], "off", {
+    cartographyRevealMode: setting.enum(CARTOGRAPHY_REVEAL_MODES, "off", {
       ...MAP_LAYER,
       launcherError: "cartography reveal mode is invalid",
     }),

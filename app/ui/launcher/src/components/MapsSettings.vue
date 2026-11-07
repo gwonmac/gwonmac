@@ -26,6 +26,8 @@ import {
   type CartographyUnseenMarker,
   CARTOGRAPHY_LINE_PATTERNS,
   CARTOGRAPHY_UNSEEN_MARKERS,
+  CARTOGRAPHY_REVEAL_MODES,
+  type CartographyRevealMode,
   decodeCartographyPreset,
   encodeCartographyPreset,
   type CartographyLineStyle,
@@ -49,6 +51,7 @@ const props = defineProps<{
   performSave?: ((action: () => Promise<unknown>) => Promise<void>) | undefined;
 }>();
 const emit = defineEmits<{ tools: [] }>();
+const REVEAL_MODE_LABELS: Readonly<Record<CartographyRevealMode, string>> = { off: "Off", normal: "Normal · 3×3", "birds-eye": "Bird’s Eye · 7×7" };
 
 const status = ref("");
 const importValue = ref("");
@@ -234,7 +237,7 @@ async function updateUnseen(patch: Partial<CartographyPresetStyle["grid"]["unsee
     <div class="map-appearance-controls">
     <div v-if="active" class="setting-row" data-setting="cartographyBoundaryWidth"><span><strong>Terrain border thickness</strong><small>0 hides the border. Changing a built-in style saves a custom copy.</small></span><RangeControl label="Terrain border thickness" :value="active.style.walkability.boundaryWidth" :min="0" :max="4" unit="px" @change="updateWalkability({ boundaryWidth: $event })" /></div>
     <div class="setting-row" data-setting="cartographyGridOpacity"><span><strong>Grid opacity</strong></span><RangeControl label="Grid opacity" :value="settings.cartographyGridOpacity" :min="0" :max="100" unit="%" @change="persist({ cartographyGridOpacity: $event })" /></div>
-    <label class="setting-row" data-setting="cartographyRevealMode"><span><strong>Reveal range</strong><small>Outlines where to stand to reveal the remaining diamonds, and marks your range on the Compass.</small></span><select :value="settings.cartographyRevealMode" @change="persist({ cartographyRevealMode: ($event.currentTarget as HTMLSelectElement).value as InGameSettings['cartographyRevealMode'] })"><option value="off">Off</option><option value="normal">Normal · 3×3</option><option value="birds-eye">Bird’s Eye · 7×7</option></select></label>
+    <label class="setting-row" data-setting="cartographyRevealMode"><span><strong>Reveal range</strong><small>Outlines where to stand to reveal the remaining diamonds, and marks your range on the Compass.</small></span><select :value="settings.cartographyRevealMode" @change="persist({ cartographyRevealMode: ($event.currentTarget as HTMLSelectElement).value as InGameSettings['cartographyRevealMode'] })"><option v-for="mode in CARTOGRAPHY_REVEAL_MODES" :key="mode" :value="mode">{{ REVEAL_MODE_LABELS[mode] }}</option></select></label>
     <div class="setting-row" data-setting="cartographyWalkabilityOpacity"><span><strong>Walkable terrain opacity</strong></span><RangeControl label="Walkable terrain opacity" :value="settings.cartographyWalkabilityOpacity" :min="0" :max="100" unit="%" @change="persist({ cartographyWalkabilityOpacity: $event })" /></div>
     </div>
     <MapStylePreview v-if="active" :style="active.style" :grid-opacity="settings.cartographyGridOpacity" :terrain-opacity="settings.cartographyWalkabilityOpacity" />
