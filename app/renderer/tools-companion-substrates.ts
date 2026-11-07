@@ -28,7 +28,6 @@ import { createCompanionPolicySource } from "./companion-policy-source.js";
 import { createCompanionSequenceFeed } from "./companion-sequence-feed.js";
 import type { CompanionSkillSlotState } from "./companion-skill-snapshot.js";
 import type { CompanionSnapshot } from "./companion-snapshot.js";
-import type { TravelInstallation } from "./enhancement-travel-installation.js";
 import { decodeFriendObserverManifest } from "./friend-observer-manifest.js";
 import { createHubPeople } from "./hub-people.js";
 import { createNativeHudLayer } from "./native-hud-layer.js";
@@ -39,8 +38,13 @@ import {
   createPlayerEffectObservationInstallation,
 } from "./player-effect-state-installation.js";
 import { createSkillOverlaysInstallation } from "./skill-overlays-installation.js";
-import { EMPTY_REGION, type PreparedToolsPart, type ToolsCompanionPart } from "./tools-companion-part.js";
-import type { WhisperInstallation } from "./whisper-installation.js";
+import {
+  EMPTY_REGION,
+  type FriendTravel,
+  type PreparedToolsPart,
+  type ToolsCompanionPart,
+  type WhisperInvites,
+} from "./tools-companion-part.js";
 
 type Demand = () => boolean;
 const any = (demands: readonly Demand[]) => demands.some((demand) => demand());
@@ -183,8 +187,8 @@ function createFriends(module: WebAssembly.Module, capabilities: EnhancementCapa
   let pointer = 0;
   let feed: ReturnType<typeof createCompanionSequenceFeed<TravelFriends>> | null = null;
   const consumers: FriendConsumer[] = [];
-  let whispers: Readonly<{ installation: WhisperInstallation; session: WhisperSession }> | null = null;
-  let travel: TravelInstallation | null = null;
+  let whispers: Readonly<{ installation: WhisperInvites; session: WhisperSession }> | null = null;
+  let travel: FriendTravel | null = null;
   const bytes = COMPANION_ABI.friends.bytes;
 
   const prepared = {
@@ -281,11 +285,11 @@ function createFriends(module: WebAssembly.Module, capabilities: EnhancementCapa
     /** Withdraws the current list, for example when the character changes. */
     withdraw() { feed?.withdraw(); },
     /** Hub people and party invites whisper through this session. */
-    attachWhispers(installation: WhisperInstallation, session: WhisperSession) {
+    attachWhispers(installation: WhisperInvites, session: WhisperSession) {
       whispers = { installation, session };
     },
     /** Hub people travels to a friend through this installation. */
-    attachTravel(installation: TravelInstallation) { travel = installation; },
+    attachTravel(installation: FriendTravel) { travel = installation; },
   });
 }
 

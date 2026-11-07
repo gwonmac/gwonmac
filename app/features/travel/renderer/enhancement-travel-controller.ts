@@ -6,7 +6,7 @@
 import type {
   TravelCommand,
   TravelGameState,
-} from "../shared/travel-command.js";
+} from "../../../shared/travel-command.js";
 import {
   createTravelCommand,
   TRAVEL_PAYLOAD_BYTES,

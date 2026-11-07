@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { ADDRESSES, createKernel, DETAIL, installGameGraph, kernelExports, setConfigField } from "../fixtures/enhancements.ts";
 import { COMPANION_ABI, COMPANION_DISPATCH_KINDS, COMPANION_FEATURE_BITS } from "../../app/shared/companion-abi.ts";
-import { readCompanionWhispers } from "../../app/renderer/companion-whisper-snapshot.ts";
+import { readCompanionWhispers } from "../../app/features/whispers/renderer/companion-whisper-snapshot.ts";
 
-import { createWhisperInstallation } from "../../app/renderer/whisper-installation.ts";
+import { createWhisperInstallation } from "../../app/features/whispers/renderer/whisper-installation.ts";
 import { createWhisperSession } from "../../app/shared/whisper-session.ts";
 import { WHISPER_MAILBOX, type ObservedChatEvent } from "../../app/shared/whispers.ts";
 

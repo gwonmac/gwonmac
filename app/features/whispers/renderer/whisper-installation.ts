@@ -3,8 +3,8 @@
  * whisper or a party invite. Only game-observed log records leave this
  * adapter; no IPC or files are used.
  */
-import { COMPANION_ABI } from "../shared/companion-abi.js";
-import { WHISPER_MAILBOX as M, partyInviteLine, whisperLine, type ObservedChatEvent } from "../shared/whispers.js";
+import { COMPANION_ABI } from "../../../shared/companion-abi.js";
+import { WHISPER_MAILBOX as M, partyInviteLine, whisperLine, type ObservedChatEvent } from "../../../shared/whispers.js";
 import { readCompanionWhispers } from "./companion-whisper-snapshot.js";
 
 type Listener = (messages: readonly ObservedChatEvent[], missed: number) => void;

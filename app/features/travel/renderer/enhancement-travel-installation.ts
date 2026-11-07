@@ -2,9 +2,9 @@
  * Feature-local ownership of Travel exports, memory, policy, palette, and
  * teardown. The shared companion installer only composes this lifecycle.
  */
-import type { TravelFriend, TravelFriends } from "../shared/friends.js";
-import type { GameProgressState } from "../shared/game-progress.js";
-import type { TravelCommand } from "../shared/travel-command.js";
+import type { TravelFriend, TravelFriends } from "../../../shared/friends.js";
+import type { GameProgressState } from "../../../shared/game-progress.js";
+import type { TravelCommand } from "../../../shared/travel-command.js";
 import type {
   EnhancementTravelConfigure,
   EnhancementTravelEnqueue,

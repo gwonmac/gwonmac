@@ -360,7 +360,10 @@ app/features/<id>/
 Code that several features use stays where it is: the capability registry and
 the proofs in `app/client/certification/`, the kernels, the shared substrates,
 `app/shared/`, and the Vue views in `app/ui/tools/`. Tests stay in `tests/`.
-tsconfig.renderer.json checks `companion.ts` and `renderer/`; the root program
+When shared code uses part of a feature, the parts
+[contract](../app/renderer/tools-companion-part.ts) names that narrow surface
+(for example `FriendTravel`); shared code imports the contract, never a feature
+file. tsconfig.renderer.json checks `companion.ts` and `renderer/`; the root program
 checks the rest.
 
 The feature registry and the live policy use the same IDs. Type checking and a

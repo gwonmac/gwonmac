@@ -101,8 +101,8 @@ async function stubQuitOrReloadSheet(fixture: OfflineFixture) {
 /** An outpost-ready Travel whose trips are recorded and arrive at once, so the next trip is not refused as in progress. */
 async function installReadyTravel(page: Page) {
   await page.evaluate(async () => {
-    const specifier = './travel-palette.js';
-    const module = await import(specifier) as typeof import('../../app/renderer/travel-palette.js');
+    const specifier = './features/travel/renderer/travel-palette.js';
+    const module = await import(specifier) as typeof import('../../app/features/travel/renderer/travel-palette.js');
     const trips: number[] = [];
     (window as RecordingWindow).__hubContractTrips = trips;
     const ready = (mapId: number) => ({
@@ -174,8 +174,8 @@ test('Command-B and Command-T open their scope in the open Hub and never type in
   try {
     const { page } = fixture;
     await page.evaluate(async () => {
-      const specifier = './travel-palette.js';
-      const module = await import(specifier) as typeof import('../../app/renderer/travel-palette.js');
+      const specifier = './features/travel/renderer/travel-palette.js';
+      const module = await import(specifier) as typeof import('../../app/features/travel/renderer/travel-palette.js');
       module.createTravelPalette(document.body, {
         travel: () => undefined, guildHall: () => undefined, guildHallUnavailable: () => null, unavailable: () => null,
       }).setEnabled(true);
