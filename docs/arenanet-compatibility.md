@@ -156,18 +156,27 @@ locator already meets the final relocation-resistant bar. At verifier ABI 10:
   roles still contain exact function-index and body bindings. Unrelated client
   changes recover locally; a reindex or equivalent body rewrite can still
   require a stronger semantic locator; and
-- Quick Item Move still requires reviewed item and trade fields for the exact
-  post-template input. Its native move-message identifier belongs to that
-  certificate, not to a shared constant; and
+- Quick Item Move accepts its reviewed item and trade fields on the exact
+  post-template input, or on a module whose memory-code digest equals that of
+  the input's reviewed generation. The digest covers the relocation identity
+  of every function that reads or writes memory, so equal digests mean the
+  structure offsets did not move. Its native move-message identifier belongs
+  to that certificate, not to a shared constant; and
 - friend observation accepts relocated functions and static addresses when all
   semantic relationships still reproduce, but its exact role shapes can refuse
   after an equivalent compiler rewrite; and
-- semantic role fingerprints erase only listed static operands. A `call`
-  target stays an exact function index, so a renumbering needs a reviewed
-  variant. Without its retained record, the November 3 client still proves
-  template saving and 18 of 22 Enhancement features; Travel (a changed Guild
-  Hall area default), Quick Item Move, chat print, and progress observation
-  refuse until that client's reviewed facts are present.
+- a reviewed body digest or role fingerprint matches a relocated body only
+  through a generation's identity table. The relocation identity names each
+  callee by its signature and each padded static operand by its class (text,
+  data, other); a role identity also erases the role's own spans. Generations
+  from October 22, 2026 on carry tables; older facts match exactly; and
+- the player-effect boundary accepts only reviewed body digests, and the
+  transform rechecks the timer digest. A relocated effect body needs a
+  `playerEffectBodies` entry in its generation file. Until then, player-effect
+  observation, effect-icon geometry, and alcohol observation refuse; and
+- Resign and whisper keep index-bound chat paths per client, and template
+  saving keeps `MOVED_CALLEES`. The process boundary rejects a substituted
+  function index for those paths.
 
 These checks fail closed. They can therefore disable a feature after an
 equivalent ArenaNet rebuild even when game behavior did not change. A refusal
@@ -200,6 +209,16 @@ binaries and cannot grant runtime authority.
   locally, and players use it at once without a source change, pull request,
   or release. Until the limits above are removed, the other features refuse
   like a semantic change.
+- Offline replay: `tests/client-artifact/patch-day-replay.test.ts` verifies
+  each retained client that a reviewed record names with only the generations
+  older than it, as on its patch day. It asserts that every client proves all
+  features its own record supports with the record's outputs, that template
+  saving and its verdict never depend on a newer generation, and that a relink
+  of the previous generation (equal memory-code digest) proves every feature
+  with the record's outputs and no facts of its own. It prints each client's
+  refusals and skips without the maintainer evidence store. Retained clients
+  without a reviewed record, which includes every client before October 2026,
+  are out of scope.
 - Refusal: the official client stays playable and only the refusing feature
   and its declared dependants turn off. Automation opens one issue with one
   row per verdict: template saving, every Enhancement feature, native
