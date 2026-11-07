@@ -111,7 +111,9 @@ export function createLauncherService(input: Readonly<{
     dismissMigrationNotice: () => orchestrator.dismissMigrationNotice(),
     dismissPreferencesReset: () => orchestrator.dismissPreferencesReset(),
     completeSetup: async (enableTools) => {
-      if (enableTools) await preferences.updateSettings(allGlobalToolsPatch(true));
+      if (enableTools) {
+        await preferences.write({ kind: "settings", patch: allGlobalToolsPatch(true) });
+      }
       await orchestrator.completeSetup();
       if (enableTools) {
         app.relaunch();

@@ -13,6 +13,7 @@ import type {
   DownloadActivity,
   FullDownloadState,
   NoticeCode,
+  RendererSettingsPatch,
 } from "./contracts.js";
 import type { ErrorCode } from "./errors.js";
 import type { MarkdownBlock, MarkdownInline } from "./launcher-markdown.js";
@@ -177,11 +178,14 @@ export interface ShortcutReplacement {
   readonly binding: ShortcutBinding | null;
 }
 /**
- * One player settings write. The launcher's Settings and the Hub send the same
- * four kinds, and main applies every one through the same dispatch.
+ * One settings write. The launcher's Settings and the Hub send `settings`,
+ * `master`, `tool` and `shortcut`, each narrowed by its boundary's parser; a
+ * game window sends `renderer`; menus and main's own bookkeeping send
+ * `settings`. Main applies every one through the same dispatch.
  */
 export type SettingsWrite =
-  | Readonly<{ kind: "settings"; patch: LauncherSettingsPatch }>
+  | Readonly<{ kind: "settings"; patch: AppSettingsPatch }>
+  | Readonly<{ kind: "renderer"; patch: RendererSettingsPatch }>
   | Readonly<{ kind: "master"; enabled: boolean }>
   | Readonly<{ kind: "tool" }> & GlobalToolUpdate
   | Readonly<{ kind: "shortcut" }> & ShortcutReplacement;

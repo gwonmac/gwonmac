@@ -124,26 +124,30 @@ export class PreferencesCoordinator {
     return settings;
   }
 
-  updateSettings(patch: AppSettingsPatch): Promise<AppSettings> {
-    return this.#commitSettings((current) => ({ ...current, ...patch }));
-  }
-
-  /** The one dispatch for a player settings write from the launcher, the Hub or a menu. */
+  /**
+   * The one settings write: the launcher, the Hub, game windows, menus, setup
+   * and update bookkeeping all change settings through this dispatch.
+   */
   write(change: SettingsWrite): Promise<AppSettings> {
     switch (change.kind) {
-      case "settings": return this.updateSettings(change.patch);
-      case "master": return this.updateSettings({ gwonmacTools: change.enabled });
-      case "tool": return this.updateSettings(globalToolPatch(change.tool, change.enabled));
-      case "shortcut": return this.replaceShortcut(change.action, change.binding);
+      case "settings": return this.#updateSettings(change.patch);
+      case "renderer": return this.#updateRendererSettings(change.patch);
+      case "master": return this.#updateSettings({ gwonmacTools: change.enabled });
+      case "tool": return this.#updateSettings(globalToolPatch(change.tool, change.enabled));
+      case "shortcut": return this.#replaceShortcut(change.action, change.binding);
     }
   }
 
-  replaceShortcut(action: ShortcutAction, binding: ShortcutBinding | null): Promise<AppSettings> {
+  #updateSettings(patch: AppSettingsPatch): Promise<AppSettings> {
+    return this.#commitSettings((current) => ({ ...current, ...patch }));
+  }
+
+  #replaceShortcut(action: ShortcutAction, binding: ShortcutBinding | null): Promise<AppSettings> {
     // Conflict resolution and persistence must see the same latest bindings.
     return this.#commitSettings(current => ({ ...current, ...launcherShortcutPatch(current, action, binding) }));
   }
 
-  updateRendererSettings(patch: RendererSettingsPatch): Promise<AppSettings> {
+  #updateRendererSettings(patch: RendererSettingsPatch): Promise<AppSettings> {
     const { cartographyPresetSelection, ...storedPatch } = patch;
     if (
       cartographyPresetSelection !== undefined

@@ -49,7 +49,7 @@ export function registerCoreIpc(input: Readonly<{
     steamSessionStoreFor: (win) => accounts.steamSessionStoreFor(win),
     getSnapshotMetadata: () => clientRuntime.snapshotMetadata(),
     getSettings: () => preferences.getSettings(),
-    updateSettings: (patch) => preferences.updateRendererSettings(patch),
+    updateSettings: (patch) => preferences.write({ kind: "renderer", patch }),
     setDiagnosticProfile: async (profile) =>
       await saveDiagnosticProfile(paths.diagnosticProfile, profile),
     confirmClientHealthy: (token) =>

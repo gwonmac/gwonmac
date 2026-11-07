@@ -58,8 +58,9 @@ is briefly highlighted. Hub search does not change a setting in place.
   `app/shared/hub-settings.ts`. It refuses unknown or launcher-only controls, a
   value of the wrong kind, and extra fields. A checked change is a
   `SettingsWrite` (`app/shared/launcher-contracts.ts`), the same vocabulary as
-  the launcher's settings, Tools and shortcut channels, and
-  `PreferencesCoordinator.write` applies both. The Hub sections come from
+  the launcher's settings, Tools and shortcut channels. Game-window settings,
+  menu toggles and main's own bookkeeping use it too:
+  `PreferencesCoordinator.write` is the only way to change settings. The Hub sections come from
   `HUB_SECTIONS` in `app/shared/settings-catalogue.ts`.
 
 ## The tree

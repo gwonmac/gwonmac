@@ -13,7 +13,7 @@ export type HubSettings = Pick<LauncherSettings, typeof HUB_SETTINGS_FIELDS[numb
 export type HubSettingsPatch = Partial<HubSettings>;
 export type HubSettingsSnapshot = Pick<LauncherSnapshot, 'tools' | 'shortcuts'> & { settings: HubSettings };
 /** A settings write limited to the in-game fields; main applies it like the launcher's. */
-export type HubSettingsChange = Exclude<SettingsWrite, { kind: 'settings' }> | { kind: 'settings'; patch: HubSettingsPatch };
+export type HubSettingsChange = Exclude<SettingsWrite, { kind: 'settings' | 'renderer' }> | { kind: 'settings'; patch: HubSettingsPatch };
 export interface HubSettingsApi {
   get(): Promise<HubSettingsSnapshot>;
   update(change: HubSettingsChange): Promise<void>;
