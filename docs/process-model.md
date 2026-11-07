@@ -138,7 +138,8 @@ selection.
 | `app/main/core-ipc-wiring.ts` | Which service answers each validated game-window request |
 | `app/main/launcher-ipc.ts` | Launcher-only channels: sender, parser, and handler for each |
 | `app/main/launcher-service.ts` | What each validated launcher request does, with its native confirmations |
-| `app/main/launcher-orchestrator.ts` | Revisioned launcher projection and queued profile launch commands |
+| `app/main/launcher-orchestrator.ts` | Revisioned launcher projection; decides when Play and client changes drain the launch queue |
+| `app/main/core/profile-runtime.ts` | Each profile's launch state, the one ordered launch queue, the Play rule, and the drain |
 | `app/main/core/launcher-state.ts` | Atomic presentation-only launcher preferences |
 | `app/main/settings-actions.ts` | Confirmed settings actions and recovery requests |
 | `app/main/app-updater.ts` | Updates for the `gwonmac` application |

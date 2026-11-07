@@ -1,8 +1,9 @@
 /**
  * Builds the launcher's revisioned read model and decides when the accounts
- * owner's launch queue may drain. The queue itself, its order, and every
- * profile's launch state live in MultipleAccountsController; this module only
- * projects them and never moves launch decisions into the renderer.
+ * owner's launch queue may drain. The queue itself, its order, the Play rule
+ * and every profile's launch state live in `core/profile-runtime.ts`, owned by
+ * MultipleAccountsController; this module only projects them and never moves
+ * launch decisions into the renderer.
  */
 import type {
   AccountsState,
