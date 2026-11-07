@@ -1,4 +1,7 @@
 import { expect, test } from '@playwright/test';
+import type { HubFixtureWindow } from './fixture-window.js';
+// The workbench page this spec drives sets the fixture hooks; they are required here.
+declare const window: HubFixtureWindow;
 
 test('template folders and explicit self application stay inside Hub', async ({ page }, info) => {
   await page.goto('/?hub');
@@ -336,7 +339,7 @@ test('team review names planned changes and repeat Apply reports that the party 
   expect(await receipt.evaluate(el => el.matches(':popover-open'))).toBe(true);
   for (const style of ['guild-wars', 'obsidian'] as const) {
     for (const font of ['guild-wars', 'inter', 'system', 'avenir', 'georgia', 'palatino'] as const) {
-      await page.evaluate(({ style, font }) => window.gwApplyFixtureAppearance?.({ uiStyle: style, uiFont: font, uiPanelOpacity: 65 }), { style, font });
+      await page.evaluate(({ style, font }) => window.gwApplyFixtureAppearance({ uiStyle: style, uiFont: font, uiPanelOpacity: 65 }), { style, font });
       expect(await receipt.evaluate(el => getComputedStyle(el).fontFamily)).toBe(await search.evaluate(el => getComputedStyle(el).fontFamily));
       const ratio = await receipt.evaluate(el => {
         const context = document.createElement('canvas').getContext('2d')!;
@@ -351,12 +354,12 @@ test('team review names planned changes and repeat Apply reports that the party 
       expect(ratio, `${style}/${font} receipt over white`).toBeGreaterThanOrEqual(4.5);
     }
   }
-  await page.evaluate(() => window.gwFixtureCanvas?.clear());
+  await page.evaluate(() => window.gwFixtureCanvas.clear());
   const receiptBox = (await receipt.boundingBox())!;
   expect(await receipt.evaluate((el, box) => el.contains(document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2)), receiptBox)).toBe(false);
   expect(await page.evaluate(() => document.elementFromPoint(24, 300)?.id)).toBe('canvas');
   await page.mouse.click(24, 300);
-  expect(await page.evaluate(() => window.gwFixtureCanvas?.events.map(event => event.type))).toEqual(['pointerdown', 'mousedown', 'mouseup', 'click']);
+  expect(await page.evaluate(() => window.gwFixtureCanvas.events.map(event => event.type))).toEqual(['pointerdown', 'mousedown', 'mouseup', 'click']);
   await page.keyboard.press('Meta+b');
   await expect(page.locator('.tools-window')).toBeVisible();
   expect(await receipt.evaluate(el => el.matches(':popover-open'))).toBe(true);
@@ -421,7 +424,7 @@ test('an unrelated source toggle keeps the build target page, query and selectio
   await page.goto('/?hub');
   await search.fill('accounts'); await search.press('Enter');
   await expect(page.locator('.hub-caption')).toHaveText('Accounts');
-  await page.evaluate(() => window.gwHub?.openSettings({ section: 'tools' }));
+  await page.evaluate(() => window.gwHub!.openSettings({ section: 'tools' }));
   const tools = page.getByRole('navigation', { name: 'Settings sections' }).getByRole('button', { name: 'Tools', exact: true });
   await tools.click();
   await page.getByRole('checkbox', { name: 'Travel', exact: true }).uncheck();

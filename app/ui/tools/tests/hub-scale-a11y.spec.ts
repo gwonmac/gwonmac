@@ -396,7 +396,7 @@ test('status owners are rendered before their first message (HUB-114)', async ({
   await expect(settingsStatus).toBeAttached();
   await page.getByRole('button', { name: 'Home', exact: true }).click();
   await search.fill('maps'); await search.press('Enter');
-  await page.evaluate(() => window.gwHub?.openSettings({ section: 'maps' }));
+  await page.evaluate(() => window.gwHub!.openSettings({ section: 'maps' }));
   await expect(page.locator('.hub-caption')).toHaveText('Settings');
   await expect(page.getByRole('navigation', { name: 'Settings sections' }).getByRole('button', { name: 'Maps', exact: true })).toHaveAttribute('aria-current', 'page');
   await expect(settingsStatus).toBeAttached();

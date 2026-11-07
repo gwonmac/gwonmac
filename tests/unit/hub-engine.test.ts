@@ -6,7 +6,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { HubDestination } from '../../app/shared/hub.js';
 import {
-  HUB_RESUME_MS, hubInitialState, hubReduce, hubSuspendedOn,
+  HUB_RESUME_MS, hubInitialState, hubReduce, hubRunning, hubSuspendedOn,
   type HubEnv, type HubEvent, type HubKey, type HubKeyPlace, type HubPlace, type HubState, type HubStep,
 } from '../../app/renderer/hub-engine.js';
 
@@ -37,7 +37,7 @@ const enter = (place: HubPlace<Scope, View>, query?: string): Event =>
   ({ type: 'enter', place, ...(query === undefined ? {} : { query }), remember: true, scroll: 40, focus: { zone: 'results', range: [0, 0] } });
 const rows = (...ids: string[]) => ids.map(id => ({ id, navigate: id.startsWith('nav') }));
 const search = (selectedRows = rows('a', 'b', 'c'), facts: Partial<Extract<HubKeyPlace, { at: 'search' }>> = {}): HubKeyPlace =>
-  ({ at: 'search', rows: selectedRows, busy: false, page: 1, caretAtEnd: true, ...facts });
+  ({ at: 'search', rows: selectedRows, page: 1, caretAtEnd: true, ...facts });
 const hub = (facts: Partial<Extract<HubKeyPlace, { at: 'hub' }>> = {}): HubKeyPlace => ({ at: 'hub', handled: false, disclosure: false, ...facts });
 const view = (facts: Partial<Extract<HubKeyPlace, { at: 'view' }>> = {}): HubKeyPlace => ({ at: 'view', primary: true, form: false, activates: false, ...facts });
 const opened = (...events: Event[]) => run([{ type: 'show' }, ...events]);
@@ -47,7 +47,7 @@ const opened = (...events: Event[]) => run([{ type: 'show' }, ...events]);
 test('Escape closes the menu, then clears the query, then pops one page, then closes the Hub', () => {
   let result = opened(enter({ scope: travel, view: null }), { type: 'type', query: 'kamadan' }, { type: 'menu', row: 'a' });
   const steps: [string, Event, string[], string, string | null][] = [
-    ['menu', press(key('Escape'), { at: 'menu' }), ['close-menu', 'focus'], 'Travel', 'kamadan'],
+    ['menu', press(key('Escape'), { at: 'menu' }), ['focus'], 'Travel', 'kamadan'],
     ['query', { type: 'escape' }, ['clear-query'], 'Travel', ''],
     ['page', { type: 'escape' }, ['restore', 'announce'], 'Home', ''],
     ['hub', { type: 'escape' }, ['close'], 'Home', ''],
@@ -68,7 +68,7 @@ test('Command-Backspace closes the menu, then a disclosure, then goes back; Esca
   const page = opened(enter({ scope: travel, view: null }), enter({ scope: travel, view: settings }));
   const withMenu = reduce(page.state, { type: 'menu', row: null }).state;
   const cases: [string, State, HubKeyPlace, string[], string, HubStep<Scope, View>['claim']][] = [
-    ['menu first', withMenu, hub({ disclosure: true }), ['close-menu', 'focus'], 'Settings', { stop: true }],
+    ['menu first', withMenu, hub({ disclosure: true }), ['focus'], 'Settings', { stop: true }],
     ['then the disclosure', page.state, hub({ disclosure: true }), ['close-disclosure'], 'Settings', { stop: true }],
     ['then one page', page.state, hub(), ['restore', 'announce'], 'Travel', { stop: true }],
     ['a view that handled it', page.state, hub({ handled: true }), [], 'Settings', { stop: true }],
@@ -83,7 +83,8 @@ test('Command-Backspace closes the menu, then a disclosure, then goes back; Esca
   const escape = reduce(withMenu, press(key('Escape'), { at: 'menu' }));
   assert.deepEqual(escape.claim, { stop: true });
   assert.deepEqual(escape.effects.at(-1), { type: 'focus', target: { zone: 'view' } });
-  assert.deepEqual(types(reduce(withMenu, press(key('Tab'), { at: 'menu' }))), ['close-menu']);
+  const tab = reduce(withMenu, press(key('Tab'), { at: 'menu' }));
+  assert.deepEqual([types(tab), tab.state.menu, tab.claim], [[], null, undefined]);
 });
 
 // hub-navigation-window.spec.ts 'Command-Backspace and breadcrumb ancestors restore history; Backspace only edits text'
@@ -189,8 +190,9 @@ test('list movement holds at both ends and never wraps', () => {
     assert.deepEqual(result.claim, {}, name);
   }
   // The list owns its keys even with no rows or while a row runs, so the caret never moves.
-  for (const facts of [{ rows: [] }, { busy: true }]) {
-    const result = reduce(opened().state, press(key('ArrowDown'), search(list, facts)));
+  const running = reduce(opened().state, { type: 'start', label: 'Applying…', again: 'Apply is still running.' }).state;
+  for (const [state, facts] of [[opened().state, { rows: [] }], [running, {}]] as const) {
+    const result = reduce(state, press(key('ArrowDown'), search(list, facts)));
     assert.deepEqual([types(result), result.claim], [[], {}]);
   }
 });
@@ -200,8 +202,9 @@ test('list movement holds at both ends and never wraps', () => {
 // hub-session.spec.ts 'a click never moves the selection off a running apply (BLD-03)'
 test('a consequential row runs only on an explicit activation: a click selects, a double-click that began on it runs', () => {
   const state = opened().state;
-  const click = (from: State, id: string, count: number, consequential = true, busy = false) =>
-    reduce(from, { type: 'press', id, count, consequential, busy });
+  const click = (from: State, id: string, count: number, consequential = true) =>
+    reduce(from, { type: 'press', id, count, consequential });
+  const running = reduce(state, { type: 'start', label: 'Traveling…', again: 'Travel is still running.' }).state;
   const first = click(state, 'travel-kamadan', 1);
   assert.deepEqual(types(first), ['select', 'focus']);
   assert.equal(first.state.pressed, 'travel-kamadan');
@@ -211,7 +214,7 @@ test('a consequential row runs only on an explicit activation: a click selects, 
     ['its own double-click runs', click(selected, 'travel-kamadan', 2), ['run']],
     ['a double-click that began elsewhere', click({ ...selected, pressed: 'travel-lion' }, 'travel-kamadan', 2), []],
     ['a triple-click', click(selected, 'travel-kamadan', 3), []],
-    ['a click while a row runs', click(state, 'travel-kamadan', 1, true, true), []],
+    ['a click while a row runs', click(running, 'travel-kamadan', 1), []],
     ['a plain row double-click', click(reduce(state, { type: 'select', id: 'open-trade' }).state, 'open-trade', 2, false), []],
   ];
   for (const [name, result, effects] of cases) assert.deepEqual(types(result), effects, name);
@@ -306,7 +309,68 @@ test('Command-J toggles Actions from anywhere in the Hub and owns its repeats', 
   assert.deepEqual(types(reduce(state, press(cmdJ, hub()))), ['open-menu']);
   const withMenu = reduce(state, { type: 'menu', row: 'a' }).state;
   const closed = reduce(withMenu, press(cmdJ, hub()));
-  assert.deepEqual([types(closed), closed.state.menu, closed.claim], [['close-menu', 'focus'], null, { stop: true }]);
+  assert.deepEqual([types(closed), closed.state.menu, closed.claim], [['focus'], null, { stop: true }]);
   assert.deepEqual(types(reduce(state, press(key('j', { meta: true, repeat: true }), hub()))), []);
   assert.equal(reduce(state, press(key('j', { meta: true, shift: true }), hub())).claim, undefined);
+});
+
+// hub-session.spec.ts 'a long team apply names counted progress, and a repeated Enter never starts another (BLD-02)'
+test('a repeated Enter names the running action; the action ends only its own run, and a new page frees Enter', () => {
+  const enterKey = press(key('Enter'), search());
+  const started = reduce(opened().state, { type: 'start', label: 'Applying GOM AFK…', again: 'GOM AFK is still applying.' });
+  const session = started.state.session;
+  assert.deepEqual(reduce(started.state, enterKey).effects, [{ type: 'report', message: 'GOM AFK is still applying.' }]);
+  assert.deepEqual(types(reduce(started.state, { type: 'context', id: 'a' })), []);
+  // Typing starts a new page session: the old action keeps running, but Enter runs the new selection.
+  const typed = reduce(started.state, { type: 'type', query: 'kam' }).state;
+  assert.deepEqual(types(reduce(typed, enterKey)), ['run']);
+  const restarted = reduce(typed, { type: 'start', label: 'Traveling…', again: 'Travel is still running.' }).state;
+  assert.equal(reduce(restarted, { type: 'end', session }).state.running?.label, 'Traveling…');
+  assert.equal(reduce(started.state, { type: 'end', session }).state.running, null);
+});
+
+// hub-keyboard-model.spec.ts 'a view's primary runs once per Enter' and HUB-083 for a view's footer action
+test('a view action runs as the page\'s running action: Enter, ⌘↵ and the footer name it until it ends, across a blur', () => {
+  const page = opened(enter({ scope: travel, view: settings })).state;
+  const where = { zone: 'view', key: 'settings-save' } as const;
+  const started = reduce(page, { type: 'start', label: 'Save', again: 'Save is still running.', focus: where }).state;
+  const again = [{ type: 'report', message: 'Save is still running.' }];
+  const submit = press(key('Enter', { meta: true }), view({ form: true }));
+  const resumed = run([{ type: 'suspend', scroll: 0, focus: where }, { type: 'show' }], started).state;
+  const cases: [string, State, Event, unknown[]][] = [
+    ['Enter runs the named primary', page, press(key('Enter'), view()), [{ type: 'run-view' }]],
+    ['⌘↵ submits the form', page, submit, [{ type: 'run-view' }]],
+    ['the footer runs it', page, { type: 'activate', view: true }, [{ type: 'run-view' }]],
+    ['Enter while it runs names it', started, press(key('Enter'), view()), again],
+    ['⌘↵ while it runs names it', started, submit, again],
+    ['the footer while it runs names it', started, { type: 'activate', view: true }, again],
+    ['a row Actions entry while it runs names it', started, { type: 'activate' }, again],
+    ['after its own end Enter runs again', reduce(started, { type: 'end', session: started.session }).state, press(key('Enter'), view()), [{ type: 'run-view' }]],
+    // A blur suspends the page; it resumes still mounted, so it is the same page and its action still runs.
+    ['Enter after a suspend and resume names it', resumed, press(key('Enter'), view()), again],
+    ['the footer after a suspend and resume names it', resumed, { type: 'activate', view: true }, again],
+    ['its own end frees the resumed page', reduce(resumed, { type: 'end', session: started.session }).state, press(key('Enter'), view()), [{ type: 'run-view' }]],
+  ];
+  for (const [name, state, event, effects] of cases) assert.deepEqual(reduce(state, event).effects, effects, name);
+  // A page the action opens returns where the keyboard was when it started (HUB-019); a new page ends that.
+  assert.deepEqual(hubRunning(started)?.focus, where);
+  assert.equal(hubRunning(reduce(started, enter({ scope: builds, view: null })).state), null);
+});
+
+// hub-session.spec.ts 'a carried failure expires with the existing 90-second Hub resume window'
+test('a failure while the Hub is closed is named on the next opening, within the resume window only', () => {
+  const closed = reduce(opened().state, { type: 'close' }).state;
+  const carried = reduce(closed, { type: 'carry', message: 'Invite failed' }).state;
+  const failure = { type: 'report', message: 'Invite failed', receipt: true };
+  const cases: [string, State, number, boolean][] = [
+    ['inside the window', carried, HUB_RESUME_MS, true],
+    ['after the window', carried, HUB_RESUME_MS + 1, false],
+    ['withdrawn by its observer', reduce(carried, { type: 'uncarry', message: 'Invite failed' }).state, 0, false],
+    ['another outcome withdrawn', reduce(carried, { type: 'uncarry', message: 'Saved' }).state, 0, true],
+  ];
+  for (const [name, state, later, named] of cases) {
+    const shown = reduce(state, { type: 'show' }, later);
+    assert.equal(shown.effects.some(effect => JSON.stringify(effect) === JSON.stringify(failure)), named, name);
+    assert.equal(shown.state.carried, null, name);
+  }
 });

@@ -5,6 +5,8 @@
 import type { HubFeatureSetting } from "../features/index.js";
 import type { HubShortcut } from "./hub-preferences.js";
 import type { HubPages } from "./ui/hub-pages.js";
+import type { HubIconKind } from "./ui/hub-icon.js";
+import { HUB_TOOL_ORDER } from "./hub-tools.js";
 export type HubRow = Readonly<{
   id: string;
   title: string;
@@ -37,22 +39,42 @@ export type HubRow = Readonly<{
    */
   navigate?(task: HubTask): void;
   searchQuery?: string;
+  /** The row's own art, drawn instead of an icon. */
   icon?: string;
-  quoteBasis?: Readonly<{ value:string; options:readonly {value:string;label:string}[]; choose(value:string):void }>;
+  /** The Hub icon family's drawing for a row without art; the source picks it, `command` by default. */
+  iconKind?: HubIconKind;
+  quoteBasis?: HubQuoteBasis;
   conversion?: Readonly<{ input: string; from: string; to: string; iconFrom?: string; iconTo?: string }>;
   unavailable?: string;
   /** Inspection remains available, but this row cannot apply its game action. */
   readOnly?: true;
-  /** Opens the canonical saved record in its existing authoring workspace, named `HUB_WORKSPACE_ACTION`. */
-  workspace?(): void;
-  /** A second way into this row; its Actions menu lists it when `actionsLabel` names it. */
-  actions?(): void;
-  actionsLabel?: string;
-  /** Named person actions, shared with its child page and run through the Hub task owner. */
-  menuActions?(): readonly HubRow[];
+  /**
+   * The row's other actions, in the order its Actions menu (⌘J) lists them after the primary
+   * and before Pin and the source's `personalize` entries: build details, the rates, a person's
+   * actions. Each runs as a Hub task, as the primary does.
+   */
+  actions?(): readonly HubAction[];
   /** How the footer and a repeated Enter name this row's action while it runs (HUB-083). */
   pending?: Readonly<{ label: string; again: string }>;
   run(task: HubTask): void | Promise<void>;
+}>;
+/** One entry of a row's Actions menu after its primary (HubRow `actions`). */
+export type HubAction = Readonly<{
+  label: string;
+  /** Why it cannot run now; the menu shows it disabled with this reason. */
+  unavailable?: string;
+  destructive?: boolean;
+  /** How the footer and a repeated Enter name it while it runs (HUB-083). */
+  pending?: Readonly<{ label: string; again: string }>;
+  run(task: HubTask): void | Promise<void>;
+}>;
+/**
+ * A priced row's Price basis picker: the basis it uses, the ones it could, and the button beside
+ * the picker (the evidence, the rates or a refresh), named by the source that prices the row.
+ */
+export type HubQuoteBasis = Readonly<{
+  value: string; options: readonly Readonly<{ value: string; label: string }>[]; choose(value: string): void;
+  details: Readonly<{ label: string; run(): void }>;
 }>;
 /**
  * A running row or view action's link to the Hub page that started it (HUB-004). That page's
@@ -121,6 +143,8 @@ export function parseHubQuery(value: string): { scope: HubScope | null; term: st
   const text = (scoped ? words.slice(1) : words).join(' ');
   return { scope: scoped ? scope : null, term: normaliseHubQuery(text), text };
 }
+/** A search that starts with a number is a calculation: on Home, the search draws each currency unit's art in it. */
+export const isHubCalculation = (value: string): boolean => /^\s*(?:\d|\.\d)/u.test(value);
 /** A name's words for matching, with punctuation trimmed from their edges: `(pre-Searing)` is `pre-searing` (HUB-143). */
 const hubWords = (name: string) => name.split(' ').map(word => word.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '')).filter(Boolean);
 /**
@@ -154,7 +178,7 @@ export function matchHubRows(rows: readonly HubRow[], query: string, ordered = f
     .sort((a, b) => tiers.get(a)! - tiers.get(b)! || (ordered ? 0 : a.title.localeCompare(b.title) || a.id.localeCompare(b.id)));
 }
 
-/** The name of a row's `workspace` action, in its Actions and on Build details. */
+/** The action that opens a saved build or team in its authoring workspace, in its Actions and on Build details. */
 export const HUB_WORKSPACE_ACTION = 'Open in Build Library';
 
 /**
@@ -163,12 +187,11 @@ export const HUB_WORKSPACE_ACTION = 'Open in Build Library';
  * the best answer of all, and a card (`answers`) answers its own grammar. A typed query that
  * names a tool or command as well as places answers with the tool: the Hub has a few of those
  * and hundreds of places (`ma` is Maps before Maguuma Stade). Everyday game actions stay ahead
- * of account management, and Commands, the way into everything else, leads the commands
- * (HUB-185). A scoped page keeps its source's order within each group.
+ * of account management (the Tools rows keep their manifests' `order`, HUB_TOOL_ORDER), and
+ * Commands, the way into everything else, leads the commands (HUB-185). A scoped page keeps its source's order within each group.
  */
 const HUB_GROUP_ORDER = ["Pinned", "Calculator", "Teams", "Folders", "Characters", "Builds", "Targets", "Current build", "Accounts", "In your party", "Unlocked heroes", "Heroes", "People", "Places", "Friends", "Continue", "Tools", "Commands", "Settings", "Sources", "Trade", "Calculate", "Keys & shortcuts"];
 const HUB_TYPED_FIRST = ['Tools', 'Commands'];
-const HUB_TOOL_ORDER = ['travel', 'character', 'whispers', 'builds', 'trade', 'storage', 'maps', 'accounts'];
 export function rankHubRows(rows: readonly HubRow[], query: string, options: Readonly<{ scoped: boolean; phrases: ReadonlySet<string>; answers(row: HubRow): boolean }>): readonly HubRow[] {
   const parsed = parseHubQuery(query);
   const ranked = !options.scoped && !parsed.scope && !!parsed.term;
@@ -177,12 +200,16 @@ export function rankHubRows(rows: readonly HubRow[], query: string, options: Rea
   if (ranked) for (const row of rows) best.set(row.group, Math.min(best.get(row.group) ?? Infinity, tierOf(row)));
   const typedFirst = ranked ? HUB_TYPED_FIRST : [];
   const groupIndex = (group: string) => { const first = typedFirst.indexOf(group); if (first >= 0) return first - typedFirst.length; const index = HUB_GROUP_ORDER.indexOf(group); return index < 0 ? HUB_GROUP_ORDER.length : index; };
-  const priority = (row: HubRow) => { if (options.scoped) return 0; if (row.group === 'Commands') return row.id === 'commands' ? -1 : 0; if (row.group !== 'Tools') return 0; const index = HUB_TOOL_ORDER.indexOf(row.id); return index < 0 ? HUB_TOOL_ORDER.length : index; };
+  const priority = (row: HubRow) => { if (options.scoped) return 0; if (row.group === 'Commands') return row.id === 'commands' ? -1 : 0; if (row.group !== 'Tools') return 0; const index = HUB_TOOL_ORDER.findIndex(command => command === row.id); return index < 0 ? HUB_TOOL_ORDER.length : index; };
   return [...rows].sort((a, b) => (ranked ? best.get(a.group)! - best.get(b.group)! : 0) || groupIndex(a.group) - groupIndex(b.group)
     || (ranked ? tierOf(a) - tierOf(b) : 0) || priority(a) - priority(b));
 }
 
-export type HubSummary = Readonly<Pick<HubRow, 'title' | 'detail' | 'skills' | 'attributes' | 'professions' | 'attributeStatus' | 'folder' | 'workspace'> & { label: string }>;
+export type HubSummary = Readonly<Pick<HubRow, 'title' | 'detail' | 'skills' | 'attributes' | 'professions' | 'attributeStatus' | 'folder'> & {
+  label: string;
+  /** Opens the saved build in its authoring workspace (`HUB_WORKSPACE_ACTION`). */
+  workspace?(): void;
+}>;
 
 /** One footer action of a mounted view. `armed` holds a destructive primary until it has armed (~400 ms). */
 export type HubViewAction = Readonly<{ label: string; run(task: HubTask): void | Promise<void>; disabled?: boolean; running?: boolean; destructive?: boolean; armed?: boolean }>;

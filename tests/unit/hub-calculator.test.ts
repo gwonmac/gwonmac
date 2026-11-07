@@ -2,6 +2,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { calculate, decimal, convertCurrency, formatFraction, parseConversion } from '../../app/shared/hub-calculator.ts';
+import type { HubTask } from '../../app/shared/hub.ts';
+
+const task: HubTask = { live: () => true, progress() {}, done() {} };
 test('decimal arithmetic is exact, bounded, and honours precedence', async () => {
   assert.equal(formatFraction(calculate('0.1 + 0.2')!), '0.3');
   assert.equal(formatFraction(calculate('(2 + 3) * 4')!), '20');
@@ -57,7 +60,7 @@ test('only a rate-dependent result offers the rates editor (HUB-100)', async () 
   try {
     for (const [query, title] of [['2+2', '4'], ['10p in g', '10,000 gold'], ['250e in stacks e', '1 stack ecto'], ['500e in stacks e', '2 stacks ecto'], ['1g in g', '1 gold'], ['1p in p', '1 platinum'], ['1g + 1p in g', '1,001 gold']] as const) {
       const row = source.search(query)[0];
-      assert.equal(row?.title, title); row?.actions?.();
+      assert.equal(row?.title, title); for (const action of row?.actions?.() ?? []) void action.run(task);
       if(query==='2+2')assert.deepEqual(row?.conversion,{input:'2+2',from:'Calculation',to:'Result'});
       if(['250e in stacks e', '500e in stacks e'].includes(query))assert.equal(row?.detail,'Fixed conversion · 1 stack = 250 items');
       if(['1g in g', '1p in p'].includes(query))assert.equal(row?.detail,'Fixed conversion');
@@ -65,7 +68,7 @@ test('only a rate-dependent result offers the rates editor (HUB-100)', async () 
     }
     assert.deepEqual(views, []);
     source.search('10 ecto in p'); await Promise.resolve();
-    source.search('10 ecto in p')[0]?.actions?.();
+    for (const action of source.search('10 ecto in p')[0]?.actions?.() ?? []) void action.run(task);
     assert.deepEqual(views, ['Conversion rates']);
   } finally { source.setVisible(false); }
 });

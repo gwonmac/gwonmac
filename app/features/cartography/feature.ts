@@ -92,7 +92,11 @@ export default defineFeature({
     id: "maps",
     label: "Maps",
     description: "Exploration grid and walkable terrain on supported PvE maps.",
-    keywords: "grid terrain compass",
+    keywords: "grid terrain compass opacity",
+    hub: {
+      command: "maps", order: 6,
+      row: { detail: "Exploration grid, walkable terrain and compass ranges", iconKind: "maps", action: "Adjust maps", open: { settings: "maps" } },
+    },
   },
   shortcuts: [
     { action: "cartography.grid.toggle", binding: null, label: "Exploration grid" },

@@ -1,8 +1,9 @@
 /**
  * Owns where the Hub's keyboard goes. It applies the controller's focus target once, after the
- * paint that carries it; finds a control again by its key; lets a restored page's control that
- * mounts late still take the keyboard until the player acts; keeps the keyboard where it was
- * when a press parks it on the dialog (HUB-246); and names the fallback every zone shares: the
+ * paint that carries it, and selects a resumed Hub search; finds a control again by its key;
+ * lets a restored page's control that mounts late still take the keyboard until the player
+ * acts; keeps the keyboard where it was when a press parks it on the dialog (HUB-246); and
+ * names the fallback every zone shares: the
  * search when it shows, else the view's first control, else Back, so focus never lands on <body>.
  */
 import { onBeforeUnmount, onMounted, onUpdated, provide, watch, type Ref } from 'vue';
@@ -43,8 +44,11 @@ export function useHubFocus(root: Ref<HTMLDialogElement | undefined>, view: Ref<
   function apply(request: HubFocusRequest) {
     stopWaiting(); lost = undefined;
     const element = resolve(request);
-    if (element) { place(element, request); return; }
-    fallback()?.focus({ preventScroll: true });
+    if (element) place(element, request);
+    else fallback()?.focus({ preventScroll: true });
+    const search = input();
+    if (request.select && search && root.value?.ownerDocument.activeElement === search) search.select();
+    if (element) return;
     const key = request.key;
     if (!request.wait || !key || !view.value) return;
     waiting = new MutationObserver(() => {

@@ -1,4 +1,7 @@
 import { expect, test } from '@playwright/test';
+import type { HubFixtureWindow } from './fixture-window.js';
+// The workbench page this spec drives sets the fixture hooks; they are required here.
+declare const window: HubFixtureWindow;
 
 for (const style of ['guild-wars', 'obsidian'] as const) {
   test(`native currency input keeps text and caret boundaries in ${style}`, async ({ page }) => {
@@ -7,7 +10,7 @@ for (const style of ['guild-wars', 'obsidian'] as const) {
     const input = page.locator('.hub-search input');
     const overlay = page.locator('.hub-search-glyphs');
     for (const font of ['guild-wars', 'inter', 'system', 'avenir', 'georgia', 'palatino'] as const) {
-      await page.evaluate(({ style, font }) => window.gwApplyFixtureAppearance?.({ uiStyle: style, uiFont: font, uiPanelOpacity: 100 }), { style, font });
+      await page.evaluate(({ style, font }) => window.gwApplyFixtureAppearance({ uiStyle: style, uiFont: font, uiPanelOpacity: 100 }), { style, font });
       await page.evaluate(() => document.fonts.ready);
       await input.fill('');
       let typed = '';
@@ -23,8 +26,8 @@ for (const style of ['guild-wars', 'obsidian'] as const) {
       // Canvas uses the input's font and word spacing, independently of overlay spans.
       const measurements = [];
       for (let offset = 13; offset >= 0; offset--) {
-        expect(await input.evaluate(el => el.selectionStart)).toBe(offset);
-        measurements.push(await input.evaluate((el, offset) => {
+        expect(await input.evaluate((el: HTMLInputElement) => el.selectionStart)).toBe(offset);
+        measurements.push(await input.evaluate((el: HTMLInputElement, offset) => {
           const glyphs = el.parentElement!.querySelector<HTMLElement>('.hub-search-glyphs')!;
           const style = getComputedStyle(el), context = document.createElement('canvas').getContext('2d')!;
           context.font = style.font; context.wordSpacing = style.wordSpacing; context.letterSpacing = style.letterSpacing;

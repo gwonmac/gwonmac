@@ -1,9 +1,7 @@
 /**
- * One consistent icon family for Hub commands, shared by the Hub's Vue view and the renderer's
- * own Hub pages; game records may supply their own art. Presentation only.
+ * One consistent icon family for Hub rows. Each source names a row's drawing (`HubRow.iconKind`);
+ * game records may supply their own art instead. Presentation only.
  */
-import type { HubRow } from '../hub.js';
-
 const paths = {
   title: '<path d="M8 3h8v6a4 4 0 0 1-8 0V3ZM8 5H4v3a4 4 0 0 0 4 4M16 5h4v3a4 4 0 0 1-4 4M12 13v6M7 21h10"/>',
   travel: '<path d="m12 3 8 8-8 10-8-10 8-8Z"/><circle cx="12" cy="10" r="2.5"/>',
@@ -28,18 +26,6 @@ const paths = {
   resign: '<path d="M6 21V4M6 4h11l-2.5 4 2.5 4H6"/>',
 };
 export type HubIconKind = keyof typeof paths;
-
-/** The drawn icon for a row without its own art. */
-export function hubIconKind(row: Pick<HubRow, 'id' | 'group'>): HubIconKind {
-  const id = row.id.split(':')[0];
-  const action = row.id.split(':').at(-1);
-  return id === 'character' ? 'character' : id === 'accounts' || id === 'account' ? 'accounts' : action === 'whisper' ? 'whispers' : action === 'invite' ? 'invite' : action === 'travel' ? 'travel' : id === 'folder' || id === 'game-templates' ? 'folder' : row.group === 'Teams' || id === 'team' ? 'team'
-    : row.group === 'Builds' || id === 'build' || id === 'builds' ? 'builds'
-    : row.group === 'Places' || id === 'place' || id === 'travel' ? 'travel'
-    : row.group === 'Accounts' || id === 'accounts' || row.group === 'People' || row.group === 'Heroes' || row.group === 'Characters' || id === 'character' ? 'person'
-    : id === 'hub-preferences' ? 'settings'
-    : id && id in paths ? id as HubIconKind : 'command';
-}
 
 /** The icon's SVG markup, set as the icon span's inner HTML. */
 export const hubIconSvg = (kind: HubIconKind) =>

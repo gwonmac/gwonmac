@@ -32,7 +32,6 @@
       <input aria-activedescendant="hub-result-0" aria-autocomplete="list" aria-controls="hub-results" aria-describedby="hub-hint" aria-description="Hub preferences: search tools or use a command example" aria-expanded="true" aria-label="Search people, places, builds…" autocomplete="off" class="" maxlength="120" placeholder="Search people, places, builds…" role="combobox" spellcheck="false" type="text" .value="hub preferences">
       <span aria-hidden="true" class="hub-progress">
       <div aria-hidden="true" class="hub-search-glyphs" hidden="">
-    <div class="hub-rate-controls" hidden="">
     <div aria-busy="false" aria-label="Results" class="hub-results ui-scroll" data-focus-key="results" hidden="" id="hub-results" role="listbox" tabindex="-1">
       <div aria-labelledby="hub-group-0" role="group">
         <div class="hub-group" id="hub-group-0" role="presentation">

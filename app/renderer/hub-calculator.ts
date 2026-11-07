@@ -38,7 +38,7 @@ export function createHubCalculator(options: {
       let mode:HubRatesProps['mode']=manual||preferManual?'manual':'trader',status='',focus:HubPageFocus|undefined,shown=true,saving=false;
       const props=():HubRatesProps=>({mode,fields:fields.map(([key,label])=>({key,label,value:rates[key]})),status,...(focus?{focus}:{}),
         changeMode:next=>{mode=next;},input:(key,value)=>{typed.set(key,value);},submit});
-      const page=pages.rates(target,props());
+      const page=pages.mount('rates', target,props());
       const say=(message:string)=>{status=message;if(shown)page.update(props());};
       // The footer's "Use these rates" submits; Enter in a rate field runs it, ⌘↵ too.
       function submit(){if(saving)return;void (async()=>{try{
@@ -56,7 +56,7 @@ export function createHubCalculator(options: {
   }
   const result=(id:string,title:string,detail:string,value:string):HubRow=>({id,title,detail,group:'Calculator',action:'Copy result',run:()=>options.copy(value,title)});
   const titleRows=(entries:NonNullable<ReturnType<typeof calculateTitle>>):HubRow[]=>entries.map((entry,index)=>({
-    id:`title:${index}`,title:entry.title,detail:entry.example&&!entry.detail.includes(entry.example)?`${entry.detail} · ${entry.example}`:entry.detail,group:'Titles',
+    id:`title:${index}`,iconKind:'title',title:entry.title,detail:entry.example&&!entry.detail.includes(entry.example)?`${entry.detail} · ${entry.example}`:entry.detail,group:'Titles',
     ...(entry.problem?{unavailable:entry.title}:{}),
     ...(!entry.input&&!entry.example&&!entry.problem?{preview:entry.detail}:{}),
     action:entry.problem?'Edit calculation':entry.next?'Compare items':entry.example?'Try example':'Copy result',
@@ -77,7 +77,7 @@ export function createHubCalculator(options: {
   /** The calculator's own tools, found by their words (HUB-063). */
   function calculatorCommands(term:string):HubRow[]{
     return [
-      {id:'title:help',title:'Title calculator',detail:'Points, items needed and offer comparisons',keywords:'titles calc calculator points party',group:'Commands',action:'Open calculator',searchQuery:'titles',run(){}},
+      {id:'title:help',iconKind:'title' as const,title:'Title calculator',detail:'Points, items needed and offer comparisons',keywords:'titles calc calculator points party',group:'Commands',action:'Open calculator',searchQuery:'titles',run(){}},
       {id:'currency-rates',title:'Conversion rates',detail:settings().mode==='manual'?'Your rates':'Automatic observed prices',keywords:'rate currency exchange calc ecto platinum gold',group:'Calculator',action:'Choose rates',run:()=>editRates()},
     ].filter(row=>hubTier(row,term)!==null);
   }
@@ -89,7 +89,7 @@ export function createHubCalculator(options: {
     search(query){
       const saved=settings(),manual=saved.mode==='manual',rates={ecto:saved.ecto,armbrace:saved.armbrace,zkey:saved.zkey};
       const term=query.toLowerCase().trim().replace(/\s+/gu,' ');
-      if(!term){clear();return [{id:'title:help',title:'Title calculator',detail:'Points, items needed and offer comparisons',group:'Commands',action:'Open calculator',searchQuery:'titles',run(){}}];}
+      if(!term){clear();return [{id:'title:help',iconKind:'title' as const,title:'Title calculator',detail:'Points, items needed and offer comparisons',group:'Commands',action:'Open calculator',searchQuery:'titles',run(){}}];}
       const titleResults=calculateTitle(term);
       if(titleResults){clear();return [...titleRows(titleResults),...(term==='titles'||term==='title calculator'?[]:calculatorCommands(term))];}
       if(term==='rates'||term==='conversion rates')return [{id:'currency-rates',title:'Conversion rates',detail:settings().mode==='manual'?'Your rates':'Automatic observed prices',group:'Calculator',action:'Choose rates',run:()=>editRates()}];
@@ -108,7 +108,7 @@ export function createHubCalculator(options: {
           const explanation=`${detail}${!explicit?' · Default target':''}${equivalent?' · Equivalent value':''}`;
           const copied=formatCalculatorCopy(conversion.input,value,explanation);
           // Only a result that depends on a rate the player can choose offers the rates editor (HUB-100).
-          return {...result(id,value,explanation,copied),action:`Copy ${value}`,...(fixed?{}:{actions:editRates,actionsLabel:'Edit rates'}),conversion:{input:conversion.input,from:conversion.terms.length>1?'Combined value':currencyInfo(conversion.from).name,to:currencyInfo(unit).name,...(iconFrom?{iconFrom}:{}),...(iconTo?{iconTo}:{})}};
+          return {...result(id,value,explanation,copied),action:`Copy ${value}`,...(fixed?{}:{actions:()=>[{label:'Edit rates',run:()=>editRates()}]}),conversion:{input:conversion.input,from:conversion.terms.length>1?'Combined value':currencyInfo(conversion.from).name,to:currencyInfo(unit).name,...(iconFrom?{iconFrom}:{}),...(iconTo?{iconTo}:{})}};
         };
         if(fixed){clear();const stack=currencyInfo(conversion.to).stack;const detail=units.every(unit=>unit==='gold'||unit==='platinum')&&units.some(unit=>unit!==conversion.to)?'Fixed conversion · 1 platinum = 1,000 gold':`Fixed conversion${stack?` · 1 stack = ${stack} items`:''}`;return [card('conversion',unit=>fraction(unit==='gold'?1n:1000n),detail)];}
         if(!visible){clear();return [];}
@@ -141,6 +141,8 @@ export function createHubCalculator(options: {
             }).catch(()=>{if(generation===request&&visible){failed=true;refresh();}});
           }
           const rows:HubRow[]=[];
+          // Each estimate's evidence page, which its Actions and its picker's Details button open.
+          const priceDetails=new Map<string,()=>void>();
           if(marketSnapshot){
             const observed=marketSnapshot;
             clearTimeout(timer);
@@ -175,25 +177,27 @@ export function createHubCalculator(options: {
                 const row = card(`market:${side}`,rate,detail);
                 const age = Math.max(0, Math.floor((Date.now() - newest) / 60000));
                 const ageLabel=age<1?'just now':age<60?`${age} min ago`:`${Math.floor(age/60)} h${age%60?` ${age%60} min`:''} ago`;
-                rows.push({ ...row, detail: `${marketSnapshot.sample ? 'Sample prices · ' : ''}${side === 'wts' ? 'Seller asking prices' : 'Buyer offers'} · Inferred median · Newest ad ${ageLabel}${!explicit?' · Default target':''}`, actionsLabel: 'Show price details', actions: () => options.hub?.showView('Price details', (target, _back, _footer, pages) => {
+                const showPriceDetails = () => options.hub?.showView('Price details', (target, _back, _footer, pages) => {
                   const entries:[string,string][]=[['Source',observed.sample?'Sample data — not live Kamadan prices':'Recent Kamadan trade ads'],['Price basis',side==='wts'?'Seller asking prices':'Buyer offers']];
                   for(const entry of evidence)entries.push(['Median rate',`1 ${currencyInfo(entry.item).name} = ${formatFraction(fraction(BigInt(entry.numerator),BigInt(entry.denominator)))} ${entry.denomination}`],['Advertisers',`${entry.advertisers} advertisers (${currencyInfo(entry.item).name})`]);
                   entries.push(['Ads since',new Date(oldest).toLocaleString()],['Newest ad',new Date(newest).toLocaleString()],['Last fetched',new Date(observed.fetchedAt).toLocaleString()]);
-                  return pages.priceDetails(target,{entries,editRates:()=>editRates()}).dispose;
-                }) });
+                  return pages.mount('priceDetails', target,{entries,editRates:()=>editRates()}).dispose;
+                });
+                priceDetails.set(row.id, showPriceDetails);
+                rows.push({ ...row, detail: `${marketSnapshot.sample ? 'Sample prices · ' : ''}${side === 'wts' ? 'Seller asking prices' : 'Buyer offers'} · Inferred median · Newest ad ${ageLabel}${!explicit?' · Default target':''}`, actions: () => [{ label: 'Show price details', run: showPriceDetails }] });
               }catch{/* Incomplete routes never mix in NPC or invented prices. */}
             }
           }
           const chosen=rows.find(row=>row.id===`market:${marketBasis}`)??rows[0];
-          if(chosen)return [{...chosen,id:'market:result',quoteBasis:{value:chosen.id.slice(7),options:rows.map(row=>({value:row.id.slice(7),label:row.id==='market:wts'?'Seller asking prices':'Buyer offers'})),choose(value){marketBasis=value==='wtb'?'wtb':'wts';refresh();}}}];
+          if(chosen)return [{...chosen,id:'market:result',quoteBasis:{value:chosen.id.slice(7),options:rows.map(row=>({value:row.id.slice(7),label:row.id==='market:wts'?'Seller asking prices':'Buyer offers'})),choose(value){marketBasis=value==='wtb'?'wtb':'wts';refresh();},details:{label:'Details',run:()=>priceDetails.get(chosen.id)?.()}}}];
           const loading=!marketSnapshot&&!failed;
-          return [{id:'market-state',title:loading?'Reading recent Kamadan trades…':'Not enough recent prices',detail:'An estimate needs at least 5 advertisers with consistent prices per rate. No rate is guessed.',group:'Calculator',action:loading?'Loading':'Refresh',...(loading?{unavailable:'Reading recent trades'}:{}),run(){marketSnapshot=null;queryKey='';refresh();},actions:editRates,actionsLabel:'Edit rates'}];
+          return [{id:'market-state',title:loading?'Reading recent Kamadan trades…':'Not enough recent prices',detail:'An estimate needs at least 5 advertisers with consistent prices per rate. No rate is guessed.',group:'Calculator',action:loading?'Loading':'Refresh',...(loading?{unavailable:'Reading recent trades'}:{}),run(){marketSnapshot=null;queryKey='';refresh();},actions:()=>[{label:'Edit rates',run:()=>editRates()}]}];
         }
         if(queryKey!=='npc'){clear();queryKey='npc';failed=false;const request=++generation;
           if(!snapshot||Date.now()-quotesReceivedAt>HUB_QUOTE_FRESH_MS)
           void options.quotes().then(value=>{if(generation!==request||!visible||!options.marketEnabled())return;snapshot=value;quotesReceivedAt=Date.now();refresh();}).catch(()=>{if(generation===request&&visible){failed=true;refresh();}});
         }
-        if(!snapshot)return [{id:'quote-state',title:failed?'Rate unavailable':'Loading trader quotes…',detail:'Kamadan · Observed NPC trader quotes',group:'Calculator',action:failed?'Retry':'Loading',...(!failed?{unavailable:'Loading trader quotes…'}:{}),run(){snapshot=null;queryKey='';refresh();},actions:editRates}];
+        if(!snapshot)return [{id:'quote-state',title:failed?'Rate unavailable':'Loading trader quotes…',detail:'Kamadan · Observed NPC trader quotes',group:'Calculator',action:failed?'Retry':'Loading',...(!failed?{unavailable:'Loading trader quotes…'}:{}),run(){snapshot=null;queryKey='';refresh();}}];
         const rows:HubRow[]=[];
         for(const side of ['buy','sell'] as const){
           const stamps:number[]=[];
@@ -212,8 +216,10 @@ export function createHubCalculator(options: {
         const expiry=Math.min(...snapshot.quotes.filter(quote=>quote.timestamp+HUB_QUOTE_FRESH_MS>Date.now()).map(quote=>quote.timestamp+HUB_QUOTE_FRESH_MS));
         if(Number.isFinite(expiry))timer=setTimeout(refresh,Math.max(1,expiry-Date.now()+1));
         const chosen=rows.find(row=>row.id===`quote:${basis}`)??rows[0];
-        if(chosen)return [{...chosen,id:'quote:result',...(chosen.detail.includes('Last observed')?{actionsLabel:'Refresh quotes',actions:()=>{snapshot=null;queryKey='';refresh();}}:{}),quoteBasis:{value:chosen.id.slice(6),options:rows.map(row=>({value:row.id.slice(6),label:row.id==='quote:buy'?'Buy from trader':'Sell to trader'})),choose(value){basis=value;refresh();}}}];
-        return [{id:'quote-missing',title:'Rate unavailable',detail:`No complete observed quote for ${[...new Set(units.filter(unit=>currencyInfo(unit).model).map(unit=>currencyInfo(unit).name))].join(' and ')}. Retry, or open Conversion rates to use your currency estimates.`,group:'Calculator',action:'Retry',run(){snapshot=null;queryKey='';refresh();},actions:editRates}];
+        // An old observation offers a fresh read beside the picker; a current one, the rates behind it.
+        const stale=chosen?.detail.includes('Last observed'),refreshQuotes=()=>{snapshot=null;queryKey='';refresh();};
+        if(chosen)return [{...chosen,id:'quote:result',...(stale?{actions:()=>[{label:'Refresh quotes',run:refreshQuotes}]}:{}),quoteBasis:{value:chosen.id.slice(6),options:rows.map(row=>({value:row.id.slice(6),label:row.id==='quote:buy'?'Buy from trader':'Sell to trader'})),choose(value){basis=value;refresh();},details:stale?{label:'Refresh quotes',run:refreshQuotes}:{label:'Details',run:()=>editRates()}}}];
+        return [{id:'quote-missing',title:'Rate unavailable',detail:`No complete observed quote for ${[...new Set(units.filter(unit=>currencyInfo(unit).model).map(unit=>currencyInfo(unit).name))].join(' and ')}. Retry, or open Conversion rates to use your currency estimates.`,group:'Calculator',action:'Retry',run(){snapshot=null;queryKey='';refresh();}}];
       }catch(error){return [{id:'calculation-error',title:error instanceof Error?error.message:'Invalid calculation',detail:'',group:'Calculator',action:'Edit calculation',unavailable:'Edit the calculation',run(){}}];}
     },
   };

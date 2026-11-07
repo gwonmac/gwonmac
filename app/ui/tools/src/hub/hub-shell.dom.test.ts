@@ -2,6 +2,7 @@
  * The Hub shell's DOM contract: element types, classes, ids, ARIA and text of every main view,
  * and where the keyboard is. The snapshot was taken from the hand-built Hub before it moved to
  * Vue, so this test holds the Vue Hub to the same structure the CSS and the e2e suites expect.
+ * The real controller and view also hold what only their DOM shows, such as session drafts.
  */
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 // eslint-disable-next-line no-restricted-imports
@@ -16,6 +17,7 @@ import { createHub } from '../../../../renderer/hub';
 import { withHubBuiltins } from '../../../../renderer/hub-builtins';
 import { describeFocus, serializeDom } from './dom-snapshot';
 import { mountHubView } from './embedded';
+import { withBuildDetails } from '../hub-library';
 
 const dom = () => [...document.body.children].flatMap(child => serializeDom(child)).join('\n');
 const views: string[] = [];
@@ -52,12 +54,12 @@ afterEach(() => { window.gwHub?.dispose(); vi.useRealTimers(); });
 const skills = Array.from({ length: 3 }, (_, index) => ({ name: `Skill ${index + 1}`, iconUrl: `skill-${index + 1}.png`, elite: index === 0, ...(index === 2 ? { changed: true, description: 'Hits hard.' } : {}) }));
 const attributes = [{ name: 'Healing Prayers', icon: 'monk.png', attributes: [{ name: 'Healing Prayers', label: 'HP', rank: 12, nextRank: 11 }, { name: 'Divine Favor', label: 'DF', rank: 9 }] }];
 const professions = [{ code: 'Mo', name: 'Monk', icon: 'mo.png' }, { code: 'Me', name: 'Mesmer', icon: 'me.png' }];
-const sectionRows = (): readonly HubRow[] => [
-  { id: 'build:1', title: 'Healer', detail: 'Monk build', group: 'Builds', action: 'Apply build', skills, attributes, professions, folder: 'PvE', consequential: true, run() {} },
-  { id: 'build:2', title: 'Status build', detail: 'No attributes', group: 'Builds', action: 'Apply build', skills: skills.slice(0, 1), attributeStatus: 'Attributes unavailable', folder: '', run() {} },
-  { id: 'quote:result', title: '1,000 gold', detail: 'From traders', group: 'Calculator', action: 'Copy 1,000 gold', conversion: { input: '1p', from: 'p', to: 'g' }, quoteBasis: { value: 'buy', options: [{ value: 'buy', label: 'Trader buys' }, { value: 'sell', label: 'Trader sells' }], choose() {} }, actionsLabel: 'Refresh quotes', actions() {}, run() {} },
-  { id: 'place:1', title: 'Kamadan', detail: 'Outpost', group: 'Places', action: 'Travel', navigate() {}, leavesArea: true, run() {} },
-  { id: 'person:1', title: 'Friend', detail: 'Online', group: 'People', action: 'Whisper', icon: 'friend.png', menuActions: () => [{ id: 'person:1:invite', title: 'Invite', detail: '', group: 'People', action: 'Invite to party', run() {} }], run() {} },
+const sectionBase: readonly HubRow[] = [
+  { id: 'build:1', iconKind: 'builds', title: 'Healer', detail: 'Monk build', group: 'Builds', action: 'Apply build', skills, attributes, professions, folder: 'PvE', consequential: true, run() {} },
+  { id: 'build:2', iconKind: 'builds', title: 'Status build', detail: 'No attributes', group: 'Builds', action: 'Apply build', skills: skills.slice(0, 1), attributeStatus: 'Attributes unavailable', folder: '', run() {} },
+  { id: 'quote:result', title: '1,000 gold', detail: 'From traders', group: 'Calculator', action: 'Copy 1,000 gold', conversion: { input: '1p', from: 'p', to: 'g' }, quoteBasis: { value: 'buy', options: [{ value: 'buy', label: 'Trader buys' }, { value: 'sell', label: 'Trader sells' }], choose() {}, details: { label: 'Refresh quotes', run() {} } }, run() {} },
+  { id: 'place:1', iconKind: 'travel', title: 'Kamadan', detail: 'Outpost', group: 'Places', action: 'Travel', navigate() {}, leavesArea: true, run() {} },
+  { id: 'person:1', iconKind: 'person', title: 'Friend', detail: 'Online', group: 'People', action: 'Whisper', icon: 'friend.png', actions: () => [{ label: 'Invite to party', run() {} }], run() {} },
   { id: 'danger:1', title: 'Delete', detail: 'Remove it', group: 'Commands', action: 'Delete', destructive: true, readOnly: true, preview: 'Line one\nLine two', run() {} },
   { id: 'off:1', title: 'Unavailable', detail: 'Not now', group: 'Commands', action: 'Use', unavailable: 'Not in an outpost.', run() {} },
 ];
@@ -83,7 +85,8 @@ test('the Hub keeps its DOM structure, classes, ARIA and focus in every main vie
   input.value = '1p in g'; input.dispatchEvent(new Event('input', { bubbles: true })); await settle();
   capture('calculator query');
 
-  hub.showRows('Builds', sectionRows, summary, 'builds'); await settle();
+  // Every row offers Build details as the Library's target pages do (hub-library.ts).
+  hub.showRows('Builds', () => withBuildDetails(hub, summary, sectionBase), summary, 'builds'); await settle();
   capture('section');
   key(input, { key: 'ArrowDown' }); key(input, { key: 'ArrowDown' }); await settle();
   capture('section, quote selected');
@@ -121,4 +124,73 @@ test('the Hub keeps its DOM structure, classes, ARIA and focus in every main vie
   capture('closed with receipt');
 
   await expect(views.join('\n\n')).toMatchFileSnapshot('./__snapshots__/hub-shell.dom.txt');
+});
+
+test('a form keeps its session draft when a field\'s label changes, since drafts follow the focus key', async () => {
+  const hub = withHubBuiltins(createHub(document.body, { mountHubView }));
+  window.gwHub = hub;
+  const form = (label: string): HubViewMount<HTMLElement> => target => {
+    const element = document.createElement('form');
+    element.innerHTML = `<label>${label} <input aria-label="${label}" data-focus-key="name"></label>`;
+    target.append(element);
+    return () => element.remove();
+  };
+  const field = () => document.querySelector<HTMLInputElement>('.hub-view input')!;
+  hub.show(); await settle();
+  hub.showView('Form', form('Name')); await settle();
+  field().value = 'keep me'; field().dispatchEvent(new Event('input', { bubbles: true }));
+  key(field(), { key: 'Backspace', metaKey: true }); await settle();
+  expect(document.querySelector('.hub-view input')).toBeNull();
+  hub.showView('Form', form('Full name')); await settle();
+  expect(field().value).toBe('keep me');
+});
+
+test('the Price basis picker keeps its presses, and Enter on it runs the row it prices once (HUB-022)', async () => {
+  const hub = withHubBuiltins(createHub(document.body, { mountHubView }));
+  window.gwHub = hub;
+  const runs: string[] = [];
+  const quote = sectionBase.find(row => row.id === 'quote:result')!;
+  hub.show(); await settle();
+  hub.showRows('Prices', () => [{ ...quote, run: () => { runs.push('copy'); } }]); await settle();
+  const basis = document.querySelector<HTMLSelectElement>('.hub-rate-controls select')!;
+  basis.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 }));
+  basis.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+  await settle();
+  expect([runs, document.querySelector('.hub-menu')?.hasAttribute('hidden') ?? true]).toEqual([[], true]);
+  key(basis, { key: 'Enter' }); await settle();
+  key(basis, { key: 'Enter', repeat: true }); await settle();
+  expect(runs).toEqual(['copy']);
+});
+
+test('a view page mounts under its own Back and breadcrumbs, so it measures and takes focus there', async () => {
+  const hub = withHubBuiltins(createHub(document.body, { mountHubView }));
+  window.gwHub = hub;
+  hub.show(); await settle();
+  hub.showRows('Builds', () => sectionBase); await settle();
+  let seen: unknown = null;
+  hub.showView('Form', () => {
+    seen = [document.querySelector('.hub-back')?.getAttribute('aria-description'), [...document.querySelectorAll('.hub-crumb')].map(crumb => crumb.textContent?.trim())];
+    return () => {};
+  }); await settle();
+  expect(seen).toEqual(['Return to Builds', ['Home', 'Builds']]);
+});
+
+test('a view action still running after a blur and resume is named, never started again (HUB-083)', async () => {
+  const hub = withHubBuiltins(createHub(document.body, { mountHubView }));
+  window.gwHub = hub;
+  let runs = 0;
+  const form: HubViewMount<HTMLElement> = (target, _back, footer) => {
+    const element = document.createElement('form'); element.innerHTML = '<input aria-label="Name" data-focus-key="name">'; target.append(element);
+    footer.primary({ label: 'Save', run: () => { runs++; return new Promise<void>(() => {}); } });
+    return () => element.remove();
+  };
+  hub.show(); await settle();
+  hub.showView('Form', form); await settle();
+  const field = () => document.querySelector<HTMLInputElement>('.hub-view input')!;
+  key(field(), { key: 'Enter' }); await settle();
+  window.dispatchEvent(new Event('blur')); await settle();
+  hub.show(); await settle();
+  key(field(), { key: 'Enter' }); await settle();
+  expect([runs, document.querySelector<HTMLButtonElement>('.hub-primary')?.disabled, document.querySelector('.hub-status')?.textContent?.trim()])
+    .toEqual([1, true, 'Save is still running.']);
 });

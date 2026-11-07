@@ -1,0 +1,1552 @@
+=== closed (focus: body)
+<canvas id="canvas">
+<dialog aria-labelledby="hub-name hub-title-separator hub-caption" class="ui-modal ui-modal-layer" data-gwonmac-surface="" data-page="home" id="hub">
+  <section class="hub-panel ui-frame ui-art-frame" data-locked="true">
+    <canvas aria-hidden="true" class="ui-frame-artwork">
+    <header class="hub-heading ui-window-head">
+      <button aria-label="Back" class="ui-button hub-back" data-focus-key="back" data-variant="quiet" hidden="">
+        "← Back"
+      <span class="hub-name" id="hub-name">
+        "Hub"
+      <span hidden="" id="hub-title-separator">
+        "—"
+      <nav aria-label="Hub breadcrumb" class="hub-breadcrumbs">
+        <span aria-level="1" class="hub-caption" id="hub-caption" role="heading">
+          "Home"
+      <span class="hub-context">
+      <span class="hub-move-hint" hidden="" id="hub-move-hint">
+        "⌥ arrows move · ⇧ 48 px"
+      <button aria-label="Lock Hub position" aria-pressed="true" class="ui-window-lock hub-lock" data-focus-key="lock" title="Unlock to move and resize" type="button">
+        <svg aria-hidden="true" viewBox="0 0 24 24">
+          <path class="lock-shackle" d="M7 11V7a5 5 0 0 1 10 0v4"></path><rect x="5" y="11" width="14" height="10" rx="2"></rect>
+      <button aria-label="Close Hub" class="ui-window-close hub-close" data-focus-key="close" title="Close Hub">
+        "×"
+    <section aria-label="Build to apply" class="hub-summary" hidden="">
+    <div class="hub-search ui-hub-search">
+      <svg aria-hidden="true" viewBox="0 0 24 24">
+        <path d="m12 2 8 10-8 10L4 12 12 2Zm0 5v10M8 12h8"></path>
+      <span class="hub-scope" hidden="">
+      <input aria-autocomplete="list" aria-controls="hub-results" aria-describedby="hub-hint" aria-expanded="true" aria-label="Search people, places, builds" autocomplete="off" class="" maxlength="120" placeholder="Search people, places, builds…" role="combobox" spellcheck="false" type="text">
+      <span aria-hidden="true" class="hub-progress">
+      <div aria-hidden="true" class="hub-search-glyphs" hidden="">
+    <div aria-label="Results" class="hub-results ui-scroll" data-focus-key="results" id="hub-results" role="listbox" tabindex="-1">
+    <p class="hub-empty" hidden="">
+      "No matches"
+    <pre class="hub-preview ui-scroll" hidden="">
+    <div class="hub-view" hidden="">
+    <div class="hub-footer-status">
+      <p class="hub-status" role="status">
+      <p class="hub-lifecycle" hidden="">
+      <p class="hub-hint" hidden="" id="hub-hint">
+    <p aria-atomic="true" aria-live="polite" class="hub-announce ui-sr-only" role="status">
+    <footer class="hub-footer">
+      <span class="hub-legend">
+      <span class="hub-count">
+      <button class="hub-primary ui-button" data-focus-key="primary" data-variant="primary">
+      <button aria-expanded="false" aria-haspopup="menu" class="hub-actions ui-button" data-focus-key="actions" data-variant="quiet">
+        "Actions"
+    <div aria-label="Actions" class="hub-menu" hidden="" role="menu">
+    <button aria-label="Resize Hub" class="ui-window-resize hub-resize" data-focus-key="resize" hidden="" title="Drag to resize, or use arrow keys">
+<div aria-hidden="true" class="hub-receipt ui-toast" hidden="" popover="manual">
+<p aria-atomic="true" class="hub-receipt-announcement ui-sr-only" role="status">
+<div class="character-switch-veil" hidden="" role="status">
+
+=== cards (focus: button#character-switch-option-0.character-switch-row[aria-label="Fixture Monk, Monk, Level 20, Kamadan, Jewel of Istan, current character"])
+<canvas id="canvas">
+<dialog aria-labelledby="hub-name hub-title-separator hub-caption" class="ui-modal ui-modal-layer" data-gwonmac-surface="" data-page="section" id="hub" open="">
+  <section class="hub-panel ui-frame ui-art-frame" data-busy="false" data-locked="true">
+    <canvas aria-hidden="true" class="ui-frame-artwork">
+    <header class="hub-heading ui-window-head">
+      <button aria-description="Return to Home" aria-keyshortcuts="Meta+Backspace" aria-label="Back" class="ui-button hub-back" data-focus-key="back" data-variant="quiet" title="Back (⌘⌫)">
+        "←"
+      <span class="hub-name" id="hub-name">
+        "Hub"
+      <span hidden="" id="hub-title-separator">
+        "—"
+      <nav aria-label="Hub breadcrumb" class="hub-breadcrumbs">
+        <span aria-current="page" aria-level="1" class="hub-caption" id="hub-caption" role="heading">
+          "Characters"
+      <span class="hub-context">
+        "Fixture Monk"
+      <span class="hub-move-hint" hidden="" id="hub-move-hint">
+        "⌥ arrows move · ⇧ 48 px"
+      <button aria-label="Lock Hub position" aria-pressed="true" class="ui-window-lock hub-lock" data-focus-key="lock" title="Unlock to move and resize" type="button">
+        <svg aria-hidden="true" viewBox="0 0 24 24">
+          <path class="lock-shackle" d="M7 11V7a5 5 0 0 1 10 0v4"></path><rect x="5" y="11" width="14" height="10" rx="2"></rect>
+      <button aria-label="Close Hub" class="ui-window-close hub-close" data-focus-key="close" title="Close Hub">
+        "×"
+    <section aria-label="Build to apply" class="hub-summary" hidden="">
+    <div class="hub-search ui-hub-search" hidden="">
+      <svg aria-hidden="true" viewBox="0 0 24 24">
+        <path d="m12 2 8 10-8 10L4 12 12 2Zm0 5v10M8 12h8"></path>
+      <span class="hub-scope" hidden="">
+      <input aria-autocomplete="list" aria-controls="hub-results" aria-describedby="hub-hint" aria-description="Characters: search tools or use a command example" aria-expanded="false" aria-label="Search people, places, builds…" autocomplete="off" class="" maxlength="120" placeholder="Search people, places, builds…" role="combobox" spellcheck="false" type="text">
+      <span aria-hidden="true" class="hub-progress">
+      <div aria-hidden="true" class="hub-search-glyphs" hidden="">
+    <div aria-busy="false" aria-label="Results" class="hub-results ui-scroll" data-focus-key="results" hidden="" id="hub-results" role="listbox" tabindex="-1">
+    <p class="hub-empty" hidden="">
+      "No matches"
+    <pre class="hub-preview ui-scroll" hidden="">
+    <div aria-busy="false" class="hub-view">
+      <div aria-labelledby="character-switch-title" class="ui-modal ui-modal-layer" data-layout="horizontal" data-switching="false" id="character-switch-root" open="">
+        <div class="ui-frame character-switch-panel" data-layout="horizontal">
+          <label class="character-switch-search ui-hub-search" for="character-switch-query">
+            <span class="ui-sr-only">
+              "Search characters"
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              <path d="m12 2 8 10-8 10L4 12 12 2Zm0 5v10M8 12h8"></path>
+            <input aria-activedescendant="character-switch-option-0" aria-autocomplete="list" aria-expanded="false" autocomplete="off" class="ui-input" data-focus-key="character-switch-query" id="character-switch-query" maxlength="40" placeholder="Search characters…" role="combobox" spellcheck="false" type="search">
+          <header class="character-switch-head">
+            <h2 class="ui-sr-only" id="character-switch-title">
+              "Switch Character"
+            <span aria-atomic="true" aria-live="polite" class="character-switch-count">
+              "6 characters"
+            <button aria-label="Character Switch settings" aria-pressed="false" class="ui-button character-switch-head-action character-switch-settings-toggle" data-focus-key="Character Switch settings" type="button">
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2Z"></path><circle cx="12" cy="12" r="3"></circle>
+            <button aria-label="Close Switch Character" class="ui-button character-switch-head-action character-switch-close" data-focus-key="Close Switch Character" type="button">
+              <svg aria-hidden="true" viewBox="0 0 16 16">
+                <path d="m3 3 10 10M13 3 3 13"></path>
+          <div class="character-switch-carousel">
+            <button aria-label="Previous character" class="ui-button character-switch-arrow character-switch-previous" data-focus-key="Previous character" disabled="" type="button">
+              <svg aria-hidden="true" viewBox="0 0 16 16">
+                <path d="m10.5 2.5-5 5 5 5"></path>
+            <ul aria-label="Characters" aria-orientation="horizontal" class="character-switch-list ui-scroll" id="character-switch-list" role="listbox" style="--character-cards: 5;">
+              <li role="presentation">
+                <button aria-current="true" aria-label="Fixture Monk, Monk, Level 20, Kamadan, Jewel of Istan, current character" aria-posinset="1" aria-selected="true" aria-setsize="6" class="character-switch-row" data-character-key="monk" data-focus-key="character-switch-option-0" data-index="0" data-row="0" data-selected="true" id="character-switch-option-0" role="option" tabindex="0" title="Already active" type="button">
+                  <span class="character-switch-key">
+                    "1"
+                  <img alt="" aria-hidden="true" src="app/shared/images/professions/3.png">
+                  <span class="character-switch-copyline">
+                    <span class="character-switch-primary">
+                      <span class="character-switch-name">
+                        "Fixture Monk"
+                      <span class="character-switch-current">
+                        "Current"
+                    <span class="character-switch-meta" title="Mo · Lv 20 · Kamadan">
+                      "Mo · Lv 20 · Kamadan"
+              <li role="presentation">
+                <button aria-label="Switch to Fixture Ranger, Ranger / Mesmer, Level 15, Kamadan, Jewel of Istan, shortcut 2" aria-posinset="2" aria-selected="false" aria-setsize="6" class="character-switch-row" data-character-key="ranger" data-focus-key="character-switch-option-1" data-index="1" data-row="1" data-selected="false" id="character-switch-option-1" role="option" tabindex="-1" type="button">
+                  <span class="character-switch-key">
+                    "2"
+                  <img alt="" aria-hidden="true" src="app/shared/images/professions/2.png">
+                  <span class="character-switch-copyline">
+                    <span class="character-switch-primary">
+                      <span class="character-switch-name">
+                        "Fixture Ranger"
+                    <span class="character-switch-meta" title="R/Me · Lv 15 · Kamadan">
+                      "R/Me · Lv 15 · Kamadan"
+              <li role="presentation">
+                <button aria-label="Switch to Fixture Mesmer, Mesmer, PvP character, Level 20, Lion's Arch, shortcut 3" aria-posinset="3" aria-selected="false" aria-setsize="6" class="character-switch-row" data-character-key="mesmer" data-focus-key="character-switch-option-2" data-index="2" data-row="2" data-selected="false" id="character-switch-option-2" role="option" tabindex="-1" type="button">
+                  <span class="character-switch-key">
+                    "3"
+                  <img alt="" aria-hidden="true" src="app/shared/images/professions/5.png">
+                  <span class="character-switch-copyline">
+                    <span class="character-switch-primary">
+                      <span class="character-switch-name">
+                        "Fixture Mesmer"
+                    <span class="character-switch-meta" title="Me · PvP · Lv 20 · Lion's Arch">
+                      "Me · PvP · Lv 20 · Lion's Arch"
+              <li role="presentation">
+                <button aria-label="Switch to Toefte, Monk / Mesmer, Level 20, Kamadan, Jewel of Istan, shortcut 4" aria-posinset="4" aria-selected="false" aria-setsize="6" class="character-switch-row" data-character-key="toefte" data-focus-key="character-switch-option-3" data-index="3" data-row="3" data-selected="false" id="character-switch-option-3" role="option" tabindex="-1" type="button">
+                  <span class="character-switch-key">
+                    "4"
+                  <img alt="" aria-hidden="true" src="app/shared/images/professions/3.png">
+                  <span class="character-switch-copyline">
+                    <span class="character-switch-primary">
+                      <span class="character-switch-name">
+                        "Toefte"
+                    <span class="character-switch-meta" title="Mo/Me · Lv 20 · Kamadan">
+                      "Mo/Me · Lv 20 · Kamadan"
+              <li role="presentation">
+                <button aria-label="Switch to Fixture Warrior, Warrior, Level 20, Lion's Arch, shortcut 5" aria-posinset="5" aria-selected="false" aria-setsize="6" class="character-switch-row" data-character-key="warrior" data-focus-key="character-switch-option-4" data-index="4" data-row="4" data-selected="false" id="character-switch-option-4" role="option" tabindex="-1" type="button">
+                  <span class="character-switch-key">
+                    "5"
+                  <img alt="" aria-hidden="true" src="app/shared/images/professions/1.png">
+                  <span class="character-switch-copyline">
+                    <span class="character-switch-primary">
+                      <span class="character-switch-name">
+                        "Fixture Warrior"
+                    <span class="character-switch-meta" title="W · Lv 20 · Lion's Arch">
+                      "W · Lv 20 · Lion's Arch"
+            <button aria-label="Next character" class="ui-button character-switch-arrow character-switch-next" data-focus-key="Next character" type="button">
+              <svg aria-hidden="true" viewBox="0 0 16 16">
+                <path d="m5.5 2.5 5 5-5 5"></path>
+          <section aria-label="Character Switch settings" class="character-switch-settings" hidden="">
+            <label class="character-switch-setting" for="character-switch-show-profession">
+              <span>
+                <strong>
+                  "Show profession"
+                <small>
+                  "Icon, primary, and secondary profession"
+              <input data-focus-key="character-switch-show-profession" id="character-switch-show-profession" type="checkbox" .value="on">
+            <label class="character-switch-setting" for="character-switch-show-level">
+              <span>
+                <strong>
+                  "Show level"
+                <small>
+                  "Character level"
+              <input data-focus-key="character-switch-show-level" id="character-switch-show-level" type="checkbox" .value="on">
+            <label class="character-switch-setting" for="character-switch-show-location">
+              <span>
+                <strong>
+                  "Show known location"
+                <small>
+                  "Locations from the reviewed Travel catalogue"
+              <input data-focus-key="character-switch-show-location" id="character-switch-show-location" type="checkbox" .value="on">
+          <section aria-describedby="character-switch-confirm-copy" class="character-switch-confirm" hidden="">
+            <p id="character-switch-confirm-copy">
+              "Switching characters will leave this explorable area. You may lose progress in this instance."
+            <div class="character-switch-confirm-actions">
+              <button class="ui-button character-switch-stay" data-focus-key="character-switch-stay" id="character-switch-stay" type="button">
+                "Stay here"
+              <button class="ui-button character-switch-leave" data-focus-key="character-switch-leave" data-variant="danger" id="character-switch-leave" type="button">
+                "Leave and switch to this character"
+          <p aria-atomic="true" aria-live="polite" class="character-switch-status" role="status">
+          <details class="character-switch-details" hidden="">
+            <summary>
+              "Technical details"
+            <pre>
+            <button class="ui-button character-switch-copy" type="button">
+              "Copy diagnostics"
+    <div class="hub-footer-status">
+      <p aria-busy="false" class="hub-status" role="status" title="">
+      <p class="hub-lifecycle" hidden="">
+      <p class="hub-hint" hidden="" id="hub-hint" title="">
+    <p aria-atomic="true" aria-live="polite" class="hub-announce ui-sr-only" role="status">
+    <footer class="hub-footer">
+      <span class="hub-legend" data-keys="[[["⎋"],"Close"],[["⌘","⌫"],"Back"]]">
+        <span>
+          <kbd class="ui-kbd">
+            "⎋"
+          " Close"
+        <span>
+          <kbd class="ui-kbd">
+            "⌘"
+          <kbd class="ui-kbd">
+            "⌫"
+          " Back"
+      <span class="hub-count">
+      <button class="hub-primary ui-button" data-focus-key="primary" data-variant="primary" disabled="" title="Current character">
+        <span class="hub-primary-label">
+          "Current character"
+        <kbd class="ui-kbd">
+          "↵"
+      <button aria-expanded="false" aria-haspopup="menu" aria-keyshortcuts="Meta+J" class="hub-actions ui-button" data-focus-key="actions" data-variant="quiet" disabled="">
+        "Actions"
+        <kbd aria-hidden="true" class="ui-kbd">
+          "⌘"
+        <kbd aria-hidden="true" class="ui-kbd">
+          "J"
+    <div aria-label="Actions" class="hub-menu" hidden="" role="menu">
+    <button aria-label="Resize Hub" class="ui-window-resize hub-resize" data-focus-key="resize" hidden="" title="Drag to resize, or use arrow keys">
+<div aria-hidden="true" class="hub-receipt ui-toast" hidden="" popover="manual">
+<p aria-atomic="true" class="hub-receipt-announcement ui-sr-only" role="status">
+<div class="character-switch-veil" hidden="" role="status">
+
+=== → on the first card (focus: button#character-switch-option-1.character-switch-row[aria-label="Switch to Fixture Ranger, Ranger / Mesmer, Level 15, Kamadan, Jewel of Istan, shortcut 2"])
+<canvas id="canvas">
+<dialog aria-labelledby="hub-name hub-title-separator hub-caption" class="ui-modal ui-modal-layer" data-gwonmac-surface="" data-page="section" id="hub" open="">
+  <section class="hub-panel ui-frame ui-art-frame" data-busy="false" data-locked="true">
+    <canvas aria-hidden="true" class="ui-frame-artwork">
+    <header class="hub-heading ui-window-head">
+      <button aria-description="Return to Home" aria-keyshortcuts="Meta+Backspace" aria-label="Back" class="ui-button hub-back" data-focus-key="back" data-variant="quiet" title="Back (⌘⌫)">
+        "←"
+      <span class="hub-name" id="hub-name">
+        "Hub"
+      <span hidden="" id="hub-title-separator">
+        "—"
+      <nav aria-label="Hub breadcrumb" class="hub-breadcrumbs">
+        <span aria-current="page" aria-level="1" class="hub-caption" id="hub-caption" role="heading">
+          "Characters"
+      <span class="hub-context">
+        "Fixture Monk"
+      <span class="hub-move-hint" hidden="" id="hub-move-hint">
+        "⌥ arrows move · ⇧ 48 px"
+      <button aria-label="Lock Hub position" aria-pressed="true" class="ui-window-lock hub-lock" data-focus-key="lock" title="Unlock to move and resize" type="button">
+        <svg aria-hidden="true" viewBox="0 0 24 24">
+          <path class="lock-shackle" d="M7 11V7a5 5 0 0 1 10 0v4"></path><rect x="5" y="11" width="14" height="10" rx="2"></rect>
+      <button aria-label="Close Hub" class="ui-window-close hub-close" data-focus-key="close" title="Close Hub">
+        "×"
+    <section aria-label="Build to apply" class="hub-summary" hidden="">
+    <div class="hub-search ui-hub-search" hidden="">
+      <svg aria-hidden="true" viewBox="0 0 24 24">
+        <path d="m12 2 8 10-8 10L4 12 12 2Zm0 5v10M8 12h8"></path>
+      <span class="hub-scope" hidden="">
+      <input aria-autocomplete="list" aria-controls="hub-results" aria-describedby="hub-hint" aria-description="Characters: search tools or use a command example" aria-expanded="false" aria-label="Search people, places, builds…" autocomplete="off" class="" maxlength="120" placeholder="Search people, places, builds…" role="combobox" spellcheck="false" type="text">
+      <span aria-hidden="true" class="hub-progress">
+      <div aria-hidden="true" class="hub-search-glyphs" hidden="">
+    <div aria-busy="false" aria-label="Results" class="hub-results ui-scroll" data-focus-key="results" hidden="" id="hub-results" role="listbox" tabindex="-1">
+    <p class="hub-empty" hidden="">
+      "No matches"
+    <pre class="hub-preview ui-scroll" hidden="">
+    <div aria-busy="false" class="hub-view">
+      <div aria-labelledby="character-switch-title" class="ui-modal ui-modal-layer" data-layout="horizontal" data-switching="false" id="character-switch-root" open="">
+        <div class="ui-frame character-switch-panel" data-layout="horizontal">
+          <label class="character-switch-search ui-hub-search" for="character-switch-query">
+            <span class="ui-sr-only">
+              "Search characters"
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              <path d="m12 2 8 10-8 10L4 12 12 2Zm0 5v10M8 12h8"></path>
+            <input aria-activedescendant="character-switch-option-1" aria-autocomplete="list" aria-expanded="false" autocomplete="off" class="ui-input" data-focus-key="character-switch-query" id="character-switch-query" maxlength="40" placeholder="Search characters…" role="combobox" spellcheck="false" type="search">
+          <header class="character-switch-head">
+            <h2 class="ui-sr-only" id="character-switch-title">
+              "Switch Character"
+            <span aria-atomic="true" aria-live="polite" class="character-switch-count">
+              "6 characters"
+            <button aria-label="Character Switch settings" aria-pressed="false" class="ui-button character-switch-head-action character-switch-settings-toggle" data-focus-key="Character Switch settings" type="button">
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2Z"></path><circle cx="12" cy="12" r="3"></circle>
+            <button aria-label="Close Switch Character" class="ui-button character-switch-head-action character-switch-close" data-focus-key="Close Switch Character" type="button">
+              <svg aria-hidden="true" viewBox="0 0 16 16">
+                <path d="m3 3 10 10M13 3 3 13"></path>
+          <div class="character-switch-carousel">
+            <button aria-label="Previous character" class="ui-button character-switch-arrow character-switch-previous" data-focus-key="Previous character" type="button">
+              <svg aria-hidden="true" viewBox="0 0 16 16">
+                <path d="m10.5 2.5-5 5 5 5"></path>
+            <ul aria-label="Characters" aria-orientation="horizontal" class="character-switch-list ui-scroll" id="character-switch-list" role="listbox" style="--character-cards: 5;">
+              <li role="presentation">
+                <button aria-current="true" aria-label="Fixture Monk, Monk, Level 20, Kamadan, Jewel of Istan, current character" aria-posinset="1" aria-selected="false" aria-setsize="6" class="character-switch-row" data-character-key="monk" data-focus-key="character-switch-option-0" data-index="0" data-row="0" data-selected="false" id="character-switch-option-0" role="option" tabindex="-1" title="Already active" type="button">
+                  <span class="character-switch-key">
+                    "1"
+                  <img alt="" aria-hidden="true" src="app/shared/images/professions/3.png">
+                  <span class="character-switch-copyline">
+                    <span class="character-switch-primary">
+                      <span class="character-switch-name">
+                        "Fixture Monk"
+                      <span class="character-switch-current">
+                        "Current"
+                    <span class="character-switch-meta" title="Mo · Lv 20 · Kamadan">
+                      "Mo · Lv 20 · Kamadan"
+              <li role="presentation">
+                <button aria-label="Switch to Fixture Ranger, Ranger / Mesmer, Level 15, Kamadan, Jewel of Istan, shortcut 2" aria-posinset="2" aria-selected="true" aria-setsize="6" class="character-switch-row" data-character-key="ranger" data-focus-key="character-switch-option-1" data-index="1" data-row="1" data-selected="true" id="character-switch-option-1" role="option" tabindex="0" type="button">
+                  <span class="character-switch-key">
+                    "2"
+                  <img alt="" aria-hidden="true" src="app/shared/images/professions/2.png">
+                  <span class="character-switch-copyline">
+                    <span class="character-switch-primary">
+                      <span class="character-switch-name">
+                        "Fixture Ranger"
+                    <span class="character-switch-meta" title="R/Me · Lv 15 · Kamadan">
+                      "R/Me · Lv 15 · Kamadan"
+              <li role="presentation">
+                <button aria-label="Switch to Fixture Mesmer, Mesmer, PvP character, Level 20, Lion's Arch, shortcut 3" aria-posinset="3" aria-selected="false" aria-setsize="6" class="character-switch-row" data-character-key="mesmer" data-focus-key="character-switch-option-2" data-index="2" data-row="2" data-selected="false" id="character-switch-option-2" role="option" tabindex="-1" type="button">
+                  <span class="character-switch-key">
+                    "3"
+                  <img alt="" aria-hidden="true" src="app/shared/images/professions/5.png">
+                  <span class="character-switch-copyline">
+                    <span class="character-switch-primary">
+                      <span class="character-switch-name">
+                        "Fixture Mesmer"
+                    <span class="character-switch-meta" title="Me · PvP · Lv 20 · Lion's Arch">
+                      "Me · PvP · Lv 20 · Lion's Arch"
+              <li role="presentation">
+                <button aria-label="Switch to Toefte, Monk / Mesmer, Level 20, Kamadan, Jewel of Istan, shortcut 4" aria-posinset="4" aria-selected="false" aria-setsize="6" class="character-switch-row" data-character-key="toefte" data-focus-key="character-switch-option-3" data-index="3" data-row="3" data-selected="false" id="character-switch-option-3" role="option" tabindex="-1" type="button">
+                  <span class="character-switch-key">
+                    "4"
+                  <img alt="" aria-hidden="true" src="app/shared/images/professions/3.png">
+                  <span class="character-switch-copyline">
+                    <span class="character-switch-primary">
+                      <span class="character-switch-name">
+                        "Toefte"
+                    <span class="character-switch-meta" title="Mo/Me · Lv 20 · Kamadan">
+                      "Mo/Me · Lv 20 · Kamadan"
+              <li role="presentation">
+                <button aria-label="Switch to Fixture Warrior, Warrior, Level 20, Lion's Arch, shortcut 5" aria-posinset="5" aria-selected="false" aria-setsize="6" class="character-switch-row" data-character-key="warrior" data-focus-key="character-switch-option-4" data-index="4" data-row="4" data-selected="false" id="character-switch-option-4" role="option" tabindex="-1" type="button">
+                  <span class="character-switch-key">
+                    "5"
+                  <img alt="" aria-hidden="true" src="app/shared/images/professions/1.png">
+                  <span class="character-switch-copyline">
+                    <span class="character-switch-primary">
+                      <span class="character-switch-name">
+                        "Fixture Warrior"
+                    <span class="character-switch-meta" title="W · Lv 20 · Lion's Arch">
+                      "W · Lv 20 · Lion's Arch"
+            <button aria-label="Next character" class="ui-button character-switch-arrow character-switch-next" data-focus-key="Next character" type="button">
+              <svg aria-hidden="true" viewBox="0 0 16 16">
+                <path d="m5.5 2.5 5 5-5 5"></path>
+          <section aria-label="Character Switch settings" class="character-switch-settings" hidden="">
+            <label class="character-switch-setting" for="character-switch-show-profession">
+              <span>
+                <strong>
+                  "Show profession"
+                <small>
+                  "Icon, primary, and secondary profession"
+              <input data-focus-key="character-switch-show-profession" id="character-switch-show-profession" type="checkbox" .value="on">
+            <label class="character-switch-setting" for="character-switch-show-level">
+              <span>
+                <strong>
+                  "Show level"
+                <small>
+                  "Character level"
+              <input data-focus-key="character-switch-show-level" id="character-switch-show-level" type="checkbox" .value="on">
+            <label class="character-switch-setting" for="character-switch-show-location">
+              <span>
+                <strong>
+                  "Show known location"
+                <small>
+                  "Locations from the reviewed Travel catalogue"
+              <input data-focus-key="character-switch-show-location" id="character-switch-show-location" type="checkbox" .value="on">
+          <section aria-describedby="character-switch-confirm-copy" class="character-switch-confirm" hidden="">
+            <p id="character-switch-confirm-copy">
+              "Switching characters will leave this explorable area. You may lose progress in this instance."
+            <div class="character-switch-confirm-actions">
+              <button class="ui-button character-switch-stay" data-focus-key="character-switch-stay" id="character-switch-stay" type="button">
+                "Stay here"
+              <button class="ui-button character-switch-leave" data-focus-key="character-switch-leave" data-variant="danger" id="character-switch-leave" type="button">
+                "Leave and switch to this character"
+          <p aria-atomic="true" aria-live="polite" class="character-switch-status" role="status">
+          <details class="character-switch-details" hidden="">
+            <summary>
+              "Technical details"
+            <pre>
+            <button class="ui-button character-switch-copy" type="button">
+              "Copy diagnostics"
+    <div class="hub-footer-status">
+      <p aria-busy="false" class="hub-status" role="status" title="">
+      <p class="hub-lifecycle" hidden="">
+      <p class="hub-hint" hidden="" id="hub-hint" title="">
+    <p aria-atomic="true" aria-live="polite" class="hub-announce ui-sr-only" role="status">
+    <footer class="hub-footer">
+      <span class="hub-legend" data-keys="[[["⎋"],"Close"],[["⌘","⌫"],"Back"]]">
+        <span>
+          <kbd class="ui-kbd">
+            "⎋"
+          " Close"
+        <span>
+          <kbd class="ui-kbd">
+            "⌘"
+          <kbd class="ui-kbd">
+            "⌫"
+          " Back"
+      <span class="hub-count">
+      <button class="hub-primary ui-button" data-focus-key="primary" data-variant="primary" title="Switch to Fixture Ranger">
+        <span class="hub-primary-label">
+          "Switch to Fixture Ranger"
+        <kbd class="ui-kbd">
+          "↵"
+      <button aria-expanded="false" aria-haspopup="menu" aria-keyshortcuts="Meta+J" class="hub-actions ui-button" data-focus-key="actions" data-variant="quiet" disabled="">
+        "Actions"
+        <kbd aria-hidden="true" class="ui-kbd">
+          "⌘"
+        <kbd aria-hidden="true" class="ui-kbd">
+          "J"
+    <div aria-label="Actions" class="hub-menu" hidden="" role="menu">
+    <button aria-label="Resize Hub" class="ui-window-resize hub-resize" data-focus-key="resize" hidden="" title="Drag to resize, or use arrow keys">
+<div aria-hidden="true" class="hub-receipt ui-toast" hidden="" popover="manual">
+<p aria-atomic="true" class="hub-receipt-announcement ui-sr-only" role="status">
+<div class="character-switch-veil" hidden="" role="status">
+
+=== digit 4 (focus: button#character-switch-option-3.character-switch-row[aria-label="Switch to Toefte, Monk / Mesmer, Level 20, Kamadan, Jewel of Istan, shortcut 4"])
+<canvas id="canvas">
+<dialog aria-labelledby="hub-name hub-title-separator hub-caption" class="ui-modal ui-modal-layer" data-gwonmac-surface="" data-page="section" id="hub" open="">
+  <section class="hub-panel ui-frame ui-art-frame" data-busy="false" data-locked="true">
+    <canvas aria-hidden="true" class="ui-frame-artwork">
+    <header class="hub-heading ui-window-head">
+      <button aria-description="Return to Home" aria-keyshortcuts="Meta+Backspace" aria-label="Back" class="ui-button hub-back" data-focus-key="back" data-variant="quiet" title="Back (⌘⌫)">
+        "←"
+      <span class="hub-name" id="hub-name">
+        "Hub"
+      <span hidden="" id="hub-title-separator">
+        "—"
+      <nav aria-label="Hub breadcrumb" class="hub-breadcrumbs">
+        <span aria-current="page" aria-level="1" class="hub-caption" id="hub-caption" role="heading">
+          "Characters"
+      <span class="hub-context">
+        "Fixture Monk"
+      <span class="hub-move-hint" hidden="" id="hub-move-hint">
+        "⌥ arrows move · ⇧ 48 px"
+      <button aria-label="Lock Hub position" aria-pressed="true" class="ui-window-lock hub-lock" data-focus-key="lock" title="Unlock to move and resize" type="button">
+        <svg aria-hidden="true" viewBox="0 0 24 24">
+          <path class="lock-shackle" d="M7 11V7a5 5 0 0 1 10 0v4"></path><rect x="5" y="11" width="14" height="10" rx="2"></rect>
+      <button aria-label="Close Hub" class="ui-window-close hub-close" data-focus-key="close" title="Close Hub">
+        "×"
+    <section aria-label="Build to apply" class="hub-summary" hidden="">
+    <div class="hub-search ui-hub-search" hidden="">
+      <svg aria-hidden="true" viewBox="0 0 24 24">
+        <path d="m12 2 8 10-8 10L4 12 12 2Zm0 5v10M8 12h8"></path>
+      <span class="hub-scope" hidden="">
+      <input aria-autocomplete="list" aria-controls="hub-results" aria-describedby="hub-hint" aria-description="Characters: search tools or use a command example" aria-expanded="false" aria-label="Search people, places, builds…" autocomplete="off" class="" maxlength="120" placeholder="Search people, places, builds…" role="combobox" spellcheck="false" type="text">
+      <span aria-hidden="true" class="hub-progress">
+      <div aria-hidden="true" class="hub-search-glyphs" hidden="">
+    <div aria-busy="false" aria-label="Results" class="hub-results ui-scroll" data-focus-key="results" hidden="" id="hub-results" role="listbox" tabindex="-1">
+    <p class="hub-empty" hidden="">
+      "No matches"
+    <pre class="hub-preview ui-scroll" hidden="">
+    <div aria-busy="false" class="hub-view">
+      <div aria-labelledby="character-switch-title" class="ui-modal ui-modal-layer" data-layout="horizontal" data-switching="false" id="character-switch-root" open="">
+        <div class="ui-frame character-switch-panel" data-layout="horizontal">
+          <label class="character-switch-search ui-hub-search" for="character-switch-query">
+            <span class="ui-sr-only">
+              "Search characters"
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              <path d="m12 2 8 10-8 10L4 12 12 2Zm0 5v10M8 12h8"></path>
+            <input aria-activedescendant="character-switch-option-3" aria-autocomplete="list" aria-expanded="false" autocomplete="off" class="ui-input" data-focus-key="character-switch-query" id="character-switch-query" maxlength="40" placeholder="Search characters…" role="combobox" spellcheck="false" type="search">
+          <header class="character-switch-head">
+            <h2 class="ui-sr-only" id="character-switch-title">
+              "Switch Character"
+            <span aria-atomic="true" aria-live="polite" class="character-switch-count">
+              "6 characters"
+            <button aria-label="Character Switch settings" aria-pressed="false" class="ui-button character-switch-head-action character-switch-settings-toggle" data-focus-key="Character Switch settings" type="button">
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2Z"></path><circle cx="12" cy="12" r="3"></circle>
+            <button aria-label="Close Switch Character" class="ui-button character-switch-head-action character-switch-close" data-focus-key="Close Switch Character" type="button">
+              <svg aria-hidden="true" viewBox="0 0 16 16">
+                <path d="m3 3 10 10M13 3 3 13"></path>
+          <div class="character-switch-carousel">
+            <button aria-label="Previous character" class="ui-button character-switch-arrow character-switch-previous" data-focus-key="Previous character" type="button">
+              <svg aria-hidden="true" viewBox="0 0 16 16">
+                <path d="m10.5 2.5-5 5 5 5"></path>
+            <ul aria-label="Characters" aria-orientation="horizontal" class="character-switch-list ui-scroll" id="character-switch-list" role="listbox" style="--character-cards: 5;">
+              <li role="presentation">
+                <button aria-label="Switch to Fixture Ranger, Ranger / Mesmer, Level 15, Kamadan, Jewel of Istan, shortcut 2" aria-posinset="2" aria-selected="false" aria-setsize="6" class="character-switch-row" data-character-key="ranger" data-focus-key="character-switch-option-1" data-index="1" data-row="1" data-selected="false" id="character-switch-option-1" role="option" tabindex="-1" type="button">
+                  <span class="character-switch-key">
+                    "2"
+                  <img alt="" aria-hidden="true" src="app/shared/images/professions/2.png">
+                  <span class="character-switch-copyline">
+                    <span class="character-switch-primary">
+                      <span class="character-switch-name">
+                        "Fixture Ranger"
+                    <span class="character-switch-meta" title="R/Me · Lv 15 · Kamadan">
+                      "R/Me · Lv 15 · Kamadan"
+              <li role="presentation">
+                <button aria-label="Switch to Fixture Mesmer, Mesmer, PvP character, Level 20, Lion's Arch, shortcut 3" aria-posinset="3" aria-selected="false" aria-setsize="6" class="character-switch-row" data-character-key="mesmer" data-focus-key="character-switch-option-2" data-index="2" data-row="2" data-selected="false" id="character-switch-option-2" role="option" tabindex="-1" type="button">
+                  <span class="character-switch-key">
+                    "3"
+                  <img alt="" aria-hidden="true" src="app/shared/images/professions/5.png">
+                  <span class="character-switch-copyline">
+                    <span class="character-switch-primary">
+                      <span class="character-switch-name">
+                        "Fixture Mesmer"
+                    <span class="character-switch-meta" title="Me · PvP · Lv 20 · Lion's Arch">
+                      "Me · PvP · Lv 20 · Lion's Arch"
+              <li role="presentation">
+                <button aria-label="Switch to Toefte, Monk / Mesmer, Level 20, Kamadan, Jewel of Istan, shortcut 4" aria-posinset="4" aria-selected="true" aria-setsize="6" class="character-switch-row" data-character-key="toefte" data-focus-key="character-switch-option-3" data-index="3" data-row="3" data-selected="true" id="character-switch-option-3" role="option" tabindex="0" type="button">
+                  <span class="character-switch-key">
+                    "4"
+                  <img alt="" aria-hidden="true" src="app/shared/images/professions/3.png">
+                  <span class="character-switch-copyline">
+                    <span class="character-switch-primary">
+                      <span class="character-switch-name">
+                        "Toefte"
+                    <span class="character-switch-meta" title="Mo/Me · Lv 20 · Kamadan">
+                      "Mo/Me · Lv 20 · Kamadan"
+              <li role="presentation">
+                <button aria-label="Switch to Fixture Warrior, Warrior, Level 20, Lion's Arch, shortcut 5" aria-posinset="5" aria-selected="false" aria-setsize="6" class="character-switch-row" data-character-key="warrior" data-focus-key="character-switch-option-4" data-index="4" data-row="4" data-selected="false" id="character-switch-option-4" role="option" tabindex="-1" type="button">
+                  <span class="character-switch-key">
+                    "5"
+                  <img alt="" aria-hidden="true" src="app/shared/images/professions/1.png">
+                  <span class="character-switch-copyline">
+                    <span class="character-switch-primary">
+                      <span class="character-switch-name">
+                        "Fixture Warrior"
+                    <span class="character-switch-meta" title="W · Lv 20 · Lion's Arch">
+                      "W · Lv 20 · Lion's Arch"
+              <li role="presentation">
+                <button aria-label="Switch to Fixture Ritualist, Ritualist, Level 20, Kamadan, Jewel of Istan, shortcut 6" aria-posinset="6" aria-selected="false" aria-setsize="6" class="character-switch-row" data-character-key="ritualist" data-focus-key="character-switch-option-5" data-index="5" data-row="5" data-selected="false" id="character-switch-option-5" role="option" tabindex="-1" type="button">
+                  <span class="character-switch-key">
+                    "6"
+                  <img alt="" aria-hidden="true" src="app/shared/images/professions/8.png">
+                  <span class="character-switch-copyline">
+                    <span class="character-switch-primary">
+                      <span class="character-switch-name">
+                        "Fixture Ritualist"
+                    <span class="character-switch-meta" title="Rt · Lv 20 · Kamadan">
+                      "Rt · Lv 20 · Kamadan"
+            <button aria-label="Next character" class="ui-button character-switch-arrow character-switch-next" data-focus-key="Next character" type="button">
+              <svg aria-hidden="true" viewBox="0 0 16 16">
+                <path d="m5.5 2.5 5 5-5 5"></path>
+          <section aria-label="Character Switch settings" class="character-switch-settings" hidden="">
+            <label class="character-switch-setting" for="character-switch-show-profession">
+              <span>
+                <strong>
+                  "Show profession"
+                <small>
+                  "Icon, primary, and secondary profession"
+              <input data-focus-key="character-switch-show-profession" id="character-switch-show-profession" type="checkbox" .value="on">
+            <label class="character-switch-setting" for="character-switch-show-level">
+              <span>
+                <strong>
+                  "Show level"
+                <small>
+                  "Character level"
+              <input data-focus-key="character-switch-show-level" id="character-switch-show-level" type="checkbox" .value="on">
+            <label class="character-switch-setting" for="character-switch-show-location">
+              <span>
+                <strong>
+                  "Show known location"
+                <small>
+                  "Locations from the reviewed Travel catalogue"
+              <input data-focus-key="character-switch-show-location" id="character-switch-show-location" type="checkbox" .value="on">
+          <section aria-describedby="character-switch-confirm-copy" class="character-switch-confirm" hidden="">
+            <p id="character-switch-confirm-copy">
+              "Switching characters will leave this explorable area. You may lose progress in this instance."
+            <div class="character-switch-confirm-actions">
+              <button class="ui-button character-switch-stay" data-focus-key="character-switch-stay" id="character-switch-stay" type="button">
+                "Stay here"
+              <button class="ui-button character-switch-leave" data-focus-key="character-switch-leave" data-variant="danger" id="character-switch-leave" type="button">
+                "Leave and switch to this character"
+          <p aria-atomic="true" aria-live="polite" class="character-switch-status" role="status">
+          <details class="character-switch-details" hidden="">
+            <summary>
+              "Technical details"
+            <pre>
+            <button class="ui-button character-switch-copy" type="button">
+              "Copy diagnostics"
+    <div class="hub-footer-status">
+      <p aria-busy="false" class="hub-status" role="status" title="">
+      <p class="hub-lifecycle" hidden="">
+      <p class="hub-hint" hidden="" id="hub-hint" title="">
+    <p aria-atomic="true" aria-live="polite" class="hub-announce ui-sr-only" role="status">
+    <footer class="hub-footer">
+      <span class="hub-legend" data-keys="[[["⎋"],"Close"],[["⌘","⌫"],"Back"]]">
+        <span>
+          <kbd class="ui-kbd">
+            "⎋"
+          " Close"
+        <span>
+          <kbd class="ui-kbd">
+            "⌘"
+          <kbd class="ui-kbd">
+            "⌫"
+          " Back"
+      <span class="hub-count">
+      <button class="hub-primary ui-button" data-focus-key="primary" data-variant="primary" title="Switch to Toefte">
+        <span class="hub-primary-label">
+          "Switch to Toefte"
+        <kbd class="ui-kbd">
+          "↵"
+      <button aria-expanded="false" aria-haspopup="menu" aria-keyshortcuts="Meta+J" class="hub-actions ui-button" data-focus-key="actions" data-variant="quiet" disabled="">
+        "Actions"
+        <kbd aria-hidden="true" class="ui-kbd">
+          "⌘"
+        <kbd aria-hidden="true" class="ui-kbd">
+          "J"
+    <div aria-label="Actions" class="hub-menu" hidden="" role="menu">
+    <button aria-label="Resize Hub" class="ui-window-resize hub-resize" data-focus-key="resize" hidden="" title="Drag to resize, or use arrow keys">
+<div aria-hidden="true" class="hub-receipt ui-toast" hidden="" popover="manual">
+<p aria-atomic="true" class="hub-receipt-announcement ui-sr-only" role="status">
+<div class="character-switch-veil" hidden="" role="status">
+
+=== search (focus: input#character-switch-query.ui-input)
+<canvas id="canvas">
+<dialog aria-labelledby="hub-name hub-title-separator hub-caption" class="ui-modal ui-modal-layer" data-gwonmac-surface="" data-page="section" id="hub" open="">
+  <section class="hub-panel ui-frame ui-art-frame" data-busy="false" data-locked="true">
+    <canvas aria-hidden="true" class="ui-frame-artwork">
+    <header class="hub-heading ui-window-head">
+      <button aria-description="Return to Home" aria-keyshortcuts="Meta+Backspace" aria-label="Back" class="ui-button hub-back" data-focus-key="back" data-variant="quiet" title="Back (⌘⌫)">
+        "←"
+      <span class="hub-name" id="hub-name">
+        "Hub"
+      <span hidden="" id="hub-title-separator">
+        "—"
+      <nav aria-label="Hub breadcrumb" class="hub-breadcrumbs">
+        <span aria-current="page" aria-level="1" class="hub-caption" id="hub-caption" role="heading">
+          "Characters"
+      <span class="hub-context">
+        "Fixture Monk"
+      <span class="hub-move-hint" hidden="" id="hub-move-hint">
+        "⌥ arrows move · ⇧ 48 px"
+      <button aria-label="Lock Hub position" aria-pressed="true" class="ui-window-lock hub-lock" data-focus-key="lock" title="Unlock to move and resize" type="button">
+        <svg aria-hidden="true" viewBox="0 0 24 24">
+          <path class="lock-shackle" d="M7 11V7a5 5 0 0 1 10 0v4"></path><rect x="5" y="11" width="14" height="10" rx="2"></rect>
+      <button aria-label="Close Hub" class="ui-window-close hub-close" data-focus-key="close" title="Close Hub">
+        "×"
+    <section aria-label="Build to apply" class="hub-summary" hidden="">
+    <div class="hub-search ui-hub-search" hidden="">
+      <svg aria-hidden="true" viewBox="0 0 24 24">
+        <path d="m12 2 8 10-8 10L4 12 12 2Zm0 5v10M8 12h8"></path>
+      <span class="hub-scope" hidden="">
+      <input aria-autocomplete="list" aria-controls="hub-results" aria-describedby="hub-hint" aria-description="Characters: search tools or use a command example" aria-expanded="false" aria-label="Search people, places, builds…" autocomplete="off" class="" maxlength="120" placeholder="Search people, places, builds…" role="combobox" spellcheck="false" type="text">
+      <span aria-hidden="true" class="hub-progress">
+      <div aria-hidden="true" class="hub-search-glyphs" hidden="">
+    <div aria-busy="false" aria-label="Results" class="hub-results ui-scroll" data-focus-key="results" hidden="" id="hub-results" role="listbox" tabindex="-1">
+    <p class="hub-empty" hidden="">
+      "No matches"
+    <pre class="hub-preview ui-scroll" hidden="">
+    <div aria-busy="false" class="hub-view">
+      <div aria-labelledby="character-switch-title" class="ui-modal ui-modal-layer" data-layout="horizontal" data-switching="false" id="character-switch-root" open="">
+        <div class="ui-frame character-switch-panel" data-layout="horizontal">
+          <label class="character-switch-search ui-hub-search" for="character-switch-query">
+            <span class="ui-sr-only">
+              "Search characters"
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              <path d="m12 2 8 10-8 10L4 12 12 2Zm0 5v10M8 12h8"></path>
+            <input aria-activedescendant="character-switch-option-1" aria-autocomplete="list" aria-controls="character-switch-list" aria-expanded="true" autocomplete="off" class="ui-input" data-focus-key="character-switch-query" id="character-switch-query" maxlength="40" placeholder="Search characters…" role="combobox" spellcheck="false" type="search" .value="fixture r">
+          <header class="character-switch-head">
+            <h2 class="ui-sr-only" id="character-switch-title">
+              "Switch Character"
+            <span aria-atomic="true" aria-live="polite" class="character-switch-count">
+              "2 of 6"
+            <button aria-label="Character Switch settings" aria-pressed="false" class="ui-button character-switch-head-action character-switch-settings-toggle" data-focus-key="Character Switch settings" type="button">
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2Z"></path><circle cx="12" cy="12" r="3"></circle>
+            <button aria-label="Close Switch Character" class="ui-button character-switch-head-action character-switch-close" data-focus-key="Close Switch Character" type="button">
+              <svg aria-hidden="true" viewBox="0 0 16 16">
+                <path d="m3 3 10 10M13 3 3 13"></path>
+          <div class="character-switch-carousel">
+            <button aria-label="Previous character" class="ui-button character-switch-arrow character-switch-previous" data-focus-key="Previous character" disabled="" type="button">
+              <svg aria-hidden="true" viewBox="0 0 16 16">
+                <path d="m10.5 2.5-5 5 5 5"></path>
+            <ul aria-label="Characters" aria-orientation="horizontal" class="character-switch-list ui-scroll" id="character-switch-list" role="listbox" style="--character-cards: 5;">
+              <li role="presentation">
+                <button aria-label="Switch to Fixture Ranger, Ranger / Mesmer, Level 15, Kamadan, Jewel of Istan" aria-posinset="1" aria-selected="true" aria-setsize="2" class="character-switch-row" data-character-key="ranger" data-focus-key="character-switch-option-1" data-index="1" data-row="0" data-selected="true" id="character-switch-option-1" role="option" tabindex="0" type="button">
+                  <span class="character-switch-key">
+                  <img alt="" aria-hidden="true" src="app/shared/images/professions/2.png">
+                  <span class="character-switch-copyline">
+                    <span class="character-switch-primary">
+                      <span class="character-switch-name">
+                        "Fixture Ranger"
+                    <span class="character-switch-meta" title="R/Me · Lv 15 · Kamadan">
+                      "R/Me · Lv 15 · Kamadan"
+              <li role="presentation">
+                <button aria-label="Switch to Fixture Ritualist, Ritualist, Level 20, Kamadan, Jewel of Istan" aria-posinset="2" aria-selected="false" aria-setsize="2" class="character-switch-row" data-character-key="ritualist" data-focus-key="character-switch-option-5" data-index="5" data-row="1" data-selected="false" id="character-switch-option-5" role="option" tabindex="-1" type="button">
+                  <span class="character-switch-key">
+                  <img alt="" aria-hidden="true" src="app/shared/images/professions/8.png">
+                  <span class="character-switch-copyline">
+                    <span class="character-switch-primary">
+                      <span class="character-switch-name">
+                        "Fixture Ritualist"
+                    <span class="character-switch-meta" title="Rt · Lv 20 · Kamadan">
+                      "Rt · Lv 20 · Kamadan"
+              <li aria-hidden="true" class="character-switch-slot" role="presentation">
+              <li aria-hidden="true" class="character-switch-slot" role="presentation">
+              <li aria-hidden="true" class="character-switch-slot" role="presentation">
+            <button aria-label="Next character" class="ui-button character-switch-arrow character-switch-next" data-focus-key="Next character" type="button">
+              <svg aria-hidden="true" viewBox="0 0 16 16">
+                <path d="m5.5 2.5 5 5-5 5"></path>
+          <section aria-label="Character Switch settings" class="character-switch-settings" hidden="">
+            <label class="character-switch-setting" for="character-switch-show-profession">
+              <span>
+                <strong>
+                  "Show profession"
+                <small>
+                  "Icon, primary, and secondary profession"
+              <input data-focus-key="character-switch-show-profession" id="character-switch-show-profession" type="checkbox" .value="on">
+            <label class="character-switch-setting" for="character-switch-show-level">
+              <span>
+                <strong>
+                  "Show level"
+                <small>
+                  "Character level"
+              <input data-focus-key="character-switch-show-level" id="character-switch-show-level" type="checkbox" .value="on">
+            <label class="character-switch-setting" for="character-switch-show-location">
+              <span>
+                <strong>
+                  "Show known location"
+                <small>
+                  "Locations from the reviewed Travel catalogue"
+              <input data-focus-key="character-switch-show-location" id="character-switch-show-location" type="checkbox" .value="on">
+          <section aria-describedby="character-switch-confirm-copy" class="character-switch-confirm" hidden="">
+            <p id="character-switch-confirm-copy">
+              "Switching characters will leave this explorable area. You may lose progress in this instance."
+            <div class="character-switch-confirm-actions">
+              <button class="ui-button character-switch-stay" data-focus-key="character-switch-stay" id="character-switch-stay" type="button">
+                "Stay here"
+              <button class="ui-button character-switch-leave" data-focus-key="character-switch-leave" data-variant="danger" id="character-switch-leave" type="button">
+                "Leave and switch to this character"
+          <p aria-atomic="true" aria-live="polite" class="character-switch-status" role="status">
+          <details class="character-switch-details" hidden="">
+            <summary>
+              "Technical details"
+            <pre>
+            <button class="ui-button character-switch-copy" type="button">
+              "Copy diagnostics"
+    <div class="hub-footer-status">
+      <p aria-busy="false" class="hub-status" role="status" title="">
+      <p class="hub-lifecycle" hidden="">
+      <p class="hub-hint" hidden="" id="hub-hint" title="">
+    <p aria-atomic="true" aria-live="polite" class="hub-announce ui-sr-only" role="status">
+    <footer class="hub-footer">
+      <span class="hub-legend" data-keys="[[["⎋"],"Clear"],[["⌘","⌫"],"Back"]]">
+        <span>
+          <kbd class="ui-kbd">
+            "⎋"
+          " Clear"
+        <span>
+          <kbd class="ui-kbd">
+            "⌘"
+          <kbd class="ui-kbd">
+            "⌫"
+          " Back"
+      <span class="hub-count">
+      <button class="hub-primary ui-button" data-focus-key="primary" data-variant="primary" title="Switch to Fixture Ranger">
+        <span class="hub-primary-label">
+          "Switch to Fixture Ranger"
+        <kbd class="ui-kbd">
+          "↵"
+      <button aria-expanded="false" aria-haspopup="menu" aria-keyshortcuts="Meta+J" class="hub-actions ui-button" data-focus-key="actions" data-variant="quiet" disabled="">
+        "Actions"
+        <kbd aria-hidden="true" class="ui-kbd">
+          "⌘"
+        <kbd aria-hidden="true" class="ui-kbd">
+          "J"
+    <div aria-label="Actions" class="hub-menu" hidden="" role="menu">
+    <button aria-label="Resize Hub" class="ui-window-resize hub-resize" data-focus-key="resize" hidden="" title="Drag to resize, or use arrow keys">
+<div aria-hidden="true" class="hub-receipt ui-toast" hidden="" popover="manual">
+<p aria-atomic="true" class="hub-receipt-announcement ui-sr-only" role="status">
+<div class="character-switch-veil" hidden="" role="status">
+
+=== search cleared (focus: input#character-switch-query.ui-input)
+<canvas id="canvas">
+<dialog aria-labelledby="hub-name hub-title-separator hub-caption" class="ui-modal ui-modal-layer" data-gwonmac-surface="" data-page="section" id="hub" open="">
+  <section class="hub-panel ui-frame ui-art-frame" data-busy="false" data-locked="true">
+    <canvas aria-hidden="true" class="ui-frame-artwork">
+    <header class="hub-heading ui-window-head">
+      <button aria-description="Return to Home" aria-keyshortcuts="Meta+Backspace" aria-label="Back" class="ui-button hub-back" data-focus-key="back" data-variant="quiet" title="Back (⌘⌫)">
+        "←"
+      <span class="hub-name" id="hub-name">
+        "Hub"
+      <span hidden="" id="hub-title-separator">
+        "—"
+      <nav aria-label="Hub breadcrumb" class="hub-breadcrumbs">
+        <span aria-current="page" aria-level="1" class="hub-caption" id="hub-caption" role="heading">
+          "Characters"
+      <span class="hub-context">
+        "Fixture Monk"
+      <span class="hub-move-hint" hidden="" id="hub-move-hint">
+        "⌥ arrows move · ⇧ 48 px"
+      <button aria-label="Lock Hub position" aria-pressed="true" class="ui-window-lock hub-lock" data-focus-key="lock" title="Unlock to move and resize" type="button">
+        <svg aria-hidden="true" viewBox="0 0 24 24">
+          <path class="lock-shackle" d="M7 11V7a5 5 0 0 1 10 0v4"></path><rect x="5" y="11" width="14" height="10" rx="2"></rect>
+      <button aria-label="Close Hub" class="ui-window-close hub-close" data-focus-key="close" title="Close Hub">
+        "×"
+    <section aria-label="Build to apply" class="hub-summary" hidden="">
+    <div class="hub-search ui-hub-search" hidden="">
+      <svg aria-hidden="true" viewBox="0 0 24 24">
+        <path d="m12 2 8 10-8 10L4 12 12 2Zm0 5v10M8 12h8"></path>
+      <span class="hub-scope" hidden="">
+      <input aria-autocomplete="list" aria-controls="hub-results" aria-describedby="hub-hint" aria-description="Characters: search tools or use a command example" aria-expanded="false" aria-label="Search people, places, builds…" autocomplete="off" class="" maxlength="120" placeholder="Search people, places, builds…" role="combobox" spellcheck="false" type="text">
+      <span aria-hidden="true" class="hub-progress">
+      <div aria-hidden="true" class="hub-search-glyphs" hidden="">
+    <div aria-busy="false" aria-label="Results" class="hub-results ui-scroll" data-focus-key="results" hidden="" id="hub-results" role="listbox" tabindex="-1">
+    <p class="hub-empty" hidden="">
+      "No matches"
+    <pre class="hub-preview ui-scroll" hidden="">
+    <div aria-busy="false" class="hub-view">
+      <div aria-labelledby="character-switch-title" class="ui-modal ui-modal-layer" data-layout="horizontal" data-switching="false" id="character-switch-root" open="">
+        <div class="ui-frame character-switch-panel" data-layout="horizontal">
+          <label class="character-switch-search ui-hub-search" for="character-switch-query">
+            <span class="ui-sr-only">
+              "Search characters"
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              <path d="m12 2 8 10-8 10L4 12 12 2Zm0 5v10M8 12h8"></path>
+            <input aria-activedescendant="character-switch-option-3" aria-autocomplete="list" aria-expanded="false" autocomplete="off" class="ui-input" data-focus-key="character-switch-query" id="character-switch-query" maxlength="40" placeholder="Search characters…" role="combobox" spellcheck="false" type="search">
+          <header class="character-switch-head">
+            <h2 class="ui-sr-only" id="character-switch-title">
+              "Switch Character"
+            <span aria-atomic="true" aria-live="polite" class="character-switch-count">
+              "6 characters"
+            <button aria-label="Character Switch settings" aria-pressed="false" class="ui-button character-switch-head-action character-switch-settings-toggle" data-focus-key="Character Switch settings" type="button">
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2Z"></path><circle cx="12" cy="12" r="3"></circle>
+            <button aria-label="Close Switch Character" class="ui-button character-switch-head-action character-switch-close" data-focus-key="Close Switch Character" type="button">
+              <svg aria-hidden="true" viewBox="0 0 16 16">
+                <path d="m3 3 10 10M13 3 3 13"></path>
+          <div class="character-switch-carousel">
+            <button aria-label="Previous character" class="ui-button character-switch-arrow character-switch-previous" data-focus-key="Previous character" type="button">
+              <svg aria-hidden="true" viewBox="0 0 16 16">
+                <path d="m10.5 2.5-5 5 5 5"></path>
+            <ul aria-label="Characters" aria-orientation="horizontal" class="character-switch-list ui-scroll" id="character-switch-list" role="listbox" style="--character-cards: 5;">
+              <li role="presentation">
+                <button aria-label="Switch to Fixture Ranger, Ranger / Mesmer, Level 15, Kamadan, Jewel of Istan, shortcut 2" aria-posinset="2" aria-selected="false" aria-setsize="6" class="character-switch-row" data-character-key="ranger" data-focus-key="character-switch-option-1" data-index="1" data-row="1" data-selected="false" id="character-switch-option-1" role="option" tabindex="-1" type="button">
+                  <span class="character-switch-key">
+                    "2"
+                  <img alt="" aria-hidden="true" src="app/shared/images/professions/2.png">
+                  <span class="character-switch-copyline">
+                    <span class="character-switch-primary">
+                      <span class="character-switch-name">
+                        "Fixture Ranger"
+                    <span class="character-switch-meta" title="R/Me · Lv 15 · Kamadan">
+                      "R/Me · Lv 15 · Kamadan"
+              <li role="presentation">
+                <button aria-label="Switch to Fixture Mesmer, Mesmer, PvP character, Level 20, Lion's Arch, shortcut 3" aria-posinset="3" aria-selected="false" aria-setsize="6" class="character-switch-row" data-character-key="mesmer" data-focus-key="character-switch-option-2" data-index="2" data-row="2" data-selected="false" id="character-switch-option-2" role="option" tabindex="-1" type="button">
+                  <span class="character-switch-key">
+                    "3"
+                  <img alt="" aria-hidden="true" src="app/shared/images/professions/5.png">
+                  <span class="character-switch-copyline">
+                    <span class="character-switch-primary">
+                      <span class="character-switch-name">
+                        "Fixture Mesmer"
+                    <span class="character-switch-meta" title="Me · PvP · Lv 20 · Lion's Arch">
+                      "Me · PvP · Lv 20 · Lion's Arch"
+              <li role="presentation">
+                <button aria-label="Switch to Toefte, Monk / Mesmer, Level 20, Kamadan, Jewel of Istan, shortcut 4" aria-posinset="4" aria-selected="true" aria-setsize="6" class="character-switch-row" data-character-key="toefte" data-focus-key="character-switch-option-3" data-index="3" data-row="3" data-selected="true" id="character-switch-option-3" role="option" tabindex="0" type="button">
+                  <span class="character-switch-key">
+                    "4"
+                  <img alt="" aria-hidden="true" src="app/shared/images/professions/3.png">
+                  <span class="character-switch-copyline">
+                    <span class="character-switch-primary">
+                      <span class="character-switch-name">
+                        "Toefte"
+                    <span class="character-switch-meta" title="Mo/Me · Lv 20 · Kamadan">
+                      "Mo/Me · Lv 20 · Kamadan"
+              <li role="presentation">
+                <button aria-label="Switch to Fixture Warrior, Warrior, Level 20, Lion's Arch, shortcut 5" aria-posinset="5" aria-selected="false" aria-setsize="6" class="character-switch-row" data-character-key="warrior" data-focus-key="character-switch-option-4" data-index="4" data-row="4" data-selected="false" id="character-switch-option-4" role="option" tabindex="-1" type="button">
+                  <span class="character-switch-key">
+                    "5"
+                  <img alt="" aria-hidden="true" src="app/shared/images/professions/1.png">
+                  <span class="character-switch-copyline">
+                    <span class="character-switch-primary">
+                      <span class="character-switch-name">
+                        "Fixture Warrior"
+                    <span class="character-switch-meta" title="W · Lv 20 · Lion's Arch">
+                      "W · Lv 20 · Lion's Arch"
+              <li role="presentation">
+                <button aria-label="Switch to Fixture Ritualist, Ritualist, Level 20, Kamadan, Jewel of Istan, shortcut 6" aria-posinset="6" aria-selected="false" aria-setsize="6" class="character-switch-row" data-character-key="ritualist" data-focus-key="character-switch-option-5" data-index="5" data-row="5" data-selected="false" id="character-switch-option-5" role="option" tabindex="-1" type="button">
+                  <span class="character-switch-key">
+                    "6"
+                  <img alt="" aria-hidden="true" src="app/shared/images/professions/8.png">
+                  <span class="character-switch-copyline">
+                    <span class="character-switch-primary">
+                      <span class="character-switch-name">
+                        "Fixture Ritualist"
+                    <span class="character-switch-meta" title="Rt · Lv 20 · Kamadan">
+                      "Rt · Lv 20 · Kamadan"
+            <button aria-label="Next character" class="ui-button character-switch-arrow character-switch-next" data-focus-key="Next character" type="button">
+              <svg aria-hidden="true" viewBox="0 0 16 16">
+                <path d="m5.5 2.5 5 5-5 5"></path>
+          <section aria-label="Character Switch settings" class="character-switch-settings" hidden="">
+            <label class="character-switch-setting" for="character-switch-show-profession">
+              <span>
+                <strong>
+                  "Show profession"
+                <small>
+                  "Icon, primary, and secondary profession"
+              <input data-focus-key="character-switch-show-profession" id="character-switch-show-profession" type="checkbox" .value="on">
+            <label class="character-switch-setting" for="character-switch-show-level">
+              <span>
+                <strong>
+                  "Show level"
+                <small>
+                  "Character level"
+              <input data-focus-key="character-switch-show-level" id="character-switch-show-level" type="checkbox" .value="on">
+            <label class="character-switch-setting" for="character-switch-show-location">
+              <span>
+                <strong>
+                  "Show known location"
+                <small>
+                  "Locations from the reviewed Travel catalogue"
+              <input data-focus-key="character-switch-show-location" id="character-switch-show-location" type="checkbox" .value="on">
+          <section aria-describedby="character-switch-confirm-copy" class="character-switch-confirm" hidden="">
+            <p id="character-switch-confirm-copy">
+              "Switching characters will leave this explorable area. You may lose progress in this instance."
+            <div class="character-switch-confirm-actions">
+              <button class="ui-button character-switch-stay" data-focus-key="character-switch-stay" id="character-switch-stay" type="button">
+                "Stay here"
+              <button class="ui-button character-switch-leave" data-focus-key="character-switch-leave" data-variant="danger" id="character-switch-leave" type="button">
+                "Leave and switch to this character"
+          <p aria-atomic="true" aria-live="polite" class="character-switch-status" role="status">
+          <details class="character-switch-details" hidden="">
+            <summary>
+              "Technical details"
+            <pre>
+            <button class="ui-button character-switch-copy" type="button">
+              "Copy diagnostics"
+    <div class="hub-footer-status">
+      <p aria-busy="false" class="hub-status" role="status" title="">
+      <p class="hub-lifecycle" hidden="">
+      <p class="hub-hint" hidden="" id="hub-hint" title="">
+    <p aria-atomic="true" aria-live="polite" class="hub-announce ui-sr-only" role="status">
+    <footer class="hub-footer">
+      <span class="hub-legend" data-keys="[[["⎋"],"Close"],[["⌘","⌫"],"Back"]]">
+        <span>
+          <kbd class="ui-kbd">
+            "⎋"
+          " Close"
+        <span>
+          <kbd class="ui-kbd">
+            "⌘"
+          <kbd class="ui-kbd">
+            "⌫"
+          " Back"
+      <span class="hub-count">
+      <button class="hub-primary ui-button" data-focus-key="primary" data-variant="primary" title="Switch to Toefte">
+        <span class="hub-primary-label">
+          "Switch to Toefte"
+        <kbd class="ui-kbd">
+          "↵"
+      <button aria-expanded="false" aria-haspopup="menu" aria-keyshortcuts="Meta+J" class="hub-actions ui-button" data-focus-key="actions" data-variant="quiet" disabled="">
+        "Actions"
+        <kbd aria-hidden="true" class="ui-kbd">
+          "⌘"
+        <kbd aria-hidden="true" class="ui-kbd">
+          "J"
+    <div aria-label="Actions" class="hub-menu" hidden="" role="menu">
+    <button aria-label="Resize Hub" class="ui-window-resize hub-resize" data-focus-key="resize" hidden="" title="Drag to resize, or use arrow keys">
+<div aria-hidden="true" class="hub-receipt ui-toast" hidden="" popover="manual">
+<p aria-atomic="true" class="hub-receipt-announcement ui-sr-only" role="status">
+<div class="character-switch-veil" hidden="" role="status">
+
+=== settings (focus: input#character-switch-show-profession)
+<canvas id="canvas">
+<dialog aria-labelledby="hub-name hub-title-separator hub-caption" class="ui-modal ui-modal-layer" data-gwonmac-surface="" data-page="section" id="hub" open="">
+  <section class="hub-panel ui-frame ui-art-frame" data-busy="false" data-locked="true">
+    <canvas aria-hidden="true" class="ui-frame-artwork">
+    <header class="hub-heading ui-window-head">
+      <button aria-description="Return to Home" aria-keyshortcuts="Meta+Backspace" aria-label="Back" class="ui-button hub-back" data-focus-key="back" data-variant="quiet" title="Back (⌘⌫)">
+        "←"
+      <span class="hub-name" id="hub-name">
+        "Hub"
+      <span hidden="" id="hub-title-separator">
+        "—"
+      <nav aria-label="Hub breadcrumb" class="hub-breadcrumbs">
+        <span aria-current="page" aria-level="1" class="hub-caption" id="hub-caption" role="heading">
+          "Characters"
+      <span class="hub-context">
+        "Fixture Monk"
+      <span class="hub-move-hint" hidden="" id="hub-move-hint">
+        "⌥ arrows move · ⇧ 48 px"
+      <button aria-label="Lock Hub position" aria-pressed="true" class="ui-window-lock hub-lock" data-focus-key="lock" title="Unlock to move and resize" type="button">
+        <svg aria-hidden="true" viewBox="0 0 24 24">
+          <path class="lock-shackle" d="M7 11V7a5 5 0 0 1 10 0v4"></path><rect x="5" y="11" width="14" height="10" rx="2"></rect>
+      <button aria-label="Close Hub" class="ui-window-close hub-close" data-focus-key="close" title="Close Hub">
+        "×"
+    <section aria-label="Build to apply" class="hub-summary" hidden="">
+    <div class="hub-search ui-hub-search" hidden="">
+      <svg aria-hidden="true" viewBox="0 0 24 24">
+        <path d="m12 2 8 10-8 10L4 12 12 2Zm0 5v10M8 12h8"></path>
+      <span class="hub-scope" hidden="">
+      <input aria-autocomplete="list" aria-controls="hub-results" aria-describedby="hub-hint" aria-description="Characters: search tools or use a command example" aria-expanded="false" aria-label="Search people, places, builds…" autocomplete="off" class="" maxlength="120" placeholder="Search people, places, builds…" role="combobox" spellcheck="false" type="text">
+      <span aria-hidden="true" class="hub-progress">
+      <div aria-hidden="true" class="hub-search-glyphs" hidden="">
+    <div aria-busy="false" aria-label="Results" class="hub-results ui-scroll" data-focus-key="results" hidden="" id="hub-results" role="listbox" tabindex="-1">
+    <p class="hub-empty" hidden="">
+      "No matches"
+    <pre class="hub-preview ui-scroll" hidden="">
+    <div aria-busy="false" class="hub-view">
+      <div aria-labelledby="character-switch-title" class="ui-modal ui-modal-layer" data-layout="horizontal" data-switching="false" id="character-switch-root" open="">
+        <div class="ui-frame character-switch-panel" data-layout="horizontal">
+          <label class="character-switch-search ui-hub-search" for="character-switch-query" hidden="">
+            <span class="ui-sr-only">
+              "Search characters"
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              <path d="m12 2 8 10-8 10L4 12 12 2Zm0 5v10M8 12h8"></path>
+            <input aria-activedescendant="character-switch-option-3" aria-autocomplete="list" aria-expanded="false" autocomplete="off" class="ui-input" data-focus-key="character-switch-query" id="character-switch-query" maxlength="40" placeholder="Search characters…" role="combobox" spellcheck="false" type="search">
+          <header class="character-switch-head">
+            <h2 class="ui-sr-only" id="character-switch-title">
+              "Switch Character"
+            <span aria-atomic="true" aria-live="polite" class="character-switch-count">
+              "6 characters"
+            <button aria-label="Character Switch settings" aria-pressed="true" class="ui-button character-switch-head-action character-switch-settings-toggle" data-focus-key="Character Switch settings" type="button">
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2Z"></path><circle cx="12" cy="12" r="3"></circle>
+            <button aria-label="Close Switch Character" class="ui-button character-switch-head-action character-switch-close" data-focus-key="Close Switch Character" type="button">
+              <svg aria-hidden="true" viewBox="0 0 16 16">
+                <path d="m3 3 10 10M13 3 3 13"></path>
+          <div class="character-switch-carousel" hidden="">
+            <button aria-label="Previous character" class="ui-button character-switch-arrow character-switch-previous" data-focus-key="Previous character" hidden="" type="button">
+              <svg aria-hidden="true" viewBox="0 0 16 16">
+                <path d="m10.5 2.5-5 5 5 5"></path>
+            <ul aria-label="Characters" aria-orientation="horizontal" class="character-switch-list ui-scroll" hidden="" id="character-switch-list" role="listbox" style="--character-cards: 5;">
+              <li role="presentation">
+                <button aria-label="Switch to Fixture Ranger, Ranger / Mesmer, Level 15, Kamadan, Jewel of Istan, shortcut 2" aria-posinset="2" aria-selected="false" aria-setsize="6" class="character-switch-row" data-character-key="ranger" data-focus-key="character-switch-option-1" data-index="1" data-row="1" data-selected="false" id="character-switch-option-1" role="option" tabindex="-1" type="button">
+                  <span class="character-switch-key">
+                    "2"
+                  <img alt="" aria-hidden="true" src="app/shared/images/professions/2.png">
+                  <span class="character-switch-copyline">
+                    <span class="character-switch-primary">
+                      <span class="character-switch-name">
+                        "Fixture Ranger"
+                    <span class="character-switch-meta" title="R/Me · Lv 15 · Kamadan">
+                      "R/Me · Lv 15 · Kamadan"
+              <li role="presentation">
+                <button aria-label="Switch to Fixture Mesmer, Mesmer, PvP character, Level 20, Lion's Arch, shortcut 3" aria-posinset="3" aria-selected="false" aria-setsize="6" class="character-switch-row" data-character-key="mesmer" data-focus-key="character-switch-option-2" data-index="2" data-row="2" data-selected="false" id="character-switch-option-2" role="option" tabindex="-1" type="button">
+                  <span class="character-switch-key">
+                    "3"
+                  <img alt="" aria-hidden="true" src="app/shared/images/professions/5.png">
+                  <span class="character-switch-copyline">
+                    <span class="character-switch-primary">
+                      <span class="character-switch-name">
+                        "Fixture Mesmer"
+                    <span class="character-switch-meta" title="Me · PvP · Lv 20 · Lion's Arch">
+                      "Me · PvP · Lv 20 · Lion's Arch"
+              <li role="presentation">
+                <button aria-label="Switch to Toefte, Monk / Mesmer, Level 20, Kamadan, Jewel of Istan, shortcut 4" aria-posinset="4" aria-selected="true" aria-setsize="6" class="character-switch-row" data-character-key="toefte" data-focus-key="character-switch-option-3" data-index="3" data-row="3" data-selected="true" id="character-switch-option-3" role="option" tabindex="0" type="button">
+                  <span class="character-switch-key">
+                    "4"
+                  <img alt="" aria-hidden="true" src="app/shared/images/professions/3.png">
+                  <span class="character-switch-copyline">
+                    <span class="character-switch-primary">
+                      <span class="character-switch-name">
+                        "Toefte"
+                    <span class="character-switch-meta" title="Mo/Me · Lv 20 · Kamadan">
+                      "Mo/Me · Lv 20 · Kamadan"
+              <li role="presentation">
+                <button aria-label="Switch to Fixture Warrior, Warrior, Level 20, Lion's Arch, shortcut 5" aria-posinset="5" aria-selected="false" aria-setsize="6" class="character-switch-row" data-character-key="warrior" data-focus-key="character-switch-option-4" data-index="4" data-row="4" data-selected="false" id="character-switch-option-4" role="option" tabindex="-1" type="button">
+                  <span class="character-switch-key">
+                    "5"
+                  <img alt="" aria-hidden="true" src="app/shared/images/professions/1.png">
+                  <span class="character-switch-copyline">
+                    <span class="character-switch-primary">
+                      <span class="character-switch-name">
+                        "Fixture Warrior"
+                    <span class="character-switch-meta" title="W · Lv 20 · Lion's Arch">
+                      "W · Lv 20 · Lion's Arch"
+              <li role="presentation">
+                <button aria-label="Switch to Fixture Ritualist, Ritualist, Level 20, Kamadan, Jewel of Istan, shortcut 6" aria-posinset="6" aria-selected="false" aria-setsize="6" class="character-switch-row" data-character-key="ritualist" data-focus-key="character-switch-option-5" data-index="5" data-row="5" data-selected="false" id="character-switch-option-5" role="option" tabindex="-1" type="button">
+                  <span class="character-switch-key">
+                    "6"
+                  <img alt="" aria-hidden="true" src="app/shared/images/professions/8.png">
+                  <span class="character-switch-copyline">
+                    <span class="character-switch-primary">
+                      <span class="character-switch-name">
+                        "Fixture Ritualist"
+                    <span class="character-switch-meta" title="Rt · Lv 20 · Kamadan">
+                      "Rt · Lv 20 · Kamadan"
+            <button aria-label="Next character" class="ui-button character-switch-arrow character-switch-next" data-focus-key="Next character" hidden="" type="button">
+              <svg aria-hidden="true" viewBox="0 0 16 16">
+                <path d="m5.5 2.5 5 5-5 5"></path>
+          <section aria-label="Character Switch settings" class="character-switch-settings">
+            <label class="character-switch-setting" for="character-switch-show-profession">
+              <span>
+                <strong>
+                  "Show profession"
+                <small>
+                  "Icon, primary, and secondary profession"
+              <input data-focus-key="character-switch-show-profession" id="character-switch-show-profession" type="checkbox" .value="on">
+            <label class="character-switch-setting" for="character-switch-show-level">
+              <span>
+                <strong>
+                  "Show level"
+                <small>
+                  "Character level"
+              <input data-focus-key="character-switch-show-level" id="character-switch-show-level" type="checkbox" .value="on">
+            <label class="character-switch-setting" for="character-switch-show-location">
+              <span>
+                <strong>
+                  "Show known location"
+                <small>
+                  "Locations from the reviewed Travel catalogue"
+              <input data-focus-key="character-switch-show-location" id="character-switch-show-location" type="checkbox" .value="on">
+          <section aria-describedby="character-switch-confirm-copy" class="character-switch-confirm" hidden="">
+            <p id="character-switch-confirm-copy">
+              "Switching characters will leave this explorable area. You may lose progress in this instance."
+            <div class="character-switch-confirm-actions">
+              <button class="ui-button character-switch-stay" data-focus-key="character-switch-stay" id="character-switch-stay" type="button">
+                "Stay here"
+              <button class="ui-button character-switch-leave" data-focus-key="character-switch-leave" data-variant="danger" id="character-switch-leave" type="button">
+                "Leave and switch to this character"
+          <p aria-atomic="true" aria-live="polite" class="character-switch-status" role="status">
+          <details class="character-switch-details" hidden="">
+            <summary>
+              "Technical details"
+            <pre>
+            <button class="ui-button character-switch-copy" type="button">
+              "Copy diagnostics"
+    <div class="hub-footer-status">
+      <p aria-busy="false" class="hub-status" role="status" title="">
+      <p class="hub-lifecycle" hidden="">
+      <p class="hub-hint" hidden="" id="hub-hint" title="">
+    <p aria-atomic="true" aria-live="polite" class="hub-announce ui-sr-only" role="status">
+    <footer class="hub-footer">
+      <span class="hub-legend" data-keys="[[["⎋"],"Close"],[["⌘","⌫"],"Back"]]">
+        <span>
+          <kbd class="ui-kbd">
+            "⎋"
+          " Close"
+        <span>
+          <kbd class="ui-kbd">
+            "⌘"
+          <kbd class="ui-kbd">
+            "⌫"
+          " Back"
+      <span class="hub-count">
+      <button class="hub-primary ui-button" data-focus-key="primary" data-variant="primary" title="Done">
+        <span class="hub-primary-label">
+          "Done"
+        <kbd class="ui-kbd">
+          "↵"
+      <button aria-expanded="false" aria-haspopup="menu" aria-keyshortcuts="Meta+J" class="hub-actions ui-button" data-focus-key="actions" data-variant="quiet" disabled="">
+        "Actions"
+        <kbd aria-hidden="true" class="ui-kbd">
+          "⌘"
+        <kbd aria-hidden="true" class="ui-kbd">
+          "J"
+    <div aria-label="Actions" class="hub-menu" hidden="" role="menu">
+    <button aria-label="Resize Hub" class="ui-window-resize hub-resize" data-focus-key="resize" hidden="" title="Drag to resize, or use arrow keys">
+<div aria-hidden="true" class="hub-receipt ui-toast" hidden="" popover="manual">
+<p aria-atomic="true" class="hub-receipt-announcement ui-sr-only" role="status">
+<div class="character-switch-veil" hidden="" role="status">
+
+=== settings, level hidden (focus: input#character-switch-show-level)
+<canvas id="canvas">
+<dialog aria-labelledby="hub-name hub-title-separator hub-caption" class="ui-modal ui-modal-layer" data-gwonmac-surface="" data-page="section" id="hub" open="">
+  <section class="hub-panel ui-frame ui-art-frame" data-busy="false" data-locked="true">
+    <canvas aria-hidden="true" class="ui-frame-artwork">
+    <header class="hub-heading ui-window-head">
+      <button aria-description="Return to Home" aria-keyshortcuts="Meta+Backspace" aria-label="Back" class="ui-button hub-back" data-focus-key="back" data-variant="quiet" title="Back (⌘⌫)">
+        "←"
+      <span class="hub-name" id="hub-name">
+        "Hub"
+      <span hidden="" id="hub-title-separator">
+        "—"
+      <nav aria-label="Hub breadcrumb" class="hub-breadcrumbs">
+        <span aria-current="page" aria-level="1" class="hub-caption" id="hub-caption" role="heading">
+          "Characters"
+      <span class="hub-context">
+        "Fixture Monk"
+      <span class="hub-move-hint" hidden="" id="hub-move-hint">
+        "⌥ arrows move · ⇧ 48 px"
+      <button aria-label="Lock Hub position" aria-pressed="true" class="ui-window-lock hub-lock" data-focus-key="lock" title="Unlock to move and resize" type="button">
+        <svg aria-hidden="true" viewBox="0 0 24 24">
+          <path class="lock-shackle" d="M7 11V7a5 5 0 0 1 10 0v4"></path><rect x="5" y="11" width="14" height="10" rx="2"></rect>
+      <button aria-label="Close Hub" class="ui-window-close hub-close" data-focus-key="close" title="Close Hub">
+        "×"
+    <section aria-label="Build to apply" class="hub-summary" hidden="">
+    <div class="hub-search ui-hub-search" hidden="">
+      <svg aria-hidden="true" viewBox="0 0 24 24">
+        <path d="m12 2 8 10-8 10L4 12 12 2Zm0 5v10M8 12h8"></path>
+      <span class="hub-scope" hidden="">
+      <input aria-autocomplete="list" aria-controls="hub-results" aria-describedby="hub-hint" aria-description="Characters: search tools or use a command example" aria-expanded="false" aria-label="Search people, places, builds…" autocomplete="off" class="" maxlength="120" placeholder="Search people, places, builds…" role="combobox" spellcheck="false" type="text">
+      <span aria-hidden="true" class="hub-progress">
+      <div aria-hidden="true" class="hub-search-glyphs" hidden="">
+    <div aria-busy="false" aria-label="Results" class="hub-results ui-scroll" data-focus-key="results" hidden="" id="hub-results" role="listbox" tabindex="-1">
+    <p class="hub-empty" hidden="">
+      "No matches"
+    <pre class="hub-preview ui-scroll" hidden="">
+    <div aria-busy="false" class="hub-view">
+      <div aria-labelledby="character-switch-title" class="ui-modal ui-modal-layer" data-layout="horizontal" data-switching="false" id="character-switch-root" open="">
+        <div class="ui-frame character-switch-panel" data-layout="horizontal">
+          <label class="character-switch-search ui-hub-search" for="character-switch-query" hidden="">
+            <span class="ui-sr-only">
+              "Search characters"
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              <path d="m12 2 8 10-8 10L4 12 12 2Zm0 5v10M8 12h8"></path>
+            <input aria-activedescendant="character-switch-option-3" aria-autocomplete="list" aria-expanded="false" autocomplete="off" class="ui-input" data-focus-key="character-switch-query" id="character-switch-query" maxlength="40" placeholder="Search characters…" role="combobox" spellcheck="false" type="search">
+          <header class="character-switch-head">
+            <h2 class="ui-sr-only" id="character-switch-title">
+              "Switch Character"
+            <span aria-atomic="true" aria-live="polite" class="character-switch-count">
+              "6 characters"
+            <button aria-label="Character Switch settings" aria-pressed="true" class="ui-button character-switch-head-action character-switch-settings-toggle" data-focus-key="Character Switch settings" type="button">
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2Z"></path><circle cx="12" cy="12" r="3"></circle>
+            <button aria-label="Close Switch Character" class="ui-button character-switch-head-action character-switch-close" data-focus-key="Close Switch Character" type="button">
+              <svg aria-hidden="true" viewBox="0 0 16 16">
+                <path d="m3 3 10 10M13 3 3 13"></path>
+          <div class="character-switch-carousel" hidden="">
+            <button aria-label="Previous character" class="ui-button character-switch-arrow character-switch-previous" data-focus-key="Previous character" hidden="" type="button">
+              <svg aria-hidden="true" viewBox="0 0 16 16">
+                <path d="m10.5 2.5-5 5 5 5"></path>
+            <ul aria-label="Characters" aria-orientation="horizontal" class="character-switch-list ui-scroll" hidden="" id="character-switch-list" role="listbox" style="--character-cards: 5;">
+              <li role="presentation">
+                <button aria-label="Switch to Fixture Ranger, Ranger / Mesmer, Kamadan, Jewel of Istan, shortcut 2" aria-posinset="2" aria-selected="false" aria-setsize="6" class="character-switch-row" data-character-key="ranger" data-focus-key="character-switch-option-1" data-index="1" data-row="1" data-selected="false" id="character-switch-option-1" role="option" tabindex="-1" type="button">
+                  <span class="character-switch-key">
+                    "2"
+                  <img alt="" aria-hidden="true" src="app/shared/images/professions/2.png">
+                  <span class="character-switch-copyline">
+                    <span class="character-switch-primary">
+                      <span class="character-switch-name">
+                        "Fixture Ranger"
+                    <span class="character-switch-meta" title="R/Me · Kamadan">
+                      "R/Me · Kamadan"
+              <li role="presentation">
+                <button aria-label="Switch to Fixture Mesmer, Mesmer, PvP character, Lion's Arch, shortcut 3" aria-posinset="3" aria-selected="false" aria-setsize="6" class="character-switch-row" data-character-key="mesmer" data-focus-key="character-switch-option-2" data-index="2" data-row="2" data-selected="false" id="character-switch-option-2" role="option" tabindex="-1" type="button">
+                  <span class="character-switch-key">
+                    "3"
+                  <img alt="" aria-hidden="true" src="app/shared/images/professions/5.png">
+                  <span class="character-switch-copyline">
+                    <span class="character-switch-primary">
+                      <span class="character-switch-name">
+                        "Fixture Mesmer"
+                    <span class="character-switch-meta" title="Me · PvP · Lion's Arch">
+                      "Me · PvP · Lion's Arch"
+              <li role="presentation">
+                <button aria-label="Switch to Toefte, Monk / Mesmer, Kamadan, Jewel of Istan, shortcut 4" aria-posinset="4" aria-selected="true" aria-setsize="6" class="character-switch-row" data-character-key="toefte" data-focus-key="character-switch-option-3" data-index="3" data-row="3" data-selected="true" id="character-switch-option-3" role="option" tabindex="0" type="button">
+                  <span class="character-switch-key">
+                    "4"
+                  <img alt="" aria-hidden="true" src="app/shared/images/professions/3.png">
+                  <span class="character-switch-copyline">
+                    <span class="character-switch-primary">
+                      <span class="character-switch-name">
+                        "Toefte"
+                    <span class="character-switch-meta" title="Mo/Me · Kamadan">
+                      "Mo/Me · Kamadan"
+              <li role="presentation">
+                <button aria-label="Switch to Fixture Warrior, Warrior, Lion's Arch, shortcut 5" aria-posinset="5" aria-selected="false" aria-setsize="6" class="character-switch-row" data-character-key="warrior" data-focus-key="character-switch-option-4" data-index="4" data-row="4" data-selected="false" id="character-switch-option-4" role="option" tabindex="-1" type="button">
+                  <span class="character-switch-key">
+                    "5"
+                  <img alt="" aria-hidden="true" src="app/shared/images/professions/1.png">
+                  <span class="character-switch-copyline">
+                    <span class="character-switch-primary">
+                      <span class="character-switch-name">
+                        "Fixture Warrior"
+                    <span class="character-switch-meta" title="W · Lion's Arch">
+                      "W · Lion's Arch"
+              <li role="presentation">
+                <button aria-label="Switch to Fixture Ritualist, Ritualist, Kamadan, Jewel of Istan, shortcut 6" aria-posinset="6" aria-selected="false" aria-setsize="6" class="character-switch-row" data-character-key="ritualist" data-focus-key="character-switch-option-5" data-index="5" data-row="5" data-selected="false" id="character-switch-option-5" role="option" tabindex="-1" type="button">
+                  <span class="character-switch-key">
+                    "6"
+                  <img alt="" aria-hidden="true" src="app/shared/images/professions/8.png">
+                  <span class="character-switch-copyline">
+                    <span class="character-switch-primary">
+                      <span class="character-switch-name">
+                        "Fixture Ritualist"
+                    <span class="character-switch-meta" title="Rt · Kamadan">
+                      "Rt · Kamadan"
+            <button aria-label="Next character" class="ui-button character-switch-arrow character-switch-next" data-focus-key="Next character" hidden="" type="button">
+              <svg aria-hidden="true" viewBox="0 0 16 16">
+                <path d="m5.5 2.5 5 5-5 5"></path>
+          <section aria-label="Character Switch settings" class="character-switch-settings">
+            <label class="character-switch-setting" for="character-switch-show-profession">
+              <span>
+                <strong>
+                  "Show profession"
+                <small>
+                  "Icon, primary, and secondary profession"
+              <input data-focus-key="character-switch-show-profession" id="character-switch-show-profession" type="checkbox" .value="on">
+            <label class="character-switch-setting" for="character-switch-show-level">
+              <span>
+                <strong>
+                  "Show level"
+                <small>
+                  "Character level"
+              <input data-focus-key="character-switch-show-level" id="character-switch-show-level" type="checkbox" .value="on">
+            <label class="character-switch-setting" for="character-switch-show-location">
+              <span>
+                <strong>
+                  "Show known location"
+                <small>
+                  "Locations from the reviewed Travel catalogue"
+              <input data-focus-key="character-switch-show-location" id="character-switch-show-location" type="checkbox" .value="on">
+          <section aria-describedby="character-switch-confirm-copy" class="character-switch-confirm" hidden="">
+            <p id="character-switch-confirm-copy">
+              "Switching characters will leave this explorable area. You may lose progress in this instance."
+            <div class="character-switch-confirm-actions">
+              <button class="ui-button character-switch-stay" data-focus-key="character-switch-stay" id="character-switch-stay" type="button">
+                "Stay here"
+              <button class="ui-button character-switch-leave" data-focus-key="character-switch-leave" data-variant="danger" id="character-switch-leave" type="button">
+                "Leave and switch to this character"
+          <p aria-atomic="true" aria-live="polite" class="character-switch-status" role="status">
+          <details class="character-switch-details" hidden="">
+            <summary>
+              "Technical details"
+            <pre>
+            <button class="ui-button character-switch-copy" type="button">
+              "Copy diagnostics"
+    <div class="hub-footer-status">
+      <p aria-busy="false" class="hub-status" role="status" title="">
+      <p class="hub-lifecycle" hidden="">
+      <p class="hub-hint" hidden="" id="hub-hint" title="">
+    <p aria-atomic="true" aria-live="polite" class="hub-announce ui-sr-only" role="status">
+    <footer class="hub-footer">
+      <span class="hub-legend" data-keys="[[["⎋"],"Close"],[["⌘","⌫"],"Back"]]">
+        <span>
+          <kbd class="ui-kbd">
+            "⎋"
+          " Close"
+        <span>
+          <kbd class="ui-kbd">
+            "⌘"
+          <kbd class="ui-kbd">
+            "⌫"
+          " Back"
+      <span class="hub-count">
+      <button class="hub-primary ui-button" data-focus-key="primary" data-variant="primary" title="Done">
+        <span class="hub-primary-label">
+          "Done"
+        <kbd class="ui-kbd">
+          "↵"
+      <button aria-expanded="false" aria-haspopup="menu" aria-keyshortcuts="Meta+J" class="hub-actions ui-button" data-focus-key="actions" data-variant="quiet" disabled="">
+        "Actions"
+        <kbd aria-hidden="true" class="ui-kbd">
+          "⌘"
+        <kbd aria-hidden="true" class="ui-kbd">
+          "J"
+    <div aria-label="Actions" class="hub-menu" hidden="" role="menu">
+    <button aria-label="Resize Hub" class="ui-window-resize hub-resize" data-focus-key="resize" hidden="" title="Drag to resize, or use arrow keys">
+<div aria-hidden="true" class="hub-receipt ui-toast" hidden="" popover="manual">
+<p aria-atomic="true" class="hub-receipt-announcement ui-sr-only" role="status">
+<div class="character-switch-veil" hidden="" role="status">
+
+=== settings closed (focus: button#character-switch-option-3.character-switch-row[aria-label="Switch to Toefte, Monk / Mesmer, Kamadan, Jewel of Istan, shortcut 4"])
+<canvas id="canvas">
+<dialog aria-labelledby="hub-name hub-title-separator hub-caption" class="ui-modal ui-modal-layer" data-gwonmac-surface="" data-page="section" id="hub" open="">
+  <section class="hub-panel ui-frame ui-art-frame" data-busy="false" data-locked="true">
+    <canvas aria-hidden="true" class="ui-frame-artwork">
+    <header class="hub-heading ui-window-head">
+      <button aria-description="Return to Home" aria-keyshortcuts="Meta+Backspace" aria-label="Back" class="ui-button hub-back" data-focus-key="back" data-variant="quiet" title="Back (⌘⌫)">
+        "←"
+      <span class="hub-name" id="hub-name">
+        "Hub"
+      <span hidden="" id="hub-title-separator">
+        "—"
+      <nav aria-label="Hub breadcrumb" class="hub-breadcrumbs">
+        <span aria-current="page" aria-level="1" class="hub-caption" id="hub-caption" role="heading">
+          "Characters"
+      <span class="hub-context">
+        "Fixture Monk"
+      <span class="hub-move-hint" hidden="" id="hub-move-hint">
+        "⌥ arrows move · ⇧ 48 px"
+      <button aria-label="Lock Hub position" aria-pressed="true" class="ui-window-lock hub-lock" data-focus-key="lock" title="Unlock to move and resize" type="button">
+        <svg aria-hidden="true" viewBox="0 0 24 24">
+          <path class="lock-shackle" d="M7 11V7a5 5 0 0 1 10 0v4"></path><rect x="5" y="11" width="14" height="10" rx="2"></rect>
+      <button aria-label="Close Hub" class="ui-window-close hub-close" data-focus-key="close" title="Close Hub">
+        "×"
+    <section aria-label="Build to apply" class="hub-summary" hidden="">
+    <div class="hub-search ui-hub-search" hidden="">
+      <svg aria-hidden="true" viewBox="0 0 24 24">
+        <path d="m12 2 8 10-8 10L4 12 12 2Zm0 5v10M8 12h8"></path>
+      <span class="hub-scope" hidden="">
+      <input aria-autocomplete="list" aria-controls="hub-results" aria-describedby="hub-hint" aria-description="Characters: search tools or use a command example" aria-expanded="false" aria-label="Search people, places, builds…" autocomplete="off" class="" maxlength="120" placeholder="Search people, places, builds…" role="combobox" spellcheck="false" type="text">
+      <span aria-hidden="true" class="hub-progress">
+      <div aria-hidden="true" class="hub-search-glyphs" hidden="">
+    <div aria-busy="false" aria-label="Results" class="hub-results ui-scroll" data-focus-key="results" hidden="" id="hub-results" role="listbox" tabindex="-1">
+    <p class="hub-empty" hidden="">
+      "No matches"
+    <pre class="hub-preview ui-scroll" hidden="">
+    <div aria-busy="false" class="hub-view">
+      <div aria-labelledby="character-switch-title" class="ui-modal ui-modal-layer" data-layout="horizontal" data-switching="false" id="character-switch-root" open="">
+        <div class="ui-frame character-switch-panel" data-layout="horizontal">
+          <label class="character-switch-search ui-hub-search" for="character-switch-query">
+            <span class="ui-sr-only">
+              "Search characters"
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              <path d="m12 2 8 10-8 10L4 12 12 2Zm0 5v10M8 12h8"></path>
+            <input aria-activedescendant="character-switch-option-3" aria-autocomplete="list" aria-expanded="false" autocomplete="off" class="ui-input" data-focus-key="character-switch-query" id="character-switch-query" maxlength="40" placeholder="Search characters…" role="combobox" spellcheck="false" type="search">
+          <header class="character-switch-head">
+            <h2 class="ui-sr-only" id="character-switch-title">
+              "Switch Character"
+            <span aria-atomic="true" aria-live="polite" class="character-switch-count">
+              "6 characters"
+            <button aria-label="Character Switch settings" aria-pressed="false" class="ui-button character-switch-head-action character-switch-settings-toggle" data-focus-key="Character Switch settings" type="button">
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2Z"></path><circle cx="12" cy="12" r="3"></circle>
+            <button aria-label="Close Switch Character" class="ui-button character-switch-head-action character-switch-close" data-focus-key="Close Switch Character" type="button">
+              <svg aria-hidden="true" viewBox="0 0 16 16">
+                <path d="m3 3 10 10M13 3 3 13"></path>
+          <div class="character-switch-carousel">
+            <button aria-label="Previous character" class="ui-button character-switch-arrow character-switch-previous" data-focus-key="Previous character" type="button">
+              <svg aria-hidden="true" viewBox="0 0 16 16">
+                <path d="m10.5 2.5-5 5 5 5"></path>
+            <ul aria-label="Characters" aria-orientation="horizontal" class="character-switch-list ui-scroll" id="character-switch-list" role="listbox" style="--character-cards: 5;">
+              <li role="presentation">
+                <button aria-label="Switch to Fixture Ranger, Ranger / Mesmer, Kamadan, Jewel of Istan, shortcut 2" aria-posinset="2" aria-selected="false" aria-setsize="6" class="character-switch-row" data-character-key="ranger" data-focus-key="character-switch-option-1" data-index="1" data-row="1" data-selected="false" id="character-switch-option-1" role="option" tabindex="-1" type="button">
+                  <span class="character-switch-key">
+                    "2"
+                  <img alt="" aria-hidden="true" src="app/shared/images/professions/2.png">
+                  <span class="character-switch-copyline">
+                    <span class="character-switch-primary">
+                      <span class="character-switch-name">
+                        "Fixture Ranger"
+                    <span class="character-switch-meta" title="R/Me · Kamadan">
+                      "R/Me · Kamadan"
+              <li role="presentation">
+                <button aria-label="Switch to Fixture Mesmer, Mesmer, PvP character, Lion's Arch, shortcut 3" aria-posinset="3" aria-selected="false" aria-setsize="6" class="character-switch-row" data-character-key="mesmer" data-focus-key="character-switch-option-2" data-index="2" data-row="2" data-selected="false" id="character-switch-option-2" role="option" tabindex="-1" type="button">
+                  <span class="character-switch-key">
+                    "3"
+                  <img alt="" aria-hidden="true" src="app/shared/images/professions/5.png">
+                  <span class="character-switch-copyline">
+                    <span class="character-switch-primary">
+                      <span class="character-switch-name">
+                        "Fixture Mesmer"
+                    <span class="character-switch-meta" title="Me · PvP · Lion's Arch">
+                      "Me · PvP · Lion's Arch"
+              <li role="presentation">
+                <button aria-label="Switch to Toefte, Monk / Mesmer, Kamadan, Jewel of Istan, shortcut 4" aria-posinset="4" aria-selected="true" aria-setsize="6" class="character-switch-row" data-character-key="toefte" data-focus-key="character-switch-option-3" data-index="3" data-row="3" data-selected="true" id="character-switch-option-3" role="option" tabindex="0" type="button">
+                  <span class="character-switch-key">
+                    "4"
+                  <img alt="" aria-hidden="true" src="app/shared/images/professions/3.png">
+                  <span class="character-switch-copyline">
+                    <span class="character-switch-primary">
+                      <span class="character-switch-name">
+                        "Toefte"
+                    <span class="character-switch-meta" title="Mo/Me · Kamadan">
+                      "Mo/Me · Kamadan"
+              <li role="presentation">
+                <button aria-label="Switch to Fixture Warrior, Warrior, Lion's Arch, shortcut 5" aria-posinset="5" aria-selected="false" aria-setsize="6" class="character-switch-row" data-character-key="warrior" data-focus-key="character-switch-option-4" data-index="4" data-row="4" data-selected="false" id="character-switch-option-4" role="option" tabindex="-1" type="button">
+                  <span class="character-switch-key">
+                    "5"
+                  <img alt="" aria-hidden="true" src="app/shared/images/professions/1.png">
+                  <span class="character-switch-copyline">
+                    <span class="character-switch-primary">
+                      <span class="character-switch-name">
+                        "Fixture Warrior"
+                    <span class="character-switch-meta" title="W · Lion's Arch">
+                      "W · Lion's Arch"
+              <li role="presentation">
+                <button aria-label="Switch to Fixture Ritualist, Ritualist, Kamadan, Jewel of Istan, shortcut 6" aria-posinset="6" aria-selected="false" aria-setsize="6" class="character-switch-row" data-character-key="ritualist" data-focus-key="character-switch-option-5" data-index="5" data-row="5" data-selected="false" id="character-switch-option-5" role="option" tabindex="-1" type="button">
+                  <span class="character-switch-key">
+                    "6"
+                  <img alt="" aria-hidden="true" src="app/shared/images/professions/8.png">
+                  <span class="character-switch-copyline">
+                    <span class="character-switch-primary">
+                      <span class="character-switch-name">
+                        "Fixture Ritualist"
+                    <span class="character-switch-meta" title="Rt · Kamadan">
+                      "Rt · Kamadan"
+            <button aria-label="Next character" class="ui-button character-switch-arrow character-switch-next" data-focus-key="Next character" type="button">
+              <svg aria-hidden="true" viewBox="0 0 16 16">
+                <path d="m5.5 2.5 5 5-5 5"></path>
+          <section aria-label="Character Switch settings" class="character-switch-settings" hidden="">
+            <label class="character-switch-setting" for="character-switch-show-profession">
+              <span>
+                <strong>
+                  "Show profession"
+                <small>
+                  "Icon, primary, and secondary profession"
+              <input data-focus-key="character-switch-show-profession" id="character-switch-show-profession" type="checkbox" .value="on">
+            <label class="character-switch-setting" for="character-switch-show-level">
+              <span>
+                <strong>
+                  "Show level"
+                <small>
+                  "Character level"
+              <input data-focus-key="character-switch-show-level" id="character-switch-show-level" type="checkbox" .value="on">
+            <label class="character-switch-setting" for="character-switch-show-location">
+              <span>
+                <strong>
+                  "Show known location"
+                <small>
+                  "Locations from the reviewed Travel catalogue"
+              <input data-focus-key="character-switch-show-location" id="character-switch-show-location" type="checkbox" .value="on">
+          <section aria-describedby="character-switch-confirm-copy" class="character-switch-confirm" hidden="">
+            <p id="character-switch-confirm-copy">
+              "Switching characters will leave this explorable area. You may lose progress in this instance."
+            <div class="character-switch-confirm-actions">
+              <button class="ui-button character-switch-stay" data-focus-key="character-switch-stay" id="character-switch-stay" type="button">
+                "Stay here"
+              <button class="ui-button character-switch-leave" data-focus-key="character-switch-leave" data-variant="danger" id="character-switch-leave" type="button">
+                "Leave and switch to this character"
+          <p aria-atomic="true" aria-live="polite" class="character-switch-status" role="status">
+          <details class="character-switch-details" hidden="">
+            <summary>
+              "Technical details"
+            <pre>
+            <button class="ui-button character-switch-copy" type="button">
+              "Copy diagnostics"
+    <div class="hub-footer-status">
+      <p aria-busy="false" class="hub-status" role="status" title="">
+      <p class="hub-lifecycle" hidden="">
+      <p class="hub-hint" hidden="" id="hub-hint" title="">
+    <p aria-atomic="true" aria-live="polite" class="hub-announce ui-sr-only" role="status">
+    <footer class="hub-footer">
+      <span class="hub-legend" data-keys="[[["⎋"],"Close"],[["⌘","⌫"],"Back"]]">
+        <span>
+          <kbd class="ui-kbd">
+            "⎋"
+          " Close"
+        <span>
+          <kbd class="ui-kbd">
+            "⌘"
+          <kbd class="ui-kbd">
+            "⌫"
+          " Back"
+      <span class="hub-count">
+      <button class="hub-primary ui-button" data-focus-key="primary" data-variant="primary" title="Switch to Toefte">
+        <span class="hub-primary-label">
+          "Switch to Toefte"
+        <kbd class="ui-kbd">
+          "↵"
+      <button aria-expanded="false" aria-haspopup="menu" aria-keyshortcuts="Meta+J" class="hub-actions ui-button" data-focus-key="actions" data-variant="quiet" disabled="">
+        "Actions"
+        <kbd aria-hidden="true" class="ui-kbd">
+          "⌘"
+        <kbd aria-hidden="true" class="ui-kbd">
+          "J"
+    <div aria-label="Actions" class="hub-menu" hidden="" role="menu">
+    <button aria-label="Resize Hub" class="ui-window-resize hub-resize" data-focus-key="resize" hidden="" title="Drag to resize, or use arrow keys">
+<div aria-hidden="true" class="hub-receipt ui-toast" hidden="" popover="manual">
+<p aria-atomic="true" class="hub-receipt-announcement ui-sr-only" role="status">
+<div class="character-switch-veil" hidden="" role="status">

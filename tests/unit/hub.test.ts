@@ -2,7 +2,7 @@
 import { currentTravelFriend, type TravelFriend, type TravelFriends } from '../../app/shared/friends.js';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { matchHubRows, parseHubQuery, rankHubRows, type HubRow } from '../../app/shared/hub.js';
+import { isHubCalculation, matchHubRows, parseHubQuery, rankHubRows, type HubRow } from '../../app/shared/hub.js';
 import { resolveShortcuts, hubShortcutAvailable } from '../../app/shared/keyboard-shortcuts.js';
 const row = (id: string, title: string, keywords = ''): HubRow => ({ id, title, keywords, group: 'Commands', detail: '', action: 'Open', run() {} });
 test('search ranks exact names and prefixes before keywords without executing anything', () => {
@@ -91,4 +91,8 @@ test('root search orders groups by their best answer, tools before places, and k
     ['a scoped page keeps its source order within a group', [maps, travel], '', { scoped: true, ...none }, ['maps', 'travel']],
   ];
   for (const [name, rows, query, options, expected] of cases) assert.deepEqual(rankHubRows(rows, query, options).map(entry => entry.id), expected, name);
+});
+test('a search that starts with a number is a calculation, so it draws currency art', () => {
+  const cases: readonly [string, boolean][] = [['1p in g', true], [' .5e', true], ['3', true], ['set', false], ['p1', false], ['trade 1p', false], ['.e', false]];
+  assert.deepEqual(cases.map(([query]) => [query, isHubCalculation(query)]), cases);
 });

@@ -1,12 +1,17 @@
 /**
  * Owns the one "Leave this area?" step (D-27). Every Hub action that leaves an
- * explorable instance (Travel, Travel and invite, a character switch) asks it
- * with the same words, the same safe default and the same arming: Stay here
- * leads and has the keyboard, and "Leave and …" accepts nothing until it has
- * armed, and never the later click of a multi-click (HUB-242, HUB-027).
+ * explorable instance asks it with the same words, the same safe default and the
+ * same arming: Stay here leads and has the keyboard, and "Leave and …" accepts
+ * nothing until it has armed, and never the later click of a multi-click
+ * (HUB-242, HUB-027). Travel and Travel and invite ask on the step's own page;
+ * Characters asks inside its page with these words and this arming time.
  */
-import { armConfirmation } from "./surface-controller.js";
+import { CONFIRMATION_ARMING_MS } from "./surface-controller.js";
 import type { HubViewMount } from "../shared/hub.js";
+import type { HubLeaveAreaProps } from "../shared/ui/hub-pages.js";
+
+/** Stay here leads and takes the keyboard. */
+const STAY = Object.freeze({ key: "leave-area-stay", seq: 1 });
 
 export type LeaveAreaCopy = Readonly<{ question: string; detail: string; leave: string }>;
 
@@ -25,44 +30,17 @@ export function leaveAreaCopy(action: "travel" | "switch", target: string): Leav
     };
 }
 
-/**
- * Wires the two choices: the leave button arms a moment after `arm()` and then
- * takes one deliberate press; ← and → move between the two buttons.
- */
-export function bindLeaveAreaChoice(stay: HTMLButtonElement, leave: HTMLButtonElement) {
-  const arming = armConfirmation(leave);
-  const step = (event: KeyboardEvent) => {
-    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
-    if (event.target !== stay && event.target !== leave) return;
-    event.preventDefault();
-    (event.key === "ArrowLeft" ? stay : leave).focus({ preventScroll: true });
-  };
-  stay.addEventListener("keydown", step);
-  leave.addEventListener("keydown", step);
-  return Object.freeze({
-    /** Starts the arming window; Stay here takes the keyboard. */
-    arm() { arming.arm(); stay.focus({ preventScroll: true }); },
-    disarm: arming.disarm,
-    accepts: arming.accepts,
-    dispose() {
-      arming.disarm();
-      stay.removeEventListener("keydown", step);
-      leave.removeEventListener("keydown", step);
-    },
-  });
-}
-
 type LeaveAreaHub = Readonly<{
   showView(title: string, mount: HubViewMount<HTMLElement>): void;
   close(): void;
 }>;
 
 /**
- * Asks on a Hub page of its own. Stay here, Esc and Back return to the page
- * that asked, with its query and selection. "Leave and …" runs `leave`, then
- * closes the Hub. The promise settles with the outcome: it resolves once
- * `leave` ran and rejects with an AbortError when the player stays, so an
- * action that waits on it (Travel and invite) stops and reports nothing.
+ * Asks on a Hub page of its own, drawn by the kit (`leaveArea`). Stay here, Esc and Back return
+ * to the page that asked, with its query and selection. "Leave and …" runs `leave`, then closes
+ * the Hub. The promise settles with the outcome: it resolves once `leave` ran and rejects with
+ * an AbortError when the player stays, so an action that waits on it (Travel and invite) stops
+ * and reports nothing.
  */
 export function askLeaveArea(hub: LeaveAreaHub, copy: LeaveAreaCopy, leave: () => Promise<void>): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -72,48 +50,21 @@ export function askLeaveArea(hub: LeaveAreaHub, copy: LeaveAreaCopy, leave: () =
       settled = true;
       reject(new DOMException("The player stayed in the area.", "AbortError"));
     };
-    hub.showView("Leave this area?", (target, back, footer) => {
-      const doc = target.ownerDocument;
-      const view = doc.createElement("section");
-      view.className = "hub-leave-area";
-      view.setAttribute("aria-labelledby", "leave-area-question");
-      view.setAttribute("aria-describedby", "leave-area-detail");
-      const heading = doc.createElement("h2");
-      heading.id = "leave-area-question";
-      heading.textContent = copy.question;
-      const detail = doc.createElement("p");
-      detail.id = "leave-area-detail";
-      detail.textContent = copy.detail;
-      const actions = doc.createElement("div");
-      actions.className = "hub-leave-area-actions";
-      const stayButton = doc.createElement("button");
-      stayButton.type = "button";
-      stayButton.className = "ui-button";
-      stayButton.id = "leave-area-stay";
-      stayButton.dataset.focusKey = stayButton.id;
-      stayButton.textContent = "Stay here";
-      const leaveButton = doc.createElement("button");
-      leaveButton.type = "button";
-      leaveButton.className = "ui-button";
-      leaveButton.id = "leave-area-leave";
-      leaveButton.dataset.focusKey = leaveButton.id;
-      leaveButton.dataset.variant = "danger";
-      leaveButton.textContent = copy.leave;
-      actions.append(stayButton, leaveButton);
-      view.append(heading, detail, actions);
-      target.append(view);
-      const choice = bindLeaveAreaChoice(stayButton, leaveButton);
-      stayButton.addEventListener("click", () => back());
-      leaveButton.addEventListener("click", (event) => {
-        if (settled || !choice.accepts(event)) return;
+    hub.showView("Leave this area?", (target, back, footer, pages) => {
+      let armed = false;
+      const props = (): HubLeaveAreaProps => ({ ...copy, armed, focus: STAY, stay: () => back(), depart });
+      function depart() {
+        if (settled || !armed) return;
         settled = true;
-        choice.disarm();
+        armed = false;
+        page.update(props());
         void leave().then(() => { hub.close(); resolve(); }, (error: unknown) => { back(); reject(error); });
-      });
+      }
+      const page = pages.mount("leaveArea", target, props());
+      const arming = setTimeout(() => { armed = true; page.update(props()); }, CONFIRMATION_ARMING_MS);
       // The footer names the safe choice, so Enter outside the buttons stays.
       footer.primary({ label: "Stay here", run: () => back() });
-      choice.arm();
-      return () => { choice.dispose(); view.remove(); stayed(); };
+      return () => { clearTimeout(arming); page.dispose(); stayed(); };
     });
   });
 }

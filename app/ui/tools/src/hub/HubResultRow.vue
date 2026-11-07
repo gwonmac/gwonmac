@@ -1,13 +1,14 @@
 <script setup lang="ts">
 /**
  * One result: a currency conversion card, or an icon, title, detail and keys, with a build's
- * skills and attributes below. Its name and description carry what the icons show.
+ * skills and attributes below. Its name and description carry what the icons show. A selected
+ * priced row also holds its Price basis picker.
  */
 import { computed } from 'vue';
 import type { HubRow } from '../../../../shared/hub';
-import type { HubRateControls as RateControls, HubShortcutBindings } from '../../../../shared/ui/hub-view';
+import type { HubShortcutBindings } from '../../../../shared/ui/hub-view';
 import { shortcutKeycaps } from '../../../../shared/keyboard-shortcuts';
-import { HUB_COMMAND_SHORTCUTS } from '../../../../shared/tool-presentation';
+import { hubToolShortcut } from '../../../../shared/hub-tools';
 import HubBuildInfo from './HubBuildInfo.vue';
 import HubIcon from './HubIcon.vue';
 import HubImage from './HubImage.vue';
@@ -20,9 +21,10 @@ const props = defineProps<{
   /** Home's empty search shows builds compact. */
   compact: boolean;
   bindings: HubShortcutBindings;
-  /** The Price basis picker, when this row holds it. */
-  rates: RateControls | null;
+  /** The list is hidden under a view; the picker it holds hides with it. */
+  listHidden: boolean;
 }>();
+const emit = defineEmits<{ run: [] }>();
 
 const classes = computed(() => props.row.conversion ? ['hub-row', 'hub-conversion']
   : props.row.skills ? ['hub-row', 'hub-build-row', ...(props.compact ? ['hub-build-compact'] : [])] : ['hub-row']);
@@ -33,7 +35,7 @@ const description = computed(() => [props.row.skills ? props.row.unavailable ?? 
   props.row.skills ? `Skills: ${props.row.skills.map(skill => skill.name).join(', ')}` : '',
   props.row.navigate ? 'Right Arrow opens the child page.' : ''].filter(Boolean).join('. ') || undefined);
 const keyRow = computed(() => props.row.id.startsWith('key:'));
-const shortcut = computed(() => HUB_COMMAND_SHORTCUTS[keyRow.value ? props.row.id.slice(4) : props.row.id]);
+const shortcut = computed(() => hubToolShortcut(keyRow.value ? props.row.id.slice(4) : props.row.id));
 // A key row names its keys as keycaps; its detail stays only for a fixed key or one not set.
 const detail = computed(() => keyRow.value && !props.row.unavailable && props.row.detail !== 'Not set' ? '' : props.row.unavailable ?? props.row.detail);
 const keycaps = computed((): readonly { label: string; name?: string }[] => keyRow.value && !shortcut.value ? [...props.row.detail].map(label => ({ label }))
@@ -67,6 +69,6 @@ const keycaps = computed((): readonly { label: string; name?: string }[] => keyR
       </span>
       <HubBuildInfo v-if="row.skills" :build="row" />
     </template>
-    <HubRateControls v-if="rates" :rates="rates" />
+    <HubRateControls v-if="selected && row.quoteBasis" :basis="row.quoteBasis" :hidden="listHidden" @run="emit('run')" />
   </div>
 </template>

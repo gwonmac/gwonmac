@@ -1,4 +1,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import type { HubFixtureWindow } from './fixture-window.js';
+// The workbench page this spec drives sets the fixture hooks; they are required here.
+declare const window: HubFixtureWindow;
 
 /**
  * Trade as a popout over the game (the Hub fixture): the ledger is one keyboard
@@ -179,7 +182,7 @@ test('a re-post by the selected seller keeps them selected in search results (HU
   await page.keyboard.press('ArrowDown');
   await page.keyboard.press('End');
   await expect(offer(trade, 'Quiet Ember')).toBeFocused();
-  await page.evaluate(() => window.gwTradeFixture?.repost('Quiet Ember', 'WTS unded Polar Bear 90a'));
+  await page.evaluate(() => window.gwTradeFixture.repost('Quiet Ember', 'WTS unded Polar Bear 90a'));
   const reposted = trade.getByRole('option', { name: 'Quiet Ember: WTS unded Polar Bear 90a', exact: true });
   await expect(reposted).toBeFocused();
   await expect(reposted).toHaveAttribute('aria-selected', 'true');
@@ -197,7 +200,7 @@ test('a re-post while the live feed is scrolled keeps the selected seller and th
   await offer(trade, 'Acolyte Mira').click();
   await list.evaluate(element => { element.scrollTop = 60; });
   await expect.poll(() => list.evaluate(element => element.scrollTop)).toBeGreaterThanOrEqual(40);
-  await page.evaluate(() => window.gwTradeFixture?.repost('Acolyte Mira', 'WTS bunnies 3e'));
+  await page.evaluate(() => window.gwTradeFixture.repost('Acolyte Mira', 'WTS bunnies 3e'));
   const inspector = trade.getByRole('region', { name: 'Offer from Acolyte Mira' });
   await expect(inspector).toContainText('chocolate bunnies');
   await expect(trade.getByRole('button', { name: 'Whisper Acolyte Mira', exact: true })).toBeAttached();
@@ -228,7 +231,7 @@ test('a new Trade search drops a saved offer the inspector showed (HUB-118)', as
   for (const [transition, seller] of [
     ['search', 'Silver Wayfarer'], ['clear', 'Rin of the Isles'],
     ['submit', 'Silver Wayfarer'], ['typing', 'Quiet Ember'], ['player', 'Tyria Cartographer'], ['source', 'Vanguard Althea'], ['saved', 'Rin of the Isles'],
-  ]) {
+  ] as const) {
     if (transition !== 'search') {
       await trade.getByRole('button',{name:/Saved 1/}).click();
       await trade.getByRole('complementary',{name:'Saved trade items'}).getByRole('button',{name:/^Rin of the Isles/}).click();

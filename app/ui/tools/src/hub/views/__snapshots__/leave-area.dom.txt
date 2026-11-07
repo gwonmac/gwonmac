@@ -1,0 +1,596 @@
+=== leave area, not yet armed (focus: button#leave-area-stay.ui-button)
+<dialog aria-labelledby="hub-name hub-title-separator hub-caption" class="ui-modal ui-modal-layer" data-gwonmac-surface="" data-page="section" id="hub" open="">
+  <section class="hub-panel ui-frame ui-art-frame" data-busy="false" data-locked="true">
+    <canvas aria-hidden="true" class="ui-frame-artwork">
+    <header class="hub-heading ui-window-head">
+      <button aria-description="Return to Home" aria-keyshortcuts="Meta+Backspace" aria-label="Back" class="ui-button hub-back" data-focus-key="back" data-variant="quiet" title="Back (⌘⌫)">
+        "←"
+      <span class="hub-name" id="hub-name">
+        "Hub"
+      <span hidden="" id="hub-title-separator">
+        "—"
+      <nav aria-label="Hub breadcrumb" class="hub-breadcrumbs">
+        <button class="hub-crumb" type="button">
+          "Home"
+        <span aria-hidden="true">
+          "›"
+        <span aria-current="page" aria-level="1" class="hub-caption" id="hub-caption" role="heading">
+          "Leave this area?"
+      <span class="hub-context">
+      <span class="hub-move-hint" hidden="" id="hub-move-hint">
+        "⌥ arrows move · ⇧ 48 px"
+      <button aria-label="Lock Hub position" aria-pressed="true" class="ui-window-lock hub-lock" data-focus-key="lock" title="Unlock to move and resize" type="button">
+        <svg aria-hidden="true" viewBox="0 0 24 24">
+          <path class="lock-shackle" d="M7 11V7a5 5 0 0 1 10 0v4"></path><rect x="5" y="11" width="14" height="10" rx="2"></rect>
+      <button aria-label="Close Hub" class="ui-window-close hub-close" data-focus-key="close" title="Close Hub">
+        "×"
+    <section aria-label="Build to apply" class="hub-summary" hidden="">
+    <div class="hub-search ui-hub-search" hidden="">
+      <svg aria-hidden="true" viewBox="0 0 24 24">
+        <path d="m12 2 8 10-8 10L4 12 12 2Zm0 5v10M8 12h8"></path>
+      <span class="hub-scope" hidden="">
+      <input aria-activedescendant="hub-result-0" aria-autocomplete="list" aria-controls="hub-results" aria-describedby="hub-hint" aria-description="Leave this area?: search tools or use a command example" aria-expanded="true" aria-label="Search people, places, builds…" autocomplete="off" class="" maxlength="120" placeholder="Search people, places, builds…" role="combobox" spellcheck="false" type="text">
+      <span aria-hidden="true" class="hub-progress">
+      <div aria-hidden="true" class="hub-search-glyphs" hidden="">
+    <div aria-busy="false" aria-label="Results" class="hub-results ui-scroll" data-focus-key="results" hidden="" id="hub-results" role="listbox" tabindex="-1">
+      <div aria-labelledby="hub-group-0" role="group">
+        <div class="hub-group" id="hub-group-0" role="presentation">
+          "Tools"
+        <div aria-description="Right Arrow opens the child page." aria-disabled="false" aria-selected="true" class="hub-row" data-id="character" id="hub-result-0" role="option">
+          <span aria-hidden="true" class="hub-icon" data-kind="character">
+            <svg fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" stroke="currentColor" viewBox="0 0 24 24">
+              <circle cx="8" cy="7" r="3"></circle><path d="M2 20v-2a6 6 0 0 1 12 0M16 7h6m-3-3 3 3-3 3"></path>
+          <span class="hub-title">
+            "Switch Character"
+          <span class="hub-detail">
+            "Choose another character"
+          <span class="hub-row-type">
+            <kbd aria-label="Command" class="ui-kbd">
+              "⌘"
+            <kbd aria-label="E" class="ui-kbd">
+              "E"
+            <span aria-hidden="true" class="hub-child-cue">
+              "›"
+        <div aria-disabled="false" aria-selected="false" class="hub-row" data-id="whispers" id="hub-result-1" role="option">
+          <span aria-hidden="true" class="hub-icon" data-kind="whispers">
+            <svg fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" stroke="currentColor" viewBox="0 0 24 24">
+              <path d="M20 4H4v12h4l4 4v-4h8V4ZM8 8h8M8 12h5"></path>
+          <span class="hub-title">
+            "Whispers"
+          <span class="hub-detail">
+            "Conversations, friends and drafts"
+          <span class="hub-row-type">
+            <kbd aria-label="Command" class="ui-kbd">
+              "⌘"
+            <kbd aria-label="D" class="ui-kbd">
+              "D"
+        <div aria-disabled="false" aria-selected="false" class="hub-row" data-id="trade" id="hub-result-2" role="option">
+          <span aria-hidden="true" class="hub-icon" data-kind="trade">
+            <svg fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" stroke="currentColor" viewBox="0 0 24 24">
+              <path d="M12 3v17M7 6h10M5 8l-3 7h6L5 8Zm14 0-3 7h6l-3-7ZM7 21h10"></path>
+          <span class="hub-title">
+            "Trade Chat"
+          <span class="hub-detail">
+            "Find offers and contact sellers"
+          <span class="hub-row-type">
+            <kbd aria-label="Command" class="ui-kbd">
+              "⌘"
+            <kbd aria-label="K" class="ui-kbd">
+              "K"
+        <div aria-disabled="false" aria-selected="false" class="hub-row" data-id="storage" id="hub-result-3" role="option">
+          <span aria-hidden="true" class="hub-icon" data-kind="storage">
+            <svg fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" stroke="currentColor" viewBox="0 0 24 24">
+              <path d="M3 10h18v11H3V10Zm0 0V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v3M8 3v7M16 3v7M10 10v5h4v-5"></path>
+          <span class="hub-title">
+            "Xunlai Storage"
+          <span class="hub-detail">
+            "Open your storage chest"
+          <span class="hub-row-type">
+            <kbd aria-label="Command" class="ui-kbd">
+              "⌘"
+            <kbd aria-label="S" class="ui-kbd">
+              "S"
+        <div aria-disabled="false" aria-selected="false" class="hub-row" data-id="maps" id="hub-result-4" role="option">
+          <span aria-hidden="true" class="hub-icon" data-kind="maps">
+            <svg fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" stroke="currentColor" viewBox="0 0 24 24">
+              <path d="m3 5 6-2 6 2 6-2v16l-6 2-6-2-6 2V5ZM9 3v16M15 5v16"></path>
+          <span class="hub-title">
+            "Maps"
+          <span class="hub-detail">
+            "Exploration grid, walkable terrain and compass ranges"
+          <span class="hub-row-type">
+        <div aria-description="Right Arrow opens the child page." aria-disabled="false" aria-selected="false" class="hub-row" data-id="accounts" id="hub-result-5" role="option">
+          <span aria-hidden="true" class="hub-icon" data-kind="accounts">
+            <svg fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" stroke="currentColor" viewBox="0 0 24 24">
+              <rect x="3" y="3" width="14" height="18" rx="2"></rect><path d="M7 7h6M7 11h6M14 16h8m-3-3 3 3-3 3"></path>
+          <span class="hub-title">
+            "Switch Account"
+          <span class="hub-detail">
+            "Open another saved account or switch to it"
+          <span class="hub-row-type">
+            <span aria-hidden="true" class="hub-child-cue">
+              "›"
+      <div aria-labelledby="hub-group-6" role="group">
+        <div class="hub-group" id="hub-group-6" role="presentation">
+          "Commands"
+        <div aria-disabled="false" aria-selected="false" class="hub-row" data-id="commands" id="hub-result-6" role="option">
+          <span aria-hidden="true" class="hub-icon" data-kind="command">
+            <svg fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" stroke="currentColor" viewBox="0 0 24 24">
+              <path d="m9 5-6 7 6 7M13 19h8"></path>
+          <span class="hub-title">
+            "Commands"
+          <span class="hub-detail">
+            "Search words, calculator examples and keys"
+          <span class="hub-row-type">
+        <div aria-disabled="false" aria-selected="false" class="hub-row" data-id="title:help" id="hub-result-7" role="option">
+          <span aria-hidden="true" class="hub-icon" data-kind="title">
+            <svg fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" stroke="currentColor" viewBox="0 0 24 24">
+              <path d="M8 3h8v6a4 4 0 0 1-8 0V3ZM8 5H4v3a4 4 0 0 0 4 4M16 5h4v3a4 4 0 0 1-4 4M12 13v6M7 21h10"></path>
+          <span class="hub-title">
+            "Title calculator"
+          <span class="hub-detail">
+            "Points, items needed and offer comparisons"
+          <span class="hub-row-type">
+        <div aria-disabled="false" aria-selected="false" class="hub-row" data-id="hub-preferences" id="hub-result-8" role="option">
+          <span aria-hidden="true" class="hub-icon" data-kind="settings">
+            <svg fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" stroke="currentColor" viewBox="0 0 24 24">
+              <path d="M4 7h16M4 17h16"></path><circle cx="8" cy="7" r="3"></circle><circle cx="16" cy="17" r="3"></circle>
+          <span class="hub-title">
+            "Hub preferences"
+          <span class="hub-detail">
+            "Pins and exact search phrases"
+          <span class="hub-row-type">
+        <div aria-disabled="false" aria-selected="false" class="hub-row" data-id="settings" id="hub-result-9" role="option">
+          <span aria-hidden="true" class="hub-icon" data-kind="settings">
+            <svg fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" stroke="currentColor" viewBox="0 0 24 24">
+              <path d="M4 7h16M4 17h16"></path><circle cx="8" cy="7" r="3"></circle><circle cx="16" cy="17" r="3"></circle>
+          <span class="hub-title">
+            "Settings"
+          <span class="hub-detail">
+            "Tools, maps, appearance and game · ⌘,"
+          <span class="hub-row-type">
+    <p class="hub-empty" hidden="">
+      "No matches"
+    <pre class="hub-preview ui-scroll" hidden="">
+    <div aria-busy="false" class="hub-view">
+      <section aria-describedby="leave-area-detail" aria-labelledby="leave-area-question" class="hub-leave-area">
+        <h2 id="leave-area-question">
+          "Leave this area and travel to Kamadan?"
+        <p id="leave-area-detail">
+          "Travelling leaves this explorable area. You may lose progress in this instance."
+        <div class="hub-leave-area-actions">
+          <button class="ui-button" data-focus-key="leave-area-stay" id="leave-area-stay" type="button">
+            "Stay here"
+          <button class="ui-button" data-focus-key="leave-area-leave" data-variant="danger" id="leave-area-leave" type="button">
+            "Leave and travel to Kamadan"
+    <div class="hub-footer-status">
+      <p aria-busy="false" class="hub-status" role="status" title="">
+      <p class="hub-lifecycle" hidden="">
+      <p class="hub-hint" hidden="" id="hub-hint" title="">
+    <p aria-atomic="true" aria-live="polite" class="hub-announce ui-sr-only" role="status">
+    <footer class="hub-footer">
+      <span class="hub-legend" data-keys="[[["⎋"],"Back"],[["⌘","⌫"],"Back"]]">
+        <span>
+          <kbd class="ui-kbd">
+            "⎋"
+          " Back"
+        <span>
+          <kbd class="ui-kbd">
+            "⌘"
+          <kbd class="ui-kbd">
+            "⌫"
+          " Back"
+      <span class="hub-count">
+      <button class="hub-primary ui-button" data-focus-key="primary" data-variant="primary" title="Stay here">
+        <span class="hub-primary-label">
+          "Stay here"
+        <kbd class="ui-kbd">
+          "↵"
+      <button aria-expanded="false" aria-haspopup="menu" aria-keyshortcuts="Meta+J" class="hub-actions ui-button" data-focus-key="actions" data-variant="quiet" disabled="">
+        "Actions"
+        <kbd aria-hidden="true" class="ui-kbd">
+          "⌘"
+        <kbd aria-hidden="true" class="ui-kbd">
+          "J"
+    <div aria-label="Actions" class="hub-menu" hidden="" role="menu">
+    <button aria-label="Resize Hub" class="ui-window-resize hub-resize" data-focus-key="resize" hidden="" title="Drag to resize, or use arrow keys">
+<div aria-hidden="true" class="hub-receipt ui-toast" hidden="" popover="manual">
+<p aria-atomic="true" class="hub-receipt-announcement ui-sr-only" role="status">
+
+=== leave area, → on Stay here (focus: button#leave-area-leave.ui-button)
+<dialog aria-labelledby="hub-name hub-title-separator hub-caption" class="ui-modal ui-modal-layer" data-gwonmac-surface="" data-page="section" id="hub" open="">
+  <section class="hub-panel ui-frame ui-art-frame" data-busy="false" data-locked="true">
+    <canvas aria-hidden="true" class="ui-frame-artwork">
+    <header class="hub-heading ui-window-head">
+      <button aria-description="Return to Home" aria-keyshortcuts="Meta+Backspace" aria-label="Back" class="ui-button hub-back" data-focus-key="back" data-variant="quiet" title="Back (⌘⌫)">
+        "←"
+      <span class="hub-name" id="hub-name">
+        "Hub"
+      <span hidden="" id="hub-title-separator">
+        "—"
+      <nav aria-label="Hub breadcrumb" class="hub-breadcrumbs">
+        <button class="hub-crumb" type="button">
+          "Home"
+        <span aria-hidden="true">
+          "›"
+        <span aria-current="page" aria-level="1" class="hub-caption" id="hub-caption" role="heading">
+          "Leave this area?"
+      <span class="hub-context">
+      <span class="hub-move-hint" hidden="" id="hub-move-hint">
+        "⌥ arrows move · ⇧ 48 px"
+      <button aria-label="Lock Hub position" aria-pressed="true" class="ui-window-lock hub-lock" data-focus-key="lock" title="Unlock to move and resize" type="button">
+        <svg aria-hidden="true" viewBox="0 0 24 24">
+          <path class="lock-shackle" d="M7 11V7a5 5 0 0 1 10 0v4"></path><rect x="5" y="11" width="14" height="10" rx="2"></rect>
+      <button aria-label="Close Hub" class="ui-window-close hub-close" data-focus-key="close" title="Close Hub">
+        "×"
+    <section aria-label="Build to apply" class="hub-summary" hidden="">
+    <div class="hub-search ui-hub-search" hidden="">
+      <svg aria-hidden="true" viewBox="0 0 24 24">
+        <path d="m12 2 8 10-8 10L4 12 12 2Zm0 5v10M8 12h8"></path>
+      <span class="hub-scope" hidden="">
+      <input aria-activedescendant="hub-result-0" aria-autocomplete="list" aria-controls="hub-results" aria-describedby="hub-hint" aria-description="Leave this area?: search tools or use a command example" aria-expanded="true" aria-label="Search people, places, builds…" autocomplete="off" class="" maxlength="120" placeholder="Search people, places, builds…" role="combobox" spellcheck="false" type="text">
+      <span aria-hidden="true" class="hub-progress">
+      <div aria-hidden="true" class="hub-search-glyphs" hidden="">
+    <div aria-busy="false" aria-label="Results" class="hub-results ui-scroll" data-focus-key="results" hidden="" id="hub-results" role="listbox" tabindex="-1">
+      <div aria-labelledby="hub-group-0" role="group">
+        <div class="hub-group" id="hub-group-0" role="presentation">
+          "Tools"
+        <div aria-description="Right Arrow opens the child page." aria-disabled="false" aria-selected="true" class="hub-row" data-id="character" id="hub-result-0" role="option">
+          <span aria-hidden="true" class="hub-icon" data-kind="character">
+            <svg fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" stroke="currentColor" viewBox="0 0 24 24">
+              <circle cx="8" cy="7" r="3"></circle><path d="M2 20v-2a6 6 0 0 1 12 0M16 7h6m-3-3 3 3-3 3"></path>
+          <span class="hub-title">
+            "Switch Character"
+          <span class="hub-detail">
+            "Choose another character"
+          <span class="hub-row-type">
+            <kbd aria-label="Command" class="ui-kbd">
+              "⌘"
+            <kbd aria-label="E" class="ui-kbd">
+              "E"
+            <span aria-hidden="true" class="hub-child-cue">
+              "›"
+        <div aria-disabled="false" aria-selected="false" class="hub-row" data-id="whispers" id="hub-result-1" role="option">
+          <span aria-hidden="true" class="hub-icon" data-kind="whispers">
+            <svg fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" stroke="currentColor" viewBox="0 0 24 24">
+              <path d="M20 4H4v12h4l4 4v-4h8V4ZM8 8h8M8 12h5"></path>
+          <span class="hub-title">
+            "Whispers"
+          <span class="hub-detail">
+            "Conversations, friends and drafts"
+          <span class="hub-row-type">
+            <kbd aria-label="Command" class="ui-kbd">
+              "⌘"
+            <kbd aria-label="D" class="ui-kbd">
+              "D"
+        <div aria-disabled="false" aria-selected="false" class="hub-row" data-id="trade" id="hub-result-2" role="option">
+          <span aria-hidden="true" class="hub-icon" data-kind="trade">
+            <svg fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" stroke="currentColor" viewBox="0 0 24 24">
+              <path d="M12 3v17M7 6h10M5 8l-3 7h6L5 8Zm14 0-3 7h6l-3-7ZM7 21h10"></path>
+          <span class="hub-title">
+            "Trade Chat"
+          <span class="hub-detail">
+            "Find offers and contact sellers"
+          <span class="hub-row-type">
+            <kbd aria-label="Command" class="ui-kbd">
+              "⌘"
+            <kbd aria-label="K" class="ui-kbd">
+              "K"
+        <div aria-disabled="false" aria-selected="false" class="hub-row" data-id="storage" id="hub-result-3" role="option">
+          <span aria-hidden="true" class="hub-icon" data-kind="storage">
+            <svg fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" stroke="currentColor" viewBox="0 0 24 24">
+              <path d="M3 10h18v11H3V10Zm0 0V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v3M8 3v7M16 3v7M10 10v5h4v-5"></path>
+          <span class="hub-title">
+            "Xunlai Storage"
+          <span class="hub-detail">
+            "Open your storage chest"
+          <span class="hub-row-type">
+            <kbd aria-label="Command" class="ui-kbd">
+              "⌘"
+            <kbd aria-label="S" class="ui-kbd">
+              "S"
+        <div aria-disabled="false" aria-selected="false" class="hub-row" data-id="maps" id="hub-result-4" role="option">
+          <span aria-hidden="true" class="hub-icon" data-kind="maps">
+            <svg fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" stroke="currentColor" viewBox="0 0 24 24">
+              <path d="m3 5 6-2 6 2 6-2v16l-6 2-6-2-6 2V5ZM9 3v16M15 5v16"></path>
+          <span class="hub-title">
+            "Maps"
+          <span class="hub-detail">
+            "Exploration grid, walkable terrain and compass ranges"
+          <span class="hub-row-type">
+        <div aria-description="Right Arrow opens the child page." aria-disabled="false" aria-selected="false" class="hub-row" data-id="accounts" id="hub-result-5" role="option">
+          <span aria-hidden="true" class="hub-icon" data-kind="accounts">
+            <svg fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" stroke="currentColor" viewBox="0 0 24 24">
+              <rect x="3" y="3" width="14" height="18" rx="2"></rect><path d="M7 7h6M7 11h6M14 16h8m-3-3 3 3-3 3"></path>
+          <span class="hub-title">
+            "Switch Account"
+          <span class="hub-detail">
+            "Open another saved account or switch to it"
+          <span class="hub-row-type">
+            <span aria-hidden="true" class="hub-child-cue">
+              "›"
+      <div aria-labelledby="hub-group-6" role="group">
+        <div class="hub-group" id="hub-group-6" role="presentation">
+          "Commands"
+        <div aria-disabled="false" aria-selected="false" class="hub-row" data-id="commands" id="hub-result-6" role="option">
+          <span aria-hidden="true" class="hub-icon" data-kind="command">
+            <svg fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" stroke="currentColor" viewBox="0 0 24 24">
+              <path d="m9 5-6 7 6 7M13 19h8"></path>
+          <span class="hub-title">
+            "Commands"
+          <span class="hub-detail">
+            "Search words, calculator examples and keys"
+          <span class="hub-row-type">
+        <div aria-disabled="false" aria-selected="false" class="hub-row" data-id="title:help" id="hub-result-7" role="option">
+          <span aria-hidden="true" class="hub-icon" data-kind="title">
+            <svg fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" stroke="currentColor" viewBox="0 0 24 24">
+              <path d="M8 3h8v6a4 4 0 0 1-8 0V3ZM8 5H4v3a4 4 0 0 0 4 4M16 5h4v3a4 4 0 0 1-4 4M12 13v6M7 21h10"></path>
+          <span class="hub-title">
+            "Title calculator"
+          <span class="hub-detail">
+            "Points, items needed and offer comparisons"
+          <span class="hub-row-type">
+        <div aria-disabled="false" aria-selected="false" class="hub-row" data-id="hub-preferences" id="hub-result-8" role="option">
+          <span aria-hidden="true" class="hub-icon" data-kind="settings">
+            <svg fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" stroke="currentColor" viewBox="0 0 24 24">
+              <path d="M4 7h16M4 17h16"></path><circle cx="8" cy="7" r="3"></circle><circle cx="16" cy="17" r="3"></circle>
+          <span class="hub-title">
+            "Hub preferences"
+          <span class="hub-detail">
+            "Pins and exact search phrases"
+          <span class="hub-row-type">
+        <div aria-disabled="false" aria-selected="false" class="hub-row" data-id="settings" id="hub-result-9" role="option">
+          <span aria-hidden="true" class="hub-icon" data-kind="settings">
+            <svg fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" stroke="currentColor" viewBox="0 0 24 24">
+              <path d="M4 7h16M4 17h16"></path><circle cx="8" cy="7" r="3"></circle><circle cx="16" cy="17" r="3"></circle>
+          <span class="hub-title">
+            "Settings"
+          <span class="hub-detail">
+            "Tools, maps, appearance and game · ⌘,"
+          <span class="hub-row-type">
+    <p class="hub-empty" hidden="">
+      "No matches"
+    <pre class="hub-preview ui-scroll" hidden="">
+    <div aria-busy="false" class="hub-view">
+      <section aria-describedby="leave-area-detail" aria-labelledby="leave-area-question" class="hub-leave-area">
+        <h2 id="leave-area-question">
+          "Leave this area and travel to Kamadan?"
+        <p id="leave-area-detail">
+          "Travelling leaves this explorable area. You may lose progress in this instance."
+        <div class="hub-leave-area-actions">
+          <button class="ui-button" data-focus-key="leave-area-stay" id="leave-area-stay" type="button">
+            "Stay here"
+          <button class="ui-button" data-focus-key="leave-area-leave" data-variant="danger" id="leave-area-leave" type="button">
+            "Leave and travel to Kamadan"
+    <div class="hub-footer-status">
+      <p aria-busy="false" class="hub-status" role="status" title="">
+      <p class="hub-lifecycle" hidden="">
+      <p class="hub-hint" hidden="" id="hub-hint" title="">
+    <p aria-atomic="true" aria-live="polite" class="hub-announce ui-sr-only" role="status">
+    <footer class="hub-footer">
+      <span class="hub-legend" data-keys="[[["⎋"],"Back"],[["⌘","⌫"],"Back"]]">
+        <span>
+          <kbd class="ui-kbd">
+            "⎋"
+          " Back"
+        <span>
+          <kbd class="ui-kbd">
+            "⌘"
+          <kbd class="ui-kbd">
+            "⌫"
+          " Back"
+      <span class="hub-count">
+      <button class="hub-primary ui-button" data-focus-key="primary" data-variant="primary" title="Stay here">
+        <span class="hub-primary-label">
+          "Stay here"
+        <kbd class="ui-kbd">
+          "↵"
+      <button aria-expanded="false" aria-haspopup="menu" aria-keyshortcuts="Meta+J" class="hub-actions ui-button" data-focus-key="actions" data-variant="quiet" disabled="">
+        "Actions"
+        <kbd aria-hidden="true" class="ui-kbd">
+          "⌘"
+        <kbd aria-hidden="true" class="ui-kbd">
+          "J"
+    <div aria-label="Actions" class="hub-menu" hidden="" role="menu">
+    <button aria-label="Resize Hub" class="ui-window-resize hub-resize" data-focus-key="resize" hidden="" title="Drag to resize, or use arrow keys">
+<div aria-hidden="true" class="hub-receipt ui-toast" hidden="" popover="manual">
+<p aria-atomic="true" class="hub-receipt-announcement ui-sr-only" role="status">
+
+=== leave area, armed (focus: button#leave-area-leave.ui-button)
+<dialog aria-labelledby="hub-name hub-title-separator hub-caption" class="ui-modal ui-modal-layer" data-gwonmac-surface="" data-page="section" id="hub" open="">
+  <section class="hub-panel ui-frame ui-art-frame" data-busy="false" data-locked="true">
+    <canvas aria-hidden="true" class="ui-frame-artwork">
+    <header class="hub-heading ui-window-head">
+      <button aria-description="Return to Home" aria-keyshortcuts="Meta+Backspace" aria-label="Back" class="ui-button hub-back" data-focus-key="back" data-variant="quiet" title="Back (⌘⌫)">
+        "←"
+      <span class="hub-name" id="hub-name">
+        "Hub"
+      <span hidden="" id="hub-title-separator">
+        "—"
+      <nav aria-label="Hub breadcrumb" class="hub-breadcrumbs">
+        <button class="hub-crumb" type="button">
+          "Home"
+        <span aria-hidden="true">
+          "›"
+        <span aria-current="page" aria-level="1" class="hub-caption" id="hub-caption" role="heading">
+          "Leave this area?"
+      <span class="hub-context">
+      <span class="hub-move-hint" hidden="" id="hub-move-hint">
+        "⌥ arrows move · ⇧ 48 px"
+      <button aria-label="Lock Hub position" aria-pressed="true" class="ui-window-lock hub-lock" data-focus-key="lock" title="Unlock to move and resize" type="button">
+        <svg aria-hidden="true" viewBox="0 0 24 24">
+          <path class="lock-shackle" d="M7 11V7a5 5 0 0 1 10 0v4"></path><rect x="5" y="11" width="14" height="10" rx="2"></rect>
+      <button aria-label="Close Hub" class="ui-window-close hub-close" data-focus-key="close" title="Close Hub">
+        "×"
+    <section aria-label="Build to apply" class="hub-summary" hidden="">
+    <div class="hub-search ui-hub-search" hidden="">
+      <svg aria-hidden="true" viewBox="0 0 24 24">
+        <path d="m12 2 8 10-8 10L4 12 12 2Zm0 5v10M8 12h8"></path>
+      <span class="hub-scope" hidden="">
+      <input aria-activedescendant="hub-result-0" aria-autocomplete="list" aria-controls="hub-results" aria-describedby="hub-hint" aria-description="Leave this area?: search tools or use a command example" aria-expanded="true" aria-label="Search people, places, builds…" autocomplete="off" class="" maxlength="120" placeholder="Search people, places, builds…" role="combobox" spellcheck="false" type="text">
+      <span aria-hidden="true" class="hub-progress">
+      <div aria-hidden="true" class="hub-search-glyphs" hidden="">
+    <div aria-busy="false" aria-label="Results" class="hub-results ui-scroll" data-focus-key="results" hidden="" id="hub-results" role="listbox" tabindex="-1">
+      <div aria-labelledby="hub-group-0" role="group">
+        <div class="hub-group" id="hub-group-0" role="presentation">
+          "Tools"
+        <div aria-description="Right Arrow opens the child page." aria-disabled="false" aria-selected="true" class="hub-row" data-id="character" id="hub-result-0" role="option">
+          <span aria-hidden="true" class="hub-icon" data-kind="character">
+            <svg fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" stroke="currentColor" viewBox="0 0 24 24">
+              <circle cx="8" cy="7" r="3"></circle><path d="M2 20v-2a6 6 0 0 1 12 0M16 7h6m-3-3 3 3-3 3"></path>
+          <span class="hub-title">
+            "Switch Character"
+          <span class="hub-detail">
+            "Choose another character"
+          <span class="hub-row-type">
+            <kbd aria-label="Command" class="ui-kbd">
+              "⌘"
+            <kbd aria-label="E" class="ui-kbd">
+              "E"
+            <span aria-hidden="true" class="hub-child-cue">
+              "›"
+        <div aria-disabled="false" aria-selected="false" class="hub-row" data-id="whispers" id="hub-result-1" role="option">
+          <span aria-hidden="true" class="hub-icon" data-kind="whispers">
+            <svg fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" stroke="currentColor" viewBox="0 0 24 24">
+              <path d="M20 4H4v12h4l4 4v-4h8V4ZM8 8h8M8 12h5"></path>
+          <span class="hub-title">
+            "Whispers"
+          <span class="hub-detail">
+            "Conversations, friends and drafts"
+          <span class="hub-row-type">
+            <kbd aria-label="Command" class="ui-kbd">
+              "⌘"
+            <kbd aria-label="D" class="ui-kbd">
+              "D"
+        <div aria-disabled="false" aria-selected="false" class="hub-row" data-id="trade" id="hub-result-2" role="option">
+          <span aria-hidden="true" class="hub-icon" data-kind="trade">
+            <svg fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" stroke="currentColor" viewBox="0 0 24 24">
+              <path d="M12 3v17M7 6h10M5 8l-3 7h6L5 8Zm14 0-3 7h6l-3-7ZM7 21h10"></path>
+          <span class="hub-title">
+            "Trade Chat"
+          <span class="hub-detail">
+            "Find offers and contact sellers"
+          <span class="hub-row-type">
+            <kbd aria-label="Command" class="ui-kbd">
+              "⌘"
+            <kbd aria-label="K" class="ui-kbd">
+              "K"
+        <div aria-disabled="false" aria-selected="false" class="hub-row" data-id="storage" id="hub-result-3" role="option">
+          <span aria-hidden="true" class="hub-icon" data-kind="storage">
+            <svg fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" stroke="currentColor" viewBox="0 0 24 24">
+              <path d="M3 10h18v11H3V10Zm0 0V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v3M8 3v7M16 3v7M10 10v5h4v-5"></path>
+          <span class="hub-title">
+            "Xunlai Storage"
+          <span class="hub-detail">
+            "Open your storage chest"
+          <span class="hub-row-type">
+            <kbd aria-label="Command" class="ui-kbd">
+              "⌘"
+            <kbd aria-label="S" class="ui-kbd">
+              "S"
+        <div aria-disabled="false" aria-selected="false" class="hub-row" data-id="maps" id="hub-result-4" role="option">
+          <span aria-hidden="true" class="hub-icon" data-kind="maps">
+            <svg fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" stroke="currentColor" viewBox="0 0 24 24">
+              <path d="m3 5 6-2 6 2 6-2v16l-6 2-6-2-6 2V5ZM9 3v16M15 5v16"></path>
+          <span class="hub-title">
+            "Maps"
+          <span class="hub-detail">
+            "Exploration grid, walkable terrain and compass ranges"
+          <span class="hub-row-type">
+        <div aria-description="Right Arrow opens the child page." aria-disabled="false" aria-selected="false" class="hub-row" data-id="accounts" id="hub-result-5" role="option">
+          <span aria-hidden="true" class="hub-icon" data-kind="accounts">
+            <svg fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" stroke="currentColor" viewBox="0 0 24 24">
+              <rect x="3" y="3" width="14" height="18" rx="2"></rect><path d="M7 7h6M7 11h6M14 16h8m-3-3 3 3-3 3"></path>
+          <span class="hub-title">
+            "Switch Account"
+          <span class="hub-detail">
+            "Open another saved account or switch to it"
+          <span class="hub-row-type">
+            <span aria-hidden="true" class="hub-child-cue">
+              "›"
+      <div aria-labelledby="hub-group-6" role="group">
+        <div class="hub-group" id="hub-group-6" role="presentation">
+          "Commands"
+        <div aria-disabled="false" aria-selected="false" class="hub-row" data-id="commands" id="hub-result-6" role="option">
+          <span aria-hidden="true" class="hub-icon" data-kind="command">
+            <svg fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" stroke="currentColor" viewBox="0 0 24 24">
+              <path d="m9 5-6 7 6 7M13 19h8"></path>
+          <span class="hub-title">
+            "Commands"
+          <span class="hub-detail">
+            "Search words, calculator examples and keys"
+          <span class="hub-row-type">
+        <div aria-disabled="false" aria-selected="false" class="hub-row" data-id="title:help" id="hub-result-7" role="option">
+          <span aria-hidden="true" class="hub-icon" data-kind="title">
+            <svg fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" stroke="currentColor" viewBox="0 0 24 24">
+              <path d="M8 3h8v6a4 4 0 0 1-8 0V3ZM8 5H4v3a4 4 0 0 0 4 4M16 5h4v3a4 4 0 0 1-4 4M12 13v6M7 21h10"></path>
+          <span class="hub-title">
+            "Title calculator"
+          <span class="hub-detail">
+            "Points, items needed and offer comparisons"
+          <span class="hub-row-type">
+        <div aria-disabled="false" aria-selected="false" class="hub-row" data-id="hub-preferences" id="hub-result-8" role="option">
+          <span aria-hidden="true" class="hub-icon" data-kind="settings">
+            <svg fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" stroke="currentColor" viewBox="0 0 24 24">
+              <path d="M4 7h16M4 17h16"></path><circle cx="8" cy="7" r="3"></circle><circle cx="16" cy="17" r="3"></circle>
+          <span class="hub-title">
+            "Hub preferences"
+          <span class="hub-detail">
+            "Pins and exact search phrases"
+          <span class="hub-row-type">
+        <div aria-disabled="false" aria-selected="false" class="hub-row" data-id="settings" id="hub-result-9" role="option">
+          <span aria-hidden="true" class="hub-icon" data-kind="settings">
+            <svg fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" stroke="currentColor" viewBox="0 0 24 24">
+              <path d="M4 7h16M4 17h16"></path><circle cx="8" cy="7" r="3"></circle><circle cx="16" cy="17" r="3"></circle>
+          <span class="hub-title">
+            "Settings"
+          <span class="hub-detail">
+            "Tools, maps, appearance and game · ⌘,"
+          <span class="hub-row-type">
+    <p class="hub-empty" hidden="">
+      "No matches"
+    <pre class="hub-preview ui-scroll" hidden="">
+    <div aria-busy="false" class="hub-view">
+      <section aria-describedby="leave-area-detail" aria-labelledby="leave-area-question" class="hub-leave-area">
+        <h2 id="leave-area-question">
+          "Leave this area and travel to Kamadan?"
+        <p id="leave-area-detail">
+          "Travelling leaves this explorable area. You may lose progress in this instance."
+        <div class="hub-leave-area-actions">
+          <button class="ui-button" data-focus-key="leave-area-stay" id="leave-area-stay" type="button">
+            "Stay here"
+          <button class="ui-button" data-armed="" data-focus-key="leave-area-leave" data-variant="danger" id="leave-area-leave" type="button">
+            "Leave and travel to Kamadan"
+    <div class="hub-footer-status">
+      <p aria-busy="false" class="hub-status" role="status" title="">
+      <p class="hub-lifecycle" hidden="">
+      <p class="hub-hint" hidden="" id="hub-hint" title="">
+    <p aria-atomic="true" aria-live="polite" class="hub-announce ui-sr-only" role="status">
+    <footer class="hub-footer">
+      <span class="hub-legend" data-keys="[[["⎋"],"Back"],[["⌘","⌫"],"Back"]]">
+        <span>
+          <kbd class="ui-kbd">
+            "⎋"
+          " Back"
+        <span>
+          <kbd class="ui-kbd">
+            "⌘"
+          <kbd class="ui-kbd">
+            "⌫"
+          " Back"
+      <span class="hub-count">
+      <button class="hub-primary ui-button" data-focus-key="primary" data-variant="primary" title="Stay here">
+        <span class="hub-primary-label">
+          "Stay here"
+        <kbd class="ui-kbd">
+          "↵"
+      <button aria-expanded="false" aria-haspopup="menu" aria-keyshortcuts="Meta+J" class="hub-actions ui-button" data-focus-key="actions" data-variant="quiet" disabled="">
+        "Actions"
+        <kbd aria-hidden="true" class="ui-kbd">
+          "⌘"
+        <kbd aria-hidden="true" class="ui-kbd">
+          "J"
+    <div aria-label="Actions" class="hub-menu" hidden="" role="menu">
+    <button aria-label="Resize Hub" class="ui-window-resize hub-resize" data-focus-key="resize" hidden="" title="Drag to resize, or use arrow keys">
+<div aria-hidden="true" class="hub-receipt ui-toast" hidden="" popover="manual">
+<p aria-atomic="true" class="hub-receipt-announcement ui-sr-only" role="status">

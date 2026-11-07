@@ -1,4 +1,7 @@
 import { expect, test } from '@playwright/test';
+import type { HubFixtureWindow } from './fixture-window.js';
+// The workbench page this spec drives sets the fixture hooks; they are required here.
+declare const window: HubFixtureWindow;
 
 test('template folders use loaded folder glyphs, not image URLs (HUB-089)', async ({ page }) => {
   await page.goto('/?hub');
@@ -70,11 +73,11 @@ test('Text size doubles interface titles without zooming the game (HUB-116, D-16
   const canvas = await page.locator('#canvas').boundingBox(), ratio = await page.evaluate(() => devicePixelRatio);
   const before=await page.locator('.hub-panel').boundingBox();
   const search=page.locator('.hub-search input');
-  await page.evaluate(() => { window.gwApplyFixtureAppearance?.({ uiTextSize: 200 }); window.dispatchEvent(new CustomEvent('hub-fixture-settings', { detail: { uiTextSize: 200 } })); });
+  await page.evaluate(() => { window.gwApplyFixtureAppearance({ uiStyle: 'guild-wars', uiPanelOpacity: 94, uiTextSize: 200 }); window.dispatchEvent(new CustomEvent('hub-fixture-settings', { detail: { uiTextSize: 200 } })); });
   await page.keyboard.press('Meta+r');
   await expect(page.locator('.hub-title').first()).toHaveCSS('font-size','28px');
   const after=await page.locator('.hub-panel').boundingBox();expect(after).toEqual(before);
-  expect(await page.evaluate(()=>({zoom:getComputedStyle(document.documentElement).zoom,scale:window.gwToolsSettings().uiTextSize}))).toEqual({zoom:'1',scale:200});
+  expect(await page.evaluate(async()=>({zoom:getComputedStyle(document.documentElement).zoom,scale:(await window.gwNative.settings.get()).uiTextSize}))).toEqual({zoom:'1',scale:200});
   const overflow=await page.locator('.hub-row').evaluateAll(els=>els.map(el=>el.scrollWidth-el.clientWidth));expect(overflow.every(value=>value<=1)).toBe(true);
   for (const [query, size] of [['kam', '28px'], ['team', '28px'], ['10 ecto in p', '40px']]) {
     await search.fill(query!);
@@ -88,13 +91,13 @@ test('Text size doubles interface titles without zooming the game (HUB-116, D-16
   await page.keyboard.press('Meta+r'); await search.fill('kam'); await search.press('ArrowDown');
   await search.evaluate(el => (el as HTMLInputElement).setSelectionRange(1, 2));
   const identity = await page.locator('.hub-row[aria-selected=true]').getAttribute('data-id');
-  await page.evaluate(() => { window.gwApplyFixtureAppearance?.({ uiStyle: 'guild-wars', uiPanelOpacity: 94, uiTextSize: 150 }); window.dispatchEvent(new CustomEvent('hub-fixture-settings', { detail: { uiTextSize: 150 } })); });
+  await page.evaluate(() => { window.gwApplyFixtureAppearance({ uiStyle: 'guild-wars', uiPanelOpacity: 94, uiTextSize: 150 }); window.dispatchEvent(new CustomEvent('hub-fixture-settings', { detail: { uiTextSize: 150 } })); });
   await expect(search).toHaveValue('kam'); await expect(search).toBeFocused();
   expect(await search.evaluate(el => [(el as HTMLInputElement).selectionStart, (el as HTMLInputElement).selectionEnd])).toEqual([1, 2]);
   await expect(page.locator('.hub-row[aria-selected=true]')).toHaveAttribute('data-id', identity!);
 
   await page.keyboard.press('Escape'); await page.keyboard.press('Escape'); await page.keyboard.press('Meta+r');
-  expect(await page.evaluate(() => window.gwToolsSettings().uiTextSize)).toBe(150);
+  expect(await page.evaluate(async () => (await window.gwNative.settings.get()).uiTextSize)).toBe(150);
   // Durable reload is proved through real saveSettings/loadSettings; this fixture keeps settings in memory.
   expect(await page.locator('#canvas').boundingBox()).toEqual(canvas); expect(await page.evaluate(() => devicePixelRatio)).toBe(ratio);
 
@@ -287,7 +290,7 @@ test('every view keeps the same frame and search box across styles, fonts and op
   const frame=await page.locator('.hub-panel').boundingBox(),field=await page.locator('.hub-search').boundingBox();
   expect(frame!.width).toBe(780);expect(frame!.height).toBe(590);
   for(const uiStyle of ['guild-wars','obsidian'] as const)for(const uiFont of ['guild-wars','inter','system','avenir','georgia','palatino'] as const)for(const uiPanelOpacity of [94,65]){
-    await page.evaluate(value=>window.gwApplyFixtureAppearance?.(value),{uiStyle,uiFont,uiPanelOpacity});
+    await page.evaluate(value=>window.gwApplyFixtureAppearance(value),{uiStyle,uiFont,uiPanelOpacity});
     for(const query of ['', 'kam', '10 ectos in p', 'zzzq', 'commands', 'titles', 'build library', 'team gom afk', 'settings', 'hub preferences', '@travel', '@characters', '@actions']){
       await page.keyboard.press('Meta+r');
       if(query==='@travel')await page.keyboard.press('Meta+t');
@@ -305,7 +308,7 @@ test('a four-key shortcut fits the shared cue slot at both text sizes (HUB-150)'
   await page.goto('/?hub');await expect(page.locator('#app')).toHaveAttribute('data-ready','true');
   await page.evaluate(()=>window.dispatchEvent(new CustomEvent('hub-fixture-settings',{detail:{shortcutOverrides:{'travel.open':{key:'t',option:true,shift:true}}}})));
   for(const uiTextSize of [100,200]){
-    await page.evaluate(uiTextSize=>window.gwApplyFixtureAppearance?.({uiStyle:'guild-wars',uiPanelOpacity:94,uiTextSize}),uiTextSize);
+    await page.evaluate(uiTextSize=>window.gwApplyFixtureAppearance({uiStyle:'guild-wars',uiPanelOpacity:94,uiTextSize}),uiTextSize);
     const search = page.locator('.hub-search input');
     await search.fill('library'); await search.press('Enter');
     const positions = await page.locator('.hub-row').evaluateAll(rows => rows.map(row => ({

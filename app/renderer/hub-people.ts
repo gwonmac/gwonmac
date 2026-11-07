@@ -5,7 +5,7 @@
 import { currentTravelFriend, presenceLabel, type TravelFriend, type TravelFriends } from '../shared/friends.js';
 import { featureActivationRequested } from '../shared/feature-contracts.js';
 import { travelDestination } from '../shared/travel.js';
-import { hubTier, parseHubQuery, type HubRow, type HubSource, type HubTask } from '../shared/hub.js';
+import { hubTier, parseHubQuery, type HubAction, type HubRow, type HubSource, type HubTask } from '../shared/hub.js';
 import { characterKey, normaliseCharacterName } from '../shared/player-text.js';
 import { findPeople, whisperUnread, type Person, type WhisperSession } from '../shared/whisper-session.js';
 import { isCharacterName, isFullCharacterName } from '../shared/whispers.js';
@@ -70,6 +70,12 @@ export function createHubPeople(hub: Pick<Hub, 'attach' | 'showRows' | 'notify'>
     if (!friend || !travel || !toolEnabled('travel')) return undefined;
     return travelReason(friend, current) ?? (friend.character ? party.travelUnavailable(friend) : 'This friend is offline');
   }
+  /** A person's Actions (⌘J): the actions their page lists, in its order. */
+  function personActions(name: string, friendKey?: string): () => readonly HubAction[] {
+    const page = personRows(name, friendKey);
+    return () => page().map(row => ({ label: row.action, ...(row.unavailable ? { unavailable: row.unavailable } : {}),
+      ...(row.destructive ? { destructive: true } : {}), ...(row.pending ? { pending: row.pending } : {}), run: row.run }));
+  }
   function personRows(name: string, friendKey?: string): () => readonly HubRow[] {
     const selectedFeed = friends;
     const selectedFriend = selectedFeed.status === 'ready'
@@ -82,10 +88,10 @@ export function createHubPeople(hub: Pick<Hub, 'attach' | 'showRows' | 'notify'>
       const changed = !!friendKey && (!friend || currentName !== name);
       const current = !!selectedFriend && selectedFeed.status === 'ready' && !!currentTravelFriend(feed, selectedFriend, selectedFeed.generation);
       const reason = travelReason(friend, current);
-      const rows: HubRow[] = toolEnabled('whispers') ? [{ id: 'person:whisper', title: 'Whisper', detail: `Message ${currentName}`, group: 'Actions', action: 'Write whisper',
+      const rows: HubRow[] = toolEnabled('whispers') ? [{ id: 'person:whisper', iconKind: 'whispers', title: 'Whisper', detail: `Message ${currentName}`, group: 'Actions', action: 'Write whisper',
         ...(changed ? { unavailable: 'This friend changed or is unavailable. Select them again.' } : !session.state.available ? { unavailable: WHISPER_WAITING } : {}),
         run: () => whisper(currentName) }] : [];
-      if (friendKey && toolEnabled('travel')) rows.push({ id: 'person:travel', title: 'Travel to outpost', detail: `${destination?.name ?? 'Location unavailable'} · Any district`, group: 'Actions', action: destination ? `Travel to ${destination.name}` : 'Travel', consequential: true, preferred: false,
+      if (friendKey && toolEnabled('travel')) rows.push({ id: 'person:travel', iconKind: 'travel', title: 'Travel to outpost', detail: `${destination?.name ?? 'Location unavailable'} · Any district`, group: 'Actions', action: destination ? `Travel to ${destination.name}` : 'Travel', consequential: true, preferred: false,
         ...(reason ? { unavailable: reason } : {}), run: async task => {
           if (!selectedFriend || selectedFeed.status !== 'ready' || !travel) throw new Error('Friend travel is unavailable');
           await travel.run(selectedFriend, selectedFeed.generation);
@@ -98,11 +104,11 @@ export function createHubPeople(hub: Pick<Hub, 'attach' | 'showRows' | 'notify'>
         const travelInvite = travelInviteReason(party, friend, current);
         const inviteReason = changed ? 'This friend changed or is unavailable. Select them again.'
           : offline ? 'This friend is offline' : !friendKey && !isFullCharacterName(name) ? PARTIAL_NAME : party.unavailable(friend, travelInvite === null);
-        rows.push({ id: 'person:invite', title: 'Invite to party', detail: `Add ${target || name} to your party`, group: 'Actions', action: `Invite ${target || name}`, consequential: true, preferred: false,
+        rows.push({ id: 'person:invite', iconKind: 'invite', title: 'Invite to party', detail: `Add ${target || name} to your party`, group: 'Actions', action: `Invite ${target || name}`, consequential: true, preferred: false,
           pending: invitePending(target || name), ...(inviteReason ? { unavailable: inviteReason } : {}), run: task => inviteNow(party, target, task, friend) });
         if (travelInvite !== undefined) {
           const place = destination?.name ?? 'the outpost';
-          rows.push({ id: 'person:travel-invite', title: 'Travel and invite', detail: `${place} · Any district, then invite ${target}`, group: 'Actions', action: `Travel and invite ${target}`, consequential: true, preferred: false,
+          rows.push({ id: 'person:travel-invite', iconKind: 'person', title: 'Travel and invite', detail: `${place} · Any district, then invite ${target}`, group: 'Actions', action: `Travel and invite ${target}`, consequential: true, preferred: false,
             ...(travelInvite ? { unavailable: travelInvite } : {}), run: async task => {
               if (!selectedFriend || selectedFeed.status !== 'ready') throw new Error('Friend travel is unavailable');
               const { invited } = await party.travelAndInvite(selectedFriend, selectedFeed.generation);
@@ -133,7 +139,7 @@ export function createHubPeople(hub: Pick<Hub, 'attach' | 'showRows' | 'notify'>
           .slice(0, MAX_PEOPLE).flatMap(friend => {
             const name = friend.character || friend.alias;
             const trip = personRows(name, friend.key)().find(row => row.id === 'person:travel');
-            return trip ? [{ ...trip, id: `person:travel:${friend.key}`, title: name, group: 'Friends' }] : [];
+            return trip ? [{ ...trip, id: `person:travel:${friend.key}`, iconKind: 'person', title: name, group: 'Friends' }] : [];
           });
       }
       // `whisper` and `invite` address one person; both need the Whispers chat mailbox.
@@ -154,7 +160,7 @@ export function createHubPeople(hub: Pick<Hub, 'attach' | 'showRows' | 'notify'>
           ...(pending && party ? [{ id: 'pending-invite', title: `Invite ${pending.name} after arrival`, detail: `Travelling to ${pending.place}`, group: 'Continue', action: `Cancel invite to ${pending.name}`,
             run: (task: HubTask) => { party.cancel(pending); task.done(); } }] : []),
           ...(whispersEnabled ? session.state.conversations.filter(conversation => whisperUnread(conversation) || conversation.draft)
-          .map(conversation => ({ ...row({ key: conversation.key, name: conversation.name, source: 'conversation', activity: conversation.activity, exact: false, conversation }), group: 'Continue', action: conversation.draft ? 'Continue draft' : `Reply to ${conversation.name}`, actionsLabel: 'View all actions', ...(!session.state.available ? { unavailable: WHISPER_WAITING } : {}), run: () => whisper(conversation.name) })) : []),
+          .map(conversation => ({ ...row({ key: conversation.key, name: conversation.name, source: 'conversation', activity: conversation.activity, exact: false, conversation }), group: 'Continue', action: conversation.draft ? 'Continue draft' : `Reply to ${conversation.name}`, ...(!session.state.available ? { unavailable: WHISPER_WAITING } : {}), run: () => whisper(conversation.name) })) : []),
         ];
       }
       const people = findPeople(session.state, parsed.text, friends)
@@ -164,8 +170,8 @@ export function createHubPeople(hub: Pick<Hub, 'attach' | 'showRows' | 'notify'>
       // offers only known people: any phrase could otherwise pose as a name.
       const typed = normaliseCharacterName(parsed.text);
       const typedRow: HubRow | null = addressed && isCharacterName(typed) && !people.some(person => person.exact)
-        ? { id: `person:typed:${characterKey(typed)}`, title: typed, detail: 'Character name', group: 'People',
-          action: 'View actions', menuActions: personRows(typed), actions: () => person(typed), run: () => person(typed) } : null;
+        ? { id: `person:typed:${characterKey(typed)}`, iconKind: 'person', title: typed, detail: 'Character name', group: 'People',
+          action: 'View actions', actions: personActions(typed), run: () => person(typed) } : null;
       if (parsed.scope === 'invite' && party) {
         // Only an exact name invites, and it comes first. A prefix or chat match
         // opens the person page instead, so Enter never invites a similar name.
@@ -178,7 +184,7 @@ export function createHubPeople(hub: Pick<Hub, 'attach' | 'showRows' | 'notify'>
       // A whisper only opens a draft, so Enter on a partial name keeps the known person first.
       if (typedRow) rows.push(typedRow);
       return parsed.scope === 'whisper'
-        ? rows.map(entry => ({ ...entry, action: 'Write whisper', actionsLabel: 'View all actions', ...(!session.state.available ? { unavailable: WHISPER_WAITING } : {}), run: () => whisper(entry.keywords || entry.title) }))
+        ? rows.map(entry => ({ ...entry, action: 'Write whisper', ...(!session.state.available ? { unavailable: WHISPER_WAITING } : {}), run: () => whisper(entry.keywords || entry.title) }))
         : rows;
     },
   };
@@ -187,7 +193,7 @@ export function createHubPeople(hub: Pick<Hub, 'attach' | 'showRows' | 'notify'>
     const target = friend ? friend.character : entry.title;
     const reason = friend && (friend.status === 'offline' || !friend.character) ? 'This friend is offline'
       : party.unavailable(friend, travelInviteReason(party, friend, true) === null);
-    return { ...entry, action: `Invite ${target || entry.title}`, actionsLabel: 'View all actions', consequential: true, preferred: false, pending: invitePending(target || entry.title),
+    return { ...entry, action: `Invite ${target || entry.title}`, consequential: true, preferred: false, pending: invitePending(target || entry.title),
       ...(reason ? { unavailable: reason } : {}), run: task => inviteNow(party, target, task, friend) };
   }
   const invitePending = (target: string) => ({ label: `Inviting ${target}…`, again: `/invite ${target} is still being sent.` });
@@ -210,14 +216,14 @@ export function createHubPeople(hub: Pick<Hub, 'attach' | 'showRows' | 'notify'>
     const continuation = unread ? `${unread} unread · Whisper` : conversation?.draft ? 'Continue draft' : '';
     if (friend) {
       const name = friend.character || friend.alias;
-      return { id: `friend:${friend.key}`, title: friend.alias || name,
+      return { id: `friend:${friend.key}`, iconKind: 'person', title: friend.alias || name,
         detail: `${friend.character && friend.character !== friend.alias ? `${friend.character} · ` : ''}${presenceLabel(friend.status)}${friend.status !== 'offline' ? ` · ${travelDestination(friend.mapId)?.name ?? 'Location unavailable'}` : ''}${continuation ? ` · ${continuation}` : ''}`,
-        aliases: [name], keywords: name, group: 'People', action: 'View actions', menuActions: personRows(name, friend.key), actions: () => person(name, friend.key), run: () => person(name, friend.key) };
+        aliases: [name], keywords: name, group: 'People', action: 'View actions', actions: personActions(name, friend.key), run: () => person(name, friend.key) };
     }
     const detail = conversation ? (unread ? `${unread} unread · Whisper` : conversation.draft ? 'Continue draft' : 'Conversation')
       : entry.source === 'recent' ? 'Recent conversation' : 'Seen in chat';
-    return { id: `person:${entry.key}`, title: entry.name, detail, group: 'People', action: 'View actions',
-      menuActions: personRows(entry.name), actions: () => person(entry.name), run: () => person(entry.name) };
+    return { id: `person:${entry.key}`, iconKind: 'person', title: entry.name, detail, group: 'People', action: 'View actions',
+      actions: personActions(entry.name), run: () => person(entry.name) };
   }
   return {
     setEnabled(next: boolean) {

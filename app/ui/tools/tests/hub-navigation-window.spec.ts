@@ -1,4 +1,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import type { HubFixtureWindow } from './fixture-window.js';
+// The workbench page this spec drives sets the fixture hooks; they are required here.
+declare const window: HubFixtureWindow;
 
 test('the smallest Hub keeps room for three results (HUB-238)', async ({ page }) => {
   await page.goto('/?hub');
@@ -289,7 +292,7 @@ test('Command-Backspace goes back one Build Library level, restores the parent a
   await search.press('Enter');
   await page.keyboard.press('Meta+Backspace');
   await expect.poll(() => announced.evaluate(region => region.textContent)).toBe('Home\u00a0');
-  expect(await page.evaluate(() => window.gwFixtureCanvas?.events.length)).toBe(0);
+  expect(await page.evaluate(() => window.gwFixtureCanvas.events.length)).toBe(0);
 });
 
 test('a page opened directly returns to the real Home, and Home ignores Command-Backspace', async ({ page }) => {
@@ -392,7 +395,7 @@ async function restPointer(page: Page, row: Locator) {
   await page.evaluate(point => { (window as unknown as { pointerAt: typeof point }).pointerAt = point; }, { x: box.x + 60, y: box.y + box.height / 2 });
 }
 const selectedRow = (page: Page) => page.locator('#hub .hub-row[aria-selected="true"]');
-const mouseLedger = (page: Page) => page.evaluate(() => (window.gwFixtureCanvas?.events ?? []).filter(event => !event.type.startsWith('key')));
+const mouseLedger = (page: Page) => page.evaluate(() => window.gwFixtureCanvas.events.filter(event => !event.type.startsWith('key')));
 
 test('the mouse back button goes back one level, restores the parent exactly and never runs a row (PTR-33, KEY-26)', async ({ page }) => {
   await page.goto('/?hub');
@@ -407,7 +410,7 @@ test('the mouse back button goes back one level, restores the parent exactly and
   await search.press('Enter');
   await expect(caption).toHaveText('Second');
   await restPointer(page, page.locator('#hub .hub-row').last());
-  await page.evaluate(() => window.gwFixtureCanvas?.clear());
+  await page.evaluate(() => window.gwFixtureCanvas.clear());
   await pressMouseBack(page);
   await expect(caption).toHaveText('Home');
   await expect(search).toHaveValue('acc s');
@@ -452,7 +455,7 @@ test('the mouse back button at Home does nothing and never closes the Hub (PTR-3
   await expect(page.locator('#hub .hub-announce')).toHaveText('2 results');
   await restPointer(page, page.locator('#hub .hub-row').first());
   const selection = await selectedRow(page).getAttribute('data-id');
-  await page.evaluate(() => window.gwFixtureCanvas?.clear());
+  await page.evaluate(() => window.gwFixtureCanvas.clear());
   await pressMouseBack(page);
   await pressMouseBack(page, 3);
   await page.waitForTimeout(300);
@@ -480,7 +483,7 @@ test('a held Command-Backspace on a person page goes back one level to the peopl
   expect(scroll).toBeGreaterThan(0);
   await search.press('Enter');
   await expect(page.locator('.hub-breadcrumbs')).toHaveText('Home›Kai Mo Bearer');
-  await page.evaluate(() => window.gwFixtureCanvas?.clear());
+  await page.evaluate(() => window.gwFixtureCanvas.clear());
   // About a second of auto-repeat: one keydown and 25 repeats.
   await page.keyboard.down('Meta');
   for (let press = 0; press < 26; press++) await page.keyboard.down('Backspace');
@@ -493,7 +496,7 @@ test('a held Command-Backspace on a person page goes back one level to the peopl
   await expect(selectedRow(page)).toHaveAttribute('data-id', 'person:kai mo bearer');
   expect(await page.locator('#hub-results').evaluate(list => list.scrollTop)).toBe(scroll);
   await expect(page.locator('#hub .hub-announce')).toHaveText('Home');
-  expect(await page.evaluate(() => window.gwFixtureCanvas?.events.length)).toBe(0);
+  expect(await page.evaluate(() => window.gwFixtureCanvas.events.length)).toBe(0);
 });
 
 test('a held Backspace on a person page or an empty Build Library folder never leaves it or removes anything (PPL-30, BLD-25)', async ({ page }) => {
@@ -508,7 +511,7 @@ test('a held Backspace on a person page or an empty Build Library folder never l
   await search.fill('romi'); await search.press('Enter');
   await expect(crumbs).toHaveText('Home›Romi Ranger');
   const actions = await page.locator('#hub .hub-row').allTextContents();
-  await page.evaluate(() => window.gwFixtureCanvas?.clear());
+  await page.evaluate(() => window.gwFixtureCanvas.clear());
   await holdBackspace(25);
   await expect(crumbs).toHaveText('Home›Romi Ranger');
   await expect(search).toHaveValue('');
@@ -527,7 +530,7 @@ test('a held Backspace on a person page or an empty Build Library folder never l
   await holdBackspace(50);
   await expect(crumbs).toHaveText('Home›Build Library›Guild Wars templates›Monk');
   expect(await page.locator('#hub .hub-row').allTextContents()).toEqual(builds);
-  expect(await page.evaluate(() => window.gwFixtureCanvas?.events.length)).toBe(0);
+  expect(await page.evaluate(() => window.gwFixtureCanvas.events.length)).toBe(0);
   expect(await page.evaluate(() => window.gwFixtureActions)).toEqual([]);
 });
 

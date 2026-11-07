@@ -1,4 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
+import type { HubFixtureWindow } from './fixture-window.js';
+// The workbench page this spec drives sets the fixture hooks; they are required here.
+declare const window: HubFixtureWindow;
 
 /**
  * One keyboard model across the Hub and its popouts: the shared list keys never
@@ -11,7 +14,7 @@ const openHub = async (page: Page, query = '') => {
   await expect(page.locator('#app')).toHaveAttribute('data-ready', 'true');
   await expect(hubSearch(page)).toBeFocused();
 };
-const canvasKeys = (page: Page) => page.evaluate(() => (window.gwFixtureCanvas?.events ?? []).filter(event => event.type.startsWith('key')).length);
+const canvasKeys = (page: Page) => page.evaluate(() => window.gwFixtureCanvas.events.filter(event => event.type.startsWith('key')).length);
 
 test('consecutive Escapes pop one level each and never close the Hub early (HUB-005)', async ({ page }) => {
   await openHub(page);
@@ -27,7 +30,7 @@ test('consecutive Escapes pop one level each and never close the Hub early (HUB-
         if (dialog?.open && dialog.querySelector('.hub-caption')?.textContent === 'Home' && search?.value === 'switch account') homes.push({ query: search.value, focused: document.activeElement === search });
       });
     }, true);
-    window.gwFixtureCanvas?.clear();
+    window.gwFixtureCanvas.clear();
   });
   // No evaluate or locator read between the presses: those would grant user activation.
   for (let cycle = 0; cycle < 5; cycle++) {
@@ -44,7 +47,7 @@ test('consecutive Escapes pop one level each and never close the Hub early (HUB-
     { query: 'switch account', focused: true }, { query: 'switch account', focused: true },
     { query: 'switch account', focused: true },
   ]);
-  expect(await page.evaluate(() => window.gwFixtureCanvas?.events.filter(event => event.code === 'Escape'))).toEqual([]);
+  expect(await page.evaluate(() => window.gwFixtureCanvas.events.filter(event => event.code === 'Escape'))).toEqual([]);
   // Three Build Library levels deep, then one Escape per level back to Home (KEY-09).
   await hubSearch(page).fill('build library');
   await page.keyboard.press('Enter');
@@ -112,7 +115,7 @@ test('Escape on a page its shortcut opened clears the query, then closes without
   await expect(page.locator('.hub-legend')).toContainText('⎋ Close');
   await travel.fill('kam');
   // A held Escape clears the query and stops there: one step per physical press.
-  await page.evaluate(() => window.gwFixtureCanvas?.clear());
+  await page.evaluate(() => window.gwFixtureCanvas.clear());
   for (let press = 0; press < 4; press++) await page.keyboard.down('Escape');
   await page.keyboard.up('Escape');
   await expect(travel).toHaveValue('');
@@ -363,7 +366,7 @@ test('closing the Hub with the mouse while a shortcut records gives the next key
   await expect(record).toContainText('Press keys…');
   await page.getByRole('button', { name: 'Close Hub', exact: true }).click();
   await expect(page.locator('#hub')).toBeHidden();
-  await page.evaluate(() => window.gwFixtureCanvas?.clear());
+  await page.evaluate(() => window.gwFixtureCanvas.clear());
   await page.keyboard.press('w');
   expect(await canvasKeys(page)).toBe(2);
   await page.keyboard.press('Meta+r');
@@ -417,7 +420,7 @@ test('Whispers: Escape clears the picker text first, ↓ walks the people, ⌘�
   const picker = page.locator('#whisper-person');
   await expect(picker).toBeFocused();
   await page.keyboard.type('ro');
-  await page.evaluate(() => window.gwFixtureCanvas?.clear());
+  await page.evaluate(() => window.gwFixtureCanvas.clear());
   await page.keyboard.press('Escape');
   await expect(picker).toHaveValue('');
   await expect(page.locator('#whisper-window')).toBeVisible();
@@ -498,7 +501,7 @@ test('Trade: Escape and ⌘⌫ leave the Saved drawer, the Actions menu and Trad
   await page.keyboard.press('Escape');
   await expect(drawer).toHaveCount(0);
   await expect(canvas).toBeFocused();
-  await page.evaluate(() => window.gwFixtureCanvas?.clear());
+  await page.evaluate(() => window.gwFixtureCanvas.clear());
   await page.keyboard.press('w');
   await expect.poll(() => canvasKeys(page)).toBe(2);
   await trade.getByRole('button', { name: 'Trader prices' }).click();

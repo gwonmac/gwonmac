@@ -12,6 +12,7 @@ export default defineFeature({
   tool: {
     id: "resign",
     label: "Resign",
+    event: "gw:resign-show",
     description: "Ask before sending /resign in PvE. Enter confirms; Escape cancels.",
   },
   shortcuts: [{ action: "game.resign", binding: null, menuItem: "resign-game" }],

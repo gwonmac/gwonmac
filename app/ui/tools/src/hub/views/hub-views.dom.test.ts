@@ -1,7 +1,7 @@
 /**
  * The DOM contract of the Hub's own pages: Hub preferences, the search-phrase form and its
- * confirmations, the calculator's Conversion rates and Price details, and the Accounts
- * confirmation. Element types, classes, ids, ARIA, text and where the keyboard is. The
+ * confirmations, the calculator's Conversion rates and Price details, the Accounts
+ * confirmation and Leave this area. Element types, classes, ids, ARIA, text and where the keyboard is. The
  * snapshots were taken from the hand-built pages before they moved to Vue components, so
  * these tests hold the components to the structure the CSS and the e2e suites expect.
  */
@@ -14,6 +14,8 @@ import { installSurfaceController } from '../../../../../renderer/surface-contro
 import { createHub } from '../../../../../renderer/hub';
 // eslint-disable-next-line no-restricted-imports
 import { withHubBuiltins, type GameHub } from '../../../../../renderer/hub-builtins';
+// eslint-disable-next-line no-restricted-imports
+import { askLeaveArea, leaveAreaCopy } from '../../../../../renderer/leave-area';
 import { DEFAULT_SETTINGS, type AppSettings } from '../../../../../shared/contracts';
 import type { HubRow, HubSource } from '../../../../../shared/hub';
 import type { HubShortcut } from '../../../../../shared/hub-preferences';
@@ -77,8 +79,8 @@ afterEach(() => { hub.dispose(); vi.useRealTimers(); vi.restoreAllMocks(); });
 /** The account's build and team references, as the Build Library's source owns them. */
 function library(entries: HubShortcut[]): HubSource {
   const rows: Record<string, HubRow> = {
-    'build:1': { id: 'build:1', title: 'Healer', detail: 'Monk build', group: 'Builds', action: 'Apply build', run() {} },
-    'team:1': { id: 'team:1', title: 'Speed team', detail: 'Team', group: 'Teams', action: 'Apply team', run() {} },
+    'build:1': { id: 'build:1', iconKind: 'builds', title: 'Healer', detail: 'Monk build', group: 'Builds', action: 'Apply build', run() {} },
+    'team:1': { id: 'team:1', iconKind: 'team', title: 'Speed team', detail: 'Team', group: 'Teams', action: 'Apply team', run() {} },
   };
   return {
     search: () => [], lookup: id => rows[id], setVisible() {}, subscribe: () => () => {},
@@ -171,3 +173,39 @@ test('replacing the running account asks on its own confirmation page', async ()
   capture('replace confirmation');
   await expect(views.join('\n\n')).toMatchFileSnapshot('./__snapshots__/accounts-confirm.dom.txt');
 });
+
+test('leaving an explorable area asks on its own page: Stay here leads, and Leave takes one press once armed', async () => {
+  hub.show(); await settle();
+  const left = vi.fn(async () => {});
+  const outcome = askLeaveArea(hub, leaveAreaCopy('travel', 'Kamadan'), left);
+  await vi.advanceTimersByTimeAsync(0);
+  capture('leave area, not yet armed');
+  const leave = field<HTMLButtonElement>('#leave-area-leave');
+  leave.click(); await vi.advanceTimersByTimeAsync(0);
+  expect(left).not.toHaveBeenCalled();
+  key(field('#leave-area-stay'), { key: 'ArrowRight' }); await vi.advanceTimersByTimeAsync(0);
+  capture('leave area, → on Stay here');
+  await settle();
+  capture('leave area, armed');
+  // The later click of a double-click never leaves (HUB-027).
+  leave.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 2 })); await vi.advanceTimersByTimeAsync(0);
+  expect(left).not.toHaveBeenCalled();
+  leave.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 })); await settle();
+  expect(left).toHaveBeenCalledTimes(1);
+  await outcome;
+  expect(hub.visible).toBe(false);
+  await expect(views.join('\n\n')).toMatchFileSnapshot('./__snapshots__/leave-area.dom.txt');
+});
+
+test('Stay here returns to the page that asked, and the question rejects so its action stops', async () => {
+  hub.show(); await settle();
+  await type('kam');
+  const outcome = askLeaveArea(hub, leaveAreaCopy('switch', 'Ranger'), async () => {});
+  const rejected = outcome.catch((error: unknown) => error);
+  await settle();
+  field<HTMLButtonElement>('#leave-area-stay').click(); await settle();
+  expect(await rejected).toMatchObject({ name: 'AbortError' });
+  expect(input().value).toBe('kam');
+  expect(document.querySelector('#leave-area-question')).toBeNull();
+});
+

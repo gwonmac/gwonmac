@@ -46,16 +46,8 @@ import { logEvent, resetRendererDiagnostics } from "./diagnostics.js";
 import { isCanonicalRendererUrl } from "./core/renderer-trust.js";
 import { isQuitting } from "./lifecycle.js";
 import { gamePaths, preloadPath } from "./paths.js";
-import {
-  editWindowText,
-  openStorage,
-  sendRendererCommand,
-  toggleTrade,
-  toggleWhispers,
-  toggleTools,
-  toggleTravel,
-  toggleCharacterSwitch,
-} from "./renderer-commands.js";
+import { editWindowText, runShortcut, sendRendererCommand } from "./renderer-commands.js";
+import { isMapLayerShortcut, SHORTCUT_MAP_LAYERS } from "../shared/shortcut-commands.js";
 import {
   installApplicationMenu,
   type AccountMenuActions,
@@ -671,22 +663,14 @@ export function createMainWindow(
   installWindowShortcuts(win, {
     run(action) {
       if (action === "hub.toggle") void sendRendererCommand(win, { type: "hub.toggle" });
-      else if (action === "character.switch") void toggleCharacterSwitch(win);
-      else if (action === "game.call-target") void sendRendererCommand(win, { type: "game.call-target" });
       else if (action === "game.resign") return showResignGame(host, win);
-      else if (action === "tools.toggle") void toggleTools(win);
-      else if (action === "whispers.toggle") void toggleWhispers(win);
-      else if (action === "trade.toggle") void toggleTrade(win);
-      else if (action === "storage.open") void openStorage(win);
-      else if (action === "travel.open") void toggleTravel(win);
-      else {
+      else if (isMapLayerShortcut(action)) {
         void host.getSettings().then((settings) => {
           if (!featureActivationRequested("cartography", settings)) return;
-          const key = action === "cartography.grid.toggle"
-            ? "cartographyGridEnabled" : "cartographyOverlayEnabled";
+          const key = SHORTCUT_MAP_LAYERS[action];
           return host.updateSettings({ [key]: !settings[key] });
         }).catch((error) => console.error("Map layer shortcut failed", error));
-      }
+      } else void runShortcut(win, action);
     },
     edit(command) {
       void editWindowText(win, command);

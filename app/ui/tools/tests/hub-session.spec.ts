@@ -1,5 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
 import { timeBudget } from './performance-budget.js';
+import type { HubFixtureWindow } from './fixture-window.js';
+// The workbench page this spec drives sets the fixture hooks; they are required here.
+declare const window: HubFixtureWindow;
 
 /**
  * Async actions belong to the Hub page that started them (HUB-004, HUB-016, HUB-083,
@@ -15,12 +18,12 @@ const status = (page: Page) => page.locator('.hub-status');
 const receipt = (page: Page) => page.locator('.hub-receipt');
 const primary = (page: Page) => page.locator('.hub-primary');
 const actions = (page: Page) => page.evaluate(() => window.gwFixtureActions.filter(action => !action.startsWith('command:')));
-const keydowns = (page: Page) => page.evaluate(() => window.gwFixtureCanvas?.events.filter(event => event.type === 'keydown').length ?? 0);
+const keydowns = (page: Page) => page.evaluate(() => window.gwFixtureCanvas.events.filter(event => event.type === 'keydown').length);
 
 async function open(page: Page, query: string) {
   await page.goto(`/?hub${query}`);
   await expect(page.locator('#app')).toHaveAttribute('data-ready', 'true');
-  await page.evaluate(() => { localStorage.removeItem('hub-fixture-library'); window.gwFixtureCanvas?.clear(); });
+  await page.evaluate(() => { localStorage.removeItem('hub-fixture-library'); window.gwFixtureCanvas.clear(); });
 }
 async function enter(page: Page, query: string) { await search(page).fill(query); await search(page).press('Enter'); }
 
@@ -33,7 +36,7 @@ test('a late invite completion never closes or wipes the reopened Hub (PPL-16)',
   await expect(hub(page)).toBeHidden();
   await page.keyboard.press('Meta+r');
   await expect(hub(page)).toBeVisible();
-  await page.evaluate(() => window.gwFixtureCanvas?.clear());
+  await page.evaluate(() => window.gwFixtureCanvas.clear());
   await page.keyboard.type('travel kam');
   // The reopened page is usable at once: the late invite no longer holds its primary.
   await expect(primary(page)).toBeEnabled();
@@ -54,7 +57,7 @@ test('a team apply that completes while the player types keeps the Hub, the quer
   await page.locator('#canvas').focus();
   await page.keyboard.press('Meta+r');
   await expect(search(page)).toBeFocused();
-  await page.evaluate(() => window.gwFixtureCanvas?.clear());
+  await page.evaluate(() => window.gwFixtureCanvas.clear());
   await page.keyboard.type('team gom afk'); await page.keyboard.press('Enter');
   await expect(status(page)).toHaveText(/^Applying GOM AFK… \d+\/16$/);
   await page.keyboard.press('ControlOrMeta+a'); await page.keyboard.press('Backspace');
@@ -326,7 +329,7 @@ test('an account open that focuses another window still ends the task, so the ne
       return original(request);
     };
   });
-  await page.evaluate(() => window.gwFixtureCanvas?.clear());
+  await page.evaluate(() => window.gwFixtureCanvas.clear());
   await enter(page, 'acc s'); await primary(page).click();
   await expect(status(page)).toHaveText('Opening Second…');
   await page.keyboard.press('Escape'); await page.keyboard.press('Escape'); await page.keyboard.press('Escape');
@@ -348,7 +351,7 @@ test('an account open that focuses another window still ends the task, so the ne
   await expect(page.getByRole('combobox', { name: 'Destination, phrase, or friend' })).toHaveValue('kam');
   await expect(page.getByRole('combobox', { name: 'Destination, phrase, or friend' })).toBeFocused();
   // The fixture has renderer commands, while main owns the physical Command modifier in Electron.
-  expect(await page.evaluate(() => window.gwFixtureCanvas?.events)).toEqual([{ type: 'keydown', code: 'MetaLeft', repeat: false }]);
+  expect(await page.evaluate(() => window.gwFixtureCanvas.events)).toEqual([{ type: 'keydown', code: 'MetaLeft', repeat: false }]);
 });
 
 test('an invite that fails after the Hub closed names the command, now and on the next opening (PPL-17)', async ({ page }) => {
@@ -411,13 +414,13 @@ test('resolving a Travel failure preserves another owner’s newer receipt (HUB-
   await open(page, '');
   await page.keyboard.press('Escape');
   await page.evaluate(() => {
-    window.gwHub?.notify('Travel did not start.', 'failed');
-    window.gwHub?.notify('Invite Zed Delta stopped. Try again.', 'failed');
-    window.gwHub?.notify('Travel did not start.', 'cleared');
+    window.gwHub!.notify('Travel did not start.', 'failed');
+    window.gwHub!.notify('Invite Zed Delta stopped. Try again.', 'failed');
+    window.gwHub!.notify('Travel did not start.', 'cleared');
   });
   await expect(receipt(page)).toHaveText('Invite Zed Delta stopped. Try again.');
   await page.keyboard.press('Meta+r');
   await expect(status(page)).toHaveText('Invite Zed Delta stopped. Try again.');
-  await page.evaluate(() => window.gwHub?.notify('Invite Zed Delta stopped. Try again.', 'cleared'));
+  await page.evaluate(() => window.gwHub!.notify('Invite Zed Delta stopped. Try again.', 'cleared'));
   await expect(status(page)).toBeEmpty();
 });

@@ -82,7 +82,7 @@ export function createTravelPalette(parent: HTMLElement, command: TravelCommand)
     }, () => !disposed && toolOn(), 'travel');
   }
   /** Travel's row until the lazy bundle loads; a pin shows the same row search shows (HUB-177). */
-  const toolRow = (): HubRow => { const unavailable = command.unavailable(); return ({ ...(unavailable ? { unavailable } : {}), id: 'travel', title: TOOL_PRESENTATION['quick-travel'].label, detail: 'Outposts, favourites and recent places', group: 'Tools', keywords: 'tp teleport destination', action: 'Browse travel', navigate: open, run: open }); };
+  const toolRow = (): HubRow => { const unavailable = command.unavailable(); return ({ ...(unavailable ? { unavailable } : {}), id: 'travel', iconKind: 'travel', title: TOOL_PRESENTATION['quick-travel'].label, detail: 'Outposts, favourites and recent places', group: 'Tools', keywords: 'tp teleport destination', action: 'Browse travel', navigate: open, run: open }); };
   const source: HubSource = {
     feature: 'travelPalette',
     lookup: id => app ? app.source.lookup?.(id) : id === 'travel' ? toolRow() : undefined,
