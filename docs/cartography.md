@@ -29,6 +29,10 @@ A Core launch installs no Maps or Compass native hooks, imports no Maps renderer
 implementation, and exposes no Maps IPC. Tools mode installs the certified hooks;
 its Maps switch then controls live activity. Turning Tools off stops activity
 immediately; restart the application to load the Core client without those hooks.
+The game host reaches Maps through one entry,
+`app/features/cartography/renderer/host.ts`, once the official client is
+instantiated; the host reads the switch through the feature's manifest. Elite
+Skills on the native maps run as the `cartography` companion part.
 
 Maps settings remain available when Tools are off. The page explains how to
 enable Maps and whether an application restart is needed. An illustrative

@@ -10,8 +10,8 @@ import type { EliteMapHandle } from "../../../shared/elite-map.js";
 import type { CompanionPlayRegionState } from "../../../renderer/companion-play-region-snapshot.js";
 import type { EmbeddedToolsBundle } from "../../../shared/tools-bundle-contracts.js";
 import { createCartographyContextReader } from "./context-observer.js";
-import { createCompassFrameSpikeReader, createMissionMapFrameSpikeReader, createWorldMapFrameSpikeReader } from "./frame-observer.js";
-import { createWorldMapAnchorSpikeReader } from "./world-map-anchor-observer.js";
+import { createCompassFrameReader, createMissionMapFrameReader, createWorldMapFrameReader } from "./frame-observer.js";
+import { createWorldMapAnchorReader } from "./world-map-anchor-observer.js";
 import { eliteMapSurfaces } from "./elite-map-projection.js";
 import { ensureToolsStylesheet } from "../../../renderer/tools-stylesheet.js";
 import { requireToolsApi } from "../../../renderer/tools-native-api.js";
@@ -31,10 +31,10 @@ export function createEliteMapInstallation(options: {
   let cleanup: (() => void) | null = null;
   let requestedSkill: number | null = null;
   const context = createCartographyContextReader(options.exports);
-  const compass = createCompassFrameSpikeReader(options.exports);
-  const mission = createMissionMapFrameSpikeReader(options.exports);
-  const anchor = createWorldMapAnchorSpikeReader(options.exports);
-  const world = createWorldMapFrameSpikeReader(options.exports);
+  const compass = createCompassFrameReader(options.exports);
+  const mission = createMissionMapFrameReader(options.exports);
+  const anchor = createWorldMapAnchorReader(options.exports);
+  const world = createWorldMapFrameReader(options.exports);
   async function mount() {
     if (pending || app || !enabled || disposed) return;
     pending = true;

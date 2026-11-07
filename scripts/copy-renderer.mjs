@@ -10,7 +10,6 @@ import { pathToFileURL } from "node:url";
 // editor and OS files part of the build, so two clean checkouts could package
 // different applications. A new asset must be reviewed here.
 const ASSETS = [
-  "cartography-overlay-controls.css",
   "hub.css",
   "favicon.ico",
   "favicon.png",
@@ -27,6 +26,7 @@ const ASSETS = [
 // A feature keeps its stylesheet in its own folder. It lands where Rollup
 // writes that folder's modules, so index.html names it by the same path.
 const FEATURE_ASSETS = [
+  "cartography/renderer/cartography-overlay-controls.css",
   "character-switch/renderer/character-switch.css",
 ];
 

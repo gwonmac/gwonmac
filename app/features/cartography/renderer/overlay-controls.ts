@@ -5,7 +5,7 @@
 import { resolveCartographyPreset } from "../../../shared/cartography-presets.js";
 import type { CartographyEvidenceExportResult } from "../../../shared/cartography-evidence.js";
 import type { AppSettings, RendererSettingsPatch } from "../../../shared/contracts.js";
-import type { WorldMapFrameSpikeDiagnostic } from "../../../shared/cartography-spike.js";
+import type { WorldMapFrameDiagnostic } from "../../../shared/cartography-spike.js";
 import {
   encodeCartographyPresetRef,
   parseCartographyPresetRef,
@@ -52,7 +52,7 @@ export type CartographyQaStatus = Readonly<{
   compassReady: boolean;
   missionMapReady: boolean;
   worldMapReady: boolean;
-  worldMapObserver: WorldMapFrameSpikeDiagnostic;
+  worldMapObserver: WorldMapFrameDiagnostic;
   kernel: CartographyReachabilityDiagnostic | null;
 }>;
 
@@ -93,7 +93,7 @@ const WORLD_MAP_STATUS = Object.freeze({
   10: "frame-pointer",
 }) satisfies Readonly<Record<number, string>>;
 
-function worldMapStatus(value: WorldMapFrameSpikeDiagnostic): string {
+function worldMapStatus(value: WorldMapFrameDiagnostic): string {
   const reason = WORLD_MAP_STATUS[value.status as keyof typeof WORLD_MAP_STATUS]
     ?? `status-${value.status ?? "missing"}`;
   return `${reason} · frame ${value.frameId ?? "?"} · generation ${value.generation ?? "?"}`;
