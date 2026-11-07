@@ -1,4 +1,7 @@
-/** One Travel host serves both unified search and the existing detailed view. */
+/**
+ * One Travel host serves both unified search and the existing detailed view.
+ * It stays in the Tools app because it serves two features: Travel and Progress.
+ */
 import { TOOL_PRESENTATION } from '../../../shared/tool-presentation';
 import { createApp, h, reactive, shallowRef, watch } from 'vue';
 import type { HubPresenter, HubRow, HubSource, HubTask, HubViewMount } from '../../../shared/hub';

@@ -1,4 +1,7 @@
-/** Hub presentation over the existing library controller and bounded apply owners. */
+/**
+ * Hub presentation over the existing library controller and bounded apply owners.
+ * It stays in the Tools app because it serves two features: Build Library and Team apply.
+ */
 import { TOOL_PRESENTATION } from '../../../shared/tool-presentation';
 import { watch } from 'vue';
 import { diffBuilds, diffSummary } from '../../../shared/builds/diff';
