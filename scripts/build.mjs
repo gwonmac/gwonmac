@@ -1,5 +1,5 @@
 // The single producer of everything under build/.
-import { spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { mkdirSync, readFileSync, rmSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
@@ -37,213 +37,173 @@ if (nativeArchitecture === null) {
   throw new Error(`unsupported native build architecture: ${process.arch}`);
 }
 
-/**
- * The one reproducible freestanding-kernel compile recipe.
- * @param {string} output
- */
-export function companionKernelRustcArgs(output) {
-  return [
-    "kernels/companion/lib.rs",
-    "--edition=2021",
-    "--target",
-    "wasm32-unknown-unknown",
-    "--crate-type",
-    "cdylib",
-    "-C",
-    "opt-level=s",
-    "-C",
-    "panic=abort",
-    "-C",
-    "relocation-model=pic",
-    "-C",
-    "link-arg=--import-memory",
-    "-C",
-    "link-arg=--experimental-pic",
-    "-C",
-    "link-arg=--shared",
-    "-C",
-    "link-arg=--strip-all",
-    "-o",
-    output,
-  ];
-}
-
-/** The private Cartography classifier uses the same relocatable Wasm policy.
- * @param {string} output
- */
-export function cartographyReachabilityKernelRustcArgs(output) {
-  return [
-    "kernels/reachability/lib.rs",
-    "--edition=2021",
-    "--target", "wasm32-unknown-unknown",
-    "--crate-type", "cdylib",
-    "-C", "opt-level=s",
-    "-C", "panic=abort",
-    "-C", "relocation-model=pic",
-    "-C", "link-arg=--import-memory",
-    "-C", "link-arg=--experimental-pic",
-    "-C", "link-arg=--shared",
-    "-C", "link-arg=--strip-all",
-    "-o", output,
-  ];
-}
+/** What `cargo` runs for both kernels; .cargo/config.toml holds the flags. */
+export const CARGO_ARGS = ["build", "--release", "--locked"];
 
 /**
- * Every command that produces a package input, in order. Exported so the step
- * list itself is assertable: the kernel is compiled by exactly one of them.
- *
- * Written as pairs rather than left to inference: an array literal of arrays
- * widens to `(string | string[])[][]`, which loses the fact that the first
- * element is the executable and the rest are its arguments, and makes the
- * `spawnSync` call below unresolvable.
- *
- * @type {ReadonlyArray<readonly [command: string, args: readonly string[]]>}
+ * @typedef {object} Step
+ * @property {string} name     what the log calls it
+ * @property {string} command  the executable
+ * @property {readonly string[]} args
  */
-export const BUILD_STEPS = [
-  // Static assets only. It fills build/renderer with everything the compiler
-  // does not produce, so it has to run before the compiler writes into the
-  // same directory.
-  [process.execPath, ["scripts/copy-renderer.mjs"]],
-  // Rollup owns the complete renderer runtime closure, including the shared
-  // modules it imports. TypeScript checks the same source without emitting;
-  // only the main compiler below writes build/shared.
-  [process.execPath, ["scripts/build-renderer.mjs"]],
-  // The main program, and the owner of build/shared.
-  [process.execPath, ["node_modules/typescript/bin/tsc"]],
-  // The launcher is a standalone Vue document with its own narrow preload and
-  // protocol subtree. Vite owns only build/renderer/launcher/, and
-  // build/renderer/settings/: the same Settings page as a module for the Hub.
-  ["pnpm", ["--filter", "@gwonmac/launcher-ui", "build"]],
-  // The Tools application, bundled once for the renderer. It is an independent
-  // Vue workspace with its own tests, so this step only packages what already
-  // passed them. Vite writes build/renderer/tools/ and empties only that
-  // directory, so it cannot disturb the emits above and its position here is
-  // for readability rather than correctness.
-  ["pnpm", ["--filter", "@gwonmac/tools-ui", "build:embedded"]],
-  // The only native addon. It uses raw Node-API version 8, whose ABI remains
-  // stable across the Node and Electron upgrades this project takes. The
-  // framework APIs resolve at runtime from the Electron host, so the bundle
-  // deliberately leaves Node-API symbols undefined here.
+
+/**
+ * Every command that produces a package input, as phases. The steps in one
+ * phase write disjoint paths under build/ and run at the same time; a phase
+ * starts when the one before it has finished. Exported so the plan itself is
+ * assertable: each kernel is compiled by exactly one step and sealed after the
+ * renderer bundle that holds its loader.
+ *
+ * @type {ReadonlyArray<ReadonlyArray<Step>>}
+ */
+export const BUILD_PHASES = [
   [
-    "xcrun",
-    [
-      "clang++",
-      "-std=c++20",
-      "-fobjc-arc",
-      "-bundle",
-      "-undefined",
-      "dynamic_lookup",
-      "-DNAPI_VERSION=8",
-      "-I",
-      "node_modules/node-api-headers/include",
-      "-mmacosx-version-min=12.0",
-      "-arch",
-      nativeArchitecture,
-      "-O2",
-      "-Wall",
-      "-Wextra",
-      "-Werror",
-      "-fvisibility=hidden",
-      "app/native/host/host.mm",
-      "-framework",
-      "AppKit",
-      "-framework",
-      "Foundation",
-      "-framework",
-      "LocalAuthentication",
-      "-framework",
-      "Security",
-      "-o",
-      "build/native/host.node",
-    ],
+    // The renderer's static assets, its ES modules, and the three sandboxed
+    // preloads, which Rollup bundles with the app/shared modules they import.
+    // TypeScript checks the same sources without emitting; only the main
+    // compiler below writes build/shared.
+    { name: "renderer", command: process.execPath, args: ["scripts/build-renderer.mjs"] },
+    // The main program, and the owner of build/shared.
+    { name: "main", command: process.execPath, args: ["node_modules/typescript/bin/tsc"] },
+    // The launcher is a standalone Vue document. Vite owns only
+    // build/renderer/launcher/, and build/renderer/settings/: the same Settings
+    // page as a module for the Hub.
+    { name: "launcher", command: "pnpm", args: ["--filter", "@gwonmac/launcher-ui", "build"] },
+    // The Tools application, bundled once for the renderer. Vite writes and
+    // empties only build/renderer/tools/.
+    { name: "tools", command: "pnpm", args: ["--filter", "@gwonmac/tools-ui", "build:embedded"] },
+    // The only native addon. It uses raw Node-API version 8, whose ABI remains
+    // stable across the Node and Electron upgrades this project takes. The
+    // framework APIs resolve at runtime from the Electron host, so the bundle
+    // deliberately leaves Node-API symbols undefined here.
+    {
+      name: "host.node",
+      command: "xcrun",
+      args: [
+        "clang++",
+        "-std=c++20",
+        "-fobjc-arc",
+        "-bundle",
+        "-undefined",
+        "dynamic_lookup",
+        "-DNAPI_VERSION=8",
+        "-I",
+        "node_modules/node-api-headers/include",
+        "-mmacosx-version-min=12.0",
+        "-arch",
+        nativeArchitecture,
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-fvisibility=hidden",
+        "app/native/host/host.mm",
+        "-framework",
+        "AppKit",
+        "-framework",
+        "Foundation",
+        "-framework",
+        "LocalAuthentication",
+        "-framework",
+        "Security",
+        "-o",
+        "build/native/host.node",
+      ],
+    },
+    // The Guild Wars archive decoder. A separate executable rather than a second
+    // addon: it is hand-transcribed x86 (see app/native/gw-dat/vendor/README.md)
+    // parsing the player's own game files, and a malformed record should fail one
+    // decode rather than take the application down with it. It is spawned once
+    // per asset and the result is cached on disk, so the process boundary costs
+    // about four milliseconds, once, per icon that is ever looked at.
+    //
+    // -Wall/-Wextra/-Werror are deliberately not applied: this is vendored source
+    // carried unmodified, and the -D/-Wno flags stand in for MSVC builtins clang
+    // lacks rather than patching it. The third silences a warning about an `&&`
+    // that reads like a typo and is not one — app/native/gw-dat/vendor/README.md
+    // records why changing it would break the decode.
+    {
+      name: "gw-dat-decode",
+      command: "xcrun",
+      args: [
+        "clang++",
+        "-std=c++20",
+        "-mmacosx-version-min=12.0",
+        "-arch",
+        nativeArchitecture,
+        "-O2",
+        "-D__int64=long long",
+        "-Wno-multichar",
+        "-Wno-constant-logical-operand",
+        "-Iapp/native/gw-dat",
+        "app/native/gw-dat/decoder-main.cpp",
+        "app/native/gw-dat/vendor/gwdat/xentax.cpp",
+        "app/native/gw-dat/vendor/gwdat/AtexReader.cpp",
+        "app/native/gw-dat/vendor/gwdat/AtexDecompress.cpp",
+        "app/native/gw-dat/vendor/gwdat/AtexAsm.cpp",
+        "-o",
+        "build/native/gw-dat-decode",
+      ],
+    },
+    // Both Rust kernels, from the Cargo workspace at the repository root;
+    // rust-toolchain.toml pins the compiler. Cargo writes only target/, so an
+    // unchanged kernel is not recompiled, and nothing is served until sealed.
+    { name: "kernels", command: "cargo", args: CARGO_ARGS },
   ],
-  // The Guild Wars archive decoder. A separate executable rather than a second
-  // addon: it is hand-transcribed x86 (see app/native/gw-dat/vendor/README.md)
-  // parsing the player's own game files, and a malformed record should fail one
-  // decode rather than take the application down with it. It is spawned once
-  // per asset and the result is cached on disk, so the process boundary costs
-  // about four milliseconds, once, per icon that is ever looked at.
-  //
-  // -Wall/-Wextra/-Werror are deliberately not applied: this is vendored source
-  // carried unmodified, and the -D/-Wno flags stand in for MSVC builtins clang
-  // lacks rather than patching it. The third silences a warning about an `&&`
-  // that reads like a typo and is not one — app/native/gw-dat/vendor/README.md
-  // records why changing it would break the decode.
   [
-    "xcrun",
-    [
-      "clang++",
-      "-std=c++20",
-      "-mmacosx-version-min=12.0",
-      "-arch",
-      nativeArchitecture,
-      "-O2",
-      '-D__int64=long long',
-      "-Wno-multichar",
-      "-Wno-constant-logical-operand",
-      "-Iapp/native/gw-dat",
-      "app/native/gw-dat/decoder-main.cpp",
-      "app/native/gw-dat/vendor/gwdat/xentax.cpp",
-      "app/native/gw-dat/vendor/gwdat/AtexReader.cpp",
-      "app/native/gw-dat/vendor/gwdat/AtexDecompress.cpp",
-      "app/native/gw-dat/vendor/gwdat/AtexAsm.cpp",
-      "-o",
-      "build/native/gw-dat-decode",
-    ],
+    // Validates each kernel's fixed ABI, seals its digest into the loader the
+    // renderer step emitted, and only then publishes it beside that loader.
+    { name: "seal", command: process.execPath, args: ["scripts/kernels.mjs", "seal"] },
   ],
-  // Reads app/shared/contracts.ts and app/preload/preload.body.cjs and writes
-  // the Core and Tools preload artifacts, which nothing else here produces — so its
-  // position is free. It is TypeScript, so it is spawned the one way this
-  // repository runs a TypeScript file from Node — the same custom hook
-  // package.json's script entries use.
-  [
-    process.execPath,
-    [
-      "--import",
-      "./scripts/ts-hook.mjs",
-      "scripts/generate-preload.ts",
-    ],
-  ],
-  // No Cargo.toml: no dependencies, and rust-toolchain.toml pins the toolchain.
-  // rustc writes an unserved candidate. The next step validates its fixed ABI,
-  // seals its digest into the emitted renderer, and only then publishes it.
-  [
-    "rustc",
-    companionKernelRustcArgs("build/.companion-kernel.unsealed.wasm"),
-  ],
-  [process.execPath, ["scripts/seal-companion-kernel.mjs"]],
-  [
-    "rustc",
-    cartographyReachabilityKernelRustcArgs(
-      "build/.cartography-reachability-kernel.unsealed.wasm",
-    ),
-  ],
-  [process.execPath, ["scripts/seal-cartography-reachability-kernel.mjs"]],
 ];
 
-function build() {
+/**
+ * Runs one step with its output held back, so steps that run together print
+ * whole logs rather than interleaved lines.
+ *
+ * @param {Step} step
+ * @returns {Promise<void>}
+ */
+function run({ name, command, args }) {
+  const started = performance.now();
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, { stdio: ["ignore", "pipe", "pipe"] });
+    /** @type {Buffer[]} */
+    const output = [];
+    child.stdout.on("data", (chunk) => output.push(chunk));
+    child.stderr.on("data", (chunk) => output.push(chunk));
+    child.on("error", (error) => {
+      // The `code` that says the executable is missing is only on the Node
+      // runtime's `SystemError` shape, so ask whether it is there.
+      reject("code" in error && error.code === "ENOENT"
+        ? new Error(`${command} is not installed. See the Requirements in README.md.`)
+        : error);
+    });
+    child.on("close", (status) => {
+      const seconds = ((performance.now() - started) / 1000).toFixed(1);
+      const log = Buffer.concat(output).toString("utf8").trimEnd();
+      console.log(`== ${name} (${seconds} s)${log ? `\n${log}` : ""}`);
+      if (status === 0) resolve();
+      else reject(new Error(`build step ${name} failed with status ${status}`));
+    });
+  });
+}
+
+async function build() {
+  const started = performance.now();
   rmSync("build", { recursive: true, force: true });
   mkdirSync("build/native", { recursive: true });
-
-  for (const [command, args] of BUILD_STEPS) {
-    const result = spawnSync(command, args, { stdio: "inherit" });
-    // `spawnSync` types its failure as a plain `Error`; the `code` that says the
-    // executable is missing is only on the Node runtime's `SystemError` shape,
-    // so ask whether it is there rather than assert that it is.
-    if (
-      result.error
-      && "code" in result.error
-      && result.error.code === "ENOENT"
-    ) {
-      console.error(
-        `${command} is not installed. See the Requirements in README.md.`,
-      );
+  for (const phase of BUILD_PHASES) {
+    const failed = (await Promise.allSettled(phase.map(run)))
+      .find((result) => result.status === "rejected");
+    if (failed) {
+      console.error(failed.reason instanceof Error ? failed.reason.message : failed.reason);
       process.exit(1);
     }
-    if (result.status !== 0) process.exit(result.status ?? 1);
   }
+  console.log(`built in ${((performance.now() - started) / 1000).toFixed(1)} s`);
 }
 
 if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) {
-  build();
+  await build();
 }

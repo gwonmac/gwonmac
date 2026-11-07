@@ -1,7 +1,7 @@
 // scripts/build.mjs is the single build producer. copy-renderer.mjs runs
-// to completion without rustc, copies assets and no code, and emits no kernel;
-// the canonical build step list holds exactly one rustc invocation, and orders
-// the producers that write into build/renderer so none erases another.
+// to completion without a Rust toolchain, copies assets and no code, and emits
+// no kernel; the build plan compiles both kernels in exactly one cargo step
+// and seals them only after the renderer bundle that holds their loaders.
 // Rollup is the only renderer runtime producer; the main compiler is the only
 // producer of build/shared.
 import assert from "node:assert/strict";
@@ -20,11 +20,7 @@ import path from "node:path";
 import { after, describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 import ts from "typescript";
-import {
-  BUILD_STEPS,
-  cartographyReachabilityKernelRustcArgs,
-  companionKernelRustcArgs,
-} from "../../scripts/build.mjs";
+import { BUILD_PHASES, CARGO_ARGS } from "../../scripts/build.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -132,9 +128,7 @@ describe("scripts/copy-renderer.mjs only copies assets", () => {
       readFileSync(path.join(root, "build/renderer/images/bg-reforged.jpg"), "utf8"),
       "landscape",
     );
-    // Not the preload: scripts/generate-preload.ts owns that output, splices
-    // the canonical channel constants in and is the only producer of
-    // the generated preload artifacts.
+    // Not the preloads: build-renderer.mjs bundles those.
     assert.equal(existsSync(path.join(root, "build/preload")), false);
   });
 
@@ -201,122 +195,30 @@ describe("scripts/copy-renderer.mjs only copies assets", () => {
   });
 });
 
-/**
- * One step's argument list. `scripts/build.mjs` is JavaScript, so its step list
- * infers as arrays of `string | string[]` and cannot say that position 1 is
- * always the arguments. Asserting the shape rather than assuming it means a
- * step list that stopped being command-and-arguments pairs fails here, instead
- * of every `includes` below quietly answering about a command string.
- */
-function stepArgs(step: (typeof BUILD_STEPS)[number]): string[] {
-  const args = step[1];
-  assert.ok(
-    Array.isArray(args),
-    `build step ${String(step[0])} carries no argument list`,
-  );
-  return args;
+/** Every step of the plan with the phase it runs in. */
+const steps = BUILD_PHASES.flatMap((phase, index) =>
+  phase.map((step) => ({ ...step, phase: index }))
+);
+
+/** The phase of the one step called `name`. */
+function phaseOf(name: string): number {
+  const found = steps.filter((step) => step.name === name);
+  assert.equal(found.length, 1, `${name} is not exactly one build step`);
+  return found[0]!.phase;
 }
 
-/**
- * Where the one step whose arguments mention `needle` sits in the list.
- * Positions are read from the step list rather than written down here, so the
- * assertions below stay about the ordering that matters and survive a step
- * being inserted anywhere in it.
- */
-function stepPosition(needle: string): number {
-  const found = BUILD_STEPS.map((step, index) => ({ step, index })).filter(
-    ({ step }) => stepArgs(step).includes(needle),
-  );
-  assert.equal(found.length, 1, `${needle} is not run by exactly one build step`);
-  return found[0]!.index;
-}
-
-/**
- * Where the main program is compiled. It is the `tsc` step that names no
- * project file, so it is found by what it lacks rather than by an index.
- */
 describe("scripts/build.mjs owns both sealed kernel builds", () => {
-  const rustc = BUILD_STEPS.filter(([command]) => command === "rustc");
-  const companion = rustc.filter((step) =>
-    stepArgs(step).includes("kernels/companion/lib.rs")
-  );
-  const reachability = rustc.filter((step) =>
-    stepArgs(step).includes("kernels/reachability/lib.rs")
-  );
-
-  it("compiles each kernel exactly once per build", () => {
-    assert.equal(rustc.length, 2);
-    assert.equal(companion.length, 1);
-    assert.equal(reachability.length, 1);
-  });
-
-  it("writes the companion kernel only as an unserved candidate", () => {
-    const kernel = companion[0];
-    assert.ok(kernel, "no rustc step to inspect");
-    const args = stepArgs(kernel);
-    assert.deepEqual(args.slice(-2), [
-      "-o",
-      "build/.companion-kernel.unsealed.wasm",
-    ]);
-    assert.ok(args.includes("kernels/companion/lib.rs"));
+  it("compiles both kernels in exactly one cargo step and never with raw rustc", () => {
     assert.deepEqual(
-      args,
-      companionKernelRustcArgs("build/.companion-kernel.unsealed.wasm"),
+      steps.filter((step) => step.command === "cargo").map((step) => [...step.args]),
+      [[...CARGO_ARGS]],
     );
+    assert.equal(steps.some((step) => step.command === "rustc"), false);
   });
 
-  it("writes the reachability kernel only as an unserved candidate", () => {
-    const kernel = reachability[0];
-    assert.ok(kernel, "no reachability rustc step to inspect");
-    const args = stepArgs(kernel);
-    assert.deepEqual(args.slice(-2), [
-      "-o",
-      "build/.cartography-reachability-kernel.unsealed.wasm",
-    ]);
-    assert.deepEqual(
-      args,
-      cartographyReachabilityKernelRustcArgs(
-        "build/.cartography-reachability-kernel.unsealed.wasm",
-      ),
-    );
-  });
-
-  it("publishes each through its immediate build-time sealing step", () => {
-    for (const [source, sealer] of [
-      ["kernels/companion/lib.rs", "scripts/seal-companion-kernel.mjs"],
-      [
-        "kernels/reachability/lib.rs",
-        "scripts/seal-cartography-reachability-kernel.mjs",
-      ],
-    ] as const) {
-      const kernel = stepPosition(source);
-      assert.equal(stepPosition(sealer), kernel + 1);
-    }
-  });
-});
-
-describe("scripts/build.mjs orders the producers of build/renderer", () => {
-  const assets = stepPosition("scripts/copy-renderer.mjs");
-  const renderer = stepPosition("scripts/build-renderer.mjs");
-  const kernel = stepPosition("kernels/companion/lib.rs");
-  const sealer = stepPosition("scripts/seal-companion-kernel.mjs");
-
-  it("copies the assets before the renderer is compiled into the same directory", () => {
-    // The reverse order is the defect this ordering exists to prevent: the copy
-    // step recreated build/renderer, which was harmless only while the renderer
-    // compile emitted nothing.
-    assert.ok(
-      assets < renderer,
-      `assets copied at ${assets}, renderer compiled at ${renderer}`,
-    );
-  });
-
-  it("compiles and seals the kernel after both of them", () => {
-    assert.ok(kernel >= 0, "no rustc step to inspect");
-    assert.ok(
-      assets < kernel && renderer < kernel && kernel < sealer,
-      `kernel written at ${kernel}, before assets ${assets} or renderer ${renderer}`,
-    );
+  it("seals only after the kernels and the renderer bundle holding their loaders", () => {
+    assert.ok(phaseOf("seal") > phaseOf("kernels"));
+    assert.ok(phaseOf("seal") > phaseOf("renderer"));
   });
 });
 
@@ -352,9 +254,12 @@ describe("renderer typechecking does not emit runtime files", () => {
   });
 
   it("has one explicit renderer runtime producer", () => {
-    assert.equal(stepPosition("scripts/build-renderer.mjs") >= 0, true);
     assert.equal(
-      BUILD_STEPS.some((step) => stepArgs(step).includes("tsconfig.renderer.json")),
+      steps.filter((step) => step.args.includes("scripts/build-renderer.mjs")).length,
+      1,
+    );
+    assert.equal(
+      steps.some((step) => step.args.includes("tsconfig.renderer.json")),
       false,
     );
   });

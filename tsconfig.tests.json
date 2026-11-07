@@ -59,8 +59,7 @@
     // ESLint parsers `eslint.config.js` pulls in fail on their own. The flag
     // is indiscriminate, so it skips this repository's own declaration files
     // just as readily: nothing here may be a `.d.*` file and expect to be
-    // checked. `scripts/preload-injected-constants.mts` says why it is not
-    // one, and tests/policy/typecheck-coverage.test.ts enforces the rule.
+    // checked.
     "skipLibCheck": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true
@@ -87,9 +86,8 @@
     "scripts/**/*.ts",
     "scripts/**/*.mjs",
     "scripts/**/*.mts",
-    "app/preload/preload.body.cjs",
-    "app/preload/preload.launcher.cjs",
-    "app/preload/preload.tools.cjs",
+    // Rollup bundles the preloads, so nothing else type-checks them.
+    "app/preload/**/*.ts",
 
     // Ambient declarations are reached by no `import`, so the renderer sources
     // the tests pull in would otherwise lose `Window.gwNative` and ArenaNet's

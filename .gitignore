@@ -46,6 +46,8 @@ dist/
 # tsc emits to build/; Forge packages to out/ — keep them separate.
 build/
 out/
+# Cargo's cache for the two kernels; scripts/kernels.mjs seals from it into build/.
+/target/
 .pnpm-store/
 .vite/
 .webpack/

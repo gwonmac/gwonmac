@@ -11,23 +11,18 @@ import test from "node:test";
 import vm from "node:vm";
 import { fileURLToPath } from "node:url";
 import ts from "typescript";
-import * as contracts from "../../app/shared/contracts.ts";
-import * as enhancementContracts from "../../app/shared/enhancement-contracts.ts";
 import {
   RENDERER_INIT_ARGUMENT,
   type GwNativeApi,
   type RendererCommand,
   type RendererInit,
 } from "../../app/shared/contracts.ts";
-import { preloadSource as generatePreload } from "../../scripts/generate-preload.js";
+import { preloadSource as bundlePreload } from "../../scripts/build-renderer.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-// The preload as it ships: generated from the canonical contracts, not read
-// from a checked-in copy of them.
-const preloadSource: string = generatePreload({
-  ...contracts,
-  ...enhancementContracts,
-}, root);
+// The Tools preload as it ships: bundled in memory by the build's own Rollup
+// step, so the test needs no build.
+const preloadSource: string = await bundlePreload("tools", root);
 // The router is a classic script — index.html loads it with a `<script>` tag
 // and it exports nothing — so the only way to drive it is to run its text. It
 // is TypeScript, so the text is transpiled here under the same target

@@ -257,7 +257,8 @@ export default tseslint.config(
     // resolves app/shared. No `projectService` here: the renderer's program is
     // tsconfig.renderer.json, which the service does not reach from the root
     // tsconfig.json, and neither rule needs type information.
-    files: ["app/renderer/**/*.ts"],
+    // app/preload is bundled the same way and held to the same two rules.
+    files: ["app/renderer/**/*.ts", "app/preload/**/*.ts"],
     rules: {
       "@typescript-eslint/no-unused-vars": [
         "error",
@@ -304,20 +305,6 @@ export default tseslint.config(
         "error",
         { disallowTypeAnnotations: false },
       ],
-    },
-  },
-  {
-    files: ["app/preload/**/*.cjs"],
-    languageOptions: {
-      globals: {
-        require: "readonly",
-        Uint8Array: "readonly",
-        atob: "readonly",
-      },
-      sourceType: "commonjs",
-    },
-    rules: {
-      "@typescript-eslint/no-require-imports": "off",
     },
   },
   {

@@ -1,0 +1,15 @@
+# Cargo reads this when it runs from the repository root, as scripts/build.mjs
+# and scripts/kernels.mjs run it. The flags turn each kernel into the
+# relocatable side module the renderer installs into the game's own memory and
+# table: position-independent, importing memory, shared, and stripped.
+[build]
+target = "wasm32-unknown-unknown"
+
+[target.wasm32-unknown-unknown]
+rustflags = [
+  "-C", "relocation-model=pic",
+  "-C", "link-arg=--import-memory",
+  "-C", "link-arg=--experimental-pic",
+  "-C", "link-arg=--shared",
+  "-C", "link-arg=--strip-all",
+]

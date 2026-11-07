@@ -1,0 +1,21 @@
+# The two read-only Rust kernels. Neither has a dependency: each is one
+# `no_std` cdylib for wasm32, rust-toolchain.toml pins the compiler, and
+# .cargo/config.toml holds the flags that make each a relocatable side module.
+# `cargo build --release` at the repository root is the whole recipe;
+# scripts/kernels.mjs seals what it writes.
+[workspace]
+resolver = "2"
+members = ["kernels/companion", "kernels/reachability"]
+
+[profile.release]
+opt-level = "s"
+panic = "abort"
+# Each kernel is sealed by its SHA-256 and checked to rebuild byte for byte,
+# so the settings that shape the bytes are named rather than left to whatever
+# a later Cargo defaults to. These equal plain `rustc -C opt-level=s`.
+# `codegen-units` stays unset on purpose: any explicit value, even rustc's
+# default of 16, also turns off rustc's local ThinLTO and changes the bytes.
+lto = false
+debug = false
+strip = false
+incremental = false

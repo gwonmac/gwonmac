@@ -139,8 +139,8 @@ selection.
 | `app/main/settings-actions.ts` | Confirmed settings actions and recovery requests |
 | `app/main/app-updater.ts` | Updates for the `gwonmac` application |
 | `app/main/diagnostics.ts` and `app/main/diagnostics/` | Diagnostics entry point and implementation |
-| `app/preload/preload.launcher.cjs` | Reduced sandboxed Vue-launcher preload body |
-| `app/preload/preload.body.cjs` | Sandboxed game preload body |
+| `app/preload/launcher.ts` | Reduced sandboxed Vue-launcher preload |
+| `app/preload/game-bridge.ts`, `core.ts`, `tools.ts` | Sandboxed game preload, Core and Tools entries (Rollup bundles each into one CommonJS file) |
 | `app/ui/launcher/` | Vue launcher shell and deterministic development fixtures |
 | `app/ui/tools/` | Vue Tools and Hub UI |
 | `app/renderer/` | Game host, input, presentation, in-game Tools, and diagnostics UI |
