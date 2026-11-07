@@ -8,9 +8,9 @@ import { CHAT_PRINT_PREFIX } from "../../shared/chat-print.js";
 import {
   observeAlcohol, observeConsumables, reminderLine, wantsReminder,
   type AlcoholWatch, type ConsumableWatch, type ReminderEvent, type ReminderGroup, type ReminderOptions,
-} from "../../shared/reminders.js";
+} from "./renderer/reminders.js";
 import { createChatPrintInstallation } from "../../renderer/chat-print-installation.js";
-import { createReminderChime } from "../../renderer/reminder-chime.js";
+import { createReminderChime } from "./renderer/reminder-chime.js";
 import type { ToolsCompanionPart } from "../../renderer/tools-companion-part.js";
 
 export default {
