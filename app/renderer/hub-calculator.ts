@@ -82,6 +82,8 @@ export function createHubCalculator(options: {
     ].filter(row=>hubTier(row,term)!==null);
   }
   return {
+    // The card's rows: loading, a quote, a market estimate or the player's own rates.
+    card:{group:'Calculator',restores:['quote:result','market:result','manual-conversion','conversion'],settles:['quote-state','market-state'],is:row=>!!row.conversion},
     subscribe(listener){listeners.add(listener);return()=>listeners.delete(listener);},
     setVisible(next){visible=next;if(!next)clear();},
     search(query){

@@ -134,5 +134,15 @@ export type HubViewHandle = Readonly<{
   pages: HubPages<HTMLElement>;
   dispose(): void;
 }>;
+/** The art the footer's primary shows for a row: a conversion's target currency. */
+export const hubPrimaryArt = (row: HubRow | undefined): string | undefined => row?.conversion?.iconTo;
+/** Whether a row draws as the one before it, so its mounted option stays; its actions still come from the new row. */
+export const hubRowPaintsSame = (row: HubRow, previous: HubRow | undefined): boolean => !!previous && row.id === previous.id && row.title === previous.title
+  && row.detail === previous.detail && row.group === previous.group && row.icon === previous.icon
+  && row.action === previous.action && row.destructive === previous.destructive && row.unavailable === previous.unavailable
+  && row.readOnly === previous.readOnly && !!row.navigate === !!previous.navigate && row.preview === previous.preview
+  && row.folder === previous.folder && row.attributeStatus === previous.attributeStatus
+  && JSON.stringify([row.skills, row.attributes, row.professions, row.conversion]) === JSON.stringify([previous.skills, previous.attributes, previous.professions, previous.conversion]);
+
 /** The exports of the Hub view module (`app/ui/tools/src/hub/embedded.ts`, built to `tools/hub-app.js`). */
 export type EmbeddedHubView = Readonly<{ mountHubView(parent: HTMLElement, model: HubViewModel): HubViewHandle }>;

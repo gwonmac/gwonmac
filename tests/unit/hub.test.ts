@@ -2,7 +2,7 @@
 import { currentTravelFriend, type TravelFriend, type TravelFriends } from '../../app/shared/friends.js';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { matchHubRows, parseHubQuery, type HubRow } from '../../app/shared/hub.js';
+import { matchHubRows, parseHubQuery, rankHubRows, type HubRow } from '../../app/shared/hub.js';
 import { resolveShortcuts, hubShortcutAvailable } from '../../app/shared/keyboard-shortcuts.js';
 const row = (id: string, title: string, keywords = ''): HubRow => ({ id, title, keywords, group: 'Commands', detail: '', action: 'Open', run() {} });
 test('search ranks exact names and prefixes before keywords without executing anything', () => {
@@ -76,4 +76,19 @@ test('search folds typographic punctuation and matches parenthesised name words 
   for (const [query, expected] of [['lion’s arch', ['place']], ['pre–searing', ['pre']], ['pre-searing', ['pre']]] as const) {
     assert.deepEqual(matchHubRows(rows, query).map(row => row.id), expected);
   }
+});
+
+test('root search orders groups by their best answer, tools before places, and keeps a scoped page in source order (HUB-058, HUB-185)', () => {
+  const grouped = (id: string, title: string, group: string): HubRow => ({ ...row(id, title), group });
+  const maps = grouped('maps', 'Maps', 'Tools'), travel = grouped('travel', 'Travel', 'Tools'), place = grouped('place:1', 'Maguuma Stade', 'Places');
+  const settings = grouped('settings', 'Settings', 'Commands'), commands = grouped('commands', 'Commands', 'Commands'), card = grouped('card', '1p in g', 'Calculator');
+  const none = { phrases: new Set<string>(), answers: () => false };
+  const cases: [string, readonly HubRow[], string, Parameters<typeof rankHubRows>[2], readonly string[]][] = [
+    ['a typed tool answers before places', [place, maps], 'ma', { scoped: false, ...none }, ['maps', 'place:1']],
+    ['a saved phrase is the best answer', [maps, place], 'ma', { scoped: false, phrases: new Set(['place:1']), answers: () => false }, ['place:1', 'maps']],
+    ['a card answers its own grammar first', [settings, card], 'set', { scoped: false, phrases: new Set(), answers: candidate => candidate.id === 'card' }, ['card', 'settings']],
+    ['Home orders groups, then everyday tools, with Commands first', [settings, maps, commands, place, travel], '', { scoped: false, ...none }, ['place:1', 'travel', 'maps', 'commands', 'settings']],
+    ['a scoped page keeps its source order within a group', [maps, travel], '', { scoped: true, ...none }, ['maps', 'travel']],
+  ];
+  for (const [name, rows, query, options, expected] of cases) assert.deepEqual(rankHubRows(rows, query, options).map(entry => entry.id), expected, name);
 });

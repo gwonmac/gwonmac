@@ -408,6 +408,7 @@ export function createHubLibrary(controller: LibraryController, host: ToolsHost,
   }
   const source: HubSource = {
     feature: 'buildLibrary',
+    searchNames: { 'Build Library': 'builds', Heroes: 'heroes' },
     shortcuts: { get: () => controller.library.value?.hubShortcuts ?? [], save: controller.saveHubShortcuts },
     lookup(id) {
       if (id === 'builds') return libraryRow();

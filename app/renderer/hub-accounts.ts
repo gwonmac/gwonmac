@@ -90,6 +90,7 @@ export function createHubAccounts(hub: AccountsHub, api: { get(): Promise<HubAcc
   };
   const accountRow = (): HubRow => ({ id: 'accounts', title: 'Switch Account', detail: 'Open another saved account or switch to it', group: 'Tools', action: 'Browse accounts', navigate: showAccounts, run: showAccounts });
   return {
+    searchNames: { Accounts: 'accounts' },
     lookup: id => id === 'accounts' ? accountRow() : undefined,
     subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); },
     setVisible(next) {

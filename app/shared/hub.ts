@@ -43,7 +43,7 @@ export type HubRow = Readonly<{
   unavailable?: string;
   /** Inspection remains available, but this row cannot apply its game action. */
   readOnly?: true;
-  /** Opens the canonical saved record in its existing authoring workspace. */
+  /** Opens the canonical saved record in its existing authoring workspace, named `HUB_WORKSPACE_ACTION`. */
   workspace?(): void;
   /** A second way into this row; its Actions menu lists it when `actionsLabel` names it. */
   actions?(): void;
@@ -78,6 +78,24 @@ export type HubSource = Readonly<{
   lifecycle?(): string | null;
   shortcuts?: Readonly<{ get(): readonly HubShortcut[]; save(value: readonly HubShortcut[]): Promise<void> }>;
   lookup?(id: string): HubRow | undefined;
+  /**
+   * Rows the Hub matches against a root search itself, after every source's results; a result
+   * with the same id replaces one. A scoped search lists one only when it is the row's whole name.
+   */
+  commands?(query: string): readonly HubRow[];
+  /** What a rows page this source opens holds, by page title, so the search reads `Search builds…`. */
+  searchNames?: Readonly<Record<string, string>>;
+  /**
+   * A card that answers the typed query in place and changes row id as it loads and settles.
+   * Its rows rank first in a typed search (`is`, or its `group`). A page that comes back with a
+   * `restores` row selected selects the card's row in `group`. A selected `settles` row hands
+   * the selection to the card that replaces it, and the refusal it reported clears.
+   */
+  card?: Readonly<{ group: string; restores: readonly string[]; settles: readonly string[]; is(row: HubRow): boolean }>;
+  /** The quiet hint under a root search, e.g. a command example the typed word starts. */
+  hint?(query: string): string | null;
+  /** More Personalize entries in Actions, after Pin, for a row the Hub can keep. */
+  personalize?(row: HubRow): readonly Readonly<{ label: string; run(): void | Promise<void> }>[];
   setVisible(visible: boolean): void;
   subscribe(refresh: () => void): () => void;
 }>;
@@ -136,6 +154,34 @@ export function matchHubRows(rows: readonly HubRow[], query: string, ordered = f
     .sort((a, b) => tiers.get(a)! - tiers.get(b)! || (ordered ? 0 : a.title.localeCompare(b.title) || a.id.localeCompare(b.id)));
 }
 
+/** The name of a row's `workspace` action, in its Actions and on Build details. */
+export const HUB_WORKSPACE_ACTION = 'Open in Build Library';
+
+/**
+ * The order of a root search: a typed search orders sections by their best answer, then by the
+ * usual group order, and rows by the same tier (HUB-008, HUB-058). A saved phrase (`phrases`) is
+ * the best answer of all, and a card (`answers`) answers its own grammar. A typed query that
+ * names a tool or command as well as places answers with the tool: the Hub has a few of those
+ * and hundreds of places (`ma` is Maps before Maguuma Stade). Everyday game actions stay ahead
+ * of account management, and Commands, the way into everything else, leads the commands
+ * (HUB-185). A scoped page keeps its source's order within each group.
+ */
+const HUB_GROUP_ORDER = ["Pinned", "Calculator", "Teams", "Folders", "Characters", "Builds", "Targets", "Current build", "Accounts", "In your party", "Unlocked heroes", "Heroes", "People", "Places", "Friends", "Continue", "Tools", "Commands", "Settings", "Sources", "Trade", "Calculate", "Keys & shortcuts"];
+const HUB_TYPED_FIRST = ['Tools', 'Commands'];
+const HUB_TOOL_ORDER = ['travel', 'character', 'whispers', 'builds', 'trade', 'storage', 'maps', 'accounts'];
+export function rankHubRows(rows: readonly HubRow[], query: string, options: Readonly<{ scoped: boolean; phrases: ReadonlySet<string>; answers(row: HubRow): boolean }>): readonly HubRow[] {
+  const parsed = parseHubQuery(query);
+  const ranked = !options.scoped && !parsed.scope && !!parsed.term;
+  const tierOf = (row: HubRow) => options.phrases.has(row.id) ? -1 : options.answers(row) ? 0 : hubTier(row, parsed.term) ?? 3;
+  const best = new Map<string, number>();
+  if (ranked) for (const row of rows) best.set(row.group, Math.min(best.get(row.group) ?? Infinity, tierOf(row)));
+  const typedFirst = ranked ? HUB_TYPED_FIRST : [];
+  const groupIndex = (group: string) => { const first = typedFirst.indexOf(group); if (first >= 0) return first - typedFirst.length; const index = HUB_GROUP_ORDER.indexOf(group); return index < 0 ? HUB_GROUP_ORDER.length : index; };
+  const priority = (row: HubRow) => { if (options.scoped) return 0; if (row.group === 'Commands') return row.id === 'commands' ? -1 : 0; if (row.group !== 'Tools') return 0; const index = HUB_TOOL_ORDER.indexOf(row.id); return index < 0 ? HUB_TOOL_ORDER.length : index; };
+  return [...rows].sort((a, b) => (ranked ? best.get(a.group)! - best.get(b.group)! : 0) || groupIndex(a.group) - groupIndex(b.group)
+    || (ranked ? tierOf(a) - tierOf(b) : 0) || priority(a) - priority(b));
+}
+
 export type HubSummary = Readonly<Pick<HubRow, 'title' | 'detail' | 'skills' | 'attributes' | 'professions' | 'attributeStatus' | 'folder' | 'workspace'> & { label: string }>;
 
 /** One footer action of a mounted view. `armed` holds a destructive primary until it has armed (~400 ms). */
@@ -155,6 +201,8 @@ export type HubViewMount<Target> = (target: Target, back: () => void, footer: Hu
  * every route to it names it, so `direct` finds it.
  */
 export type HubDestination = 'travel' | 'characters' | 'builds' | 'settings' | 'accounts';
+/** Pages that show where the player is, as Home does, so the context line stays on them. */
+export const HUB_LOCATED_DESTINATIONS: readonly HubDestination[] = ['travel', 'characters'];
 
 export interface HubPresenter<Target> {
   close(): void;
