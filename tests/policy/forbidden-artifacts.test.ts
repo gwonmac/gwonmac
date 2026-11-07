@@ -130,6 +130,8 @@ test("only public identifiers and explicit profile-id fixtures are UUID-shaped",
     "tests/unit/window-registry.test.ts",
     "tests/unit/window-coordinator.test.ts",
   ]);
+  // Player data written by released apps, with one invented profile ID.
+  const profileIdFixtureFolders = ["tests/fixtures/player-data/"];
   const hits = [];
   for (const file of tracked) {
     if (file === "tests/policy/forbidden-artifacts.test.ts") continue;
@@ -143,6 +145,7 @@ test("only public identifiers and explicit profile-id fixtures are UUID-shaped",
       if (
         !allowed.has(match[0].toUpperCase())
         && !profileIdFixtures.has(file)
+        && !profileIdFixtureFolders.some((folder) => file.startsWith(folder))
       ) hits.push(`${file}:${match[0]}`);
     }
   }

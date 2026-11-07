@@ -84,12 +84,31 @@ section but edits only the in-game ones; the others (↗) open the launcher.
 | Hub search: a ↗ section | Launcher Settings, that section |
 | Memory warning › "Memory settings" | Hub Settings page, Game, Extended memory focused |
 
+## Add a setting
+
+1. **Declare it once.** A core setting goes in `app/shared/settings/core.ts`, a
+   feature's setting in `app/features/<id>/feature.ts`, with the helpers in
+   `app/shared/settings/define.ts`. The declaration owns the default, how a
+   stored or sent value is read, and the scope flags (`hub`, `launcher`,
+   `tools`, `rendererWritable`). `app/shared/settings/index.ts` derives the
+   `AppSettings` type, the defaults, the file reader, the launcher patch parser
+   and every scope list from it. Never write a second list by hand.
+2. **Name it.** Add its label, detail and "when it applies" note to
+   `app/shared/setting-copy.ts`. For an enum, the option labels are a record
+   keyed by the enum's values, so a value without a label does not compile.
+3. **Make it findable.** Add one entry to `app/shared/settings-catalogue.ts`
+   with its section and keywords.
+4. **Draw the control** in the section's component under
+   `app/ui/launcher/src/components/`, with `data-setting="<id>"`, using the
+   copy from step 2.
+
+A setting that a released app already wrote must keep reading every value that
+app stored: `tests/unit/player-data-fixtures.test.ts` loads files written by
+tagged releases and fails when a narrower reader would reset them.
+
 ## Calculator estimates
 
 Hub › Conversion rates saves the selected source and optional currency estimates
 through the existing settings file. Rates apply in every game window. They do
 not change the game or replace observed prices. Automatic keeps the saved
 estimates for a later switch to Your rates.
-
-Older builds ignore `calculatorRates` and can discard that field on their next
-settings write.
