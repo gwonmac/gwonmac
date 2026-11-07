@@ -1,23 +1,23 @@
 /**
  * Owns every optional main-process Tools implementation for one Tools-capable
  * launch. Core never imports this module, its stores, or its network client.
+ *
+ * Each feature's part in MAIN_PARTS owns its stores and channels; this module
+ * gives every part its file gate, registers the channels, and drains the gates
+ * on every settings change and on disposal.
  */
-import { dirname, join } from "node:path";
-import { EliteTrackingStore } from "./core/elite-tracking.js";
-import { shell, type BrowserWindow } from "electron";
+import { MAIN_PARTS } from "../features/main-parts.js";
+import type { BrowserWindow } from "electron";
 import type { AppSettings, SettingsResetOutcome } from "../shared/contracts.js";
 import { featureActivationRequested } from "../shared/feature-contracts.js";
 import { AllowlistError } from "../shared/errors.js";
+import type { FeatureId } from "../features/index.js";
 import type { PreferencesCoordinator } from "./core/preferences-coordinator.js";
 import type { MultipleAccountsController } from "./multiple-accounts-controller.js";
 import type { GamePaths } from "./paths.js";
 import type { WindowRegistry } from "./window-registry.js";
-import { BuildLibraryCoordinator } from "./core/build-library-coordinator.js";
-import { TradeChatService } from "./core/trade-chat-service.js";
-import { TradeSavedStore } from "./core/trade-saved-store.js";
-import { TravelHistoryStore } from "./core/travel-history.js";
 import { registerToolsIpcHandlers } from "./tools-ipc.js";
-import { CartographyMapKnowledgeStore } from "./core/cartography-map-knowledge.js";
+import type { ToolsMainSession } from "./tools-main-part.js";
 import type { ClientSession } from "../shared/contracts.js";
 import { Mutex } from "./core/mutex.js";
 
@@ -36,85 +36,41 @@ export function createToolsRuntime(input: Readonly<{
   clientFingerprint(): string | undefined;
   getClientSession(win: BrowserWindow): ClientSession;
 }>): ToolsRuntime {
-  const cartographyMapKnowledge = new CartographyMapKnowledgeStore(input.paths.cartographyMapKnowledge);
-  const eliteTracking = new EliteTrackingStore();
-  const elitePath = (win: BrowserWindow) => join(dirname(input.accounts.buildLibraryPathFor(win)), "elite-tracking.json");
-  const buildLibraries = new BuildLibraryCoordinator();
-  const tradeChat = new TradeChatService();
-  const tradeSaved = new TradeSavedStore(input.paths.tradeSaved);
-  const travelHistory = new TravelHistoryStore(input.paths.travelHistory);
   let settings = input.initialSettings;
-  const fileGates = {
-    buildLibrary: new Mutex(),
-    cartography: new Mutex(),
-    travelPalette: new Mutex(),
-  } as const;
-  let tradeEnabled = featureActivationRequested("tradeChat", settings);
-  const isFeatureEnabled = (
-    feature: "buildLibrary" | "travelPalette" | "tradeChat" | "cartography",
-  ): boolean => featureActivationRequested(
-    feature === "travelPalette" ? "travel" : feature,
-    settings,
-  );
-
-  registerToolsIpcHandlers({
-    windows: input.windows,
-    getSettings: () => input.preferences.getSettings(),
-    getClientSession: input.getClientSession,
-    getCartographyMapKnowledge: (kernelSha256) => {
-      const fingerprint = input.clientFingerprint();
-      return fingerprint ? cartographyMapKnowledge.get(fingerprint, kernelSha256) : Promise.resolve([]);
-    },
-    recordCartographyMapKnowledge: (value) => {
-      const fingerprint = input.clientFingerprint();
-      return fingerprint ? cartographyMapKnowledge.record(fingerprint, value) : Promise.resolve([]);
-    },
-    isFeatureEnabled,
-    runFeature: (feature, label, operation) => fileGates[feature].run(async () => {
-      if (!isFeatureEnabled(feature)) {
-        throw new AllowlistError(`${label} is disabled`);
-      }
-      return operation();
-    }),
-    getBuildLibrary: (win: BrowserWindow) =>
-      buildLibraries.get(win, input.accounts.buildLibraryPathFor(win)),
-    setBuildLibrary: (win: BrowserWindow, library) =>
-      buildLibraries.set(win, input.accounts.buildLibraryPathFor(win), library),
-    openEliteWiki: (url) => shell.openExternal(url),
-    getEliteTracking: (win, characterKey) => eliteTracking.get(elitePath(win), characterKey),
-    updateEliteTracking: (win, value) => eliteTracking.update(elitePath(win), value),
-    getTravelPreferences: () => input.preferences.getTravelPreferences(),
-    setTravelPreferences: (update) => input.preferences.updateTravelPreferences(update),
-    getTravelHistory: (characterKey) => travelHistory.get(characterKey),
-    recordTravelHistory: (characterKey, mapId) =>
-      travelHistory.record(characterKey, mapId),
-    tradeChat,
-    getTradeSaved: () => tradeSaved.get(),
-    setTradeSaved: (value) => tradeSaved.set(value),
+  const isFeatureEnabled = (feature: FeatureId): boolean => featureActivationRequested(feature, settings);
+  const fileGates: Mutex[] = [];
+  const sessions: readonly ToolsMainSession[] = MAIN_PARTS.map((part) => {
+    const gate = new Mutex();
+    fileGates.push(gate);
+    return part.create({
+      paths: input.paths,
+      accounts: input.accounts,
+      preferences: input.preferences,
+      clientFingerprint: input.clientFingerprint,
+      getClientSession: input.getClientSession,
+      isFeatureEnabled,
+      run: (operation) => gate.run(async () => {
+        if (!isFeatureEnabled(part.feature)) {
+          throw new AllowlistError(`${part.label} is disabled`);
+        }
+        return operation();
+      }),
+    });
   });
+  registerToolsIpcHandlers(input.windows, sessions);
+  const drained = () => Promise.all(fileGates.map((gate) => gate.settled));
 
   return Object.freeze({
     async applySettings(nextSettings: AppSettings) {
-      const nextTradeEnabled = featureActivationRequested("tradeChat", nextSettings);
       settings = nextSettings;
-      if (tradeEnabled && !nextTradeEnabled) tradeChat.dispose();
-      tradeEnabled = nextTradeEnabled;
-      await Promise.all([
-        fileGates.buildLibrary.settled,
-        fileGates.cartography.settled,
-        fileGates.travelPalette.settled,
-      ]);
+      for (const session of sessions) session.applySettings?.(nextSettings);
+      await drained();
     },
     resetSettings: () => input.preferences.resetSettings(),
     async dispose() {
       settings = { ...settings, gwonmacTools: false };
-      tradeEnabled = false;
-      tradeChat.dispose();
-      await Promise.all([
-        fileGates.buildLibrary.settled,
-        fileGates.cartography.settled,
-        fileGates.travelPalette.settled,
-      ]);
+      for (const session of sessions) session.dispose?.();
+      await drained();
     },
   });
 }
