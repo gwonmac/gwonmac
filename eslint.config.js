@@ -46,11 +46,16 @@ const INTO_MAIN = String.raw`(?:^|/)(?:\.\.|app)/(?:main|client)/`;
 // and companion-parts.ts, the files the feature block below lints).
 // `shared/ui/` does not match: only `../ui/` or `app/ui/` names app/ui.
 const INTO_PRESENTATION = String.raw`(?:^|/)(?:\.\.|app)/(?:renderer|ui|preload)/|(?:^|/)features/(?:[^/]+/renderer/|[^/]+/companion(?:\.js)?$|companion-parts(?:\.js)?$)`;
-// Entering a feature from the shared renderer: a feature's companion part and
-// renderer modules are its own, so shared code reaches them only through
-// app/features/companion-parts.ts or the feature's one game-host entry,
-// renderer/host.ts. `features/define.js` and the manifests stay reachable.
-const INTO_FEATURE_INTERNALS = String.raw`(?:^|/)features/[^/]+/(?:companion(?:\.js)?$|renderer/(?!host(?:\.js)?$))`;
+// Entering a feature from the shared renderer. Inside a feature folder only
+// three things are reachable: the manifest (feature.ts), the one game-host
+// entry (renderer/host.ts), and shared/, the contracts the feature's two
+// processes both read. Everything else is the feature's own: companion.ts
+// (reached through app/features/companion-parts.ts), the other renderer
+// modules, and the main-process half (main.ts, main/). An allowlist, so a new
+// kind of file is private until this line names it; a `..` after shared/ is
+// rejected so the exemption cannot be spelled as an escape. The files beside
+// the feature folders (define.ts, companion-parts.ts) do not match.
+const INTO_FEATURE_INTERNALS = String.raw`(?:^|/)features/[^/]+/(?!(?:feature|renderer/host)(?:\.js)?$|shared/(?!.*\.\.))`;
 // Leaving website: any escape into the host application's app/ other than
 // app/shared. Naming main/renderer/preload alone let app/tools-cli/** through while
 // the message claimed only app/shared was reachable. The first alternative is
@@ -102,7 +107,7 @@ const NO_MAIN_FROM_RENDERER =
   "app/renderer/** must not import from app/main/** or app/client/**. Cross the boundary through the preload bridge or app/shared/**.";
 const APP_SHARED_ONLY = "website/** and app/ui/tools/** may only reach into app/shared/**.";
 const NO_FEATURE_INTERNALS =
-  "app/renderer/** reaches a feature only through app/features/companion-parts.ts or the feature's renderer/host.ts. Move the code into the feature, or export it from its host.";
+  "app/renderer/** reaches a feature only through app/features/companion-parts.ts, its manifest (feature.ts), its renderer/host.ts, or its shared/ folder. Move the code into the feature, or export it from its host.";
 
 export default tseslint.config(
   eslint.configs.recommended,

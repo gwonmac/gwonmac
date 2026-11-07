@@ -364,8 +364,12 @@ the proofs in `app/client/certification/`, the kernels, the shared substrates,
 When shared code uses part of a feature, the parts
 [contract](../app/renderer/tools-companion-part.ts) names that narrow surface
 (for example `FriendTravel`); shared code imports the contract, never a feature
-file. ESLint enforces this for `app/renderer/`: it reaches a feature only
-through `companion-parts.ts` or the feature's `renderer/host.ts`, and
+file. ESLint enforces this for `app/renderer/`: inside a feature folder it
+reaches only the manifest (`feature.ts`), `renderer/host.ts`, and `shared/`.
+`shared/` is open because it holds the contracts the feature's main and
+renderer halves both read; re-exporting them through the host would be a
+second path. `companion.ts` is reached through `companion-parts.ts`, and the
+other renderer modules, `main.ts` and `main/` are the feature's own.
 `tests/policy/import-boundaries.test.ts` proves the rule rejects a crossing. A
 feature's stylesheet is listed in `scripts/copy-renderer.mjs`. tsconfig.renderer.json
 checks `companion.ts` and `renderer/`; the root program checks the rest.
