@@ -125,16 +125,31 @@ export interface LauncherPreferencesPatch {
   readonly content?: Partial<LauncherPreferences["content"]>;
 }
 
+/** The account appearance vocabulary: the icons and preset colours both pickers offer, and a new account's look. */
+export const LAUNCHER_PROFILE_ICONS = ["swords", "archive", "map", "scroll", "shield", "star", "crown", "flame"] as const;
+export type LauncherProfileIcon = (typeof LAUNCHER_PROFILE_ICONS)[number];
+export const LAUNCHER_PROFILE_COLORS = ["#9a6638", "#496b58", "#46658a", "#76558b", "#9a4f4f", "#76703c", "#4c777d", "#6f6258"] as const;
+export const DEFAULT_PROFILE_ICON: LauncherProfileIcon = "swords";
+export const DEFAULT_PROFILE_COLOR = LAUNCHER_PROFILE_COLORS[0];
+
 export interface LauncherProfileAppearance {
-  readonly icon: string;
+  readonly icon: LauncherProfileIcon;
+  /** Any #rrggbb colour; the presets are only suggestions. */
   readonly color: string;
 }
-export const LAUNCHER_PROFILE_ICONS = ["swords", "archive", "map", "scroll", "shield", "star", "crown", "flame"] as const;
+
+export function isLauncherProfileIcon(value: unknown): value is LauncherProfileIcon {
+  return LAUNCHER_PROFILE_ICONS.some((icon) => icon === value);
+}
+
+export function isLauncherProfileColor(value: unknown): value is string {
+  return typeof value === "string" && /^#[0-9a-f]{6}$/iu.test(value);
+}
 
 export function parseLauncherProfileAppearance(value: unknown): LauncherProfileAppearance {
   const source = exactObject(value, ["icon", "color"], "profile appearance");
-  if (typeof source.icon !== "string" || !LAUNCHER_PROFILE_ICONS.includes(source.icon as (typeof LAUNCHER_PROFILE_ICONS)[number])) throw new Error("profile icon is invalid");
-  if (typeof source.color !== "string" || !/^#[0-9a-f]{6}$/iu.test(source.color)) throw new Error("profile color is invalid");
+  if (!isLauncherProfileIcon(source.icon)) throw new Error("profile icon is invalid");
+  if (!isLauncherProfileColor(source.color)) throw new Error("profile color is invalid");
   return { icon: source.icon, color: source.color };
 }
 

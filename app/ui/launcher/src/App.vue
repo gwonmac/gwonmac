@@ -4,16 +4,9 @@ import {
   AlertTriangle,
   Archive,
   Check,
-  Flame,
-  Map as MapIcon,
-  ScrollText,
-  Shield,
-  Swords,
-  Star,
-  Crown,
   X,
 } from "lucide-vue-next";
-import type { LauncherDestination, LauncherFeedback, LauncherPreferencesPatch, LauncherSnapshot } from "@shared/launcher-contracts";
+import { DEFAULT_PROFILE_COLOR, DEFAULT_PROFILE_ICON, type LauncherDestination, type LauncherFeedback, type LauncherPreferencesPatch, type LauncherProfileIcon, type LauncherSnapshot } from "@shared/launcher-contracts";
 import type { SettingsSection, SettingsTarget } from "@shared/settings-catalogue";
 import type { ProfileId } from "@shared/multiple-accounts";
 import { parseProfileName, profileNameKey } from "@shared/multiple-accounts";
@@ -28,7 +21,7 @@ import { releaseNotesFor } from "./release-notes";
 import { parseGuideAction } from "./guide";
 import NewsView from "./components/NewsView.vue";
 import SettingsView from "./components/SettingsView.vue";
-import ColorControl from "./components/ColorControl.vue";
+import ProfileAppearanceFields from "./components/ProfileAppearanceFields.vue";
 import type { LauncherRoute } from "./routes";
 
 const route = ref<LauncherRoute>("home");
@@ -59,11 +52,11 @@ const appearanceProfile = ref<ProfileId | null>(null);
 const appearanceName = ref("");
 const appearanceError = ref("");
 const appearanceSaving = ref(false);
-const appearanceIcon = ref("swords");
-const appearanceColor = ref("#9a6638");
+const appearanceIcon = ref<LauncherProfileIcon>(DEFAULT_PROFILE_ICON);
+const appearanceColor = ref<string>(DEFAULT_PROFILE_COLOR);
 const newName = ref("");
-const newIcon = ref("swords");
-const newColor = ref("#9a6638");
+const newIcon = ref<LauncherProfileIcon>(DEFAULT_PROFILE_ICON);
+const newColor = ref<string>(DEFAULT_PROFILE_COLOR);
 const busy = ref(false);
 const setupStep = ref<1 | 2>(1);
 const updateBannerDismissed = ref(false);
@@ -196,8 +189,8 @@ async function createProfile() {
   await runAction("The account could not be added. Try another name or try again.", async () => {
     await native?.profiles.create({ name, appearance: { icon: newIcon.value, color: newColor.value } });
     newName.value = "";
-    newIcon.value = "swords";
-    newColor.value = "#9a6638";
+    newIcon.value = DEFAULT_PROFILE_ICON;
+    newColor.value = DEFAULT_PROFILE_COLOR;
     addOpen.value = false;
   });
 }
@@ -279,8 +272,6 @@ async function runAction(message: string, action: () => Promise<unknown> | undef
     return false;
   }
 }
-
-const profileIcons = { swords: Swords, archive: Archive, map: MapIcon, scroll: ScrollText, shield: Shield, star: Star, crown: Crown, flame: Flame } as const;
 
 async function completeSetup(enableTools: boolean) {
   if (native) {
@@ -400,11 +391,11 @@ async function updateContent(content: NonNullable<LauncherPreferencesPatch["cont
     />
 
     <BaseModal v-if="addOpen" labelledby="add-account-title" @close="addOpen = false">
-      <form @submit.prevent="createProfile"><div class="modal-head"><h2 id="add-account-title">Add account</h2><button type="button" class="icon-button" aria-label="Close" @click="addOpen = false"><X /></button></div><p>This opens another separate Guild Wars window. Sign-in stays inside the game.</p><label>Name<input v-model="newName" autofocus maxlength="48" placeholder="Second account" /></label><details><summary>Appearance</summary><fieldset class="icon-options"><legend>Icon</legend><button v-for="(component, icon) in profileIcons" :key="icon" type="button" :aria-label="icon" :aria-pressed="newIcon === icon" :class="{ selected: newIcon === icon }" @click="newIcon = icon"><component :is="component" /></button></fieldset><fieldset class="color-options"><legend>Color</legend><button v-for="color in ['#9a6638', '#496b58', '#46658a', '#76558b', '#9a4f4f', '#76703c', '#4c777d', '#6f6258']" :key="color" type="button" :aria-label="`Use ${color}`" :aria-pressed="newColor === color" :class="{ selected: newColor === color }" :style="{ background: color }" @click="newColor = color" /><ColorControl label="Custom account color" :value="newColor" @change="newColor = $event" /></fieldset></details><div class="form-actions"><button type="button" class="secondary" @click="addOpen = false">Cancel</button><button class="primary" :disabled="!newName.trim()">Add account</button></div></form>
+      <form @submit.prevent="createProfile"><div class="modal-head"><h2 id="add-account-title">Add account</h2><button type="button" class="icon-button" aria-label="Close" @click="addOpen = false"><X /></button></div><p>This opens another separate Guild Wars window. Sign-in stays inside the game.</p><label>Name<input v-model="newName" autofocus maxlength="48" placeholder="Second account" /></label><details><summary>Appearance</summary><ProfileAppearanceFields v-model:icon="newIcon" v-model:color="newColor" /></details><div class="form-actions"><button type="button" class="secondary" @click="addOpen = false">Cancel</button><button class="primary" :disabled="!newName.trim()">Add account</button></div></form>
     </BaseModal>
 
     <BaseModal v-if="appearanceProfile" labelledby="appearance-title" :dismissible="!appearanceSaving" @close="appearanceProfile = null">
-      <form @submit.prevent="saveAppearance"><fieldset class="account-edit-fields" :disabled="appearanceSaving"><div class="modal-head"><h2 id="appearance-title">Edit account</h2><button type="button" class="icon-button" aria-label="Close" :disabled="appearanceSaving" @click="appearanceProfile = null"><X /></button></div><p>Choose a name and appearance you can recognize at a glance.</p><label>Name<input v-model="appearanceName" maxlength="48" required :disabled="appearanceSaving" :aria-invalid="!!appearanceError" :aria-describedby="appearanceError ? 'account-edit-error' : undefined" /></label><p v-if="appearanceError" id="account-edit-error" class="account-edit-error" role="alert">{{ appearanceError }}</p><fieldset class="icon-options"><legend>Icon</legend><button v-for="(component, icon) in profileIcons" :key="icon" type="button" :aria-label="icon" :aria-pressed="appearanceIcon === icon" :class="{ selected: appearanceIcon === icon }" @click="appearanceIcon = icon"><component :is="component" /></button></fieldset><fieldset class="color-options"><legend>Color</legend><button v-for="color in ['#9a6638', '#496b58', '#46658a', '#76558b', '#9a4f4f', '#76703c', '#4c777d', '#6f6258']" :key="color" type="button" :aria-label="`Use ${color}`" :aria-pressed="appearanceColor === color" :class="{ selected: appearanceColor === color }" :style="{ background: color }" @click="appearanceColor = color" /><ColorControl label="Custom account color" :value="appearanceColor" @change="appearanceColor = $event" /></fieldset><div v-if="canArchiveAppearanceProfile" class="archive-account-row"><span><strong>Archive account</strong><small>Hide this account without deleting its data.</small></span><button type="button" class="secondary" @click="archiveAppearanceProfile"><Archive />Archive</button></div><div class="form-actions"><button type="button" class="secondary" :disabled="appearanceSaving" @click="appearanceProfile = null">Cancel</button><button class="primary" :disabled="appearanceSaving">{{ appearanceSaving ? 'Saving…' : 'Save changes' }}</button></div></fieldset></form>
+      <form @submit.prevent="saveAppearance"><fieldset class="account-edit-fields" :disabled="appearanceSaving"><div class="modal-head"><h2 id="appearance-title">Edit account</h2><button type="button" class="icon-button" aria-label="Close" :disabled="appearanceSaving" @click="appearanceProfile = null"><X /></button></div><p>Choose a name and appearance you can recognize at a glance.</p><label>Name<input v-model="appearanceName" maxlength="48" required :disabled="appearanceSaving" :aria-invalid="!!appearanceError" :aria-describedby="appearanceError ? 'account-edit-error' : undefined" /></label><p v-if="appearanceError" id="account-edit-error" class="account-edit-error" role="alert">{{ appearanceError }}</p><ProfileAppearanceFields v-model:icon="appearanceIcon" v-model:color="appearanceColor" /><div v-if="canArchiveAppearanceProfile" class="archive-account-row"><span><strong>Archive account</strong><small>Hide this account without deleting its data.</small></span><button type="button" class="secondary" @click="archiveAppearanceProfile"><Archive />Archive</button></div><div class="form-actions"><button type="button" class="secondary" :disabled="appearanceSaving" @click="appearanceProfile = null">Cancel</button><button class="primary" :disabled="appearanceSaving">{{ appearanceSaving ? 'Saving…' : 'Save changes' }}</button></div></fieldset></form>
     </BaseModal>
 
     <div v-if="snapshot.experience.preferencesReset" class="toast"><AlertTriangle /><div><strong>Launcher preferences were reset.</strong><span>Your accounts, saved login, game files, builds, and templates were not changed.</span></div><button class="icon-button" aria-label="Dismiss" @click="dismissPreferencesReset"><X /></button></div>
