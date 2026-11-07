@@ -5,6 +5,7 @@
  * It never sends map or gameplay commands.
  */
 import { isTravelCharacterKey } from "../../../shared/travel-history.js";
+import { featureRegionAllowsRequest } from "../../../shared/feature-contracts.js";
 import type { ToolboxObservation } from "../../../shared/builds/live-party.js";
 import type { EliteMapHandle } from "../../../shared/elite-map.js";
 import type { CompanionPlayRegionState } from "../../../renderer/companion-play-region-snapshot.js";
@@ -79,7 +80,7 @@ export function createEliteMapInstallation(options: {
       const render = () => {
         if (!app || !enabled || disposed) return;
         const { region, observation, onWorldMap } = options.state();
-        const ready = region.status === "ready" && region.playRegion === "pve";
+        const ready = region.status === "ready" && featureRegionAllowsRequest("cartography", region.playRegion);
         const mapId = ready ? region.mapId : null;
         const now = performance.now();
         const character = ready ? `${region.characterKey}:${region.mapId}` : "";

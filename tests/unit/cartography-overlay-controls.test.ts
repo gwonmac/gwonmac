@@ -96,15 +96,21 @@ test("compact Cartography panel keeps guidance progressively disclosed", () => {
   assert.match(controls, /const qa = document\.createElement\("details"\)/u);
 });
 
+const unavailable = (reason: "unsupported-area" | "loading"): CartographyState => ({
+  context: null,
+  continent: { status: "unavailable", reason },
+  currentInstance: { status: "unavailable", reason },
+  surfaces: { compass: null, missionMap: null, worldMap: null },
+});
+
 test("unsupported areas and transient failures leave controls available", () => {
-  const unavailable = (reason: "unsupported-area" | "loading"): CartographyState => ({
-    context: null,
-    continent: { status: "unavailable", reason },
-    currentInstance: { status: "unavailable", reason },
-    surfaces: { compass: null, missionMap: null, worldMap: null },
-  });
-  assert.equal(cartographyOverlayDisposition(unavailable("unsupported-area")), "controls-only");
-  assert.equal(cartographyOverlayDisposition(unavailable("loading")), "controls-only");
+  assert.equal(cartographyOverlayDisposition(unavailable("unsupported-area"), "pve"), "controls-only");
+  assert.equal(cartographyOverlayDisposition(unavailable("loading"), "pve"), "controls-only");
+});
+
+test("every Maps surface, its controls included, hides outside PvE as the Maps manifest says", () => {
+  assert.equal(cartographyOverlayDisposition(unavailable("unsupported-area"), "pvp"), "hidden");
+  assert.equal(cartographyOverlayDisposition(unavailable("loading"), "unknown"), "hidden");
 });
 
 test("Cartography QA status distinguishes loading from exact kernel failures", () => {
