@@ -719,24 +719,24 @@ pub unsafe extern "C" fn companion_init(
     toolbox_size: u32,
     party_ptr: u32,
     party_size: u32,
-    skill_slot_ptr: u32,
-    skill_slot_size: u32,
-    skill_cooldown_ptr: u32,
-    skill_cooldown_size: u32,
+    skill_slots_ptr: u32,
+    skill_slots_size: u32,
+    skill_cooldowns_ptr: u32,
+    skill_cooldowns_size: u32,
     play_region_ptr: u32,
     play_region_size: u32,
     character_list_ptr: u32,
     character_list_size: u32,
-    friend_ptr: u32,
-    friend_size: u32,
-    player_effect_ptr: u32,
-    player_effect_size: u32,
-    effect_icon_ptr: u32,
-    effect_icon_size: u32,
+    friends_ptr: u32,
+    friends_size: u32,
+    player_effects_ptr: u32,
+    player_effects_size: u32,
+    effect_icons_ptr: u32,
+    effect_icons_size: u32,
     friend_root: u32,
     features: u32,
-    whisper_ptr: u32,
-    whisper_size: u32,
+    whispers_ptr: u32,
+    whispers_size: u32,
     alcohol_ptr: u32,
     alcohol_size: u32,
     progress_ptr: u32,
@@ -764,22 +764,22 @@ pub unsafe extern "C" fn companion_init(
                 || friend_root == 0 || friend_root & 3 != 0 || !contains(friend_root, 12))
         || features & FEATURE_FRIEND_OBSERVATION == 0 && friend_root != 0
         || !valid_region(features & FEATURE_FRIEND_OBSERVATION != 0,
-            friend_ptr, friend_size, friends::SNAPSHOT_BYTES)
+            friends_ptr, friends_size, friends::SNAPSHOT_BYTES)
         || !valid_region(
             features & FEATURE_PLAYER_EFFECT_OBSERVATION != 0,
-            player_effect_ptr,
-            player_effect_size,
+            player_effects_ptr,
+            player_effects_size,
             PLAYER_EFFECT_BYTES,
         )
         || !valid_region(
             features & FEATURE_EFFECT_ICON_GEOMETRY != 0,
-            effect_icon_ptr,
-            effect_icon_size,
+            effect_icons_ptr,
+            effect_icons_size,
             EFFECT_ICON_BYTES,
         )
         || features & FEATURE_ALCOHOL_OBSERVATION != 0 && features & FEATURE_PLAYER_EFFECT_OBSERVATION == 0
         || !valid_region(features & FEATURE_ALCOHOL_OBSERVATION != 0, alcohol_ptr, alcohol_size, ALCOHOL_BYTES)
-        || !valid_region(features & FEATURE_WHISPER_OBSERVATION != 0, whisper_ptr, whisper_size, WHISPER_BYTES)
+        || !valid_region(features & FEATURE_WHISPER_OBSERVATION != 0, whispers_ptr, whispers_size, WHISPER_BYTES)
         || features & FEATURE_PROGRESS_OBSERVATION != 0 && features & FEATURE_PLAY_REGION_OBSERVATION == 0
         || !valid_region(features & FEATURE_PROGRESS_OBSERVATION != 0, progress_ptr, progress_size, PROGRESS_BYTES)
         || config_size != CONFIG_BYTES
@@ -815,14 +815,14 @@ pub unsafe extern "C" fn companion_init(
         )
         || !valid_region(
             features & FEATURE_SKILL_SLOT_GEOMETRY != 0,
-            skill_slot_ptr,
-            skill_slot_size,
+            skill_slots_ptr,
+            skill_slots_size,
             SKILL_SLOT_BYTES,
         )
         || !valid_region(
             features & FEATURE_SKILL_COOLDOWN_OBSERVATION != 0,
-            skill_cooldown_ptr,
-            skill_cooldown_size,
+            skill_cooldowns_ptr,
+            skill_cooldowns_size,
             SKILL_COOLDOWN_BYTES,
         )
         || !valid_region(
@@ -856,7 +856,7 @@ pub unsafe extern "C" fn companion_init(
     // large enough for the snapshot it will publish.
     unsafe {
         if features & FEATURE_ALCOHOL_OBSERVATION != 0 { alcohol::initialize(alcohol_ptr); }
-        if features & FEATURE_WHISPER_OBSERVATION != 0 { whispers::initialize(whisper_ptr); }
+        if features & FEATURE_WHISPER_OBSERVATION != 0 { whispers::initialize(whispers_ptr); }
         if features & FEATURE_PROGRESS_OBSERVATION != 0 { progress::initialize(progress_ptr); }
         SNAPSHOT_PTR = snapshot_ptr;
         LAYOUT = layout;
@@ -879,22 +879,22 @@ pub unsafe extern "C" fn companion_init(
             party::initialize(party_ptr);
         }
         if features & FEATURE_SKILL_SLOT_GEOMETRY != 0 {
-            skill_slots::initialize(skill_slot_ptr);
+            skill_slots::initialize(skill_slots_ptr);
         }
         if features & FEATURE_SKILL_COOLDOWN_OBSERVATION != 0 {
-            skill_cooldowns::initialize(skill_cooldown_ptr);
+            skill_cooldowns::initialize(skill_cooldowns_ptr);
         }
         if features & FEATURE_PLAYER_EFFECT_OBSERVATION != 0 {
-            player_effects::initialize(player_effect_ptr);
+            player_effects::initialize(player_effects_ptr);
         }
         if features & FEATURE_EFFECT_ICON_GEOMETRY != 0 {
-            effect_icons::initialize(effect_icon_ptr);
+            effect_icons::initialize(effect_icons_ptr);
         }
         if features & FEATURE_PLAY_REGION_OBSERVATION != 0 {
             play_region::initialize(play_region_ptr);
         }
         if features & FEATURE_FRIEND_OBSERVATION != 0 {
-            friends::initialize(friend_ptr, friend_root);
+            friends::initialize(friends_ptr, friend_root);
         }
         if features & FEATURE_CHARACTER_LIST != 0 {
             character_list::initialize(character_list_ptr);

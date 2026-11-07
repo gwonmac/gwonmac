@@ -15,7 +15,7 @@ import type {
   PreparedCompanionExtension,
 } from "./certified-companion-extension.js";
 import * as observerReaders from "./companion-tools-observer-readers.js";
-import { EMPTY_REGION, type PreparedToolsPart, type ToolsActivation, type ToolsCompanionPart, type ToolsPartSession } from "./tools-companion-part.js";
+import { type PreparedToolsPart, type ToolsActivation, type ToolsCompanionPart, type ToolsPartSession } from "./tools-companion-part.js";
 import {
   createPolicyTrace,
   createToolsHud,
@@ -86,11 +86,7 @@ export async function prepareToolsCompanionExtension(
     },
     ownedRegions: () => parts.flatMap((part) => part.ownedRegions?.() ?? []),
     get kernelRegions() {
-      const regions: PreparedCompanionExtension["kernelRegions"] = {
-        skillSlots: EMPTY_REGION, skillCooldowns: EMPTY_REGION, playerEffects: EMPTY_REGION,
-        effectIcons: EMPTY_REGION, friends: EMPTY_REGION, whispers: EMPTY_REGION,
-        alcohol: EMPTY_REGION, progress: EMPTY_REGION, friendRoot: 0,
-      };
+      const regions: PreparedCompanionExtension["kernelRegions"] = { friendRoot: 0 };
       for (const part of parts) Object.assign(regions, part.kernelRegions?.());
       return regions;
     },

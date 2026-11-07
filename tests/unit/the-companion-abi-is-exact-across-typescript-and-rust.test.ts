@@ -5,6 +5,8 @@ import {
   COMPANION_ABI,
   COMPANION_DISPATCH_KINDS,
   COMPANION_FEATURE_BITS,
+  COMPANION_KERNEL_INIT_ARGUMENTS,
+  COMPANION_KERNEL_INIT_SCALARS,
 } from "../../app/shared/companion-abi.ts";
 import {
   ENHANCEMENT_CONFIG_FIELDS,
@@ -167,6 +169,23 @@ function assertExactContract(source: string): void {
   assert.deepEqual(knownFeatures.sort(), [...features.keys()].sort());
 }
 
+function typescriptInitParameters(): string[] {
+  const scalars: readonly string[] = COMPANION_KERNEL_INIT_SCALARS;
+  return COMPANION_KERNEL_INIT_ARGUMENTS.flatMap((name) => {
+    const snake = camelToSnake(name);
+    return scalars.includes(name) ? [snake] : [`${snake}_ptr`, `${snake}_size`];
+  });
+}
+
+function rustInitParameters(source: string): string[] {
+  const parameters = captured(
+    withoutComments(source).match(/pub unsafe extern "C" fn companion_init\(([\s\S]*?)\) -> u32/u),
+    "Rust companion_init",
+  );
+  return parameters.split(",").map((parameter) => parameter.trim()).filter(Boolean)
+    .map((parameter) => captured(parameter.match(/^([a-z0-9_]+): u32$/u), `u32 parameter ${parameter}`));
+}
+
 function replaced(source: string, from: string, to: string): string {
   assert.ok(source.includes(from), `mutation target is present: ${from}`);
   return source.replace(from, to);
@@ -183,6 +202,15 @@ test("the independent TypeScript and Rust companion contracts match exactly", ()
     "Rust play-region ABI",
   )), COMPANION_ABI.playRegion.abi);
   assert.equal(typescriptConfigSlots().length, COMPANION_ABI.config.bytes / 4);
+  assert.deepEqual(rustInitParameters(rustKernelSource), typescriptInitParameters());
+});
+
+test("a reordered companion_init region is rejected", () => {
+  assert.notDeepEqual(rustInitParameters(replaced(
+    rustKernelSource,
+    "    alcohol_ptr: u32,\n    alcohol_size: u32,\n    progress_ptr: u32,\n    progress_size: u32,",
+    "    progress_ptr: u32,\n    progress_size: u32,\n    alcohol_ptr: u32,\n    alcohol_size: u32,",
+  )), typescriptInitParameters());
 });
 
 test("same-size field swaps, bit drift, opcode drift, and new names are rejected", () => {

@@ -130,8 +130,8 @@ export function companionKernelFixture(
       exportName === "companion_init"
       && options.expectedInitArguments !== undefined
     ) {
-      if (options.expectedInitArguments.length !== 26) {
-        throw new Error("companion fixture init expectation must have 26 words");
+      if (options.expectedInitArguments.length !== 32) {
+        throw new Error("companion fixture init expectation must have 32 words");
       }
       const comparisons = options.expectedInitArguments.flatMap(
         (value, index) => [

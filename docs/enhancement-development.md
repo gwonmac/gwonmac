@@ -458,6 +458,13 @@ Each region needs these properties:
 - explicit invalid and overflow states;
 - no game pointer in published output.
 
+A new region is one entry in `COMPANION_KERNEL_INIT_ARGUMENTS`
+([companion-abi.ts](../app/shared/companion-abi.ts)), the matching
+`<name>_ptr`, `<name>_size` pair in `companion_init`
+([lib.rs](../kernels/companion/lib.rs)), and the part that allocates it. The
+loader, the region types and the Core installer follow from the list, and
+the ABI test compares it with the Rust signature.
+
 The official WASM remains canonical. Feature certificates and transformed
 outputs are derived from those bytes and the verifier ABI and must be
 rebuildable.

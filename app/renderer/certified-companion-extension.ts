@@ -6,6 +6,7 @@ import type {
   EnhancementCapabilities,
   EnhancementProgram,
 } from "../shared/enhancement-contracts.js";
+import type { CompanionKernelRegions } from "../shared/companion-abi.js";
 import type { CompanionOwnedRegion } from "./companion-owned-regions.js";
 import type {
   CompanionCoreMemoryNeeds,
@@ -26,7 +27,9 @@ import type { createPlayRegionObservationInstallation } from "./play-region-stat
 type CoreMemory = ReturnType<typeof allocateCompanionCoreMemory>;
 type Kernel = Awaited<ReturnType<typeof installCompanionKernel>>;
 type PlayRegions = ReturnType<typeof createPlayRegionObservationInstallation>;
-export type KernelRegion = Readonly<{ pointer: number; bytes: number }>;
+/** The kernel regions Core allocates; an extension may supply any other one. */
+type CoreKernelRegion =
+  "snapshot" | "config" | "cursor" | "toolbox" | "party" | "playRegion" | "characterList";
 
 export type CompanionObserverExtension = Readonly<{
   pollers: readonly { poll(): void; enabled?(): boolean }[];
@@ -85,15 +88,7 @@ export type PreparedCompanionExtension = Readonly<{
   allocate(malloc: (bytes: number) => unknown): void;
   initialize(memory: WebAssembly.Memory): void;
   ownedRegions(): readonly CompanionOwnedRegion[];
-  kernelRegions: Readonly<{
-    skillSlots: KernelRegion;
-    skillCooldowns: KernelRegion;
-    playerEffects: KernelRegion;
-    effectIcons: KernelRegion;
-    friends: KernelRegion;
-    whispers?: KernelRegion;
-    alcohol?: KernelRegion;
-    progress?: KernelRegion;
+  kernelRegions: Readonly<Partial<Omit<CompanionKernelRegions, CoreKernelRegion>> & {
     friendRoot: number;
   }>;
   activate(context: CompanionExtensionActivation): CompanionExtensionSession;
