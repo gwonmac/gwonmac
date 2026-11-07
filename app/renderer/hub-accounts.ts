@@ -1,7 +1,8 @@
 /**
  * Presents saved account choices through the native account owner.
  * Search never opens or closes a game window; each operation is explicit, and
- * closing the running game passes an armed confirmation first.
+ * closing the running game passes an armed confirmation first, on the Hub kit's
+ * confirmation page (app/ui/tools/src/hub/views/confirm).
  */
 import { hubMatch, normaliseHubQuery, parseHubQuery, type HubDestination, type HubPresenter, type HubRow, type HubSource, type HubTask } from '../shared/hub.js';
 import type { HubAccountsSnapshot, HubAccountRequest } from '../shared/accounts-contracts.js';
@@ -47,17 +48,12 @@ export function createHubAccounts(hub: AccountsHub, api: { get(): Promise<HubAcc
    * ignores a multi-click, so neither the double-click nor the quick second Enter that opened it can pass it.
    */
   function confirmReplace(profile: Profile, title: string, current: string) {
-    hub.showView(`Close ${current}?`, (target, back, footer) => {
-      const doc = target.ownerDocument;
+    hub.showView(`Close ${current}?`, (target, back, footer, pages) => {
       // The page itself takes focus, so Enter reaches the named primary once it has armed.
-      const view = doc.createElement('section'); view.className = 'hub-detail hub-confirm'; view.tabIndex = 0;
-      const heading = doc.createElement('h2'); heading.textContent = `${title}?`;
-      view.setAttribute('aria-label', heading.textContent);
-      const copy = doc.createElement('p'); copy.textContent = `${profile.name} opens first. Then ${current} saves and closes.`;
-      view.append(heading, copy); target.append(view);
+      const page = pages.confirm(target, { question: `${title}?`, consequence: `${profile.name} opens first. Then ${current} saves and closes.` });
       footer.primary({ label: title, destructive: true, armed: true, run: task => open(profile, 'replace', task, back) });
       footer.secondary({ label: `Keep ${current}`, run: back });
-      return () => view.remove();
+      return page.dispose;
     });
   }
   /**

@@ -60,7 +60,7 @@
       "No matches"
     <pre class="hub-preview ui-scroll" hidden="">
     <div aria-busy="false" class="hub-view">
-      <section aria-label="Close Main and open Second?" class="hub-detail hub-confirm" tabindex="0">
+      <section aria-label="Close Main and open Second?" class="hub-detail hub-confirm" data-focus-key="confirm" tabindex="0">
         <h2>
           "Close Main and open Second?"
         <p>
