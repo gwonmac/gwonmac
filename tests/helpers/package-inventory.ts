@@ -44,11 +44,11 @@ export const REQUIRED_PACKAGE_FILES = Object.freeze([
 ]);
 
 export const DEVELOPER_PACKAGE_FILES = Object.freeze([
-  "/build/tools/certification.js",
-  "/build/tools/template-save-recert.js",
-  "/build/tools/enhancement-recert.js",
-  "/build/tools/carry-forward.js",
-  "/build/tools/enhancement-workspace.js",
+  "/build/tools-cli/certification.js",
+  "/build/tools-cli/template-save-recert.js",
+  "/build/tools-cli/enhancement-recert.js",
+  "/build/tools-cli/carry-forward.js",
+  "/build/tools-cli/enhancement-workspace.js",
   "/scripts/enhancements-live.ts",
   "/scripts/enhancements-live/scenarios.ts",
   "/scripts/enhancements-live/performance.ts",

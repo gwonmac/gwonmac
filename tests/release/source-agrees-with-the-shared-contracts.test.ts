@@ -68,7 +68,8 @@ test("every main→renderer event channel is named somewhere in main", async () 
   // would notice.
   const { EVENT_CHANNELS }: typeof import("../../app/shared/contracts.ts") =
     await import(new URL("../../build/shared/contracts.js", import.meta.url).href);
-  const main = execFileSync("git", ["ls-files", "--", "app/main"], {
+  // Main is app/main plus the main-process half of every feature folder.
+  const main = execFileSync("git", ["ls-files", "--", "app/main", "app/features/*/main.ts", "app/features/*/main/**"], {
     cwd: root,
     encoding: "utf8",
   })
