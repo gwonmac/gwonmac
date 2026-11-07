@@ -84,7 +84,7 @@ pnpm --dir website generate:launcher-news
 pnpm --dir website check
 ```
 
-Commit the Markdown and regenerated JSON together. The generator runs every story and the whole feed through the parser that installed apps use (`app/shared/launcher-news-feed.ts`), so the check fails on exactly what an app would refuse: a duplicate or malformed ID, an invalid source or channel, a title over 140 or a summary over 360 characters, an invalid date, or a link outside the trusted origins (the website, the Guild Wars Wiki, GitHub, Discord). It also fails for unknown `launcher*` fields and a stale generated feed. One refused story makes every app drop the whole feed, so never edit `news-v1.json` by hand. The feed carries the newest 24 posts; older posts stay on the website.
+Commit the Markdown and regenerated JSON together. The generator runs every story and the whole feed through the parser that installed apps use (`app/shared/launcher-news-feed.ts`), so the check fails on exactly what an app would refuse: a malformed ID, an ID that any post already uses (checked across every post, not only the newest 24), an invalid source or channel, a title over 140 or a summary over 360 characters, an invalid date, or a link outside the trusted origins (the website, the Guild Wars Wiki, GitHub, Discord). It also fails for unknown `launcher*` fields and a stale generated feed. One refused story makes every app drop the whole feed, so never edit `news-v1.json` by hand. The feed carries the newest 24 posts; older posts stay on the website.
 
 ## Runtime behavior
 

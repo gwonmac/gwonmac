@@ -8,7 +8,7 @@
 import { readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { readFrontMatter } from "../../app/shared/website-content.ts";
-import { MAX_NEWS_STORIES, NEWS_FEED_VERSION, parseNewsStory, parseProjectNewsFeed } from "../../app/shared/launcher-news-feed.ts";
+import { newestNewsFeed, parseNewsStory } from "../../app/shared/launcher-news-feed.ts";
 
 const root = path.resolve(import.meta.dirname, "..");
 const contentRoot = path.join(root, "content/en/2.blog");
@@ -67,9 +67,7 @@ for (const name of names) {
   }
   if (story) stories.push(story);
 }
-stories.sort((left, right) => right.publishedAt.localeCompare(left.publishedAt));
-const feed = { version: NEWS_FEED_VERSION, stories: stories.slice(0, MAX_NEWS_STORIES) };
-parseProjectNewsFeed(feed);
+const feed = newestNewsFeed(stories);
 const generated = `${JSON.stringify(feed, null, 2)}\n`;
 if (check) {
   const current = await readFile(outputPath, "utf8").catch(() => "");

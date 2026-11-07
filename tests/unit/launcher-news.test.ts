@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, it } from "node:test";
 import { LauncherNewsService, PROJECT_NEWS_URL, WIKI_UPDATES_URL } from "../../app/main/core/launcher-news.js";
-import { parseProjectNewsFeed } from "../../app/shared/launcher-news-feed.js";
+import { MAX_NEWS_STORIES, newestNewsFeed, parseProjectNewsFeed } from "../../app/shared/launcher-news-feed.js";
 import { DEFAULT_LAUNCHER_PREFERENCES } from "../../app/main/core/launcher-state.js";
 import { RELEASE_REPO_URL } from "../../app/shared/project-identity.js";
 
@@ -51,6 +51,17 @@ describe("launcher news", () => {
   it("accepts the feed the website publishes", async () => {
     const published = JSON.parse(await readFile("website/public/launcher/news-v1.json", "utf8"));
     assert.ok(parseProjectNewsFeed(published).length > 0);
+  });
+
+  it("refuses an id reused by a post older than the newest stories", () => {
+    const [story] = parseProjectNewsFeed(feed());
+    const stories = Array.from({ length: MAX_NEWS_STORIES + 1 }, (_, day) => ({
+      ...story!,
+      id: `release-${day}`,
+      publishedAt: `2026-09-${String(day + 1).padStart(2, "0")}T12:00:00Z`,
+    }));
+    stories[0]!.id = stories[MAX_NEWS_STORIES]!.id;
+    assert.throws(() => newestNewsFeed(stories), /release-24 is used twice/u);
   });
 
   it("rejects untrusted story links", () => {

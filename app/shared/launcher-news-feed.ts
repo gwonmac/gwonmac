@@ -107,3 +107,20 @@ export function parseProjectNewsFeed(value: unknown): readonly ProjectNewsStory[
   if (new Set(stories.map((story) => story.id)).size !== stories.length) throw new Error("news story ids must be unique");
   return stories;
 }
+
+/**
+ * The feed the website publishes: the newest MAX_NEWS_STORIES stories. Ids are
+ * checked across every post first, so a post that reuses an older post's id
+ * fails here even when the older one is past the cut.
+ */
+export function newestNewsFeed(stories: readonly ProjectNewsStory[]) {
+  const ids = new Set<string>();
+  for (const { id } of stories) {
+    if (ids.has(id)) throw new Error(`news story id ${id} is used twice`);
+    ids.add(id);
+  }
+  const newest = [...stories].sort((left, right) => right.publishedAt.localeCompare(left.publishedAt));
+  const feed = { version: NEWS_FEED_VERSION, stories: newest.slice(0, MAX_NEWS_STORIES) };
+  parseProjectNewsFeed(feed);
+  return feed;
+}
