@@ -16,12 +16,10 @@ import {
   Notification,
   net,
   powerMonitor,
-  session,
   shell,
   systemPreferences,
 } from "electron";
-import { readFileSync } from "node:fs";
-import { access, mkdir, rm, writeFile } from "node:fs/promises";
+import { rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import {
   EXTERNAL_URLS,
@@ -50,15 +48,11 @@ import {
   saveDiagnosticProfile,
 } from "./core/diagnostic-profile.js";
 import { PreferencesCoordinator } from "./core/preferences-coordinator.js";
-import { SocketManager } from "./core/sockets.js";
+import type { SocketManager } from "./core/sockets.js";
 import {
-  count,
   exportDiagnosticsForWindow,
-  gauge,
   logEvent,
   markPerformanceProblem,
-  observe,
-  peakGauge,
   setDiagnosticCaptureStoppedHandler,
   startDiagnosticCapture,
   startDiagnostics,
@@ -66,9 +60,8 @@ import {
   stopDiagnosticCaptureForWindow,
   stopDiagnostics,
 } from "./diagnostics.js";
-import type { AppPhase } from "./diagnostics/schema-fields.js";
 import { hubAccountSnapshot, activateHubAccount } from './hub-account-actions.js';
-import { emitSocketEvent, registerIpcHandlers } from "./ipc.js";
+import { registerIpcHandlers } from "./ipc.js";
 import {
   AppUpdater,
   PERIODIC_CHECK_TICK_MS,
@@ -80,8 +73,7 @@ import {
   runQuitCleanup,
   wireLifecycle,
 } from "./lifecycle.js";
-import { sweepOrphanDirectories } from "./core/atomic-file.js";
-import { documentDirectories, matchesExpectedProfile } from "./core/paths.js";
+import { matchesExpectedProfile } from "./core/paths.js";
 import { gamePaths } from "./paths.js";
 import {
   DEVELOPER_ENHANCEMENT_PROGRAM,
@@ -116,21 +108,13 @@ import {
 import { installMacosCommandKeyUps, loadNativeHost } from "./native-host.js";
 import { recordMainInput } from './input-trace.js';
 import { cleanupLegacySecretFiles } from "./core/legacy-secret-cleanup.js";
-import {
-  distributionCapabilities,
-  isDistributionChannel,
-  parseDistributionMarker,
-  type DistributionChannel,
-} from "../shared/distribution-channel.js";
+import { distributionCapabilities } from "../shared/distribution-channel.js";
 import {
   applyPendingCacheClear,
   applyPendingGameStorageReset,
 } from "./settings-actions.js";
 import { windowRegistry } from "./window-registry.js";
-import {
-  bootstrapAccountWorkspace,
-  loadAccountMode,
-} from "./core/multiple-accounts.js";
+import { bootstrapAccountWorkspace } from "./core/multiple-accounts.js";
 import { refreshNativeAccountsMenu, showQuitOrReloadGame } from "./window-menu.js";
 import { createLauncherWindow, prepareLauncherWindowState } from "./accounts-window.js";
 import { MultipleAccountsController } from "./multiple-accounts-controller.js";
@@ -163,6 +147,16 @@ import { hubSettingsSnapshot } from "../shared/hub-settings.js";
 import { cancelAppShortcutCapture, captureLauncherShortcut } from "./launcher-shortcut-capture.js";
 import { TexturePackManager } from "./core/texture-pack-manager.js";
 import { createTexturePackActions } from "./texture-pack-actions.js";
+import { packagedDistributionChannel, readHostVersion } from "./app-identity.js";
+import { INJECT_STARTUP_FAILURE, startFatalExit } from "./fatal-exit.js";
+import { createSocketManager } from "./socket-wiring.js";
+import {
+  clearBrowserCookies,
+  clearBrowserNetworkCache,
+  ensureDirs,
+  hasReleasedSingleData,
+  pathExists,
+} from "./startup-state.js";
 
 // The public app name changed after alpha profiles already existed. Keep that
 // one profile as the canonical home so the rename cannot strand saved login,
@@ -181,25 +175,7 @@ if (!primaryInstance) {
   wireLifecycle();
 }
 
-const HOST_VERSION = (() => {
-  try {
-    const manifest = JSON.parse(
-      readFileSync(path.join(app.getAppPath(), "package.json"), "utf8"),
-    ) as unknown;
-    if (
-      typeof manifest === "object"
-      && manifest !== null
-      && !Array.isArray(manifest)
-    ) {
-      const version = (manifest as Record<string, unknown>).version;
-      if (typeof version === "string") return version;
-    }
-  } catch {
-    // Electron's answer remains the safe fallback for a broken development
-    // checkout. Official packages always carry their package manifest.
-  }
-  return app.getVersion();
-})();
+const HOST_VERSION = readHostVersion();
 
 const preferences = new PreferencesCoordinator(
   () => gamePaths(),
@@ -218,8 +194,6 @@ const windowCoordinator = new WindowCoordinator(
   },
   windowRegistry,
 );
-const INJECT_STARTUP_FAILURE =
-  !app.isPackaged && process.env.GW_TEST_STARTUP_FAILURE === "1";
 
 function revealLauncher(destination?: LauncherDestination): boolean {
   if (!windowCoordinator.revealLauncher({ activateApp: true })) return false;
@@ -242,65 +216,6 @@ function revealMainWindow(): void {
 /** The one application-update action; AppUpdater owns every outcome. */
 async function checkForAppUpdates(): Promise<void> {
   await appUpdaterController?.check();
-}
-
-function buildSocketManager(): SocketManager {
-  return new SocketManager(
-    (ownerId, event) => {
-      const diagnosticOwnerId =
-        windowRegistry.diagnosticOwnerForWebContents(ownerId);
-      if (event.type === "open") {
-        if (diagnosticOwnerId !== null) logEvent(
-          { k: "socket.open", socketId: event.socketId, port: event.port },
-          diagnosticOwnerId,
-        );
-      } else if (event.type === "close") {
-        if (diagnosticOwnerId !== null) logEvent({
-          k: "socket.close",
-          socketId: event.socketId,
-          reason: event.reason,
-        }, diagnosticOwnerId);
-      } else if (event.type === "error") {
-        if (diagnosticOwnerId !== null) logEvent({
-          k: "socket.error",
-          socketId: event.socketId,
-          code: event.code,
-        }, diagnosticOwnerId);
-      }
-      emitSocketEvent(ownerId, event);
-    },
-    {
-      count: (name, delta, ownerId) => {
-        const diagnosticOwnerId = ownerId === undefined
-          ? null
-          : windowRegistry.diagnosticOwnerForWebContents(ownerId);
-        if (diagnosticOwnerId !== null) count(name, delta, diagnosticOwnerId);
-      },
-      observe: (name, durationUs, ownerId) => {
-        const diagnosticOwnerId = ownerId === undefined
-          ? null
-          : windowRegistry.diagnosticOwnerForWebContents(ownerId);
-        if (diagnosticOwnerId !== null) {
-          observe(name, durationUs, diagnosticOwnerId);
-        }
-      },
-      gauge,
-      peakGauge,
-    },
-    // An unpackaged Electron test may replace the production destination
-    // validator with one that admits exactly its loopback fixture. Production
-    // still uses the public-ArenaNet allowlist and grants no such exception.
-    !app.isPackaged && process.env.GW_TEST_SOCKET_LOOPBACK === "1"
-      ? (destination) => {
-          if (destination !== "127.0.0.1:6112") {
-            throw new Error(
-              "test socket fixture permits only 127.0.0.1:6112",
-            );
-          }
-          return { host: "127.0.0.1", port: 6112, family: 4 };
-        }
-      : undefined,
-  );
 }
 
 function setProgress(next: DownloadProgress): void {
@@ -346,97 +261,6 @@ async function publishSettings(settings: AppSettings): Promise<void> {
   }
   sendToRenderer(IPC.settingsEvent, settings);
   launcherOrchestrator?.publish();
-}
-
-function packagedDistributionChannel(): DistributionChannel | null {
-  if (!app.isPackaged) {
-    const channel = process.env.GW_TEST_DISTRIBUTION_CHANNEL;
-    return isDistributionChannel(channel) ? channel : null;
-  }
-  if (process.platform !== "darwin") return null;
-  try {
-    const marker = JSON.parse(
-      readFileSync(
-        path.join(process.resourcesPath, "distribution-channel.json"),
-        "utf8",
-      ),
-    ) as unknown;
-    return parseDistributionMarker(marker)?.channel ?? null;
-  } catch {
-    return null;
-  }
-}
-
-async function pathExists(filePath: string): Promise<boolean> {
-  try {
-    await access(filePath);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/** Classify released Single data before the candidate publishes any owner. */
-async function hasReleasedSingleData(paths: ReturnType<typeof gamePaths>): Promise<boolean> {
-  if (await pathExists(paths.launcherMode)) {
-    try {
-      return await loadAccountMode(paths.launcherMode) === "single";
-    } catch {
-      // The old mode document is not operational state anymore. Preserve it
-      // byte-for-byte and fall back to canonical Single-owned evidence.
-    }
-  }
-  return (await Promise.all([
-    paths.settings,
-    paths.buildLibrary,
-    paths.windowState,
-    path.join(paths.userData, "IndexedDB"),
-    path.join(paths.userData, "Local Storage"),
-  ].map(pathExists))).some(Boolean);
-}
-
-async function ensureDirs(): Promise<void> {
-  const paths = gamePaths();
-  await mkdir(paths.game, { recursive: true });
-  await mkdir(paths.chunks, { recursive: true });
-  await mkdir(paths.diagnostics, { recursive: true });
-  // On the first open of the directories we own, remove incomplete atomic
-  // writes. A process killed between
-  // write and rename leaves `<name>.<pid>.<hex>.tmp` behind, and boot is the
-  // only moment at which every one of those directories is known to be idle.
-  const roots = documentDirectories(paths);
-  roots.push(paths.multiRoot, paths.multiProfiles);
-  const removed = await sweepOrphanDirectories(roots);
-  if (removed > 0) logEvent({ k: "orphanTemps.swept", removed });
-}
-
-async function clearBrowserCookies(phase: AppPhase): Promise<void> {
-  try {
-    await session.defaultSession.clearStorageData({ storages: ["cookies"] });
-    logEvent({ k: "browserCookies.cleared", phase });
-  } catch (error) {
-    logEvent({
-      k: "browserCookies.clearFailed",
-      phase,
-      code: errorCode(error),
-    });
-  }
-}
-
-async function clearBrowserNetworkCache(): Promise<void> {
-  try {
-    // Snapshot chunks are canonical in the native content-addressed store.
-    // Chromium's HTTP cache would only duplicate them and can retain stale
-    // same-URL client artifacts between exact-hash updates.
-    await session.defaultSession.clearCache();
-    logEvent({ k: "browserCache.cleared", phase: "startup" });
-  } catch (error) {
-    logEvent({
-      k: "browserCache.clearFailed",
-      phase: "startup",
-      code: errorCode(error),
-    });
-  }
 }
 
 function buildWindowHost(
@@ -690,7 +514,7 @@ if (primaryInstance) void app.whenReady().then(async () => {
     diagnosticProfile,
     onProgress: setProgress,
   });
-  const sockets = buildSocketManager();
+  const sockets = createSocketManager();
   appUpdaterController = new AppUpdater({
     currentVersion: HOST_VERSION,
     capable: distribution.automaticUpdates,
@@ -1207,38 +1031,6 @@ if (primaryInstance) void app.whenReady().then(async () => {
     "Startup failed before the game window could open. Reopen the app and, if it repeats, report the problem.",
   );
 });
-
-let fatalExitStarted = false;
-
-function startFatalExit(
-  event: "app.startupFailed" | "app.uncaughtException",
-  error: unknown,
-  title: string,
-  detail: string,
-): void {
-  if (fatalExitStarted) return;
-  fatalExitStarted = true;
-  const code = errorCode(error);
-  if (event === "app.startupFailed") {
-    logEvent({ k: "app.startupFailed", code });
-  } else {
-    logEvent({ k: "app.uncaughtException", code });
-  }
-  // The injected failure is an unpackaged-only test seam. Production startup
-  // failures are always visible; the deterministic process-exit test must not
-  // wait on a native modal with no window available to dismiss it.
-  if (!INJECT_STARTUP_FAILURE) {
-    try {
-      dialog.showErrorBox(title, detail);
-    } catch {
-      // Cleanup and lock release are still mandatory if the OS dialog fails.
-    }
-  }
-  void runQuitCleanup().then(
-    () => app.exit(1),
-    () => app.exit(1),
-  );
-}
 
 if (primaryInstance) process.on("uncaughtException", (err) => {
   startFatalExit(
