@@ -8,6 +8,11 @@
  * Enhancement input matches no reviewed record is not replayed. That puts the
  * pre-October clients out of scope: template saving refuses them even with
  * every reviewed generation.
+ *
+ * A replayed client loses every fact of its own generation file: records,
+ * relocation identities and `facts` (pinned index lists and layouts too). Its
+ * row is what that client would have got at its first launch, before a
+ * release reviewed it.
  */
 import assert from "node:assert/strict";
 import { readdir, readFile, stat } from "node:fs/promises";
@@ -21,8 +26,15 @@ import {
 } from "../../app/client/certification/local-client-verifier.js";
 import {
   REVIEWED_GENERATIONS,
+  withReviewedFacts,
   type ClientGeneration,
 } from "../../app/client/certification/reviewed-facts.js";
+import { deriveFriendObserverBuild } from "../../app/client/certification/friend-observer-transform.js";
+import {
+  cartographyReport,
+  doubleClickReport,
+  runtimePredecessors,
+} from "../../app/tools-cli/client-qualification.js";
 import { ENHANCEMENT_CAPABILITY_FIELDS } from "../../app/shared/enhancement-contracts.js";
 
 const STORE = process.env.GW_CLIENT_EVIDENCE
@@ -94,6 +106,48 @@ function assertOutputsMatchRecord(
   }
 }
 
+/**
+ * Patch-day template saving of each generation that is not a relink of the
+ * previous one: what it must get with only older facts.
+ */
+const TEMPLATE_ON_PATCH_DAY: Readonly<Record<string, "proved" | "template-shape-changed">> = {
+  // October 1 changed a screenshot-initializer helper body. It never had its
+  // own template review; with every generation it matches a later client's
+  // relocation identity of that body.
+  "2026-10-01-7b4c3548d670": "template-shape-changed",
+  // October 22 changed reviewed template-saving helper bodies (string
+  // pointers and an assertion line), so it refuses until reviewed.
+  "2026-10-22-ce3192033b14": "template-shape-changed",
+  // Template saving derives its rewrite from the bytes; November 3's helper
+  // bodies are relocations of reviewed ones.
+  "2026-11-03-f2a2b07c9c56": "proved",
+};
+
+/**
+ * The module stages with the active facts, on the predecessors release
+ * qualification serves: native double-click and Cartography on every one,
+ * friend observation on each Enhancement profile. Every stage refuses when a
+ * release profile cannot be served.
+ */
+function stageRows(bytes: Uint8Array): Readonly<Record<string, string>> {
+  let served: ReturnType<typeof runtimePredecessors>;
+  try {
+    served = runtimePredecessors(bytes);
+  } catch (error) {
+    const refused = `refused (${error instanceof Error ? error.message : "no predecessors"})`;
+    return { doubleClick: refused, cartography: refused, friends: refused };
+  }
+  const { officialSha256, predecessors } = served;
+  const verdict = (proved: boolean) => proved ? "proved" : "refused";
+  return {
+    doubleClick: verdict(doubleClickReport(officialSha256, predecessors).proved),
+    cartography: verdict(cartographyReport(officialSha256, predecessors).proved),
+    friends: verdict(predecessors.every((predecessor) =>
+      predecessor.enhancementInputSha256 === undefined
+      || deriveFriendObserverBuild(predecessor.bytes) !== null)),
+  };
+}
+
 const present = await storeExists();
 
 test("the retained ArenaNet history replays with only the facts each patch day had", {
@@ -116,22 +170,38 @@ test("the retained ArenaNet history replays with only the facts each patch day h
     const older = REVIEWED_GENERATIONS.slice(0, client.index);
     const replay = verifyLocalClientBytes(client.bytes, undefined, older);
     const proved = features.filter((feature) => replay.featureVerdicts?.[feature]?.status === "proved");
-    t.diagnostic(`${label} with older facts proves ${proved.length}/${features.length}: refuses ${
-      features.filter((feature) => !proved.includes(feature)).join(", ") || "nothing"}`);
-
-    // Template saving never depends on a newer client's facts.
-    assert.notEqual(replay.status, "template-refused", `${label}: template saving`);
-    assert.deepEqual(replay.fileVerdict, client.full.fileVerdict, `${label}: template verdict`);
+    const stages = withReviewedFacts(older, () => stageRows(client.bytes));
+    t.diagnostic(`${label} with older facts: template ${
+      replay.fileVerdict?.status === "proved" ? "proved" : replay.fileVerdict?.reason}; proves ${
+      proved.length}/${features.length}, refuses ${
+      features.filter((feature) => !proved.includes(feature)).join(", ") || "nothing"}; ${
+      Object.entries(stages).map(([stage, verdict]) => `${stage} ${verdict}`).join(", ")}`);
 
     // A relink of the previous generation (same memory-accessing code up to
-    // relocation) is a non-event: every feature proves without its own facts.
+    // relocation) is a non-event: it needs no fact of its own.
     const previous = REVIEWED_GENERATIONS[client.index - 1]!;
     if (
       previous.memoryCodeSha256 !== undefined
       && previous.memoryCodeSha256 === client.generation.memoryCodeSha256
     ) {
+      assert.deepEqual(replay.fileVerdict, client.full.fileVerdict, `${label}: template saving`);
       assert.deepEqual(refusedFeatures(replay, features), [], `${label}: relink of ${previous.id}`);
       assertOutputsMatchRecord(replay, record, `${label}: relink of ${previous.id}`);
+      assert.deepEqual(stages, { doubleClick: "proved", cartography: "proved", friends: "proved" },
+        `${label}: module stages on a relink of ${previous.id}`);
+      continue;
+    }
+
+    // Any other change is judged as stated above. A refused template leaves
+    // the official client untouched: nothing is rewritten for it.
+    const expected = TEMPLATE_ON_PATCH_DAY[label];
+    assert.ok(expected, `${label}: state its patch-day template saving in TEMPLATE_ON_PATCH_DAY`);
+    if (expected === "proved") {
+      assert.deepEqual(replay.fileVerdict, client.full.fileVerdict, `${label}: template saving`);
+    } else {
+      assert.equal(replay.fileVerdict?.status, "refused", `${label}: template saving`);
+      assert.equal(replay.fileVerdict?.reason, expected, `${label}: template refusal`);
+      assert.equal(replay.templateSaveBuild, null, `${label}: no template rewrite`);
     }
   }
 });
