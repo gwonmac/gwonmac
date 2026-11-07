@@ -10,6 +10,7 @@ import {
 } from "../../app/shared/contracts.js";
 import { DEFAULT_CUSTOM_UI_THEME } from "../../app/shared/ui-theme.js";
 import { AppError } from "../../app/shared/errors.js";
+import { TOOLS_SETTINGS, toolsSettings } from "../../app/shared/settings/index.js";
 import {
   CARTOGRAPHY_BUILTIN_PRESETS,
   type CartographyPresetRef,
@@ -960,4 +961,9 @@ it('saves calculator estimates through real settings without changing unrelated 
     { mode: 'remote', ecto: '', armbrace: '', zkey: '' },
     { mode: 'manual', ecto: '', armbrace: '', zkey: '', extra: true },
   ]) assert.throws(() => parseRendererSettingsPatch({ calculatorRates: rates }), /calculatorRates/);
+});
+
+// The renderer once kept its own Tools defaults, and Travel and three chat filters drifted to off.
+it("gives the renderer the same Tools defaults as DEFAULT_SETTINGS", () => {
+  assert.deepEqual(toolsSettings(null), Object.fromEntries(TOOLS_SETTINGS.map(key => [key, DEFAULT_SETTINGS[key]])));
 });
