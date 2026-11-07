@@ -1,9 +1,10 @@
 /**
- * The contract between the Hub's controller (app/renderer/hub.ts) and its Vue view
- * (app/ui/tools/src/hub, built as `tools/hub-app.js`). The controller owns state, search,
- * keyboard and focus; the view draws exactly these facts and hands back the elements the
- * controller measures, focuses and attaches its listeners to. Core loads the view module
- * alone, never the Tools application.
+ * The contract between the Hub's controller (app/renderer/hub.ts with its engine,
+ * hub-engine.ts) and its Vue view (app/ui/tools/src/hub, built as `tools/hub-app.js`). The
+ * controller owns state, search and where the keyboard should be, as a focus target; the
+ * view draws exactly these facts, owns the focus zones that put the keyboard there, and hands
+ * back the elements the controller measures and attaches its listeners to. Core loads the
+ * view module alone, never the Tools application.
  */
 import type { HubRow, HubSummary } from '../hub.js';
 import type { resolveShortcuts } from '../keyboard-shortcuts.js';
@@ -101,6 +102,7 @@ export type HubViewModel = {
   actions: Readonly<{ keys: boolean; disabled: boolean; expanded: boolean }>;
   menu: Readonly<{ hidden: boolean; bottom?: string; items: readonly HubMenuItem[] }>;
   receipt: HubReceipt;
+  focus?: HubFocusRequest;
 };
 
 /** The stable elements the controller keeps; the view never replaces them. */
@@ -111,10 +113,20 @@ export type HubViewElements = Readonly<{
   menu: HTMLElement; receipt: HTMLElement;
 }>;
 export type HubBuildDetails = readonly (HubSummary | HubRow)[];
+/** Where the keyboard is, read from the view's focus zones. */
+export type HubFocusReader = Readonly<{
+  /** The keyboard's place as a target a later paint can restore. */
+  capture(): HubFocusTarget;
+  /** The zone that holds the keyboard now; null outside the Hub. */
+  at(): HubFocusZone | null;
+  /** Where typing goes: the Hub search on list stages, else a list view's own search (Travel, Characters). */
+  searchField(): HTMLInputElement | null;
+}>;
 export type HubViewHandle = Readonly<{
   elements: HubViewElements;
-  /** Redraws the model now, so the controller can measure and focus right after. */
+  /** Redraws the model now, applying its focus request, so the controller can measure right after. */
   paint(model: HubViewModel): void;
+  focus: HubFocusReader;
   /** Mounts Build details into a view host; returns its section and its disposal. */
   mountBuildDetails(target: HTMLElement, builds: HubBuildDetails): Readonly<{ element: HTMLElement; dispose(): void }>;
   dispose(): void;

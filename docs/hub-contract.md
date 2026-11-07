@@ -1,8 +1,14 @@
 # Hub interaction contract
 
-The Hub presents commands over Guild Wars. Its state and presentation belong to
-`app/renderer/hub.ts`. This document records intent and links to current owners.
-Code and tests own exact values and accepted states.
+The Hub presents commands over Guild Wars. Its navigation and keys belong to the
+pure engine in `app/renderer/hub-engine.ts`, tested in Node by
+`tests/unit/hub-engine.test.ts`. `app/renderer/hub.ts` owns sources, search,
+rows, receipts and the modal, and applies the engine's effects. Where the
+keyboard goes is a focus target in the view model (`app/shared/ui/hub-view.ts`);
+the Vue focus kit (`app/ui/tools/src/hub/hub-focus.ts`, `focus-zone.ts`) applies
+it after the paint and owns arrows inside each zone and the fallback when a
+focused control goes away. This document records intent and links to current
+owners. Code and tests own exact values and accepted states.
 
 ## Keyboard and actions
 

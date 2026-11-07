@@ -1,11 +1,14 @@
 <script setup lang="ts">
 /**
  * The Hub window and its closed-Hub receipt, region by region in the order the Hub CSS and its
- * keyboard rely on. It draws the model only: listeners, focus, measuring and the views pages
- * mount into `.hub-view` belong to the controller (app/renderer/hub.ts).
+ * keyboard rely on. It draws the model and puts the keyboard where the model's focus target
+ * names (hub-focus.ts); a view's body is one focus zone. Listeners, measuring and the views
+ * pages mount into `.hub-view` belong to the controller (app/renderer/hub.ts).
  */
 import { ref } from 'vue';
 import type { HubViewModel } from '../../../../shared/ui/hub-view';
+import { useFocusZone } from './focus-zone';
+import { useHubFocus } from './hub-focus';
 import HubActionsMenu from './HubActionsMenu.vue';
 import HubFooter from './HubFooter.vue';
 import HubHeading from './HubHeading.vue';
@@ -14,10 +17,14 @@ import HubResultList from './HubResultList.vue';
 import HubSearchBar from './HubSearchBar.vue';
 import HubSummary from './HubSummary.vue';
 
-defineProps<{ model: HubViewModel }>();
+const props = defineProps<{ model: HubViewModel }>();
 const root = ref<HTMLDialogElement>();
 const receipt = ref<HTMLElement>();
-defineExpose({ root, receipt });
+const view = ref<HTMLElement>();
+const focus = useHubFocus(root, view, () => props.model);
+// ↑ ↓ step between a view's controls in screen order; a mounted view moves the keyboard itself.
+useFocusZone(view, { orientation: 'screen', rescue: false });
+defineExpose({ root, receipt, focus });
 </script>
 
 <template>
@@ -32,7 +39,7 @@ defineExpose({ root, receipt });
       <HubResultList :results="model.results" :rates="model.rates" :busy="model.busy?.list" />
       <p class="hub-empty" :hidden="model.empty.hidden">No matches</p>
       <pre class="hub-preview ui-scroll" :hidden="model.preview.hidden" v-text="model.preview.text"></pre>
-      <div class="hub-view" :hidden="model.view.hidden" :aria-busy="model.busy?.view"></div>
+      <div ref="view" class="hub-view" :hidden="model.view.hidden" :aria-busy="model.busy?.view"></div>
       <div class="hub-footer-status">
         <p class="hub-status" role="status" :title="model.status?.text" :aria-busy="model.status?.busy" v-text="model.status?.text ?? ''"></p>
         <p class="hub-lifecycle" :hidden="model.lifecycle.hidden" :title="model.lifecycle.title" v-text="model.lifecycle.text"></p>
