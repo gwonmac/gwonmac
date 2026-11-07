@@ -34,7 +34,7 @@ import type {
   CartographyGridStats,
   CartographyModelStats,
   CompassRangeStats,
-} from "./cartography-spike/overlay.js";
+} from "../features/cartography/renderer/overlay.js";
 import type {
   CompassFrameSpikeController,
   ExplorationSpikeController,

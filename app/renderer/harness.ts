@@ -790,7 +790,7 @@ Module = {
           const { createCartographyLifecycle } = await import('./cartography-lifecycle.js');
           cartographyLifecycle?.dispose();
           if (!rendererUnloading) cartographyLifecycle = createCartographyLifecycle(async () => {
-            const { installCartographySpike } = await import('./cartography-spike/index.js');
+            const { installCartographySpike } = await import('../features/cartography/renderer/index.js');
             return installCartographySpike({
               exports: result.instance.exports,
               parent: document.body,

@@ -2,34 +2,34 @@
  * Owns Cartography installation behind one observer, model, kernel, and UI lifecycle.
  * Partial installation is rolled back before control returns to the harness.
  */
-import { createNativeCompassRangesLayer } from "../../features/cartography/renderer/native-compass-ranges-layer.js";
-import { createNativeMapGraphicsLayer } from "../../features/cartography/renderer/native-map-graphics-layer.js";
-import { createNativeCompassTerrainLayer } from "../../features/cartography/renderer/native-compass-terrain-layer.js";
+import { createNativeCompassRangesLayer } from "./native-compass-ranges-layer.js";
+import { createNativeMapGraphicsLayer } from "./native-map-graphics-layer.js";
+import { createNativeCompassTerrainLayer } from "./native-compass-terrain-layer.js";
 import type {
   CartographyEvidenceCapture,
   CartographyEvidenceExportResult,
-} from "../../shared/cartography-evidence.js";
-import type { AppSettings, RendererSettingsPatch } from "../../shared/contracts.js";
+} from "../../../shared/cartography-evidence.js";
+import type { AppSettings, RendererSettingsPatch } from "../../../shared/contracts.js";
 import type { CartographyMapKnowledge } from
-  "../../shared/cartography-map-knowledge.js";
+  "../../../shared/cartography-map-knowledge.js";
 import type {
   CompassFrameSpikeController,
   MissionMapFrameSpikeController,
   WorldMapFrameSpikeController,
   WorldMapFrameSpikeDiagnostic,
-} from "../../shared/cartography-spike.js";
-import { disposeCartographyResources } from "../cartography-lifecycle.js";
-import { readCartographyPlayerState } from "../../features/cartography/renderer/cartography-player-state.js";
-import { createCartographyContextReader } from "../../features/cartography/renderer/context-observer.js";
-import { createExplorationSpikeReader } from "../../features/cartography/renderer/exploration-observer.js";
+} from "../../../shared/cartography-spike.js";
+import { disposeCartographyResources } from "../../../renderer/cartography-lifecycle.js";
+import { readCartographyPlayerState } from "./cartography-player-state.js";
+import { createCartographyContextReader } from "./context-observer.js";
+import { createExplorationSpikeReader } from "./exploration-observer.js";
 import {
   createCompassFrameSpikeReader,
   createMissionMapFrameSpikeReader,
   createWorldMapFrameSpikeReader,
-} from "../../features/cartography/renderer/frame-observer.js";
+} from "./frame-observer.js";
 import { mountCartographyOverlay } from "./overlay.js";
-import { installCartographyReachabilityKernel } from "../../features/cartography/renderer/reachability-kernel.js";
-import { createWorldMapAnchorSpikeReader } from "../../features/cartography/renderer/world-map-anchor-observer.js";
+import { installCartographyReachabilityKernel } from "./reachability-kernel.js";
+import { createWorldMapAnchorSpikeReader } from "./world-map-anchor-observer.js";
 
 const unavailableCompass = Object.freeze({
   snapshot: () => null,

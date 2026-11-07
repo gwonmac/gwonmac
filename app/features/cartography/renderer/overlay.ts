@@ -2,15 +2,15 @@
  * Owns presentation of immutable Cartography models through independent surfaces.
  * Native observation and semantic classification never occur on animation frames.
  */
-import { disposeCartographyResources } from "../cartography-lifecycle.js";
-import { resolveCartographyPreset } from "../../shared/cartography-presets.js";
+import { disposeCartographyResources } from "../../../renderer/cartography-lifecycle.js";
+import { resolveCartographyPreset } from "../../../shared/cartography-presets.js";
 import type {
   CartographyEvidenceCapture,
   CartographyEvidenceExportResult,
-} from "../../shared/cartography-evidence.js";
-import type { AppSettings, RendererSettingsPatch } from "../../shared/contracts.js";
+} from "../../../shared/cartography-evidence.js";
+import type { AppSettings, RendererSettingsPatch } from "../../../shared/contracts.js";
 import type { CartographyMapKnowledge } from
-  "../../shared/cartography-map-knowledge.js";
+  "../../../shared/cartography-map-knowledge.js";
 import {
   bitsetHasCell,
   readCartographyState,
@@ -18,48 +18,48 @@ import {
   type CartographyModelSources,
   type CartographyPresentation,
   type CartographyState,
-} from "../../features/cartography/renderer/cartography-model.js";
+} from "./cartography-model.js";
 import {
   createCartographyGridLayer,
   type CartographyGridLayerSnapshot,
-} from "../../features/cartography/renderer/cartography-grid-layer.js";
+} from "./cartography-grid-layer.js";
 import {
   cartographyCellAtScreenPoint,
   projectCartographyGridToMissionMap,
   projectCartographyGridToWorldMap,
-} from "../../features/cartography/renderer/cartography-grid-projection.js";
-import { cartographyHoverRevealRadius } from "../../features/cartography/renderer/cartography-paint.js";
-import { projectMissionMapFrame, projectNativeFrame } from "../../features/cartography/renderer/frame-placement.js";
-import { createInverseMaskLayer } from "../../features/cartography/renderer/inverse-mask-layer.js";
-import { nativeMapTileProjection, nativeMapHoverProjection } from "../../features/cartography/renderer/native-map-tile.js";
-import type { createNativeCompassRangesLayer } from "../../features/cartography/renderer/native-compass-ranges-layer.js";
-import type { NativeMapGraphicsLayer } from "../../features/cartography/renderer/native-map-graphics-layer.js";
-import type { NativeCompassTerrainLayer } from "../../features/cartography/renderer/native-compass-terrain-layer.js";
+} from "./cartography-grid-projection.js";
+import { cartographyHoverRevealRadius } from "./cartography-paint.js";
+import { projectMissionMapFrame, projectNativeFrame } from "./frame-placement.js";
+import { createInverseMaskLayer } from "./inverse-mask-layer.js";
+import { nativeMapTileProjection, nativeMapHoverProjection } from "./native-map-tile.js";
+import type { createNativeCompassRangesLayer } from "./native-compass-ranges-layer.js";
+import type { NativeMapGraphicsLayer } from "./native-map-graphics-layer.js";
+import type { NativeCompassTerrainLayer } from "./native-compass-terrain-layer.js";
 import {
   projectMissionMapContentBox,
-} from "../../features/cartography/renderer/map-projections.js";
-import { captureCartographyEvidence } from "../../features/cartography/renderer/evidence-capture.js";
+} from "./map-projections.js";
+import { captureCartographyEvidence } from "./evidence-capture.js";
 import {
   createCartographyOverlayControls,
   type CartographyQaStatus,
-} from "../../features/cartography/renderer/overlay-controls.js";
+} from "./overlay-controls.js";
 import {
   createCompassRangeControls,
   visibleCompassRanges,
-} from "../../features/cartography/renderer/compass-range-controls.js";
-import type { CompassRangeId } from "../../shared/compass-ranges.js";
+} from "./compass-range-controls.js";
+import type { CompassRangeId } from "../../../shared/compass-ranges.js";
 import {
   createCompassRangeLayer,
   type CompassRangeLayerSnapshot,
-} from "../../features/cartography/renderer/compass-range-layer.js";
+} from "./compass-range-layer.js";
 import {
   createWalkableTerrainSurface,
   type WalkableTerrainSurface,
-} from "../../features/cartography/renderer/walkable-terrain-surface.js";
+} from "./walkable-terrain-surface.js";
 import {
   cartographyKnowledgeWordsFingerprint,
   mergeCartographyMapKnowledge,
-} from "../../features/cartography/renderer/map-knowledge.js";
+} from "./map-knowledge.js";
 
 const MODEL_POLL_MS = 200;
 

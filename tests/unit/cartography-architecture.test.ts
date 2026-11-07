@@ -8,11 +8,7 @@ import path from "node:path";
 import test from "node:test";
 
 const ROOT = process.cwd();
-// The Maps renderer: the two Core-loaded entries stay in app/renderer; the rest
-// lives in the feature folder.
-const ENTRIES = path.join(ROOT, "app/renderer/cartography-spike");
 const RENDERER = path.join(ROOT, "app/features/cartography/renderer");
-const DIRECTORIES = [ENTRIES, RENDERER];
 
 async function sourceFiles(directory: string): Promise<string[]> {
   const entries = await readdir(directory);
@@ -26,7 +22,7 @@ async function sourceFiles(directory: string): Promise<string[]> {
 }
 
 test("the sealed Rust kernel is the only native pathing graph reader", async () => {
-  const rendererFiles = (await Promise.all(DIRECTORIES.map(sourceFiles))).flat();
+  const rendererFiles = await sourceFiles(RENDERER);
   const renderer = (await Promise.all(rendererFiles.map((file) => readFile(file, "utf8"))))
     .join("\n");
   assert.doesNotMatch(renderer, /gwonmac_pathing_spike|readLargestGeometry|PathingMap/);
@@ -38,7 +34,7 @@ test("the sealed Rust kernel is the only native pathing graph reader", async () 
 });
 
 test("legacy lifecycle and generic visual-mask paths stay deleted", async () => {
-  const entries = new Set((await Promise.all(DIRECTORIES.map((directory) => readdir(directory)))).flat());
+  const entries = new Set(await readdir(RENDERER));
   for (const retired of [
     "pathing-observer.ts",
     "pathing-lifecycle.ts",
@@ -48,7 +44,7 @@ test("legacy lifecycle and generic visual-mask paths stay deleted", async () => 
 });
 
 test("one missing map surface cannot disable the other Cartography surfaces", async () => {
-  const installer = await readFile(path.join(ENTRIES, "index.ts"), "utf8");
+  const installer = await readFile(path.join(RENDERER, "index.ts"), "utf8");
   assert.doesNotMatch(
     installer,
     /compass\s*===\s*null[^;]+missionMap\s*===\s*null[^;]+worldMap\s*===\s*null/s,

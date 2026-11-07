@@ -12,7 +12,7 @@ import {
 import { describeCartographyQaStatus } from "../../app/features/cartography/renderer/overlay-controls.js";
 import {
   cartographyOverlayDisposition,
-} from "../../app/renderer/cartography-spike/overlay.js";
+} from "../../app/features/cartography/renderer/overlay.js";
 import type { CartographyState } from
   "../../app/features/cartography/renderer/cartography-model.js";
 
