@@ -49,7 +49,7 @@ import { resolveShortcuts, shortcutAccelerator, type ShortcutAction } from "../s
 import { windowRegistry } from "./window-registry.js";
 import type { ProfileId } from "../shared/multiple-accounts.js";
 
-const USER_GUIDE_URL = `${EXTERNAL_URLS.github}/blob/main/docs/user-guide.md`;
+const USER_GUIDE_URL = "https://www.gwonmac.com/docs";
 
 export interface ApplicationMenuActions {
   host: WindowHost;

@@ -96,8 +96,7 @@ export function templateFilesystem(): TemplateFileSystem | null {
  * carries no traversal guard, so the mount does not defend itself:
  * `FS.mkdirTree('app:/Templates/Skills/../../x')` succeeds today. Names arrive
  * sanitised, and this re-checks them anyway at the one place that turns a name
- * into a write — the rule that has already cost two wrong rounds in
- * internal/upstream/investigation-log.md.
+ * into a write — the rule that has already cost two wrong rounds.
  */
 function safeSegment(segment: string): boolean {
   return (

@@ -10,7 +10,7 @@
  * updates the client automatically. Recovering them by hand takes hours; this
  * recovers them in seconds and hands the result to the production transform for
  * validation. It removes the index-recovery work, not the semantic work — see
- * internal/upstream/recertify.md, which still owns re-measuring what the path
+ * docs/recertify.md, which still owns re-measuring what the path
  * helpers actually do.
  *
  * One bounded shared decoder locates direct calls and preserves each encoded
@@ -540,7 +540,7 @@ function analyzeTemplateSaveCandidateInternal(
           ? [
             `warning: ${canonical} possible canonically encoded call(s) to a`
             + ` bridged target. A repoint only fits in place over the padded`
-            + ` five-byte form — see internal/upstream/recertify.md`,
+            + ` five-byte form — see docs/recertify.md`,
           ]
           : []),
       ],

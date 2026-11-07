@@ -5,8 +5,8 @@
 // `normalize` that src/renderer/filesystem.ts installs onto FS rewrites
 // backslashes and carries no traversal guard, so `mkdirTree` will happily climb
 // out of the mount; the only thing standing between a hostile name and the rest
-// of IDBFS is the check in template-store.ts. Rounds 5 and 9 of
-// internal/upstream/investigation-log.md are what getting this wrong cost.
+// of IDBFS is the check in template-store.ts. Getting this wrong has cost two
+// rounds before.
 
 import assert from "node:assert/strict";
 import { test } from "node:test";
@@ -95,7 +95,7 @@ test("no hostile name reaches a path outside the two template directories", asyn
     const segments = relative.split("/");
     // An import always lands at the type root: the client's scan never
     // enumerates a subdirectory, so a template written into one is invisible in
-    // game (defect 8 in internal/upstream/upstream-defects.md).
+    // game.
     assert.equal(segments.length, 1, `an import must land at the type root: ${path}`);
     for (const segment of segments) {
       assert.notEqual(segment, "", path);

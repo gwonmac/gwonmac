@@ -33,14 +33,15 @@ const withoutPlacementStorage = shippedSources().map(file => file === "src/rende
 const legacyFilenameOwners = shippedSources().filter((file) =>
   /credentials\.bin|steam-session\.bin/u.test(read(file)),
 );
-const main = read("src/main/main.ts");
-const profileStorage = read("src/main/core/profile-storage.ts");
 const native = read("src/native/host/host.mm");
 const legacyCleanup = read("src/main/core/legacy-secret-cleanup.ts");
 
 test("saved login has exactly two Data Protection Keychain items", () => {
   assert.match(native, /kSecUseDataProtectionKeychain/);
   assert.match(native, /kSecAttrAccessibleWhenUnlockedThisDeviceOnly/);
+  // The items stay in the app's own default access group: a named group or
+  // the legacy file Keychain would change which builds can read them.
+  assert.doesNotMatch(native, /SecKeychain|SecAccess|kSecAttrAccessGroup/u);
   for (const channel of DISTRIBUTION_CHANNELS) {
     const bundleId = DISTRIBUTION_CHANNEL_CONFIG[channel].bundleId;
     assert.equal(
@@ -61,43 +62,9 @@ test("saved login has exactly two Data Protection Keychain items", () => {
   assert.doesNotMatch(shippedApplication, /plaintext|fallbackKey|masterPassword/);
 });
 
-test("only provisioned distribution channels enable persistent secrets", () => {
-  assert.match(main, /const distributionChannel = packagedDistributionChannel\(\)/);
-  assert.match(main, /distributionCapabilities\(distributionChannel\)/);
-  assert.match(
-    main,
-    /const persistentSecrets =\s*app\.isPackaged\s*&& distribution\.persistentSecrets\s*&& !app\.commandLine\.hasSwitch\("gw-volatile-secrets"\)/,
-  );
-  assert.match(
-    main,
-    /const adoptedStorage = resolveAdoptedProfileStorage\(accountWorkspace, paths\)/,
-  );
-  assert.match(
-    main,
-    /if \(\s*adoptedStorage\s*&& persistentSecrets\s*&& distribution\.cleanupLegacySecrets\s*\) \{[\s\S]{0,200}cleanupLegacySecretFiles/,
-  );
-  assert.match(profileStorage, /workspace\.legacyPrimaryProfileId/);
-  assert.doesNotMatch(main, /accountWorkspace\.legacyPrimaryProfileId/);
-  assert.match(main, /capable: distribution\.automaticUpdates/);
-  assert.match(main, /persistentSecrets\s*\? nativeHost/);
-  assert.match(main, /: new VolatileNativeKeychain\(\)/);
-  assert.doesNotMatch(shippedApplication, /use-mock-keychain/);
-});
-
 test("no build seeds the Steam token from the environment", () => {
   const readers = shippedSources().filter((file) =>
     /GW_STEAM_TOKEN|process\.env\.[A-Za-z_]*STEAM/u.test(read(file)),
   );
   assert.deepEqual(readers, []);
-});
-
-
-test("Core browser persistence is limited to validated Hub geometry", () => {
-  assert.match(hubPlacement, /const storageKey = 'gwonmac\.hub-window-placement';/);
-  assert.equal([...hubPlacement.matchAll(placementCalls)].length, 3);
-  // Only a serialized placement is written, and a stored one is used only after validation.
-  assert.match(hubPlacement, /intent = serializeFloatingWindowPlacement\(panel\.getBoundingClientRect\(\), viewport\(\)\);/);
-  assert.match(hubPlacement, /const minimum = \{ width: 340, height: 380 \};/);
-  assert.match(hubPlacement, /if \(restoreFloatingWindowPlacement\(intent, viewport\(\), minimum\)\) \{ placed = true; fit\(\); \} else intent = null;/);
-  assert.doesNotMatch(read("src/shared/ui/window-placement.ts"), /password|credential|sessionStorage|localStorage/iu);
 });

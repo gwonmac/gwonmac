@@ -348,8 +348,7 @@ test("answers whether a file exists without creating it", () => {
   assert.deepEqual(value.made, []);
 });
 
-// Every path shape the client is known to emit, from
-// internal/upstream/client-internals.md. Four of the ten rounds it took to fix
+// Every path shape the client is known to emit. Four of the ten rounds it took to fix
 // issue #5 were the same mistake: a fixture that used a cleaner input than the
 // client actually produces. `_wsplitpath` keeps the separator that ends a
 // directory, `_wmakepath` joins with `/`, and record names already start with

@@ -99,8 +99,7 @@ export function templateKind(code: string): TemplateKind {
  *
  * Windows-authored `.txt` commonly carries a UTF-8 BOM or is UTF-16, and a BOM
  * decoded as content lands inside the code — which the client answers with
- * "does not appear to be valid", the failure recorded in round 8 of
- * internal/upstream/investigation-log.md. UTF-16BE is byte-swapped here rather
+ * "does not appear to be valid", a failure seen in practice. UTF-16BE is byte-swapped here rather
  * than handed to `TextDecoder`, whose big-endian label needs an ICU build this
  * code cannot assume in both Node and Chromium.
  */
@@ -155,7 +154,7 @@ function trimName(value: string): string {
  *
  * The client's scan enumerates `Templates/<type>/*.txt` and nothing below it,
  * so a file this app places in a subfolder is written, is visible to an export,
- * and is never listed in game — see `internal/upstream/client-defects.md`.
+ * and is never listed in game.
  * Every import therefore lands in the type root, and a Windows collection's
  * `Warrior/Shockaxe.txt` arrives as `Warrior - Shockaxe`: the organisation
  * survives as a name, which is the only form the client will show.

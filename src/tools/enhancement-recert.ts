@@ -10,7 +10,7 @@
  * evidence and commits it.
  *
  * It recovers indices, not semantics. What the hooked functions mean still has
- * to be re-measured; `internal/upstream/recertify.md` owns that work.
+ * to be re-measured; `docs/recertify.md` owns that work.
  *
  * Argument parsing, printing and the exit code belong to `certification.ts`;
  * this module owns no command line.

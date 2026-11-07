@@ -2,9 +2,8 @@
 // for as long as cleanup runs the application is still on screen and the Cmd+Q
 // that started it has already been consumed. Two of the registered tasks are
 // bounded by nothing of their own — the renderer filesystem sync and the client
-// shutdown's in-flight game update — and the field record in
-// `internal/upstream/memory-exhaustion-log.md` says the sync fails on every
-// observed quit. This executes the real pass to prove a stuck task cannot hold
+// shutdown's in-flight game update — and field records show the sync fails on
+// every observed quit. This executes the real pass to prove a stuck task cannot hold
 // the process, and that a quit which ran out of time says so instead of
 // leaving the next launch to read the missing completion as a crash.
 //
