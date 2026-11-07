@@ -8,7 +8,7 @@ import { derivePartyCalleeGraph } from "./enhancement-party-callee-proof.js";
 import { playerSkillbarRoleCandidateCounts } from "./enhancement-player-skillbar-proof.js";
 import { dataEvidence } from "./wasm-data-evidence.js";
 import {
-  bodyMatchesRole,
+  functionMatchesRole,
   decodeFunctions,
   functionBody,
   functionBodySha256,
@@ -691,7 +691,7 @@ export function deriveTeamApply(
   if (constructorFunction === null || entries.some((entry) => entry === null)) return null;
   const packetConstructor = constructorFunction;
   const constructorBody = functionBody(module, packetConstructor);
-  if (!bodyMatchesRole(constructorBody, TEAM_PACKET_CONSTRUCTOR_ROLE)) return null;
+  if (!functionMatchesRole(module, packetConstructor, TEAM_PACKET_CONSTRUCTOR_ROLE)) return null;
   const decoded = suppliedDecoded ?? decodeFunctions(module, []);
   // The packet allocator is the shared constructor hub: among the exact
   // factory-wrapper family it is the uniquely most-referenced node, and every

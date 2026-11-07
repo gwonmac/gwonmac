@@ -6,7 +6,7 @@ import { verifyLayout } from "./semantic-proof.js";
 import { CLIENT_TICK_ROLE } from "./enhancement-client-hook-role.js";
 import { tickEvidence } from "./enhancement-tick-evidence.js";
 import {
-  bodyMatchesRole,
+  functionMatchesRole,
   enhancementProofContext,
   functionBody,
   functionBodySha256,
@@ -240,9 +240,8 @@ export function locateAutomaticCursor(
     for (const baseline of baselines) {
       const cursor = baseline.cursorEvent;
       if (!cursor) continue;
-      const tickBody = functionBody(module, tick.functionIndex);
       const exactFamily = tick.bodySha256 === baseline.hookBodySha256;
-      const semanticFamily = bodyMatchesRole(tickBody, CLIENT_TICK_ROLE);
+      const semanticFamily = functionMatchesRole(module, tick.functionIndex, CLIENT_TICK_ROLE);
       if (!exactFamily && !semanticFamily) continue;
       const cursorFunctions = module.functionTypeIndices.flatMap((_, index) => {
         const slots = relations.get(index) ?? [];
@@ -265,7 +264,7 @@ export function locateAutomaticCursor(
           && functionBodySha256(module, before) === cursor.tableNeighbourBodySha256[0]
           && (
             functionBodySha256(module, after) === cursor.tableNeighbourBodySha256[1]
-            || bodyMatchesRole(functionBody(module, after), CURSOR_TABLE_AFTER_ROLE)
+            || functionMatchesRole(module, after, CURSOR_TABLE_AFTER_ROLE)
           )
           ? [index]
           : [];

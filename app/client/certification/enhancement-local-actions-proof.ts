@@ -21,7 +21,7 @@ import {
 } from "./enhancement-party-team-proof.js";
 import { playerChatUiEvidence } from "./enhancement-structural-report.js";
 import {
-  bodyMatchesRole,
+  functionMatchesRole,
   enhancementProofContext,
   decodeFunctions,
   functionBody,
@@ -875,7 +875,7 @@ export function locateAutomaticLocalActions(
     const module = context.moduleView();
     const inputSha256 = createHash("sha256").update(input).digest("hex");
     const tick = tickEvidence(module).candidate;
-    if (!tick || !bodyMatchesRole(functionBody(module, tick.functionIndex), CLIENT_TICK_ROLE)) {
+    if (!tick || !functionMatchesRole(module, tick.functionIndex, CLIENT_TICK_ROLE)) {
       return null;
     }
     const locations: AutomaticLocalActionsLocation[] = [];

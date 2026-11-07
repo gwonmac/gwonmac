@@ -3,7 +3,7 @@
  * It owns their immutable-content and mutable-storage relationship ledgers.
  */
 import {
-  bodyMatchesRole,
+  functionMatchesRole,
   functionBody,
   semanticRole,
   soleValue,
@@ -252,18 +252,15 @@ export function derivePartyCalleeGraph(
     || Object.values(semantic).some((value) => value === null)) return null;
   const attributeDecode = observed.attributes[1];
   const partyFlagNotify = observed.partyFlagNotify;
-  if (!bodyMatchesRole(functionBody(module, attributeDecode), PARTY_CALLEE_ROLES.attributeDecode)
-    || !bodyMatchesRole(functionBody(module, partyFlagNotify), PARTY_CALLEE_ROLES.partyFlagNotify)) return null;
+  if (!functionMatchesRole(module, attributeDecode, PARTY_CALLEE_ROLES.attributeDecode)
+    || !functionMatchesRole(module, partyFlagNotify, PARTY_CALLEE_ROLES.partyFlagNotify)) return null;
 
   const resolver = values(module, semantic.unlockResolver!, PARTY_CALLEE_ROLES.unlockResolver);
   const apply = values(module, semantic.attributeApply!, PARTY_CALLEE_ROLES.attributeApply);
   const release = values(module, semantic.partyInfoRelease!, PARTY_CALLEE_ROLES.partyInfoRelease);
   const finish = values(module, semantic.attributeFinish!, PARTY_CALLEE_ROLES.attributeFinish);
   const finishStateFunction = soleValue(finish, "finish.notify");
-  if (!bodyMatchesRole(
-    functionBody(module, finishStateFunction),
-    PARTY_LEAF_ROLES.finishState,
-  )) return null;
+  if (!functionMatchesRole(module, finishStateFunction, PARTY_LEAF_ROLES.finishState)) return null;
   const begin = values(module, semantic.attributeBegin!, PARTY_CALLEE_ROLES.attributeBegin);
   const decode = values(module, attributeDecode, PARTY_CALLEE_ROLES.attributeDecode);
   const decodeCopy = soleValue(decode, "decode.copy");
@@ -305,7 +302,7 @@ export function derivePartyCalleeGraph(
     || soleValue(decode, "decode.first") !== exact.decodeFirst
     || soleValue(decode, "decode.second") !== decodeSecond
     || soleValue(decode, "decode.apply") !== semantic.attributeApply
-    || !bodyMatchesRole(functionBody(module, decodeCopy), PARTY_DECODE_COPY_ROLE)
+    || !functionMatchesRole(module, decodeCopy, PARTY_DECODE_COPY_ROLE)
     || soleValue(decode, "decode.release") !== semantic.partyInfoRelease
     || soleValue(commit, "commit.resolve") !== semantic.unlockResolver
     || soleValue(commit, "commit.first") !== semantic.first

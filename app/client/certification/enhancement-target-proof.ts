@@ -6,7 +6,7 @@ import { createHash } from "node:crypto";
 import { verifyLayout } from "./semantic-proof.js";
 import { CLIENT_TICK_ROLE } from "./enhancement-client-hook-role.js";
 import {
-  bodyMatchesRole,
+  functionMatchesRole,
   codeOperandOccurrences,
   enhancementProofContext,
   functionBody,
@@ -655,8 +655,7 @@ export function locateAutomaticPlayRegion(
     const module = context.moduleView();
     const tick = tickEvidence(module).candidate;
     if (!tick) return null;
-    const tickBody = functionBody(module, tick.functionIndex);
-    if (!bodyMatchesRole(tickBody, CLIENT_TICK_ROLE)) return null;
+    if (!functionMatchesRole(module, tick.functionIndex, CLIENT_TICK_ROLE)) return null;
     const playRegionLayout = derivePlayRegionLayout(module);
     if (!playRegionLayout) return null;
     const matches = baselines.flatMap((baseline): AutomaticPlayRegionLocation[] =>
@@ -749,8 +748,7 @@ export function locateAutomaticTarget(
     const module = context.moduleView();
     const tick = tickEvidence(module).candidate;
     if (!tick) return null;
-    const tickBody = functionBody(module, tick.functionIndex);
-    if (!bodyMatchesRole(tickBody, CLIENT_TICK_ROLE)) return null;
+    if (!functionMatchesRole(module, tick.functionIndex, CLIENT_TICK_ROLE)) return null;
     const observationLayout = deriveObservationLayout(module);
     if (!observationLayout) return null;
     const targetLayout = deriveTargetLayout(module);

@@ -58,6 +58,7 @@ import {
   runtimeReport,
 } from "./client-qualification.js";
 import { formatWatchReport } from "./watch-report.js";
+import { withIdentityRecorder } from "../client/certification/reviewed-facts.js";
 
 import { inspectWasmBytes } from "./wasm-inspection.js";
 
@@ -69,6 +70,8 @@ const USAGE =
   + "  verify [PATH/Gw.jspi.wasm]           run the exact runtime feature verifier\n"
   + "  qualify WASM JS OUTPUT_DIR           run the release battery on one exact client\n"
   + "  watch-report GENERATION.json         render the client-watch issue table\n"
+  + "  reviewed-identities [PATH/Gw.jspi.wasm]\n"
+  + "                                       list the relocation identities a reviewed client gives\n"
   + "  template [PATH/Gw.jspi.wasm] [--emit-ts] [--write] [--expect-certified]\n"
   + "                                       re-derive the template-save build entry\n"
   + "  transform INPUT.wasm OUTPUT.wasm     write the derived Enhancement module\n"
@@ -354,6 +357,33 @@ async function cartography(argv: readonly string[]): Promise<void> {
   }
 }
 
+/**
+ * Prints the identity table for a reviewed client's `reviewed-client-<id>.ts`:
+ * every reviewed literal that matched one of its bodies exactly in the runtime,
+ * double-click and Cartography proofs, with that body's relocation identity.
+ * Review the client first; the table only lets its exact facts survive a relink.
+ */
+async function reviewedIdentities(argv: readonly string[]): Promise<void> {
+  const [filename, ...extra] = positionalArguments(argv);
+  if (extra.length > 0) {
+    process.stderr.write(USAGE);
+    process.exitCode = 2;
+    return;
+  }
+  const official = new Uint8Array(await readFile(filename ?? installedClientArtifact()));
+  const table = new Map<string, Set<string>>();
+  withIdentityRecorder((literal, identity) => {
+    table.set(literal, (table.get(literal) ?? new Set()).add(identity));
+  }, () => {
+    const { officialSha256, predecessors } = runtimePredecessors(official);
+    doubleClickReport(officialSha256, predecessors);
+    cartographyReport(officialSha256, predecessors);
+  });
+  const entries = [...table].sort(([left], [right]) => left.localeCompare(right))
+    .map(([literal, identities]) => [literal, [...identities].sort()] as const);
+  process.stdout.write(`${JSON.stringify(Object.fromEntries(entries), null, 2)}\n`);
+}
+
 const COMMANDS = Object.freeze({
   inspect,
   doctor,
@@ -361,6 +391,7 @@ const COMMANDS = Object.freeze({
   verify,
   qualify,
   "watch-report": watchReport,
+  "reviewed-identities": reviewedIdentities,
   template,
   transform,
   "double-click": doubleClick,
