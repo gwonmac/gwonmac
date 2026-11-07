@@ -330,7 +330,7 @@ declare global {
     gwMissionMapFrame?: MissionMapFrameController;
     gwWorldMapFrame?: WorldMapFrameController;
     gwWorldMapAnchor?: WorldMapAnchorController;
-    /** Certified exploration bitmap dimensions and bounded bit reader; development only. */
+    /** Certified exploration bitmap dimensions and bounded bit reader, published while Maps is installed. */
     gwExploration?: ExplorationController;
     /** Unpackaged-development controller used to exercise Guild Wars' real gamepad UI. */
     gwVirtualGamepad?: VirtualGamepadController;
