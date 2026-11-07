@@ -18,7 +18,8 @@ import { mountHubView } from './embedded';
 function serialize(node: Node, depth = 0): string[] {
   const pad = '  '.repeat(depth);
   if (!(node instanceof Element)) return [];
-  const attributes = [...node.attributes].map(attribute => `${attribute.name}="${attribute.value}"`).sort();
+  // Vite serves imported images from the checkout's absolute path; keep the snapshot machine-independent.
+  const attributes = [...node.attributes].map(attribute => `${attribute.name}="${attribute.value.replace(/^.*\/@fs\/.*?\/app\//, 'app/')}"`).sort();
   if ((node instanceof HTMLInputElement || node instanceof HTMLSelectElement) && node.value) attributes.push(`.value="${node.value}"`);
   const lines = [`${pad}<${node.tagName.toLowerCase()}${attributes.length ? ` ${attributes.join(' ')}` : ''}>`];
   let text = '';
