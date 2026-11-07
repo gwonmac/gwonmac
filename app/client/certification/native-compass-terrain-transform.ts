@@ -6,7 +6,7 @@ import {
   concat, encodeCode, encodeIndexVector, encodeSection, parseCode, parseExports,
   parseIndexVector, sectionById, sleb, splitSections, uleb, vectorPayload, WASM_HEADER,
 } from "../../main/core/wasm-binary.js";
-import { encodeName } from "./cartography-transform-internals.js";
+import { call, encodeName, f32Const, f32Load, f32Store, globalGet, globalSet, i32Const, i32Load, i32Store, localGet, localSet, op } from "./wasm-emit.js";
 import { NATIVE_RENDER_REFERENCE_FUNCTIONS, nativeGraphicsBusy, nativeModelBusy,
   resolveNativeRenderBindings, type NativeRenderBindings } from "./native-render-reference.js";
 import { wasmEvidence } from "./wasm-evidence.js";
@@ -44,19 +44,8 @@ const CHECKED = [
   ...NATIVE_RENDER_REFERENCE_FUNCTIONS,
 ] as const;
 const SEGMENTS = 64;
-const op = (...bytes: number[]) => Uint8Array.of(...bytes);
-const i = (value: number) => concat(op(0x41), sleb(value));
-const l = (index: number) => concat(op(0x20), uleb(index));
-const s = (index: number) => concat(op(0x21), uleb(index));
-const call = (index: number) => concat(op(0x10), uleb(index));
-const f = (value: number) => {
-  const bytes = new Uint8Array(5); bytes[0] = 0x43;
-  new DataView(bytes.buffer).setFloat32(1, value, true); return bytes;
-};
-const load = (offset: number, float = false) => concat(op(float ? 0x2a : 0x28, 2), uleb(offset));
-const save = (offset: number, float = false) => concat(op(float ? 0x38 : 0x36, 2), uleb(offset));
-const stack = (index: number, bytes: number) => concat(op(0x23, 0), i(bytes), op(0x6b), s(index), l(index), op(0x24, 0));
-const unstack = (index: number, bytes: number) => concat(l(index), i(bytes), op(0x6a, 0x24, 0));
+const stack = (index: number, bytes: number) => concat(globalGet(0), i32Const(bytes), op(0x6b), localSet(index), localGet(index), globalSet(0));
+const unstack = (index: number, bytes: number) => concat(localGet(index), i32Const(bytes), op(0x6a), globalSet(0));
 
 export function appendNativeCompassTerrain(input: Uint8Array): Uint8Array {
   const evidence = wasmEvidence(input);
@@ -84,44 +73,44 @@ function appendCompassSurface(input: Uint8Array, screenSpace: boolean, bindings:
   const status = exported.find((entry) => entry.name === "gwonmac_cartography_context_status")?.index;
   if (epoch === undefined || status === undefined) return input;
   const base = globals.count;
-  const g = (index: number) => concat(op(0x23), uleb(base + index));
-  const put = (index: number) => concat(op(0x24), uleb(base + index));
+  const read = (index: number) => globalGet(base + index);
+  const put = (index: number) => globalSet(base + index);
   const first = module.functionImportCount + bodies.length;
   const hideIndex = first; const destroyIndex = first + 1; const initIndex = first + 2;
   const attachIndex = first + 3; const updateIndex = first + 4; const publishIndex = first + 5;
   const reapIndex = first + 6, ensureIndex = first + 7;
   // Private flags 20/21 retain retirement and one deferred index clear.
-  const increment = (index: number) => concat(g(index), i(1), op(0x6a), put(index));
-  const contextValid = () => concat(g(3), i(0), op(0x4a), g(3), op(0x23), uleb(epoch), op(0x46, 0x71), op(0x23), uleb(status), i(1), op(0x46, 0x71));
-  const finite = (value: Uint8Array, limit: number) => concat(value, op(0x8b), f(limit), op(0x5f));
-  const reap = concat(op(1, 1, 0x7f), g(20), op(0x45, 0x04, 0x40, 0x0f, 0x0b),
-    g(2), op(0x04, 0x40), nativeGraphicsBusy(0, bindings), op(0x04, 0x40, 0x0f, 0x0b),
-    nativeModelBusy(g(2), 0, bindings), op(0x04, 0x40, 0x0f, 0x0b),
-    g(2), call(bindings.functionIndex(748)), g(1), call(bindings.functionIndex(748)),
-    increment(8), op(0x0b), ...[1, 2, 20, 21].map((index) => concat(i(0), put(index))), op(0x0b));
+  const increment = (index: number) => concat(read(index), i32Const(1), op(0x6a), put(index));
+  const contextValid = () => concat(read(3), i32Const(0), op(0x4a), read(3), op(0x23), uleb(epoch), op(0x46, 0x71), op(0x23), uleb(status), i32Const(1), op(0x46, 0x71));
+  const finite = (value: Uint8Array, limit: number) => concat(value, op(0x8b), f32Const(limit), op(0x5f));
+  const reap = concat(op(1, 1, 0x7f), read(20), op(0x45, 0x04, 0x40, 0x0f, 0x0b),
+    read(2), op(0x04, 0x40), nativeGraphicsBusy(0, bindings), op(0x04, 0x40, 0x0f, 0x0b),
+    nativeModelBusy(read(2), 0, bindings), op(0x04, 0x40, 0x0f, 0x0b),
+    read(2), call(bindings.functionIndex(748)), read(1), call(bindings.functionIndex(748)),
+    increment(8), op(0x0b), ...[1, 2, 20, 21].map((index) => concat(i32Const(0), put(index))), op(0x0b));
   // Host withdrawal must not rewrite indices in a queue-held mesh. Native
   // update retries the hidden geometry after the render reference drains.
-  const hide = concat(op(1, 1, 0x7f), g(3), op(0x04, 0x40), call(bindings.functionIndex(6593)), i(1), put(21), op(0x0b), i(0), put(3), call(reapIndex),
-    g(21), op(0x45, 0x04, 0x40, 0x0f, 0x0b),
-    g(1), op(0x04, 0x40),
+  const hide = concat(op(1, 1, 0x7f), read(3), op(0x04, 0x40), call(bindings.functionIndex(6593)), i32Const(1), put(21), op(0x0b), i32Const(0), put(3), call(reapIndex),
+    read(21), op(0x45, 0x04, 0x40, 0x0f, 0x0b),
+    read(1), op(0x04, 0x40),
     nativeGraphicsBusy(0, bindings), op(0x04, 0x40, 0x0f, 0x0b),
-    nativeModelBusy(g(2), 0, bindings), op(0x04, 0x40, 0x0f, 0x0b),
-    g(1), i(0), call(bindings.functionIndex(1445)), op(0x1a), g(1), call(bindings.functionIndex(1448)), i(0), put(21), op(0x0b, 0x0b));
-  const destroy = concat(op(0), l(0), g(0), op(0x46), g(0), i(0), op(0x47, 0x71, 0x04, 0x40),
-    call(bindings.functionIndex(6593)), i(0), put(0), i(0), put(3), i(0), put(4), i(0), put(9), i(1), put(20),
+    nativeModelBusy(read(2), 0, bindings), op(0x04, 0x40, 0x0f, 0x0b),
+    read(1), i32Const(0), call(bindings.functionIndex(1445)), op(0x1a), read(1), call(bindings.functionIndex(1448)), i32Const(0), put(21), op(0x0b, 0x0b));
+  const destroy = concat(op(0), localGet(0), read(0), op(0x46), read(0), i32Const(0), op(0x47, 0x71, 0x04, 0x40),
+    call(bindings.functionIndex(6593)), i32Const(0), put(0), i32Const(0), put(3), i32Const(0), put(4), i32Const(0), put(9), i32Const(1), put(20),
     op(0x0b), call(reapIndex), op(0x0b));
   // Lazy creation avoids overwriting a pending pair when another Canvas opens.
   // Only a live native callback dereferences the current Canvas after a retry.
   const ensure = concat(op(1, 1, 0x7f), call(reapIndex),
-    g(20), g(2), op(0x72, 0x04, 0x40, 0x0f, 0x0b),
+    read(20), read(2), op(0x72, 0x04, 0x40, 0x0f, 0x0b),
     nativeGraphicsBusy(0, bindings), op(0x04, 0x40, 0x0f, 0x0b),
-    i(265), i(0), call(bindings.functionIndex(1444)), put(1), g(0), load(144), call(bindings.functionIndex(1556)), put(2),
-    g(2), i(0), g(1), call(bindings.functionIndex(1565)), g(2), i(0), call(bindings.functionIndex(1579)), increment(7), op(0x0b));
-  const init = concat(op(0), g(0), call(destroyIndex), l(0), put(0), call(ensureIndex), op(0x0b));
+    i32Const(265), i32Const(0), call(bindings.functionIndex(1444)), put(1), read(0), i32Load(144), call(bindings.functionIndex(1556)), put(2),
+    read(2), i32Const(0), read(1), call(bindings.functionIndex(1565)), read(2), i32Const(0), call(bindings.functionIndex(1579)), increment(7), op(0x0b));
+  const init = concat(op(0), read(0), call(destroyIndex), localGet(0), put(0), call(ensureIndex), op(0x0b));
   const attach = concat(op(1, 1, 0x7f),
-    l(0), g(0), op(0x46, 0x04, 0x40), call(ensureIndex), op(0x0b),
-    l(0), g(0), op(0x46), g(20), op(0x45, 0x71), g(2), i(0), op(0x47, 0x71, 0x04, 0x40), stack(2, 16),
-    l(2), g(2), save(0), l(1), i(1), l(2), i(4), call(bindings.functionIndex(6827)), unstack(2, 16), op(0x0b, 0x0b));
+    localGet(0), read(0), op(0x46, 0x04, 0x40), call(ensureIndex), op(0x0b),
+    localGet(0), read(0), op(0x46), read(20), op(0x45, 0x71), read(2), i32Const(0), op(0x47, 0x71, 0x04, 0x40), stack(2, 16),
+    localGet(2), read(2), i32Store(0), localGet(1), i32Const(1), localGet(2), i32Const(4), call(bindings.functionIndex(6827)), unstack(2, 16), op(0x0b, 0x0b));
 
   const vertexStores: Uint8Array[] = [];
   const points: Readonly<{ x: number; y: number; edge: boolean }>[] = [{x: 0, y: 0, edge: false}];
@@ -131,113 +120,113 @@ function appendCompassSurface(input: Uint8Array, screenSpace: boolean, bindings:
   }
   points.forEach((point, vertex) => {
     const offset = vertex * 24;
-    const radius = (dimension: number) => point.edge || vertex === 0 ? f(NATIVE_COMPASS_CLIP_RADIUS)
-      : concat(f(NATIVE_COMPASS_CLIP_RADIUS), f(1), l(dimension), op(0x95, 0x93));
+    const radius = (dimension: number) => point.edge || vertex === 0 ? f32Const(NATIVE_COMPASS_CLIP_RADIUS)
+      : concat(f32Const(NATIVE_COMPASS_CLIP_RADIUS), f32Const(1), localGet(dimension), op(0x95, 0x93));
     vertexStores.push(
-      f(0.5), f(point.x), radius(6), op(0x94, 0x92), s(12),
-      f(0.5), f(point.y), radius(7), op(0x94, 0x92), s(13),
+      f32Const(0.5), f32Const(point.x), radius(6), op(0x94, 0x92), localSet(12),
+      f32Const(0.5), f32Const(point.y), radius(7), op(0x94, 0x92), localSet(13),
       // Invert the Canvas's rotation for texture coordinates. The frame itself
       // applies the retained transform, so geometry remains Canvas-local.
-      l(9), l(12), f(0.5), op(0x93, 0x94), l(8), l(13), f(0.5), op(0x93, 0x94, 0x92), f(NATIVE_COMPASS_WORLD_SCALE), op(0x95), s(14),
-      l(9), l(13), f(0.5), op(0x93, 0x94), l(8), l(12), f(0.5), op(0x93, 0x94, 0x93), f(NATIVE_COMPASS_WORLD_SCALE), op(0x95), s(15),
-      l(4), l(6), l(12), op(0x94), save(offset, true),
-      l(4), l(7), l(13), op(0x94), save(offset + 4, true),
-      l(4), f(0), save(offset + 8, true),
-      l(4), i(point.edge ? 0x00ffffff : -1), save(offset + 12),
-      l(4), ...(screenSpace ? [l(12)] : [l(10), l(14), op(0x92), g(10), op(0x93), g(12), op(0x95)]), save(offset + 16, true),
-      l(4), ...(screenSpace ? [l(13)] : [g(11), l(11), l(15), op(0x92, 0x93), g(12), op(0x95)]), save(offset + 20, true));
+      localGet(9), localGet(12), f32Const(0.5), op(0x93, 0x94), localGet(8), localGet(13), f32Const(0.5), op(0x93, 0x94, 0x92), f32Const(NATIVE_COMPASS_WORLD_SCALE), op(0x95), localSet(14),
+      localGet(9), localGet(13), f32Const(0.5), op(0x93, 0x94), localGet(8), localGet(12), f32Const(0.5), op(0x93, 0x94, 0x93), f32Const(NATIVE_COMPASS_WORLD_SCALE), op(0x95), localSet(15),
+      localGet(4), localGet(6), localGet(12), op(0x94), f32Store(offset),
+      localGet(4), localGet(7), localGet(13), op(0x94), f32Store(offset + 4),
+      localGet(4), f32Const(0), f32Store(offset + 8),
+      localGet(4), i32Const(point.edge ? 0x00ffffff : -1), i32Store(offset + 12),
+      localGet(4), ...(screenSpace ? [localGet(12)] : [localGet(10), localGet(14), op(0x92), read(10), op(0x93), read(12), op(0x95)]), f32Store(offset + 16),
+      localGet(4), ...(screenSpace ? [localGet(13)] : [read(11), localGet(11), localGet(15), op(0x92, 0x93), read(12), op(0x95)]), f32Store(offset + 20));
   });
   const indexStores: Uint8Array[] = [];
   for (let n = 0; n < SEGMENTS; n += 1) {
     const a = 1 + n; const b = 1 + (n + 1) % SEGMENTS;
     // Clockwise winding matches the native Canvas triangles.
     [0, b, a, a, b, a + SEGMENTS, a + SEGMENTS, b, b + SEGMENTS].forEach((vertex, at) => {
-      indexStores.push(concat(l(5), i(vertex), op(0x3b, 1), uleb((n * 9 + at) * 2)));
+      indexStores.push(concat(localGet(5), i32Const(vertex), op(0x3b, 1), uleb((n * 9 + at) * 2)));
     });
   }
   const update = concat(op(2, 3, 0x7f, 10, 0x7d),
-    call(reapIndex), l(0), g(0), op(0x47, 0x04, 0x40, 0x0f, 0x0b), call(ensureIndex),
-    g(20), g(2), op(0x45, 0x72, 0x04, 0x40, 0x0f, 0x0b),
-    l(0), load(180, true), l(0), load(172, true), op(0x93), s(6),
-    l(0), load(184, true), l(0), load(176, true), op(0x93), s(7),
-    l(2), load(0, true), s(8), l(2), load(4, true), s(9),
-    l(1), load(0, true), s(10), l(1), load(4, true), s(11),
+    call(reapIndex), localGet(0), read(0), op(0x47, 0x04, 0x40, 0x0f, 0x0b), call(ensureIndex),
+    read(20), read(2), op(0x45, 0x72, 0x04, 0x40, 0x0f, 0x0b),
+    localGet(0), f32Load(180), localGet(0), f32Load(172), op(0x93), localSet(6),
+    localGet(0), f32Load(184), localGet(0), f32Load(176), op(0x93), localSet(7),
+    localGet(2), f32Load(0), localSet(8), localGet(2), f32Load(4), localSet(9),
+    localGet(1), f32Load(0), localSet(10), localGet(1), f32Load(4), localSet(11),
     // An unchanged native camera and rectangle need no buffer rewrite. The
     // serial invalidates UVs after a tile upload or indices after withdrawal.
-    contextValid(), g(4), g(19), op(0x46, 0x71),
-    l(6), g(15), op(0x5b, 0x71), l(7), g(16), op(0x5b, 0x71),
-    ...(screenSpace ? [] : [l(10), g(13), op(0x5b, 0x71), l(11), g(14), op(0x5b, 0x71),
-      l(8), g(17), op(0x5b, 0x71), l(9), g(18), op(0x5b, 0x71)]),
+    contextValid(), read(4), read(19), op(0x46, 0x71),
+    localGet(6), read(15), op(0x5b, 0x71), localGet(7), read(16), op(0x5b, 0x71),
+    ...(screenSpace ? [] : [localGet(10), read(13), op(0x5b, 0x71), localGet(11), read(14), op(0x5b, 0x71),
+      localGet(8), read(17), op(0x5b, 0x71), localGet(9), read(18), op(0x5b, 0x71)]),
     op(0x04, 0x40, 0x0f, 0x0b),
-    l(8), put(17), l(9), put(18),
-    l(10), put(13), l(11), put(14), l(6), put(15), l(7), put(16),
+    localGet(8), put(17), localGet(9), put(18),
+    localGet(10), put(13), localGet(11), put(14), localGet(6), put(15), localGet(7), put(16),
     // The host sizes its first terrain tile from the camera and rectangle
     // above, so they are published before any context check. Without a
     // published area the hidden mesh stays withdrawn; while the renderer holds
     // the model, geometry waits and the cleared serial forces the next rewrite.
     contextValid(), op(0x45, 0x04, 0x40), call(hideIndex), op(0x0f, 0x0b),
-    nativeGraphicsBusy(3, bindings), nativeModelBusy(g(2), 3, bindings), op(0x72, 0x04, 0x40), i(-1), put(19), op(0x0f, 0x0b),
-    contextValid(), finite(l(6), 16384), op(0x71), l(6), f(2), op(0x5e, 0x71),
-    finite(l(7), 16384), op(0x71), l(7), f(2), op(0x5e, 0x71),
-    finite(l(10), 1000000), op(0x71), finite(l(11), 1000000), op(0x71),
-    l(8), l(8), op(0x94), l(9), l(9), op(0x94, 0x92), f(1), op(0x93, 0x8b), f(0.02), op(0x5f, 0x71),
+    nativeGraphicsBusy(3, bindings), nativeModelBusy(read(2), 3, bindings), op(0x72, 0x04, 0x40), i32Const(-1), put(19), op(0x0f, 0x0b),
+    contextValid(), finite(localGet(6), 16384), op(0x71), localGet(6), f32Const(2), op(0x5e, 0x71),
+    finite(localGet(7), 16384), op(0x71), localGet(7), f32Const(2), op(0x5e, 0x71),
+    finite(localGet(10), 1000000), op(0x71), finite(localGet(11), 1000000), op(0x71),
+    localGet(8), localGet(8), op(0x94), localGet(9), localGet(9), op(0x94, 0x92), f32Const(1), op(0x93, 0x8b), f32Const(0.02), op(0x5f, 0x71),
     ...(screenSpace ? [] : [
-    l(10), g(10), f(4500), op(0x92, 0x60, 0x71), l(10), g(10), g(12), op(0x92), f(4500), op(0x93, 0x5f, 0x71),
-    l(11), g(11), f(4500), op(0x93, 0x5f, 0x71), l(11), g(11), g(12), op(0x93), f(4500), op(0x92, 0x60, 0x71),
+    localGet(10), read(10), f32Const(4500), op(0x92, 0x60, 0x71), localGet(10), read(10), read(12), op(0x92), f32Const(4500), op(0x93, 0x5f, 0x71),
+    localGet(11), read(11), f32Const(4500), op(0x93, 0x5f, 0x71), localGet(11), read(11), read(12), op(0x93), f32Const(4500), op(0x92, 0x60, 0x71),
     ]),
     op(0x45, 0x04, 0x40), call(hideIndex), op(0x0f, 0x0b),
-    stack(3, 32), g(1), i(points.length), call(bindings.functionIndex(1446)), s(4), g(1), i(SEGMENTS * 9), call(bindings.functionIndex(1445)), s(5),
+    stack(3, 32), read(1), i32Const(points.length), call(bindings.functionIndex(1446)), localSet(4), read(1), i32Const(SEGMENTS * 9), call(bindings.functionIndex(1445)), localSet(5),
     ...vertexStores, ...indexStores,
-    ...[0, 4, 8].map((offset) => concat(l(3), f(0), save(offset, true))),
-    ...[12, 16, 20].map((offset) => concat(l(3), l(6), l(7), op(0x97), save(offset, true))),
-    g(1), l(3), l(3), i(12), op(0x6a), call(bindings.functionIndex(1449)), g(1), call(bindings.functionIndex(1448)),
-    g(4), put(19), increment(5), unstack(3, 32), op(0x0b));
+    ...[0, 4, 8].map((offset) => concat(localGet(3), f32Const(0), f32Store(offset))),
+    ...[12, 16, 20].map((offset) => concat(localGet(3), localGet(6), localGet(7), op(0x97), f32Store(offset))),
+    read(1), localGet(3), localGet(3), i32Const(12), op(0x6a), call(bindings.functionIndex(1449)), read(1), call(bindings.functionIndex(1448)),
+    read(4), put(19), increment(5), unstack(3, 32), op(0x0b));
 
   // A copied bitmap is the only write capability. Validate its complete region
   // before reading pixels; GrTex copies the input with flags & 1 == 0.
-  const memoryEnd = (bytes: Uint8Array) => concat(l(0), op(0xad), bytes, op(0xad, 0x7c), op(0x3f, 0, 0xad), op(0x42), sleb(65536), op(0x7e, 0x58));
+  const memoryEnd = (bytes: Uint8Array) => concat(localGet(0), op(0xad), bytes, op(0xad, 0x7c), op(0x3f, 0, 0xad), op(0x42), sleb(65536), op(0x7e, 0x58));
   // The texture swap below asserts while the renderer holds the model; this
   // runs from the host's frame, so report busy before hiding or allocating.
   const publish = concat(op(1, 6, 0x7f), call(reapIndex),
-    g(20), op(0x04, 0x40), i(NATIVE_PUBLISH_BUSY), op(0x0f, 0x0b),
-    nativeGraphicsBusy(7, bindings), op(0x04, 0x40), i(NATIVE_PUBLISH_BUSY), op(0x0f, 0x0b),
-    g(2), op(0x04, 0x40), nativeModelBusy(g(2), 7, bindings), op(0x04, 0x40), i(NATIVE_PUBLISH_BUSY), op(0x0f, 0x0b, 0x0b),
+    read(20), op(0x04, 0x40), i32Const(NATIVE_PUBLISH_BUSY), op(0x0f, 0x0b),
+    nativeGraphicsBusy(7, bindings), op(0x04, 0x40), i32Const(NATIVE_PUBLISH_BUSY), op(0x0f, 0x0b),
+    read(2), op(0x04, 0x40), nativeModelBusy(read(2), 7, bindings), op(0x04, 0x40), i32Const(NATIVE_PUBLISH_BUSY), op(0x0f, 0x0b, 0x0b),
     call(hideIndex),
-    l(0), i(0), op(0x4b), l(0), i(3), op(0x71, 0x45, 0x71),
-    l(1), i(NATIVE_COMPASS_TERRAIN_HEADER_BYTES), op(0x4f, 0x71), memoryEnd(i(NATIVE_COMPASS_TERRAIN_HEADER_BYTES)), op(0x71),
-    op(0x45, 0x04, 0x40), i(0), op(0x0f, 0x0b),
-    l(0), load(12), s(5), l(0), load(8), s(6),
-    l(0), load(0), i(NATIVE_COMPASS_TERRAIN_MAGIC), op(0x46), l(0), load(4), l(1), op(0x46, 0x71),
-    l(5), i(64), op(0x4f, 0x71), l(5), i(NATIVE_COMPASS_TERRAIN_MAX_SIZE), op(0x4d, 0x71),
-    l(5), l(5), i(1), op(0x6b, 0x71, 0x45, 0x71),
-    l(1), l(5), l(5), op(0x6c), i(4), op(0x6c), i(NATIVE_COMPASS_TERRAIN_HEADER_BYTES), op(0x6a, 0x46, 0x71),
-    memoryEnd(l(1)), op(0x71), l(6), i(0), op(0x4a, 0x71), l(6), op(0x23), uleb(epoch), op(0x46, 0x71),
-    op(0x23), uleb(status), i(1), op(0x46, 0x71), g(2), i(0), op(0x47, 0x71),
-    finite(concat(l(0), load(16, true)), 1000000), op(0x71), finite(concat(l(0), load(20, true)), 1000000), op(0x71),
-    l(0), load(24, true), f(NATIVE_COMPASS_TERRAIN_WORLD_SPAN), op(0x5b, 0x71),
-    l(0), load(28), i(0), op(0x4a, 0x71),
-    op(0x45, 0x04, 0x40), i(0), op(0x0f, 0x0b), stack(4, 32),
-    l(4), l(0), i(NATIVE_COMPASS_TERRAIN_HEADER_BYTES), op(0x6a), save(0),
-    l(4), l(5), save(8), l(4), l(5), save(12),
-    l(4), i(0), l(4), i(8), op(0x6a), i(1), i(112), call(bindings.functionIndex(2249)), s(2),
-    l(4), l(2), save(16), l(4), i(screenSpace ? 4 : 7), save(20), l(4), i(482), save(24),
-    i(1), l(4), i(16), op(0x6a), l(4), i(20), op(0x6a), l(4), i(24), op(0x6a), i(0), i(0), i(33555424), i(screenSpace ? 4 : 11), call(bindings.functionIndex(3137)), s(3),
-    g(2), i(0), l(3), call(bindings.functionIndex(1569)), l(3), call(bindings.functionIndex(748)), l(2), call(bindings.functionIndex(748)),
-    l(0), load(16, true), put(10), l(0), load(20, true), put(11), l(0), load(24, true), put(12),
-    l(5), put(9), l(0), load(28), put(4), l(6), put(3), increment(6), unstack(4, 32), i(1), op(0x0b));
+    localGet(0), i32Const(0), op(0x4b), localGet(0), i32Const(3), op(0x71, 0x45, 0x71),
+    localGet(1), i32Const(NATIVE_COMPASS_TERRAIN_HEADER_BYTES), op(0x4f, 0x71), memoryEnd(i32Const(NATIVE_COMPASS_TERRAIN_HEADER_BYTES)), op(0x71),
+    op(0x45, 0x04, 0x40), i32Const(0), op(0x0f, 0x0b),
+    localGet(0), i32Load(12), localSet(5), localGet(0), i32Load(8), localSet(6),
+    localGet(0), i32Load(0), i32Const(NATIVE_COMPASS_TERRAIN_MAGIC), op(0x46), localGet(0), i32Load(4), localGet(1), op(0x46, 0x71),
+    localGet(5), i32Const(64), op(0x4f, 0x71), localGet(5), i32Const(NATIVE_COMPASS_TERRAIN_MAX_SIZE), op(0x4d, 0x71),
+    localGet(5), localGet(5), i32Const(1), op(0x6b, 0x71, 0x45, 0x71),
+    localGet(1), localGet(5), localGet(5), op(0x6c), i32Const(4), op(0x6c), i32Const(NATIVE_COMPASS_TERRAIN_HEADER_BYTES), op(0x6a, 0x46, 0x71),
+    memoryEnd(localGet(1)), op(0x71), localGet(6), i32Const(0), op(0x4a, 0x71), localGet(6), op(0x23), uleb(epoch), op(0x46, 0x71),
+    op(0x23), uleb(status), i32Const(1), op(0x46, 0x71), read(2), i32Const(0), op(0x47, 0x71),
+    finite(concat(localGet(0), f32Load(16)), 1000000), op(0x71), finite(concat(localGet(0), f32Load(20)), 1000000), op(0x71),
+    localGet(0), f32Load(24), f32Const(NATIVE_COMPASS_TERRAIN_WORLD_SPAN), op(0x5b, 0x71),
+    localGet(0), i32Load(28), i32Const(0), op(0x4a, 0x71),
+    op(0x45, 0x04, 0x40), i32Const(0), op(0x0f, 0x0b), stack(4, 32),
+    localGet(4), localGet(0), i32Const(NATIVE_COMPASS_TERRAIN_HEADER_BYTES), op(0x6a), i32Store(0),
+    localGet(4), localGet(5), i32Store(8), localGet(4), localGet(5), i32Store(12),
+    localGet(4), i32Const(0), localGet(4), i32Const(8), op(0x6a), i32Const(1), i32Const(112), call(bindings.functionIndex(2249)), localSet(2),
+    localGet(4), localGet(2), i32Store(16), localGet(4), i32Const(screenSpace ? 4 : 7), i32Store(20), localGet(4), i32Const(482), i32Store(24),
+    i32Const(1), localGet(4), i32Const(16), op(0x6a), localGet(4), i32Const(20), op(0x6a), localGet(4), i32Const(24), op(0x6a), i32Const(0), i32Const(0), i32Const(33555424), i32Const(screenSpace ? 4 : 11), call(bindings.functionIndex(3137)), localSet(3),
+    read(2), i32Const(0), localGet(3), call(bindings.functionIndex(1569)), localGet(3), call(bindings.functionIndex(748)), localGet(2), call(bindings.functionIndex(748)),
+    localGet(0), f32Load(16), put(10), localGet(0), f32Load(20), put(11), localGet(0), f32Load(24), put(12),
+    localGet(5), put(9), localGet(0), i32Load(28), put(4), localGet(6), put(3), increment(6), unstack(4, 32), i32Const(1), op(0x0b));
 
   for (const [index, offset, bytes] of [
-    [14112, 530, concat(l(0), call(initIndex))],
-    [14116, 3, concat(l(0), call(destroyIndex))],
-    [14126, 3, concat(l(0), l(1), call(attachIndex))],
-    [14137, 17, concat(l(0), l(1), l(2), call(updateIndex))],
+    [14112, 530, concat(localGet(0), call(initIndex))],
+    [14116, 3, concat(localGet(0), call(destroyIndex))],
+    [14126, 3, concat(localGet(0), localGet(1), call(attachIndex))],
+    [14137, 17, concat(localGet(0), localGet(1), localGet(2), call(updateIndex))],
   ] as const) {
     const local = bindings.functionIndex(index) - module.functionImportCount; const body = bodies[local]!;
     let insertion = offset;
     if (screenSpace && index === 14126) {
       const terrainPublish = exported.find((entry) => entry.name === "gwonmac_compass_terrain_publish")?.index;
       if (terrainPublish === undefined) throw new Error("missing native terrain attachment");
-      const earlier = concat(l(0), l(1), call(terrainPublish - 2));
+      const earlier = concat(localGet(0), localGet(1), call(terrainPublish - 2));
       if (!earlier.every((byte, at) => body[offset + at] === byte)) throw new Error("native Compass attachment changed");
       insertion += earlier.length;
     }
@@ -253,7 +242,7 @@ function appendCompassSurface(input: Uint8Array, screenSpace: boolean, bindings:
   return concat(WASM_HEADER, ...sections.map((section) => encodeSection({id: section.id,
     body: section.id === 1 ? concat(uleb(signatures.count + extraTypes.length), signatures.entries, ...extraTypes)
       : section.id === 3 ? encodeIndexVector([...types, ...[0, 1, 1, 2, 3, 4, 0, 0].map((type) => signatures.count + type)])
-      : section.id === 6 ? concat(uleb(base + globalTypes.length), globals.entries, ...globalTypes.map((type) => concat(op(type, 1), type === 0x7f ? i(0) : f(0), op(0x0b))))
+      : section.id === 6 ? concat(uleb(base + globalTypes.length), globals.entries, ...globalTypes.map((type) => concat(op(type, 1), type === 0x7f ? i32Const(0) : f32Const(0), op(0x0b))))
       : section.id === 7 ? concat(uleb(exportVector.count + scalarExports.length + 2), exportVector.entries,
         encodeName(`${prefix}_publish`), op(0), uleb(publishIndex),
         encodeName(`${prefix}_hide`), op(0), uleb(hideIndex),

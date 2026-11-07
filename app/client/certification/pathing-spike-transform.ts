@@ -42,13 +42,13 @@ import { appendNativeMapGraphics } from "./native-map-graphics-transform.js";
 import { appendNativeCompassTerrain } from "./native-compass-terrain-transform.js";
 import { functionBodySha256, wasmEvidence } from "./wasm-evidence.js";
 import { worldMapDisplayStateAddress } from "./world-map-visibility-proof.js";
+import { encodeName } from "./wasm-emit.js";
 import {
   CARTOGRAPHY_MEMORY_LAYOUTS,
   EXPLORATION_CERTIFICATE,
   WORLD_MAP_ANCHOR_CERTIFICATE,
   cartographyContextObserver,
   compassMapRenderWrapper,
-  encodeName,
   encodeTypes,
   explorationObserver,
   explorationReadWord,

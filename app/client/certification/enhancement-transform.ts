@@ -84,6 +84,7 @@ import {
   parseEnhancementTable,
 } from "./enhancement-table.js";
 import { buildEnhancementManifestSection } from "./enhancement-transform-manifest.js";
+import { encodeName } from "./wasm-emit.js";
 export { ENHANCEMENT_MANIFEST_SECTION } from "./enhancement-transform-manifest.js";
 
 declare const WebAssembly: {
@@ -100,11 +101,6 @@ const COMMAND_ARGS = COMMAND_PARAMS - 1;
 
 function fail(message: string): never {
   throw new Error(`enhancement transform: ${message}`);
-}
-
-function encodeName(value: string): Uint8Array {
-  const bytes = new TextEncoder().encode(value);
-  return concat(uleb(bytes.byteLength), bytes);
 }
 
 function assertSignature(

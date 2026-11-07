@@ -11,6 +11,10 @@ import {
   type FunctionType,
 } from "../../main/core/wasm-binary.js";
 import type { CartographyLayoutId } from "../../shared/cartography-spike.js";
+import { call, f32Const, f32Load, globalGet, globalSet, i32Const, i32Load, localGet } from "./wasm-emit.js";
+
+// The Cartography tests import the shared name codec through this module.
+export { encodeName } from "./wasm-emit.js";
 
 const FRAME_LAYOUT = Object.freeze({
   frameBytes: 0x1c8,
@@ -269,31 +273,6 @@ export function encodeTypes(types: readonly FunctionType[]): Uint8Array {
   );
 }
 
-export function encodeName(value: string): Uint8Array {
-  const bytes = new TextEncoder().encode(value);
-  return concat(uleb(bytes.length), bytes);
-}
-
-function call(functionIndex: number): Uint8Array {
-  return concat(Uint8Array.of(0x10), uleb(functionIndex));
-}
-
-function local(index: number): Uint8Array {
-  return concat(Uint8Array.of(0x20), uleb(index));
-}
-
-function globalGet(index: number): Uint8Array {
-  return concat(Uint8Array.of(0x23), uleb(index));
-}
-
-function globalSet(index: number): Uint8Array {
-  return concat(Uint8Array.of(0x24), uleb(index));
-}
-
-function i32(value: number): Uint8Array {
-  return concat(Uint8Array.of(0x41), sleb(value));
-}
-
 export type CartographyContextGlobals = Readonly<{
   status: number;
   sequence: number;
@@ -403,21 +382,6 @@ type FrameCertificate = Readonly<{
   labelHash: number;
 }>;
 
-function i32Load(offset = 0): Uint8Array {
-  return concat(Uint8Array.of(0x28, 0x02), uleb(offset));
-}
-
-function f32Load(offset: number): Uint8Array {
-  return concat(Uint8Array.of(0x2a, 0x02), uleb(offset));
-}
-
-function f32(value: number): Uint8Array {
-  const bytes = new Uint8Array(5);
-  bytes[0] = 0x43;
-  new DataView(bytes.buffer).setFloat32(1, value, true);
-  return bytes;
-}
-
 /**
  * Publish the one certified identity for the currently loaded map. The two
  * private globals make loading transitions edge-triggered: an unavailable
@@ -428,57 +392,57 @@ export function cartographyContextObserver(
   certificate: CartographyContextCertificate,
 ): Uint8Array {
   const finish = (status: number) => concat(
-    i32(status), globalSet(globals.status),
-    globalGet(globals.sequence), i32(1), Uint8Array.of(0x6a),
+    i32Const(status), globalSet(globals.status),
+    globalGet(globals.sequence), i32Const(1), Uint8Array.of(0x6a),
     globalSet(globals.sequence),
     Uint8Array.of(0x0f),
   );
   const withdraw = (status: number) => concat(
     globalGet(globals.wasReady), Uint8Array.of(0x04, 0x40),
-    globalGet(globals.areaEpoch), i32(1), Uint8Array.of(0x6a),
+    globalGet(globals.areaEpoch), i32Const(1), Uint8Array.of(0x6a),
     globalSet(globals.areaEpoch),
-    i32(0), globalSet(globals.wasReady),
+    i32Const(0), globalSet(globals.wasReady),
     Uint8Array.of(0x0b),
-    i32(0), globalSet(globals.mapId),
+    i32Const(0), globalSet(globals.mapId),
     finish(status),
   );
   const requirePointer = (pointerLocal: number, bytes: number, status: number) => concat(
-    local(pointerLocal), Uint8Array.of(0x45, 0x04, 0x40),
+    localGet(pointerLocal), Uint8Array.of(0x45, 0x04, 0x40),
     withdraw(status), Uint8Array.of(0x0b),
-    local(pointerLocal), local(4), i32(bytes), Uint8Array.of(0x6b, 0x4b, 0x04, 0x40),
+    localGet(pointerLocal), localGet(4), i32Const(bytes), Uint8Array.of(0x6b, 0x4b, 0x04, 0x40),
     withdraw(status), Uint8Array.of(0x0b),
   );
   return concat(
     // contexts, game context, map context, map id, memory bytes.
     Uint8Array.of(0x01, 0x05, 0x7f),
     // Odd sequence means publication is in progress.
-    globalGet(globals.sequence), i32(1), Uint8Array.of(0x6a),
+    globalGet(globals.sequence), i32Const(1), Uint8Array.of(0x6a),
     globalSet(globals.sequence),
-    Uint8Array.of(0x3f, 0x00), i32(65_536), Uint8Array.of(0x6c, 0x21), uleb(4),
-    i32(certificate.contextRoot), i32Load(), Uint8Array.of(0x21), uleb(0),
+    Uint8Array.of(0x3f, 0x00), i32Const(65_536), Uint8Array.of(0x6c, 0x21), uleb(4),
+    i32Const(certificate.contextRoot), i32Load(), Uint8Array.of(0x21), uleb(0),
     requirePointer(0, certificate.gameContextSlot * 4 + 4, 2),
-    local(0), i32Load(certificate.gameContextSlot * 4),
+    localGet(0), i32Load(certificate.gameContextSlot * 4),
     Uint8Array.of(0x21), uleb(1),
     requirePointer(1, certificate.mapContext + 4, 3),
-    local(1), i32Load(certificate.mapContext), Uint8Array.of(0x21), uleb(2),
+    localGet(1), i32Load(certificate.mapContext), Uint8Array.of(0x21), uleb(2),
     requirePointer(2, certificate.mapId + 4, 4),
-    local(2), i32Load(certificate.mapId), Uint8Array.of(0x22), uleb(3),
+    localGet(2), i32Load(certificate.mapId), Uint8Array.of(0x22), uleb(3),
     Uint8Array.of(0x45, 0x04, 0x40), withdraw(5), Uint8Array.of(0x0b),
-    local(3), i32(2_000), Uint8Array.of(0x4b, 0x04, 0x40),
+    localGet(3), i32Const(2_000), Uint8Array.of(0x4b, 0x04, 0x40),
     withdraw(5), Uint8Array.of(0x0b),
     // Entering ready state or changing map creates one new area epoch.
     globalGet(globals.wasReady), Uint8Array.of(0x45),
-    local(3), globalGet(globals.lastMapId), Uint8Array.of(0x47, 0x72, 0x04, 0x40),
-    globalGet(globals.areaEpoch), i32(1), Uint8Array.of(0x6a),
+    localGet(3), globalGet(globals.lastMapId), Uint8Array.of(0x47, 0x72, 0x04, 0x40),
+    globalGet(globals.areaEpoch), i32Const(1), Uint8Array.of(0x6a),
     globalSet(globals.areaEpoch),
     Uint8Array.of(0x0b),
-    local(3), globalSet(globals.lastMapId),
-    local(3), globalSet(globals.mapId),
-    i32(certificate.layoutId), globalSet(globals.layoutId),
-    i32(1), globalSet(globals.wasReady),
+    localGet(3), globalSet(globals.lastMapId),
+    localGet(3), globalSet(globals.mapId),
+    i32Const(certificate.layoutId), globalSet(globals.layoutId),
+    i32Const(1), globalSet(globals.wasReady),
     // Even sequence completes the seqlock publication.
-    i32(1), globalSet(globals.status),
-    globalGet(globals.sequence), i32(1), Uint8Array.of(0x6a),
+    i32Const(1), globalSet(globals.status),
+    globalGet(globals.sequence), i32Const(1), Uint8Array.of(0x6a),
     globalSet(globals.sequence),
     Uint8Array.of(0x0b),
   );
@@ -536,64 +500,64 @@ export function nativeFrameObserver(
   readyGuardGlobal?: number,
 ): Uint8Array {
   const refuse = (status: number) => concat(
-    i32(status), globalSet(globals.status), Uint8Array.of(0x0f),
+    i32Const(status), globalSet(globals.status), Uint8Array.of(0x0f),
   );
   const outsideMemory = (pointerLocal: number, bytes: Uint8Array) => concat(
-    local(6), Uint8Array.of(0x45, 0x45),
-    local(pointerLocal), local(6), bytes, Uint8Array.of(0x6b, 0x4b, 0x71),
+    localGet(6), Uint8Array.of(0x45, 0x45),
+    localGet(pointerLocal), localGet(6), bytes, Uint8Array.of(0x6b, 0x4b, 0x71),
   );
   return concat(
     // count, array, index, frame/state, matches, matched frame, memory bytes.
     Uint8Array.of(0x01, 0x07, 0x7f),
-    Uint8Array.of(0x3f, 0x00), i32(65_536), Uint8Array.of(0x6c, 0x21), uleb(6),
-    i32(certificate.frameCount), i32Load(), Uint8Array.of(0x22), uleb(0),
+    Uint8Array.of(0x3f, 0x00), i32Const(65_536), Uint8Array.of(0x6c, 0x21), uleb(6),
+    i32Const(certificate.frameCount), i32Load(), Uint8Array.of(0x22), uleb(0),
     // While status is not ready, frameId carries only the bounded diagnostic count.
-    local(0), globalSet(globals.frameId),
+    localGet(0), globalSet(globals.frameId),
     Uint8Array.of(0x45, 0x04, 0x40), refuse(2), Uint8Array.of(0x0b),
-    local(0), i32(16_384), Uint8Array.of(0x4b, 0x04, 0x40), refuse(3), Uint8Array.of(0x0b),
-    i32(certificate.frameArray), i32Load(), Uint8Array.of(0x22), uleb(1),
+    localGet(0), i32Const(16_384), Uint8Array.of(0x4b, 0x04, 0x40), refuse(3), Uint8Array.of(0x0b),
+    i32Const(certificate.frameArray), i32Load(), Uint8Array.of(0x22), uleb(1),
     Uint8Array.of(0x45, 0x04, 0x40), refuse(4), Uint8Array.of(0x0b),
-    outsideMemory(1, concat(local(0), i32(4), Uint8Array.of(0x6c))),
+    outsideMemory(1, concat(localGet(0), i32Const(4), Uint8Array.of(0x6c))),
     Uint8Array.of(0x04, 0x40), refuse(5), Uint8Array.of(0x0b),
-    i32(0), Uint8Array.of(0x21), uleb(2),
-    i32(0), Uint8Array.of(0x21), uleb(4),
-    i32(0), Uint8Array.of(0x21), uleb(5),
+    i32Const(0), Uint8Array.of(0x21), uleb(2),
+    i32Const(0), Uint8Array.of(0x21), uleb(4),
+    i32Const(0), Uint8Array.of(0x21), uleb(5),
     Uint8Array.of(0x02, 0x40, 0x03, 0x40),
-      local(2), local(0), Uint8Array.of(0x4f, 0x0d), uleb(1),
-      local(1), local(2), i32(4), Uint8Array.of(0x6c, 0x6a), i32Load(),
+      localGet(2), localGet(0), Uint8Array.of(0x4f, 0x0d), uleb(1),
+      localGet(1), localGet(2), i32Const(4), Uint8Array.of(0x6c, 0x6a), i32Load(),
       Uint8Array.of(0x22), uleb(3), Uint8Array.of(0x04, 0x40),
-        outsideMemory(3, i32(certificate.frameBytes)),
+        outsideMemory(3, i32Const(certificate.frameBytes)),
         Uint8Array.of(0x45, 0x04, 0x40),
-          local(3), i32Load(certificate.frameId), local(2), Uint8Array.of(0x46, 0x04, 0x40),
-            local(3), i32Load(certificate.frameHashId),
-            i32(certificate.labelHash), Uint8Array.of(0x46, 0x04, 0x40),
-              local(4), i32(1), Uint8Array.of(0x6a, 0x21), uleb(4),
-              local(3), Uint8Array.of(0x21), uleb(5),
+          localGet(3), i32Load(certificate.frameId), localGet(2), Uint8Array.of(0x46, 0x04, 0x40),
+            localGet(3), i32Load(certificate.frameHashId),
+            i32Const(certificate.labelHash), Uint8Array.of(0x46, 0x04, 0x40),
+              localGet(4), i32Const(1), Uint8Array.of(0x6a, 0x21), uleb(4),
+              localGet(3), Uint8Array.of(0x21), uleb(5),
             Uint8Array.of(0x0b),
           Uint8Array.of(0x0b),
         Uint8Array.of(0x0b),
       Uint8Array.of(0x0b),
-      local(2), i32(1), Uint8Array.of(0x6a, 0x21), uleb(2),
+      localGet(2), i32Const(1), Uint8Array.of(0x6a, 0x21), uleb(2),
       Uint8Array.of(0x0c), uleb(0),
     Uint8Array.of(0x0b, 0x0b),
-    local(4), i32(1), Uint8Array.of(0x47, 0x04, 0x40), refuse(6), Uint8Array.of(0x0b),
-    local(5), Uint8Array.of(0x45, 0x04, 0x40), refuse(6), Uint8Array.of(0x0b),
-    local(5), i32Load(certificate.frameId), globalSet(globals.frameId),
-    local(5), i32Load(certificate.frameState), Uint8Array.of(0x22), uleb(3),
-    i32(4), Uint8Array.of(0x71, 0x45, 0x45),
-    local(3), i32(0x208), Uint8Array.of(0x71, 0x45, 0x71), globalSet(globals.visible),
-    local(5), f32Load(certificate.frameViewportWidth), globalSet(globals.viewportWidth),
-    local(5), f32Load(certificate.frameViewportHeight), globalSet(globals.viewportHeight),
-    local(5), f32Load(certificate.frameScreenLeft), globalSet(globals.left),
-    local(5), f32Load(certificate.frameScreenBottom), globalSet(globals.bottom),
-    local(5), f32Load(certificate.frameScreenRight), globalSet(globals.right),
-    local(5), f32Load(certificate.frameScreenTop), globalSet(globals.top),
+    localGet(4), i32Const(1), Uint8Array.of(0x47, 0x04, 0x40), refuse(6), Uint8Array.of(0x0b),
+    localGet(5), Uint8Array.of(0x45, 0x04, 0x40), refuse(6), Uint8Array.of(0x0b),
+    localGet(5), i32Load(certificate.frameId), globalSet(globals.frameId),
+    localGet(5), i32Load(certificate.frameState), Uint8Array.of(0x22), uleb(3),
+    i32Const(4), Uint8Array.of(0x71, 0x45, 0x45),
+    localGet(3), i32Const(0x208), Uint8Array.of(0x71, 0x45, 0x71), globalSet(globals.visible),
+    localGet(5), f32Load(certificate.frameViewportWidth), globalSet(globals.viewportWidth),
+    localGet(5), f32Load(certificate.frameViewportHeight), globalSet(globals.viewportHeight),
+    localGet(5), f32Load(certificate.frameScreenLeft), globalSet(globals.left),
+    localGet(5), f32Load(certificate.frameScreenBottom), globalSet(globals.bottom),
+    localGet(5), f32Load(certificate.frameScreenRight), globalSet(globals.right),
+    localGet(5), f32Load(certificate.frameScreenTop), globalSet(globals.top),
     ...(readyGuardGlobal === undefined ? [] : [
       globalGet(readyGuardGlobal), Uint8Array.of(0x45, 0x04, 0x40),
       refuse(7), Uint8Array.of(0x0b),
     ]),
     globalGet(pathingGeneration), globalSet(globals.generation),
-    i32(1), globalSet(globals.status),
+    i32Const(1), globalSet(globals.status),
     Uint8Array.of(0x0b),
   );
 }
@@ -602,10 +566,10 @@ export function nativeFrameObserver(
 export function compassMapRenderWrapper(render: number, globals: CompassGlobals): Uint8Array {
   return concat(
     Uint8Array.of(0x00),
-    local(0), local(1), local(2), call(render),
-    local(2), f32Load(COMPASS_CERTIFICATE.directionX), globalSet(globals.compassDirectionX),
-    local(2), f32Load(COMPASS_CERTIFICATE.directionY), globalSet(globals.compassDirectionY),
-    globalGet(globals.cameraSequence), i32(1), Uint8Array.of(0x6a),
+    localGet(0), localGet(1), localGet(2), call(render),
+    localGet(2), f32Load(COMPASS_CERTIFICATE.directionX), globalSet(globals.compassDirectionX),
+    localGet(2), f32Load(COMPASS_CERTIFICATE.directionY), globalSet(globals.compassDirectionY),
+    globalGet(globals.cameraSequence), i32Const(1), Uint8Array.of(0x6a),
     globalSet(globals.cameraSequence),
     Uint8Array.of(0x0b),
   );
@@ -619,57 +583,57 @@ export function missionMapEventWrapper(
   gameplayContextFunction = Number(MISSION_MAP_CERTIFICATE.gameplayContextFunction),
 ): Uint8Array {
   const refuse = (status: number) => concat(
-    i32(status), globalSet(globals.status), Uint8Array.of(0x0f),
+    i32Const(status), globalSet(globals.status), Uint8Array.of(0x0f),
   );
   const requirePointer = (pointerLocal: number, bytes: number, status: number) => concat(
-    local(pointerLocal), Uint8Array.of(0x45, 0x04, 0x40),
+    localGet(pointerLocal), Uint8Array.of(0x45, 0x04, 0x40),
     refuse(status), Uint8Array.of(0x0b),
-    local(pointerLocal), local(3), i32(bytes), Uint8Array.of(0x6b, 0x4b, 0x04, 0x40),
+    localGet(pointerLocal), localGet(3), i32Const(bytes), Uint8Array.of(0x6b, 0x4b, 0x04, 0x40),
     refuse(status), Uint8Array.of(0x0b),
   );
   return concat(
     // locals 3..4 are pointers/memory size; 5..7 are zoom and pan.
     Uint8Array.of(0x02, 0x02, 0x7f, 0x03, 0x7d),
-    local(0), local(1), local(2), call(dispatcher),
-    Uint8Array.of(0x3f, 0x00), i32(65_536), Uint8Array.of(0x6c, 0x21), uleb(3),
+    localGet(0), localGet(1), localGet(2), call(dispatcher),
+    Uint8Array.of(0x3f, 0x00), i32Const(65_536), Uint8Array.of(0x6c, 0x21), uleb(3),
     requirePointer(0, MISSION_MAP_CERTIFICATE.ownerWindow + 4, 2),
-    local(0), i32Load(MISSION_MAP_CERTIFICATE.ownerWindow),
+    localGet(0), i32Load(MISSION_MAP_CERTIFICATE.ownerWindow),
     Uint8Array.of(0x21), uleb(4),
     requirePointer(4, MISSION_MAP_CERTIFICATE.ownerMap + 4, 3),
-    local(4), i32Load(MISSION_MAP_CERTIFICATE.ownerMap), Uint8Array.of(0x21), uleb(4),
+    localGet(4), i32Load(MISSION_MAP_CERTIFICATE.ownerMap), Uint8Array.of(0x21), uleb(4),
     requirePointer(4, MISSION_MAP_CERTIFICATE.missionMapState + 4, 4),
-    local(4), f32Load(MISSION_MAP_CERTIFICATE.drawableWidth),
+    localGet(4), f32Load(MISSION_MAP_CERTIFICATE.drawableWidth),
     globalSet(globals.drawableWidth),
-    local(4), f32Load(MISSION_MAP_CERTIFICATE.drawableHeight),
+    localGet(4), f32Load(MISSION_MAP_CERTIFICATE.drawableHeight),
     globalSet(globals.drawableHeight),
-    local(4), i32Load(MISSION_MAP_CERTIFICATE.missionMapState),
+    localGet(4), i32Load(MISSION_MAP_CERTIFICATE.missionMapState),
     Uint8Array.of(0x21), uleb(4),
     requirePointer(4, MISSION_MAP_CERTIFICATE.panY + 4, 5),
-    local(4), f32Load(MISSION_MAP_CERTIFICATE.playerMapX),
+    localGet(4), f32Load(MISSION_MAP_CERTIFICATE.playerMapX),
     globalSet(globals.playerMapX),
-    local(4), f32Load(MISSION_MAP_CERTIFICATE.playerMapY),
+    localGet(4), f32Load(MISSION_MAP_CERTIFICATE.playerMapY),
     globalSet(globals.playerMapY),
-    local(4), f32Load(MISSION_MAP_CERTIFICATE.nativeMapWidth),
+    localGet(4), f32Load(MISSION_MAP_CERTIFICATE.nativeMapWidth),
     globalSet(globals.nativeMapWidth),
-    local(4), f32Load(MISSION_MAP_CERTIFICATE.nativeMapHeight),
+    localGet(4), f32Load(MISSION_MAP_CERTIFICATE.nativeMapHeight),
     globalSet(globals.nativeMapHeight),
     call(gameplayContextFunction), Uint8Array.of(0x21), uleb(0),
     requirePointer(0, MISSION_MAP_CERTIFICATE.zoom + 4, 6),
-    local(0), f32Load(MISSION_MAP_CERTIFICATE.zoom), Uint8Array.of(0x22), uleb(5),
-    f32(1), Uint8Array.of(0x60),
-    local(5), f32(3.5), Uint8Array.of(0x5f, 0x71, 0x45, 0x04, 0x40),
+    localGet(0), f32Load(MISSION_MAP_CERTIFICATE.zoom), Uint8Array.of(0x22), uleb(5),
+    f32Const(1), Uint8Array.of(0x60),
+    localGet(5), f32Const(3.5), Uint8Array.of(0x5f, 0x71, 0x45, 0x04, 0x40),
     refuse(7), Uint8Array.of(0x0b),
-    local(4), f32Load(MISSION_MAP_CERTIFICATE.panX), Uint8Array.of(0x22), uleb(6),
-    Uint8Array.of(0x8b), f32(10_000_000), Uint8Array.of(0x5f),
-    local(4), f32Load(MISSION_MAP_CERTIFICATE.panY), Uint8Array.of(0x22), uleb(7),
-    Uint8Array.of(0x8b), f32(10_000_000), Uint8Array.of(0x5f, 0x71, 0x45, 0x04, 0x40),
+    localGet(4), f32Load(MISSION_MAP_CERTIFICATE.panX), Uint8Array.of(0x22), uleb(6),
+    Uint8Array.of(0x8b), f32Const(10_000_000), Uint8Array.of(0x5f),
+    localGet(4), f32Load(MISSION_MAP_CERTIFICATE.panY), Uint8Array.of(0x22), uleb(7),
+    Uint8Array.of(0x8b), f32Const(10_000_000), Uint8Array.of(0x5f, 0x71, 0x45, 0x04, 0x40),
     refuse(8), Uint8Array.of(0x0b),
-    local(5), globalSet(globals.zoom),
-    local(6), globalSet(globals.panX),
-    local(7), globalSet(globals.panY),
+    localGet(5), globalSet(globals.zoom),
+    localGet(6), globalSet(globals.panX),
+    localGet(7), globalSet(globals.panY),
     globalGet(pathingGeneration), globalSet(globals.generation),
-    globalGet(globals.sequence), i32(1), Uint8Array.of(0x6a), globalSet(globals.sequence),
-    i32(1), globalSet(globals.status),
+    globalGet(globals.sequence), i32Const(1), Uint8Array.of(0x6a), globalSet(globals.sequence),
+    i32Const(1), globalSet(globals.status),
     Uint8Array.of(0x0b),
   );
 }
@@ -682,9 +646,9 @@ export function worldMapVisibilityObserver(
   return concat(
     Uint8Array.of(0x00),
     globalGet(globals.visible), Uint8Array.of(0x04, 0x40),
-      i32(stateAddress), i32Load(), i32(0x80000), Uint8Array.of(0x71, 0x45, 0x04, 0x40),
-        i32(0), globalSet(globals.visible),
-        globalGet(globals.sequence), i32(1), Uint8Array.of(0x6a), globalSet(globals.sequence),
+      i32Const(stateAddress), i32Load(), i32Const(0x80000), Uint8Array.of(0x71, 0x45, 0x04, 0x40),
+        i32Const(0), globalSet(globals.visible),
+        globalGet(globals.sequence), i32Const(1), Uint8Array.of(0x6a), globalSet(globals.sequence),
       Uint8Array.of(0x0b),
     Uint8Array.of(0x0b, 0x0b),
   );
@@ -703,65 +667,65 @@ export function worldMapEventWrapper(
   // the last certified frame with a partial or unrelated event.
   const refuse = () => Uint8Array.of(0x0f);
   const requirePointer = (pointerLocal: number, bytes: Uint8Array) => concat(
-    local(pointerLocal), Uint8Array.of(0x45, 0x04, 0x40),
+    localGet(pointerLocal), Uint8Array.of(0x45, 0x04, 0x40),
     refuse(), Uint8Array.of(0x0b),
-    local(pointerLocal), local(7), bytes, Uint8Array.of(0x6b, 0x4b, 0x04, 0x40),
+    localGet(pointerLocal), localGet(7), bytes, Uint8Array.of(0x6b, 0x4b, 0x04, 0x40),
     refuse(), Uint8Array.of(0x0b),
   );
   const finite = (valueLocal: number) => concat(
-    local(valueLocal), Uint8Array.of(0x8b), f32(1_000_000),
+    localGet(valueLocal), Uint8Array.of(0x8b), f32Const(1_000_000),
     Uint8Array.of(0x5f, 0x45, 0x04, 0x40), refuse(), Uint8Array.of(0x0b),
   );
   return concat(
     // locals 3..7: owner window, context, frame id/index, frame, memory bytes.
     // locals 8..12: zoom and viewport bounds.
     Uint8Array.of(0x02, 0x05, 0x7f, 0x05, 0x7d),
-    local(0), local(1), local(2), call(dispatcher),
-    Uint8Array.of(0x3f, 0x00), i32(65_536), Uint8Array.of(0x6c, 0x21), uleb(7),
-    requirePointer(0, i32(certificate.ownerWindow + 4)),
-    local(0), i32Load(certificate.ownerWindow), Uint8Array.of(0x21), uleb(3),
-    requirePointer(3, i32(certificate.ownerMap + 4)),
-    local(3), i32Load(certificate.ownerMap), Uint8Array.of(0x21), uleb(4),
-    requirePointer(4, i32(certificate.contextBytes)),
-    local(4), i32Load(certificate.frameId), Uint8Array.of(0x21), uleb(5),
-    local(5),
-    i32(certificate.frameCount), i32Load(), Uint8Array.of(0x4f, 0x04, 0x40),
+    localGet(0), localGet(1), localGet(2), call(dispatcher),
+    Uint8Array.of(0x3f, 0x00), i32Const(65_536), Uint8Array.of(0x6c, 0x21), uleb(7),
+    requirePointer(0, i32Const(certificate.ownerWindow + 4)),
+    localGet(0), i32Load(certificate.ownerWindow), Uint8Array.of(0x21), uleb(3),
+    requirePointer(3, i32Const(certificate.ownerMap + 4)),
+    localGet(3), i32Load(certificate.ownerMap), Uint8Array.of(0x21), uleb(4),
+    requirePointer(4, i32Const(certificate.contextBytes)),
+    localGet(4), i32Load(certificate.frameId), Uint8Array.of(0x21), uleb(5),
+    localGet(5),
+    i32Const(certificate.frameCount), i32Load(), Uint8Array.of(0x4f, 0x04, 0x40),
     refuse(), Uint8Array.of(0x0b),
-    i32(certificate.frameArray), i32Load(), Uint8Array.of(0x21), uleb(6),
-    requirePointer(6, concat(local(5), i32(4), Uint8Array.of(0x6c))),
-    local(6), local(5), i32(4), Uint8Array.of(0x6c, 0x6a), i32Load(),
+    i32Const(certificate.frameArray), i32Load(), Uint8Array.of(0x21), uleb(6),
+    requirePointer(6, concat(localGet(5), i32Const(4), Uint8Array.of(0x6c))),
+    localGet(6), localGet(5), i32Const(4), Uint8Array.of(0x6c, 0x6a), i32Load(),
     Uint8Array.of(0x21), uleb(6),
-    requirePointer(6, i32(certificate.frameBytes)),
-    local(4), i32Load(certificate.continent), Uint8Array.of(0x22), uleb(3),
-    i32(5), Uint8Array.of(0x4b, 0x04, 0x40), refuse(), Uint8Array.of(0x0b),
-    local(4), f32Load(certificate.zoom), Uint8Array.of(0x21), uleb(8),
-    local(4), f32Load(certificate.topLeftX), Uint8Array.of(0x21), uleb(9),
-    local(4), f32Load(certificate.topLeftY), Uint8Array.of(0x21), uleb(10),
-    local(4), f32Load(certificate.bottomRightX), Uint8Array.of(0x21), uleb(11),
-    local(4), f32Load(certificate.bottomRightY), Uint8Array.of(0x21), uleb(12),
+    requirePointer(6, i32Const(certificate.frameBytes)),
+    localGet(4), i32Load(certificate.continent), Uint8Array.of(0x22), uleb(3),
+    i32Const(5), Uint8Array.of(0x4b, 0x04, 0x40), refuse(), Uint8Array.of(0x0b),
+    localGet(4), f32Load(certificate.zoom), Uint8Array.of(0x21), uleb(8),
+    localGet(4), f32Load(certificate.topLeftX), Uint8Array.of(0x21), uleb(9),
+    localGet(4), f32Load(certificate.topLeftY), Uint8Array.of(0x21), uleb(10),
+    localGet(4), f32Load(certificate.bottomRightX), Uint8Array.of(0x21), uleb(11),
+    localGet(4), f32Load(certificate.bottomRightY), Uint8Array.of(0x21), uleb(12),
     finite(8), finite(9), finite(10), finite(11), finite(12),
-    local(11), local(9), Uint8Array.of(0x5e, 0x45, 0x04, 0x40),
+    localGet(11), localGet(9), Uint8Array.of(0x5e, 0x45, 0x04, 0x40),
     refuse(), Uint8Array.of(0x0b),
-    local(12), local(10), Uint8Array.of(0x5e, 0x45, 0x04, 0x40),
+    localGet(12), localGet(10), Uint8Array.of(0x5e, 0x45, 0x04, 0x40),
     refuse(), Uint8Array.of(0x0b),
-    local(6), i32Load(certificate.frameState), i32(0x08),
+    localGet(6), i32Load(certificate.frameState), i32Const(0x08),
     Uint8Array.of(0x71, 0x45), globalSet(globals.visible),
-    local(6), f32Load(certificate.frameViewportWidth), globalSet(globals.viewportWidth),
-    local(6), f32Load(certificate.frameViewportHeight), globalSet(globals.viewportHeight),
-    local(6), f32Load(certificate.frameScreenLeft), globalSet(globals.left),
-    local(6), f32Load(certificate.frameScreenBottom), globalSet(globals.bottom),
-    local(6), f32Load(certificate.frameScreenRight), globalSet(globals.right),
-    local(6), f32Load(certificate.frameScreenTop), globalSet(globals.top),
-    local(5), globalSet(globals.frameId),
-    local(3), globalSet(globals.continent),
-    local(8), globalSet(globals.zoom),
-    local(9), globalSet(globals.topLeftX),
-    local(10), globalSet(globals.topLeftY),
-    local(11), globalSet(globals.bottomRightX),
-    local(12), globalSet(globals.bottomRightY),
+    localGet(6), f32Load(certificate.frameViewportWidth), globalSet(globals.viewportWidth),
+    localGet(6), f32Load(certificate.frameViewportHeight), globalSet(globals.viewportHeight),
+    localGet(6), f32Load(certificate.frameScreenLeft), globalSet(globals.left),
+    localGet(6), f32Load(certificate.frameScreenBottom), globalSet(globals.bottom),
+    localGet(6), f32Load(certificate.frameScreenRight), globalSet(globals.right),
+    localGet(6), f32Load(certificate.frameScreenTop), globalSet(globals.top),
+    localGet(5), globalSet(globals.frameId),
+    localGet(3), globalSet(globals.continent),
+    localGet(8), globalSet(globals.zoom),
+    localGet(9), globalSet(globals.topLeftX),
+    localGet(10), globalSet(globals.topLeftY),
+    localGet(11), globalSet(globals.bottomRightX),
+    localGet(12), globalSet(globals.bottomRightY),
     globalGet(areaEpoch), globalSet(globals.generation),
-    globalGet(globals.sequence), i32(1), Uint8Array.of(0x6a), globalSet(globals.sequence),
-    i32(1), globalSet(globals.status),
+    globalGet(globals.sequence), i32Const(1), Uint8Array.of(0x6a), globalSet(globals.sequence),
+    i32Const(1), globalSet(globals.status),
     Uint8Array.of(0x0b),
   );
 }
@@ -777,21 +741,21 @@ export function worldMapAnchorObserver(
   certificate: WorldMapAnchorCertificate,
 ): Uint8Array {
   const refuse = (status: number) => concat(
-    i32(status), globalSet(globals.status), Uint8Array.of(0x0f),
+    i32Const(status), globalSet(globals.status), Uint8Array.of(0x0f),
   );
   const requirePointer = (pointerLocal: number, bytes: number, status: number) => concat(
-    local(pointerLocal), Uint8Array.of(0x45, 0x04, 0x40),
+    localGet(pointerLocal), Uint8Array.of(0x45, 0x04, 0x40),
     refuse(status), Uint8Array.of(0x0b),
-    local(pointerLocal), local(3), i32(bytes), Uint8Array.of(0x6b, 0x4b, 0x04, 0x40),
+    localGet(pointerLocal), localGet(3), i32Const(bytes), Uint8Array.of(0x6b, 0x4b, 0x04, 0x40),
     refuse(status), Uint8Array.of(0x0b),
   );
   const writeAnchors = (xOffset: number, yOffset: number) => concat(
-    local(2), i32Load(xOffset), Uint8Array.of(0xb3),
-    local(0), f32Load(certificate.mapStartX), Uint8Array.of(0x8b),
-    f32(96), Uint8Array.of(0x95, 0x92, 0x21), uleb(4),
-    local(2), i32Load(yOffset), Uint8Array.of(0xb3),
-    local(0), f32Load(certificate.mapEndY), Uint8Array.of(0x8b),
-    f32(96), Uint8Array.of(0x95, 0x92, 0x21), uleb(5),
+    localGet(2), i32Load(xOffset), Uint8Array.of(0xb3),
+    localGet(0), f32Load(certificate.mapStartX), Uint8Array.of(0x8b),
+    f32Const(96), Uint8Array.of(0x95, 0x92, 0x21), uleb(4),
+    localGet(2), i32Load(yOffset), Uint8Array.of(0xb3),
+    localGet(0), f32Load(certificate.mapEndY), Uint8Array.of(0x8b),
+    f32Const(96), Uint8Array.of(0x95, 0x92, 0x21), uleb(5),
   );
   const writeMapInfo = (
     startX: number,
@@ -799,41 +763,41 @@ export function worldMapAnchorObserver(
     endX: number,
     endY: number,
   ) => concat(
-    local(2), i32Load(certificate.continent), globalSet(globals.continent),
-    local(2), i32Load(startX), Uint8Array.of(0xb3, 0x22), uleb(6),
+    localGet(2), i32Load(certificate.continent), globalSet(globals.continent),
+    localGet(2), i32Load(startX), Uint8Array.of(0xb3, 0x22), uleb(6),
     globalSet(globals.mapMinX),
-    local(2), i32Load(startY), Uint8Array.of(0xb3, 0x22), uleb(7),
+    localGet(2), i32Load(startY), Uint8Array.of(0xb3, 0x22), uleb(7),
     globalSet(globals.mapMinY),
-    local(2), i32Load(endX), Uint8Array.of(0xb3, 0x22), uleb(8),
+    localGet(2), i32Load(endX), Uint8Array.of(0xb3, 0x22), uleb(8),
     globalSet(globals.mapMaxX),
-    local(2), i32Load(endY), Uint8Array.of(0xb3, 0x22), uleb(9),
+    localGet(2), i32Load(endY), Uint8Array.of(0xb3, 0x22), uleb(9),
     globalSet(globals.mapMaxY),
     writeAnchors(startX, startY),
   );
   return concat(
     // MapContext, map id, AreaInfo, memory bytes; anchors and map bounds.
     Uint8Array.of(0x02, 0x04, 0x7f, 0x06, 0x7d),
-    i32(0), globalSet(globals.status),
-    Uint8Array.of(0x3f, 0x00), i32(65_536), Uint8Array.of(0x6c, 0x21), uleb(3),
-    i32(certificate.contextRoot), i32Load(),
+    i32Const(0), globalSet(globals.status),
+    Uint8Array.of(0x3f, 0x00), i32Const(65_536), Uint8Array.of(0x6c, 0x21), uleb(3),
+    i32Const(certificate.contextRoot), i32Load(),
     Uint8Array.of(0x21), uleb(0),
     requirePointer(0, certificate.gameContextSlot * 4 + 4, 2),
-    local(0), i32Load(certificate.gameContextSlot * 4),
+    localGet(0), i32Load(certificate.gameContextSlot * 4),
     Uint8Array.of(0x21), uleb(0),
     requirePointer(0, certificate.mapContext + 4, 3),
-    local(0), i32Load(certificate.mapContext),
+    localGet(0), i32Load(certificate.mapContext),
     Uint8Array.of(0x21), uleb(0),
     requirePointer(0, certificate.mapId + 4, 4),
-    local(0), i32Load(certificate.mapId),
+    localGet(0), i32Load(certificate.mapId),
     Uint8Array.of(0x22), uleb(1), Uint8Array.of(0x45, 0x04, 0x40),
     refuse(5), Uint8Array.of(0x0b),
-    local(1), i32(certificate.areaInfoCount),
+    localGet(1), i32Const(certificate.areaInfoCount),
     Uint8Array.of(0x4f, 0x04, 0x40), refuse(5), Uint8Array.of(0x0b),
-    i32(certificate.areaInfo),
-    local(1), i32(certificate.areaInfoStride),
+    i32Const(certificate.areaInfo),
+    localGet(1), i32Const(certificate.areaInfoStride),
     Uint8Array.of(0x6c, 0x6a, 0x21), uleb(2),
     requirePointer(2, certificate.areaInfoStride, 6),
-    local(2), i32Load(certificate.iconStartX),
+    localGet(2), i32Load(certificate.iconStartX),
     Uint8Array.of(0x45, 0x04, 0x40),
     writeMapInfo(
       certificate.iconStartXDupe,
@@ -852,30 +816,30 @@ export function worldMapAnchorObserver(
     // Publish the derived scalars before validating their range. A
     // non-ready status remains fail-closed, while live evidence can identify
     // which exact calculation violated the certificate without exposing a pointer.
-    local(4), globalSet(globals.worldAnchorX),
-    local(5), globalSet(globals.worldAnchorY),
-    local(4), Uint8Array.of(0x8b), f32(1_000_000),
+    localGet(4), globalSet(globals.worldAnchorX),
+    localGet(5), globalSet(globals.worldAnchorY),
+    localGet(4), Uint8Array.of(0x8b), f32Const(1_000_000),
     Uint8Array.of(0x5d, 0x45, 0x04, 0x40), refuse(7), Uint8Array.of(0x0b),
-    local(5), Uint8Array.of(0x8b), f32(1_000_000),
+    localGet(5), Uint8Array.of(0x8b), f32Const(1_000_000),
     Uint8Array.of(0x5d, 0x45, 0x04, 0x40), refuse(7), Uint8Array.of(0x0b),
-    globalGet(globals.continent), i32(5), Uint8Array.of(0x4b, 0x04, 0x40),
+    globalGet(globals.continent), i32Const(5), Uint8Array.of(0x4b, 0x04, 0x40),
     refuse(7), Uint8Array.of(0x0b),
-    local(8), local(6), Uint8Array.of(0x5e, 0x45, 0x04, 0x40),
+    localGet(8), localGet(6), Uint8Array.of(0x5e, 0x45, 0x04, 0x40),
     refuse(7), Uint8Array.of(0x0b),
-    local(9), local(7), Uint8Array.of(0x5e, 0x45, 0x04, 0x40),
+    localGet(9), localGet(7), Uint8Array.of(0x5e, 0x45, 0x04, 0x40),
     refuse(7), Uint8Array.of(0x0b),
-    local(6), Uint8Array.of(0x8b), f32(1_000_000),
+    localGet(6), Uint8Array.of(0x8b), f32Const(1_000_000),
     Uint8Array.of(0x5f, 0x45, 0x04, 0x40), refuse(7), Uint8Array.of(0x0b),
-    local(7), Uint8Array.of(0x8b), f32(1_000_000),
+    localGet(7), Uint8Array.of(0x8b), f32Const(1_000_000),
     Uint8Array.of(0x5f, 0x45, 0x04, 0x40), refuse(7), Uint8Array.of(0x0b),
-    local(8), Uint8Array.of(0x8b), f32(1_000_000),
+    localGet(8), Uint8Array.of(0x8b), f32Const(1_000_000),
     Uint8Array.of(0x5f, 0x45, 0x04, 0x40), refuse(7), Uint8Array.of(0x0b),
-    local(9), Uint8Array.of(0x8b), f32(1_000_000),
+    localGet(9), Uint8Array.of(0x8b), f32Const(1_000_000),
     Uint8Array.of(0x5f, 0x45, 0x04, 0x40), refuse(7), Uint8Array.of(0x0b),
-    local(4), globalSet(globals.worldAnchorX),
-    local(5), globalSet(globals.worldAnchorY),
+    localGet(4), globalSet(globals.worldAnchorX),
+    localGet(5), globalSet(globals.worldAnchorY),
     globalGet(pathingGeneration), globalSet(globals.generation),
-    i32(1), globalSet(globals.status),
+    i32Const(1), globalSet(globals.status),
     Uint8Array.of(0x0b),
   );
 }
@@ -887,61 +851,61 @@ export function explorationObserver(
   certificate: ExplorationCertificate,
 ): Uint8Array {
   const refuse = (status: number) => concat(
-    i32(0), globalSet(globals.bufferPointer),
-    i32(status), globalSet(globals.status), Uint8Array.of(0x0f),
+    i32Const(0), globalSet(globals.bufferPointer),
+    i32Const(status), globalSet(globals.status), Uint8Array.of(0x0f),
   );
   const requirePointer = (pointerLocal: number, bytes: number, status: number) => concat(
-    local(pointerLocal), Uint8Array.of(0x45, 0x04, 0x40),
+    localGet(pointerLocal), Uint8Array.of(0x45, 0x04, 0x40),
     refuse(status), Uint8Array.of(0x0b),
-    local(pointerLocal), local(5), i32(bytes), Uint8Array.of(0x6b, 0x4b, 0x04, 0x40),
+    localGet(pointerLocal), localGet(5), i32Const(bytes), Uint8Array.of(0x6b, 0x4b, 0x04, 0x40),
     refuse(status), Uint8Array.of(0x0b),
   );
   return concat(
     // pointer scratch, capacity, size, cell/word count, and memory bytes.
     Uint8Array.of(0x01, 0x06, 0x7f),
-    Uint8Array.of(0x3f, 0x00), i32(65_536), Uint8Array.of(0x6c, 0x21), uleb(5),
-    i32(certificate.contextRoot), i32Load(), Uint8Array.of(0x21), uleb(0),
+    Uint8Array.of(0x3f, 0x00), i32Const(65_536), Uint8Array.of(0x6c, 0x21), uleb(5),
+    i32Const(certificate.contextRoot), i32Load(), Uint8Array.of(0x21), uleb(0),
     requirePointer(0, certificate.gameContextSlot * 4 + 4, 2),
-    local(0), i32Load(certificate.gameContextSlot * 4),
+    localGet(0), i32Load(certificate.gameContextSlot * 4),
     Uint8Array.of(0x21), uleb(0),
     requirePointer(0, certificate.worldContext + 4, 3),
-    local(0), i32Load(certificate.worldContext), Uint8Array.of(0x21), uleb(1),
+    localGet(0), i32Load(certificate.worldContext), Uint8Array.of(0x21), uleb(1),
     requirePointer(1, certificate.gridHeight + 4, 4),
-    local(1), i32Load(certificate.gridWidth), Uint8Array.of(0x22), uleb(0),
+    localGet(1), i32Load(certificate.gridWidth), Uint8Array.of(0x22), uleb(0),
     Uint8Array.of(0x45, 0x04, 0x40), refuse(5), Uint8Array.of(0x0b),
-    local(0), i32(8_192), Uint8Array.of(0x4b, 0x04, 0x40),
+    localGet(0), i32Const(8_192), Uint8Array.of(0x4b, 0x04, 0x40),
     refuse(5), Uint8Array.of(0x0b),
-    local(1), i32Load(certificate.gridHeight), Uint8Array.of(0x22), uleb(4),
+    localGet(1), i32Load(certificate.gridHeight), Uint8Array.of(0x22), uleb(4),
     Uint8Array.of(0x45, 0x04, 0x40), refuse(5), Uint8Array.of(0x0b),
-    local(4), i32(8_192), Uint8Array.of(0x4b, 0x04, 0x40),
+    localGet(4), i32Const(8_192), Uint8Array.of(0x4b, 0x04, 0x40),
     refuse(5), Uint8Array.of(0x0b),
-    local(0), local(4), Uint8Array.of(0x6c, 0x21), uleb(4),
-    local(1), i32Load(certificate.cartographedAreas),
+    localGet(0), localGet(4), Uint8Array.of(0x6c, 0x21), uleb(4),
+    localGet(1), i32Load(certificate.cartographedAreas),
     Uint8Array.of(0x21), uleb(0),
-    local(1), i32Load(
+    localGet(1), i32Load(
       certificate.cartographedAreas + certificate.arrayCapacity,
     ), Uint8Array.of(0x21), uleb(2),
-    local(1), i32Load(
+    localGet(1), i32Load(
       certificate.cartographedAreas + certificate.arraySize,
     ), Uint8Array.of(0x22), uleb(3),
-    local(2), Uint8Array.of(0x4b, 0x04, 0x40), refuse(6), Uint8Array.of(0x0b),
-    local(3), i32(262_144), Uint8Array.of(0x4b, 0x04, 0x40),
+    localGet(2), Uint8Array.of(0x4b, 0x04, 0x40), refuse(6), Uint8Array.of(0x0b),
+    localGet(3), i32Const(262_144), Uint8Array.of(0x4b, 0x04, 0x40),
     refuse(6), Uint8Array.of(0x0b),
     // ceil(width * height / 32) must fit in the source array.
-    local(4), i32(31), Uint8Array.of(0x6a), i32(5), Uint8Array.of(0x76),
-    local(3), Uint8Array.of(0x4b, 0x04, 0x40), refuse(7), Uint8Array.of(0x0b),
-    local(3), Uint8Array.of(0x45, 0x45), local(0), Uint8Array.of(0x45, 0x71, 0x04, 0x40),
+    localGet(4), i32Const(31), Uint8Array.of(0x6a), i32Const(5), Uint8Array.of(0x76),
+    localGet(3), Uint8Array.of(0x4b, 0x04, 0x40), refuse(7), Uint8Array.of(0x0b),
+    localGet(3), Uint8Array.of(0x45, 0x45), localGet(0), Uint8Array.of(0x45, 0x71, 0x04, 0x40),
     refuse(8), Uint8Array.of(0x0b),
-    local(0), local(5), local(3), i32(4), Uint8Array.of(0x6c, 0x6b, 0x4b),
+    localGet(0), localGet(5), localGet(3), i32Const(4), Uint8Array.of(0x6c, 0x6b, 0x4b),
     Uint8Array.of(0x04, 0x40), refuse(8), Uint8Array.of(0x0b),
-    local(0), globalSet(globals.bufferPointer),
+    localGet(0), globalSet(globals.bufferPointer),
     // Reload dimensions from the validated owner after retaining the buffer privately.
-    local(1), i32Load(certificate.gridWidth), globalSet(globals.width),
-    local(1), i32Load(certificate.gridHeight), globalSet(globals.height),
-    local(3), globalSet(globals.dwordCount),
+    localGet(1), i32Load(certificate.gridWidth), globalSet(globals.width),
+    localGet(1), i32Load(certificate.gridHeight), globalSet(globals.height),
+    localGet(3), globalSet(globals.dwordCount),
     globalGet(pathingGeneration), globalSet(globals.generation),
-    globalGet(globals.sequence), i32(1), Uint8Array.of(0x6a), globalSet(globals.sequence),
-    i32(1), globalSet(globals.status),
+    globalGet(globals.sequence), i32Const(1), Uint8Array.of(0x6a), globalSet(globals.sequence),
+    i32Const(1), globalSet(globals.status),
     Uint8Array.of(0x0b),
   );
 }
@@ -949,11 +913,11 @@ export function explorationObserver(
 export function explorationReadWord(globals: ExplorationGlobals): Uint8Array {
   return concat(
     Uint8Array.of(0x00),
-    globalGet(globals.status), i32(1), Uint8Array.of(0x47, 0x04, 0x40),
-    i32(0), Uint8Array.of(0x0f, 0x0b),
-    local(0), globalGet(globals.dwordCount), Uint8Array.of(0x4f, 0x04, 0x40),
-    i32(0), Uint8Array.of(0x0f, 0x0b),
-    globalGet(globals.bufferPointer), local(0), i32(4), Uint8Array.of(0x6c, 0x6a),
+    globalGet(globals.status), i32Const(1), Uint8Array.of(0x47, 0x04, 0x40),
+    i32Const(0), Uint8Array.of(0x0f, 0x0b),
+    localGet(0), globalGet(globals.dwordCount), Uint8Array.of(0x4f, 0x04, 0x40),
+    i32Const(0), Uint8Array.of(0x0f, 0x0b),
+    globalGet(globals.bufferPointer), localGet(0), i32Const(4), Uint8Array.of(0x6c, 0x6a),
     i32Load(), Uint8Array.of(0x0b),
   );
 }
