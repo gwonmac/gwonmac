@@ -161,7 +161,13 @@ locator already meets the final relocation-resistant bar. At verifier ABI 10:
   certificate, not to a shared constant; and
 - friend observation accepts relocated functions and static addresses when all
   semantic relationships still reproduce, but its exact role shapes can refuse
-  after an equivalent compiler rewrite.
+  after an equivalent compiler rewrite; and
+- semantic role fingerprints erase only listed static operands. A `call`
+  target stays an exact function index, so a renumbering needs a reviewed
+  variant. Without its retained record, the November 3 client still proves
+  template saving and 18 of 22 Enhancement features; Travel (a changed Guild
+  Hall area default), Quick Item Move, chat print, and progress observation
+  refuse until that client's reviewed facts are present.
 
 These checks fail closed. They can therefore disable a feature after an
 equivalent ArenaNet rebuild even when game behavior did not change. A refusal
@@ -190,18 +196,30 @@ Automation detects a changed ArenaNet code generation and runs the same
 non-authoritative evidence tools as a maintainer. It never uploads ArenaNet
 binaries and cannot grant runtime authority.
 
-- Equivalent rebuild: every feature proves locally. No source change, pull
-  request, or release is needed; players use the proved features at once.
+- Equivalent rebuild: every feature whose locator survives relocation proves
+  locally, and players use it at once without a source change, pull request,
+  or release. Until the limits above are removed, the other features refuse
+  like a semantic change.
 - Refusal: the official client stays playable and only the refusing feature
-  and its declared dependants turn off. Automation opens one issue that names
-  the failed invariant and, for ambiguity, the candidate count. A maintainer
-  then follows [Recover certification](recertify.md).
+  and its declared dependants turn off. Automation opens one issue with one
+  row per verdict: template saving, every Enhancement feature, native
+  double-click, Cartography, 4 GB mode, and the real-client regression suite,
+  each with its first failing invariant and, for ambiguity, the candidate
+  count. A maintainer then follows [Recover certification](recertify.md).
+
+`pnpm certification qualify WASM JS OUT` is the one release battery. It writes
+one record per check: runtime verdicts, native double-click, Cartography, 4 GB
+mode, and the shipped chain. The chain check prepares every release profile
+through template, Enhancement, Friends, Cartography, double-click, and memory
+selection, corrupts the cached output, and requires a rebuild to the same hash.
+The release `qualify` job runs this battery on the current client. Client watch
+runs the same battery and the real-client regression suite in
+`tests/client-artifact/`. A certification pull request dispatches client watch
+on its branch with `regression`; that run fails when either refuses.
 
 A verifier change needs positive equivalent-relocation tests and adversarial
 change, duplicate, ambiguity, timeout, malformed-boundary, and output-mismatch
-tests. The offline check must exercise every shipped profile through template,
-Enhancement, Friends, Cartography, double-click, memory selection, and cache
-reuse.
+tests.
 
 ## Lessons that shaped these rules
 

@@ -85,7 +85,14 @@ pnpm certification template "/absolute/path/Gw.jspi.wasm"
 pnpm certification template "/absolute/path/Gw.jspi.wasm" --emit-ts
 pnpm certification recertify "/absolute/path/Gw.jspi.wasm"
 pnpm certification double-click "/absolute/path/Gw.jspi.wasm"
+pnpm certification qualify "/absolute/path/Gw.jspi.wasm" "/absolute/path/Gw.jspi.js" "/absolute/path/out"
 ```
+
+`qualify` runs the release battery and writes one record per check into the
+output folder. It exits 1 when any check refuses, so it is also the local
+check before a certification pull request. On that pull request, dispatch the
+client watch workflow on its branch with `regression` set: it runs the same
+battery and the real-client regression suite, and fails when either refuses.
 
 Read the template report status first:
 
@@ -296,9 +303,11 @@ A new client can need all of these:
   on every new client until its roles are reinspected and added.
 
 Compose partial records per feature: a missing historical field must not make
-current actions disappear. After accepting facts, verify the complete shipped
-chain and the refusal cases. Enhancement verdicts alone do not prove Friends or
-Maps. No offline result establishes live gameplay acceptance.
+current actions disappear. The verifier accepts each feature against any one
+retained record that holds all its facts, so different features can recover
+from different records. After accepting facts, verify the complete shipped
+chain (`qualify`) and the refusal cases. Enhancement verdicts alone do not
+prove Friends or Maps. No offline result establishes live gameplay acceptance.
 
 ## Feature requirements during recovery
 
