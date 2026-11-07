@@ -6,7 +6,7 @@
 import assert from "node:assert/strict";
 import { cp, mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 import { afterEach, describe, it } from "node:test";
 import { loadAccountTemplateLibrary } from "../../app/main/core/account-template-library.js";
 import { loadBuildLibrary } from "../../app/main/core/build-library.js";
@@ -22,12 +22,25 @@ import { travelShortcutsFromStored } from "../../app/shared/travel.js";
 const FIXTURES = "tests/fixtures/player-data";
 // Settings the 1.0 clean cut removed on purpose (49da271f, b1caffa2).
 const REMOVED_SETTINGS = ["dataStrategy", "teamManagement", "updateTrack"];
+// The files each release writes. launcher-state.json starts with v2026.11.0,
+// the first launcher release.
+const RELEASE_FILES = [
+  "build-library.json", "launcher-mode.json", "multi/shared/templates.json", "multi/workspace.json",
+  "settings.json", "travel-history.json", "travel-preferences.json",
+];
+const EXPECTED_FILES: Record<string, readonly string[]> = {
+  "v2026.8.12": RELEASE_FILES,
+  "v2026.11.0": [...RELEASE_FILES, "launcher-state.json"],
+};
 
 const roots: string[] = [];
 afterEach(async () => Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))));
 
 const tags = (await readdir(FIXTURES, { withFileTypes: true })).filter((entry) => entry.isDirectory()).map((entry) => entry.name);
-const files = async (root: string) => (await readdir(root, { recursive: true })).sort();
+const files = async (root: string) => (await readdir(root, { recursive: true, withFileTypes: true }))
+  .filter((entry) => entry.isFile())
+  .map((entry) => relative(root, join(entry.parentPath, entry.name)))
+  .sort();
 const json = async (file: string): Promise<Record<string, unknown>> => JSON.parse(await readFile(file, "utf8"));
 
 /** Every field the old file stored is still there with the same value. */
@@ -39,7 +52,7 @@ function assertKept(loaded: object, stored: Record<string, unknown>, label: stri
 
 describe("player data written by released apps", () => {
   it("has fixtures for both releases players upgrade from", () => {
-    assert.deepEqual(tags.sort(), ["v2026.11.0", "v2026.8.12"]);
+    assert.deepEqual(tags.sort(), Object.keys(EXPECTED_FILES).sort());
   });
 
   for (const tag of tags) {
@@ -48,6 +61,7 @@ describe("player data written by released apps", () => {
       roots.push(root);
       await cp(join(FIXTURES, tag), root, { recursive: true });
       const before = await files(root);
+      assert.deepEqual(before, [...(EXPECTED_FILES[tag] ?? [])].sort(), "the files this release writes");
       const recovered: string[] = [];
       const onRecovered = (backup: string) => { recovered.push(backup); };
 
@@ -75,7 +89,7 @@ describe("player data written by released apps", () => {
         revision: 2,
         entries: [{ path: "Monk/Healer.txt", contents: "OwAT043A5RsS8cTHUHeTnQbB" }],
       });
-      if (before.includes("launcher-state.json")) {
+      if (EXPECTED_FILES[tag]?.includes("launcher-state.json")) {
         const stored = await json(join(root, "launcher-state.json"));
         assertKept((await loadOrCreateLauncherState(join(root, "launcher-state.json"), "migrated-single")).document, stored, "launcher-state.json");
       }
