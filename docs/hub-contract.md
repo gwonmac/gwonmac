@@ -8,7 +8,12 @@ names no source: each source says what it adds through the optional
 `HubSource` fields in `app/shared/hub.ts`. The built-in sources (accounts, the
 calculator, commands, Hub preferences and Settings) attach from the one Core
 list in `app/renderer/hub-builtins.ts`, the way a feature attaches its own.
-Where the keyboard goes is a focus target in the view model
+Each entry point of `hub.ts` (a DOM event, a presenter call, a timer or a
+frame) writes the view model and paints it once when it ends; before it hands
+the DOM to a row's action or a page, it paints the finished model first. It
+never measures the DOM: the Vue view places the currency art, the Actions menu
+and the closed-Hub receipt, scrolls the results, and reports the geometry a page
+records. Where the keyboard goes is a focus target in the view model
 (`app/shared/ui/hub-view.ts`); the Vue focus kit
 (`app/ui/tools/src/hub/hub-focus.ts`, `focus-zone.ts`) applies it after the
 paint and owns arrows inside each zone and the fallback when a focused control

@@ -1,11 +1,12 @@
 <script setup lang="ts">
 /**
  * One result: a currency conversion card, or an icon, title, detail and keys, with a build's
- * skills and attributes below. Its name and description carry what the icons show.
+ * skills and attributes below. Its name and description carry what the icons show. A selected
+ * priced row also holds its Price basis picker.
  */
 import { computed } from 'vue';
 import type { HubRow } from '../../../../shared/hub';
-import type { HubRateControls as RateControls, HubShortcutBindings } from '../../../../shared/ui/hub-view';
+import type { HubShortcutBindings } from '../../../../shared/ui/hub-view';
 import { shortcutKeycaps } from '../../../../shared/keyboard-shortcuts';
 import { HUB_COMMAND_SHORTCUTS } from '../../../../shared/tool-presentation';
 import HubBuildInfo from './HubBuildInfo.vue';
@@ -20,8 +21,8 @@ const props = defineProps<{
   /** Home's empty search shows builds compact. */
   compact: boolean;
   bindings: HubShortcutBindings;
-  /** The Price basis picker, when this row holds it. */
-  rates: RateControls | null;
+  /** The list is hidden under a view; the picker it holds hides with it. */
+  listHidden: boolean;
 }>();
 
 const classes = computed(() => props.row.conversion ? ['hub-row', 'hub-conversion']
@@ -67,6 +68,6 @@ const keycaps = computed((): readonly { label: string; name?: string }[] => keyR
       </span>
       <HubBuildInfo v-if="row.skills" :build="row" />
     </template>
-    <HubRateControls v-if="rates" :rates="rates" />
+    <HubRateControls v-if="selected && row.quoteBasis" :basis="row.quoteBasis" :hidden="listHidden" />
   </div>
 </template>

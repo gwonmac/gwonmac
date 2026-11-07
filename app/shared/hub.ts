@@ -38,7 +38,7 @@ export type HubRow = Readonly<{
   navigate?(task: HubTask): void;
   searchQuery?: string;
   icon?: string;
-  quoteBasis?: Readonly<{ value:string; options:readonly {value:string;label:string}[]; choose(value:string):void }>;
+  quoteBasis?: HubQuoteBasis;
   conversion?: Readonly<{ input: string; from: string; to: string; iconFrom?: string; iconTo?: string }>;
   unavailable?: string;
   /** Inspection remains available, but this row cannot apply its game action. */
@@ -53,6 +53,14 @@ export type HubRow = Readonly<{
   /** How the footer and a repeated Enter name this row's action while it runs (HUB-083). */
   pending?: Readonly<{ label: string; again: string }>;
   run(task: HubTask): void | Promise<void>;
+}>;
+/**
+ * A priced row's Price basis picker: the basis it uses, the ones it could, and the button beside
+ * the picker (the evidence, the rates or a refresh), named by the source that prices the row.
+ */
+export type HubQuoteBasis = Readonly<{
+  value: string; options: readonly Readonly<{ value: string; label: string }>[]; choose(value: string): void;
+  details: Readonly<{ label: string; run(): void }>;
 }>;
 /**
  * A running row or view action's link to the Hub page that started it (HUB-004). That page's

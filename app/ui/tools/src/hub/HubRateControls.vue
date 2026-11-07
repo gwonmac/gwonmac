@@ -1,14 +1,15 @@
 <script setup lang="ts">
 /**
- * The calculator's Price basis picker and its Details or Refresh quotes button. The picker moves
- * between rows with its card and keeps the keyboard; a card that vanishes under it hands the
- * keyboard back to search (HUB-223).
+ * The calculator's Price basis picker and its Details or Refresh quotes button, drawn in the
+ * selected row it prices from that row's `quoteBasis`. It keeps the keyboard while its row
+ * stays; a card that vanishes under it hands the keyboard back to search (HUB-223). Enter on the
+ * picker runs the row's primary through the Hub, as Enter on the search does (HUB-022).
  */
 import { ref, type Directive } from 'vue';
-import type { HubRateControls } from '../../../../shared/ui/hub-view';
+import type { HubQuoteBasis } from '../../../../shared/hub';
 import { useFocusZone } from './focus-zone';
 
-defineProps<{ rates: HubRateControls }>();
+defineProps<{ basis: HubQuoteBasis; hidden: boolean }>();
 const element = ref<HTMLElement>();
 useFocusZone(element);
 /**
@@ -22,15 +23,13 @@ const vSelectValue: Directive<HTMLSelectElement, string> = {
 </script>
 
 <template>
-  <div ref="element" class="hub-rate-controls" :hidden="rates.hidden">
-    <template v-if="rates.basis">
-      <label>Price basis<select
-        class="ui-select" aria-label="Price basis" data-focus-key="rate-basis" :data-choices="JSON.stringify(rates.basis.options)" v-select-value="rates.basis.value"
-        @change="rates.change(($event.target as HTMLSelectElement).value)" @keydown="rates.keydown"
-      >
-        <option v-for="(choice, index) in rates.basis.options" :key="index" :value="choice.value">{{ choice.label }}</option>
-      </select></label>
-      <button class="ui-button" data-focus-key="rate-details" @click="rates.details()">{{ rates.detailsLabel }}</button>
-    </template>
+  <div ref="element" class="hub-rate-controls" :hidden="hidden">
+    <label>Price basis<select
+      class="ui-select" aria-label="Price basis" data-focus-key="rate-basis" :data-choices="JSON.stringify(basis.options)" v-select-value="basis.value"
+      @change="basis.choose(($event.target as HTMLSelectElement).value)"
+    >
+      <option v-for="(choice, index) in basis.options" :key="index" :value="choice.value">{{ choice.label }}</option>
+    </select></label>
+    <button class="ui-button" data-focus-key="rate-details" @click="basis.details.run()">{{ basis.details.label }}</button>
   </div>
 </template>

@@ -6,15 +6,16 @@
  * keyboard goes belong to the engine (hub-engine.ts): this adapter turns DOM events into engine
  * events and applies its effects. Optional Tools contributes local results and views without
  * entering Core's imports. The Hub's Vue view (app/ui/tools/src/hub, built as `tools/hub-app.js`)
- * draws the model this adapter keeps (app/shared/ui/hub-view.ts) and puts the keyboard on its
- * focus target.
+ * draws the model this adapter keeps (app/shared/ui/hub-view.ts), measures what it draws and puts
+ * the keyboard on its focus target. Each entry point (a DOM event, a presenter call, a timer or
+ * frame) steps the engine, writes the model and paints it once when it ends; the adapter never
+ * paints a half-written model and never measures the DOM.
  */
 import { resumeSearchInput } from './search-input.js';
 import { installHubWindow } from './hub-window.js';
 import { attachClassicFrame } from '../shared/ui/frame.js';
 import { resolveShortcuts } from '../shared/keyboard-shortcuts.js';
 import { hubPhraseReserved, hubShortcutInScope, isHubShortcuts, isLibraryHubShortcut, LIBRARY_UNAVAILABLE, type HubShortcut } from '../shared/hub-preferences.js';
-import { recogniseCurrencyTokens } from '../shared/hub-currency-tokens.js';
 import { currencyIcon } from '../shared/currency-assets.js';
 import { armConfirmation, closeDisclosure } from './surface-controller.js';
 import { HUB_FALLBACK, HUB_RESUME_MS, hubAtHome, hubInitialState, hubKey, hubReduce, hubSuspendedOn, hubTaskLive, type HubEffect, type HubEvent, type HubPage, type HubPlace, type HubStep } from './hub-engine.js';
@@ -38,11 +39,9 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
   const model: HubViewModel = {
     page: 'home', back: { hidden: true }, caption: { text: 'Home', current: false }, crumbs: NONE, context: '', summary: null,
     scope: { text: '', hidden: true },
-    search: { hidden: false, placeholder: 'Search people, places, builds…', label: 'Search people, places, builds', expanded: true, calculation: false },
-    glyphs: { hidden: true, calculation: false, box: null, segments: NONE, icons: NONE },
-    rates: { host: null, hidden: true, basis: null, detailsLabel: 'Details',
-      change: value => rateBasis?.choose(value), keydown: rateKeydown, details: () => rows.find(item => item.id === state.selected)?.actions?.() },
-    results: { hidden: false, previewList: false, rows: NONE, painted: 0, selected: null, compact: false, bindings: resolveShortcuts({}) },
+    search: { hidden: false, placeholder: 'Search people, places, builds…', label: 'Search people, places, builds', expanded: true },
+    glyphs: { calculation: false, text: '', art: currencyIcon },
+    results: { hidden: false, previewList: false, rows: NONE, painted: 0, selected: null, compact: false, bindings: resolveShortcuts({}), more: () => { if (painting) paintThrough(painting.next + PAINT_CHUNK - 1); } },
     empty: { hidden: true }, preview: { text: '', hidden: true }, view: { hidden: true },
     lifecycle: { text: '', hidden: true }, hint: { text: '', hidden: true }, announce: '', count: '',
     actions: { keys: false, disabled: false, expanded: false },
@@ -50,74 +49,52 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     receipt: { text: '', announcement: '', hidden: true },
   };
   const ui = embedded.mountHubView(parent, model);
-  const { root, panel, heading, lock, resize, back: backButton, close: closeButton, search, input, glyphs, results: list, view: content, footer, primary, actions: actionsButton, menu, receipt } = ui.elements;
-  let dirty = false, drawing = false, queued = false, disposed = false;
-  /**
-   * Draws pending model changes now. The controller calls it before it measures, focuses or hands
-   * the DOM to a page; a microtask draws anything left, so the DOM is current before every frame.
-   */
+  const { root, panel, heading, lock, resize, back: backButton, close: closeButton, input, results: list, view: content, primary, actions: actionsButton, menu } = ui.elements;
+  let dirty = false, drawing = false, queued = false, disposed = false, depth = 0;
+  /** Draws the model's changes: once at the end of each entry point, and before the DOM goes to code outside the Hub. */
   function sync() {
     if (!dirty || drawing || disposed) return;
     drawing = true;
     try { while (dirty) { dirty = false; ui.paint(model); } } finally { drawing = false; }
   }
+  /**
+   * An entry point: a DOM event, a presenter call, a timer or a frame. It paints once when the
+   * outermost one ends, so a source that notifies while the Hub composes its results never
+   * draws half of them.
+   */
+  const entry = <A extends unknown[], R>(action: (...args: A) => R) => (...args: A): R => {
+    depth++;
+    try { return action(...args); } finally { if (--depth === 0) sync(); }
+  };
+  /**
+   * Hands the DOM to code outside the Hub (a row's or a view's action, a page mounting): the
+   * finished model is drawn first, and a presenter call that code makes paints when it returns.
+   */
+  function callOut<R>(action: () => R): R {
+    sync();
+    const outer = depth; depth = 0;
+    try { return action(); } finally { depth = outer; }
+  }
   function put<K extends keyof HubViewModel>(key: K, value: HubViewModel[K]) {
     if (same(model[key], value)) return;
     model[key] = value; dirty = true;
-    if (!queued) { queued = true; queueMicrotask(() => { queued = false; sync(); }); }
+    // A change outside any entry point, after an action's await, paints at the end of its microtask.
+    if (!queued && depth === 0) { queued = true; queueMicrotask(entry(() => { queued = false; })); }
   }
   const patch = <K extends Region>(key: K, fields: Partial<HubViewModel[K]>) => put(key, { ...model[key], ...fields });
   let focusSeq = 0;
-  /** Puts the keyboard on a focus target: the view applies it in this paint, so a control it just showed can take it. */
-  function requestFocus(target: HubFocusTarget, wait = false) { put('focus', { ...target, seq: ++focusSeq, ...(wait ? { wait } : {}) }); sync(); }
+  /** Puts the keyboard on a focus target: the view applies it after this entry's paint, so a control it just showed can take it. */
+  function requestFocus(target: HubFocusTarget, options: Readonly<{ wait?: true; select?: true }> = {}) { put('focus', { ...target, seq: ++focusSeq, ...options }); }
+  let revealSeq = 0, scrollSeq = 0;
   let receiptTimer: ReturnType<typeof setTimeout> | undefined;
   // Where the Hub frame last stood: a receipt after closing appears in its footprint, not as a window toast.
-  let frame: DOMRect | null = null;
+  let frame: ReturnType<typeof ui.layout.frame> | null = null;
   const disposeFrame = attachClassicFrame(panel);
   const hubWindow = installHubWindow(panel, heading, lock, resize);
-  // A measuring layer adds artwork in native word gaps; the input remains the sole editor.
-  let composing = false, glyphFrame = 0;
-  const syncGlyphScroll = () => { glyphs.scrollLeft = input.scrollLeft; };
+  // A measuring layer adds artwork in native word gaps; the input remains the sole editor (HubSearchBar).
   function paintGlyphs() {
-    if (composing) return;
-    const mode = root.open && !disposeView && !state.place.scope && !parseHubQuery(input.value).scope && /^\s*(?:\d|\.\d)/u.test(input.value);
-    patch('search', { calculation: mode });
-    patch('glyphs', { calculation: mode, hidden: !mode });
-    if (!mode) { patch('glyphs', { segments: NONE, icons: NONE }); return; }
-    sync();
-    const box = input.getBoundingClientRect(), parentBox = search.getBoundingClientRect();
-    const text = input.value, tokens = recogniseCurrencyTokens(text), segments: { text: string; token?: { start: number; end: number; unit: string } }[] = [];
-    let position = 0;
-    for (const token of tokens) {
-      segments.push({ text: text.slice(position, token.start) }, { text: text.slice(token.start, token.end), token: { start: token.start, end: token.end, unit: token.unit } });
-      position = token.end;
-    }
-    segments.push({ text: text.slice(position) });
-    patch('glyphs', { box: { left: box.left - parentBox.left, top: box.top - parentBox.top, width: input.clientWidth, height: input.clientHeight }, segments, icons: NONE });
-    sync();
-    const glyphBox = glyphs.getBoundingClientRect(), fontSize = Number.parseFloat(getComputedStyle(input).fontSize);
-    const spans = [...glyphs.querySelectorAll<HTMLElement>('span[data-unit]')];
-    patch('glyphs', { icons: tokens.flatMap((token, index) => {
-      const url = currencyIcon(token.unit), span = spans[index]; if (!url || !span) return [];
-      const end = span.getBoundingClientRect().right - glyphBox.left + glyphs.scrollLeft;
-      return [{ url, unit: token.unit, left: end + fontSize * 0.625 }];
-    }) });
-    sync();
-    syncGlyphScroll();
-    cancelAnimationFrame(glyphFrame); glyphFrame = requestAnimationFrame(syncGlyphScroll);
-  }
-  input.addEventListener('scroll', syncGlyphScroll); input.addEventListener('select', syncGlyphScroll);
-  input.addEventListener('keyup', syncGlyphScroll);
-  input.addEventListener('compositionstart', () => { composing = true; });
-  input.addEventListener('compositionend', () => { composing = false; paintGlyphs(); });
-  const glyphResize = new ResizeObserver(paintGlyphs); glyphResize.observe(input);
-  /** The Price basis picker, wherever it stands now. */
-  const ratesElement = () => { sync(); return root.querySelector<HTMLElement>('.hub-rate-controls'); };
-  /** The priced row's basis the picker changes. */
-  let rateBasis: HubRow['quoteBasis'] | null = null;
-  // Enter on the picker copies the card it prices, as Enter on the search does (HUB-022).
-  function rateKeydown(event: KeyboardEvent) {
-    if (event.key === 'Enter' && !event.repeat && !event.isComposing && !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey) { event.preventDefault(); void run(); }
+    const calculation = root.open && !disposeView && !state.place.scope && !parseHubQuery(input.value).scope && /^\s*(?:\d|\.\d)/u.test(input.value);
+    patch('glyphs', { calculation, text: calculation ? input.value : '' });
   }
   let announceTimer: ReturnType<typeof setTimeout> | undefined;
   let resultAnnouncement = '';
@@ -156,13 +133,10 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     const name = content ? `Search ${content}…` : page ? `Search in ${page}…` : 'Search people, places, builds…';
     patch('search', { placeholder: name, label: name });
   };
-  /** Where typing goes: the Hub search on list stages, else a list view's own search (Travel, Characters). */
-  const searchField = () => { sync(); return ui.focus.searchField(); };
   /** Where the keyboard was when the running view action started: a page it opens returns there (HUB-019). */
   let actionFocus: HubFocusTarget | null = null;
-  const scrollTop = () => { sync(); return list.scrollTop; };
   /** Where the keyboard is, as the target a page returns to. */
-  const focusTarget = () => actionFocus ?? (sync(), ui.focus.capture());
+  const focusTarget = () => actionFocus ?? ui.focus.capture();
   const pageTitle = (page: Place) => page.view?.title ?? page.scope?.title ?? 'Home';
   const sourceLive = (owner: HubSource) => sources.has(owner) && sourceEnabled(owner);
   const pageLive = (page: Place) =>
@@ -194,7 +168,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
       case 'select': if (effect.hover === 'hold') hover.hold(); else hover.release(); select(effect.id, !!effect.scroll); return;
       case 'focus': requestFocus(effect.target); return;
       case 'run': void run(); return;
-      case 'navigate': { const row = rows.find(row => row.id === state.selected); if (row?.navigate) { sync(); row.navigate(startTask()); } return; }
+      case 'navigate': { const row = rows.find(row => row.id === state.selected); if (row?.navigate) { const task = startTask(); callOut(() => row.navigate?.(task)); } return; }
       case 'run-view': void runViewAction(viewFooter?.primary ?? null, cause.event); return;
       case 'open-menu': openMenu(); return;
       case 'close-menu': closeMenu(false); return;
@@ -237,7 +211,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     draftPage = null;
   }
   /** Draws a page Back, a breadcrumb or a resume returns to; the engine already stands on it. */
-  function restorePage(page: Page) {
+  function restorePage(page: Page, resumed?: true) {
     resetView();
     if (page.view) mountView(page.view);
     else {
@@ -246,11 +220,11 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
       // A card that changed state while the page was away still stands for the row it showed.
       const card = cards().find(candidate => candidate.restores.includes(page.selected ?? ''));
       const restored = rows.find(row => row.id === page.selected) ?? (card ? rows.find(row => row.group === card.group) : undefined);
-      select(restored?.id??null); paintToScroll(page.scroll); sync(); list.scrollTop = page.scroll;
+      select(restored?.id??null); patch('results', { scroll: { top: page.scroll, seq: ++scrollSeq } });
       if (page.selected && state.selected === null) report('The previous selection is no longer available. Choose a result.');
     }
     // A view that loads late (Settings) still gives the keyboard back to the control it held.
-    requestFocus(page.focus, true);
+    requestFocus(page.focus, { wait: true, ...(resumed ? { select: resumed } : {}) });
   }
   /**
    * A view's own way out ("Done", Travel or Characters leaving): the parent page, or a close
@@ -310,14 +284,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     const row = position >= 0 ? rows[position] : undefined;
     if (row) {
       patch('search', { activeDescendant: `hub-result-${position}` });
-      if (scroll) { sync(); list.querySelector<HTMLElement>(`[data-id="${CSS.escape(row.id)}"]`)?.scrollIntoView({ block: 'nearest' }); }
-    }
-    // A card that vanishes under a focused Price basis hands the keyboard back to search (HUB-223, the rates' focus zone).
-    patch('rates', { hidden: !row?.quoteBasis || !!disposeView });
-    if (row?.quoteBasis) {
-      const { value, options } = rateBasis = row.quoteBasis;
-      const basis = model.rates.basis?.value === value && model.rates.basis.options === options ? model.rates.basis : { value, options };
-      patch('rates', { host: row.id, basis, detailsLabel: row.actionsLabel === 'Refresh quotes' ? 'Refresh quotes' : 'Details' });
+      if (scroll) patch('results', { reveal: { id: row.id, seq: ++revealSeq } });
     }
 
     if (!row) patch('search', { activeDescendant: undefined });
@@ -354,7 +321,9 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     const keys: HubLegendEntry[] = [];
     if (!viewFooter && rows.length > 1 && !busy()) keys.push([['↑', '↓'], 'Select']);
     if (!viewFooter && row?.navigate) keys.push([['→'], 'Open']);
-    keys.push([['⎋'], searchField()?.value ? 'Clear' : state.history.length ? 'Back' : 'Close']);
+    // A list stage types into the Hub search; a view mounted here, into its own search, if any.
+    const typed = viewFooter ? !!disposeView && !!ui.focus.searchField()?.value : !!input.value;
+    keys.push([['⎋'], typed ? 'Clear' : state.history.length ? 'Back' : 'Close']);
     if (!atHome()) keys.push([['⌘', '⌫'], 'Back']);
     if (model.legend && JSON.stringify(model.legend) === JSON.stringify(keys)) return;
     put('legend', keys);
@@ -387,8 +356,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     // The footer slot disables while its action runs; a page the action opens still returns to it.
     actionFocus = focusTarget();
     viewRunning = true; report(''); paintViewFooter();
-    sync();
-    try { await action.run(task); }
+    try { await callOut(() => action.run(task)); }
     catch (error) { task.fail(error); }
     finally { task.end(); if (viewFooter === current) { actionFocus = null; viewRunning = false; paintViewFooter(); } }
   }
@@ -397,23 +365,29 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     const node = event.target instanceof Element ? event.target.closest<HTMLElement>('.hub-row') : null;
     return node && list.contains(node) ? rows.find(row => row.id === node.dataset.id) : undefined;
   };
-  const onRates = (event: Event) => event.target instanceof Node && !!ratesElement()?.contains(event.target);
+  /** A press or key on the Price basis picker belongs to the picker, not to its row. */
+  const onRates = (event: Event) => event.target instanceof Element && !!event.target.closest('.hub-rate-controls');
   // Delegated events always resolve the current row, including after its DOM was retained.
-  list.addEventListener('pointermove', event => {
+  list.addEventListener('pointermove', entry((event: PointerEvent) => {
     const row = pointerRow(event); if (row && !busy() && hover.selects(event) && row.id !== state.selected) select(row.id);
-  });
+  }));
   // A click selects; a game-changing row runs only from the footer or a double-click on itself (D-24).
-  list.addEventListener('click', event => {
+  list.addEventListener('click', entry((event: MouseEvent) => {
     if (onRates(event)) return;
     const row = pointerRow(event); if (!row) return;
     send({ type: 'press', id: row.id, count: event.detail, consequential: !!row.consequential, busy: busy() });
-  });
-  list.addEventListener('contextmenu', event => {
+  }));
+  list.addEventListener('contextmenu', entry((event: MouseEvent) => {
     if (onRates(event)) return;
     const row = pointerRow(event); if (!row) return;
     event.preventDefault();
     send({ type: 'context', id: row.id, busy: busy() });
-  });
+  }));
+  // Enter on the picker copies the card it prices, as Enter on the search does (HUB-022).
+  list.addEventListener('keydown', entry((event: KeyboardEvent) => {
+    if (!onRates(event) || !(event.target instanceof HTMLSelectElement)) return;
+    if (event.key === 'Enter' && !event.repeat && !event.isComposing && !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey) { event.preventDefault(); void run(); }
+  }));
   // Source notifications change context and lifecycle facts, not the current page or search.
   function paintSourceFacts() {
     const view = state.place.view;
@@ -433,7 +407,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     const nextNavigation = JSON.stringify([trail, currentTitle]);
     if (navigationRevision !== nextNavigation) {
       navigationRevision = nextNavigation;
-      put('crumbs', trail.map(page => ({ title: page.title, open: () => send({ type: 'crumb', index: page.index }) })));
+      put('crumbs', trail.map(page => ({ title: page.title, open: entry(() => send({ type: 'crumb', index: page.index })) })));
       patch('caption', { current: true });
     }
     const parent = state.history.at(-1);
@@ -473,16 +447,12 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     job.next = Math.max(job.next, Math.min(index + 1, job.rows.length));
     patch('results', { painted: job.next });
     if (job.next >= job.rows.length) painting = null;
-    else job.frame = requestAnimationFrame(() => paintThrough(job.next + PAINT_CHUNK - 1));
-  }
-  /** A scroll position needs the rows above and in view: paint whole chunks until the list reaches it. */
-  function paintToScroll(top: number) {
-    while (painting && (sync(), list.scrollHeight < top + list.clientHeight)) paintThrough(painting.next + PAINT_CHUNK - 1);
+    else job.frame = requestAnimationFrame(entry(() => paintThrough(job.next + PAINT_CHUNK - 1)));
   }
   let refreshFrame = 0;
   function scheduleRefresh() {
     if (!root.open || refreshFrame) return;
-    refreshFrame = requestAnimationFrame(() => { refreshFrame = 0; refresh(); });
+    refreshFrame = requestAnimationFrame(entry(() => { refreshFrame = 0; refresh(); }));
   }
   function refresh(reset = false) {
     // An immediate query or opening already consumes all facts queued by source notifications.
@@ -518,9 +488,9 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     patch('search', { expanded: rows.length > 0 });
     if (reset || message !== resultAnnouncement) {
       clearTimeout(announceTimer); resultAnnouncement = message;
-      if (message) announceTimer = setTimeout(() => {
+      if (message) announceTimer = setTimeout(entry(() => {
         if (root.open && !disposeView && model.announce !== message) put('announce', message);
-      }, 500);
+      }), 500);
     }
     const nextBindings = resolveShortcuts(window.gwToolsSettings?.().shortcutOverrides ?? {});
     const nextShortcutRevision = JSON.stringify(nextBindings);
@@ -533,15 +503,11 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
       if (painting) painting.rows = rows;
       patch('results', { rows }); select(state.selected); return;
     }
-    // The rebuilt list keeps the reader's place, so the rows down to it paint at once.
-    const top = scrollTop();
-    patch('rates', { host: null });
+    // The rebuilt list keeps the reader's place: the list paints the rows down to it (HubResultList).
     const compactBuilds = !state.place.scope && !input.value.trim();
     // Reserve the preview from the complete result set, before deferred rows reach the DOM.
     patch('results', { previewList: !compactBuilds && rows.some(row => !!row.preview), compact: compactBuilds, bindings });
     startPainting(rows);
-    // At the top, the first batch is already present; only a restored offset needs layout now.
-    if (top > 0) paintToScroll(top);
     // Two rows with the typed name are a tie, so nothing is chosen for the player; a saved phrase
     // names one row only when its existing stores agree. Pins on an empty Home are no tie (HUB-060).
     // A query that is a row's whole name, `trade chat` included, answers with that row (HUB-008).
@@ -591,15 +557,15 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
       live,
       // Progress repaints only over itself or an empty line (or on its own page): a newer
       // message, e.g. a refusal or another action's failure, stays until the next report('').
-      progress: message => { progress = { owner: token, message }; if (live() || progressInStatus || !statusText()) report(''); },
-      done: receipt => send({ type: 'done', session: started, ...(receipt ? { receipt } : {}) }),
-      fail: error => {
+      progress: entry((message: string) => { progress = { owner: token, message }; if (live() || progressInStatus || !statusText()) report(''); }),
+      done: entry((receipt?: string) => send({ type: 'done', session: started, ...(receipt ? { receipt } : {}) })),
+      fail: entry((error: unknown) => {
         // A step the player declined, e.g. Stay here on "Leave this area?", is no failure.
         if (error instanceof DOMException && error.name === 'AbortError') return;
         send({ type: 'failed', session: started, message: error instanceof Error ? error.message : 'The action could not complete. Try again.' });
-      },
+      }),
       // An action that ended without a receipt, e.g. one whose view shows its own outcome, never leaves its progress behind.
-      end: () => { if (progress?.owner !== token) return; progress = null; if (progressInStatus) report(''); },
+      end: entry(() => { if (progress?.owner !== token) return; progress = null; if (progressInStatus) report(''); }),
     };
   }
   async function run(action?: HubRow) {
@@ -618,7 +584,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
         const argument = parseHubQuery(input.value).scope ? input.value.indexOf(' ') + 1 : 0;
         requestFocus({ zone: 'search', range: [argument, input.value.length] });
       }
-      else { sync(); await row.run(task); }
+      else await callOut(() => row.run(task));
     }
     catch (error) { task.fail(error); }
     finally { task.end(); if (running === mine) { running = null; if (root.open) select(state.selected); } }
@@ -658,9 +624,9 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
    */
   const dismiss = () => send({ type: 'escape' });
   function close(message?: string) {
-    if (root.open) { sync(); frame = panel.getBoundingClientRect(); }
+    if (root.open) frame = ui.layout.frame();
     step({ type: 'close' });
-    resetView(); sync(); modal.close(); for (const source of sources.keys()) source.setVisible(false);
+    resetView(); modal.close(); for (const source of sources.keys()) source.setVisible(false);
     input.value = ''; report(''); put('announce', '');
     cancelAnimationFrame(refreshFrame); refreshFrame = 0;
     clearTimeout(announceTimer); resultAnnouncement = '';
@@ -677,24 +643,20 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     if (outcome === 'cleared') {
       if (carriedFailure?.message === message) carriedFailure = null;
       if (receiptInStatus && statusText() === message) report('');
-      if (model.receipt.text === message) {
-        clearTimeout(receiptTimer); receipt.hidePopover(); patch('receipt', { hidden: true, announcement: '' });
-      }
+      if (model.receipt.text === message) { clearTimeout(receiptTimer); patch('receipt', { hidden: true, announcement: '' }); }
       return;
     }
     if (root.open) { report(message, true); return; }
     if (outcome === 'failed') carriedFailure = {message, at: Date.now()};
     clearTimeout(receiptTimer);
-    receiptTimer = setTimeout(() => { receipt.hidePopover(); patch('receipt', { hidden: true, announcement: '' }); }, 8000);
-    patch('receipt', { announcement: message, text: message, hidden: false, outcome: outcome ?? 'done', tone: outcome === 'failed' ? 'error' : 'success',
-      ...(frame?.width ? { place: { left: `${frame.left + frame.width / 2}px`, bottom: `${Math.max(8, window.innerHeight - frame.bottom + 12)}px`, maxWidth: `${Math.max(0, frame.width - 24)}px` } } : {}) });
-    // A passive top-layer receipt stays above popouts without taking focus or intercepting game input.
-    sync(); receipt.showPopover();
+    receiptTimer = setTimeout(entry(() => patch('receipt', { hidden: true, announcement: '' })), 8000);
+    // A new object, so the view raises the receipt again above any popout opened since.
+    put('receipt', { announcement: message, text: message, hidden: false, outcome: outcome ?? 'done', tone: outcome === 'failed' ? 'error' : 'success', ...(frame ? { frame } : {}) });
   }
   function suspend() {
     if (!root.open) return;
-    sync(); frame = panel.getBoundingClientRect();
-    step({ type: 'suspend', scroll: scrollTop(), focus: focusTarget() });
+    frame = ui.layout.frame();
+    step({ type: 'suspend', scroll: ui.layout.scrollTop(), focus: focusTarget() });
     modal.close();
     for (const source of sources.keys()) source.setVisible(false);
   }
@@ -704,9 +666,8 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
    * (HUB-050). A resumed Hub search is selected, so typing starts a new search (D-11).
    */
   function resumePage(page: Page, mounted: boolean) {
-    if (!mounted) restorePage(page);
-    else { if (!page.view) refresh(); requestFocus(page.focus, true); }
-    if (document.activeElement === input) input.select();
+    if (!mounted) restorePage(page, true);
+    else { if (!page.view) refresh(); requestFocus(page.focus, { wait: true, select: true }); }
   }
   /** The page on top takes the keyboard unless it already holds it: its search, else its first control. */
   function focusPage() {
@@ -738,11 +699,12 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
   const show = () => openHub(false);
   /** Opens the Hub; `fresh` drops a suspended page, for a page that opens a closed Hub itself. */
   function openHub(fresh: boolean) {
-    if (root.open) { send({ type: 'show' }); input.select(); return; }
+    // Home's search takes the keyboard with the query kept there selected.
+    if (root.open) { send({ type: 'show' }); requestFocus({ zone: 'search' }, { select: true }); return; }
     previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    clearTimeout(receiptTimer); receipt.hidePopover(); patch('receipt', { hidden: true, announcement: '' });
+    clearTimeout(receiptTimer); patch('receipt', { hidden: true, announcement: '' });
     window.dispatchEvent(new Event('gw:input-reset'));
-    sync(); modal.show();
+    modal.show();
     const opened = step({ type: 'show', fresh });
     window.dispatchEvent(new Event('gw:hub-visible'));
     for (const source of sources.keys()) source.setVisible(sourceEnabled(source));
@@ -750,34 +712,33 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     if (carriedFailure && Date.now() - carriedFailure.at <= HUB_RESUME_MS) report(carriedFailure.message, true);
     carriedFailure = null;
   }
-  input.addEventListener('input', () => { step({ type: 'type', query: input.value }); if (!receiptInStatus) report(''); refresh(true); });
+  input.addEventListener('input', entry(() => { step({ type: 'type', query: input.value }); if (!receiptInStatus) report(''); refresh(true); }));
   // List stages keep DOM focus in search; the selection moves by aria-activedescendant (D-2).
-  input.addEventListener('keydown', event => {
+  input.addEventListener('keydown', entry((event: KeyboardEvent) => {
     if (event.isComposing) return;
     // Only paging needs row geometry; ordinary typing and arrows must not force this layout.
-    const page = event.key === 'PageUp' || event.key === 'PageDown'
-      ? (sync(), Math.max(1, Math.floor(list.clientHeight / (list.querySelector<HTMLElement>('.hub-row')?.offsetHeight || 40)) - 1)) : 1;
+    const page = event.key === 'PageUp' || event.key === 'PageDown' ? ui.layout.pageRows() : 1;
     const caretAtEnd = input.selectionStart === input.value.length && input.selectionEnd === input.value.length;
     send({ type: 'key', key: hubKey(event), where: { at: 'search', rows: rows.map(row => ({ id: row.id, navigate: !!row.navigate })), busy: busy(), page, caretAtEnd } }, { event });
-  });
+  }));
   // A press on a result keeps the keyboard in search.
   list.addEventListener('mousedown', event => {
     if (!onRates(event)) event.preventDefault();
   });
-  list.addEventListener('pointerleave', () => hover.release());
+  list.addEventListener('pointerleave', entry(() => hover.release()));
   // ⌘⌫ is Back from any focus inside the Hub, text fields included, once a view stepped out of
   // its own inner level, the menu closed and a disclosure closed; ⌘J opens and closes Actions
   // from anywhere in the Hub (D-1). The Hub owns both presses either way.
-  root.addEventListener('keydown', event => {
+  root.addEventListener('keydown', entry((event: KeyboardEvent) => {
     const disclosure = event.target instanceof Element ? event.target.closest('details[open]') : null;
     send({ type: 'key', key: hubKey(event), where: { at: 'hub', handled: event.defaultPrevented, disclosure: !!disclosure && root.contains(disclosure) } }, { event });
-  });
-  root.addEventListener('mouseup', event => { if (event.button === 3) { event.preventDefault(); back(); } });
-  root.addEventListener('keydown', event => {
+  }));
+  root.addEventListener('mouseup', entry((event: MouseEvent) => { if (event.button === 3) { event.preventDefault(); back(); } }));
+  root.addEventListener('keydown', entry((event: KeyboardEvent) => {
     // Typing on a button or blank space returns to the page's search, the header's included;
     // Space still presses the button. A form keeps its keys: a form view has no search, and
     // a form region a view marks with data-hub-form (Travel's Customize) stays form-first.
-    const field = searchField();
+    const field = ui.focus.searchField();
     if (!event.defaultPrevented && field && event.target instanceof HTMLElement && event.target !== field && !event.target.isContentEditable
       && !event.target.matches('input,textarea,select') && !event.target.closest('[data-hub-form]')
       && !(event.key === ' ' && event.target.matches('button,summary')) && resumeSearchInput(event, field)) return;
@@ -787,7 +748,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     if (event.defaultPrevented || !target || !content.contains(target)) return;
     send({ type: 'key', key: hubKey(event), where: { at: 'view', primary: !!viewFooter?.primary, form: !!target.closest('form'),
       activates: target.matches('button,a[href],summary,select,textarea,input[type=checkbox],input[type=radio],input[type=range]') } }, { event });
-  });
+  }));
   function showBuildDetails(row: HubRow) {
     const incoming = state.place.scope?.summary;
     presenter.showView('Build details', target => {
@@ -846,51 +807,49 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     if (entries.length < 2) return;
     step({ type: 'menu', row: viewFooter ? null : row!.id });
     // The item runs on its first click only; the menu closes first, so its action owns the page.
-    const items: HubMenuItem[] = entries.map(entry => ({ ...entry, click: event => { if (event.detail > 1) return; closeMenu(); void entry.run(); } }));
-    // The menu stands on the footer, however tall the footer is.
-    sync();
-    patch('menu', { hidden: false, items, bottom: `${footer.offsetHeight + 8}px` }); patch('actions', { expanded: true });
-    if (entries.some(entry => !entry.disabled)) requestFocus({ zone: 'menu' }); else sync();
+    const items: HubMenuItem[] = entries.map(item => ({ ...item, click: entry((event: MouseEvent) => { if (event.detail > 1) return; closeMenu(); void callOut(item.run); }) }));
+    patch('menu', { hidden: false, items }); patch('actions', { expanded: true });
+    if (entries.some(item => !item.disabled)) requestFocus({ zone: 'menu' });
   }
   /** Closes the Actions menu; with `refocus` the keyboard goes to the Hub's fallback. Whether a menu was open. */
   function closeMenu(refocus = true) {
     if (model.menu.hidden) return false;
     patch('menu', { hidden: true, items: NONE }); patch('actions', { expanded: false });
     if (state.menu) step({ type: 'menu-closed' });
-    // A menu that closes under the keyboard hands it on in this paint (its focus zone), before the next key.
-    if (refocus) requestFocus(HUB_FALLBACK); else if (ui.focus.at() === 'menu') sync();
+    // A menu that closes under the keyboard hands it on in this entry's paint (its focus zone), before the next key.
+    if (refocus) requestFocus(HUB_FALLBACK);
     return true;
   }
   // The menu's own keys: its focus zone takes the shared list move; Esc closes only the menu, Tab leaves it.
-  menu.addEventListener('keydown', event => send({ type: 'key', key: hubKey(event), where: { at: 'menu' } }, { event }));
+  menu.addEventListener('keydown', entry((event: KeyboardEvent) => send({ type: 'key', key: hubKey(event), where: { at: 'menu' } }, { event })));
   // A press anywhere else in the Hub closes the menu; the Actions button toggles it itself.
-  root.addEventListener('pointerdown', event => { if (!model.menu.hidden && event.target instanceof Node && !menu.contains(event.target) && !actionsButton.contains(event.target)) closeMenu(false); }, true);
+  root.addEventListener('pointerdown', entry((event: PointerEvent) => { if (!model.menu.hidden && event.target instanceof Node && !menu.contains(event.target) && !actionsButton.contains(event.target)) closeMenu(false); }), true);
   // Every page uses the same Actions menu.
   // A double-click's second press never toggles the menu shut or runs anything (PTR-17).
-  actionsButton.onclick = event => { if (event.detail > 1) return; if (!closeMenu()) openMenu(); };
-  closeButton.onclick = () => close();
+  actionsButton.onclick = entry((event: MouseEvent) => { if (event.detail > 1) return; if (!closeMenu()) openMenu(); });
+  closeButton.onclick = entry(() => close());
   // The primary acts once per click run, so a double-click on it runs its action once.
-  backButton.onclick = back;
-  primary.onclick = event => { if (event.detail > 1) return; if (viewFooter) void runViewAction(viewFooter.primary ?? done, event); else void run(); };
-  root.addEventListener('close', () => { if (!root.open && !state.suspended) close(); });
-  const onBlur = () => suspend();
-  const onSettings = () => {
+  backButton.onclick = entry(back);
+  primary.onclick = entry((event: MouseEvent) => { if (event.detail > 1) return; if (viewFooter) void runViewAction(viewFooter.primary ?? done, event); else void run(); });
+  root.addEventListener('close', entry(() => { if (!root.open && !state.suspended) close(); }));
+  const onBlur = entry(() => suspend());
+  const onSettings = entry(() => {
     for (const source of sources.keys()) source.setVisible(root.open && sourceEnabled(source));
     withdrawPages();
-  };
+  });
   window.addEventListener('blur', onBlur); window.addEventListener('gw:tools-settings', onSettings);
   /** A new page starts over the open Hub's page, which Back returns to, or as the only page of a fresh Hub. */
   function enterPage(place: (current: Place) => Place, query?: string) {
     const fromOpenHub = root.open;
     if (!fromOpenHub) openHub(true);
     step({ type: 'enter', place: place(state.place), ...(query === undefined ? {} : { query }), remember: fromOpenHub,
-      scroll: fromOpenHub ? scrollTop() : 0, focus: fromOpenHub ? focusTarget() : { zone: 'results' } });
+      scroll: fromOpenHub ? ui.layout.scrollTop() : 0, focus: fromOpenHub ? focusTarget() : { zone: 'results' } });
   }
   /** Mounts a view page, a new one or one that Back restores, with its footer and drafts. */
   function mountView(view: MountedView) {
     resetView(); if (!receiptInStatus) report(''); clearTimeout(announceTimer); resultAnnouncement = ''; patch('empty', { hidden: true });
     put('page', 'section'); patch('caption', { text: view.title });
-    patch('preview', { hidden: true }); patch('rates', { hidden: true }); patch('hint', { hidden: true });
+    patch('preview', { hidden: true }); patch('hint', { hidden: true });
     patch('search', { hidden: true }); patch('results', { hidden: true }); patch('view', { hidden: false });
     const current: ViewFooter = { primary: null, secondary: null };
     viewFooter = current;
@@ -902,54 +861,54 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     };
     paintViewFooter();
     // The page mounts into a host that already shows, so it can measure and take focus.
-    sync();
-    disposeView = view.mount(content, restoreParent, shell, ui.pages);
+    disposeView = callOut(() => view.mount(content, restoreParent, shell, ui.pages));
     restoreDrafts([...state.history.map(pageTitle), view.title].join(' › '));
-    paintNavigation();
+    paintNavigation(); paintLegend(undefined);
     // A view that took the keyboard keeps it; else its first usable control, never <body>.
     if (ui.focus.at() !== 'view') requestFocus({ zone: 'view' });
   }
-  /** A presenter call leaves the DOM drawn, so its caller can measure and focus right after. */
-  const synced = <A extends unknown[], R>(action: (...args: A) => R) => (...args: A): R => { try { return action(...args); } finally { sync(); } };
+  // A presenter call is an entry point: it leaves the DOM drawn, so its caller can measure and focus right after.
   const presenter = {
-    show: synced(show), close: synced(() => close()), suspend: synced(suspend), direct: synced(direct),
+    show: entry(show), close: entry(() => close()), suspend: entry(suspend), direct: entry(direct),
     suspendedOn: (destination: HubDestination) => hubSuspendedOn(state, destination, env()),
     /** A mounted view replaced its own page (a confirmation): a click run from before it is cancelled. */
     pageChanged: () => modal.pageChanged(),
     get visible() { return root.open; },
     /** Whether Esc on an empty query goes back to a parent page rather than closing the Hub. */
     get hasParent() { return state.history.length > 0; },
-    attach: synced((next: HubSource) => {
+    attach: entry((next: HubSource) => {
       // A notification is drawn before it returns, like any presenter call (HUB-111).
-      sources.set(next, next.subscribe(synced(() => {
+      sources.set(next, next.subscribe(entry(() => {
         // A scoped list belongs to its source; peer observations only update navigation facts.
         const owner = state.place.scope?.owner;
         if (owner && owner !== next) { if (root.open) paintSourceFacts(); return; }
         scheduleRefresh();
       }))); next.setVisible(root.open && sourceEnabled(next)); refresh();
-      return () => {
+      return entry(() => {
         sources.get(next)?.(); sources.delete(next); next.setVisible(false);
         withdrawPages();
-      };
+      });
     }),
-    showRows: synced((title: string, getRows: () => readonly HubRow[], summary?: HubSummary, destination?: HubDestination, owner?: HubSource, query: string = '') => {
+    showRows: entry((title: string, getRows: () => readonly HubRow[], summary?: HubSummary, destination?: HubDestination, owner?: HubSource, query: string = '') => {
       const scope: RowScope = { title, rows: getRows, ...(summary ? { summary } : {}), ...(destination ? { destination } : {}), ...(owner ? { owner } : {}) };
       enterPage(() => ({ scope, view: null }), query);
       resetView(); put('page', 'section'); patch('caption', { text: title });
       nameSearch(title); input.value = query; if (!receiptInStatus) report(''); refresh(true); requestFocus({ zone: 'results' });
     }),
-    showView: synced((title: string, mount: HubViewMount<HTMLElement>, available?: () => boolean, destination?: HubDestination, owner?: HubSource) => {
+    showView: entry((title: string, mount: HubViewMount<HTMLElement>, available?: () => boolean, destination?: HubDestination, owner?: HubSource) => {
       const view: MountedView = { title, mount, ...(available ? { available } : {}), ...(destination ? { destination } : {}), ...(owner ? { owner } : {}) };
       enterPage(current => ({ scope: current.scope, view }));
       mountView(view);
     }),
-    notify: synced(notify),
+    notify: entry(notify),
     /** A direct shortcut to a row's page (`direct`): it runs the row, or says why it cannot. */
-    openRow: synced((destination: HubDestination, id: string, unavailable: string) => { direct(destination, () => { const row = lookup(id); if (row && !row.unavailable) void row.run(startTask()); else report(unavailable); }); }),
+    openRow: entry((destination: HubDestination, id: string, unavailable: string) => {
+      direct(destination, () => { const row = lookup(id); if (row && !row.unavailable) { const task = startTask(); void callOut(() => row.run(task)); } else report(unavailable); });
+    }),
     /** The pins and phrases, for the sources that edit them. */
     shortcuts: shortcutStore,
     resetPosition: hubWindow.reset,
-    dispose() { close(); glyphResize.disconnect(); cancelAnimationFrame(glyphFrame); clearTimeout(receiptTimer); receipt.hidePopover(); hubWindow.dispose(); disposeFrame(); for (const unsubscribe of sources.values()) unsubscribe(); sources.clear(); modal.dispose(); disposed = true; ui.dispose(); window.removeEventListener('blur', onBlur); window.removeEventListener('gw:tools-settings', onSettings); },
+    dispose() { close(); clearTimeout(receiptTimer); hubWindow.dispose(); disposeFrame(); for (const unsubscribe of sources.values()) unsubscribe(); sources.clear(); modal.dispose(); disposed = true; ui.dispose(); window.removeEventListener('blur', onBlur); window.removeEventListener('gw:tools-settings', onSettings); },
   };
   return presenter;
 }

@@ -185,7 +185,7 @@ export function createHubCalculator(options: {
             }
           }
           const chosen=rows.find(row=>row.id===`market:${marketBasis}`)??rows[0];
-          if(chosen)return [{...chosen,id:'market:result',quoteBasis:{value:chosen.id.slice(7),options:rows.map(row=>({value:row.id.slice(7),label:row.id==='market:wts'?'Seller asking prices':'Buyer offers'})),choose(value){marketBasis=value==='wtb'?'wtb':'wts';refresh();}}}];
+          if(chosen)return [{...chosen,id:'market:result',quoteBasis:{value:chosen.id.slice(7),options:rows.map(row=>({value:row.id.slice(7),label:row.id==='market:wts'?'Seller asking prices':'Buyer offers'})),choose(value){marketBasis=value==='wtb'?'wtb':'wts';refresh();},details:{label:'Details',run:()=>chosen.actions?.()}}}];
           const loading=!marketSnapshot&&!failed;
           return [{id:'market-state',title:loading?'Reading recent Kamadan trades…':'Not enough recent prices',detail:'An estimate needs at least 5 advertisers with consistent prices per rate. No rate is guessed.',group:'Calculator',action:loading?'Loading':'Refresh',...(loading?{unavailable:'Reading recent trades'}:{}),run(){marketSnapshot=null;queryKey='';refresh();},actions:editRates,actionsLabel:'Edit rates'}];
         }
@@ -212,7 +212,9 @@ export function createHubCalculator(options: {
         const expiry=Math.min(...snapshot.quotes.filter(quote=>quote.timestamp+HUB_QUOTE_FRESH_MS>Date.now()).map(quote=>quote.timestamp+HUB_QUOTE_FRESH_MS));
         if(Number.isFinite(expiry))timer=setTimeout(refresh,Math.max(1,expiry-Date.now()+1));
         const chosen=rows.find(row=>row.id===`quote:${basis}`)??rows[0];
-        if(chosen)return [{...chosen,id:'quote:result',...(chosen.detail.includes('Last observed')?{actionsLabel:'Refresh quotes',actions:()=>{snapshot=null;queryKey='';refresh();}}:{}),quoteBasis:{value:chosen.id.slice(6),options:rows.map(row=>({value:row.id.slice(6),label:row.id==='quote:buy'?'Buy from trader':'Sell to trader'})),choose(value){basis=value;refresh();}}}];
+        // An old observation offers a fresh read beside the picker; a current one, the rates behind it.
+        const stale=chosen?.detail.includes('Last observed'),refreshQuotes=()=>{snapshot=null;queryKey='';refresh();};
+        if(chosen)return [{...chosen,id:'quote:result',...(stale?{actionsLabel:'Refresh quotes',actions:refreshQuotes}:{}),quoteBasis:{value:chosen.id.slice(6),options:rows.map(row=>({value:row.id.slice(6),label:row.id==='quote:buy'?'Buy from trader':'Sell to trader'})),choose(value){basis=value;refresh();},details:stale?{label:'Refresh quotes',run:refreshQuotes}:{label:'Details',run:()=>chosen.actions?.()}}}];
         return [{id:'quote-missing',title:'Rate unavailable',detail:`No complete observed quote for ${[...new Set(units.filter(unit=>currencyInfo(unit).model).map(unit=>currencyInfo(unit).name))].join(' and ')}. Retry, or open Conversion rates to use your currency estimates.`,group:'Calculator',action:'Retry',run(){snapshot=null;queryKey='';refresh();},actions:editRates}];
       }catch(error){return [{id:'calculation-error',title:error instanceof Error?error.message:'Invalid calculation',detail:'',group:'Calculator',action:'Edit calculation',unavailable:'Edit the calculation',run(){}}];}
     },
