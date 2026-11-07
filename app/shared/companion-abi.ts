@@ -22,59 +22,6 @@ export const COMPANION_ABI = Object.freeze({
   effectIcons: Object.freeze({ abi: 2, bytes: 1_340, records: 64 }),
 });
 
-/**
- * companion_init's parameters, in order. A region takes two words, its pointer
- * and its byte count (`<name>_ptr`, `<name>_size` in lib.rs); a scalar takes
- * one. The loader builds the call and the region types from this list, and the
- * ABI test compares it with the Rust signature.
- */
-export const COMPANION_KERNEL_INIT_ARGUMENTS = Object.freeze([
-  "snapshot",
-  "config",
-  "cursor",
-  "toolbox",
-  "party",
-  "skillSlots",
-  "skillCooldowns",
-  "playRegion",
-  "characterList",
-  "friends",
-  "playerEffects",
-  "effectIcons",
-  "friendRoot",
-  "features",
-  "whispers",
-  "alcohol",
-  "progress",
-] as const);
-
-export const COMPANION_KERNEL_INIT_SCALARS = Object.freeze(["friendRoot", "features"] as const);
-
-type CompanionKernelInitArgument = (typeof COMPANION_KERNEL_INIT_ARGUMENTS)[number];
-type CompanionKernelInitScalar = (typeof COMPANION_KERNEL_INIT_SCALARS)[number];
-type CompanionKernelRegionName = Exclude<CompanionKernelInitArgument, CompanionKernelInitScalar>;
-export type CompanionKernelRegion = Readonly<{ pointer: number; bytes: number }>;
-export type CompanionKernelRegions = Readonly<Record<CompanionKernelRegionName, CompanionKernelRegion>>;
-
-function isInitScalar(name: CompanionKernelInitArgument): name is CompanionKernelInitScalar {
-  return COMPANION_KERNEL_INIT_SCALARS.some((scalar) => scalar === name);
-}
-
-/**
- * companion_init's words: each region's pointer and byte count, each scalar as
- * itself. An absent region is the zero pair the kernel reads as "not installed".
- */
-export function companionKernelInitWords(
-  regions: Readonly<Partial<CompanionKernelRegions>>,
-  scalars: Readonly<Record<CompanionKernelInitScalar, number>>,
-): number[] {
-  return COMPANION_KERNEL_INIT_ARGUMENTS.flatMap((name) => {
-    if (isInitScalar(name)) return [scalars[name]];
-    const region = regions[name];
-    return region === undefined ? [0, 0] : [region.pointer, region.bytes];
-  });
-}
-
 export const COMPANION_FEATURE_BITS = Object.freeze({
   nativeCursor: 1 << 0,
   gameSnapshot: 1 << 1,

@@ -5,9 +5,11 @@ import {
   COMPANION_ABI,
   COMPANION_DISPATCH_KINDS,
   COMPANION_FEATURE_BITS,
+} from "../../app/shared/companion-abi.ts";
+import {
   COMPANION_KERNEL_INIT_ARGUMENTS,
   COMPANION_KERNEL_INIT_SCALARS,
-} from "../../app/shared/companion-abi.ts";
+} from "../../app/shared/companion-kernel-contract.ts";
 import {
   ENHANCEMENT_CONFIG_FIELDS,
 } from "../../app/shared/enhancement-config.ts";

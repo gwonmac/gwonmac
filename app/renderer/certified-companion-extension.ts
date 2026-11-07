@@ -6,7 +6,7 @@ import type {
   EnhancementCapabilities,
   EnhancementProgram,
 } from "../shared/enhancement-contracts.js";
-import type { CompanionKernelRegions } from "../shared/companion-abi.js";
+import type { CompanionKernelRegions } from "../shared/companion-kernel-contract.js";
 import type { CompanionOwnedRegion } from "./companion-owned-regions.js";
 import type {
   CompanionCoreMemoryNeeds,

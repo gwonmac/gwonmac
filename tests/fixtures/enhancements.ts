@@ -3,8 +3,8 @@ import {
   COMPANION_ABI,
   COMPANION_DISPATCH_KINDS,
   COMPANION_FEATURE_BITS,
-  companionKernelInitWords,
 } from "../../app/shared/companion-abi.ts";
+import { companionKernelInitWords } from "../../app/shared/companion-kernel-contract.ts";
 import {
   readCompanionCursorHeader,
   readCompanionCursorPixels,

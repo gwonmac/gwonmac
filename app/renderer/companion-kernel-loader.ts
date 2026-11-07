@@ -8,16 +8,14 @@
  * side module's private aligned memory base. It initializes the verified
  * kernel, but grants no feature policy and never publishes or enables a hook.
  */
-import {
-  COMPANION_ABI,
-  companionKernelInitWords,
-  type CompanionKernelRegion,
-  type CompanionKernelRegions,
-} from "../shared/companion-abi.js";
+import { COMPANION_ABI } from "../shared/companion-abi.js";
 import {
   COMPANION_KERNEL_EXPORTS,
   COMPANION_KERNEL_IMPORTS,
+  companionKernelInitWords,
   companionKernelSignatureBytes,
+  type CompanionKernelRegion,
+  type CompanionKernelRegions,
 } from "../shared/companion-kernel-contract.js";
 import { COMPANION_PLAY_REGION_BYTES } from "./companion-play-region-snapshot.js";
 import {

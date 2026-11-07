@@ -7,7 +7,10 @@ import {
   COMPANION_KERNEL_DYLINK0,
   COMPANION_KERNEL_EXPORT_VALUES,
 } from "../../scripts/companion-kernel-contract.mjs";
-import { COMPANION_KERNEL_SIGNATURES } from "../../app/shared/companion-kernel-contract.ts";
+import {
+  COMPANION_KERNEL_INIT_WORD_COUNT,
+  COMPANION_KERNEL_SIGNATURES,
+} from "../../app/shared/companion-kernel-contract.ts";
 
 export interface CompanionKernelFixtureOptions {
   readonly start?: boolean;
@@ -90,7 +93,7 @@ export function companionKernelFixture(
   );
   const startFunction = signatures.length;
   const types = [
-    functionType(32, true),
+    functionType(COMPANION_KERNEL_INIT_WORD_COUNT, true),
     functionType(6, false),
     functionType(0, true),
     functionType(0, false),
@@ -130,8 +133,10 @@ export function companionKernelFixture(
       exportName === "companion_init"
       && options.expectedInitArguments !== undefined
     ) {
-      if (options.expectedInitArguments.length !== 32) {
-        throw new Error("companion fixture init expectation must have 32 words");
+      if (options.expectedInitArguments.length !== COMPANION_KERNEL_INIT_WORD_COUNT) {
+        throw new Error(
+          `companion fixture init expectation must have ${COMPANION_KERNEL_INIT_WORD_COUNT} words`,
+        );
       }
       const comparisons = options.expectedInitArguments.flatMap(
         (value, index) => [

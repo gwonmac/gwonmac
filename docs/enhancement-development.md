@@ -464,11 +464,11 @@ In the companion kernel, every snapshot starts with `SnapshotHeader`
 which brackets the header and payload with an odd and the next even sequence.
 
 A new region is one entry in `COMPANION_KERNEL_INIT_ARGUMENTS`
-([companion-abi.ts](../app/shared/companion-abi.ts)), the matching
+([companion-kernel-contract.ts](../app/shared/companion-kernel-contract.ts)), the matching
 `<name>_ptr`, `<name>_size` pair in `companion_init`
 ([lib.rs](../kernels/companion/lib.rs)), and the part that allocates it. The
-loader, the region types and the Core installer follow from the list, and
-the ABI test compares it with the Rust signature.
+signature check, the loader, the region types and the Core installer follow
+from the list, and the ABI test compares it with the Rust signature.
 
 The official WASM remains canonical. Feature certificates and transformed
 outputs are derived from those bytes and the verifier ABI and must be
