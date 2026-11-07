@@ -108,6 +108,16 @@ export function compareBundleVersions(left: string, right: string): number {
   return 0;
 }
 
+/**
+ * The old app was numbered by date (2026.11.0, build 2611.0.99). 1.0.0 builds
+ * 100.0.99, which macOS and Squirrel read as older, so players move to the 1.x
+ * line by reinstalling once. A draft of any 1.x release may therefore be
+ * tested over a 2026.x install; within the 1.x line it must be newer.
+ */
+export function isDateNumberedVersion(appVersion: string): boolean {
+  return /^20\d{2}\./u.test(appVersion);
+}
+
 export function expectedAssets(version: string): string[] {
   const base = `Guild-Wars-Reforged-${version}-macOS-arm64`;
   return [
@@ -182,13 +192,16 @@ export async function runDraftReleaseTest(
   const draft = readDraft(dependencies, tag);
   assertDraftMetadata(tag, draft, releaseTag);
   const expectedBundle = macOSBundleVersions(releaseTag.version);
-  const installedBundle = plist(
-    dependencies,
-    dependencies.installedApp,
-    "CFBundleVersion",
-  );
-  if (compareBundleVersions(expectedBundle.buildVersion, installedBundle) <= 0) {
-    throw new Error(`${tag} is not newer than the installed bundle ${installedBundle}`);
+  const installed = {
+    appVersion: plist(dependencies, dependencies.installedApp, "CFBundleShortVersionString"),
+    buildVersion: plist(dependencies, dependencies.installedApp, "CFBundleVersion"),
+  };
+  if (isDateNumberedVersion(installed.appVersion)) {
+    dependencies.log(
+      `Installed ${installed.appVersion} is on the 2026.x line; ${tag} starts the 1.x line.`,
+    );
+  } else if (compareBundleVersions(expectedBundle.buildVersion, installed.buildVersion) <= 0) {
+    throw new Error(`${tag} is not newer than the installed bundle ${installed.buildVersion}`);
   }
   if (appIsRunning(dependencies)) {
     throw new Error(`Close ${PRODUCT} normally, then run this command again`);

@@ -36,6 +36,7 @@ interface Fixture {
   logs: string[];
   setFailure(value: string | undefined): void;
   setRunningAfterLaunch(value: boolean): void;
+  setInstalled(appVersion: string, buildVersion: string): void;
   close(): void;
 }
 
@@ -57,6 +58,7 @@ function fixture(): Fixture {
   let failure: string | undefined;
   let runningAfterLaunch = false;
   let statusCalls = 0;
+  let installed = { appVersion: "1.0.0", buildVersion: "100.0.99" };
 
   const run = (command: string, args: readonly string[]): string => {
     const call = `${command} ${args.join(" ")}`;
@@ -66,11 +68,11 @@ function fixture(): Fixture {
     }
     if (command === "/usr/libexec/PlistBuddy") {
       const key = args[1];
-      const application = args[2] ?? "";
-      if (key === "Print :CFBundleShortVersionString") return VERSION;
-      return application === path.join(installedApp, "Contents/Info.plist")
-        ? "100.0.99"
-        : "100.1.99";
+      const isInstalled = args[2] === path.join(installedApp, "Contents/Info.plist");
+      if (key === "Print :CFBundleShortVersionString") {
+        return isInstalled ? installed.appVersion : VERSION;
+      }
+      return isInstalled ? installed.buildVersion : "100.1.99";
     }
     if (command === "gh" && args[0] === "release" && args[1] === "view") {
       return JSON.stringify(draft);
@@ -126,6 +128,7 @@ function fixture(): Fixture {
     logs,
     setFailure: (value) => { failure = value; },
     setRunningAfterLaunch: (value) => { runningAfterLaunch = value; },
+    setInstalled: (appVersion, buildVersion) => { installed = { appVersion, buildVersion }; },
     close: () => rmSync(root, { recursive: true }),
   };
 }
@@ -203,6 +206,27 @@ describe("temporary exact-draft testing", () => {
       test.close();
     }
   });
+
+  // The 1.x line starts with a reinstall over the date-numbered 2026.x app,
+  // whose build numbers are higher; inside the 1.x line a downgrade is refused.
+  for (const [appVersion, buildVersion, accepted] of [
+    ["2026.11.0", "2611.0.99", true],
+    ["1.0.0", "100.0.99", true],
+    ["1.0.1", "100.1.99", false],
+    ["1.1.0", "101.0.99", false],
+  ] as const) {
+    it(`${accepted ? "accepts" : "refuses"} ${TAG} over an installed ${appVersion}`, async () => {
+      const test = fixture();
+      test.setInstalled(appVersion, buildVersion);
+      try {
+        const run = runDraftReleaseTest(TAG, test.dependencies);
+        if (accepted) await run;
+        else await assert.rejects(run, /is not newer than the installed bundle/u);
+      } finally {
+        test.close();
+      }
+    });
+  }
 
   for (const failure of ["checksum", "attestation", "signature", "launch"] as const) {
     it(`removes complete downloads after a pre-launch ${failure} failure`, async () => {
