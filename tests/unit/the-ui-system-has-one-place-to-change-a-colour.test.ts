@@ -224,7 +224,7 @@ const IN_GAME_PROVIDED: Record<string, { setBy: string; reason: string }> = {
   "--compass-range-control-size": { setBy: "app/features/cartography/renderer/compass-range-controls.ts", reason: "the trigger's size, from COMPASS_CONTROL_SIZE" },
   "--compass-range-panel-width": { setBy: "app/features/cartography/renderer/compass-range-controls.ts", reason: "the panel's width, from PANEL_WIDTH" },
   "--compass-range-color": { setBy: "app/features/cartography/renderer/compass-range-controls.ts", reason: "each range's colour, from compass-ranges.ts" },
-  "--character-cards": { setBy: "app/features/character-switch/renderer/character-switch-palette.ts", reason: "the carousel's card count" },
+  "--character-cards": { setBy: "app/features/character-switch/hub-views/HubCharacters.vue", reason: "the carousel's card count" },
 };
 const launcherTokens = declared(readFileSync(LAUNCHER_TOKENS, "utf8"));
 const settingsTokens = declared(readFileSync(SETTINGS, "utf8"), "--settings-");
@@ -444,6 +444,6 @@ test("each name TypeScript provides is still read and still set there", () => {
     const readers = files.filter(({ system, css, source }) =>
       system === "in-game" && referenced(css).has(name) && !declared(css).has(name) && !local(source).has(name));
     assert.ok(readers.length > 0, `no in-game stylesheet reads ${name} without declaring it — take it off IN_GAME_PROVIDED`);
-    assert.ok(readFileSync(setBy, "utf8").includes(`"${name}"`), `${setBy} no longer sets ${name}`);
+    assert.ok([`"${name}"`, `'${name}'`].some((quoted) => readFileSync(setBy, "utf8").includes(quoted)), `${setBy} no longer sets ${name}`);
   }
 });
