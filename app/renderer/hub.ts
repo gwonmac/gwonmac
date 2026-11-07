@@ -15,13 +15,14 @@ import { resumeSearchInput } from './search-input.js';
 import { installHubWindow } from './hub-window.js';
 import { attachClassicFrame } from '../shared/ui/frame.js';
 import { resolveShortcuts } from '../shared/keyboard-shortcuts.js';
-import { hubPhraseReserved, hubShortcutInScope, isHubShortcuts, isLibraryHubShortcut, LIBRARY_UNAVAILABLE, type HubShortcut } from '../shared/hub-preferences.js';
+import { isHubShortcuts, isLibraryHubShortcut, LIBRARY_UNAVAILABLE, type HubShortcut } from '../shared/hub-preferences.js';
 import { currencyIcon } from '../shared/currency-assets.js';
 import { armConfirmation, closeDisclosure } from './surface-controller.js';
+import { composeHubResults, chooseHubSelection } from './hub-results.js';
 import { HUB_FALLBACK, hubAtHome, hubInitialState, hubKey, hubReduce, hubRunning, hubSuspendedOn, hubTaskLive, type HubEffect, type HubEvent, type HubPage, type HubPlace, type HubStep } from './hub-engine.js';
 import { createHoverSelection } from '../shared/ui/hover-selection.js';
 import { FEATURES, featureActivationRequested } from '../shared/feature-contracts.js';
-import { HUB_LOCATED_DESTINATIONS, HUB_WORKSPACE_ACTION, hubMatch, matchHubRows, parseHubQuery, normaliseHubQuery, hubTier, rankHubRows, type HubDestination, type HubRow, type HubSource, type HubSummary, type HubTask, type HubViewAction, type HubViewFooter, type HubViewMount } from '../shared/hub.js';
+import { HUB_LOCATED_DESTINATIONS, HUB_WORKSPACE_ACTION, hubMatch, parseHubQuery, normaliseHubQuery, type HubDestination, type HubRow, type HubSource, type HubSummary, type HubTask, type HubViewAction, type HubViewFooter, type HubViewMount } from '../shared/hub.js';
 import { hubPrimaryArt, hubRowPaintsSame, type EmbeddedHubView, type HubFocusTarget, type HubLegendEntry, type HubMenuItem, type HubPrimary, type HubViewModel } from '../shared/ui/hub-view.js';
 
 const NONE: readonly never[] = [];
@@ -114,7 +115,6 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
   const enabledSources = () => [...sources.keys()].filter(sourceEnabled);
   /** The cards of the sources turned on, and whether a row is one of theirs. */
   const cards = () => enabledSources().flatMap(source => source.card ? [source.card] : []);
-  const answers = (row: HubRow) => cards().some(card => card.is(row) || row.group === card.group);
   type RowScope = Readonly<{ title: string; rows: () => readonly HubRow[]; summary?: HubSummary; destination?: HubDestination; owner?: HubSource }>;
   type MountedView = { title: string; mount: HubViewMount<HTMLElement>; available?: () => boolean; destination?: HubDestination; owner?: HubSource };
   type Place = HubPlace<RowScope, MountedView>;
@@ -464,25 +464,11 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     if (reset) hover.release();
     paintNavigation();
     const previousRows = rows;
-    const extra = state.place.scope ? state.place.scope.rows() : enabledSources().flatMap(source => source.search(state.query));
-    const parsed = parseHubQuery(state.query);
-    // A phrase saved before its words joined the grammar stays stored but no longer matches.
-    const saved = shortcuts().filter(entry => !parsed.term ? entry.pinned : entry.phrase === parsed.term && !hubPhraseReserved(entry.phrase))
-      .filter(entry => !parsed.scope || hubShortcutInScope(entry.id, parsed.scope));
-    // A phrase answers with the row its owner gives this query (a scoped team applies), else the stored row.
-    const savedRows = saved.flatMap(entry => { const row = extra.find(candidate => candidate.id === entry.id) ?? lookup(entry.id); return row ? [{ ...row, group: parsed.term ? row.group : 'Pinned' }] : []; });
-    const ids = new Set([...extra, ...savedRows].map(row => row.id));
-    rows = state.place.scope ? matchHubRows(extra, state.query) : [...savedRows, ...extra.filter(row => !savedRows.some(saved => saved.id === row.id)), ...(parsed.term && parsed.scope ? commandRows().filter(row => !ids.has(row.id) && normaliseHubQuery(row.title) === normaliseHubQuery(state.query)) : matchHubRows(commandRows().filter(row => !ids.has(row.id)), state.query))];
-    // A tool or command row stands for its own setting (`Resign…`, Build Library); the setting row
-    // stays findable while the tool is off.
-    const actionName = (row: HubRow) => normaliseHubQuery(row.title.replace(/…$/, ''));
-    const actions = new Set(rows.filter(row => row.group !== 'Settings').map(actionName));
-    rows = rows.filter(row => row.group !== 'Settings' || !actions.has(actionName(row)));
-    // A saved phrase is the best answer of all; scoped lists keep their source's order (rankHubRows).
-    const phraseIds = new Set(parsed.term ? [...savedRows, ...extra.filter(row => row.exactPhrase)].map(row => row.id) : []);
-    rows = rankHubRows(rows, state.query, { scoped: !!state.place.scope, phrases: phraseIds, answers });
-    const resultCount = `${rows.length} result${rows.length === 1 ? '' : 's'}`;
-    const message = !state.place.scope && !state.query.trim() ? '' : rows.length ? resultCount : 'No matches';
+    const scoped = !!state.place.scope;
+    const found = state.place.scope ? state.place.scope.rows() : enabledSources().flatMap(source => source.search(state.query));
+    const composed = composeHubResults({ scoped, query: state.query, found, shortcuts: shortcuts(), lookup, commands: commandRows(), cards: cards() });
+    rows = composed.rows;
+    const message = composed.count;
     put('count', message === 'No matches' ? '' : message);
     patch('empty', { hidden: rows.length > 0 }); patch('results', { hidden: !rows.length });
     patch('search', { expanded: rows.length > 0 });
@@ -504,42 +490,17 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
       patch('results', { rows }); select(state.selected); return;
     }
     // The rebuilt list keeps the reader's place: the list paints the rows down to it (HubResultList).
-    const compactBuilds = !state.place.scope && !state.query.trim();
+    const compactBuilds = !scoped && !state.query.trim();
     // Reserve the preview from the complete result set, before deferred rows reach the DOM.
     patch('results', { previewList: !compactBuilds && rows.some(row => !!row.preview), compact: compactBuilds, bindings });
     startPainting(rows);
-    // Two rows with the typed name are a tie, so nothing is chosen for the player; a saved phrase
-    // names one row only when its existing stores agree. Pins on an empty Home are no tie (HUB-060).
-    // A query that is a row's whole name, `trade chat` included, answers with that row (HUB-008).
-    const phraseMatches = rows.filter(row => phraseIds.has(row.id));
-    const phraseHit = (phraseMatches.length === 1 ? phraseMatches[0] : undefined) ?? (parsed.scope ? rows.find(row => normaliseHubQuery(row.title) === normaliseHubQuery(state.query)) : undefined);
-    // A setting named like a command or tool (`travel`) yields to it: Settings rows tie only with each other.
-    const exact = parsed.term ? rows.filter(row => hubTier(row, parsed.term) === 0) : [];
-    const exactActions = exact.filter(row => row.group !== 'Settings');
-    const exactCount = (exactActions.length ? exactActions : exact).length;
-    const prior = previousRows.find(row => row.id === state.selected);
-    const revised = prior && rows.find(row => row.id === state.selected)?.preview !== prior.preview;
-    // A bare scope (`travel `) lists without a term, so nothing in it is an explicit result:
-    // Enter never travels, invites, applies, switches or opens an account on a guess.
-    // A fresh Home in an explorable area never starts on a row that leaves it (D-13).
-    const initial = !state.query.trim() ? rows.find(row => row.preferred && !row.unavailable) ?? rows.find(row => row.preferred !== false && !row.unavailable && !row.leavesArea) ?? rows.find(row => row.preferred !== false && !row.leavesArea)
-      : !state.place.scope && parsed.scope && !parsed.term ? rows.find(row => !row.consequential && !row.unavailable)
-      // A typed query starts on its best available answer, never on a disabled one (HUB-056).
-      : phraseHit ?? rows.find(row => !row.unavailable) ?? rows[0];
-    const settling = reset || (awaitingResults && state.selected === null && rows.length > 0);
-    if (settling) awaitingResults = !rows.length;
-    // A placeholder row that goes away (a loading or state row) hands its selection to what
-    // replaced it, as a fresh query would, so Enter acts without another key (HUB-232). So does a
-    // setting that yields to its tool's row arriving later (`build library` before Builds load).
-    const yielded = prior?.group === 'Settings' && actions.has(actionName(prior));
-    const replacedPlaceholder = (!!prior?.unavailable || yielded) && !rows.some(row => row.id === prior.id);
-    // Clear only this loading refusal when its answer settles; unrelated failures stay.
-    if (prior?.unavailable && statusText() === prior.unavailable && rows.some(row => cards().some(card => card.is(row)) && !row.unavailable)) report('');
-    // A loading card that settles hands its selection to the answer on top.
-    const settled = !!prior && cards().some(card => card.settles.includes(prior.id) && !!rows[0] && card.is(rows[0]));
-    select(settled ? rows[0]!.id : settling || replacedPlaceholder ? phraseMatches.length > 1 || (exactCount > 1 && !phraseHit) ? null : initial?.id ?? null : !revised && rows.some(row => row.id === state.selected) ? state.selected : null);
-    if (!settling && prior && !replacedPlaceholder && !rows.some(row => row.id === prior.id) && !receiptInStatus) report('The previous selection is no longer available. Choose a result.');
-
+    const chosen = chooseHubSelection({ scoped, query: state.query, rows, phrases: composed.phrases, previous: previousRows, selected: state.selected,
+      reset, awaiting: awaitingResults, cards: cards(), status: { text: statusText(), receipt: receiptInStatus } });
+    awaitingResults = chosen.awaiting;
+    // A settled loading refusal clears before the selection paints; a lost selection is named after it.
+    if (chosen.report === '') report('');
+    select(chosen.selected);
+    if (chosen.report) report(chosen.report);
   }
   /**
    * Binds an action to the page session that starts it (HUB-004). While that page shows, the
