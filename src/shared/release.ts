@@ -3,22 +3,22 @@
  *
  * The application updater and website download resolver both consume these
  * rules. They keep their own transport and asset validation, but neither gets
- * to redefine what a release version means or which stages a track admits.
+ * to redefine what a release version means or which stages a channel admits.
  * A disagreement there would be user-visible: an install told it is current
  * while the website offers something else.
  *
- * SemVer only. The versioning *scheme* (CalVer semantics in SemVer syntax) is a
- * product decision owned by scripts/macos-version.ts and the release workflow;
- * nothing in this file knows what a year or a month is. It knows the shapes
- * .github/workflows/release.yml actually publishes: `X.Y.Z`, optionally
- * `-alpha.N` / `-beta.N` / `-rc.N`, optionally tag-prefixed with `v`.
+ * Plain SemVer: `X.Y.Z`, optionally `-alpha.N` / `-beta.N` / `-rc.N`,
+ * optionally tag-prefixed with `v`. scripts/macos-version.ts maps the same
+ * shape onto Apple's two bundle version fields.
  */
 
 export type ReleaseChannel = "alpha" | "beta" | "rc" | "stable";
 
-export const UPDATE_TRACKS = ["stable", "beta"] as const;
-export type UpdateTrack = (typeof UPDATE_TRACKS)[number];
-export const DEFAULT_UPDATE_TRACK: UpdateTrack = "stable";
+/**
+ * The website's download channels. The app itself updates from Stable only;
+ * `beta` lets the website offer the newest prerelease to testers.
+ */
+export type UpdateTrack = "stable" | "beta";
 
 export interface ReleaseVersion {
   readonly major: number;
@@ -96,7 +96,7 @@ export function releaseMetadataMatchesStage(
   return prerelease === isPrerelease(version);
 }
 
-/** Alpha remains private; Beta adds beta/RC while always admitting Stable. */
+/** Alpha remains private; the Beta download adds beta/RC while always admitting Stable. */
 export function isReleaseEligibleForTrack(
   version: ReleaseVersion,
   track: UpdateTrack,

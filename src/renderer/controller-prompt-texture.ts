@@ -11,7 +11,7 @@ import {
 
 const CONTROLLER_PROMPT_ATLAS_CERTIFICATIONS: Readonly<Record<number, AtlasTransform>> = Object.freeze({
   // The web renderer transposes/rebuilds texture uploads, so this differs
-  // from the native TexMod checksum. See internal/upstream/controller-prompt-atlas.md.
+  // from the native TexMod checksum. See docs/wasm-host.md.
   [0x74eb6846]: "direct",
 });
 const ATLAS_WIDTH = 256;

@@ -44,12 +44,10 @@ describe("Travel preferences", () => {
     assert.deepEqual(JSON.parse(await readFile(path, "utf8")), {
       formatVersion: 1,
       synonyms: [{ term: "home", mapId: 55 }],
-      recentLimit: 0,
-      recentMapIds: [],
     });
   });
 
-  it("projects the released shape and clears withdrawn history on first load", async () => {
+  it("reads the released shape and drops withdrawn history on first load", async () => {
     const dir = await mkdtemp(join(tmpdir(), "gw-travel-preferences-"));
     const path = join(dir, "travel-preferences.json");
     await writeFile(path, JSON.stringify({
@@ -66,12 +64,14 @@ describe("Travel preferences", () => {
     assert.deepEqual(JSON.parse(await readFile(path, "utf8")), {
       formatVersion: 1,
       synonyms: [{ term: "home", mapId: 55 }],
-      recentLimit: 0,
-      recentMapIds: [],
+    });
+    assert.deepEqual(await loadTravelPreferences(path), {
+      formatVersion: 1,
+      synonyms: [{ term: "home", mapId: 55 }],
     });
   });
 
-  it("keeps the corrected Piken map ID rollback-safe on disk", async () => {
+  it("reads the released Piken map ID and writes the corrected one", async () => {
     const dir = await mkdtemp(join(tmpdir(), "gw-travel-preferences-"));
     const path = join(dir, "travel-preferences.json");
     await writeFile(path, JSON.stringify({
@@ -89,7 +89,7 @@ describe("Travel preferences", () => {
       synonyms: [{ term: "north", mapId: 779 }],
     });
     assert.deepEqual(JSON.parse(await readFile(path, "utf8")).synonyms, [
-      { term: "north", mapId: 778 },
+      { term: "north", mapId: 779 },
     ]);
   });
 

@@ -2,8 +2,7 @@
  * The native double-click transform: gives the client's own mouse double-click
  * flag the one byte the Emscripten glue never writes.
  *
- * `internal/upstream/mouse-double-click.md` owns the evidence. In short: the
- * client carries a per-press double-click bit from its input record through
+ * The client carries a per-press double-click bit from its input record through
  * `FrMouse` to the widget under the cursor, every consumer of it works, and
  * nothing ever sets it, because `fillMouseEventData` does not marshal
  * `MouseEvent.detail` and the mousedown callback memsets the record byte to

@@ -96,16 +96,12 @@ export const isRendererFingerprint: FieldGuard<RendererFingerprint> = (
 ): value is RendererFingerprint =>
   typeof value === "string" && RENDERER_FINGERPRINT.test(value);
 
-/** The shipped CalVer/SemVer surface, constrained before it reaches a log. */
+/** The shipped SemVer surface, constrained before it reaches a log. */
 export type AppVersion = string & { readonly __appVersion: unique symbol };
 export function isAppVersion(value: unknown): value is AppVersion {
   if (typeof value !== "string") return false;
   const parsed = parseReleaseVersion(value);
-  return (
-    parsed !== null
-    && String(parsed.major).length === 4
-    && formatReleaseVersion(parsed) === value
-  );
+  return parsed !== null && formatReleaseVersion(parsed) === value;
 }
 export function asAppVersion(value: string): AppVersion {
   if (!isAppVersion(value)) {

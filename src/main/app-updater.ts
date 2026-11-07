@@ -8,10 +8,9 @@
  * traffic. Release discovery reads one static channel document and never
  * spends a GitHub REST API request from the player's shared public IP.
  *
- * Only a package carrying the release marker may reach Squirrel.Mac. The
- * selected Stable/Beta track is read once per check. Stable admits only
- * stable releases; Beta additionally admits beta and RC releases. Alpha is
- * never eligible. Ad-hoc developer builds carry no release marker and cannot
+ * Only a package carrying the release marker may reach Squirrel.Mac. There is
+ * one track: the feed admits only stable releases. Prereleases are published
+ * on GitHub for testers to download by hand. Ad-hoc developer builds carry no release marker and cannot
  * reach this owner. This owner never chooses when to restart: the launch gate
  * may install a ready update before play, while later readiness waits for user
  * or ordinary restart orchestration.
@@ -20,12 +19,11 @@ import type {
   AppUpdateErrorCode,
   AppUpdateState,
 } from "../shared/contracts.js";
-import { APP_UPDATE_FEED_URLS } from "../shared/project-identity.js";
+import { APP_UPDATE_FEED_URL } from "../shared/project-identity.js";
 import {
   compareReleaseVersions,
-  isReleaseEligibleForTrack,
+  isPrerelease,
   parseReleaseVersion,
-  type UpdateTrack,
 } from "../shared/release.js";
 import { parseReleaseManifest } from "../shared/release-manifest.js";
 import { redactDiagnosticText } from "./diagnostics/text-scan.js";
@@ -96,7 +94,7 @@ export class AppUpdater {
     });
   }
 
-  check(track: UpdateTrack): Promise<void> {
+  check(): Promise<void> {
     if (
       this.inFlight
       || this.state.phase === "downloading"
@@ -104,10 +102,7 @@ export class AppUpdater {
     ) {
       return this.inFlight ?? Promise.resolve();
     }
-    // Capture the canonical preference once. A settings change while this
-    // request is running applies to the next check instead of changing the
-    // meaning of a response halfway through validation.
-    const operation = this.runCheck(track).finally(() => {
+    const operation = this.runCheck().finally(() => {
       if (this.inFlight === operation) this.inFlight = null;
     });
     this.inFlight = operation;
@@ -158,7 +153,7 @@ export class AppUpdater {
     }
   }
 
-  private async runCheck(track: UpdateTrack): Promise<void> {
+  private async runCheck(): Promise<void> {
     const previous = this.lastCheckedAt();
     this.setState({
       phase: "checking",
@@ -180,7 +175,7 @@ export class AppUpdater {
     let response: Response;
     try {
       try {
-        response = await this.fetchImpl(APP_UPDATE_FEED_URLS[track], {
+        response = await this.fetchImpl(APP_UPDATE_FEED_URL, {
           signal: controller.signal,
           headers: { accept: "application/json" },
         });
@@ -213,7 +208,7 @@ export class AppUpdater {
       const feed = parseReleaseManifest(body);
       if (
         !feed
-        || !isReleaseEligibleForTrack(feed.releaseVersion, track)
+        || isPrerelease(feed.releaseVersion)
       ) {
         await this.failAndRemember(this.noteFailure("feed-invalid"));
         return;
@@ -222,11 +217,7 @@ export class AppUpdater {
       const checkedAt = new Date(checkedAtValue).toISOString();
       await this.remember(checkedAtValue);
       const comparison = compareReleaseVersions(feed.releaseVersion, current);
-      if (
-        track === "stable"
-        && current.channel !== "stable"
-        && comparison < 0
-      ) {
+      if (isPrerelease(current) && comparison < 0) {
         this.setState({
           phase: "manual-stable-return",
           currentVersion: this.options.currentVersion,

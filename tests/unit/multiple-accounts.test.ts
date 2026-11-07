@@ -14,7 +14,6 @@ import {
   quarantineAccountDocument,
   removeArchivedMultiProfile,
   restoreMultiProfile,
-  saveAccountMode,
   saveMultiWorkspace,
   updateMultiProfile,
 } from "../../src/main/core/multiple-accounts.js";
@@ -46,7 +45,7 @@ describe("Multiple Accounts documents", () => {
     assert.equal(await loadMultiWorkspace(join(dir, "workspace.json")), null);
   });
 
-  it("publishes a workspace before an explicit Multi selection", async () => {
+  it("reads a released Multi mode document beside a published workspace", async () => {
     const dir = await mkdtemp(join(tmpdir(), "gw-accounts-"));
     const workspacePath = join(dir, "multi", "workspace.json");
     const modePath = join(dir, "launcher-mode.json");
@@ -58,13 +57,9 @@ describe("Multiple Accounts documents", () => {
     });
     await saveMultiWorkspace(workspacePath, workspace);
     assert.equal(await loadAccountMode(modePath), "single");
-    await saveAccountMode(modePath, "multi");
+    await writeFile(modePath, JSON.stringify({ formatVersion: 1, mode: "multi" }));
     assert.equal(await loadAccountMode(modePath), "multi");
     assert.deepEqual(await loadMultiWorkspace(workspacePath), workspace);
-    assert.deepEqual(JSON.parse(await readFile(modePath, "utf8")), {
-      formatVersion: 1,
-      mode: "multi",
-    });
   });
 
   it("fails closed for corrupt or future documents", async () => {

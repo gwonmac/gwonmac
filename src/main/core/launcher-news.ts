@@ -269,10 +269,12 @@ export class LauncherNewsService {
     this.rebuildMaps();
   }
 
-  snapshot(track: "stable" | "beta", preferences: LauncherPreferences): LauncherNewsState {
+  snapshot(preferences: LauncherPreferences): LauncherNewsState {
     const now = (this.options.now ?? (() => new Date()))().getTime();
     const stories = this.raw
-      .filter((story) => story.channel !== "beta" || track === "beta")
+      // The app is Stable only. The news format still carries Beta stories,
+      // which older installs on the Beta track read; this app never shows them.
+      .filter((story) => story.channel !== "beta")
       // A finished event is no longer news; its post stays on the website.
       .filter((story) => !story.endsAt || Date.parse(story.endsAt) > now)
       .filter((story) => story.source === "launcher" ? preferences.content.reforgedNews : story.source === "event" ? preferences.content.eventNews : preferences.content.officialNews)

@@ -1,6 +1,6 @@
 // The transform that gives the client's mouse double-click flag its missing
-// byte. `internal/upstream/mouse-double-click.md` records why the flag exists
-// and why nothing writes it.
+// byte. The client carries the flag through its input record, but nothing in
+// the Emscripten glue writes it.
 //
 // Every module here is built in the test rather than read from a downloaded
 // client: game binaries are not committed, and the guards are what this file

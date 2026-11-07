@@ -87,11 +87,6 @@ import type {
 import type { CartographyMapKnowledge } from "./cartography-map-knowledge.js";
 import type { EnhancementSelection } from "./enhancement-contracts.js";
 import { RELEASE_REPO } from "./project-identity.js";
-import {
-  DEFAULT_UPDATE_TRACK,
-  UPDATE_TRACKS,
-  type UpdateTrack,
-} from "./release.js";
 import type {
   TradeEvent,
   TradeSearchRequest,
@@ -105,8 +100,6 @@ import type {
 } from "./trade-chat.js";
 
 export { RELEASE_REPO } from "./project-identity.js";
-export { DEFAULT_UPDATE_TRACK, UPDATE_TRACKS };
-export type { UpdateTrack };
 export type { TemplateExportEntry } from "./template-contracts.js";
 export type {
   AccountLaunchIssue,
@@ -504,12 +497,6 @@ export interface AppSettings {
   memoryWarningPosition: Readonly<{ x: number; y: number }> | null;
   showDiagnostics: boolean;
   /**
-   * Rollback-only storage field. Runtime behavior is always `full`; keeping
-   * this exact key lets the currently supported Stable release read a profile
-   * written by this version without restoring its first-run chooser.
-   */
-  dataStrategy: "full";
-  /**
    * Automatic release checks: one static channel request when no settled
    * attempt was recorded in the previous six hours, including across app
    * restarts. It is on by default so players stay current and declared plainly
@@ -517,13 +504,6 @@ export interface AppSettings {
    * opting out is one checkbox, honored forever.
    */
   autoCheckUpdates: boolean;
-  /**
-   * Which release stages the one release updater may discover. This is a
-   * preference inside the `release` distribution identity, not a package or
-   * Keychain identity. Stable is the safe default; Beta additionally admits
-   * beta and release-candidate builds, never alpha builds.
-   */
-  updateTrack: UpdateTrack;
   /**
    * When the last release-check attempt completed, in epoch milliseconds, or
    * `null` if one has never run. This records a settled attempt, not a claim
@@ -680,9 +660,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   autoRelogAfterReload: false,
   memoryWarningPosition: null,
   showDiagnostics: false,
-  dataStrategy: "full",
   autoCheckUpdates: true,
-  updateTrack: DEFAULT_UPDATE_TRACK,
   lastUpdateCheckAt: null,
   compatibilityNoticeSeenFor: null,
 };

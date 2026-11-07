@@ -366,7 +366,7 @@ jobs:
             cat evidence/carry-forward.md
             echo
             # shellcheck disable=SC2016
-            printf '%s\n' '`internal/upstream/recertify.md` owns any investigation.'
+            printf '%s\n' '`docs/recertify.md` owns any investigation.'
             printf '%s\n' 'Keep the official client playable and restore only the feature whose invariant failed.'
           } > tracking.md
           gh issue create --label client-recertification \

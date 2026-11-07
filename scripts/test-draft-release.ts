@@ -1,37 +1,23 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { createHash } from "node:crypto";
 import {
   existsSync,
   mkdirSync,
   mkdtempSync,
-  readFileSync,
   readdirSync,
   rmSync,
-  writeFileSync,
 } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { createInterface } from "node:readline/promises";
 import { pathToFileURL } from "node:url";
+import { RELEASE_REPO } from "../src/shared/project-identity.ts";
 import { macOSBundleVersions } from "./macos-version.ts";
-import {
-  checksumDigest,
-  parseVerificationRecord,
-  replaceVerificationRecord,
-  type ManualVerification,
-} from "./release-verification-record.ts";
 import { verifySignedApplication } from "./verify-signed-app.ts";
 
-const REPOSITORY = "Mat4m0/gwonmac";
 const PRODUCT = "Guild Wars Reforged";
 const DEFAULT_INSTALLED_APP = `/Applications/${PRODUCT}.app`;
-const DEFAULT_OFFICIAL_WASM = path.join(
-  os.homedir(),
-  "Library/Application Support/Guild Wars/game/artifacts/Gw.jspi.wasm",
-);
 
 export interface DraftRelease {
-  body: string;
   isDraft: boolean;
   isPrerelease: boolean;
   targetCommitish: string;
@@ -43,22 +29,16 @@ export interface ReleaseTag {
   prerelease: boolean;
 }
 
-export interface TestResult {
-  passed: boolean;
-  dmgResult: ManualVerification["dmgResult"];
-}
-
 export interface ReleaseTestDependencies {
   platform: NodeJS.Platform;
   arch: string;
   installedApp: string;
-  officialWasm: string;
   temporaryParent: string;
   run(command: string, args: readonly string[], cwd?: string): string;
   status(command: string, args: readonly string[]): number | null;
   verifyCandidate(application: string): void;
-  prompt(): Promise<TestResult>;
-  now(): Date;
+  /** Resolves true when the tester typed `pass`. */
+  prompt(): Promise<boolean>;
   log(message: string): void;
 }
 
@@ -70,7 +50,7 @@ function command(command: string, args: readonly string[], cwd?: string): string
   }).trim();
 }
 
-async function promptForResult(): Promise<TestResult> {
+async function promptForResult(): Promise<boolean> {
   const input = createInterface({ input: process.stdin, output: process.stdout });
   try {
     const result = (await input.question(
@@ -79,19 +59,7 @@ async function promptForResult(): Promise<TestResult> {
     if (result !== "pass" && result !== "fail") {
       throw new Error("result must be exactly 'pass' or 'fail'");
     }
-    if (result === "fail") return { passed: false, dmgResult: "Pending" };
-    const dmg = (await input.question(
-      "Type 'dmg' if the packaging checklist was required and passed; otherwise press Return: ",
-    )).trim();
-    if (dmg !== "" && dmg !== "dmg") {
-      throw new Error("DMG result must be 'dmg' or empty");
-    }
-    return {
-      passed: true,
-      dmgResult: dmg === "dmg"
-        ? "Passed"
-        : "Not required — no packaging-sensitive change",
-    };
+    return result === "pass";
   } finally {
     input.close();
   }
@@ -102,19 +70,17 @@ function productionDependencies(): ReleaseTestDependencies {
     platform: process.platform,
     arch: process.arch,
     installedApp: DEFAULT_INSTALLED_APP,
-    officialWasm: DEFAULT_OFFICIAL_WASM,
     temporaryParent: os.tmpdir(),
     run: command,
     status: (executable, args) => spawnSync(executable, args).status,
     verifyCandidate: (application) => verifySignedApplication("release", application),
     prompt: promptForResult,
-    now: () => new Date(),
     log: console.log,
   };
 }
 
 function gh(dependencies: ReleaseTestDependencies, args: readonly string[]): string {
-  return dependencies.run("gh", [...args, "--repo", REPOSITORY]);
+  return dependencies.run("gh", [...args, "--repo", RELEASE_REPO]);
 }
 
 function plist(
@@ -146,7 +112,6 @@ export function expectedAssets(version: string): string[] {
   const base = `Guild-Wars-Reforged-${version}-macOS-arm64`;
   return [
     `${base}.dmg`,
-    `${base}.spdx.json`,
     `${base}.zip`,
     "RELEASES.json",
     "SHA256SUMS.txt",
@@ -154,15 +119,11 @@ export function expectedAssets(version: string): string[] {
 }
 
 export function parseReleaseTestTag(tag: string): ReleaseTag {
-  const match = /^v(\d{4}\.\d{1,2}\.\d{1,2}(?:-(beta|rc)\.\d+)?)$/u.exec(tag);
+  const match = /^v((?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-(beta|rc)\.\d+)?)$/u.exec(tag);
   if (!match) {
-    throw new Error("tag must be a Stable, Beta, or RC release such as v2026.8.8");
+    throw new Error("tag must be a Stable, Beta, or RC release such as v1.0.0");
   }
   return { version: match[1]!, prerelease: match[2] !== undefined };
-}
-
-function sha256(file: string): string {
-  return createHash("sha256").update(readFileSync(file)).digest("hex");
 }
 
 function appIsRunning(dependencies: ReleaseTestDependencies): boolean {
@@ -170,17 +131,6 @@ function appIsRunning(dependencies: ReleaseTestDependencies): boolean {
     "pgrep",
     ["-f", `/${PRODUCT}\\.app/Contents/MacOS/${PRODUCT}`],
   ) === 0;
-}
-
-function systemDetails(
-  dependencies: ReleaseTestDependencies,
-): Pick<ManualVerification, "macModel" | "memory" | "macOSVersion"> {
-  const bytes = Number(dependencies.run("sysctl", ["-n", "hw.memsize"]));
-  return {
-    macModel: dependencies.run("sysctl", ["-n", "hw.model"]),
-    memory: `${Math.round(bytes / 1024 ** 3)} GB`,
-    macOSVersion: dependencies.run("sw_vers", ["-productVersion"]),
-  };
 }
 
 function readDraft(
@@ -192,7 +142,7 @@ function readDraft(
     "view",
     tag,
     "--json",
-    "body,isDraft,isPrerelease,targetCommitish,assets",
+    "isDraft,isPrerelease,targetCommitish,assets",
   ])) as DraftRelease;
 }
 
@@ -286,51 +236,18 @@ export async function runDraftReleaseTest(
     );
     dependencies.run("open", ["-n", candidate]);
     launched = true;
-    const result = await dependencies.prompt();
+    const passed = await dependencies.prompt();
     if (appIsRunning(dependencies)) {
       throw new Error(`Close ${PRODUCT} normally before completing the test`);
     }
-    if (!result.passed) {
+    if (!passed) {
       dependencies.log(
-        "Test failed. Verification remains Pending; the installed app was not changed.",
+        `Test failed. Do not publish ${tag}; the installed app was not changed.`,
       );
       return;
     }
-    if (!existsSync(dependencies.officialWasm)) {
-      throw new Error(`active official client is missing at ${dependencies.officialWasm}`);
-    }
-
-    const latest = readDraft(dependencies, tag);
-    assertDraftMetadata(tag, latest, releaseTag);
-    const record = parseVerificationRecord(latest.body);
-    const downloadedChecksums = readFileSync(
-      path.join(temporary, "SHA256SUMS.txt"),
-      "utf8",
-    ).trimEnd().split(/\r?\n/u);
-    if (
-      !record
-      || record.machine.targetCommit !== draft.targetCommitish
-      || record.machine.applicationVersion !== releaseTag.version
-      || record.machine.bundleVersion !== expectedBundle.buildVersion
-      || checksumDigest(record.machine.checksums) !== checksumDigest(downloadedChecksums)
-    ) {
-      throw new Error("draft Verification record changed or is missing");
-    }
-    const updatedBody = replaceVerificationRecord(latest.body, {
-      machine: record.machine,
-      manual: {
-        status: "Passed",
-        testedAt: dependencies.now().toISOString(),
-        ...systemDetails(dependencies),
-        arenaNetSha256: sha256(dependencies.officialWasm),
-        dmgResult: result.dmgResult,
-      },
-    });
-    const notes = path.join(temporary, "release-notes.md");
-    writeFileSync(notes, updatedBody);
-    gh(dependencies, ["release", "edit", tag, "--notes-file", notes]);
     dependencies.log(
-      `Recorded Passed verification for ${tag}. ${dependencies.installedApp} was never changed.`,
+      `Passed. Publish ${tag} on GitHub. ${dependencies.installedApp} was never changed.`,
     );
   } catch (error) {
     retainTemporary = launched;

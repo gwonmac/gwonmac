@@ -143,7 +143,7 @@ async function submit() {
                 <label>Type<select v-model="kind"><option value="problem">Problem</option><option value="idea">Idea</option><option value="other">Something else</option></select></label>
                 <label>Email (optional)<input v-model="email" type="email" autocomplete="email" placeholder="Only if you want an answer" /></label>
               </div>
-              <p class="feedback-note">Your message goes to the gwonmac team through Basin, a form service, together with your app version, update channel, and macOS version. Nothing else is sent.</p>
+              <p class="feedback-note">Your message goes to the gwonmac team through Basin, a form service, together with your app version and macOS version. Nothing else is sent.</p>
               <p v-if="state === 'failed'" class="inline-message" role="alert">Your message could not be sent. Check your connection and try again, or ask on Discord.</p>
               <div class="form-actions"><button type="submit" class="primary" :disabled="!feedback || state === 'sending'">{{ state === 'sending' ? 'Sending…' : 'Send' }}</button></div>
             </form>

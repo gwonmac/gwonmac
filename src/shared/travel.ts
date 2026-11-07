@@ -5,10 +5,7 @@
 import {
   travelDestination,
 } from "./travel-destinations.js";
-import {
-  travelMapIdForStableStorage,
-  travelMapIdFromReleasedStorage,
-} from "./travel-map-id.js";
+import { travelMapIdFromReleasedStorage } from "./travel-map-id.js";
 import {
   createTravelPreferences,
   parseTravelPreferencesPatch,
@@ -249,7 +246,7 @@ export function storeTravelShortcuts(
       && travelMapIdFromReleasedStorage(existing.mapId) === shortcut.mapId
       ? Object.freeze({ ...existing })
       : Object.freeze({
-          mapId: travelMapIdForStableStorage(shortcut.mapId),
+          mapId: shortcut.mapId,
           district: "international" as const,
           districtNumber: 0,
         });

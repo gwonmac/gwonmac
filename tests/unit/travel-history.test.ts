@@ -21,7 +21,7 @@ describe("Travel history", () => {
     assert.throws(() => recordVisitedTravel(history, 2_000), /not reviewed/u);
   });
 
-  it("reads and writes Piken through the Stable-compatible map ID", async () => {
+  it("reads the released Piken map ID and writes the corrected one", async () => {
     const dir = await mkdtemp(join(tmpdir(), "gw-travel-history-"));
     const path = join(dir, "travel-history.json");
     await writeFile(path, JSON.stringify({
@@ -34,7 +34,7 @@ describe("Travel history", () => {
     await store.record(characterA, 779);
     assert.deepEqual(JSON.parse(await readFile(path, "utf8")), {
       formatVersion: 2,
-      characters: { [characterA]: [778] },
+      characters: { [characterA]: [779] },
     });
   });
 

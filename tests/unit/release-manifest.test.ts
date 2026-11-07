@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { releaseManifest } from "../../scripts/release-manifest.ts";
+import { RELEASE_REPO_URL } from "../../src/shared/project-identity.ts";
 import { parseReleaseManifest } from "../../src/shared/release-manifest.ts";
 
 describe("Squirrel.Mac release manifest", () => {
@@ -15,7 +16,7 @@ describe("Squirrel.Mac release manifest", () => {
     assert.equal(manifest.tag, "v2026.7.0-beta.2");
     assert.equal(
       manifest.url,
-      "https://github.com/Mat4m0/gwonmac/releases/download/v2026.7.0-beta.2/Guild-Wars-Reforged-2026.7.0-beta.2-macOS-arm64.zip",
+      `${RELEASE_REPO_URL}/releases/download/v2026.7.0-beta.2/Guild-Wars-Reforged-2026.7.0-beta.2-macOS-arm64.zip`,
     );
   });
 

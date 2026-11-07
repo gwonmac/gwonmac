@@ -33,7 +33,6 @@ code section. Scan the module file bytes.
 | `wasmscan.py` | Decode instructions and find string, assertion, and byte-pattern references. |
 | `packet_builders.py` | Find client-to-server message builders by opcode. |
 | `gensyms.py` | Add recovered names and create string-reference data for analysis tools. |
-| `gwca_anchor_probe.py` | Check which source assertion anchors still identify one WASM function. |
 
 Example commands:
 
@@ -41,7 +40,6 @@ Example commands:
 python3 tools/wasmscan.py dist/Gw.jspi.wasm "!s_context"
 python3 tools/packet_builders.py dist/Gw.jspi.wasm 30 31 21
 python3 tools/gensyms.py dist/Gw.jspi.wasm build/
-python3 tools/gwca_anchor_probe.py path/to/GWCA/Source dist/Gw.jspi.wasm
 ```
 
 Use the message opcode as the stable search key. Do not use a function index as
@@ -71,6 +69,3 @@ The application owns the complete transform chain in
 `src/main/certification/client-module.ts`. Analysis output and
 `certificates/certified-client.json` do not grant runtime authority. See the
 [Enhancement runbook](../docs/enhancement-development.md) before a live run.
-
-Use [client research](../docs/client-research.md) to locate reference clones and
-discover live scenarios without building or launching the app.

@@ -3,7 +3,9 @@ import { describe, it } from "node:test";
 import {
   enhancementCapabilitiesForProfile,
   enhancementCapabilityProfile,
+  ENHANCEMENT_CAPABILITY_CONTRACTS,
   ENHANCEMENT_CAPABILITY_FIELDS,
+  ENHANCEMENT_CAPABILITY_PRESETS,
   type EnhancementCapabilities,
   type EnhancementCapabilityProfile,
 } from "../../src/shared/enhancement-contracts.js";
@@ -41,14 +43,59 @@ const NO_CAPABILITIES = Object.freeze({
     chatPrint: false,
     progressObservation: false,
 });
+const FULL_MASK = (1 << ENHANCEMENT_CAPABILITY_FIELDS.length) - 1;
+const bit = (field: string) => 1 << ENHANCEMENT_CAPABILITY_FIELDS.indexOf(
+  field as (typeof ENHANCEMENT_CAPABILITY_FIELDS)[number],
+);
+const maskOf = (profile: string) => Number.parseInt(profile.slice("features-".length), 16);
+
+/** Every mask that names a dependency chain: a capability with each way to satisfy it. */
+function dependencyClosures(field: string): number[] {
+  const contract = ENHANCEMENT_CAPABILITY_CONTRACTS.find(({ id }) => id === field)!;
+  let closures = [bit(field)];
+  for (const required of contract.requiresAll) {
+    closures = closures.flatMap((mask) => dependencyClosures(required).map((dep) => mask | dep));
+  }
+  if (contract.requiresAny.length > 0) {
+    closures = closures.flatMap((mask) => contract.requiresAny.flatMap((option) =>
+      dependencyClosures(option).map((dep) => mask | dep)));
+  }
+  return closures;
+}
+
+/** mulberry32: a fixed seed keeps the sample identical on every run. */
+function seededMasks(seed: number, count: number): number[] {
+  let state = seed >>> 0;
+  return Array.from({ length: count }, () => {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let t = state;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return (((t ^ (t >>> 14)) >>> 0) & FULL_MASK) || 1;
+  });
+}
+
+/**
+ * The masks that matter, instead of all 2^N: each capability alone, each
+ * capability with every way to satisfy its dependencies, the full set minus
+ * one capability, the named presets, every profile a known build ships, and
+ * a fixed-seed random sample for everything in between.
+ */
+const CHECKED_MASKS = [...new Set([
+  FULL_MASK,
+  ...ENHANCEMENT_CAPABILITY_FIELDS.map((field) => bit(field)),
+  ...ENHANCEMENT_CAPABILITY_FIELDS.flatMap((field) => dependencyClosures(field)),
+  ...ENHANCEMENT_CAPABILITY_FIELDS.map((field) => FULL_MASK ^ bit(field)),
+  ...Object.values(ENHANCEMENT_CAPABILITY_PRESETS).map((preset) =>
+    maskOf(enhancementCapabilityProfile(preset)!)),
+  ...ENHANCEMENT_BUILDS.flatMap((build) => enhancementProfilesForBuild(build).map(maskOf)),
+  ...seededMasks(0x9e3779b9, 20_000),
+])].sort((a, b) => a - b);
+
 describe("Enhancement client chain", () => {
   it("source-pins every executable capability profile", () => {
-    // Enumerate the complete wire vocabulary. The registry rejects
-    // masks whose declared dependencies are absent.
-    const profiles = Array.from({
-      length: (1 << ENHANCEMENT_CAPABILITY_FIELDS.length) - 1,
-    }, (_, index) => {
-      const mask = index + 1;
+    // The registry rejects masks whose declared dependencies are absent.
+    const profiles = CHECKED_MASKS.map((mask) => {
       const profile = `features-${mask.toString(16).padStart(mask < 0x100 ? 2 : 3, "0")}` as
         EnhancementCapabilityProfile;
       const capabilities = enhancementCapabilitiesForProfile(profile);

@@ -52,7 +52,6 @@ export const DEVELOPER_PACKAGE_FILES = Object.freeze([
   "/scripts/enhancements-live.ts",
   "/scripts/enhancements-live/scenarios.ts",
   "/scripts/enhancements-live/performance.ts",
-  "/scripts/enhancements-visual.ts",
 ]);
 
 export function assertRequiredPackageFiles(inventory: PackageInventory): void {

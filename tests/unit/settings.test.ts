@@ -107,11 +107,9 @@ describe("settings", () => {
       autoRelogAfterReload: false,
       memoryWarningPosition: null,
       showDiagnostics: false,
-      dataStrategy: "full",
       // Automatic app-update checks remain a separate preference from the
       // required ArenaNet game-data download.
       autoCheckUpdates: true,
-      updateTrack: "stable",
       lastUpdateCheckAt: null,
       // No client build has been warned about yet, so every build warns once.
       compatibilityNoticeSeenFor: null,
@@ -248,9 +246,7 @@ describe("settings", () => {
       autoRelogAfterReload: false,
       memoryWarningPosition: null,
       showDiagnostics: true,
-      dataStrategy: "full",
       autoCheckUpdates: true,
-      updateTrack: "stable",
       lastUpdateCheckAt: null,
       compatibilityNoticeSeenFor: null,
     });
@@ -404,19 +400,16 @@ describe("settings", () => {
     assert.equal("uiBorderWidth" in parseSettings({ uiBorderWidth: 4 }), false);
     assert.equal("uiRadius" in parseSettings({ uiRadius: 16 }), false);
     assert.equal("nativeCursor" in parseSettings({ nativeCursor: "yes" }), false);
-    assert.equal(parseSettings({ dataStrategy: null }).dataStrategy, "full");
-    assert.equal(parseSettings({ dataStrategy: "quick" }).dataStrategy, "full");
-    assert.equal(parseSettings({ dataStrategy: "full" }).dataStrategy, "full");
-    assert.throws(() => parseSettings({ dataStrategy: "automatic" }), AppError);
+    // Older apps wrote the retired game-data strategy; it is read and dropped.
+    assert.equal("dataStrategy" in parseSettings({ dataStrategy: "quick" }), false);
     assert.throws(() => parseSettings([]), AppError);
   });
 
   it("takes the update fields only in the shapes the renderer can produce", () => {
     assert.equal(parseSettings({ autoCheckUpdates: true }).autoCheckUpdates, true);
     assert.throws(() => parseSettings({ autoCheckUpdates: "yes" }), AppError);
-    assert.equal(parseSettings({ updateTrack: "stable" }).updateTrack, "stable");
-    assert.equal(parseSettings({ updateTrack: "beta" }).updateTrack, "beta");
-    assert.throws(() => parseSettings({ updateTrack: "alpha" }), AppError);
+    // Older apps wrote a Stable/Beta track. The app is Stable only and drops it.
+    assert.equal("updateTrack" in parseSettings({ updateTrack: "beta" }), false);
 
     assert.equal(parseSettings({ lastUpdateCheckAt: null }).lastUpdateCheckAt, null);
     assert.equal(parseSettings({ lastUpdateCheckAt: 0 }).lastUpdateCheckAt, 0);
@@ -474,7 +467,6 @@ describe("settings", () => {
       skillKeyBindings: [{ ...binding, input: { kind: "keyboard", code: "Unknown" } },
         ...skillKeyBindings.slice(1)],
     }), AppError);
-    assert.equal(parseSettings({ skillKeyBindings }).skillKeyLabelsEnabled, true);
     assert.equal(parseSettings({
       skillKeyBindings,
       skillKeyLabelsEnabled: false,
@@ -530,9 +522,7 @@ describe("settings", () => {
     assert.deepEqual(parseSettingsPatch({ lastUpdateCheckAt: 1_000 }), {
       lastUpdateCheckAt: 1_000,
     });
-    assert.deepEqual(parseSettingsPatch({ updateTrack: "beta" }), {
-      updateTrack: "beta",
-    });
+    assert.throws(() => parseSettingsPatch({ updateTrack: "beta" }), AppError);
     assert.throws(() => parseSettingsPatch({ mystery: true }), AppError);
     assert.throws(() => parseSettingsPatch({ touchMode: "dbltap" }), AppError);
     // A renderer that still names a retired key is a bug, not a migration.
@@ -681,7 +671,6 @@ describe("settings", () => {
       "compassRangeTheme",
       "compatibilityNoticeSeenFor",
       "controllerPromptStyle",
-      "dataStrategy",
       "effectTimersEnabled",
       "eliteMissionMapMarkers",
       "eliteSkillsEnabled",
@@ -708,7 +697,6 @@ describe("settings", () => {
       "skillKeyBindings",
       "skillKeyLabelsEnabled",
       "targetReadout",
-      "teamManagement",
       "tradeChat",
       "travelPalette",
       "travelShortcuts",
@@ -717,12 +705,10 @@ describe("settings", () => {
       "uiPanelOpacity",
       "uiStyle",
       "uiTextSize",
-      "updateTrack",
       "whispersEnabled",
       "xunlaiStorage",
     ]);
     assert.equal(disk.formatVersion, 1);
-    assert.equal(disk.teamManagement, saved.buildLibrary);
   });
 
   it("preserves the legacy Apply Team opt-out without restoring a second setting", () => {
@@ -746,19 +732,6 @@ describe("settings", () => {
       () => parseSettings({ teamManagement: "false" }),
       /settings\.teamManagement must be a boolean/u,
     );
-  });
-
-  it("writes the legacy Apply Team projection for Stable rollback", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "gw-settings-"));
-    const path = join(dir, "settings.json");
-    const settings = { ...DEFAULT_SETTINGS, gwonmacTools: true, buildLibrary: false };
-
-    assert.deepEqual(await saveSettings(path, settings), settings);
-    const disk = JSON.parse(await readFile(path, "utf8")) as Record<string, unknown>;
-    assert.equal(disk.buildLibrary, false);
-    assert.equal(disk.teamManagement, false);
-    assert.equal("teamManagement" in await loadSettings(path), false);
-    assert.equal((await loadSettings(path)).buildLibrary, false);
   });
 
   it("loads an alpha-written bare-JSON file with every value intact", async () => {
@@ -856,13 +829,11 @@ describe("settings", () => {
       autoRelogAfterReload: false,
       memoryWarningPosition: null,
       showDiagnostics: true,
-      dataStrategy: "full",
       // Fields that alpha never wrote arrive at their defaults — deliberately
       // including the update check, which defaults on. A profile that never
       // stored the setting inherits the current default; an explicit opt-out
       // remains false on the ordinary parse path.
       autoCheckUpdates: true,
-      updateTrack: "stable",
       lastUpdateCheckAt: null,
       compatibilityNoticeSeenFor: null,
     });
@@ -877,13 +848,12 @@ describe("settings", () => {
     assert.deepEqual(rewritten, {
       formatVersion: 1,
       ...loaded,
-      teamManagement: loaded.buildLibrary,
     });
     assert.equal("touchMode" in rewritten, false);
     assert.deepEqual(await loadSettings(path), loaded);
   });
 
-  it("preserves released district shortcuts for Stable rollback compatibility", async () => {
+  it("reads and keeps released district shortcuts", async () => {
     const dir = await mkdtemp(join(tmpdir(), "gw-settings-"));
     const path = join(dir, "settings.json");
     await writeFile(path, JSON.stringify({

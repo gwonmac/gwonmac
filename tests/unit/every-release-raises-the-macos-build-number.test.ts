@@ -32,18 +32,18 @@ function compareBundleVersions(a: string, b: string): number {
 }
 
 // Publication order, oldest first: the prerelease channels of one release, then
-// a patch inside the month, then the next month, then the next year.
+// a patch, then the next minor, then the next major.
 const LADDER = [
-  "2026.7.0-alpha.1",
-  "2026.7.0-alpha.2",
-  "2026.7.0-beta.1",
-  "2026.7.0-rc.1",
-  "2026.7.0",
-  "2026.7.1-alpha.1",
-  "2026.7.1",
-  "2026.8.0",
-  "2027.1.0",
-  "2099.12.99",
+  "1.0.0-alpha.1",
+  "1.0.0-alpha.2",
+  "1.0.0-beta.1",
+  "1.0.0-rc.1",
+  "1.0.0",
+  "1.0.1-alpha.1",
+  "1.0.1",
+  "1.1.0",
+  "2.0.0",
+  "99.99.99",
 ];
 
 describe("the macOS build number derived from a release version", () => {
@@ -73,55 +73,53 @@ describe("the macOS build number derived from a release version", () => {
     }
   });
 
-  it("maps the calendar and the channel onto Apple's 4/2/2 digits", () => {
-    assert.deepEqual(macOSBundleVersions("2026.7.0-alpha.1"), {
-      appVersion: "2026.7.0",
-      buildVersion: "2607.0.1",
+  it("maps the version and the channel onto Apple's 4/2/2 digits", () => {
+    assert.deepEqual(macOSBundleVersions("1.0.0-alpha.1"), {
+      appVersion: "1.0.0",
+      buildVersion: "100.0.1",
     });
-    assert.deepEqual(macOSBundleVersions("2026.7.0-beta.1"), {
-      appVersion: "2026.7.0",
-      buildVersion: "2607.0.31",
+    assert.deepEqual(macOSBundleVersions("1.0.0-beta.1"), {
+      appVersion: "1.0.0",
+      buildVersion: "100.0.31",
     });
-    assert.deepEqual(macOSBundleVersions("2026.7.0-rc.1"), {
-      appVersion: "2026.7.0",
-      buildVersion: "2607.0.61",
+    assert.deepEqual(macOSBundleVersions("1.0.0-rc.1"), {
+      appVersion: "1.0.0",
+      buildVersion: "100.0.61",
     });
-    assert.deepEqual(macOSBundleVersions("2026.7.0"), {
-      appVersion: "2026.7.0",
-      buildVersion: "2607.0.99",
+    assert.deepEqual(macOSBundleVersions("1.0.0"), {
+      appVersion: "1.0.0",
+      buildVersion: "100.0.99",
     });
-    assert.deepEqual(macOSBundleVersions("2026.7.1"), {
-      appVersion: "2026.7.1",
-      buildVersion: "2607.1.99",
+    assert.deepEqual(macOSBundleVersions("1.0.1"), {
+      appVersion: "1.0.1",
+      buildVersion: "100.1.99",
     });
-    assert.deepEqual(macOSBundleVersions("2026.12.0"), {
-      appVersion: "2026.12.0",
-      buildVersion: "2612.0.99",
+    assert.deepEqual(macOSBundleVersions("1.12.0"), {
+      appVersion: "1.12.0",
+      buildVersion: "112.0.99",
     });
     // Every component stays inside Apple's limits at the far end of the scheme.
-    assert.deepEqual(macOSBundleVersions("2099.12.99-rc.29"), {
-      appVersion: "2099.12.99",
-      buildVersion: "9912.99.89",
+    assert.deepEqual(macOSBundleVersions("99.99.99-rc.29"), {
+      appVersion: "99.99.99",
+      buildVersion: "9999.99.89",
     });
   });
 
-  it("refuses anything that is not a calendar release in SemVer syntax", () => {
+  it("refuses anything that is not a SemVer release this app can publish", () => {
     for (const version of [
-      "2026.07.01", // leading zeroes: not a SemVer version at all
-      "2026.7.01",
-      "1.2.3", // the old scheme; (year - 2000) would go negative
-      "1999.7.0",
-      "2100.1.0", // past four digits of release line
-      "2026.13.0", // not a month
-      "2026.0.0",
-      "2026.7.100", // past two digits of patch
-      "2026.7.0-alpha.30", // past two digits once the stage is added
-      "2026.7.0-alpha", // the workflow always publishes a sequence
-      "2026.7.0-dev.1",
-      "2026.7.0+20260726",
-      "v2026.7.0", // package.json carries the version, not the tag
-      "2026.7",
-      " 2026.7.0",
+      "1.07.1", // leading zeroes: not a SemVer version at all
+      "1.0.01",
+      "0.9.0", // major 0 would map below the published alpha's 1.1.1
+      "100.0.0", // past four digits of release line
+      "1.100.0", // past two digits of minor
+      "1.0.100", // past two digits of patch
+      "1.0.0-alpha.30", // past two digits once the stage is added
+      "1.0.0-alpha", // the workflow always publishes a sequence
+      "1.0.0-dev.1",
+      "1.0.0+20260726",
+      "v1.0.0", // package.json carries the version, not the tag
+      "1.0",
+      " 1.0.0",
       "",
     ]) {
       assert.throws(

@@ -14,10 +14,7 @@ import {
   type TravelHistory,
   type TravelHistoryDocument,
 } from "../../shared/travel-history.js";
-import {
-  travelMapIdForStableStorage,
-  travelMapIdFromReleasedStorage,
-} from "../../shared/travel-map-id.js";
+import { travelMapIdFromReleasedStorage } from "../../shared/travel-map-id.js";
 import { writeAtomicJson } from "./atomic-file.js";
 import { quarantineCorruptDocument } from "./corrupt-document.js";
 
@@ -52,16 +49,6 @@ function runtimeHistory(value: unknown): unknown {
             : mapId)
         : history,
     ])),
-  };
-}
-
-function storedHistory(document: TravelHistoryDocument): TravelHistoryDocument {
-  return {
-    ...document,
-    characters: Object.fromEntries(Object.entries(document.characters).map(([key, history]) => [
-      key,
-      history.map(travelMapIdForStableStorage),
-    ])) as Record<TravelCharacterKey, TravelHistory>,
   };
 }
 
@@ -111,7 +98,7 @@ export class TravelHistoryStore {
       );
       await writeAtomicJson(
         this.#path,
-        storedHistory(updateCharacter(document, characterKey, next)),
+        updateCharacter(document, characterKey, next),
       );
       return next;
     });

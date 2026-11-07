@@ -41,8 +41,7 @@ test("recognises the two template kinds and nothing else", () => {
 
 test("reads the file the game itself writes", () => {
   // One code, no trailing newline, name carried by the filename. The folder it
-  // came from survives in the name, never as a directory: defect 8 in
-  // internal/upstream/upstream-defects.md is that the client's scan never
+  // came from survives in the name, never as a directory: the client's scan never
   // enumerates a subdirectory, so a template placed in one is never listed.
   const parse = parseTemplateSource(SKILLS, {
     sourceName: sourceNameFromFileName("Shockaxe.txt"),

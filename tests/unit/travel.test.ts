@@ -100,7 +100,7 @@ describe("Travel", () => {
     )), false);
   });
 
-  it("keeps Stable-readable shortcut fields on disk while runtime stays map-only", () => {
+  it("reads released shortcut fields while runtime stays map-only", () => {
     const stored = [
       { mapId: 778, district: "europe-english" as const, districtNumber: 2 },
       null,
@@ -115,7 +115,7 @@ describe("Travel", () => {
       { mapId: 778, district: "europe-english", districtNumber: 2 },
       null, null, null, null, null, null, null, null,
     ]);
-    assert.equal(storeTravelShortcuts(runtime, [])[0]?.mapId, 778);
+    assert.equal(storeTravelShortcuts(runtime, [])[0]?.mapId, PIKEN_SQUARE_PRE_SEARING_MAP_ID);
   });
 
   it("resolves only catalogue map ids", () => {

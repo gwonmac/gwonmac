@@ -11,7 +11,7 @@ import type {
   AppUpdateState,
 } from "../../src/shared/contracts.ts";
 import {
-  APP_UPDATE_FEED_URLS,
+  APP_UPDATE_FEED_URL,
   releaseAssetUrl,
 } from "../../src/shared/project-identity.ts";
 
@@ -53,9 +53,9 @@ function fixture(options: {
   let nativeChecks = 0;
   let installs = 0;
   const updater = new AppUpdater({
-    currentVersion: options.currentVersion ?? "2026.7.0-beta.1",
+    currentVersion: options.currentVersion ?? "1.0.0",
     capable: options.capable ?? true,
-    fetch: options.fetch ?? (async () => response(manifest("2026.7.0-beta.2"))),
+    fetch: options.fetch ?? (async () => response(manifest("1.0.1"))),
     now: () => 1234,
     ...(options.timeoutMs === undefined
       ? {}
@@ -92,22 +92,18 @@ function fixture(options: {
 }
 
 describe("application updater", () => {
-  it("reads exactly one static manifest for the selected channel", async () => {
-    for (const track of ["stable", "beta"] as const) {
-      const requests: string[] = [];
-      const version = track === "stable" ? "2026.7.0" : "2026.8.0-beta.1";
-      const f = fixture({
-        currentVersion: "2026.6.0",
-        fetch: async (input) => {
-          requests.push(String(input));
-          return response(manifest(version));
-        },
-      });
-      await f.updater.check(track);
-      assert.deepEqual(requests, [APP_UPDATE_FEED_URLS[track]]);
-      assert.deepEqual(f.feeds, [releaseAssetUrl(`v${version}`, "RELEASES.json")]);
-      assert.equal(f.nativeChecks(), 1);
-    }
+  it("reads exactly one static manifest", async () => {
+    const requests: string[] = [];
+    const f = fixture({
+      fetch: async (input) => {
+        requests.push(String(input));
+        return response(manifest("1.0.1"));
+      },
+    });
+    await f.updater.check();
+    assert.deepEqual(requests, [APP_UPDATE_FEED_URL]);
+    assert.deepEqual(f.feeds, [releaseAssetUrl("v1.0.1", "RELEASES.json")]);
+    assert.equal(f.nativeChecks(), 1);
   });
 
   it("makes no request and reports unavailable without the signed marker", async () => {
@@ -116,14 +112,14 @@ describe("application updater", () => {
       capable: false,
       fetch: async () => {
         requests += 1;
-        return response(manifest("2026.7.0"));
+        return response(manifest("1.0.1"));
       },
     });
-    await f.updater.check("stable");
+    await f.updater.check();
     assert.equal(requests, 0);
     assert.deepEqual(f.updater.getState(), {
       phase: "failed",
-      currentVersion: "2026.7.0-beta.1",
+      currentVersion: "1.0.0",
       lastCheckedAt: "1970-01-01T00:00:01.234Z",
       reason: "updater-unavailable",
     });
@@ -132,7 +128,7 @@ describe("application updater", () => {
 
   it("validates before asking Squirrel to download and installs once", async () => {
     const f = fixture();
-    await f.updater.check("beta");
+    await f.updater.check();
     assert.deepEqual(f.remembered, [1234]);
     assert.equal(f.updater.getState().phase, "downloading");
     f.updater.updateDownloaded();
@@ -151,7 +147,7 @@ describe("application updater", () => {
       { checkForUpdates: () => { throw new Error("download refused"); } },
     ]) {
       const f = fixture({ native });
-      await f.updater.check("beta");
+      await f.updater.check();
       const state = f.updater.getState();
       assert.equal(state.phase === "failed" && state.reason, "download-failed");
       f.updater.updateDownloaded();
@@ -167,7 +163,7 @@ describe("application updater", () => {
         if (event === "failed") f.updater.updateFailed();
         else f.updater.updateDownloaded();
       };
-      await f.updater.check("beta");
+      await f.updater.check();
       assert.equal(f.updater.getState().phase, event);
       assert.equal(f.nativeChecks(), 0);
     }
@@ -177,7 +173,7 @@ describe("application updater", () => {
     const f = fixture({
       native: { quitAndInstall: () => { throw new Error("install refused"); } },
     });
-    await f.updater.check("beta");
+    await f.updater.check();
     f.updater.updateDownloaded();
     assert.equal(f.updater.quitAndInstall(), false);
     assert.equal(f.updater.quitAndInstall(), false);
@@ -196,98 +192,71 @@ describe("application updater", () => {
         return pending;
       },
     });
-    const first = f.updater.check("beta");
-    const second = f.updater.check("beta");
-    resolve(response(manifest("2026.7.0-beta.2")));
+    const first = f.updater.check();
+    const second = f.updater.check();
+    resolve(response(manifest("1.0.1")));
     await Promise.all([first, second]);
     assert.equal(requests, 1);
     assert.equal(f.nativeChecks(), 1);
   });
 
-  it("captures the selected track for an in-flight check", async () => {
-    let resolve!: (value: Response) => void;
-    const pending = new Promise<Response>((done) => {
-      resolve = done;
-    });
-    const f = fixture({ currentVersion: "2026.7.0", fetch: async () => pending });
-    const stable = f.updater.check("stable");
-    const changed = f.updater.check("beta");
-    resolve(response(manifest("2026.8.0-beta.1")));
-    await Promise.all([stable, changed]);
-    assert.equal(f.updater.getState().phase, "failed");
-    assert.equal(f.nativeChecks(), 0);
-  });
-
-  it("keeps Stable off prereleases and Beta off alpha", async () => {
-    for (const [track, version] of [
-      ["stable", "2026.8.0-beta.1"],
-      ["beta", "2026.8.0-alpha.1"],
+  it("offers only stable releases from the feed", async () => {
+    for (const [version, offered] of [
+      ["1.1.0-alpha.1", false],
+      ["1.1.0-beta.1", false],
+      ["1.1.0-rc.1", false],
+      ["1.1.0", true],
     ] as const) {
-      const f = fixture({
-        currentVersion: "2026.7.0",
-        fetch: async () => response(manifest(version)),
-      });
-      await f.updater.check(track);
-      assert.equal(f.updater.getState().phase, "failed");
-      assert.equal(f.nativeChecks(), 0);
-    }
-  });
-
-  it("offers Stable, Beta, and RC through their admitted tracks", async () => {
-    for (const [track, version] of [
-      ["stable", "2026.8.0"],
-      ["beta", "2026.8.0-beta.1"],
-      ["beta", "2026.8.0-rc.1"],
-      ["beta", "2026.8.0"],
-    ] as const) {
-      const f = fixture({
-        currentVersion: "2026.7.0",
-        fetch: async () => response(manifest(version)),
-      });
-      await f.updater.check(track);
+      const f = fixture({ fetch: async () => response(manifest(version)) });
+      await f.updater.check();
       const state = f.updater.getState();
-      assert.equal(state.phase === "downloading" && state.latestVersion, version);
+      if (offered) {
+        assert.equal(state.phase === "downloading" && state.latestVersion, version);
+      } else {
+        assert.equal(state.phase === "failed" && state.reason, "feed-invalid");
+        assert.equal(f.nativeChecks(), 0);
+      }
     }
   });
 
-  it("returns from a newer beta to an older Stable only by manual install", async () => {
+  it("returns from a newer prerelease to an older Stable only by manual install", async () => {
     const f = fixture({
-      currentVersion: "2026.8.0-beta.1",
-      fetch: async () => response(manifest("2026.7.0")),
+      currentVersion: "1.1.0-beta.1",
+      fetch: async () => response(manifest("1.0.1")),
     });
-    await f.updater.check("stable");
+    await f.updater.check();
     assert.deepEqual(f.updater.getState(), {
       phase: "manual-stable-return",
-      currentVersion: "2026.8.0-beta.1",
+      currentVersion: "1.1.0-beta.1",
       checkedAt: "1970-01-01T00:00:01.234Z",
-      stableVersion: "2026.7.0",
+      stableVersion: "1.0.1",
     });
     assert.equal(f.nativeChecks(), 0);
   });
 
-  it("reports the selected channel version when already current", async () => {
+  it("reports the feed version when already current", async () => {
     const f = fixture({
-      currentVersion: "2026.7.0",
-      fetch: async () => response(manifest("2026.7.0")),
+      currentVersion: "1.0.1",
+      fetch: async () => response(manifest("1.0.1")),
     });
-    await f.updater.check("stable");
+    await f.updater.check();
     assert.deepEqual(f.updater.getState(), {
       phase: "up-to-date",
-      currentVersion: "2026.7.0",
-      latestVersion: "2026.7.0",
+      currentVersion: "1.0.1",
+      latestVersion: "1.0.1",
       checkedAt: "1970-01-01T00:00:01.234Z",
     });
   });
 
   it("fails closed for malformed or retargeted channel documents", async () => {
     for (const body of [
-      { ...manifest("2026.7.0-beta.2"), extra: true },
-      { ...manifest("2026.7.0-beta.2"), tag: "v2026.9.0" },
-      { ...manifest("2026.7.0-beta.2"), url: "https://attacker.invalid/app.zip" },
-      { ...manifest("2026.7.0-beta.2"), pub_date: "yesterday" },
+      { ...manifest("1.0.1"), extra: true },
+      { ...manifest("1.0.1"), tag: "v1.9.0" },
+      { ...manifest("1.0.1"), url: "https://attacker.invalid/app.zip" },
+      { ...manifest("1.0.1"), pub_date: "yesterday" },
     ]) {
       const f = fixture({ fetch: async () => response(body) });
-      await f.updater.check("beta");
+      await f.updater.check();
       const state = f.updater.getState();
       assert.equal(state.phase === "failed" && state.reason, "feed-invalid");
       assert.equal(f.nativeChecks(), 0);
@@ -307,7 +276,7 @@ describe("application updater", () => {
     ];
     for (const testCase of cases) {
       const f = fixture({ fetch: testCase.fetch });
-      await f.updater.check("beta");
+      await f.updater.check();
       const state = f.updater.getState();
       assert.equal(state.phase === "failed" && state.reason, testCase.reason);
       assert.notEqual(state.phase, "up-to-date");
@@ -321,7 +290,7 @@ describe("application updater", () => {
         init?.signal?.addEventListener("abort", () => reject(new Error("aborted")));
       }),
     });
-    await f.updater.check("beta");
+    await f.updater.check();
     assert.deepEqual(f.failures, ["timeout"]);
     const state = f.updater.getState();
     assert.equal(state.phase === "failed" && state.reason, "timeout");
@@ -329,16 +298,16 @@ describe("application updater", () => {
 
   it("does not duplicate work while downloading or ready", async () => {
     const f = fixture();
-    await f.updater.check("beta");
-    await f.updater.check("beta");
+    await f.updater.check();
+    await f.updater.check();
     f.updater.updateDownloaded();
-    await f.updater.check("beta");
+    await f.updater.check();
     assert.equal(f.nativeChecks(), 1);
   });
 
   it("treats Squirrel refusing a prevalidated upgrade as a feed failure", async () => {
     const f = fixture();
-    await f.updater.check("beta");
+    await f.updater.check();
     f.updater.updateNotAvailable();
     const state = f.updater.getState();
     assert.equal(state.phase === "failed" && state.reason, "feed-invalid");

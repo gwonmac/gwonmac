@@ -199,7 +199,6 @@ export interface LauncherSettings {
   readonly uiPanelOpacity: AppSettings["uiPanelOpacity"];
   readonly controllerPromptStyle: AppSettings["controllerPromptStyle"];
   readonly autoCheckUpdates: boolean;
-  readonly updateTrack: AppSettings["updateTrack"];
   readonly renderScale: AppSettings["renderScale"];
   readonly extendedMemoryEnabled: boolean;
   readonly showDiagnostics: boolean;
@@ -450,7 +449,7 @@ export function parseLauncherNewsId(value: unknown): string {
 export function parseLauncherSettingsPatch(value: unknown): LauncherSettingsPatch {
   const source = exactObject(value, [
     "uiStyle", "uiFont", "uiCustomTheme", "uiPanelOpacity", "uiTextSize", "controllerPromptStyle",
-    "autoCheckUpdates", "updateTrack", "renderScale", "extendedMemoryEnabled", "showDiagnostics",
+    "autoCheckUpdates", "renderScale", "extendedMemoryEnabled", "showDiagnostics",
     "autoRelogAfterReload", "characterSwitchProfession", "characterSwitchLevel",
     "characterSwitchLocation", "skillKeyBindings", "skillCooldownColor", "alcoholTimerPosition",
     "chatFilterAllyDrops", "chatFilterHallOfHeroes", "chatFilterTitleAchievements",
@@ -514,10 +513,6 @@ export function parseLauncherSettingsPatch(value: unknown): LauncherSettingsPatc
   if (source.skillCooldownColor !== undefined) {
     if (!isSkillCooldownColor(source.skillCooldownColor)) throw new Error("Cooldown color is invalid");
     result.skillCooldownColor = cloneSkillCooldownColor(source.skillCooldownColor);
-  }
-  if (source.updateTrack !== undefined) {
-    if (source.updateTrack !== "stable" && source.updateTrack !== "beta") throw new Error("update track is invalid");
-    result.updateTrack = source.updateTrack;
   }
   if (source.renderScale !== undefined) {
     if (

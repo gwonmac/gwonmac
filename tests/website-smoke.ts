@@ -3,7 +3,7 @@ import { spawn } from "node:child_process";
 import { once } from "node:events";
 import { createServer } from "node:net";
 import { fileURLToPath } from "node:url";
-import { RELEASE_REPO } from "../src/shared/project-identity.ts";
+import { RELEASE_REPO, RELEASE_REPO_URL } from "../src/shared/project-identity.ts";
 import {
   RELEASES_FALLBACK_URL,
   selectLatestRelease,
@@ -17,18 +17,18 @@ import { stopChildProcess } from "./helpers/child-process.ts";
 const ARM64_DMG = {
   name: "Guild-Wars-Reforged-0.0.3-macOS-arm64.dmg",
   browser_download_url:
-    "https://github.com/Mat4m0/gwonmac/releases/download/v0.0.3/Guild-Wars-Reforged-0.0.3-macOS-arm64.dmg",
+    `${RELEASE_REPO_URL}/releases/download/v0.0.3/Guild-Wars-Reforged-0.0.3-macOS-arm64.dmg`,
 };
 const RELEASES_URL = `https://github.com/${RELEASE_REPO}/releases`;
 const CHECKSUMS = {
   name: "SHA256SUMS.txt",
   browser_download_url:
-    "https://github.com/Mat4m0/gwonmac/releases/download/v0.0.3/SHA256SUMS.txt",
+    `${RELEASE_REPO_URL}/releases/download/v0.0.3/SHA256SUMS.txt`,
 };
 const SBOM = {
   name: "Guild-Wars-Reforged-0.0.3-macOS-arm64.spdx.json",
   browser_download_url:
-    "https://github.com/Mat4m0/gwonmac/releases/download/v0.0.3/Guild-Wars-Reforged-0.0.3-macOS-arm64.spdx.json",
+    `${RELEASE_REPO_URL}/releases/download/v0.0.3/Guild-Wars-Reforged-0.0.3-macOS-arm64.spdx.json`,
 };
 const STABLE = {
   tag_name: "v0.0.3",
@@ -39,7 +39,7 @@ const STABLE = {
 const ALPHA_ARM64_DMG = {
   name: "Guild-Wars-Reforged-0.0.4-alpha.1-macOS-arm64.dmg",
   browser_download_url:
-    "https://github.com/Mat4m0/gwonmac/releases/download/v0.0.4-alpha.1/Guild-Wars-Reforged-0.0.4-alpha.1-macOS-arm64.dmg",
+    `${RELEASE_REPO_URL}/releases/download/v0.0.4-alpha.1/Guild-Wars-Reforged-0.0.4-alpha.1-macOS-arm64.dmg`,
 };
 const ALPHA = {
   tag_name: "v0.0.4-alpha.1",
@@ -50,7 +50,7 @@ const ALPHA = {
 const BETA_ARM64_DMG = {
   name: "Guild-Wars-Reforged-0.0.4-beta.1-macOS-arm64.dmg",
   browser_download_url:
-    "https://github.com/Mat4m0/gwonmac/releases/download/v0.0.4-beta.1/Guild-Wars-Reforged-0.0.4-beta.1-macOS-arm64.dmg",
+    `${RELEASE_REPO_URL}/releases/download/v0.0.4-beta.1/Guild-Wars-Reforged-0.0.4-beta.1-macOS-arm64.dmg`,
 };
 const BETA = {
   tag_name: "v0.0.4-beta.1",
@@ -61,7 +61,7 @@ const BETA = {
 const RC_ARM64_DMG = {
   name: "Guild-Wars-Reforged-0.0.4-rc.1-macOS-arm64.dmg",
   browser_download_url:
-    "https://github.com/Mat4m0/gwonmac/releases/download/v0.0.4-rc.1/Guild-Wars-Reforged-0.0.4-rc.1-macOS-arm64.dmg",
+    `${RELEASE_REPO_URL}/releases/download/v0.0.4-rc.1/Guild-Wars-Reforged-0.0.4-rc.1-macOS-arm64.dmg`,
 };
 const RC = {
   tag_name: "v0.0.4-rc.1",
@@ -77,7 +77,7 @@ const SNAPSHOTS = Array.from({ length: 25 }, (_, index) => ({
   assets: [{
     name: `Guild-Wars-Reforged-abcdef${index % 10}-macOS-arm64.zip`,
     browser_download_url:
-      `https://github.com/Mat4m0/gwonmac/releases/download/snapshot-${index + 1}/snapshot.zip`,
+      `${RELEASE_REPO_URL}/releases/download/snapshot-${index + 1}/snapshot.zip`,
   }],
 }));
 
@@ -100,7 +100,7 @@ assert.deepEqual(
       ...ARM64_DMG,
       name: "unrelated-arm64.dmg",
       browser_download_url:
-        "https://github.com/Mat4m0/gwonmac/releases/download/v0.0.3/unrelated-arm64.dmg",
+        `${RELEASE_REPO_URL}/releases/download/v0.0.3/unrelated-arm64.dmg`,
     }],
   }], "stable"),
   FALLBACK,
@@ -182,7 +182,7 @@ assert.deepEqual(selectLatestRelease([BETA, RC], "stable"), FALLBACK);
 const NEWER_ARM64_DMG = {
   name: "Guild-Wars-Reforged-2026.8.0-macOS-arm64.dmg",
   browser_download_url:
-    "https://github.com/Mat4m0/gwonmac/releases/download/v2026.8.0/Guild-Wars-Reforged-2026.8.0-macOS-arm64.dmg",
+    `${RELEASE_REPO_URL}/releases/download/v2026.8.0/Guild-Wars-Reforged-2026.8.0-macOS-arm64.dmg`,
 };
 const NEWER_STABLE = {
   tag_name: "v2026.8.0",

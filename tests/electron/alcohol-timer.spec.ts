@@ -18,9 +18,6 @@ async function showTimer(page: Page) {
       await window.gwNative.settings.set({ alcoholTimerPosition: value });
       window.alcoholFixture.setSettings(value, true);
     });
-    window.alcoholFixture.setGeometry({ status: "ready", sequence: 2, generation: 1, frameId: 1,
-      viewportWidth: 1000, viewportHeight: 800, anchor: { left: 100, right: 700, bottom: 300, top: 750 },
-      icons: [{ skillId: 1, left: 100, right: 150, bottom: 700, top: 750 }] });
     window.alcoholFixture.setSettings((await window.gwNative.settings.get()).alcoholTimerPosition, true);
     window.alcoholFixture.setAlcohol({ status: "ready", sequence: 2, gameTimer: 0, remainingMs: 123000 });
     canvas.focus();
@@ -57,15 +54,6 @@ test("timer dragging, cancellation, stable corner, locking and reload", async ()
     await page.mouse.move(h.x + 8, h.y + 8); await page.mouse.down(); await page.mouse.move(h.x + 68, h.y + 38); await page.mouse.up();
     const dragged = (await root.boundingBox())!; expect(dragged.x).toBeCloseTo(keyboard.x + 60, 0);
     await page.waitForTimeout(150);
-    await page.evaluate(() => window.alcoholFixture.setGeometry({ status: "ready", sequence: 4, generation: 1, frameId: 1,
-      viewportWidth: 1000, viewportHeight: 800, anchor: { left: 200, right: 800, bottom: 300, top: 750 },
-      icons: [{ skillId: 1, left: 200, right: 250, bottom: 700, top: 750 }] }));
-    expect(await root.boundingBox()).toEqual(dragged);
-    await page.evaluate(() => window.alcoholFixture.setGeometry({ status: "ready", sequence: 6, generation: 1, frameId: 1,
-      viewportWidth: 1000, viewportHeight: 800, anchor: { left: 200, right: 800, bottom: 300, top: 750 }, icons: [] }));
-    expect(await root.boundingBox()).toEqual(dragged);
-    await page.evaluate(() => window.alcoholFixture.setGeometry({ status: "waiting", reason: "memory" }));
-    expect(await root.boundingBox()).toEqual(dragged);
     await root.getByRole("button", { name: "Lock alcohol timer position" }).click();
     await expect.poll(() => page.evaluate(async () => (await window.gwNative.settings.get()).alcoholTimerPosition.locked)).toBe(true);
     await expect(handle).toBeDisabled();
@@ -120,27 +108,6 @@ test("timer picks the bottom-right corner and preserves gaps through resize and 
       window.alcoholFixture.setAlcohol({ status: "ready", sequence: 4, gameTimer: 0, remainingMs: 0 });
     });
     expect(await root.boundingBox()).toEqual(smaller);
-  } finally { await closeOffline(fixture); }
-});
-
-test("legacy Effects offsets migrate once without following later effect rows", async () => {
-  const fixture = await launchOffline("gw-alcohol-migration-");
-  try {
-    const { page } = fixture;
-    await page.evaluate(() => window.gwNative.settings.set({ alcoholTimerPosition: { x: 20, y: 10, locked: true } }));
-    await showTimer(page);
-    const root = page.locator("#alcohol-timer-overlay");
-    const bounds = (await page.locator("#canvas").boundingBox())!;
-    const migrated = (await root.boundingBox())!;
-    expect(migrated.x).toBeCloseTo(bounds.x + bounds.width * 120 / 1000, 0);
-    expect(migrated.y).toBeCloseTo(bounds.y + bounds.height * 110 / 800, 0);
-    await expect.poll(() => page.evaluate(async () => (await window.gwNative.settings.get()).alcoholTimerPosition))
-      .toMatchObject({ corner: "top-left", locked: true });
-    await page.evaluate(() => window.alcoholFixture.setGeometry({ status: "ready", sequence: 4, generation: 1, frameId: 1,
-      viewportWidth: 1000, viewportHeight: 800, anchor: { left: 100, right: 700, bottom: 300, top: 750 }, icons: [] }));
-    expect(await root.boundingBox()).toEqual(migrated);
-    await page.reload(); await showTimer(page);
-    expect(await root.boundingBox()).toEqual(migrated);
   } finally { await closeOffline(fixture); }
 });
 

@@ -48,8 +48,7 @@ const NO_MOUNT =
   + 'Start Guild Wars and try again.';
 
 /**
- * The client scans each template directory once and caches the answer — see
- * the scan state machine in internal/upstream/client-internals.md. Files added
+ * The client scans each template directory once and caches the answer. Files added
  * while it is running are on disk and invisible until that cache is cleared,
  * which is what Refresh List does. Saying so is the difference between a
  * working import and a bug report that says nothing happened.
