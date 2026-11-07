@@ -6,12 +6,13 @@
 //! is published only in PvE with a known character, so a loading screen or a
 //! PvP map can never look like an empty record.
 
-use core::ptr::write_volatile;
+use core::ptr::{addr_of_mut, write_volatile};
 
 use crate::abi::*;
 use crate::memory::{checked_add, checked_mul, contains, indexed, offset, pointer, read_u32};
 use crate::play_region::current_character_key;
 use crate::{resolve_game, GameState};
+use crate::sequence_lock;
 
 static mut POINTER: u32 = 0;
 static mut SEQUENCE: u32 = 0;
@@ -217,23 +218,19 @@ unsafe fn observe(layout: Layout, game: u32, map_id: u32) -> Progress {
 }
 
 unsafe fn publish(progress: Progress, area_count: u32) {
-    let next = unsafe { SEQUENCE }.wrapping_add(2) & !1;
     let target = unsafe { snapshot() };
     let flags = progress.flags | if area_count != 0 { FLAG_PROGRESS_AREAS } else { 0 };
     unsafe {
-        write_volatile(&mut (*target).sequence, next.wrapping_sub(1));
-        write_volatile(&mut (*target).magic, PROGRESS_MAGIC);
-        write_volatile(&mut (*target).abi_and_size, PROGRESS_ABI_AND_SIZE);
-        write_volatile(&mut (*target).flags, flags);
-        write_volatile(&mut (*target).map_id, progress.map_id);
-        write_volatile(&mut (*target).character_key_low, progress.character_key as u32);
-        write_volatile(&mut (*target).character_key_high, (progress.character_key >> 32) as u32);
-        write_volatile(&mut (*target).area_count, area_count);
-        write_volatile(&mut (*target).missions, progress.missions);
-        write_volatile(&mut (*target).vanquished, progress.vanquished);
-        write_volatile(&mut (*target).titles, progress.titles);
-        write_volatile(&mut (*target).sequence, next);
-        SEQUENCE = next;
+        SEQUENCE = sequence_lock::write(addr_of_mut!((*target).header), SEQUENCE, PROGRESS_MAGIC, PROGRESS_ABI_AND_SIZE, || {
+            write_volatile(&mut (*target).flags, flags);
+            write_volatile(&mut (*target).map_id, progress.map_id);
+            write_volatile(&mut (*target).character_key_low, progress.character_key as u32);
+            write_volatile(&mut (*target).character_key_high, (progress.character_key >> 32) as u32);
+            write_volatile(&mut (*target).area_count, area_count);
+            write_volatile(&mut (*target).missions, progress.missions);
+            write_volatile(&mut (*target).vanquished, progress.vanquished);
+            write_volatile(&mut (*target).titles, progress.titles);
+        });
     }
 }
 

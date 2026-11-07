@@ -280,11 +280,11 @@ A new client can need all of these:
   Tools record in `enhancement-builds.ts`;
 - the friend lifecycle family, which changes `FRIEND_OBSERVER_SEMANTIC_SHA256`;
 - a Cartography memory layout with its Compass, Mission Map, and World Map
-  certificates. The reachability kernel in
-  `kernels/reachability/lib.rs` holds the context root and agent
-  array per layout, so a new layout also changes the kernel. Run the compiled
-  kernel for each accepted layout: checked arithmetic keeps it free of static
-  panic formatting;
+  certificates, and its context root and agent array in
+  `CARTOGRAPHY_LAYOUT_ROOTS` (`app/shared/cartography-spike.ts`). The
+  reachability kernel receives those roots at install, so a new layout does
+  not change the kernel. Its integration test runs the compiled kernel for
+  every layout in `CARTOGRAPHY_MEMORY_LAYOUTS`;
 - the World Map display owner, Compass owner, pathing hashes, Guild Hall
   producer, area-type accessor, and the native render family;
 - `tests/fixtures/retained-client.ts`, which maps retained function indices and

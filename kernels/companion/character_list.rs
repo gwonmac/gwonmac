@@ -1,12 +1,13 @@
 //! Fixed, read-only account-character publication. The exact-build roots come
 //! from the certified config; no pointer or raw record crosses this boundary.
 
-use core::ptr::write_volatile;
+use core::ptr::{addr_of_mut, write_volatile};
 use core::mem::MaybeUninit;
 
 use crate::abi::*;
 use crate::character_identity::character_key;
 use crate::memory::*;
+use crate::sequence_lock;
 
 const RECORD_BYTES: u32 = 0x84;
 const SUMMARY_LENGTH: u32 = 0x04;
@@ -76,21 +77,17 @@ unsafe fn publish(
     selected_index: u32,
     records: &[CharacterRecord; CHARACTER_SLOTS],
 ) {
-    let next = unsafe { SEQUENCE }.wrapping_add(2) & !1;
     let snapshot = unsafe { SNAPSHOT_PTR as *mut CharacterListSnapshot };
     unsafe {
-        write_volatile(&mut (*snapshot).sequence, next.wrapping_sub(1));
-        write_volatile(&mut (*snapshot).magic, CHARACTER_LIST_MAGIC);
-        write_volatile(&mut (*snapshot).abi_and_size, CHARACTER_LIST_ABI_AND_SIZE);
-        write_volatile(&mut (*snapshot).flags, flags);
-        write_volatile(&mut (*snapshot).count, count);
-        write_volatile(&mut (*snapshot).selected_index, selected_index);
-        let output = core::ptr::addr_of_mut!((*snapshot).records).cast::<CharacterRecord>();
-        for (index, record) in records.iter().enumerate() {
-            write_volatile(output.add(index), *record);
-        }
-        write_volatile(&mut (*snapshot).sequence, next);
-        SEQUENCE = next;
+        SEQUENCE = sequence_lock::write(addr_of_mut!((*snapshot).header), SEQUENCE, CHARACTER_LIST_MAGIC, CHARACTER_LIST_ABI_AND_SIZE, || {
+            write_volatile(&mut (*snapshot).flags, flags);
+            write_volatile(&mut (*snapshot).count, count);
+            write_volatile(&mut (*snapshot).selected_index, selected_index);
+            let output = core::ptr::addr_of_mut!((*snapshot).records).cast::<CharacterRecord>();
+            for (index, record) in records.iter().enumerate() {
+                write_volatile(output.add(index), *record);
+            }
+        });
     }
 }
 

@@ -1,8 +1,9 @@
 //! The companion kernel: the freestanding side module the renderer installs on
 //! the game's dispatch table. This file owns the exported ABI, the module's
 //! state, and the per-frame agent, target, and party observation. `memory.rs`
-//! owns every load from a game address, `abi.rs` the shared wire format, and
-//! `cursor.rs` and `toolbox.rs` each own the region they publish.
+//! owns every load from a game address, `abi.rs` the shared wire format,
+//! `sequence_lock.rs` the protocol every snapshot is published under, and each
+//! observer module (`cursor.rs`, `toolbox.rs`, ...) the region it publishes.
 //!
 //! The memory-safety invariant the whole crate maintains: the kernel reads the
 //! game heap only through `memory.rs`, so every read is bounds-checked against
@@ -36,7 +37,7 @@
 #![deny(unsafe_op_in_unsafe_fn)]
 
 use core::panic::PanicInfo;
-use core::ptr::{read_volatile, write_volatile};
+use core::ptr::{addr_of_mut, read_volatile, write_volatile};
 
 mod abi;
 mod character_identity;
@@ -52,6 +53,7 @@ mod player_effects;
 mod effect_icons;
 mod play_region;
 mod progress;
+mod sequence_lock;
 mod skill_cooldowns;
 mod skill_slots;
 mod toolbox;
@@ -671,10 +673,7 @@ pub(crate) unsafe fn collect_first_owned_hero(
     Some((count, first_id, first_agent))
 }
 
-// The odd sequence brackets the write: a reader that sees it discards the
-// frame rather than decoding a half-written one.
 unsafe fn publish(state: State) {
-    let next = unsafe { SEQUENCE }.wrapping_add(2) & !1;
     // SAFETY: every successful `companion_init` assigns `SNAPSHOT_PTR`, and it
     // is null unless that init carried `FEATURE_GAME_SNAPSHOT`. When the flag
     // was set, `valid_region` proved a non-null, four-byte-aligned
@@ -683,27 +682,24 @@ unsafe fn publish(state: State) {
     // same init, and memory never shrinks, so the region is still there.
     let snapshot = unsafe { SNAPSHOT_PTR as *mut Snapshot };
     unsafe {
-        write_volatile(&mut (*snapshot).sequence, next.wrapping_sub(1));
-        write_volatile(&mut (*snapshot).magic, MAGIC);
-        write_volatile(&mut (*snapshot).abi_and_size, ABI_AND_SIZE);
-        write_volatile(&mut (*snapshot).flags, state.flags);
-        write_volatile(&mut (*snapshot).tick_count, TICK_COUNT);
-        write_volatile(&mut (*snapshot).map_id, state.map_id);
-        write_volatile(
-            &mut (*snapshot).instance_and_region,
-            state.instance_type | (state.play_region << 8),
-        );
-        write_volatile(&mut (*snapshot).player_id, state.player.id);
-        write_volatile(&mut (*snapshot).player_x, state.player.x);
-        write_volatile(&mut (*snapshot).player_y, state.player.y);
-        write_volatile(&mut (*snapshot).target_id, state.target.id);
-        write_volatile(&mut (*snapshot).target_type, state.target.kind);
-        write_volatile(&mut (*snapshot).target_x, state.target.x);
-        write_volatile(&mut (*snapshot).target_y, state.target.y);
-        write_volatile(&mut (*snapshot).distance, state.distance);
-        write_volatile(&mut (*snapshot).range_band, state.band);
-        write_volatile(&mut (*snapshot).sequence, next);
-        SEQUENCE = next;
+        SEQUENCE = sequence_lock::write(addr_of_mut!((*snapshot).header), SEQUENCE, MAGIC, ABI_AND_SIZE, || {
+            write_volatile(&mut (*snapshot).flags, state.flags);
+            write_volatile(&mut (*snapshot).tick_count, TICK_COUNT);
+            write_volatile(&mut (*snapshot).map_id, state.map_id);
+            write_volatile(
+                &mut (*snapshot).instance_and_region,
+                state.instance_type | (state.play_region << 8),
+            );
+            write_volatile(&mut (*snapshot).player_id, state.player.id);
+            write_volatile(&mut (*snapshot).player_x, state.player.x);
+            write_volatile(&mut (*snapshot).player_y, state.player.y);
+            write_volatile(&mut (*snapshot).target_id, state.target.id);
+            write_volatile(&mut (*snapshot).target_type, state.target.kind);
+            write_volatile(&mut (*snapshot).target_x, state.target.x);
+            write_volatile(&mut (*snapshot).target_y, state.target.y);
+            write_volatile(&mut (*snapshot).distance, state.distance);
+            write_volatile(&mut (*snapshot).range_band, state.band);
+        });
     }
 }
 
@@ -719,24 +715,24 @@ pub unsafe extern "C" fn companion_init(
     toolbox_size: u32,
     party_ptr: u32,
     party_size: u32,
-    skill_slot_ptr: u32,
-    skill_slot_size: u32,
-    skill_cooldown_ptr: u32,
-    skill_cooldown_size: u32,
+    skill_slots_ptr: u32,
+    skill_slots_size: u32,
+    skill_cooldowns_ptr: u32,
+    skill_cooldowns_size: u32,
     play_region_ptr: u32,
     play_region_size: u32,
     character_list_ptr: u32,
     character_list_size: u32,
-    friend_ptr: u32,
-    friend_size: u32,
-    player_effect_ptr: u32,
-    player_effect_size: u32,
-    effect_icon_ptr: u32,
-    effect_icon_size: u32,
+    friends_ptr: u32,
+    friends_size: u32,
+    player_effects_ptr: u32,
+    player_effects_size: u32,
+    effect_icons_ptr: u32,
+    effect_icons_size: u32,
     friend_root: u32,
     features: u32,
-    whisper_ptr: u32,
-    whisper_size: u32,
+    whispers_ptr: u32,
+    whispers_size: u32,
     alcohol_ptr: u32,
     alcohol_size: u32,
     progress_ptr: u32,
@@ -764,22 +760,22 @@ pub unsafe extern "C" fn companion_init(
                 || friend_root == 0 || friend_root & 3 != 0 || !contains(friend_root, 12))
         || features & FEATURE_FRIEND_OBSERVATION == 0 && friend_root != 0
         || !valid_region(features & FEATURE_FRIEND_OBSERVATION != 0,
-            friend_ptr, friend_size, friends::SNAPSHOT_BYTES)
+            friends_ptr, friends_size, FRIEND_BYTES)
         || !valid_region(
             features & FEATURE_PLAYER_EFFECT_OBSERVATION != 0,
-            player_effect_ptr,
-            player_effect_size,
+            player_effects_ptr,
+            player_effects_size,
             PLAYER_EFFECT_BYTES,
         )
         || !valid_region(
             features & FEATURE_EFFECT_ICON_GEOMETRY != 0,
-            effect_icon_ptr,
-            effect_icon_size,
+            effect_icons_ptr,
+            effect_icons_size,
             EFFECT_ICON_BYTES,
         )
         || features & FEATURE_ALCOHOL_OBSERVATION != 0 && features & FEATURE_PLAYER_EFFECT_OBSERVATION == 0
         || !valid_region(features & FEATURE_ALCOHOL_OBSERVATION != 0, alcohol_ptr, alcohol_size, ALCOHOL_BYTES)
-        || !valid_region(features & FEATURE_WHISPER_OBSERVATION != 0, whisper_ptr, whisper_size, WHISPER_BYTES)
+        || !valid_region(features & FEATURE_WHISPER_OBSERVATION != 0, whispers_ptr, whispers_size, WHISPER_BYTES)
         || features & FEATURE_PROGRESS_OBSERVATION != 0 && features & FEATURE_PLAY_REGION_OBSERVATION == 0
         || !valid_region(features & FEATURE_PROGRESS_OBSERVATION != 0, progress_ptr, progress_size, PROGRESS_BYTES)
         || config_size != CONFIG_BYTES
@@ -815,14 +811,14 @@ pub unsafe extern "C" fn companion_init(
         )
         || !valid_region(
             features & FEATURE_SKILL_SLOT_GEOMETRY != 0,
-            skill_slot_ptr,
-            skill_slot_size,
+            skill_slots_ptr,
+            skill_slots_size,
             SKILL_SLOT_BYTES,
         )
         || !valid_region(
             features & FEATURE_SKILL_COOLDOWN_OBSERVATION != 0,
-            skill_cooldown_ptr,
-            skill_cooldown_size,
+            skill_cooldowns_ptr,
+            skill_cooldowns_size,
             SKILL_COOLDOWN_BYTES,
         )
         || !valid_region(
@@ -856,7 +852,7 @@ pub unsafe extern "C" fn companion_init(
     // large enough for the snapshot it will publish.
     unsafe {
         if features & FEATURE_ALCOHOL_OBSERVATION != 0 { alcohol::initialize(alcohol_ptr); }
-        if features & FEATURE_WHISPER_OBSERVATION != 0 { whispers::initialize(whisper_ptr); }
+        if features & FEATURE_WHISPER_OBSERVATION != 0 { whispers::initialize(whispers_ptr); }
         if features & FEATURE_PROGRESS_OBSERVATION != 0 { progress::initialize(progress_ptr); }
         SNAPSHOT_PTR = snapshot_ptr;
         LAYOUT = layout;
@@ -879,22 +875,22 @@ pub unsafe extern "C" fn companion_init(
             party::initialize(party_ptr);
         }
         if features & FEATURE_SKILL_SLOT_GEOMETRY != 0 {
-            skill_slots::initialize(skill_slot_ptr);
+            skill_slots::initialize(skill_slots_ptr);
         }
         if features & FEATURE_SKILL_COOLDOWN_OBSERVATION != 0 {
-            skill_cooldowns::initialize(skill_cooldown_ptr);
+            skill_cooldowns::initialize(skill_cooldowns_ptr);
         }
         if features & FEATURE_PLAYER_EFFECT_OBSERVATION != 0 {
-            player_effects::initialize(player_effect_ptr);
+            player_effects::initialize(player_effects_ptr);
         }
         if features & FEATURE_EFFECT_ICON_GEOMETRY != 0 {
-            effect_icons::initialize(effect_icon_ptr);
+            effect_icons::initialize(effect_icons_ptr);
         }
         if features & FEATURE_PLAY_REGION_OBSERVATION != 0 {
             play_region::initialize(play_region_ptr);
         }
         if features & FEATURE_FRIEND_OBSERVATION != 0 {
-            friends::initialize(friend_ptr, friend_root);
+            friends::initialize(friends_ptr, friend_root);
         }
         if features & FEATURE_CHARACTER_LIST != 0 {
             character_list::initialize(character_list_ptr);
@@ -1109,7 +1105,7 @@ pub extern "C" fn companion_character_list_bytes() -> u32 {
 
 #[no_mangle]
 pub extern "C" fn companion_friend_bytes() -> u32 {
-    friends::SNAPSHOT_BYTES
+    FRIEND_BYTES
 }
 
 #[no_mangle]

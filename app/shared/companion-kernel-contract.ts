@@ -1,6 +1,7 @@
 /**
  * The exact companion-kernel surface shared by the build sealer and renderer.
- * Each boundary validates independently, but neither restates the ABI.
+ * Each boundary validates independently, but neither restates the ABI. Plain
+ * Node loads this file for the build seal, so it imports nothing.
  */
 export const COMPANION_KERNEL_IMPORTS = Object.freeze([
   "env.__indirect_function_table:table",
@@ -9,6 +10,63 @@ export const COMPANION_KERNEL_IMPORTS = Object.freeze([
   "env.__table_base:global",
   "env.memory:memory",
 ]);
+
+/**
+ * companion_init's parameters, in order. A region takes two words, its pointer
+ * and its byte count (`<name>_ptr`, `<name>_size` in lib.rs); a scalar takes
+ * one. The signature check, the loader's call and the region types below all
+ * follow from this list; the ABI test compares it with the Rust signature.
+ */
+export const COMPANION_KERNEL_INIT_ARGUMENTS = Object.freeze([
+  "snapshot",
+  "config",
+  "cursor",
+  "toolbox",
+  "party",
+  "skillSlots",
+  "skillCooldowns",
+  "playRegion",
+  "characterList",
+  "friends",
+  "playerEffects",
+  "effectIcons",
+  "friendRoot",
+  "features",
+  "whispers",
+  "alcohol",
+  "progress",
+] as const);
+
+export const COMPANION_KERNEL_INIT_SCALARS = Object.freeze(["friendRoot", "features"] as const);
+
+/** companion_init's arity: two words per region, one per scalar. */
+export const COMPANION_KERNEL_INIT_WORD_COUNT =
+  COMPANION_KERNEL_INIT_ARGUMENTS.length * 2 - COMPANION_KERNEL_INIT_SCALARS.length;
+
+type CompanionKernelInitArgument = (typeof COMPANION_KERNEL_INIT_ARGUMENTS)[number];
+type CompanionKernelInitScalar = (typeof COMPANION_KERNEL_INIT_SCALARS)[number];
+type CompanionKernelRegionName = Exclude<CompanionKernelInitArgument, CompanionKernelInitScalar>;
+export type CompanionKernelRegion = Readonly<{ pointer: number; bytes: number }>;
+export type CompanionKernelRegions = Readonly<Record<CompanionKernelRegionName, CompanionKernelRegion>>;
+
+function isInitScalar(name: CompanionKernelInitArgument): name is CompanionKernelInitScalar {
+  return COMPANION_KERNEL_INIT_SCALARS.some((scalar) => scalar === name);
+}
+
+/**
+ * companion_init's words: each region's pointer and byte count, each scalar as
+ * itself. An absent region is the zero pair the kernel reads as "not installed".
+ */
+export function companionKernelInitWords(
+  regions: Readonly<Partial<CompanionKernelRegions>>,
+  scalars: Readonly<Record<CompanionKernelInitScalar, number>>,
+): number[] {
+  return COMPANION_KERNEL_INIT_ARGUMENTS.flatMap((name) => {
+    if (isInitScalar(name)) return [scalars[name]];
+    const region = regions[name];
+    return region === undefined ? [0, 0] : [region.pointer, region.bytes];
+  });
+}
 
 export const COMPANION_KERNEL_SIGNATURES: readonly Readonly<{
   name: string;
@@ -78,8 +136,7 @@ function encodeSection(id: number, payload: number[]): number[] {
  */
 export function companionKernelSignatureBytes(): Uint8Array<ArrayBuffer> {
   const types = [
-    // Fifteen region pointer/size pairs, the certified friend root, and features.
-    i32FunctionType(32, true),
+    i32FunctionType(COMPANION_KERNEL_INIT_WORD_COUNT, true),
     i32FunctionType(6, false),
     i32FunctionType(0, true),
   ];

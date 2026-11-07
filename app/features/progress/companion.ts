@@ -8,7 +8,7 @@ import {
   createCompanionProgressReader,
   createProgressObservationInstallation,
 } from "./renderer/companion-progress-snapshot.js";
-import { EMPTY_REGION, type ToolsCompanionPart } from "../../renderer/tools-companion-part.js";
+import type { ToolsCompanionPart } from "../../renderer/tools-companion-part.js";
 import travel from "../travel/companion.js";
 
 export default {
@@ -21,7 +21,8 @@ export default {
       allocated: () => progress.allocated,
       ownedRegions: () => progress.region == null ? [] : [progress.region],
       kernelRegions: () => ({
-        progress: progress.region === null ? EMPTY_REGION : { pointer: progress.pointer, bytes: progress.bytes },
+        ...(progress.region === null
+          ? {} : { progress: { pointer: progress.pointer, bytes: progress.bytes } }),
       }),
       rollback: [(free) => progress.release(free)],
       activate(context) {

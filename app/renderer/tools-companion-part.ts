@@ -16,7 +16,6 @@ import type { TravelCommand } from "../shared/travel-command.js";
 import type {
   CompanionExtensionActivation,
   CompanionObserverExtension,
-  KernelRegion,
   PreparedCompanionExtension,
 } from "./certified-companion-extension.js";
 import type { CompanionOwnedRegion } from "./companion-owned-regions.js";
@@ -38,8 +37,6 @@ export type WhisperInvites = Readonly<{
   enabled: boolean;
   invite(name: string): Promise<void>;
 }>;
-
-export const EMPTY_REGION: KernelRegion = Object.freeze({ pointer: 0, bytes: 0 });
 
 export type ToolsPrepareInput = Readonly<{
   exports: WebAssembly.Exports;

@@ -306,25 +306,19 @@ export async function installCoreCertifiedCompanion(
     core.initialize();
     extension?.initialize(memory);
 
+    const { friendRoot, ...extensionRegions } = extension?.kernelRegions ?? { friendRoot: 0 };
     const kernel = await installCompanionKernel({
       memory,
       runtimePointer: core.runtimePointer,
       featureFlags,
-      friendRoot: extension?.kernelRegions.friendRoot ?? 0,
+      friendRoot,
       regions: {
+        ...extensionRegions,
         snapshot: core.snapshot,
         config: core.config,
         cursor: core.cursor,
         toolbox: core.toolbox,
         party: core.party,
-        skillSlots: extension?.kernelRegions.skillSlots ?? { pointer: 0, bytes: 0 },
-        skillCooldowns: extension?.kernelRegions.skillCooldowns ?? { pointer: 0, bytes: 0 },
-        playerEffects: extension?.kernelRegions.playerEffects ?? { pointer: 0, bytes: 0 },
-        effectIcons: extension?.kernelRegions.effectIcons ?? { pointer: 0, bytes: 0 },
-        alcohol: extension?.kernelRegions.alcohol ?? { pointer: 0, bytes: 0 },
-        progress: extension?.kernelRegions.progress ?? { pointer: 0, bytes: 0 },
-        whispers: extension?.kernelRegions.whispers ?? { pointer: 0, bytes: 0 },
-        friends: extension?.kernelRegions.friends ?? { pointer: 0, bytes: 0 },
         playRegion: { pointer: playRegions.pointer, bytes: playRegions.bytes },
         characterList: core.characterList,
       },

@@ -4,12 +4,13 @@
 //! area-table record. It never opens the agent array, so Travel-only recovery
 //! cannot inherit the full snapshot's player scan.
 
-use core::ptr::write_volatile;
+use core::ptr::{addr_of_mut, write_volatile};
 
 use crate::abi::*;
 use crate::character_identity::character_key;
 use crate::memory::{checked_add, checked_mul, contains, indexed, offset, pointer, read_u32};
 use crate::{resolve_game, GameState};
+use crate::sequence_lock;
 
 static mut POINTER: u32 = 0;
 static mut SEQUENCE: u32 = 0;
@@ -22,26 +23,22 @@ unsafe fn publish(
     character_key: u64,
     unlocked_maps: [u32; TRAVEL_UNLOCK_WORDS],
 ) {
-    let next = unsafe { SEQUENCE }.wrapping_add(2) & !1;
     let snapshot = unsafe { POINTER as *mut PlayRegionSnapshot };
     unsafe {
-        write_volatile(&mut (*snapshot).sequence, next.wrapping_sub(1));
-        write_volatile(&mut (*snapshot).magic, PLAY_REGION_MAGIC);
-        write_volatile(&mut (*snapshot).abi_and_size, PLAY_REGION_ABI_AND_SIZE);
-        write_volatile(&mut (*snapshot).flags, flags);
-        write_volatile(&mut (*snapshot).map_id, map_id);
-        write_volatile(&mut (*snapshot).instance_type, instance_type);
-        write_volatile(&mut (*snapshot).play_region, play_region);
-        write_volatile(&mut (*snapshot).character_key_low, character_key as u32);
-        write_volatile(
-            &mut (*snapshot).character_key_high,
-            (character_key >> 32) as u32,
-        );
-        for (index, word) in unlocked_maps.iter().enumerate() {
-            write_volatile(&mut (*snapshot).unlocked_maps[index], *word);
-        }
-        write_volatile(&mut (*snapshot).sequence, next);
-        SEQUENCE = next;
+        SEQUENCE = sequence_lock::write(addr_of_mut!((*snapshot).header), SEQUENCE, PLAY_REGION_MAGIC, PLAY_REGION_ABI_AND_SIZE, || {
+            write_volatile(&mut (*snapshot).flags, flags);
+            write_volatile(&mut (*snapshot).map_id, map_id);
+            write_volatile(&mut (*snapshot).instance_type, instance_type);
+            write_volatile(&mut (*snapshot).play_region, play_region);
+            write_volatile(&mut (*snapshot).character_key_low, character_key as u32);
+            write_volatile(
+                &mut (*snapshot).character_key_high,
+                (character_key >> 32) as u32,
+            );
+            for (index, word) in unlocked_maps.iter().enumerate() {
+                write_volatile(&mut (*snapshot).unlocked_maps[index], *word);
+            }
+        });
     }
 }
 

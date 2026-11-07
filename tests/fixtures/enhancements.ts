@@ -4,6 +4,7 @@ import {
   COMPANION_DISPATCH_KINDS,
   COMPANION_FEATURE_BITS,
 } from "../../app/shared/companion-abi.ts";
+import { companionKernelInitWords } from "../../app/shared/companion-kernel-contract.ts";
 import {
   readCompanionCursorHeader,
   readCompanionCursorPixels,
@@ -527,44 +528,10 @@ export interface KernelOverrides {
  * A `.wasm` binary carries its signatures nowhere TypeScript can read them, so
  * `WebAssembly.Exports` is `Record<string, ExportValue>` and this is the one
  * dynamic boundary in the file. The `typeof` checks prove the two exports are
- * callable; the arities come from `kernels/companion/lib.rs`, and every
- * call below is checked against these declarations rather than against
- * `Function`.
+ * callable; companion_init's words come from COMPANION_KERNEL_INIT_ARGUMENTS,
+ * which the ABI test compares with `kernels/companion/lib.rs`.
  */
-export type KernelInit = (
-  snapshotPointer: number,
-  snapshotSize: number,
-  configPointer: number,
-  configSize: number,
-  cursorPointer: number,
-  cursorSize: number,
-  toolboxPointer: number,
-  toolboxSize: number,
-  partyPointer: number,
-  partySize: number,
-  skillSlotPointer: number,
-  skillSlotSize: number,
-  skillCooldownPointer: number,
-  skillCooldownSize: number,
-  playRegionPointer: number,
-  playRegionSize: number,
-  characterListPointer: number,
-  characterListSize: number,
-  friendPointer: number,
-  friendSize: number,
-  playerEffectPointer: number,
-  playerEffectSize: number,
-  effectIconPointer: number,
-  effectIconSize: number,
-  friendRoot: number,
-  features: number,
-  whisperPointer: number,
-  whisperSize: number,
-  alcoholPointer: number,
-  alcoholSize: number,
-  progressPointer: number,
-  progressSize: number,
-) => number;
+export type KernelInit = (...words: number[]) => number;
 export type KernelDispatch = (
   kind: number,
   a: number,
@@ -724,94 +691,90 @@ export async function createKernel(
     config,
     init: (overrides: KernelOverrides = {}) => {
       const features = overrides.features ?? ALL_FEATURES;
-      return exports.init(
-        overrides.snapshotPointer
-          ?? ((features & FEATURE_GAME_SNAPSHOT) !== 0
-            ? ADDRESSES.snapshot
-            : 0),
-        overrides.snapshotSize
-          ?? ((features & FEATURE_GAME_SNAPSHOT) !== 0 ? 64 : 0),
-        overrides.configPointer ?? ADDRESSES.config,
-        overrides.configSize ?? CONFIG_BYTES,
-        overrides.cursorPointer
-          ?? ((features & FEATURE_NATIVE_CURSOR) !== 0
-            ? ADDRESSES.cursor
-            : 0),
-        overrides.cursorSize
-          ?? ((features & FEATURE_NATIVE_CURSOR) !== 0
-            ? COMPANION_CURSOR_BYTES
-            : 0),
-        overrides.toolboxPointer
-          ?? ((features & FEATURE_TOOLBOX_FOUNDATION) !== 0
-            ? ADDRESSES.toolbox
-            : 0),
-        overrides.toolboxSize
-          ?? ((features & FEATURE_TOOLBOX_FOUNDATION) !== 0
-            ? COMPANION_TOOLBOX_BYTES
-            : 0),
-        overrides.partyPointer
-          ?? ((features & FEATURE_TOOLBOX_FOUNDATION) !== 0
-            ? ADDRESSES.party
-            : 0),
-        overrides.partySize
-          ?? ((features & FEATURE_TOOLBOX_FOUNDATION) !== 0
-            ? COMPANION_PARTY_BYTES
-            : 0),
-        overrides.skillSlotPointer
-          ?? ((features & FEATURE_SKILL_SLOT_GEOMETRY) !== 0
-            ? ADDRESSES.skillSlots
-            : 0),
-        overrides.skillSlotSize
-          ?? ((features & FEATURE_SKILL_SLOT_GEOMETRY) !== 0
-            ? COMPANION_SKILL_SLOT_BYTES
-            : 0),
-        overrides.skillCooldownPointer
-          ?? ((features & FEATURE_SKILL_COOLDOWN_OBSERVATION) !== 0
-            ? ADDRESSES.skillCooldowns
-            : 0),
-        overrides.skillCooldownSize
-          ?? ((features & FEATURE_SKILL_COOLDOWN_OBSERVATION) !== 0
-            ? COMPANION_SKILL_COOLDOWN_BYTES
-            : 0),
-        overrides.playRegionPointer
-          ?? ((features & FEATURE_PLAY_REGION_OBSERVATION) !== 0
-            ? ADDRESSES.playRegion
-            : 0),
-        overrides.playRegionSize
-          ?? ((features & FEATURE_PLAY_REGION_OBSERVATION) !== 0
-            ? COMPANION_PLAY_REGION_BYTES
-            : 0),
-        overrides.characterListPointer ?? 0,
-        overrides.characterListSize ?? 0,
-        overrides.friendPointer
-          ?? ((features & COMPANION_FEATURE_BITS.friendObservation) !== 0 ? ADDRESSES.friends : 0),
-        overrides.friendSize
-          ?? ((features & COMPANION_FEATURE_BITS.friendObservation) !== 0 ? COMPANION_ABI.friends.bytes : 0),
-        overrides.playerEffectPointer
-          ?? ((features & FEATURE_PLAYER_EFFECT_OBSERVATION) !== 0
-            ? ADDRESSES.playerEffects
-            : 0),
-        overrides.playerEffectSize
-          ?? ((features & FEATURE_PLAYER_EFFECT_OBSERVATION) !== 0
-            ? COMPANION_PLAYER_EFFECT_BYTES
-            : 0),
-        overrides.effectIconPointer
-          ?? ((features & FEATURE_EFFECT_ICON_GEOMETRY) !== 0
-            ? ADDRESSES.effectIcons
-            : 0),
-        overrides.effectIconSize
-          ?? ((features & FEATURE_EFFECT_ICON_GEOMETRY) !== 0
-            ? COMPANION_EFFECT_ICON_BYTES
-            : 0),
-        overrides.friendRoot ?? 0,
-        features,
-        overrides.whisperPointer ?? ((features & COMPANION_FEATURE_BITS.whisperObservation) !== 0 ? ADDRESSES.whispers : 0),
-        overrides.whisperSize ?? ((features & COMPANION_FEATURE_BITS.whisperObservation) !== 0 ? COMPANION_ABI.whispers.bytes : 0),
-        (features & COMPANION_FEATURE_BITS.alcoholObservation) !== 0 ? ADDRESSES.alcohol : 0,
-        (features & COMPANION_FEATURE_BITS.alcoholObservation) !== 0 ? COMPANION_ABI.alcohol.bytes : 0,
-        (features & COMPANION_FEATURE_BITS.progressObservation) !== 0 ? ADDRESSES.progress : 0,
-        (features & COMPANION_FEATURE_BITS.progressObservation) !== 0 ? COMPANION_ABI.progress.bytes : 0,
-      );
+      const region = (bit: number, pointer: number, bytes: number) =>
+        (features & bit) !== 0 ? { pointer, bytes } : { pointer: 0, bytes: 0 };
+      const sized = (
+        fallback: { pointer: number; bytes: number },
+        pointer: number | undefined,
+        bytes: number | undefined,
+      ) => ({ pointer: pointer ?? fallback.pointer, bytes: bytes ?? fallback.bytes });
+      return exports.init(...companionKernelInitWords({
+        snapshot: sized(
+          region(FEATURE_GAME_SNAPSHOT, ADDRESSES.snapshot, 64),
+          overrides.snapshotPointer,
+          overrides.snapshotSize,
+        ),
+        config: sized(
+          { pointer: ADDRESSES.config, bytes: CONFIG_BYTES },
+          overrides.configPointer,
+          overrides.configSize,
+        ),
+        cursor: sized(
+          region(FEATURE_NATIVE_CURSOR, ADDRESSES.cursor, COMPANION_CURSOR_BYTES),
+          overrides.cursorPointer,
+          overrides.cursorSize,
+        ),
+        toolbox: sized(
+          region(FEATURE_TOOLBOX_FOUNDATION, ADDRESSES.toolbox, COMPANION_TOOLBOX_BYTES),
+          overrides.toolboxPointer,
+          overrides.toolboxSize,
+        ),
+        party: sized(
+          region(FEATURE_TOOLBOX_FOUNDATION, ADDRESSES.party, COMPANION_PARTY_BYTES),
+          overrides.partyPointer,
+          overrides.partySize,
+        ),
+        skillSlots: sized(
+          region(FEATURE_SKILL_SLOT_GEOMETRY, ADDRESSES.skillSlots, COMPANION_SKILL_SLOT_BYTES),
+          overrides.skillSlotPointer,
+          overrides.skillSlotSize,
+        ),
+        skillCooldowns: sized(
+          region(
+            FEATURE_SKILL_COOLDOWN_OBSERVATION,
+            ADDRESSES.skillCooldowns,
+            COMPANION_SKILL_COOLDOWN_BYTES,
+          ),
+          overrides.skillCooldownPointer,
+          overrides.skillCooldownSize,
+        ),
+        playRegion: sized(
+          region(FEATURE_PLAY_REGION_OBSERVATION, ADDRESSES.playRegion, COMPANION_PLAY_REGION_BYTES),
+          overrides.playRegionPointer,
+          overrides.playRegionSize,
+        ),
+        characterList: sized(
+          { pointer: 0, bytes: 0 },
+          overrides.characterListPointer,
+          overrides.characterListSize,
+        ),
+        friends: sized(
+          region(COMPANION_FEATURE_BITS.friendObservation, ADDRESSES.friends, COMPANION_ABI.friends.bytes),
+          overrides.friendPointer,
+          overrides.friendSize,
+        ),
+        playerEffects: sized(
+          region(
+            FEATURE_PLAYER_EFFECT_OBSERVATION,
+            ADDRESSES.playerEffects,
+            COMPANION_PLAYER_EFFECT_BYTES,
+          ),
+          overrides.playerEffectPointer,
+          overrides.playerEffectSize,
+        ),
+        effectIcons: sized(
+          region(FEATURE_EFFECT_ICON_GEOMETRY, ADDRESSES.effectIcons, COMPANION_EFFECT_ICON_BYTES),
+          overrides.effectIconPointer,
+          overrides.effectIconSize,
+        ),
+        whispers: sized(
+          region(COMPANION_FEATURE_BITS.whisperObservation, ADDRESSES.whispers, COMPANION_ABI.whispers.bytes),
+          overrides.whisperPointer,
+          overrides.whisperSize,
+        ),
+        alcohol: region(COMPANION_FEATURE_BITS.alcoholObservation, ADDRESSES.alcohol, COMPANION_ABI.alcohol.bytes),
+        progress: region(COMPANION_FEATURE_BITS.progressObservation, ADDRESSES.progress, COMPANION_ABI.progress.bytes),
+      }, { friendRoot: overrides.friendRoot ?? 0, features }));
     },
     tick: (skillBarFrameId = 0, skillTimer = 0, effectsFrameHash = 0) => exports.dispatch(
       COMPANION_DISPATCH_KINDS.tick,

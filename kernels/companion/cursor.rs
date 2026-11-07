@@ -15,10 +15,11 @@
 //! nothing else, so they carry no precondition and are reachable without the
 //! flag.
 
-use core::ptr::write_volatile;
+use core::ptr::{addr_of_mut, write_volatile};
 
 use crate::abi::*;
 use crate::memory::*;
+use crate::sequence_lock;
 
 static mut POINTER: u32 = 0;
 static mut SEQUENCE: u32 = 0;
@@ -117,7 +118,6 @@ unsafe fn collect(layout: Layout) -> Result<State, u32> {
 // `source` is None for a header-only update: it clears CURSOR_VALID without
 // disturbing the last good pixels.
 unsafe fn publish(published: Published, source: Option<u32>) {
-    let next = unsafe { SEQUENCE }.wrapping_add(2) & !1;
     // SAFETY: `POINTER` holds the region `companion_init` accepted through
     // `valid_region` for `FEATURE_NATIVE_CURSOR` — non-null, four-byte-aligned,
     // and exactly `CURSOR_BYTES` inside linear memory, which cannot shrink. The
@@ -125,13 +125,9 @@ unsafe fn publish(published: Published, source: Option<u32>) {
     // `CursorSnapshot::pixels` declares.
     let cursor = unsafe { POINTER as *mut CursorSnapshot };
     unsafe {
-        write_volatile(&mut (*cursor).sequence, next.wrapping_sub(1));
-        write_volatile(&mut (*cursor).magic, CURSOR_MAGIC);
-        write_volatile(&mut (*cursor).abi_and_size, CURSOR_ABI_AND_SIZE);
-        write_volatile(&mut (*cursor).flags, published.flags);
-    }
-    if let Some(source) = source {
-        unsafe {
+        SEQUENCE = sequence_lock::write(addr_of_mut!((*cursor).header), SEQUENCE, CURSOR_MAGIC, CURSOR_ABI_AND_SIZE, || {
+            write_volatile(&mut (*cursor).flags, published.flags);
+            let Some(source) = source else { return };
             GENERATION = GENERATION.wrapping_add(1);
             write_volatile(&mut (*cursor).generation, GENERATION);
             write_volatile(&mut (*cursor).width, CURSOR_EDGE);
@@ -139,19 +135,15 @@ unsafe fn publish(published: Published, source: Option<u32>) {
             write_volatile(&mut (*cursor).hotspot_x, published.hotspot_x);
             write_volatile(&mut (*cursor).hotspot_y, published.hotspot_y);
             write_volatile(&mut (*cursor).pixel_hash, published.hash);
-        }
-        for index in 0..CURSOR_WORDS {
-            let word = indexed(source, index, 4)
-                .and_then(|address| unsafe { read_u32(address) })
-                .unwrap_or(0);
-            // BGRA -> RGBA: keep alpha and green, swap red and blue.
-            let rgba = (word & 0xff00_ff00) | ((word >> 16) & 0xff) | ((word & 0xff) << 16);
-            unsafe { write_volatile(&mut (*cursor).pixels[index as usize], rgba) };
-        }
-    }
-    unsafe {
-        write_volatile(&mut (*cursor).sequence, next);
-        SEQUENCE = next;
+            for index in 0..CURSOR_WORDS {
+                let word = indexed(source, index, 4)
+                    .and_then(|address| read_u32(address))
+                    .unwrap_or(0);
+                // BGRA -> RGBA: keep alpha and green, swap red and blue.
+                let rgba = (word & 0xff00_ff00) | ((word >> 16) & 0xff) | ((word & 0xff) << 16);
+                write_volatile(&mut (*cursor).pixels[index as usize], rgba);
+            }
+        });
         PUBLISHED = published;
     }
 }

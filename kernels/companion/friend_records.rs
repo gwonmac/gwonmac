@@ -2,24 +2,12 @@
 //! module does not establish session readiness or grant Travel authority.
 //! The caller must admit the current session before using these decoded fields.
 
+use crate::abi::{FriendRecord, FRIEND_NAME_UNITS, FRIEND_SLOTS};
 use crate::memory::{contains, indexed, read_u16, read_u32};
 
-pub(crate) const FRIEND_SLOTS: usize = 128;
-pub(crate) const NAME_UNITS: usize = 20;
 // These are reader work limits, not claims about the client's roster capacity.
 const MAX_TABLE_SLOTS: u32 = 4096;
 const RECORD_BYTES: u32 = 172;
-
-#[derive(Clone, Copy)]
-#[repr(C)]
-pub(crate) struct FriendRecord {
-    pub(crate) key_low: u32,
-    pub(crate) key_high: u32,
-    pub(crate) status: u32,
-    pub(crate) map_id: u32,
-    pub(crate) alias: [u16; NAME_UNITS],
-    pub(crate) character: [u16; NAME_UNITS],
-}
 
 #[repr(C)]
 pub(crate) struct DecodedFriends {
@@ -27,8 +15,8 @@ pub(crate) struct DecodedFriends {
     pub(crate) records: [FriendRecord; FRIEND_SLOTS],
 }
 
-unsafe fn name(address: u32, allow_empty: bool) -> Option<[u16; NAME_UNITS]> {
-    let mut result = [0; NAME_UNITS];
+unsafe fn name(address: u32, allow_empty: bool) -> Option<[u16; FRIEND_NAME_UNITS]> {
+    let mut result = [0; FRIEND_NAME_UNITS];
     let mut trailing_surrogate = false;
     for (index, slot) in result.iter_mut().enumerate() {
         let unit = unsafe { read_u16(indexed(address, index as u32, 2)?)? };

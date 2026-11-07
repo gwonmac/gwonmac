@@ -1,6 +1,9 @@
-//! The shared wire format: the configuration the host installs, the three
-//! snapshots the kernel publishes, and the constants both sides compare
+//! The shared wire format: the configuration the host installs, every
+//! snapshot the kernel publishes, and the constants both sides compare
 //! against. Declarations only — no logic and no unsafe code.
+//!
+//! Every snapshot starts with `SnapshotHeader`; `sequence_lock.rs` owns the
+//! sequence lock that writes it.
 //!
 //! Every published type is `repr(C)` and none of them contains a pointer, so a
 //! snapshot is meaningful to a reader that only knows the byte layout. The
@@ -10,7 +13,7 @@
 //! what `companion_init` measures the host's regions against, so the
 //! assertions are also the reason a bounds check here is a bounds check there.
 
-use core::mem::size_of;
+use core::mem::{offset_of, size_of};
 
 pub(crate) const SNAPSHOT_BYTES: u32 = size_of::<Snapshot>() as u32;
 pub(crate) const CONFIG_BYTES: u32 = size_of::<Layout>() as u32;
@@ -41,7 +44,9 @@ pub(crate) const FEATURE_PLAYER_EFFECT_OBSERVATION: u32 = 1 << 9;
 pub(crate) const FEATURE_EFFECT_ICON_GEOMETRY: u32 = 1 << 10;
 pub(crate) const FEATURE_WHISPER_OBSERVATION: u32 = 1 << 11;
 pub(crate) const FEATURE_ALCOHOL_OBSERVATION: u32 = 1 << 12;
-pub(crate) const ALCOHOL_BYTES: u32 = 32;
+pub(crate) const ALCOHOL_BYTES: u32 = size_of::<AlcoholSnapshot>() as u32;
+pub(crate) const ALCOHOL_MAGIC: u32 = 0x414c_5747;
+pub(crate) const ALCOHOL_ABI_AND_SIZE: u32 = (ALCOHOL_BYTES << 16) | 1;
 pub(crate) const FEATURE_PROGRESS_OBSERVATION: u32 = 1 << 13;
 pub(crate) const KNOWN_FEATURES: u32 = FEATURE_NATIVE_CURSOR
     | FEATURE_GAME_SNAPSHOT
@@ -519,6 +524,53 @@ impl Layout {
     };
 }
 
+/// The first three words of every snapshot. A reader accepts a snapshot only
+/// when `sequence` is even and unchanged across its read, and `magic` and
+/// `abi_and_size` (`bytes << 16 | abi`) name the layout it expects.
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub(crate) struct SnapshotHeader {
+    pub(crate) magic: u32,
+    pub(crate) abi_and_size: u32,
+    pub(crate) sequence: u32,
+}
+
+pub(crate) const FRIEND_BYTES: u32 = size_of::<FriendSnapshot>() as u32;
+pub(crate) const FRIEND_MAGIC: u32 = 0x5246_5747;
+pub(crate) const FRIEND_ABI_AND_SIZE: u32 = (FRIEND_BYTES << 16) | 1;
+pub(crate) const FRIEND_SLOTS: usize = 128;
+pub(crate) const FRIEND_NAME_UNITS: usize = 20;
+
+#[derive(Clone, Copy)]
+#[repr(C)]
+pub(crate) struct FriendRecord {
+    pub(crate) key_low: u32,
+    pub(crate) key_high: u32,
+    pub(crate) status: u32,
+    pub(crate) map_id: u32,
+    pub(crate) alias: [u16; FRIEND_NAME_UNITS],
+    pub(crate) character: [u16; FRIEND_NAME_UNITS],
+}
+
+#[repr(C)]
+pub(crate) struct FriendSnapshot {
+    pub(crate) header: SnapshotHeader,
+    pub(crate) ready: u32,
+    pub(crate) generation: u32,
+    pub(crate) count: u32,
+    pub(crate) records: [FriendRecord; FRIEND_SLOTS],
+}
+
+#[repr(C)]
+pub(crate) struct AlcoholSnapshot {
+    pub(crate) header: SnapshotHeader,
+    pub(crate) ready: u32,
+    pub(crate) game_timer: u32,
+    pub(crate) remaining_ms: u32,
+    pub(crate) character_key_low: u32,
+    pub(crate) character_key_high: u32,
+}
+
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub(crate) struct CharacterRecord {
@@ -535,9 +587,7 @@ pub(crate) struct CharacterRecord {
 
 #[repr(C)]
 pub(crate) struct CharacterListSnapshot {
-    pub(crate) magic: u32,
-    pub(crate) abi_and_size: u32,
-    pub(crate) sequence: u32,
+    pub(crate) header: SnapshotHeader,
     pub(crate) flags: u32,
     pub(crate) count: u32,
     pub(crate) selected_index: u32,
@@ -547,9 +597,7 @@ pub(crate) struct CharacterListSnapshot {
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub(crate) struct Snapshot {
-    pub(crate) magic: u32,
-    pub(crate) abi_and_size: u32,
-    pub(crate) sequence: u32,
+    pub(crate) header: SnapshotHeader,
     pub(crate) flags: u32,
     pub(crate) tick_count: u32,
     pub(crate) map_id: u32,
@@ -568,9 +616,7 @@ pub(crate) struct Snapshot {
 
 #[repr(C)]
 pub(crate) struct PlayRegionSnapshot {
-    pub(crate) magic: u32,
-    pub(crate) abi_and_size: u32,
-    pub(crate) sequence: u32,
+    pub(crate) header: SnapshotHeader,
     pub(crate) flags: u32,
     pub(crate) map_id: u32,
     pub(crate) instance_type: u32,
@@ -585,9 +631,7 @@ pub(crate) struct PlayRegionSnapshot {
 /// read; bit 30 marks a row with a thumbnail. Unread rows stay zero.
 #[repr(C)]
 pub(crate) struct ProgressSnapshot {
-    pub(crate) magic: u32,
-    pub(crate) abi_and_size: u32,
-    pub(crate) sequence: u32,
+    pub(crate) header: SnapshotHeader,
     pub(crate) flags: u32,
     pub(crate) map_id: u32,
     pub(crate) character_key_low: u32,
@@ -602,9 +646,7 @@ pub(crate) struct ProgressSnapshot {
 
 #[repr(C)]
 pub(crate) struct CursorSnapshot {
-    pub(crate) magic: u32,
-    pub(crate) abi_and_size: u32,
-    pub(crate) sequence: u32,
+    pub(crate) header: SnapshotHeader,
     pub(crate) flags: u32,
     pub(crate) generation: u32,
     pub(crate) width: u32,
@@ -618,9 +660,7 @@ pub(crate) struct CursorSnapshot {
 
 #[repr(C)]
 pub(crate) struct ToolboxSnapshot {
-    pub(crate) magic: u32,
-    pub(crate) abi_and_size: u32,
-    pub(crate) sequence: u32,
+    pub(crate) header: SnapshotHeader,
     pub(crate) flags: u32,
     pub(crate) player_chat_count: u32,
     pub(crate) cursor_event_count: u32,
@@ -641,9 +681,7 @@ pub(crate) struct SkillSlotRect {
 
 #[repr(C)]
 pub(crate) struct SkillSlotSnapshot {
-    pub(crate) magic: u32,
-    pub(crate) abi_and_size: u32,
-    pub(crate) sequence: u32,
+    pub(crate) header: SnapshotHeader,
     pub(crate) flags: u32,
     pub(crate) frame_id: u32,
     pub(crate) outcome: u32,
@@ -655,9 +693,7 @@ pub(crate) struct SkillSlotSnapshot {
 
 #[repr(C)]
 pub(crate) struct SkillCooldownSnapshot {
-    pub(crate) magic: u32,
-    pub(crate) abi_and_size: u32,
-    pub(crate) sequence: u32,
+    pub(crate) header: SnapshotHeader,
     pub(crate) flags: u32,
     pub(crate) generation: u32,
     pub(crate) game_timer: u32,
@@ -678,9 +714,7 @@ pub(crate) struct PlayerEffectRecord {
 
 #[repr(C)]
 pub(crate) struct PlayerEffectSnapshot {
-    pub(crate) magic: u32,
-    pub(crate) abi_and_size: u32,
-    pub(crate) sequence: u32,
+    pub(crate) header: SnapshotHeader,
     pub(crate) flags: u32,
     pub(crate) generation: u32,
     pub(crate) game_timer: u32,
@@ -699,9 +733,7 @@ pub(crate) struct EffectIconRecord {
 
 #[repr(C)]
 pub(crate) struct EffectIconSnapshot {
-    pub(crate) magic: u32,
-    pub(crate) abi_and_size: u32,
-    pub(crate) sequence: u32,
+    pub(crate) header: SnapshotHeader,
     pub(crate) flags: u32,
     pub(crate) generation: u32,
     pub(crate) frame_id: u32,
@@ -743,9 +775,7 @@ pub(crate) struct PartySlot {
 
 #[repr(C)]
 pub(crate) struct PartySnapshot {
-    pub(crate) magic: u32,
-    pub(crate) abi_and_size: u32,
-    pub(crate) sequence: u32,
+    pub(crate) header: SnapshotHeader,
     pub(crate) flags: u32,
     /// Bumps on any change to the roster, so a reader can tell "same party,
     /// republished" from "different party" without comparing eight slots.
@@ -778,7 +808,16 @@ pub(crate) struct PartySnapshot {
     pub(crate) character_skills: [u32; SKILL_UNLOCK_WORDS],
 }
 
+const _: [(); 12] = [(); size_of::<SnapshotHeader>()];
+const _: () = assert!(
+    offset_of!(SnapshotHeader, magic) == 0
+        && offset_of!(SnapshotHeader, abi_and_size) == 4
+        && offset_of!(SnapshotHeader, sequence) == 8
+);
 const _: [(); 588] = [(); size_of::<Layout>()];
+const _: [(); 96] = [(); size_of::<FriendRecord>()];
+const _: [(); 12_312] = [(); size_of::<FriendSnapshot>()];
+const _: [(); 32] = [(); size_of::<AlcoholSnapshot>()];
 const _: [(); 18616] = [(); size_of::<ProgressSnapshot>()];
 const _: [(); 72] = [(); size_of::<CharacterRecord>()];
 const _: [(); 4632] = [(); size_of::<CharacterListSnapshot>()];
@@ -814,10 +853,10 @@ pub(crate) struct WhisperSlot {
 
 #[repr(C)]
 pub(crate) struct WhisperSnapshot {
-    pub(crate) magic: u32,
-    pub(crate) abi_and_size: u32,
-    pub(crate) sequence: u32,
+    pub(crate) header: SnapshotHeader,
     pub(crate) write_count: u32,
     pub(crate) rejected_count: u32,
     pub(crate) slots: [WhisperSlot; WHISPER_SLOT_COUNT],
 }
+
+const _: [(); 9236] = [(); size_of::<WhisperSnapshot>()];

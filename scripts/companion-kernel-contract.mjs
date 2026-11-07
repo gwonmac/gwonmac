@@ -117,7 +117,11 @@ export const COMPANION_KERNEL_DYLINK0 = Object.freeze([
   // 4024 -> 4724: progress publication keeps its zero Progress record (150 words,
   //               600 bytes, not the published snapshot) as read-only
   //               data and adds its pointer, sequence and copy flag.
-  0x01, 0x05, 0xf4, 0x24, 0x03, 0x00, 0x00,
+  // 4724 -> 4736: publishing through one sequence lock adds no static; the
+  //               linker repacks the private data (two 8-byte alignment gaps,
+  //               and one `true` bool takes its own word). Non-zero data is
+  //               unchanged.
+  0x01, 0x05, 0x80, 0x25, 0x03, 0x00, 0x00,
 ]);
 
 const WASM_PAGE_BYTES = 65_536;

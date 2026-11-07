@@ -4,12 +4,28 @@
  * Exposes no raw WebAssembly pointers across the renderer boundary.
  */
 
-/** Native memory layouts known to the sealed reachability kernel (its lib.rs). */
+/** The certified Cartography memory layouts, by the id the derived client publishes. */
 export const CARTOGRAPHY_LAYOUT_IDS = Object.freeze([1, 2, 3, 4, 5] as const);
 export type CartographyLayoutId = (typeof CARTOGRAPHY_LAYOUT_IDS)[number];
 export function isCartographyLayoutId(value: unknown): value is CartographyLayoutId {
   return CARTOGRAPHY_LAYOUT_IDS.includes(value as CartographyLayoutId);
 }
+
+/**
+ * Each layout's certified context root and agent array. Certification builds
+ * its Cartography layouts from these, and the reachability loader installs the
+ * pair for the client's layout into the kernel once, before its first read.
+ */
+export const CARTOGRAPHY_LAYOUT_ROOTS: Readonly<Record<
+  CartographyLayoutId,
+  Readonly<{ contextRoot: number; agentArray: number }>
+>> = Object.freeze({
+  1: Object.freeze({ contextRoot: 0x5a0e70, agentArray: 0x5a4de8 }),
+  2: Object.freeze({ contextRoot: 0x5a29b0, agentArray: 0x5a6928 }),
+  3: Object.freeze({ contextRoot: 5918848, agentArray: 5935096 }),
+  4: Object.freeze({ contextRoot: 5919152, agentArray: 5935416 }),
+  5: Object.freeze({ contextRoot: 5919552, agentArray: 5935816 }),
+});
 
 export const CARTOGRAPHY_CONTEXT_GLOBALS = Object.freeze({
   status: "gwonmac_cartography_context_status",
