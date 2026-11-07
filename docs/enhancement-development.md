@@ -458,6 +458,11 @@ Each region needs these properties:
 - explicit invalid and overflow states;
 - no game pointer in published output.
 
+In the companion kernel, every snapshot starts with `SnapshotHeader`
+([abi.rs](../kernels/companion/abi.rs)) and is written only through
+`sequence_lock::write` ([sequence_lock.rs](../kernels/companion/sequence_lock.rs)),
+which brackets the header and payload with an odd and the next even sequence.
+
 A new region is one entry in `COMPANION_KERNEL_INIT_ARGUMENTS`
 ([companion-abi.ts](../app/shared/companion-abi.ts)), the matching
 `<name>_ptr`, `<name>_size` pair in `companion_init`

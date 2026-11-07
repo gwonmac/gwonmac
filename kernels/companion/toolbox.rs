@@ -14,10 +14,11 @@
 //! `FEATURE_TOOLBOX_FOUNDATION` gate in `companion_dispatch` is what
 //! guarantees.
 
-use core::ptr::{read_volatile, write_volatile};
+use core::ptr::{addr_of_mut, read_volatile, write_volatile};
 
 use crate::abi::*;
 use crate::{collect_first_owned_hero, cursor, party, resolve_game, GameState};
+use crate::sequence_lock;
 
 // UI dispatch is the certified change boundary for this first foundation.
 // A low-rate reconciliation recovers from a missed callback without turning
@@ -48,7 +49,6 @@ fn is_party_dirty_message(layout: Layout, message: u32) -> bool {
 }
 
 unsafe fn publish() {
-    let next = unsafe { SEQUENCE }.wrapping_add(2) & !1;
     // SAFETY: `POINTER` holds the region `companion_init` accepted through
     // `valid_region` for `FEATURE_TOOLBOX_FOUNDATION` — non-null,
     // four-byte-aligned, and exactly `TOOLBOX_BYTES` inside linear memory,
@@ -64,17 +64,14 @@ unsafe fn publish() {
         0
     };
     unsafe {
-        write_volatile(&mut (*snapshot).sequence, next.wrapping_sub(1));
-        write_volatile(&mut (*snapshot).magic, TOOLBOX_MAGIC);
-        write_volatile(&mut (*snapshot).abi_and_size, TOOLBOX_ABI_AND_SIZE);
-        write_volatile(&mut (*snapshot).flags, flags);
-        write_volatile(&mut (*snapshot).player_chat_count, PLAYER_CHAT_COUNT);
-        write_volatile(&mut (*snapshot).cursor_event_count, cursor::event_count());
-        write_volatile(&mut (*snapshot).hero_count, HERO_COUNT);
-        write_volatile(&mut (*snapshot).first_hero_id, FIRST_HERO_ID);
-        write_volatile(&mut (*snapshot).first_hero_agent_id, FIRST_HERO_AGENT_ID);
-        write_volatile(&mut (*snapshot).sequence, next);
-        SEQUENCE = next;
+        SEQUENCE = sequence_lock::write(addr_of_mut!((*snapshot).header), SEQUENCE, TOOLBOX_MAGIC, TOOLBOX_ABI_AND_SIZE, || {
+            write_volatile(&mut (*snapshot).flags, flags);
+            write_volatile(&mut (*snapshot).player_chat_count, PLAYER_CHAT_COUNT);
+            write_volatile(&mut (*snapshot).cursor_event_count, cursor::event_count());
+            write_volatile(&mut (*snapshot).hero_count, HERO_COUNT);
+            write_volatile(&mut (*snapshot).first_hero_id, FIRST_HERO_ID);
+            write_volatile(&mut (*snapshot).first_hero_agent_id, FIRST_HERO_AGENT_ID);
+        });
     }
 }
 

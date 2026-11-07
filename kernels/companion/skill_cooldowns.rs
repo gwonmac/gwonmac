@@ -3,11 +3,12 @@
 //! bounded table is scanned when identity validation fails and periodically to
 //! detect new ambiguity. Publication is all-or-nothing and sequence protected.
 
-use core::ptr::write_volatile;
+use core::ptr::{addr_of_mut, write_volatile};
 
 use crate::abi::*;
 use crate::memory::*;
 use crate::{find_player_agent, resolve_game, GameState};
+use crate::sequence_lock;
 
 const MAX_RECHARGE_MS: u32 = 1_800_000;
 const MAX_SKILLBARS: u32 = 64;
@@ -219,21 +220,17 @@ unsafe fn collect(layout: Layout, game_timer: u32) -> Collected {
 }
 
 unsafe fn publish(flags: u32, game_timer: u32, player_agent_id: u32, timestamps: [u32; 8]) {
-    let next = unsafe { SEQUENCE }.wrapping_add(2) & !1;
     let snapshot = unsafe { POINTER as *mut SkillCooldownSnapshot };
     unsafe {
-        write_volatile(&mut (*snapshot).sequence, next.wrapping_sub(1));
-        write_volatile(&mut (*snapshot).magic, SKILL_COOLDOWN_MAGIC);
-        write_volatile(&mut (*snapshot).abi_and_size, SKILL_COOLDOWN_ABI_AND_SIZE);
-        write_volatile(&mut (*snapshot).flags, flags);
-        write_volatile(&mut (*snapshot).generation, GENERATION);
-        write_volatile(&mut (*snapshot).game_timer, game_timer);
-        write_volatile(&mut (*snapshot).player_agent_id, player_agent_id);
-        for (index, value) in timestamps.iter().enumerate() {
-            write_volatile(&mut (*snapshot).recharge_timestamps[index], *value);
-        }
-        write_volatile(&mut (*snapshot).sequence, next);
-        SEQUENCE = next;
+        SEQUENCE = sequence_lock::write(addr_of_mut!((*snapshot).header), SEQUENCE, SKILL_COOLDOWN_MAGIC, SKILL_COOLDOWN_ABI_AND_SIZE, || {
+            write_volatile(&mut (*snapshot).flags, flags);
+            write_volatile(&mut (*snapshot).generation, GENERATION);
+            write_volatile(&mut (*snapshot).game_timer, game_timer);
+            write_volatile(&mut (*snapshot).player_agent_id, player_agent_id);
+            for (index, value) in timestamps.iter().enumerate() {
+                write_volatile(&mut (*snapshot).recharge_timestamps[index], *value);
+            }
+        });
     }
 }
 

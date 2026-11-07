@@ -2,6 +2,8 @@
 #![no_std]
 #![deny(unsafe_op_in_unsafe_fn)]
 
+#[path = "../../kernels/companion/abi.rs"]
+mod abi;
 #[path = "../../kernels/companion/friend_records.rs"]
 mod friend_records;
 #[path = "../../kernels/companion/friend_session.rs"]
