@@ -11,8 +11,8 @@
 // required to answer — so a capability wired to the wrong channel, or a channel
 // no renderer can reach, fails.
 //
-// The generator is proved separately, over altered contracts, in
-// tests/unit/the-preload-is-generated-from-the-canonical-channels.test.ts. This
+// The preload imports `IPC` from app/shared and Rollup bundles it in
+// (scripts/build-renderer.mjs), so there is no channel copy to police. This
 // file's subject is the artifact.
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";

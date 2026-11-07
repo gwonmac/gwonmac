@@ -100,13 +100,10 @@ export function cartographyReachabilityKernelRustcArgs(output) {
  * @type {ReadonlyArray<readonly [command: string, args: readonly string[]]>}
  */
 export const BUILD_STEPS = [
-  // Static assets only. It fills build/renderer with everything the compiler
-  // does not produce, so it has to run before the compiler writes into the
-  // same directory.
-  [process.execPath, ["scripts/copy-renderer.mjs"]],
-  // Rollup owns the complete renderer runtime closure, including the shared
-  // modules it imports. TypeScript checks the same source without emitting;
-  // only the main compiler below writes build/shared.
+  // The renderer's static assets, its ES modules, and the three sandboxed
+  // preloads, which Rollup bundles with the app/shared modules they import.
+  // TypeScript checks the same sources without emitting; only the main
+  // compiler below writes build/shared.
   [process.execPath, ["scripts/build-renderer.mjs"]],
   // The main program, and the owner of build/shared.
   [process.execPath, ["node_modules/typescript/bin/tsc"]],
@@ -189,19 +186,6 @@ export const BUILD_STEPS = [
       "app/native/gw-dat/vendor/gwdat/AtexAsm.cpp",
       "-o",
       "build/native/gw-dat-decode",
-    ],
-  ],
-  // Reads app/shared/contracts.ts and app/preload/preload.body.cjs and writes
-  // the Core and Tools preload artifacts, which nothing else here produces — so its
-  // position is free. It is TypeScript, so it is spawned the one way this
-  // repository runs a TypeScript file from Node — the same custom hook
-  // package.json's script entries use.
-  [
-    process.execPath,
-    [
-      "--import",
-      "./scripts/ts-hook.mjs",
-      "scripts/generate-preload.ts",
     ],
   ],
   // No Cargo.toml: no dependencies, and rust-toolchain.toml pins the toolchain.

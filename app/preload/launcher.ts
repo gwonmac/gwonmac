@@ -1,12 +1,14 @@
-/* global LAUNCHER_IPC */
-// The launcher's deliberately small sandbox bridge. Channel constants are
-// injected by generate-preload.ts so this file contains no parallel IPC list.
-const { contextBridge, ipcRenderer } = require("electron");
+// The launcher's deliberately small sandbox bridge. Built to
+// build/preload/preload-launcher.cjs; the channels are imported from the
+// canonical launcher contracts and bundled in, so there is no parallel IPC list.
+import { contextBridge, ipcRenderer, type IpcRendererEvent } from "electron";
+import {
+  LAUNCHER_IPC,
+  type LauncherNativeApi,
+} from "../shared/launcher-contracts.js";
 
-/** @template T @param {string} channel @param {(value: T) => void} callback */
-function listen(channel, callback) {
-  /** @param {Electron.IpcRendererEvent} _event @param {T} value */
-  const handler = (_event, value) => callback(value);
+function listen<T>(channel: string, callback: (value: T) => void) {
+  const handler = (_event: IpcRendererEvent, value: T) => callback(value);
   ipcRenderer.on(channel, handler);
   let active = true;
   return () => {
@@ -16,8 +18,7 @@ function listen(channel, callback) {
   };
 }
 
-/** @type {import("../shared/launcher-contracts.js").LauncherNativeApi} */
-const launcherApi = {
+const launcherApi: LauncherNativeApi = {
   navigation: {
     onRequest: (callback) => listen(LAUNCHER_IPC.navigationEvent, callback),
   },

@@ -132,9 +132,7 @@ describe("scripts/copy-renderer.mjs only copies assets", () => {
       readFileSync(path.join(root, "build/renderer/images/bg-reforged.jpg"), "utf8"),
       "landscape",
     );
-    // Not the preload: scripts/generate-preload.ts owns that output, splices
-    // the canonical channel constants in and is the only producer of
-    // the generated preload artifacts.
+    // Not the preloads: build-renderer.mjs bundles those.
     assert.equal(existsSync(path.join(root, "build/preload")), false);
   });
 
@@ -296,26 +294,15 @@ describe("scripts/build.mjs owns both sealed kernel builds", () => {
 });
 
 describe("scripts/build.mjs orders the producers of build/renderer", () => {
-  const assets = stepPosition("scripts/copy-renderer.mjs");
   const renderer = stepPosition("scripts/build-renderer.mjs");
   const kernel = stepPosition("kernels/companion/lib.rs");
   const sealer = stepPosition("scripts/seal-companion-kernel.mjs");
 
-  it("copies the assets before the renderer is compiled into the same directory", () => {
-    // The reverse order is the defect this ordering exists to prevent: the copy
-    // step recreated build/renderer, which was harmless only while the renderer
-    // compile emitted nothing.
-    assert.ok(
-      assets < renderer,
-      `assets copied at ${assets}, renderer compiled at ${renderer}`,
-    );
-  });
-
-  it("compiles and seals the kernel after both of them", () => {
+  it("compiles and seals the kernel after the renderer bundle holding its loader", () => {
     assert.ok(kernel >= 0, "no rustc step to inspect");
     assert.ok(
-      assets < kernel && renderer < kernel && kernel < sealer,
-      `kernel written at ${kernel}, before assets ${assets} or renderer ${renderer}`,
+      renderer < kernel && kernel < sealer,
+      `kernel written at ${kernel}, before renderer ${renderer}`,
     );
   });
 });

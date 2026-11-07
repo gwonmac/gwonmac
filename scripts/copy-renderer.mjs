@@ -1,12 +1,10 @@
 // Copies the renderer's static assets into build/. It does not copy the
-// renderer's code: scripts/build-renderer.mjs compiles that, and this
-// script runs before it so the emit is not overwritten. It does not compile the
-// Enhancement kernel either — scripts/build.mjs owns that, because this script used
-// to run twice per package build and so compiled it twice — and it does not
-// produce the preload, which is generated from the canonical contracts by
-// scripts/generate-preload.ts.
+// renderer's code: scripts/build-renderer.mjs bundles that, and calls this
+// first. It does not compile the kernels either — scripts/build.mjs owns those —
+// and it does not produce the preloads, which build-renderer.mjs bundles.
 import fs from "node:fs";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 
 // Package inputs are explicit. Copying "everything except code" made ignored
 // editor and OS files part of the build, so two clean checkouts could package
@@ -110,26 +108,31 @@ const INTER_ASSETS = [
   ["files/inter-vietnamese-wght-normal.woff2", "fonts/files/inter-vietnamese-wght-normal.woff2"],
 ];
 
-const dest = path.resolve("build/renderer");
-/**
- * @param {string} from absolute source path
- * @param {string} relative destination, under build/renderer
- */
-const copy = (from, relative) => {
-  const target = path.join(dest, relative);
-  fs.mkdirSync(path.dirname(target), { recursive: true });
-  fs.copyFileSync(from, target);
-};
+/** Copies every declared static asset into build/renderer under the working directory. */
+export function copyRendererAssets() {
+  const dest = path.resolve("build/renderer");
+  /**
+   * @param {string} from absolute source path
+   * @param {string} relative destination, under build/renderer
+   */
+  const copy = (from, relative) => {
+    const target = path.join(dest, relative);
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.copyFileSync(from, target);
+  };
 
-for (const relative of ASSETS) {
-  copy(path.resolve("app/renderer", relative), relative);
+  for (const relative of ASSETS) {
+    copy(path.resolve("app/renderer", relative), relative);
+  }
+  for (const [from, relative] of SHARED_ASSETS) {
+    copy(path.resolve(from), relative);
+  }
+  for (const [from, relative] of INTER_ASSETS) {
+    copy(path.resolve("node_modules/@fontsource-variable/inter", from), relative);
+  }
+  return dest;
 }
 
-for (const [from, relative] of SHARED_ASSETS) {
-  copy(path.resolve(from), relative);
+if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) {
+  console.log(`copied renderer -> ${copyRendererAssets()}`);
 }
-for (const [from, relative] of INTER_ASSETS) {
-  copy(path.resolve("node_modules/@fontsource-variable/inter", from), relative);
-}
-
-console.log(`copied renderer -> ${dest}`);
