@@ -2,7 +2,7 @@
  * The Alcohol Timer overlay. It reads the shared alcohol feed and asks the
  * shared effect feeds for the icon geometry it sits beside.
  */
-import { createAlcoholTimerOverlay } from "../../renderer/alcohol-timer-overlay.js";
+import { createAlcoholTimerOverlay } from "./renderer/alcohol-timer-overlay.js";
 import type { ToolsCompanionPart } from "../../renderer/tools-companion-part.js";
 
 export default {

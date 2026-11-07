@@ -2,10 +2,10 @@
  * Owns the quiet alcohol readout and explicit positioning mode. Its saved
  * position keeps a fixed distance from the nearest game-window corner.
  */
-import { DEFAULT_ALCOHOL_TIMER_POSITION, formatAlcoholTimer, type AlcoholTimerPosition } from "../shared/alcohol-timer.js";
-import { captureCornerPosition, restoreCornerPosition } from "../shared/corner-position.js";
-import type { AlcoholState } from "./companion-alcohol-snapshot.js";
-import { createNonActivatingSurface } from "./non-activating-surface.js";
+import { DEFAULT_ALCOHOL_TIMER_POSITION, formatAlcoholTimer, type AlcoholTimerPosition } from "../../../shared/alcohol-timer.js";
+import { captureCornerPosition, restoreCornerPosition } from "../../../shared/corner-position.js";
+import type { AlcoholState } from "../../../renderer/companion-alcohol-snapshot.js";
+import { createNonActivatingSurface } from "../../../renderer/non-activating-surface.js";
 
 export function createAlcoholTimerOverlay(parent: HTMLElement, canvas: HTMLCanvasElement,
   savePosition: (value: AlcoholTimerPosition) => Promise<unknown>) {

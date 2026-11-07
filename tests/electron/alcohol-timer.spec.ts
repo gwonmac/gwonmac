@@ -2,7 +2,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { closeOffline, launchOffline, openSettings } from "./fixtures.mjs";
 
-type OverlayModule = typeof import("../../app/renderer/alcohol-timer-overlay.js");
+type OverlayModule = typeof import("../../app/features/alcohol-timer/renderer/alcohol-timer-overlay.js");
 type Timer = ReturnType<OverlayModule["createAlcoholTimerOverlay"]>;
 declare global { interface Window { alcoholFixture: Timer } }
 // The overlay consumes supplied snapshots; these tests need only the offline shell.
@@ -10,7 +10,7 @@ async function showTimer(page: Page) {
   await expect(page.locator("#loading-label")).toHaveText("Game data could not be prepared.");
   await page.evaluate(async () => {
     document.getElementById("loading")?.classList.add("gone");
-    const url: string = "gw://app/alcohol-timer-overlay.js";
+    const url: string = "gw://app/features/alcohol-timer/renderer/alcohol-timer-overlay.js";
     const { createAlcoholTimerOverlay } = await import(url) as OverlayModule;
     const canvas = document.getElementById("canvas") as HTMLCanvasElement;
     window.alcoholFixture = createAlcoholTimerOverlay(document.body, canvas, async value => {
