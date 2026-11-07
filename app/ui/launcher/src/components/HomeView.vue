@@ -3,13 +3,14 @@
  * The launcher's player-facing home projection: timely news and the existing
  * daily activity surface. Network, trust, and persistence remain in main.
  */
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, type Component } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch, type Component } from "vue";
 import {
   Castle, ChevronLeft, ChevronRight, Clock3, Crosshair, ExternalLink, MapPin,
   Newspaper, PackageOpen, Pause, Play, ScrollText, ShieldCheck, SlidersHorizontal, Swords,
 } from "lucide-vue-next";
 import type { LauncherNewsStory, LauncherPreferencesPatch, LauncherSnapshot } from "@shared/launcher-contracts";
 import { dailyDaysFrom, type DailyCategory, type DailyDay } from "@shared/daily-activities";
+import { navigateTabs } from "@shared/ui/focusable";
 import NewsFeed from "./NewsFeed.vue";
 import NewsSourceMark from "./NewsSourceMark.vue";
 
@@ -101,13 +102,6 @@ function openStory(story: LauncherNewsStory) {
   if (story.action === "article") emit("read", story.id);
   else emit("news", story.id);
 }
-async function moveTab(event: KeyboardEvent) {
-  if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
-  event.preventDefault();
-  contentTab.value = contentTab.value === "news" ? "dailies" : "news";
-  await nextTick();
-  document.querySelector<HTMLElement>(`#${contentTab.value}-tab`)?.focus();
-}
 function sourceLabel(story: LauncherNewsStory): string { return story.source === "game" ? "Guild Wars update" : story.source === "event" ? "Event" : story.channel === "beta" ? "GWonMac Beta" : "GWonMac release"; }
 // An event shows when it runs; everything else shows when it was published.
 function dateLabel(story: LauncherNewsStory): string {
@@ -135,7 +129,7 @@ function dateLabel(story: LauncherNewsStory): string {
   </section>
 
   <section v-if="snapshot.preferences.content.news || snapshot.preferences.content.dailies" class="home-panel">
-    <div v-if="snapshot.preferences.content.news && snapshot.preferences.content.dailies" class="segmented home-tabs" role="tablist" aria-label="Home content" @keydown="moveTab">
+    <div v-if="snapshot.preferences.content.news && snapshot.preferences.content.dailies" class="segmented home-tabs" role="tablist" aria-label="Home content" @keydown="navigateTabs">
       <button id="news-tab" role="tab" :tabindex="contentTab === 'news' ? 0 : -1" :aria-selected="contentTab === 'news'" aria-controls="news-panel" @click="contentTab = 'news'"><Newspaper />News</button>
       <button id="dailies-tab" role="tab" :tabindex="contentTab === 'dailies' ? 0 : -1" :aria-selected="contentTab === 'dailies'" aria-controls="dailies-panel" @click="contentTab = 'dailies'"><Clock3 />Dailies</button>
     </div>

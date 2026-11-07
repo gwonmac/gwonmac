@@ -5,7 +5,8 @@ let lastSection: Section = "tools";
 </script>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, provide, ref, watch } from "vue";
+import { MODAL_HOST } from "../modal-host";
 import { ArrowUpRight, Contrast, FileText, FolderDown, Gamepad2, House, Image, Map as MapIcon, RefreshCw, Search, WandSparkles, X } from "lucide-vue-next";
 import { SETTING_APPLIES_NOTE } from "@shared/setting-copy";
 import { HUB_SECTIONS, SETTINGS, SETTINGS_GROUP_LABELS, SETTINGS_SECTIONS, searchSettings, type SettingsSection, type SettingsTarget } from "@shared/settings-catalogue";
@@ -57,6 +58,9 @@ const groups = (["game", "app"] as const).map(group => ({ label: SETTINGS_GROUP_
 /** In the Hub, the launcher's sections stay listed and open the launcher. */
 const inLauncher = (id: SettingsSection) => !props.launcher && !HUB_SECTIONS.has(id);
 const nav = ref<HTMLElement | null>(null);
+// The game document has no launcher tokens: in the Hub, modals open inside the page.
+const modalHost = ref<HTMLElement | null>(null);
+if (!props.launcher) provide(MODAL_HOST, modalHost);
 const retryButton = ref<HTMLButtonElement | null>(null);
 
 const section = ref<SettingsSection>(lastSection);
@@ -327,5 +331,6 @@ onBeforeUnmount(() => {
         </footer>
       </div>
     </section>
+    <div v-if="!launcher" ref="modalHost"></div>
   </div>
 </template>

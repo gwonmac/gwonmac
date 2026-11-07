@@ -11,7 +11,7 @@ import type {
   LauncherPreferencesPatch,
   LauncherProfileAppearance,
 } from "../../shared/launcher-contracts.js";
-import { LAUNCHER_PROFILE_ICONS, parseLauncherPlayPage } from "../../shared/launcher-contracts.js";
+import { DEFAULT_PROFILE_COLOR, DEFAULT_PROFILE_ICON, isLauncherProfileColor, isLauncherProfileIcon, parseLauncherPlayPage } from "../../shared/launcher-contracts.js";
 import type { ProfileId } from "../../shared/multiple-accounts.js";
 import { parseProfileId } from "../../shared/multiple-accounts.js";
 import { writeAtomicJson } from "./atomic-file.js";
@@ -21,12 +21,9 @@ import { Mutex } from "./mutex.js";
 const FORMAT_VERSION = 1;
 const SETUP_VERSION = 1;
 const DOCUMENT_MODE = 0o600;
-const DEFAULT_COLOR = "#9a6638";
-const DEFAULT_ICON = "swords";
-const PROFILE_ICONS = new Set<string>(LAUNCHER_PROFILE_ICONS);
 
 function validAppearance(value: LauncherProfileAppearance): boolean {
-  return PROFILE_ICONS.has(value.icon) && /^#[0-9a-f]{6}$/iu.test(value.color);
+  return isLauncherProfileIcon(value.icon) && isLauncherProfileColor(value.color);
 }
 
 export interface LauncherStateDocument {
@@ -125,11 +122,7 @@ export function parseLauncherState(value: unknown): LauncherStateDocument {
   for (const [id, raw] of Object.entries(appearances)) {
     parseProfileId(id);
     const appearance = record(raw, "profile appearance");
-    if (
-      typeof appearance.icon !== "string"
-      || typeof appearance.color !== "string"
-      || !validAppearance({ icon: appearance.icon, color: appearance.color })
-    ) {
+    if (!isLauncherProfileIcon(appearance.icon) || !isLauncherProfileColor(appearance.color)) {
       throw new Error("profile appearance is invalid");
     }
     parsedAppearances[id] = { icon: appearance.icon, color: appearance.color };
@@ -215,7 +208,7 @@ export class LauncherStateStore {
   }
 
   appearance(profileId: ProfileId): LauncherProfileAppearance {
-    return this.value.appearances[profileId] ?? { icon: DEFAULT_ICON, color: DEFAULT_COLOR };
+    return this.value.appearances[profileId] ?? { icon: DEFAULT_PROFILE_ICON, color: DEFAULT_PROFILE_COLOR };
   }
 
   async setSelection(ids: readonly ProfileId[]): Promise<void> {

@@ -273,6 +273,7 @@ void nextTick(() => input.value?.focus());
         </button>
       </div>
 
+      <!-- Not navigateTabs: focus stays in the search box, which steps these tabs with ← → (onKeydown, no wrap), so the tabs never take focus. -->
       <div v-if="!hasQuery" class="progress-goals" role="tablist" aria-label="Goal">
         <button v-for="each in goals" :key="each.id" type="button" role="tab" class="progress-goal" :class="{ 'progress-goal-minor': each.minor }" :aria-selected="each.id === goal?.id" tabindex="-1" @mousedown.prevent @click="chooseGoal(each.id)">
           <span class="progress-goal-name" :title="each.name">{{ shortName(each) }}</span>

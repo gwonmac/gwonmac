@@ -9,8 +9,10 @@ import { TOOL_PRESENTATION as features } from "@shared/tool-presentation";
 import { SKILL_COOLDOWN_PRESETS, isSkillCooldownCustomHex, skillCooldownCssColor } from "@shared/skill-cooldowns";
 import ColorControl from "./ColorControl.vue";
 import ShortcutSetting from "./ShortcutSetting.vue";
+import { saveChoice } from "../select-choice";
 import SkillLabelsSettings from "./SkillLabelsSettings.vue";
 
+const COOLDOWN_CHOICES = [...SKILL_COOLDOWN_PRESETS, "custom"] as const;
 const props = defineProps<{ snapshot: InGameSnapshot; api?: InGameNative | undefined; profiles?: LauncherSnapshot["profiles"] | undefined; save: (patch: InGamePatch) => Promise<void>; performSave?: (action: () => Promise<unknown>) => Promise<void> }>();
 const emit = defineEmits<{ maps: [] }>();
 const message = ref("");
@@ -87,7 +89,7 @@ function customColor(value: string) {
           <p v-if="remindersSilent" class="reminder-note">Choose at least one item and one time, or no reminder appears.</p>
         </div>
         <template v-if="tool === 'skill-cooldowns'">
-          <label data-setting="skillCooldownColor"><span>Timer color</span><select :value="snapshot.settings.skillCooldownColor.kind === 'preset' ? snapshot.settings.skillCooldownColor.preset : 'custom'" @change="perform(() => save({ skillCooldownColor: ($event.target as HTMLSelectElement).value === 'custom' ? { kind: 'custom', value: '#e35a4f' } : { kind: 'preset', preset: ($event.target as HTMLSelectElement).value as typeof SKILL_COOLDOWN_PRESETS[number] } }))"><option v-for="preset in SKILL_COOLDOWN_PRESETS" :key="preset" :value="preset">{{ preset }}</option><option value="custom">Custom</option></select></label>
+          <label data-setting="skillCooldownColor"><span>Timer color</span><select :value="snapshot.settings.skillCooldownColor.kind === 'preset' ? snapshot.settings.skillCooldownColor.preset : 'custom'" @change="saveChoice($event, COOLDOWN_CHOICES, (choice) => perform(() => save({ skillCooldownColor: choice === 'custom' ? { kind: 'custom', value: '#e35a4f' } : { kind: 'preset', preset: choice } })))"><option v-for="preset in SKILL_COOLDOWN_PRESETS" :key="preset" :value="preset">{{ preset }}</option><option value="custom">Custom</option></select></label>
           <div v-if="snapshot.settings.skillCooldownColor.kind === 'custom'" class="setting-row"><span>Custom timer color</span><ColorControl label="Custom timer color" :value="skillCooldownCssColor(snapshot.settings.skillCooldownColor)" @change="customColor" /></div>
         </template>
       </details>

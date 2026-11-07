@@ -372,6 +372,8 @@
   flex: 1;
 }
 
+/* Every ancestor up to .detail-pane clips, so the results list stays the only
+   scroll container: listPage() in SkillCatalogue.vue pages by its clientHeight. */
 [data-catalogue-open] .skill-results { max-height: none; }
 [data-catalogue-open] .skill-inspector { overflow: auto; }
 

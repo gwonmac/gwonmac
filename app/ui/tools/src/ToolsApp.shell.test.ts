@@ -70,7 +70,7 @@ describe("ToolsApp shell and library", () => {
     wrapper.unmount();
   });
 
-  it("moves focus through library navigation without changing selection", async () => {
+  it("moves focus through library navigation with the shared list keys, without changing selection", async () => {
     const wrapper = await workbench();
     const rows = wrapper.findAll<HTMLButtonElement>(".library-row");
     rows[0]!.element.focus();
@@ -81,6 +81,11 @@ describe("ToolsApp shell and library", () => {
     await rows[1]!.trigger("keydown", { key: "End" });
     expect(document.activeElement).toBe(rows.at(-1)!.element);
     await rows.at(-1)!.trigger("keydown", { key: "Home" });
+    expect(document.activeElement).toBe(rows[0]!.element);
+    // The shared list keys: Control-N/P step like Down/Up.
+    await rows[0]!.trigger("keydown", { key: "n", ctrlKey: true });
+    expect(document.activeElement).toBe(rows[1]!.element);
+    await rows[1]!.trigger("keydown", { key: "p", ctrlKey: true });
     expect(document.activeElement).toBe(rows[0]!.element);
     wrapper.unmount();
   });

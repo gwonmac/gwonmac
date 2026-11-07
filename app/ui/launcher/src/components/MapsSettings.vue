@@ -2,6 +2,8 @@
 import type { InGamePatch, InGameSettings, InGameTools } from "../settings-host";
 import { computed, nextTick, ref } from "vue";
 import type { LauncherSnapshot } from "@shared/launcher-contracts";
+import { REVEAL_MODE_OPTIONS } from "@shared/setting-copy";
+import { saveChoice } from "../select-choice";
 import ShortcutSetting from "./ShortcutSetting.vue";
 import ColorControl from "./ColorControl.vue";
 import RangeControl from "./RangeControl.vue";
@@ -11,23 +13,18 @@ import {
   COMPASS_RANGE_INDICATORS,
   COMPASS_RANGE_THEMES,
   type CompassRange,
-  type CompassRangeTheme,
 } from "@shared/compass-ranges";
 import {
   ELITE_MISSION_MAP_MARKERS,
   ELITE_MISSION_MAP_MARKER_LABELS,
-  type EliteMissionMapMarkers,
 } from "@shared/elite-map-settings";
 import {
   CARTOGRAPHY_BUILTIN_PRESETS,
   isCartographyBuiltinPresetId,
   type CartographyColor,
-  type CartographyLinePattern,
-  type CartographyUnseenMarker,
   CARTOGRAPHY_LINE_PATTERNS,
-  CARTOGRAPHY_UNSEEN_MARKERS,
   CARTOGRAPHY_REVEAL_MODES,
-  type CartographyRevealMode,
+  CARTOGRAPHY_UNSEEN_MARKERS,
   decodeCartographyPreset,
   encodeCartographyPreset,
   type CartographyLineStyle,
@@ -51,7 +48,6 @@ const props = defineProps<{
   performSave?: ((action: () => Promise<unknown>) => Promise<void>) | undefined;
 }>();
 const emit = defineEmits<{ tools: [] }>();
-const REVEAL_MODE_LABELS: Readonly<Record<CartographyRevealMode, string>> = { off: "Off", normal: "Normal · 3×3", "birds-eye": "Bird’s Eye · 7×7" };
 
 const status = ref("");
 const importValue = ref("");
@@ -214,7 +210,7 @@ async function updateUnseen(patch: Partial<CartographyPresetStyle["grid"]["unsee
     <details class="compass-range-settings">
       <summary>Configure Compass ranges</summary>
       <p>Choose each ring and its opacity. These choices remain saved while Compass ranges are off.</p>
-      <label class="compass-range-theme"><span><strong>Appearance</strong></span><select aria-label="Compass range appearance" :value="settings.compassRangeTheme" @change="persist({ compassRangeTheme: ($event.currentTarget as HTMLSelectElement).value as CompassRangeTheme })"><option v-for="theme in COMPASS_RANGE_THEMES" :key="theme" :value="theme">{{ theme === 'color' ? 'Color' : 'Monochrome' }}</option></select></label>
+      <label class="compass-range-theme"><span><strong>Appearance</strong></span><select aria-label="Compass range appearance" :value="settings.compassRangeTheme" @change="saveChoice($event, COMPASS_RANGE_THEMES, (theme) => persist({ compassRangeTheme: theme }))"><option v-for="theme in COMPASS_RANGE_THEMES" :key="theme" :value="theme">{{ theme === 'color' ? 'Color' : 'Monochrome' }}</option></select></label>
       <div v-for="range in COMPASS_RANGE_INDICATORS" :key="range.id" class="setting-row compass-range-setting">
         <label><input type="checkbox" :aria-label="`Show ${range.label} range`" :checked="settings[range.enabledSetting]" @change="setRangeEnabled(range, ($event.currentTarget as HTMLInputElement).checked)" /><strong>{{ range.label }}</strong></label>
         <RangeControl :label="`${range.label} opacity`" :value="settings[range.opacitySetting]" :min="0" :max="100" unit="%" @change="setRangeOpacity(range, $event)" />
@@ -229,7 +225,7 @@ async function updateUnseen(patch: Partial<CartographyPresetStyle["grid"]["unsee
   <h2 class="settings-subheading">Elite skills</h2>
   <div class="setting-group map-elite-skills">
     <label data-setting="eliteSkillsEnabled"><span><strong>Elite skill planner</strong><small>Adds the planner to the World Map and your Hunt list to the Mission Map.</small></span><input type="checkbox" aria-label="Elite skill planner" :checked="settings.eliteSkillsEnabled" @change="persist({ eliteSkillsEnabled: ($event.currentTarget as HTMLInputElement).checked })" /></label>
-    <label data-setting="eliteMissionMapMarkers"><span><strong>Mission Map markers</strong><small>What the Mission Map shows while you play. The Hunt list includes your target.</small></span><select aria-label="Mission Map markers" :value="settings.eliteMissionMapMarkers" :disabled="!settings.eliteSkillsEnabled" @change="persist({ eliteMissionMapMarkers: ($event.currentTarget as HTMLSelectElement).value as EliteMissionMapMarkers })"><option v-for="mode in ELITE_MISSION_MAP_MARKERS" :key="mode" :value="mode">{{ ELITE_MISSION_MAP_MARKER_LABELS[mode] }}</option></select></label>
+    <label data-setting="eliteMissionMapMarkers"><span><strong>Mission Map markers</strong><small>What the Mission Map shows while you play. The Hunt list includes your target.</small></span><select aria-label="Mission Map markers" :value="settings.eliteMissionMapMarkers" :disabled="!settings.eliteSkillsEnabled" @change="saveChoice($event, ELITE_MISSION_MAP_MARKERS, (mode) => persist({ eliteMissionMapMarkers: mode }))"><option v-for="mode in ELITE_MISSION_MAP_MARKERS" :key="mode" :value="mode">{{ ELITE_MISSION_MAP_MARKER_LABELS[mode] }}</option></select></label>
   </div>
   <h2 class="settings-subheading">Map appearance</h2>
   <div class="setting-group map-appearance">
@@ -237,7 +233,7 @@ async function updateUnseen(patch: Partial<CartographyPresetStyle["grid"]["unsee
     <div class="map-appearance-controls">
     <div v-if="active" class="setting-row" data-setting="cartographyBoundaryWidth"><span><strong>Terrain border thickness</strong><small>0 hides the border. Changing a built-in style saves a custom copy.</small></span><RangeControl label="Terrain border thickness" :value="active.style.walkability.boundaryWidth" :min="0" :max="4" unit="px" @change="updateWalkability({ boundaryWidth: $event })" /></div>
     <div class="setting-row" data-setting="cartographyGridOpacity"><span><strong>Grid opacity</strong></span><RangeControl label="Grid opacity" :value="settings.cartographyGridOpacity" :min="0" :max="100" unit="%" @change="persist({ cartographyGridOpacity: $event })" /></div>
-    <label class="setting-row" data-setting="cartographyRevealMode"><span><strong>Reveal range</strong><small>Outlines where to stand to reveal the remaining diamonds, and marks your range on the Compass.</small></span><select :value="settings.cartographyRevealMode" @change="persist({ cartographyRevealMode: ($event.currentTarget as HTMLSelectElement).value as InGameSettings['cartographyRevealMode'] })"><option v-for="mode in CARTOGRAPHY_REVEAL_MODES" :key="mode" :value="mode">{{ REVEAL_MODE_LABELS[mode] }}</option></select></label>
+    <label class="setting-row" data-setting="cartographyRevealMode"><span><strong>Reveal range</strong><small>Outlines where to stand to reveal the remaining diamonds, and marks your range on the Compass.</small></span><select :value="settings.cartographyRevealMode" @change="saveChoice($event, CARTOGRAPHY_REVEAL_MODES, (mode) => persist({ cartographyRevealMode: mode }))"><option v-for="option in REVEAL_MODE_OPTIONS" :key="option.value" :value="option.value">{{ option.label }}</option></select></label>
     <div class="setting-row" data-setting="cartographyWalkabilityOpacity"><span><strong>Walkable terrain opacity</strong></span><RangeControl label="Walkable terrain opacity" :value="settings.cartographyWalkabilityOpacity" :min="0" :max="100" unit="%" @change="persist({ cartographyWalkabilityOpacity: $event })" /></div>
     </div>
     <MapStylePreview v-if="active" :style="active.style" :grid-opacity="settings.cartographyGridOpacity" :terrain-opacity="settings.cartographyWalkabilityOpacity" />
@@ -251,13 +247,13 @@ async function updateUnseen(patch: Partial<CartographyPresetStyle["grid"]["unsee
     <h2>Grid</h2>
     <div class="setting-row"><span>Grid outline color</span><ColorControl label="Grid outline color" :value="active.style.grid.casingColor" @change="updateGrid" /></div>
     <div class="setting-row"><span>Unseen cell color</span><ColorControl label="Unseen cell color" :value="active.style.grid.unseen.color" @change="updateUnseen({ color: $event })" /></div>
-    <label><span>Unseen cell marker</span><select :value="active.style.grid.unseen.marker" @change="updateUnseen({ marker: ($event.currentTarget as HTMLSelectElement).value as CartographyUnseenMarker })"><option v-for="marker in CARTOGRAPHY_UNSEEN_MARKERS" :key="marker" :value="marker">{{ marker }}</option></select></label>
+    <label><span>Unseen cell marker</span><select :value="active.style.grid.unseen.marker" @change="saveChoice($event, CARTOGRAPHY_UNSEEN_MARKERS, (marker) => updateUnseen({ marker }))"><option v-for="marker in CARTOGRAPHY_UNSEEN_MARKERS" :key="marker" :value="marker">{{ marker }}</option></select></label>
     <details class="advanced-map-lines"><summary>Inspection outlines</summary>
     <fieldset v-for="(label, key) in lineLabels" :key="key" class="map-line-editor">
       <legend>{{ label }}</legend>
       <div class="setting-row"><span>Color</span><ColorControl :label="`${label} color`" :value="active.style.grid[key].color" @change="updateLine(key, { color: $event })" /></div>
       <div class="setting-row"><span>Width</span><RangeControl :label="`${label} width`" :value="active.style.grid[key].width" :min="0" :max="4" unit="px" @change="updateLine(key, { width: $event })" /></div>
-      <label class="setting-row"><span>Pattern</span><select :aria-label="`${label} pattern`" :value="active.style.grid[key].pattern" @change="updateLine(key, { pattern: ($event.currentTarget as HTMLSelectElement).value as CartographyLinePattern })"><option v-for="pattern in CARTOGRAPHY_LINE_PATTERNS" :key="pattern" :value="pattern">{{ pattern }}</option></select></label>
+      <label class="setting-row"><span>Pattern</span><select :aria-label="`${label} pattern`" :value="active.style.grid[key].pattern" @change="saveChoice($event, CARTOGRAPHY_LINE_PATTERNS, (pattern) => updateLine(key, { pattern }))"><option v-for="pattern in CARTOGRAPHY_LINE_PATTERNS" :key="pattern" :value="pattern">{{ pattern }}</option></select></label>
     </fieldset>
     </details>
   </div>
@@ -283,7 +279,7 @@ async function updateUnseen(patch: Partial<CartographyPresetStyle["grid"]["unsee
 .setting-group > label > span { min-width: 140px; flex: 1; }
 .compass-options > summary { padding: 12px 0; }
 .compass-options > label { display: flex; justify-content: space-between; gap: 16px; padding: 12px 0; }
-.compass-range-settings > p { margin: 8px 0; color: var(--muted); font-size: 13px; }
+.compass-range-settings > p { margin: 8px 0; color: var(--settings-muted); font-size: 13px; }
 .compass-range-theme { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 8px 0 12px; }
 .compass-range-setting > label { display: flex; align-items: center; gap: 10px; min-width: 140px; }
 </style>

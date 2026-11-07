@@ -19,6 +19,11 @@ const ATTRIBUTE_LABELS = {
   ScytheMastery: 'Scythe', WindPrayers: 'WP', EarthPrayers: 'EP', Mysticism: 'Myst',
 } satisfies Record<Attribute, string>;
 
+/** An attribute's full name as players read it: FastCasting → Fast Casting. */
+export function attributeLabel(attribute: string): string {
+  return attribute.replace(/([a-z])([A-Z])/gu, '$1 $2');
+}
+
 export function buildProfessions(professions: readonly (Profession | null)[]) {
   return professions.flatMap(code => {
     if (!code) return [];
@@ -32,7 +37,7 @@ export function buildAttributes(attributes: Build['attributes']) {
     const attribute = key as Attribute;
     const rank = attributes[attribute];
     return rank ? [{ profession: ATTRIBUTES[attribute].profession,
-      value: { label, rank: Number(rank), name: attribute.replace(/([a-z])([A-Z])/gu, '$1 $2') } }] : [];
+      value: { label, rank: Number(rank), name: attributeLabel(attribute) } }] : [];
   });
   return Object.entries(PROFESSIONS).flatMap(([profession, facts]) => {
     const ranks = invested.filter(attribute => attribute.profession === profession).map(attribute => attribute.value);

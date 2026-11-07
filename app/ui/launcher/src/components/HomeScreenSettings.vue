@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import type { LauncherPreferencesPatch, LauncherSnapshot } from "@shared/launcher-contracts";
+import { LAUNCHER_CONTENT_KINDS, type LauncherPreferencesPatch, type LauncherSnapshot } from "@shared/launcher-contracts";
+import { saveChoice } from "../select-choice";
 
 defineProps<{ content: LauncherSnapshot["preferences"]["content"]; save: (content: NonNullable<LauncherPreferencesPatch["content"]>) => Promise<void> }>();
 const checked = (event: Event) => (event.currentTarget as HTMLInputElement).checked;
@@ -11,7 +12,7 @@ const checked = (event: Event) => (event.currentTarget as HTMLInputElement).chec
   <div class="setting-group">
     <label data-setting="content.news"><span><strong>News</strong><small>Game, event, and GWonMac updates.</small></span><input type="checkbox" :checked="content.news" @change="save({ news: checked($event) })" /></label>
     <label data-setting="content.dailies"><span><strong>Dailies</strong><small>Daily activities and the weekly schedule.</small></span><input type="checkbox" :checked="content.dailies" @change="save({ dailies: checked($event) })" /></label>
-    <label v-if="content.news && content.dailies"><span><strong>First Home tab</strong></span><select :value="content.first" @change="save({ first: ($event.currentTarget as HTMLSelectElement).value as 'news' | 'dailies' })"><option value="news">News</option><option value="dailies">Dailies</option></select></label>
+    <label v-if="content.news && content.dailies"><span><strong>First Home tab</strong></span><select :value="content.first" @change="saveChoice($event, LAUNCHER_CONTENT_KINDS, (first) => save({ first }))"><option value="news">News</option><option value="dailies">Dailies</option></select></label>
   </div>
   <template v-if="content.news">
     <h2 class="settings-subheading">News sources</h2>

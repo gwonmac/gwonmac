@@ -1,7 +1,8 @@
 /**
  * Owns the one list move of the keyboard contract, shared by Hub lists, Hub
  * preferences, Settings sections, the Characters carousel, Travel, the Trade
- * ledger, Trader prices and the Whispers picker: ↑ ↓ ⌃P ⌃N step, PgUp PgDn
+ * ledger, Trader prices, the Whispers picker, the Build and Team library and
+ * the skill catalogue: ↑ ↓ ⌃P ⌃N step, PgUp PgDn
  * page by the visible rows and Home End jump, and no list wraps. A carousel
  * also steps with ← →.
  */
