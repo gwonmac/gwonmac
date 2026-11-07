@@ -1,7 +1,7 @@
 // scripts/build.mjs is the single build producer. copy-renderer.mjs runs
 // to completion without a Rust toolchain, copies assets and no code, and emits
-// no kernel; the build step list compiles both kernels in exactly one cargo
-// step and seals them only after the renderer bundle that holds their loaders.
+// no kernel; the build plan compiles both kernels in exactly one cargo step
+// and seals them only after the renderer bundle that holds their loaders.
 // Rollup is the only renderer runtime producer; the main compiler is the only
 // producer of build/shared.
 import assert from "node:assert/strict";
@@ -20,7 +20,7 @@ import path from "node:path";
 import { after, describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 import ts from "typescript";
-import { BUILD_STEPS, CARGO_ARGS } from "../../scripts/build.mjs";
+import { BUILD_PHASES, CARGO_ARGS } from "../../scripts/build.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -195,49 +195,30 @@ describe("scripts/copy-renderer.mjs only copies assets", () => {
   });
 });
 
-/**
- * One step's argument list. `scripts/build.mjs` is JavaScript, so its step list
- * infers as arrays of `string | string[]` and cannot say that position 1 is
- * always the arguments. Asserting the shape rather than assuming it means a
- * step list that stopped being command-and-arguments pairs fails here, instead
- * of every `includes` below quietly answering about a command string.
- */
-function stepArgs(step: (typeof BUILD_STEPS)[number]): string[] {
-  const args = step[1];
-  assert.ok(
-    Array.isArray(args),
-    `build step ${String(step[0])} carries no argument list`,
-  );
-  return args;
-}
+/** Every step of the plan with the phase it runs in. */
+const steps = BUILD_PHASES.flatMap((phase, index) =>
+  phase.map((step) => ({ ...step, phase: index }))
+);
 
-/**
- * Where the one step whose arguments mention `needle` sits in the list.
- * Positions are read from the step list rather than written down here, so the
- * assertions below stay about the ordering that matters and survive a step
- * being inserted anywhere in it.
- */
-function stepPosition(needle: string): number {
-  const found = BUILD_STEPS.map((step, index) => ({ step, index })).filter(
-    ({ step }) => stepArgs(step).includes(needle),
-  );
-  assert.equal(found.length, 1, `${needle} is not run by exactly one build step`);
-  return found[0]!.index;
+/** The phase of the one step called `name`. */
+function phaseOf(name: string): number {
+  const found = steps.filter((step) => step.name === name);
+  assert.equal(found.length, 1, `${name} is not exactly one build step`);
+  return found[0]!.phase;
 }
 
 describe("scripts/build.mjs owns both sealed kernel builds", () => {
   it("compiles both kernels in exactly one cargo step and never with raw rustc", () => {
     assert.deepEqual(
-      BUILD_STEPS.filter(([command]) => command === "cargo").map(stepArgs),
+      steps.filter((step) => step.command === "cargo").map((step) => [...step.args]),
       [[...CARGO_ARGS]],
     );
-    assert.equal(BUILD_STEPS.some(([command]) => command === "rustc"), false);
+    assert.equal(steps.some((step) => step.command === "rustc"), false);
   });
 
   it("seals only after the kernels and the renderer bundle holding their loaders", () => {
-    const sealer = stepPosition("scripts/kernels.mjs");
-    const kernels = BUILD_STEPS.findIndex(([command]) => command === "cargo");
-    assert.ok(sealer > kernels && sealer > stepPosition("scripts/build-renderer.mjs"));
+    assert.ok(phaseOf("seal") > phaseOf("kernels"));
+    assert.ok(phaseOf("seal") > phaseOf("renderer"));
   });
 });
 
@@ -273,9 +254,12 @@ describe("renderer typechecking does not emit runtime files", () => {
   });
 
   it("has one explicit renderer runtime producer", () => {
-    assert.equal(stepPosition("scripts/build-renderer.mjs") >= 0, true);
     assert.equal(
-      BUILD_STEPS.some((step) => stepArgs(step).includes("tsconfig.renderer.json")),
+      steps.filter((step) => step.args.includes("scripts/build-renderer.mjs")).length,
+      1,
+    );
+    assert.equal(
+      steps.some((step) => step.args.includes("tsconfig.renderer.json")),
       false,
     );
   });
