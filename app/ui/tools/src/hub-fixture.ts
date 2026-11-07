@@ -24,7 +24,7 @@ import { installSurfaceController } from '../../../renderer/surface-controller';
 // eslint-disable-next-line no-restricted-imports
 import { askLeaveArea, leaveAreaCopy } from '../../../renderer/leave-area';
 // eslint-disable-next-line no-restricted-imports
-import { installResignCommand } from '../../../renderer/resign';
+import { installResignCommand } from '../../../features/resign/renderer/resign-command';
 // eslint-disable-next-line no-restricted-imports
 import '../../../renderer/hub.css';
 // eslint-disable-next-line no-restricted-imports
@@ -32,12 +32,12 @@ import { createHubPeople } from '../../../renderer/hub-people';
 // eslint-disable-next-line no-restricted-imports
 import { createPartyInvite } from '../../../renderer/party-invite';
 // eslint-disable-next-line no-restricted-imports
-import type { CharacterSwitchActionState, CharacterSwitchFailureCode, CharacterSwitchSource } from '../../../renderer/character-switch-model';
+import type { CharacterSwitchActionState, CharacterSwitchFailureCode, CharacterSwitchSource } from '../../../features/character-switch/renderer/character-switch-model';
 import { createFixtureLifecycle, FIXTURE_LIFECYCLES, isFixtureLifecycle } from './hub-fixture-lifecycle';
 // eslint-disable-next-line no-restricted-imports
-import { installCharacterSwitchHost } from '../../../renderer/character-switch-host';
+import { installCharacterSwitchHost } from '../../../features/character-switch/renderer/host';
 // eslint-disable-next-line no-restricted-imports
-import '../../../renderer/character-switch.css';
+import '../../../features/character-switch/renderer/character-switch.css';
 // eslint-disable-next-line no-restricted-imports
 import { createToolboxFoundation } from '../../../renderer/toolbox-foundation';
 import { createDemoTradeHost } from './trade-host';

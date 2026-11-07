@@ -243,10 +243,10 @@ let automaticCharacterReturn:
   | null = null;
 let loginStatus: import('./login-status.js').LoginStatus | null = null;
 let characterSwitchHost:
-  | import('./character-switch-host.js').CharacterSwitchHost
+  | import('../features/character-switch/renderer/host.js').CharacterSwitchHost
   | null = null;
 let installCharacterSwitchHost:
-  typeof import('./character-switch-host.js').installCharacterSwitchHost;
+  typeof import('../features/character-switch/renderer/host.js').installCharacterSwitchHost;
 const cancelAutomaticReturnForCharacterSwitch = () => {
   automaticCharacterReturn?.cancelForCharacterSwitch();
 };
@@ -1366,7 +1366,7 @@ function loadGlue(isProxyRouteLabel: (route: string) => boolean) {
       import('./virtual-gamepad.js'),
       import('./controller-prompt-texture.js'),
       import('./texture-pack.js'),
-      import('./character-switch-host.js'),
+      import('../features/character-switch/renderer/host.js'),
       import('../shared/settings/index.js'),
     ]);
     projectToolsSettings = settingsTable.toolsSettings;

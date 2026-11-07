@@ -42,7 +42,7 @@ export function createHubCommands(hub: Hub, openSettings: (target?: SettingsTarg
         { id: 'launcher', title: 'Show Launcher', detail: 'Accounts, updates and game files', keywords: 'launcher administration', group: 'Commands', action: 'Show Launcher', run: async (task: HubTask) => { await window.gwNative.app.showLauncher(); task.done(); } },
         { id: 'help', title: 'Project website', detail: 'Documentation and latest changes', keywords: 'help documentation', group: 'Commands', action: 'Open website', run: async (task: HubTask) => { await window.gwNative.app.openExternal('github'); task.done(); } },
         // Call Target stays on its own shortcut: it acts only while the game has focus (HUB-133).
-        // Resign's row comes from its owner, with its refusal before Enter (resign.ts).
+        // Resign's row comes from its owner, with its refusal before Enter (resign-command.ts).
         // Quit or Reload opens the account's confirmation sheet, never a direct quit (HUB-001).
         // The sheet waits for the press that asked for it, so its repeat or trailing click never answers it.
         // Cancel hands the task back with its search, as Resign's confirmation does (HUB-250).

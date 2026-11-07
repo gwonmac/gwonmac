@@ -44,11 +44,11 @@ import type {
 } from "../shared/cartography-spike.js";
 import type { CompanionCharacterListState } from "./companion-character-list-snapshot.js";
 import type { GameHub } from "./hub-builtins.js";
-import type { CharacterSwitchHost } from "./character-switch-host.js";
 import type {
   CharacterSwitchContext as SharedCharacterSwitchContext,
+  CharacterSwitchHost,
   CharacterSwitchSource,
-} from "./character-switch-model.js";
+} from "../features/character-switch/renderer/host.js";
 import type {
   InputTrace as SharedInputTrace,
   InputTraceEntry as SharedInputTraceEntry,

@@ -48,7 +48,7 @@ function rendererCheckout(): string {
   write("app/renderer/favicon.png", "png");
   write("app/renderer/harness.css", "css");
   write("app/renderer/cartography-overlay-controls.css", "controls-css");
-  write("app/renderer/character-switch.css", "character-css");
+  write("app/features/character-switch/renderer/character-switch.css", "character-css");
   write("app/renderer/hub.css", "hub-css");
   write("app/renderer/loading.css", "css");
   write("app/renderer/fonts.css", "font-css");
@@ -145,9 +145,9 @@ describe("scripts/copy-renderer.mjs only copies assets", () => {
       .sort();
     assert.deepEqual(relative, [
       "cartography-overlay-controls.css",
-      "character-switch.css",
       "favicon.ico",
       "favicon.png",
+      "features/character-switch/renderer/character-switch.css",
       "fonts.css",
       "fonts/COPYING-INTER",
       "fonts/COPYING-QUALITYPE",
