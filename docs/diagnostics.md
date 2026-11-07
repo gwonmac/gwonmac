@@ -26,7 +26,10 @@ typed fields. Main and renderer clocks are synchronized with repeated bounded
 sampling.
 
 The shared startup timeline records application and renderer milestones. It
-also records the official client identity used by the session.
+also records the official client identity used by the session. A renderer
+milestone crosses IPC as one closed record. Main checks its fields with the
+same guards the diagnostic schema uses (`RENDERER_MILESTONE_FIELDS`), so IPC
+refuses any milestone that the export would refuse.
 
 For optional Core and Tools behavior, read the evidence in this order:
 

@@ -1,78 +1,87 @@
 /**
  * Owns typed, authorized registration for every renderer-to-main invoke.
- * Channel handlers provide validation and behavior; this boundary proves the sender.
+ * Channel handlers provide validation and behavior; this boundary proves the
+ * sender and reports refused arguments.
  */
 import { ipcMain, type BrowserWindow } from "electron";
 import { IPC, type InvokeChannel } from "../shared/contracts.js";
 import { AllowlistError, errorCode } from "../shared/errors.js";
+import { LAUNCHER_IPC, type LauncherInvokeChannel } from "../shared/launcher-contracts.js";
 import { logEvent } from "./diagnostics.js";
 import {
   isLauncherRendererUrl,
   isCanonicalRendererUrl,
 } from "./core/renderer-trust.js";
+import type { Parser } from "./ipc-values.js";
 import type { WindowRegistry } from "./window-registry.js";
 
-export type Parser<In> = (args: readonly unknown[]) => In;
 type Run<In, Out> = (win: BrowserWindow, input: In) => Out | Promise<Out>;
 
 export interface ChannelDef<In, Out> {
   readonly parse: Parser<In>;
   readonly run: Run<In, Out>;
-  readonly role: "game" | "launcher" | "any";
 }
 
 /** Erases the invariant input type only after `channel()` checked the pair. */
 export interface AnyChannelDef {
   readonly parse: Parser<unknown>;
   readonly run: Run<never, unknown>;
-  readonly role: "game" | "launcher" | "any";
 }
 
 export function channel<In, Out>(
   parse: Parser<In>,
   run: Run<In, Out>,
-  role: "game" | "launcher" | "any" = "game",
 ): ChannelDef<In, Out> {
-  return { parse, run, role };
+  return { parse, run };
 }
 
-export function registerChannelDefinitions(
+/** The window role that may call a boundary's channels. */
+export type ChannelRole = "game" | "launcher";
+
+interface RoleChannel {
+  readonly game: InvokeChannel;
+  readonly launcher: LauncherInvokeChannel;
+}
+
+interface Boundary<Key extends string> {
+  readonly names: Readonly<Record<Key, string>>;
+  readonly rejected: (windows: WindowRegistry, win: BrowserWindow, channel: Key, error: unknown) => void;
+}
+
+const BOUNDARIES: { readonly [Role in ChannelRole]: Boundary<RoleChannel[Role]> } = {
+  game: {
+    names: IPC,
+    rejected: (windows, win, channelName, error) => logEvent(
+      { k: "ipc.rejected", channel: channelName, code: errorCode(error) },
+      windows.requireDiagnosticOwnerForWindow(win),
+    ),
+  },
+  // The launcher window has no diagnostic owner; the rejection reaches its renderer.
+  launcher: { names: LAUNCHER_IPC, rejected: () => undefined },
+};
+
+/**
+ * Registers handlers for one window role. A boundary that owns every channel
+ * of its role states that with `satisfies Record<…InvokeChannel, AnyChannelDef>`
+ * at the call site, so a missing handler is a build error.
+ */
+export function register<Role extends ChannelRole>(
   windows: WindowRegistry,
-  handlers: Partial<Record<InvokeChannel, AnyChannelDef>>,
+  role: Role,
+  handlers: Readonly<Partial<Record<RoleChannel[Role], AnyChannelDef>>>,
 ): void {
-  for (const [key, definition] of Object.entries(handlers)) {
+  const boundary = BOUNDARIES[role];
+  for (const [key, definition] of Object.entries(handlers) as [RoleChannel[Role], AnyChannelDef][]) {
     const def = definition as ChannelDef<unknown, unknown>;
-    const name = key as InvokeChannel;
-    ipcMain.handle(IPC[name], async (event, ...args: unknown[]) => {
-      const win = assertSender(windows, event, def.role);
+    ipcMain.handle(boundary.names[key], async (event, ...args: unknown[]) => {
+      const win = assertSender(windows, event, role);
       let input: unknown;
       try {
         input = def.parse(args);
       } catch (error) {
-        const context = windows.contextForWebContents(win.webContents.id);
-        if (context?.role === "game") {
-          logEvent(
-            { k: "ipc.rejected", channel: name, code: errorCode(error) },
-            windows.requireDiagnosticOwnerForWindow(win),
-          );
-        }
+        boundary.rejected(windows, win, key, error);
         throw error;
       }
-      return def.run(win, input);
-    });
-  }
-}
-
-export function registerNamedChannelDefinitions<Key extends string>(
-  windows: WindowRegistry,
-  channels: Readonly<Record<Key, string>>,
-  handlers: Readonly<Partial<Record<Key, AnyChannelDef>>>,
-): void {
-  for (const [key, definition] of Object.entries(handlers) as [Key, AnyChannelDef][]) {
-    const def = definition as ChannelDef<unknown, unknown>;
-    ipcMain.handle(channels[key], async (event, ...args: unknown[]) => {
-      const win = assertSender(windows, event, def.role);
-      const input = def.parse(args);
       return def.run(win, input);
     });
   }
@@ -95,11 +104,11 @@ export function sendIfLive(
 function assertSender(
   registry: WindowRegistry,
   event: Electron.IpcMainInvokeEvent,
-  role: "game" | "launcher" | "any",
+  role: ChannelRole,
 ): BrowserWindow {
   const win = registry.windowForWebContents(event.sender.id);
   const context = registry.contextForWebContents(event.sender.id);
-  if (!win || !context || (role !== "any" && context.role !== role)) {
+  if (!win || !context || context.role !== role) {
     throw new AllowlistError("unowned ipc sender");
   }
   if (!event.senderFrame || event.senderFrame !== event.sender.mainFrame) {

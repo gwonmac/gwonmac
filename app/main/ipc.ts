@@ -57,9 +57,13 @@ import { isDigest } from "../shared/digest.js";
 import { errorCode, ValidationError } from "../shared/errors.js";
 import { parseCredentials, type CredentialsStore } from "./core/credentials.js";
 import {
+  args,
   isGraphicsDiagnostics,
+  nothing,
+  one,
   parseRendererMilestoneArgs,
   toWireSocketEvent,
+  type Parser,
 } from "./ipc-values.js";
 import { resolveDns } from "./core/dns.js";
 import { exportTemplates, parseExportEntries } from "./template-export.js";
@@ -96,10 +100,9 @@ import { applySettingsChange } from "./settings-actions.js";
 import { editGameText } from './game-text-editing.js';
 import {
   channel,
-  registerChannelDefinitions,
+  register,
   sendIfLive,
   type AnyChannelDef,
-  type Parser,
 } from "./ipc-channel-registry.js";
 import {
   parseVisualCaptureSubmission,
@@ -147,25 +150,6 @@ export interface IpcContext {
 }
 
 type SteamInvokeChannel = "steamToken" | "steamStore" | "steamClear";
-
-/** For the channels that carry nothing. Still a parser, still explicit. */
-const exact = (args: readonly unknown[], count: number): void => {
-  if (args.length !== count) {
-    throw new ValidationError(`expected ${count} IPC argument(s)`);
-  }
-};
-
-const nothing: Parser<void> = (args) => {
-  exact(args, 0);
-};
-
-/** Lifts a single-value validator into a parser over the argument list. */
-const one =
-  <In>(parse: (value: unknown) => In): Parser<In> =>
-  (args) => {
-    exact(args, 1);
-    return parse(args[0]);
-  };
 
 const asGameReloadCause = one((value: unknown): GameReloadCause => {
   if (!GAME_RELOAD_CAUSES.includes(value as GameReloadCause)) {
@@ -232,10 +216,8 @@ const asFiniteNumber = (what: string) =>
     return value;
   });
 
-const asSocketPayload: Parser<{ socketId: number; bytes: Uint8Array }> = (args) => {
-  exact(args, 2);
-  const socketId = parseSocketId(args[0]);
-  const data = args[1];
+const asSocketPayload: Parser<{ socketId: number; bytes: Uint8Array }> = args(2, ([id, data]) => {
+  const socketId = parseSocketId(id);
   if (!(data instanceof Uint8Array) && !ArrayBuffer.isView(data)) {
     throw new ValidationError("data must be a Uint8Array");
   }
@@ -251,11 +233,9 @@ const asSocketPayload: Parser<{ socketId: number; bytes: Uint8Array }> = (args) 
         ? data
         : new Uint8Array(data.buffer, data.byteOffset, data.byteLength),
   };
-};
+});
 
-const asClockResult: Parser<{ offsetUs: number; rttUs: number }> = (args) => {
-  exact(args, 2);
-  const [offsetUs, rttUs] = args;
+const asClockResult: Parser<{ offsetUs: number; rttUs: number }> = args(2, ([offsetUs, rttUs]) => {
   if (
     typeof offsetUs !== "number" ||
     !Number.isFinite(offsetUs) ||
@@ -268,7 +248,7 @@ const asClockResult: Parser<{ offsetUs: number; rttUs: number }> = (args) => {
     throw new ValidationError("invalid clock synchronization result");
   }
   return { offsetUs, rttUs };
-};
+});
 
 const asGraphics = one((value: unknown): GraphicsDiagnostics => {
   if (!isGraphicsDiagnostics(value)) {
@@ -300,9 +280,7 @@ const asSilentFlag = one((value: unknown): boolean => {
  * ignoring is the documented outcome rather than an error the client has
  * to handle. Only genuinely malformed arguments are rejected.
  */
-const asSteamStoreback: Parser<{ token: string; expiry: number | null }> = (args) => {
-  exact(args, 2);
-  const [token, expiry] = args;
+const asSteamStoreback: Parser<{ token: string; expiry: number | null }> = args(2, ([token, expiry]) => {
   if (typeof token !== "string" || token.length > MAX_TOKEN_LENGTH) {
     throw new ValidationError("steam token must be a string");
   }
@@ -310,7 +288,7 @@ const asSteamStoreback: Parser<{ token: string; expiry: number | null }> = (args
     throw new ValidationError("steam token expiry must be a finite number or null");
   }
   return { token, expiry };
-};
+});
 
 const asRevealKind = one((value: unknown): RevealKind => {
   if (value !== "gameData") {
@@ -533,13 +511,8 @@ export function registerIpcHandlers(ctx: IpcContext): {
 
     diagnosticsRendererMilestone: channel(
       asMilestone,
-      (win, { name, rendererTimestampUs, fields }) => {
-        recordRendererMilestone(
-          ctx.windows.requireDiagnosticOwnerForWindow(win),
-          name,
-          rendererTimestampUs,
-          fields,
-        );
+      (win, milestone) => {
+        recordRendererMilestone(ctx.windows.requireDiagnosticOwnerForWindow(win), milestone);
       },
     ),
 
@@ -567,7 +540,7 @@ export function registerIpcHandlers(ctx: IpcContext): {
     hubShortcutCapture: channel(one(parseShortcutAction), (win, action) => ctx.hubSettings.capture(win, action)),
     hubShortcutCaptureCancel: channel(nothing, win => ctx.hubSettings.cancelCapture(win)),
     appShowLauncher: channel(nothing, () => ctx.showLauncher()),
-    appOpenSettings: channel((args) => args.length === 0 ? undefined : one(parseSettingsTarget)(args), (win, target) => ctx.openSettings(win, target)),
+    appOpenSettings: channel((values) => values.length === 0 ? undefined : one(parseSettingsTarget)(values), (win, target) => ctx.openSettings(win, target)),
     appRequestQuit: channel(nothing, (win) => ctx.requestQuit(win)),
     appShowQuitOrReload: channel(nothing, (win) => ctx.showQuitOrReload(win)),
 
@@ -635,7 +608,7 @@ export function registerIpcHandlers(ctx: IpcContext): {
     AnyChannelDef
   >;
 
-  registerChannelDefinitions(ctx.windows, handlers);
+  register(ctx.windows, "game", handlers);
   const steamSettled = registerSteamIpcHandlers(
     ctx.acquireSteamToken,
     ctx.steamSessionStoreFor,
@@ -776,7 +749,7 @@ export function registerSteamIpcHandlers(
     }),
   } satisfies Record<SteamInvokeChannel, AnyChannelDef>;
 
-  registerChannelDefinitions(windows ?? windowRegistry, handlers);
+  register(windows ?? windowRegistry, "game", handlers);
   return async () => {
     await Promise.all([...coordinators.values()].map((steam) => steam.settled()));
   };

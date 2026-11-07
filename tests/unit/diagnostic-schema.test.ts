@@ -96,17 +96,6 @@ describe("diagnosticEventRecord", () => {
     assert.deepEqual(quit.fields, { phase: "quit", code: "unknown" });
   });
 
-  it("names the durable action whose relaunch was refused", () => {
-    assert.deepEqual(
-      diagnosticEventRecord({
-        k: "app.relaunchFailed",
-        action: "gameStorageReset",
-        code: "unknown",
-      }).fields,
-      { action: "gameStorageReset", code: "unknown" },
-    );
-  });
-
   it("keeps the socket event name closed and the payload declared", () => {
     // `socket.${event.type}` was a templated name whose error branch carried
     // libuv's message; both parts are now fields of a fixed name.
@@ -172,7 +161,6 @@ describe("diagnosticEventRecord", () => {
         code: "allowlist",
       }),
       diagnosticEventRecord({ k: "settings.saveFailed", code: "bad_settings" }),
-      diagnosticEventRecord({ k: "filesystem.resetFailed", code: "unknown" }),
       diagnosticEventRecord({
         k: "client.candidateRolledBack",
         fingerprint: asDigest(FINGERPRINT),

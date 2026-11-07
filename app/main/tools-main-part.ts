@@ -8,9 +8,8 @@
 import type { BrowserWindow } from "electron";
 import type { FeatureId } from "../features/index.js";
 import type { AppSettings, ClientSession, ToolsInvokeChannel } from "../shared/contracts.js";
-import { ValidationError } from "../shared/errors.js";
 import type { PreferencesCoordinator } from "./core/preferences-coordinator.js";
-import type { AnyChannelDef, Parser } from "./ipc-channel-registry.js";
+import type { AnyChannelDef } from "./ipc-channel-registry.js";
 import type { MultipleAccountsController } from "./multiple-accounts-controller.js";
 import type { GamePaths } from "./paths.js";
 
@@ -46,11 +45,3 @@ export type ToolsMainPart = Readonly<{
   create(input: ToolsMainInput): ToolsMainSession;
 }>;
 
-export const nothing: Parser<void> = (args) => {
-  if (args.length !== 0) throw new ValidationError("expected 0 IPC arguments");
-};
-
-export const one = <Input>(parse: (value: unknown) => Input): Parser<Input> => (args) => {
-  if (args.length !== 1) throw new ValidationError("expected 1 IPC argument");
-  return parse(args[0]);
-};

@@ -44,9 +44,12 @@ import { Mutex } from "./core/mutex.js";
 import type { NativeKeychain } from "./core/native-keychain.js";
 import { resolveProfileStorage } from "./core/profile-storage.js";
 import {
+  drainLaunchQueue,
+  LaunchDrain,
   launchIssueForStage,
   ProfileRuntimeStore,
   type ProfileRuntime,
+  type QueuedLaunch,
 } from "./core/profile-runtime.js";
 import { SteamSessionStore } from "./core/steam-session.js";
 import { forgetRendererDiagnosticsOwner } from "./diagnostics.js";
@@ -84,7 +87,6 @@ export interface MultipleAccountsControllerOptions {
 
 export class MultipleAccountsController {
   private readonly accountsLock = new Mutex();
-  private readonly launchLock = new Mutex();
   private readonly templatesLock = new Mutex();
   private readonly templateSessions = new AccountTemplateSessions<BrowserWindow>();
   private readonly credentialsStores = new Map<string, CredentialsStore>();
@@ -92,6 +94,10 @@ export class MultipleAccountsController {
   private readonly profileProtocolSessions = new Set<ProfileId>();
   private readonly diagnosticOwnerIds = new Map<ProfileId, number>();
   private readonly profileRuntime = new ProfileRuntimeStore();
+  private readonly launchDrain = new LaunchDrain(
+    this.profileRuntime,
+    () => this.drainQueue(),
+  );
   private nextDiagnosticOwnerId = 2;
   private workspace: AccountWorkspace;
 
@@ -214,10 +220,6 @@ export class MultipleAccountsController {
     this.publish();
   }
 
-  open(profileIds: readonly ProfileId[]): Promise<void> {
-    return this.launchLock.run(() => this.openBatch(profileIds));
-  }
-
   validateOpenable(profileIds: readonly ProfileId[]): void {
     if (profileIds.length === 0) throw new Error("Choose at least one account");
     const seen = new Set<ProfileId>();
@@ -245,22 +247,46 @@ export class MultipleAccountsController {
     }
   }
 
-  queue(profileIds: readonly ProfileId[]): void {
-    this.profileRuntime.queue(
+  /**
+   * Appends the profiles of one Play to the one ordered launch queue and
+   * returns the ones it queued; `drain` opens them. A failed profile queues
+   * even while its failed window is still registered, so Try again replaces
+   * that window.
+   */
+  queue(profileIds: readonly ProfileId[]): readonly ProfileId[] {
+    const queued = this.profileRuntime.queue(
       profileIds,
+      (profileId) => this.runtimeForProfile(profileId),
       (profileId) => windowRegistry.profileWindow(profileId) !== null,
     );
     this.publish();
+    return queued;
   }
 
+  /** Cancel waiting: the drain never takes a released profile. */
   releaseQueued(profileIds: readonly ProfileId[]): void {
     this.profileRuntime.releaseQueued(profileIds);
     this.publish();
   }
 
-  isOpen(profileId: ProfileId): boolean {
-    this.validateOpenable([profileId]);
-    return windowRegistry.profileWindow(profileId) !== null;
+  /** Returns every waiting profile to Ready, for a global client failure. */
+  releaseAllQueued(): void {
+    this.releaseQueued(this.profileRuntime.waiting());
+  }
+
+  /**
+   * Opens the queue in order and resolves once none of `profileIds` waits.
+   * One drain runs at a time: a call during a drain joins it, and the running
+   * drain also opens profiles queued after it started. Rejects only with the
+   * failure of one of `profileIds`.
+   */
+  drain(profileIds: readonly ProfileId[]): Promise<void> {
+    return this.launchDrain.drain(profileIds);
+  }
+
+  /** Whether a drain is running; it takes every profile queued meanwhile. */
+  get draining(): boolean {
+    return this.launchDrain.running;
   }
 
   show(profileId: ProfileId): boolean {
@@ -272,72 +298,61 @@ export class MultipleAccountsController {
     return true;
   }
 
-  private async openBatch(profileIds: readonly ProfileId[]): Promise<void> {
-    this.validateOpenable(profileIds);
+  private async drainQueue(): Promise<ReadonlyMap<ProfileId, unknown>> {
     if (
       !this.options.clientRuntime.active
       && !this.options.allowUnreadyLaunch
     ) {
       throw new Error("Guild Wars must be repaired before opening an account");
     }
-    this.profileRuntime.queue(
-      profileIds,
-      (profileId) => windowRegistry.profileWindow(profileId) !== null,
-    );
-    this.publish();
     let canaryChecked = false;
-    let firstFailure: unknown = null;
-    let firstSelectedWindow: BrowserWindow | null = null;
-    for (let index = 0; index < profileIds.length; index += 1) {
-      const profileId = profileIds[index]!;
-      let result: { readonly win: BrowserWindow; readonly opened: boolean };
-      try {
-        result = await this.accountsLock.run(() => this.openProfile(profileId, index));
-        firstSelectedWindow ??= result.win;
-      } catch (error) {
-        firstFailure ??= error;
-        continue;
-      }
-      if (result.opened && !canaryChecked) {
-        if (this.options.clientRuntime.healthToken) {
-          this.profileRuntime.set(profileId, "checking");
-          this.publish();
-          try {
-            await this.waitForCandidateCanary();
-          } catch (error) {
-            if (windowRegistry.profileWindow(profileId) === result.win
-              && this.profileRuntime.get(profileId).state === "checking") {
-              this.profileRuntime.set(
-                profileId,
-                "failed",
-                launchIssueForStage("validating"),
-              );
-            }
-            this.profileRuntime.releaseQueued(profileIds.slice(index + 1));
+    const { started, failures } = await drainLaunchQueue(
+      this.profileRuntime,
+      this.accountsLock,
+      {
+        open: (launch) => this.openProfile(launch),
+        settle: async (profileId, result, releaseWaiting) => {
+          if (!result.opened || canaryChecked) return;
+          if (this.options.clientRuntime.healthToken) {
+            this.profileRuntime.set(profileId, "checking");
             this.publish();
-            this.options.windows.revealLauncher({ activateApp: true });
-            throw error;
+            try {
+              await this.waitForCandidateCanary();
+            } catch (error) {
+              if (windowRegistry.profileWindow(profileId) === result.win
+                && this.profileRuntime.get(profileId).state === "checking") {
+                this.profileRuntime.set(
+                  profileId,
+                  "failed",
+                  launchIssueForStage("validating"),
+                );
+              }
+              // Nothing else opens on a client generation that did not confirm.
+              releaseWaiting(error);
+              throw error;
+            }
           }
-        }
-        if (windowRegistry.profileWindow(profileId) !== result.win
-          || result.win.webContents.isDestroyed() || result.win.webContents.isCrashed()
-          || ["failed", "opening"].includes(this.profileRuntime.get(profileId).state)) {
-          firstFailure ??= new Error("The account window closed or stopped during startup");
-          continue;
-        }
-        this.profileRuntime.set(profileId, "running");
-        canaryChecked = true;
-      }
-    }
-    if (firstFailure) {
+          if (windowRegistry.profileWindow(profileId) !== result.win
+            || result.win.webContents.isDestroyed() || result.win.webContents.isCrashed()
+            || ["failed", "opening"].includes(this.profileRuntime.get(profileId).state)) {
+            throw new Error("The account window closed or stopped during startup");
+          }
+          this.profileRuntime.set(profileId, "running");
+          canaryChecked = true;
+        },
+      },
+    );
+    if (failures.size > 0) {
       this.publish();
       this.options.windows.revealLauncher({ activateApp: true });
-      throw firstFailure;
+      return failures;
     }
-    if (firstSelectedWindow && !firstSelectedWindow.isDestroyed()) {
-      this.options.windows.completeAsyncGameLaunch(firstSelectedWindow);
+    const firstWindow = started[0]?.win;
+    if (firstWindow && !firstWindow.isDestroyed()) {
+      this.options.windows.completeAsyncGameLaunch(firstWindow);
     }
     this.publish();
+    return failures;
   }
 
   create(request: AccountProfileCreateRequest): Promise<AccountsState> {
@@ -414,9 +429,6 @@ export class MultipleAccountsController {
   archive(profileId: ProfileId): Promise<AccountsState> {
     return this.accountsLock.run(async () => {
       const workspace = this.activeWorkspace();
-      if (profileId === workspace.legacyPrimaryProfileId) {
-        throw new Error("The adopted Main account cannot be archived");
-      }
       this.refuseProfileRemovalWhileActive(profileId, "archiving");
       const next = archiveMultiProfile(workspace, profileId);
       await saveMultiWorkspace(this.options.paths.multiWorkspace, next);
@@ -555,8 +567,7 @@ export class MultipleAccountsController {
   }
 
   private async openProfile(
-    profileId: ProfileId,
-    newWindowOrdinal: number,
+    { profileId, ordinal: newWindowOrdinal, retry }: QueuedLaunch,
   ): Promise<{ readonly win: BrowserWindow; readonly opened: boolean }> {
     const storage = resolveProfileStorage(
       this.workspace,
@@ -565,8 +576,9 @@ export class MultipleAccountsController {
     );
     const profile = storage.kind === "isolated" ? this.profileFor(profileId) : null;
     let existing = windowRegistry.profileWindow(profileId);
-    const previous = this.runtimeForProfile(profileId);
-    if (previous.state === "failed") {
+    if (retry) {
+      // Try again replaces a failed window and starts with fresh recovery,
+      // also when the player already closed that window.
       resetRendererRecovery(storage.windowState);
       if (existing && !existing.isDestroyed()) existing.destroy();
       existing = null;
@@ -574,9 +586,6 @@ export class MultipleAccountsController {
     if (existing) {
       this.options.windows.revealGame(existing, { activateApp: true });
       return { win: existing, opened: false };
-    }
-    if (previous.state === "opening" || previous.state === "checking") {
-      throw new Error("Account is already opening");
     }
     this.profileRuntime.set(profileId, "opening");
     this.publish();

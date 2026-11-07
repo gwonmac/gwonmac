@@ -4,7 +4,7 @@
  * implementation. Each feature's part owns its channels (tools-main-part.ts);
  * ipc-channel-registry.ts proves every sender.
  */
-import { registerChannelDefinitions } from "./ipc-channel-registry.js";
+import { register } from "./ipc-channel-registry.js";
 import type { ToolsMainSession } from "./tools-main-part.js";
 import type { WindowRegistry } from "./window-registry.js";
 
@@ -12,5 +12,5 @@ export function registerToolsIpcHandlers(
   windows: WindowRegistry,
   sessions: readonly ToolsMainSession[],
 ): void {
-  for (const session of sessions) registerChannelDefinitions(windows, session.channels);
+  for (const session of sessions) register(windows, "game", session.channels);
 }

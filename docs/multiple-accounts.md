@@ -103,6 +103,11 @@ Deleting a normal archived profile is journaled before native cleanup. The
 adopted Main account cannot be archived or deleted while it owns released
 storage.
 
+Main account is the first active account in the launcher list: the adopted
+profile when there is one, else the first profile that is not archived.
+`archiveMultiProfile` refuses to archive it for every caller, so one account
+always stays to play.
+
 ## Companion window policy
 
 The launcher remains visible while profiles open. After complete success, it
@@ -135,13 +140,24 @@ remain packaged macOS qualification boundaries.
 
 ## Launch queue and first frame
 
-The main process owns one queue of requested profile IDs. A healthy installed
-client opens immediately. During first preparation, Play records the requested
-profiles and preparation continues independently; Cancel waiting removes only
-profiles that have not started. Once the client is playable, the queue drains
-one profile at a time so the first candidate window can complete the existing
-client canary before another profile starts. A global client failure moves the
-launcher to one repair state without marking every profile as failed.
+The main process owns one ordered queue of requested profile IDs, kept in
+`core/profile-runtime.ts` with each profile's launch state: a profile is
+Waiting exactly while it is in the queue. Play appends a Ready profile without
+a window, and a Failed one as a retry that replaces its window and starts with
+fresh renderer recovery, also after the player closed that window. With a
+playable client the queue drains at once; during first preparation the
+profiles wait and preparation continues independently. The drain opens one
+profile at a time and takes the next one from the queue each time, so Cancel
+waiting removes any profile that has not started, also while an earlier
+profile of the same Play is still opening. Cancel returns a profile to the
+row it had before Play: Ready, or Failed for a retry, so its failed window
+still offers Try again. A Play that joins a running drain
+waits for its own profiles and fails only if one of them failed; new windows
+cascade from the first profile of each Play. The first candidate window
+completes the existing client canary before another profile starts; if the
+canary fails, every waiting profile returns to Ready. A global client failure
+moves the launcher to one repair state without marking every profile as
+failed.
 
 A game window is created only after a playable client exists. Electron keeps it
 hidden after `ready-to-show`; the game renderer then submits the dedicated

@@ -9,7 +9,6 @@ import { hubSettingsSnapshot } from "../shared/hub-settings.js";
 import type { ClientService } from "./client-service.js";
 import { saveDiagnosticProfile } from "./core/diagnostic-profile.js";
 import type { LauncherOrchestrator } from "./launcher-orchestrator.js";
-import { globalToolPatch } from "./core/launcher-tools.js";
 import type { PreferencesCoordinator } from "./core/preferences-coordinator.js";
 import type { SocketManager } from "./core/sockets.js";
 import { STEAM_OAUTH } from "./core/steam-oauth.js";
@@ -50,7 +49,7 @@ export function registerCoreIpc(input: Readonly<{
     steamSessionStoreFor: (win) => accounts.steamSessionStoreFor(win),
     getSnapshotMetadata: () => clientRuntime.snapshotMetadata(),
     getSettings: () => preferences.getSettings(),
-    updateSettings: (patch) => preferences.updateRendererSettings(patch),
+    updateSettings: (patch) => preferences.write({ kind: "renderer", patch }),
     setDiagnosticProfile: async (profile) =>
       await saveDiagnosticProfile(paths.diagnosticProfile, profile),
     confirmClientHealthy: (token) =>
@@ -83,10 +82,7 @@ export function registerCoreIpc(input: Readonly<{
     hubSettings: {
       get: async () => hubSettingsSnapshot(launcher.snapshot()),
       update: async change => {
-        if (change.kind === 'settings') await preferences.updateSettings(change.patch);
-        else if (change.kind === 'tool') await preferences.updateSettings(globalToolPatch(change.tool, change.enabled));
-        else if (change.kind === 'master') await preferences.updateSettings({ gwonmacTools: change.enabled });
-        else await preferences.replaceShortcut(change.action, change.binding);
+        await preferences.write(change);
       },
       capture: (win, action) => captureLauncherShortcut(win, action, input.currentSettings),
       cancelCapture: win => cancelAppShortcutCapture(win),

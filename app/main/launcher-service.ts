@@ -8,20 +8,13 @@
 import { app, dialog, net, shell as electronShell, type BrowserWindow } from "electron";
 import { writeFile } from "node:fs/promises";
 import { EXTERNAL_URLS, type AppSettings } from "../shared/contracts.js";
-import {
-  LAUNCHER_IPC,
-  type LauncherSettingsPatch,
-  type ShortcutReplacement,
-} from "../shared/launcher-contracts.js";
+import { LAUNCHER_IPC } from "../shared/launcher-contracts.js";
 import type { ClientRuntime } from "../client/client-runtime.js";
 import type { AppShell } from "./app-shell.js";
 import { sendLauncherFeedback } from "./core/launcher-feedback.js";
 import type { LauncherNewsService } from "./core/launcher-news.js";
 import type { LauncherStateStore } from "./core/launcher-state.js";
-import {
-  allGlobalToolsPatch,
-  globalToolPatch,
-} from "./core/launcher-tools.js";
+import { allGlobalToolsPatch } from "./core/launcher-tools.js";
 import type { TexturePackManager } from "./core/texture-pack-manager.js";
 import { logEvent } from "./diagnostics.js";
 import { sendIfLive } from "./ipc-channel-registry.js";
@@ -107,9 +100,6 @@ export function createLauncherService(input: Readonly<{
     show: (id) => orchestrator.show(id),
     cancelQueued: (ids) => orchestrator.cancel(ids),
     archive: async (id) => {
-      if (accounts.state().profiles.find((profile) => !profile.archived)?.id === id) {
-        throw new Error("Main account cannot be archived");
-      }
       await accounts.archive(id);
     },
     restore: async (id) => {
@@ -121,7 +111,9 @@ export function createLauncherService(input: Readonly<{
     dismissMigrationNotice: () => orchestrator.dismissMigrationNotice(),
     dismissPreferencesReset: () => orchestrator.dismissPreferencesReset(),
     completeSetup: async (enableTools) => {
-      if (enableTools) await preferences.updateSettings(allGlobalToolsPatch(true));
+      if (enableTools) {
+        await preferences.write({ kind: "settings", patch: allGlobalToolsPatch(true) });
+      }
       await orchestrator.completeSetup();
       if (enableTools) {
         app.relaunch();
@@ -130,8 +122,8 @@ export function createLauncherService(input: Readonly<{
     },
     updatePreferences: (patch) => orchestrator.updatePreferences(patch),
     openNews: (id) => launcherNews.open(id),
-    updateSettings: async (patch: LauncherSettingsPatch) => {
-      await preferences.updateSettings(patch);
+    writeSettings: async (change) => {
+      await preferences.write(change);
     },
     resetSettings: async (win) => {
       const { response } = await dialog.showMessageBox(win, {
@@ -146,22 +138,14 @@ export function createLauncherService(input: Readonly<{
       await (toolsRuntime?.resetSettings() ?? preferences.resetCoreSettings());
       await launcherState.resetPresentation();
       await texturePacks.select(null);
+      logEvent({ k: "settings.reset" });
       orchestrator.publish();
-    },
-    setToolsMaster: async (enabled) => {
-      await preferences.updateSettings({ gwonmacTools: enabled });
-    },
-    setToolFeature: async ({ tool, enabled }) => {
-      await preferences.updateSettings(globalToolPatch(tool, enabled));
     },
     captureShortcut: (win, action) => captureLauncherShortcut(
       win,
       action,
       () => shell.currentSettings() ?? settings,
     ),
-    replaceShortcut: async ({ action, binding }: ShortcutReplacement) => {
-      await preferences.replaceShortcut(action, binding);
-    },
     restartToApplyTools: async (_win) => {
       if (windowRegistry.gameWindows().length > 0) return;
       app.relaunch();

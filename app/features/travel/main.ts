@@ -3,7 +3,8 @@
  */
 import { channel } from "../../main/ipc-channel-registry.js";
 import { TravelHistoryStore } from "./main/travel-history.js";
-import { nothing, one, type ToolsMainPart } from "../../main/tools-main-part.js";
+import { nothing, one } from "../../main/ipc-values.js";
+import type { ToolsMainPart } from "../../main/tools-main-part.js";
 import { parseTravelUserPreferencesUpdate } from "../../shared/travel.js";
 import { parseTravelHistoryCharacter, parseTravelHistoryRecord } from "../../shared/travel-history.js";
 

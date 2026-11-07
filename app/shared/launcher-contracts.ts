@@ -13,10 +13,11 @@ import type {
   DownloadActivity,
   FullDownloadState,
   NoticeCode,
+  RendererSettingsPatch,
 } from "./contracts.js";
 import type { ErrorCode } from "./errors.js";
 import type { MarkdownBlock, MarkdownInline } from "./launcher-markdown.js";
-import type { ShortcutAction, ShortcutBinding } from "./keyboard-shortcuts.js";
+import { isShortcutBinding, parseShortcutAction, type ShortcutAction, type ShortcutBinding } from "./keyboard-shortcuts.js";
 import { FEATURE_SELECTION_POLICIES, type FeatureId } from "./feature-contracts.js";
 import { LAUNCHER_SETTINGS, SETTING_TABLE, type LauncherSetting } from "./settings/index.js";
 import { launcherSettingError } from "./settings/define.js";
@@ -67,6 +68,9 @@ export const LAUNCHER_IPC = Object.freeze({
   updatesCheck: "gw:launcher:updates:check",
   updatesRestartAndInstall: "gw:launcher:updates:restartAndInstall",
 } as const);
+
+/** Every launcher channel main answers; the two events go main→renderer only. */
+export type LauncherInvokeChannel = Exclude<keyof typeof LAUNCHER_IPC, "stateEvent" | "navigationEvent">;
 
 /** A launcher page another window can open: `settings` opens the last Settings section; a target opens that section or control. */
 export type LauncherDestination = "home" | "accounts" | "settings" | SettingsTarget;
@@ -173,6 +177,25 @@ export interface ShortcutReplacement {
   readonly action: ShortcutAction;
   readonly binding: ShortcutBinding | null;
 }
+/**
+ * One settings write. The launcher's Settings and the Hub send `settings`,
+ * `master`, `tool` and `shortcut`, each narrowed by its boundary's parser; a
+ * game window sends `renderer`; menus and main's own bookkeeping send
+ * `settings`. Main applies every one through the same dispatch.
+ */
+export type SettingsWrite =
+  | Readonly<{ kind: "settings"; patch: AppSettingsPatch }>
+  | Readonly<{ kind: "renderer"; patch: RendererSettingsPatch }>
+  | Readonly<{ kind: "master"; enabled: boolean }>
+  | Readonly<{ kind: "tool" }> & GlobalToolUpdate
+  | Readonly<{ kind: "shortcut" }> & ShortcutReplacement;
+/**
+ * What the launcher's settings channels may write: launcher settings only, so
+ * no launcher channel can reach a bookkeeping field such as `lastUpdateCheckAt`.
+ */
+export type LauncherSettingsWrite =
+  | Exclude<SettingsWrite, { kind: "settings" | "renderer" }>
+  | Readonly<{ kind: "settings"; patch: LauncherSettingsPatch }>;
 export type LauncherShortcutCaptureResult =
   | Readonly<{ status: "captured"; binding: ShortcutBinding }>
   /** `owner: "hub"` is Command-R while the Hub uses it (HUB-095). */
@@ -390,6 +413,18 @@ export function launcherToolSettings(settings: AppSettings): GlobalToolSettings 
 
 export function globalToolPatch(tool: GlobalTool, enabled: boolean): AppSettingsPatch {
   return { [FEATURE_SELECTION_POLICIES[GLOBAL_TOOL_FEATURES[tool]].activation.setting]: enabled };
+}
+
+export function parseGlobalToolUpdate(value: unknown): GlobalToolUpdate {
+  const source = exactObject(value, ["tool", "enabled"], "Tool update");
+  if (typeof source.enabled !== "boolean") throw new Error("Tool update is invalid");
+  return { tool: parseGlobalTool(source.tool), enabled: source.enabled };
+}
+
+export function parseShortcutReplacement(value: unknown): ShortcutReplacement {
+  const source = exactObject(value, ["action", "binding"], "shortcut replacement");
+  if (source.binding !== null && !isShortcutBinding(source.binding)) throw new Error("shortcut replacement is invalid");
+  return { action: parseShortcutAction(source.action), binding: source.binding };
 }
 
 function exactObject(value: unknown, allowed: readonly string[], label: string): Record<string, unknown> {

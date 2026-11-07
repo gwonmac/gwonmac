@@ -334,9 +334,9 @@ export interface PeriodicCheckInput {
 
 /**
  * Whether a scheduler tick becomes an automatic check. Pure by design:
- * main.ts owns when ticks fire; this owns every gate, so the gates are
- * provable without timers. An open game socket defers the check — a
- * Squirrel zip download must not compete with live game traffic.
+ * `updater-service.ts` owns when ticks fire; this owns every gate, so the
+ * gates are provable without timers. An open game socket defers the check —
+ * a Squirrel zip download must not compete with live game traffic.
  */
 export function periodicCheckDue(input: PeriodicCheckInput): boolean {
   if (!input.capable || !input.autoCheckUpdates) return false;

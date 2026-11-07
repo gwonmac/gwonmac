@@ -2,7 +2,8 @@
  * Owns protocol, socket, renderer, graphics, and Enhancement diagnostic events.
  * It is the renderer-facing half of the closed diagnostic vocabulary.
  */
-import type { EventSpec } from "./schema-fields.js";
+import type { DiagnosticScalar, RendererMilestoneFieldsByName } from "../../shared/diagnostics.js";
+import type { EventSpec, FieldGuard } from "./schema-fields.js";
 import { ALLOWED_PORTS } from "../core/allowlists.js";
 import {
   RELOG_INPUT_OUTCOMES,
@@ -14,6 +15,7 @@ import {
   WASM_ABORT_REASON_KINDS,
   WASM_GROWTH_OUTCOMES,
   WASM_MEMORY_PROBE_STATUSES,
+  type RendererMilestone,
 } from "../../shared/diagnostics.js";
 import {
   isEnhancementCapabilityProfile,
@@ -24,6 +26,8 @@ import {
   catalogueRefusal,
   closeReason,
   code,
+  count,
+  countUpTo,
   finiteNumber,
   gameReloadCause,
   incompleteCommandOutcome,
@@ -32,6 +36,7 @@ import {
   literal,
   none,
   nullable,
+  ordinal,
   proxyEndReason,
   proxyMethod,
   proxyRoute,
@@ -39,17 +44,146 @@ import {
   snapshotPriority,
   socketFailureCode,
   socketSendStatus,
+  safeInteger,
   uint32,
 } from "./schema-fields.js";
 
+/** Aggregate texture counters; no texture identity or pixels. */
+const TEXTURE_MEMORY = {
+  generatedTextures: count,
+  deletedTextures: count,
+  liveTextures: count,
+  trackedTextures: countUpTo(4_096),
+  knownTextureBytes: count,
+  textureUploadBytes: count,
+  unknownTextureAllocations: count,
+  textureTrackingSaturated: boolean,
+} as const;
+
+/** A client program or build identifier: short text or a non-negative integer. */
+const buildIdentifier: FieldGuard<string | number> = (value): value is string | number =>
+  (typeof value === "string" && value.length <= 128) || count(value);
+
+type MilestoneFieldGuards = {
+  readonly [Name in keyof RendererMilestoneFieldsByName]: {
+    readonly [Field in keyof RendererMilestoneFieldsByName[Name]]-?:
+      FieldGuard<Extract<RendererMilestoneFieldsByName[Name][Field], DiagnosticScalar>>;
+  };
+};
+
+/**
+ * The fields each renderer milestone carries over IPC. The IPC boundary
+ * accepts a milestone only when its fields match these guards exactly, and the
+ * event that records the milestone spreads the same guards, so the boundary
+ * and the export validator agree. `satisfies` proves the guards cover exactly
+ * the fields the renderer declares.
+ */
+export const RENDERER_MILESTONE_FIELDS = {
+  "build.info": { programId: buildIdentifier, buildId: buildIdentifier },
+  "relog.preGameProbe": {
+    state: literal(["unknown", "character-select", "reconnect", "loading"] as const),
+    mask: uint32,
+  },
+  "relog.inputSettled": {
+    stage: literal(RELOG_INPUT_STAGES),
+    outcome: literal(RELOG_INPUT_OUTCOMES),
+  },
+  "relog.finished": { outcome: literal(RELOG_TERMINAL_OUTCOMES) },
+  "relog.skipped": { reason: literal(RELOG_SKIP_REASONS) },
+  "wasm.abort": {
+    reasonKind: literal(WASM_ABORT_REASON_KINDS),
+    fingerprint: isRendererFingerprint,
+    heapBytes: count,
+  },
+  "wasm.exit": { code: safeInteger, heapBytes: count },
+  "wasm.memoryProbe": { status: literal(WASM_MEMORY_PROBE_STATUSES) },
+  "wasm.growthRequested": {
+    requestedBytes: count,
+    beforeBytes: count,
+    afterBytes: count,
+    outcome: literal(WASM_GROWTH_OUTCOMES),
+    stackFingerprint: isRendererFingerprint,
+    stackDepth: countUpTo(4),
+    frame0Function: count,
+    frame0Offset: count,
+    frame1Function: count,
+    frame1Offset: count,
+    frame2Function: count,
+    frame2Offset: count,
+    frame3Function: count,
+    frame3Offset: count,
+    ...TEXTURE_MEMORY,
+  },
+  "graphics.visualProblem": {
+    textureProbeInstalled: boolean,
+    wasmHeapBytes: count,
+    webglContextAvailable: boolean,
+    contextLost: boolean,
+    canvasWidth: count,
+    canvasHeight: count,
+    offscreenWidth: count,
+    offscreenHeight: count,
+    drawingBufferWidth: count,
+    drawingBufferHeight: count,
+    ...TEXTURE_MEMORY,
+    programProbeInstalled: boolean,
+    livePrograms: count,
+    programPassThroughQueries: count,
+  },
+  "enhancement.installed": {
+    companionAbi: count,
+    installation: ordinal,
+    capabilityProfile: isEnhancementCapabilityProfile,
+  },
+  "enhancement.consumerSignal": {
+    consumer: literal(ENHANCEMENT_OBSERVER_CONSUMERS),
+    signal: literal(["installed", "first-observation"] as const),
+  },
+  "enhancement.skillGeometryState": {
+    state: literal(["waiting", "ready"] as const),
+    reason: nullable(literal(SKILL_GEOMETRY_WAIT_REASONS)),
+    candidates: nullable(countUpTo(16_384)),
+  },
+  "enhancement.uninstalled": { installation: ordinal },
+} as const satisfies MilestoneFieldGuards;
+
+/** Milestones that carry no fields; each records the clock state only. */
+const PLAIN_MILESTONES = [
+  "renderer.loaded",
+  "relog.intentClaimed",
+  "relog.savedCredentialsLoaded",
+  "relog.loginSubmitted",
+  "relog.tokenRequested",
+  "relog.tokenAccepted",
+  "relog.characterSubmitted",
+  "wasm.instantiate.begin",
+  "wasm.instantiate.end",
+  "wasm.streamingFallback",
+  "runtime.initialized",
+  "frame.firstSubmit",
+  "startup.complete",
+  "build.info",
+  "snapshot.fatalRead",
+] as const satisfies readonly RendererMilestone[];
+
+const PLAIN_MILESTONE_SPEC = {
+  scope: "owner",
+  subsystem: "renderer",
+  level: "info",
+  fields: { clockSynchronized: boolean },
+} as const satisfies EventSpec;
+
+/** One identical spec under each name; the mapped type keeps every name. */
+function plainMilestoneSchema<const Names extends readonly string[]>(
+  names: Names,
+): { readonly [Name in Names[number]]: typeof PLAIN_MILESTONE_SPEC } {
+  return Object.fromEntries(names.map((name) => [name, PLAIN_MILESTONE_SPEC])) as {
+    readonly [Name in Names[number]]: typeof PLAIN_MILESTONE_SPEC;
+  };
+}
+
 export const PROTOCOL_AND_RENDERER_EVENT_SCHEMA = {
   // Protocol requests and their four closed span families.
-  "protocol.installed": {
-    scope: "app",
-    subsystem: "protocol",
-    level: "info",
-    fields: none,
-  },
   "dns.resolve.begin": {
     scope: "owner",
     subsystem: "dns",
@@ -227,55 +361,37 @@ export const PROTOCOL_AND_RENDERER_EVENT_SCHEMA = {
     scope: "owner",
     subsystem: "renderer",
     level: "info",
-    fields: {
-      stage: literal(RELOG_INPUT_STAGES),
-      outcome: literal(RELOG_INPUT_OUTCOMES),
-      clockSynchronized: boolean,
-    },
+    fields: { clockSynchronized: boolean, ...RENDERER_MILESTONE_FIELDS["relog.inputSettled"] },
   },
   "relog.preGameProbe": {
     scope: "owner",
     subsystem: "renderer",
     level: "debug",
-    fields: {
-      state: literal(["unknown", "character-select", "reconnect", "loading"] as const),
-      mask: uint32,
-      clockSynchronized: boolean,
-    },
+    fields: { clockSynchronized: boolean, ...RENDERER_MILESTONE_FIELDS["relog.preGameProbe"] },
   },
   "relog.finished": {
     scope: "owner",
     subsystem: "renderer",
     level: "info",
-    fields: {
-      outcome: literal(RELOG_TERMINAL_OUTCOMES),
-      clockSynchronized: boolean,
-    },
+    fields: { clockSynchronized: boolean, ...RENDERER_MILESTONE_FIELDS["relog.finished"] },
   },
   "relog.skipped": {
     scope: "owner",
     subsystem: "renderer",
     level: "info",
-    fields: { reason: literal(RELOG_SKIP_REASONS) },
+    fields: RENDERER_MILESTONE_FIELDS["relog.skipped"],
   },
   "enhancement.consumerSignal": {
     scope: "owner",
     subsystem: "renderer",
     level: "info",
-    fields: {
-      consumer: literal(ENHANCEMENT_OBSERVER_CONSUMERS),
-      signal: literal(["installed", "first-observation"] as const),
-    },
+    fields: RENDERER_MILESTONE_FIELDS["enhancement.consumerSignal"],
   },
   "enhancement.skillGeometryState": {
     scope: "owner",
     subsystem: "renderer",
     level: "info",
-    fields: {
-      state: literal(["waiting", "ready"] as const),
-      reason: nullable(literal(SKILL_GEOMETRY_WAIT_REASONS)),
-      candidates: nullable(uint32),
-    },
+    fields: RENDERER_MILESTONE_FIELDS["enhancement.skillGeometryState"],
   },
   "renderer.processExitedDuringQuit": {
     scope: "owner",
@@ -468,96 +584,8 @@ export const PROTOCOL_AND_RENDERER_EVENT_SCHEMA = {
 
   // Renderer milestones. Build identifiers stay in gauges/environment; the
   // event records only the fixed synchronization fact common to every entry.
-  "renderer.loaded": {
-    scope: "owner",
-    subsystem: "renderer",
-    level: "info",
-    fields: { clockSynchronized: boolean },
-  },
-  "relog.intentClaimed": {
-    scope: "owner",
-    subsystem: "renderer",
-    level: "info",
-    fields: { clockSynchronized: boolean },
-  },
-  "relog.savedCredentialsLoaded": {
-    scope: "owner",
-    subsystem: "renderer",
-    level: "info",
-    fields: { clockSynchronized: boolean },
-  },
-  "relog.loginSubmitted": {
-    scope: "owner",
-    subsystem: "renderer",
-    level: "info",
-    fields: { clockSynchronized: boolean },
-  },
-  "relog.tokenRequested": {
-    scope: "owner",
-    subsystem: "renderer",
-    level: "info",
-    fields: { clockSynchronized: boolean },
-  },
-  "relog.tokenAccepted": {
-    scope: "owner",
-    subsystem: "renderer",
-    level: "info",
-    fields: { clockSynchronized: boolean },
-  },
-  "relog.characterSubmitted": {
-    scope: "owner",
-    subsystem: "renderer",
-    level: "info",
-    fields: { clockSynchronized: boolean },
-  },
-  "wasm.instantiate.begin": {
-    scope: "owner",
-    subsystem: "renderer",
-    level: "info",
-    fields: { clockSynchronized: boolean },
-  },
-  "wasm.instantiate.end": {
-    scope: "owner",
-    subsystem: "renderer",
-    level: "info",
-    fields: { clockSynchronized: boolean },
-  },
-  "wasm.streamingFallback": {
-    scope: "owner",
-    subsystem: "renderer",
-    level: "info",
-    fields: { clockSynchronized: boolean },
-  },
-  "runtime.initialized": {
-    scope: "owner",
-    subsystem: "renderer",
-    level: "info",
-    fields: { clockSynchronized: boolean },
-  },
-  "frame.firstSubmit": {
-    scope: "owner",
-    subsystem: "renderer",
-    level: "info",
-    fields: { clockSynchronized: boolean },
-  },
-  "startup.complete": {
-    scope: "owner",
-    subsystem: "renderer",
-    level: "info",
-    fields: { clockSynchronized: boolean },
-  },
-  "build.info": {
-    scope: "owner",
-    subsystem: "renderer",
-    level: "info",
-    fields: { clockSynchronized: boolean },
-  },
-  "snapshot.fatalRead": {
-    scope: "owner",
-    subsystem: "renderer",
-    level: "info",
-    fields: { clockSynchronized: boolean },
-  },
+  ...plainMilestoneSchema(PLAIN_MILESTONES),
+
   // The two milestones that are also failures. The abort argument collapses
   // in the renderer into a closed reason kind plus a non-text fingerprint, so
   // the export can name the failing native operation class without carrying
@@ -569,18 +597,13 @@ export const PROTOCOL_AND_RENDERER_EVENT_SCHEMA = {
     scope: "owner",
     subsystem: "renderer",
     level: "error",
-    fields: {
-      clockSynchronized: boolean,
-      reasonKind: literal(WASM_ABORT_REASON_KINDS),
-      fingerprint: isRendererFingerprint,
-      heapBytes: finiteNumber,
-    },
+    fields: { clockSynchronized: boolean, ...RENDERER_MILESTONE_FIELDS["wasm.abort"] },
   },
   "wasm.exit": {
     scope: "owner",
     subsystem: "renderer",
     level: "error",
-    fields: { clockSynchronized: boolean, code: finiteNumber, heapBytes: finiteNumber },
+    fields: { clockSynchronized: boolean, ...RENDERER_MILESTONE_FIELDS["wasm.exit"] },
   },
   // The heap staircase, sampled: the renderer reports heap size with each
   // metrics flush (~2 s) and every observed rise becomes one event, so
@@ -598,10 +621,7 @@ export const PROTOCOL_AND_RENDERER_EVENT_SCHEMA = {
     scope: "owner",
     subsystem: "wasm",
     level: "info",
-    fields: {
-      clockSynchronized: boolean,
-      status: literal(WASM_MEMORY_PROBE_STATUSES),
-    },
+    fields: { clockSynchronized: boolean, ...RENDERER_MILESTONE_FIELDS["wasm.memoryProbe"] },
   },
   // Exact heap-growth-boundary observation. Unlike `heapGrew`, this records
   // refused requests and preserves the numeric WASM call chain which caused
@@ -611,60 +631,13 @@ export const PROTOCOL_AND_RENDERER_EVENT_SCHEMA = {
     scope: "owner",
     subsystem: "wasm",
     level: "info",
-    fields: {
-      clockSynchronized: boolean,
-      requestedBytes: finiteNumber,
-      beforeBytes: finiteNumber,
-      afterBytes: finiteNumber,
-      outcome: literal(WASM_GROWTH_OUTCOMES),
-      stackFingerprint: isRendererFingerprint,
-      stackDepth: finiteNumber,
-      frame0Function: finiteNumber,
-      frame0Offset: finiteNumber,
-      frame1Function: finiteNumber,
-      frame1Offset: finiteNumber,
-      frame2Function: finiteNumber,
-      frame2Offset: finiteNumber,
-      frame3Function: finiteNumber,
-      frame3Offset: finiteNumber,
-      generatedTextures: finiteNumber,
-      deletedTextures: finiteNumber,
-      liveTextures: finiteNumber,
-      trackedTextures: finiteNumber,
-      knownTextureBytes: finiteNumber,
-      textureUploadBytes: finiteNumber,
-      unknownTextureAllocations: finiteNumber,
-      textureTrackingSaturated: boolean,
-    },
+    fields: { clockSynchronized: boolean, ...RENDERER_MILESTONE_FIELDS["wasm.growthRequested"] },
   },
   "graphics.visualProblem": {
     scope: "owner",
     subsystem: "graphics",
     level: "info",
-    fields: {
-      clockSynchronized: boolean,
-      textureProbeInstalled: boolean,
-      wasmHeapBytes: finiteNumber,
-      webglContextAvailable: boolean,
-      contextLost: boolean,
-      canvasWidth: finiteNumber,
-      canvasHeight: finiteNumber,
-      offscreenWidth: finiteNumber,
-      offscreenHeight: finiteNumber,
-      drawingBufferWidth: finiteNumber,
-      drawingBufferHeight: finiteNumber,
-      generatedTextures: finiteNumber,
-      deletedTextures: finiteNumber,
-      liveTextures: finiteNumber,
-      trackedTextures: finiteNumber,
-      knownTextureBytes: finiteNumber,
-      textureUploadBytes: finiteNumber,
-      unknownTextureAllocations: finiteNumber,
-      textureTrackingSaturated: boolean,
-      programProbeInstalled: boolean,
-      livePrograms: finiteNumber,
-      programPassThroughQueries: finiteNumber,
-    },
+    fields: { clockSynchronized: boolean, ...RENDERER_MILESTONE_FIELDS["graphics.visualProblem"] },
   },
   // The renderer's Enhancement installation lifecycle. `clientPrepared` above
   // says a transformed module was served; only these say whether the hook was
@@ -674,12 +647,7 @@ export const PROTOCOL_AND_RENDERER_EVENT_SCHEMA = {
     scope: "owner",
     subsystem: "renderer",
     level: "info",
-    fields: {
-      clockSynchronized: boolean,
-      companionAbi: finiteNumber,
-      installation: finiteNumber,
-      capabilityProfile: isEnhancementCapabilityProfile,
-    },
+    fields: { clockSynchronized: boolean, ...RENDERER_MILESTONE_FIELDS["enhancement.installed"] },
   },
   "enhancement.installFailed": {
     scope: "owner",
@@ -691,6 +659,6 @@ export const PROTOCOL_AND_RENDERER_EVENT_SCHEMA = {
     scope: "owner",
     subsystem: "renderer",
     level: "info",
-    fields: { clockSynchronized: boolean, installation: finiteNumber },
+    fields: { clockSynchronized: boolean, ...RENDERER_MILESTONE_FIELDS["enhancement.uninstalled"] },
   },
 } as const satisfies Readonly<Record<string, EventSpec>>;

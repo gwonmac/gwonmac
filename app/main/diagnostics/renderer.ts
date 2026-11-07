@@ -17,11 +17,8 @@ import {
   type RendererFrameBatch,
   type RendererHistogramMetric,
   type RendererMetrics,
-  type RendererMilestone,
-  type RendererMilestoneFields,
-  type RendererMilestoneFieldsByName,
+  type RendererMilestoneRecord,
   type TextureMemorySnapshot,
-  type WasmMemoryProbeStatus,
 } from "../../shared/diagnostics.js";
 import {
   captureOwnsDiagnosticOwner,
@@ -353,253 +350,116 @@ export function recordClockOffset(
   }, ownerId);
 }
 
+/** Records a milestone that the IPC boundary already checked against the schema. */
 export function recordRendererMilestone(
   ownerId: number,
-  name: RendererMilestone,
-  rendererTimestampUs: number,
-  fields?: RendererMilestoneFields,
+  milestone: RendererMilestoneRecord,
 ): void {
   const state = stateFor(ownerId);
   const timestampUs = state.clockSynchronized
-    ? Math.max(0, Math.round(rendererTimestampUs + state.clockOffsetUs))
+    ? Math.max(0, Math.round(milestone.rendererTimestampUs + state.clockOffsetUs))
     : recorder.timestampUs();
-  recorder.setLatest(`milestone.${name}Us`, timestampUs, ownerId);
-  if (name === "build.info" && fields && "programId" in fields) {
-    recorder.setLatest("client.programId", fields.programId, ownerId);
-    recorder.setLatest("client.buildId", fields.buildId, ownerId);
-  }
-  if (name === "relog.inputSettled") {
-    if (!fields || !("stage" in fields)) return;
-    recordEvent(
-      {
-        k: "relog.inputSettled",
-        clockSynchronized: state.clockSynchronized,
-        stage: fields.stage,
-        outcome: fields.outcome,
-      },
-      { timestampUs },
-      ownerId,
-    );
-    return;
-  }
-  if (name === "relog.preGameProbe") {
-    if (!fields || !("mask" in fields)) return;
-    recordEvent(
-      {
-        k: "relog.preGameProbe",
-        clockSynchronized: state.clockSynchronized,
-        state: fields.state,
-        mask: fields.mask,
-      },
-      { timestampUs },
-      ownerId,
-    );
-    return;
-  }
-  if (name === "relog.finished") {
-    if (!fields || !("outcome" in fields)) return;
-    const relogFields = fields as RendererMilestoneFieldsByName["relog.finished"];
-    recordEvent(
-      {
-        k: "relog.finished",
-        clockSynchronized: state.clockSynchronized,
-        outcome: relogFields.outcome,
-      },
-      { timestampUs },
-      ownerId,
-    );
-    return;
-  }
-  if (name === "relog.skipped") {
-    if (!fields || !("reason" in fields)) return;
-    const relogFields = fields as RendererMilestoneFieldsByName["relog.skipped"];
-    recordEvent({ k: "relog.skipped", reason: relogFields.reason }, { timestampUs }, ownerId);
-    return;
-  }
-  if (name === "enhancement.consumerSignal") {
-    if (!fields || !("consumer" in fields)) return;
-    recordEvent({
-      k: "enhancement.consumerSignal",
-      consumer: fields.consumer,
-      signal: fields.signal,
-    }, { timestampUs }, ownerId);
-    return;
-  }
-  if (name === "enhancement.skillGeometryState") {
-    if (!fields || !("state" in fields)) return;
-    const geometryFields =
-      fields as RendererMilestoneFieldsByName["enhancement.skillGeometryState"];
-    recordEvent({
-      k: "enhancement.skillGeometryState",
-      state: geometryFields.state,
-      reason: geometryFields.reason,
-      candidates: geometryFields.candidates,
-    }, { timestampUs }, ownerId);
-    return;
-  }
-  if (name === "wasm.abort") {
-    // IPC validation guarantees these fields for this name; a call without
-    // them is unreachable and recording a reasonless abort would be a lie.
-    if (!fields || !("reasonKind" in fields)) return;
-    // The run-scoped crash tally the loading overlay reads back through
-    // diagnostics.current() to decide first-crash vs repeated-crash copy.
-    // The renderer records one crash per client launch, so this counts
-    // launches that crashed, not abort re-entries.
-    recorder.count("wasm.crashes", 1, ownerId);
-    recordEvent(
-      {
-        k: "wasm.abort",
-        clockSynchronized: state.clockSynchronized,
-        reasonKind: fields.reasonKind,
-        fingerprint: asRendererFingerprint(fields.fingerprint),
-        heapBytes: fields.heapBytes,
-      },
-      { timestampUs },
-      ownerId,
-    );
-    return;
-  }
-  if (name === "wasm.exit") {
-    if (!fields || !("code" in fields)) return;
-    recorder.count("wasm.crashes", 1, ownerId);
-    recordEvent(
-      {
-        k: "wasm.exit",
-        clockSynchronized: state.clockSynchronized,
-        code: fields.code,
-        heapBytes: fields.heapBytes,
-      },
-      { timestampUs },
-      ownerId,
-    );
-    return;
-  }
-  if (name === "wasm.memoryProbe") {
-    if (!fields || !("status" in fields)) return;
-    recorder.setLatest("wasm.memoryProbe.status", fields.status, ownerId);
-    recordEvent(
-      {
-        k: "wasm.memoryProbe",
-        clockSynchronized: state.clockSynchronized,
-        status: fields.status as WasmMemoryProbeStatus,
-      },
-      { timestampUs },
-      ownerId,
-    );
-    return;
-  }
-  if (name === "wasm.growthRequested") {
-    if (!fields || !("requestedBytes" in fields)) return;
-    recorder.count("wasm.growthRequests", 1, ownerId);
-    recorder.count(`wasm.growthRequests.${fields.outcome}`, 1, ownerId);
-    recorder.setLatest("wasm.growth.outcome", fields.outcome, ownerId);
-    recorder.setLatest(
-      "wasm.growth.stackFingerprint",
-      fields.stackFingerprint,
-      ownerId,
-    );
-    recorder.setLatest(
-      "wasm.growth.requestedBytes",
-      fields.requestedBytes,
-      ownerId,
-    );
-    recorder.setLatest("wasm.growth.beforeBytes", fields.beforeBytes, ownerId);
-    recorder.setLatest("wasm.growth.afterBytes", fields.afterBytes, ownerId);
-    recorder.setLatest("wasm.growth.stackDepth", fields.stackDepth, ownerId);
-    recorder.setLatest(
-      "wasm.growth.frame0Function",
-      fields.frame0Function,
-      ownerId,
-    );
-    recorder.setLatest("wasm.growth.frame0Offset", fields.frame0Offset, ownerId);
-    recorder.setLatest(
-      "wasm.growth.frame1Function",
-      fields.frame1Function,
-      ownerId,
-    );
-    recorder.setLatest("wasm.growth.frame1Offset", fields.frame1Offset, ownerId);
-    recordTextureSnapshot(fields, ownerId);
-    recordEvent(
-      {
-        k: "wasm.growthRequested",
-        clockSynchronized: state.clockSynchronized,
-        ...fields,
-        stackFingerprint: asRendererFingerprint(fields.stackFingerprint),
-      },
-      { timestampUs },
-      ownerId,
-    );
-    return;
-  }
-  if (name === "graphics.visualProblem") {
-    if (!fields || !("contextLost" in fields)) return;
-    recordTextureSnapshot(fields, ownerId);
-    recorder.setLatest(
-      "graphics.webglContextAvailableAtVisualProblem",
-      fields.webglContextAvailable,
-      ownerId,
-    );
-    recorder.setLatest("graphics.contextLostAtVisualProblem", fields.contextLost, ownerId);
-    recorder.setLatest("graphics.visualProblemWasmHeapBytes", fields.wasmHeapBytes, ownerId);
-    recorder.setLatest(
-      "graphics.programProbeInstalledAtVisualProblem",
-      fields.programProbeInstalled,
-      ownerId,
-    );
-    recorder.setLatest("graphics.visualProblemLivePrograms", fields.livePrograms, ownerId);
-    recorder.setLatest(
-      "graphics.visualProblemProgramPassThroughQueries",
-      fields.programPassThroughQueries,
-      ownerId,
-    );
-    recordEvent(
-      {
-        k: "graphics.visualProblem",
-        clockSynchronized: state.clockSynchronized,
-        ...fields,
-      },
-      { timestampUs },
-      ownerId,
-    );
-    return;
-  }
-  if (name === "enhancement.installed") {
-    if (!fields || !("capabilityProfile" in fields)) return;
-    // IPC validated the shape; membership in the closed profile vocabulary is
-    // this recorder's gate. An unknown profile is dropped, not recorded.
-    const profile = fields.capabilityProfile;
-    if (!isEnhancementCapabilityProfile(profile)) return;
-    recordEvent(
-      {
-        k: "enhancement.installed",
-        clockSynchronized: state.clockSynchronized,
-        companionAbi: fields.companionAbi,
-        installation: fields.installation,
-        capabilityProfile: profile,
-      },
-      { timestampUs },
-      ownerId,
-    );
-    return;
-  }
-  if (name === "enhancement.uninstalled") {
-    if (!fields || !("installation" in fields) || "capabilityProfile" in fields) {
+  const at = { timestampUs };
+  const { clockSynchronized } = state;
+  recorder.setLatest(`milestone.${milestone.name}Us`, timestampUs, ownerId);
+  switch (milestone.name) {
+    case "build.info": {
+      // Build identifiers stay in gauges; the event records the clock state only.
+      recorder.setLatest("client.programId", milestone.fields.programId, ownerId);
+      recorder.setLatest("client.buildId", milestone.fields.buildId, ownerId);
+      recordEvent({ k: "build.info", clockSynchronized }, at, ownerId);
       return;
     }
-    recordEvent(
-      {
-        k: "enhancement.uninstalled",
-        clockSynchronized: state.clockSynchronized,
-        installation: fields.installation,
-      },
-      { timestampUs },
-      ownerId,
-    );
-    return;
+    case "relog.inputSettled":
+      recordEvent({ k: "relog.inputSettled", clockSynchronized, ...milestone.fields }, at, ownerId);
+      return;
+    case "relog.preGameProbe":
+      recordEvent({ k: "relog.preGameProbe", clockSynchronized, ...milestone.fields }, at, ownerId);
+      return;
+    case "relog.finished":
+      recordEvent({ k: "relog.finished", clockSynchronized, ...milestone.fields }, at, ownerId);
+      return;
+    case "relog.skipped":
+      recordEvent({ k: "relog.skipped", ...milestone.fields }, at, ownerId);
+      return;
+    case "enhancement.consumerSignal":
+      recordEvent({ k: "enhancement.consumerSignal", ...milestone.fields }, at, ownerId);
+      return;
+    case "enhancement.skillGeometryState":
+      recordEvent({ k: "enhancement.skillGeometryState", ...milestone.fields }, at, ownerId);
+      return;
+    case "wasm.abort":
+      // The run-scoped crash tally the loading overlay reads back through
+      // diagnostics.current() to decide first-crash vs repeated-crash copy.
+      // The renderer records one crash per client launch, so this counts
+      // launches that crashed, not abort re-entries.
+      recorder.count("wasm.crashes", 1, ownerId);
+      recordEvent({
+        k: "wasm.abort",
+        clockSynchronized,
+        ...milestone.fields,
+        fingerprint: asRendererFingerprint(milestone.fields.fingerprint),
+      }, at, ownerId);
+      return;
+    case "wasm.exit":
+      recorder.count("wasm.crashes", 1, ownerId);
+      recordEvent({ k: "wasm.exit", clockSynchronized, ...milestone.fields }, at, ownerId);
+      return;
+    case "wasm.memoryProbe":
+      recorder.setLatest("wasm.memoryProbe.status", milestone.fields.status, ownerId);
+      recordEvent({ k: "wasm.memoryProbe", clockSynchronized, ...milestone.fields }, at, ownerId);
+      return;
+    case "wasm.growthRequested": {
+      const fields = milestone.fields;
+      recorder.count("wasm.growthRequests", 1, ownerId);
+      recorder.count(`wasm.growthRequests.${fields.outcome}`, 1, ownerId);
+      recorder.setLatest("wasm.growth.outcome", fields.outcome, ownerId);
+      recorder.setLatest("wasm.growth.stackFingerprint", fields.stackFingerprint, ownerId);
+      recorder.setLatest("wasm.growth.requestedBytes", fields.requestedBytes, ownerId);
+      recorder.setLatest("wasm.growth.beforeBytes", fields.beforeBytes, ownerId);
+      recorder.setLatest("wasm.growth.afterBytes", fields.afterBytes, ownerId);
+      recorder.setLatest("wasm.growth.stackDepth", fields.stackDepth, ownerId);
+      recorder.setLatest("wasm.growth.frame0Function", fields.frame0Function, ownerId);
+      recorder.setLatest("wasm.growth.frame0Offset", fields.frame0Offset, ownerId);
+      recorder.setLatest("wasm.growth.frame1Function", fields.frame1Function, ownerId);
+      recorder.setLatest("wasm.growth.frame1Offset", fields.frame1Offset, ownerId);
+      recordTextureSnapshot(fields, ownerId);
+      recordEvent({
+        k: "wasm.growthRequested",
+        clockSynchronized,
+        ...fields,
+        stackFingerprint: asRendererFingerprint(fields.stackFingerprint),
+      }, at, ownerId);
+      return;
+    }
+    case "graphics.visualProblem": {
+      const fields = milestone.fields;
+      recordTextureSnapshot(fields, ownerId);
+      recorder.setLatest("graphics.webglContextAvailableAtVisualProblem", fields.webglContextAvailable, ownerId);
+      recorder.setLatest("graphics.contextLostAtVisualProblem", fields.contextLost, ownerId);
+      recorder.setLatest("graphics.visualProblemWasmHeapBytes", fields.wasmHeapBytes, ownerId);
+      recorder.setLatest("graphics.programProbeInstalledAtVisualProblem", fields.programProbeInstalled, ownerId);
+      recorder.setLatest("graphics.visualProblemLivePrograms", fields.livePrograms, ownerId);
+      recorder.setLatest("graphics.visualProblemProgramPassThroughQueries", fields.programPassThroughQueries, ownerId);
+      recordEvent({ k: "graphics.visualProblem", clockSynchronized, ...fields }, at, ownerId);
+      return;
+    }
+    case "enhancement.installed": {
+      // The IPC guard admitted only a known profile; this narrows its type.
+      const profile = milestone.fields.capabilityProfile;
+      if (!isEnhancementCapabilityProfile(profile)) return;
+      recordEvent({
+        k: "enhancement.installed",
+        clockSynchronized,
+        ...milestone.fields,
+        capabilityProfile: profile,
+      }, at, ownerId);
+      return;
+    }
+    case "enhancement.uninstalled":
+      recordEvent({ k: "enhancement.uninstalled", clockSynchronized, ...milestone.fields }, at, ownerId);
+      return;
+    default:
+      recordEvent({ k: milestone.name, clockSynchronized }, at, ownerId);
   }
-  recordEvent(
-    { k: name, clockSynchronized: state.clockSynchronized },
-    { timestampUs },
-    ownerId,
-  );
 }

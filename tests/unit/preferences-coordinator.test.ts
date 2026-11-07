@@ -13,6 +13,7 @@ import {
 } from "../../app/shared/travel.js";
 import { CARTOGRAPHY_BUILTIN_PRESETS } from "../../app/shared/cartography-overlay.js";
 import { resolveShortcuts } from "../../app/shared/keyboard-shortcuts.js";
+import { launcherToolSettings, type SettingsWrite } from "../../app/shared/launcher-contracts.js";
 
 type ResetOutcome = Awaited<ReturnType<PreferencesCoordinator["resetSettings"]>>;
 
@@ -74,15 +75,15 @@ it("serializes shortcut replacement so concurrent actions keep one owner per bin
   const grid = { key: "g", shift: false, option: false };
   const terrain = { key: "l", shift: false, option: false };
   await Promise.all([
-    coordinator.replaceShortcut("cartography.grid.toggle", grid),
-    coordinator.replaceShortcut("cartography.walkability.toggle", terrain),
+    coordinator.write({ kind: "shortcut", action: "cartography.grid.toggle", binding: grid }),
+    coordinator.write({ kind: "shortcut", action: "cartography.walkability.toggle", binding: terrain }),
   ]);
   let shortcuts = resolveShortcuts((await coordinator.getSettings()).shortcutOverrides);
   assert.deepEqual(shortcuts["cartography.grid.toggle"], grid);
   assert.deepEqual(shortcuts["cartography.walkability.toggle"], terrain);
   await Promise.all([
-    coordinator.replaceShortcut("character.switch", grid),
-    coordinator.replaceShortcut("travel.open", grid),
+    coordinator.write({ kind: "shortcut", action: "character.switch", binding: grid }),
+    coordinator.write({ kind: "shortcut", action: "travel.open", binding: grid }),
   ]);
   shortcuts = resolveShortcuts((await coordinator.getSettings()).shortcutOverrides);
   assert.equal(shortcuts["cartography.grid.toggle"], null);
@@ -91,10 +92,26 @@ it("serializes shortcut replacement so concurrent actions keep one owner per bin
   assert.deepEqual(shortcuts["cartography.walkability.toggle"], terrain);
 });
 
+it("applies each settings write kind the launcher and the Hub send", async () => {
+  const binding = { key: "g", shift: false, option: false };
+  const whispers = !launcherToolSettings(DEFAULT_SETTINGS).whispers.enabled;
+  const cases: readonly [SettingsWrite, (settings: AppSettings) => unknown, unknown][] = [
+    [{ kind: "settings", patch: { uiPanelOpacity: 80 } }, (settings) => settings.uiPanelOpacity, 80],
+    [{ kind: "master", enabled: !DEFAULT_SETTINGS.gwonmacTools }, (settings) => settings.gwonmacTools, !DEFAULT_SETTINGS.gwonmacTools],
+    [{ kind: "tool", tool: "whispers", enabled: whispers }, (settings) => launcherToolSettings(settings).whispers.enabled, whispers],
+    [{ kind: "shortcut", action: "travel.open", binding }, (settings) => resolveShortcuts(settings.shortcutOverrides)["travel.open"], binding],
+  ];
+  for (const [change, read, expected] of cases) {
+    const { coordinator } = await fixture();
+    await coordinator.write(change);
+    assert.deepEqual(read(await coordinator.getSettings()), expected, change.kind);
+  }
+});
+
 async function seedNonDefaultPreferences(
   coordinator: PreferencesCoordinator,
 ): Promise<void> {
-  await coordinator.updateSettings({ showDiagnostics: true, renderScale: 1 });
+  await coordinator.write({ kind: "settings", patch: { showDiagnostics: true, renderScale: 1 } });
   const current = await coordinator.getTravelPreferences();
   await coordinator.updateTravelPreferences({
     expected: current,
@@ -133,7 +150,7 @@ describe("PreferencesCoordinator", () => {
       1,
       async () => {
         await assert.rejects(
-          coordinator.updateSettings({ showDiagnostics: true }),
+          coordinator.write({ kind: "settings", patch: { showDiagnostics: true } }),
           /different active values/u,
         );
       },
@@ -198,7 +215,7 @@ describe("PreferencesCoordinator", () => {
     const shortcuts = replaceTravelShortcut(current.shortcuts, 8, { mapId: 642 });
 
     await Promise.all([
-      coordinator.updateSettings({ showDiagnostics: true }),
+      coordinator.write({ kind: "settings", patch: { showDiagnostics: true } }),
       coordinator.updateTravelPreferences({ expected: current, patch: { shortcuts } }),
     ]);
 
@@ -218,16 +235,16 @@ describe("PreferencesCoordinator", () => {
       name: "Player Night",
       style: CARTOGRAPHY_BUILTIN_PRESETS.synthwave.style,
     } as const;
-    await coordinator.updateSettings({
+    await coordinator.write({ kind: "settings", patch: {
       cartographyPresetLibrary: {
         activePreset: { kind: "custom", id: customPreset.id },
         customPresets: [customPreset],
       },
-    });
+    } });
 
-    const saved = await coordinator.updateRendererSettings({
+    const saved = await coordinator.write({ kind: "renderer", patch: {
       cartographyPresetSelection: { kind: "builtin", id: "monochrome" },
-    });
+    } });
 
     assert.deepEqual(saved.cartographyPresetLibrary, {
       activePreset: { kind: "builtin", id: "monochrome" },
@@ -239,9 +256,9 @@ describe("PreferencesCoordinator", () => {
     const { coordinator } = await fixture();
 
     await assert.rejects(
-      coordinator.updateRendererSettings({
+      coordinator.write({ kind: "renderer", patch: {
         cartographyPresetSelection: { kind: "custom", id: "deleted-preset" },
-      }),
+      } }),
       /no longer exists/u,
     );
     assert.deepEqual(
@@ -273,7 +290,7 @@ describe("PreferencesCoordinator", () => {
     const { coordinator } = await fixture();
     let saved = DEFAULT_SETTINGS;
     const refusedDirectorySync = await failNextDirectorySync(async () => {
-      saved = await coordinator.updateSettings({ showDiagnostics: true });
+      saved = await coordinator.write({ kind: "settings", patch: { showDiagnostics: true } });
     });
 
     assert.equal(refusedDirectorySync, true);
@@ -283,7 +300,7 @@ describe("PreferencesCoordinator", () => {
 
   it("returns a settings reset that became active before fsync failed", async () => {
     const { coordinator } = await fixture();
-    await coordinator.updateSettings({ showDiagnostics: true, renderScale: 1 });
+    await coordinator.write({ kind: "settings", patch: { showDiagnostics: true, renderScale: 1 } });
     let outcome: ResetOutcome | undefined;
     const refusedDirectorySync = await failNextDirectorySync(async () => {
       outcome = await coordinator.resetSettings();
@@ -323,7 +340,7 @@ describe("PreferencesCoordinator", () => {
       expected: await coordinator.getTravelPreferences(),
       patch: { synonyms: [{ term: "home", mapId: 55 }] },
     });
-    await coordinator.updateSettings({ showDiagnostics: true });
+    await coordinator.write({ kind: "settings", patch: { showDiagnostics: true } });
 
     const outcome = await coordinator.resetCoreSettings();
 
@@ -352,7 +369,7 @@ describe("PreferencesCoordinator", () => {
 
   it("skips the Travel write when its document is already default", async () => {
     const { coordinator } = await fixture();
-    await coordinator.updateSettings({ showDiagnostics: true });
+    await coordinator.write({ kind: "settings", patch: { showDiagnostics: true } });
     let outcome: ResetOutcome | undefined;
     const refused = await failSync("file", 2, async () => {
       outcome = await coordinator.resetSettings();
@@ -453,7 +470,7 @@ describe("PreferencesCoordinator", () => {
     let partial: ResetOutcome | undefined;
     await failSync("file", 2, async () => {
       const reset = coordinator.resetSettings();
-      const queued = coordinator.updateSettings({ showDiagnostics: true });
+      const queued = coordinator.write({ kind: "settings", patch: { showDiagnostics: true } });
       partial = await reset;
       await queued;
     });
