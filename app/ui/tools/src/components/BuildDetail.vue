@@ -8,6 +8,7 @@ import {
   watch,
 } from "vue";
 import { PROFESSIONS } from "../../../../shared/builds/heroes";
+import { attributeLabel } from "../../../../shared/builds/presentation";
 import { encodeSkillTemplate } from "../../../../shared/builds/skill-template";
 import type { Profession, SkillId } from "../../../../shared/builds/library";
 import type { SkillUnlockObservation } from "../../../../shared/builds/live-party";
@@ -198,17 +199,16 @@ function problemText(problem: BuildProblem): string {
     case "skill-off-profession":
       return `Slot ${problem.slot + 1} belongs to ${PROFESSIONS[problem.profession].name}.`;
     case "attribute-off-profession":
-      return `${humanize(problem.attribute)} does not belong to this profession pair.`;
+      return `${attributeLabel(problem.attribute)} does not belong to this profession pair.`;
     case "primary-attribute-of-secondary":
-      return `${humanize(problem.attribute)} requires ${PROFESSIONS[problem.profession].name} as primary.`;
+      return `${attributeLabel(problem.attribute)} requires ${PROFESSIONS[problem.profession].name} as primary.`;
     case "rank-above-cap":
-      return `${humanize(problem.attribute)} is above rank ${problem.cap}.`;
+      return `${attributeLabel(problem.attribute)} is above rank ${problem.cap}.`;
     case "over-budget":
       return `Attributes spend ${problem.spent} of ${problem.budget} points.`;
   }
 }
 
-const humanize = (value: string) => value.replace(/([a-z])([A-Z])/gu, "$1 $2");
 
 function reviewFirstProblem(): void {
   if (editor.verdict.value.valid) return;

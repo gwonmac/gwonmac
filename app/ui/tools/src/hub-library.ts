@@ -2,7 +2,7 @@
 import { TOOL_PRESENTATION } from '../../../shared/tool-presentation';
 import { watch } from 'vue';
 import { diffBuilds, diffSummary } from '../../../shared/builds/diff';
-import { buildAttributes, buildProfessions } from '../../../shared/builds/presentation';
+import { attributeLabel, buildAttributes, buildProfessions } from '../../../shared/builds/presentation';
 import { hubMatch, parseHubQuery, type HubPresenter, type HubRow, type HubSource, type HubTask } from '../../../shared/hub';
 import { buildId, skillId, type Build, type Team, type HeroId } from '../../../shared/builds/library';
 import { heroLabel, PROFESSIONS } from '../../../shared/builds/heroes';
@@ -101,7 +101,7 @@ export function createHubLibrary(controller: LibraryController, host: ToolsHost,
     return { name: skill?.name ?? (id === null ? 'Empty slot' : `Unknown skill ${id}`), iconUrl: skill?.iconUrl ?? null, elite: skill?.elite ?? false, description: skill?.description ?? null };
   });
   const attributesPreview = (attributes: Build['attributes'] | null) => attributes === null ? 'Attributes not available'
-    : Object.entries(attributes).map(([name, rank]) => `${name.replace(/([a-z])([A-Z])/gu, '$1 $2')} ${rank}`).join(' · ') || 'No attribute points assigned';
+    : Object.entries(attributes).map(([name, rank]) => `${attributeLabel(name)} ${rank}`).join(' · ') || 'No attribute points assigned';
   const buildPreview = (build: Pick<Build, 'professions' | 'attributes'>) => `${build.professions.filter(Boolean).join('/')}\n${attributesPreview(build.attributes)}`;
   const equipped = (hero: HeroId | null, incoming?: Build) => {
     const party = host.party.value;

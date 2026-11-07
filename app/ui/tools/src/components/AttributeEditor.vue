@@ -17,6 +17,7 @@ import type {
   AttributeRank,
   Profession,
 } from "../../../../shared/builds/library";
+import { attributeLabel } from "../../../../shared/builds/presentation";
 import {
   LEVEL_20_ATTRIBUTE_BUDGET,
   PRIMARY_ATTRIBUTE,
@@ -28,9 +29,6 @@ const professions = Object.entries(PROFESSIONS) as readonly [
   Profession,
   { id: number; name: string },
 ][];
-
-const label = (attribute: Attribute) =>
-  attribute.replace(/([a-z])([A-Z])/gu, "$1 $2");
 
 const attributes = computed(() =>
   availableAttributes(props.editor.draft.value.professions),
@@ -159,7 +157,7 @@ function onRankKeydown(attribute: Attribute, event: KeyboardEvent): void {
             class="attribute-line"
           >
             <span>
-              <strong>{{ label(attribute) }}</strong>
+              <strong>{{ attributeLabel(attribute) }}</strong>
               <small v-if="PRIMARY_ATTRIBUTE[editor.draft.value.professions[0]] === attribute">
                 Primary only
               </small>
@@ -167,24 +165,24 @@ function onRankKeydown(attribute: Attribute, event: KeyboardEvent): void {
             <div
               class="rank-stepper"
               role="group"
-              :aria-label="`${label(attribute)} rank`"
+              :aria-label="`${attributeLabel(attribute)} rank`"
               @keydown="onRankKeydown(attribute, $event)"
             >
               <button
                 class="ui-button"
                 data-icon
                 :disabled="rank(attribute) === 0"
-                :aria-label="`Decrease ${label(attribute)}`"
+                :aria-label="`Decrease ${attributeLabel(attribute)}`"
                 @click="change(attribute, -1)"
               >−</button>
-              <output :aria-label="`${label(attribute)} rank ${rank(attribute)}`">
+              <output :aria-label="`${attributeLabel(attribute)} rank ${rank(attribute)}`">
                 {{ rank(attribute) }}
               </output>
               <button
                 class="ui-button"
                 data-icon
                 :disabled="unaffordable(attribute)"
-                :aria-label="`Increase ${label(attribute)}`"
+                :aria-label="`Increase ${attributeLabel(attribute)}`"
                 @click="change(attribute, 1)"
               >+</button>
             </div>
@@ -206,28 +204,28 @@ function onRankKeydown(attribute: Attribute, event: KeyboardEvent): void {
             :key="attribute"
             class="attribute-line"
           >
-            <span><strong>{{ label(attribute) }}</strong></span>
+            <span><strong>{{ attributeLabel(attribute) }}</strong></span>
             <div
               class="rank-stepper"
               role="group"
-              :aria-label="`${label(attribute)} rank`"
+              :aria-label="`${attributeLabel(attribute)} rank`"
               @keydown="onRankKeydown(attribute, $event)"
             >
               <button
                 class="ui-button"
                 data-icon
                 :disabled="rank(attribute) === 0"
-                :aria-label="`Decrease ${label(attribute)}`"
+                :aria-label="`Decrease ${attributeLabel(attribute)}`"
                 @click="change(attribute, -1)"
               >−</button>
-              <output :aria-label="`${label(attribute)} rank ${rank(attribute)}`">
+              <output :aria-label="`${attributeLabel(attribute)} rank ${rank(attribute)}`">
                 {{ rank(attribute) }}
               </output>
               <button
                 class="ui-button"
                 data-icon
                 :disabled="unaffordable(attribute)"
-                :aria-label="`Increase ${label(attribute)}`"
+                :aria-label="`Increase ${attributeLabel(attribute)}`"
                 @click="change(attribute, 1)"
               >+</button>
             </div>

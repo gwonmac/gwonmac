@@ -12,6 +12,7 @@ import type { SkillCatalogue, SkillPresentation } from "../skill-catalog";
 import type { BuildDraftController } from "../use-build-draft";
 import type { SkillUnlockObservation } from "../../../../shared/builds/live-party";
 import { ATTRIBUTES } from "../../../../shared/builds/heroes";
+import { attributeLabel } from "../../../../shared/builds/presentation";
 import { listIndexAfter, listKeyStep, listPage } from "../../../../shared/ui/list-keys";
 import { presentSkillPlacement, type SkillPlacementPresentation } from "../skill-drop";
 import type { SkillDragSession } from "../use-skill-drag-session";
@@ -57,7 +58,6 @@ onBeforeUpdate(() => {
   resultButtons.value = [];
 });
 
-const label = (value: string) => value.replace(/([a-z])([A-Z])/gu, "$1 $2");
 const current = computed(() => {
   const slot = props.editor.activeSlot.value;
   if (slot === null) return null;
@@ -132,7 +132,7 @@ const groups = computed<readonly SkillGroup[]>(() => {
   }
   return [...grouped].map(([key, skills]) => ({
     key,
-    label: key === "no-attribute" ? "No attribute" : label(key),
+    label: key === "no-attribute" ? "No attribute" : attributeLabel(key),
     skills,
   }));
 });
@@ -437,7 +437,7 @@ function hideBrokenIcon(event: Event): void {
                 <strong>{{ skill.name }}</strong>
                 <small>
                   <ProfessionIcon :profession="skill.profession" /> {{ skill.profession ?? "PvE" }}
-                  <template v-if="skill.attribute"> · {{ label(skill.attribute) }}</template>
+                  <template v-if="skill.attribute"> · {{ attributeLabel(skill.attribute) }}</template>
                 </small>
               </span>
               <span class="result-mechanics">
