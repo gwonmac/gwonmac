@@ -33,7 +33,8 @@ import SkillBar from "./components/SkillBar.vue";
 import TeamDetail from "./components/TeamDetail.vue";
 import TemplateFilesDialog from "./components/TemplateFilesDialog.vue";
 import UiDialog from "./ui/UiDialog.vue";
-import { navigateRows, navigateTabs } from "./tab-keyboard";
+import { listIndexAfter, listKeyStep, listPage } from "../../../shared/ui/list-keys";
+import { navigateTabs } from "../../../shared/ui/focusable";
 import { useClassicFrame } from "./ui/use-classic-frame";
 import { useFloatingWindow } from "./use-floating-window";
 
@@ -132,6 +133,18 @@ const select = (value: Build | Team) => {
     }
     mobileView.value = "detail";
   });
+};
+
+/** The library rows take focus with the shared list keys; choosing one stays a click. */
+const onLibraryKeydown = (event: KeyboardEvent) => {
+  if (!(event.currentTarget instanceof HTMLElement)) return;
+  const rows = [...event.currentTarget.querySelectorAll<HTMLElement>(".library-row")];
+  const current = rows.findIndex((row) => row === event.target);
+  if (current < 0) return;
+  const step = listKeyStep(event, listPage(event.currentTarget, rows[current]));
+  if (step === null) return;
+  event.preventDefault();
+  rows[listIndexAfter(current, rows.length, step)]?.focus();
 };
 
 const openTeam = (id: string) => {
@@ -455,7 +468,7 @@ useClassicFrame(panel);
             class="library-list"
             role="tabpanel"
             :aria-labelledby="controller.kind.value === 'team' ? 'teams-library-tab' : 'builds-library-tab'"
-            @keydown="navigateRows"
+            @keydown="onLibraryKeydown"
           >
             <button
               v-for="value in controller.items.value"

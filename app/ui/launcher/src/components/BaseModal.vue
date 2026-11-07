@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref } from "vue";
+import { focusableElements } from "@shared/ui/focusable";
 
 const props = withDefaults(defineProps<{
   labelledby: string;
@@ -11,12 +12,7 @@ const dialog = ref<HTMLElement | null>(null);
 let priorFocus: HTMLElement | null = null;
 let shell: HTMLElement | null = null;
 
-function focusable(): HTMLElement[] {
-  if (!dialog.value) return [];
-  return [...dialog.value.querySelectorAll<HTMLElement>(
-    'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])',
-  )].filter((element) => !element.hidden && element.getAttribute("aria-hidden") !== "true");
-}
+const focusable = () => (dialog.value ? focusableElements(dialog.value) : []);
 
 function onKeydown(event: KeyboardEvent) {
   if (event.key === "Escape" && props.dismissible) {
