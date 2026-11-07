@@ -4,6 +4,7 @@
  * Vue, so this test holds the Vue Hub to the same structure the CSS and the e2e suites expect.
  */
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
+// eslint-disable-next-line no-restricted-imports
 import type {} from '../../../../renderer/gw-native';
 // eslint-disable-next-line no-restricted-imports
 import { installSurfaceController } from '../../../../renderer/surface-controller';
@@ -11,6 +12,7 @@ import { DEFAULT_SETTINGS, type AppSettings } from '../../../../shared/contracts
 import type { HubRow, HubViewMount } from '../../../../shared/hub';
 // eslint-disable-next-line no-restricted-imports
 import { createHub } from '../../../../renderer/hub';
+import { mountHubView } from './embedded';
 
 /** One line per node: sorted attributes, merged text, no comments or empty text. */
 function serialize(node: Node, depth = 0): string[] {
@@ -67,7 +69,7 @@ beforeEach(() => {
 });
 afterEach(() => { window.gwHub?.dispose(); vi.useRealTimers(); });
 
-const skills = Array.from({ length: 3 }, (_, index) => ({ name: `Skill ${index + 1}`, iconUrl: `skill-${index + 1}.png`, ...(index === 0 ? { elite: true } : {}), ...(index === 2 ? { changed: true, description: 'Hits hard.' } : {}) }));
+const skills = Array.from({ length: 3 }, (_, index) => ({ name: `Skill ${index + 1}`, iconUrl: `skill-${index + 1}.png`, elite: index === 0, ...(index === 2 ? { changed: true, description: 'Hits hard.' } : {}) }));
 const attributes = [{ name: 'Healing Prayers', icon: 'monk.png', attributes: [{ name: 'Healing Prayers', label: 'HP', rank: 12, nextRank: 11 }, { name: 'Divine Favor', label: 'DF', rank: 9 }] }];
 const professions = [{ code: 'Mo', name: 'Monk', icon: 'mo.png' }, { code: 'Me', name: 'Mesmer', icon: 'me.png' }];
 const sectionRows = (): readonly HubRow[] => [
@@ -82,7 +84,7 @@ const sectionRows = (): readonly HubRow[] => [
 const summary = { label: 'Current build', title: 'Healer', detail: 'Your build', skills, attributes, professions, folder: 'PvE' };
 
 test('the Hub keeps its DOM structure, classes, ARIA and focus in every main view', async () => {
-  const hub = createHub(document.body);
+  const hub = createHub(document.body, { mountHubView });
   window.gwHub = hub;
   await settle();
   capture('closed');
