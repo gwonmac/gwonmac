@@ -817,11 +817,12 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
       secondary: next => { current.secondary = next; if (viewFooter === current) paintViewFooter(); },
       openActions: () => { if (viewFooter === current) openMenu(); },
     };
-    paintViewFooter();
-    // The page mounts into a host that already shows, so it can measure and take focus.
+    paintViewFooter(); paintNavigation();
+    // The page mounts into a host that already shows its heading and footer, so it can measure and take focus.
     disposeView = callOut(() => view.mount(content, restoreParent, shell, ui.pages));
     restoreDrafts([...state.history.map(pageTitle), view.title].join(' › '));
-    paintNavigation(); paintLegend(undefined);
+    // The legend names the view's own search once it mounted.
+    paintLegend(undefined);
     // A view that took the keyboard keeps it; else its first usable control, never <body>.
     if (ui.focus.at() !== 'view') requestFocus({ zone: 'view' });
   }
@@ -835,7 +836,8 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     /** Whether Esc on an empty query goes back to a parent page rather than closing the Hub. */
     get hasParent() { return state.history.length > 0; },
     attach: entry((next: HubSource) => {
-      // A notification is drawn before it returns, like any presenter call (HUB-111).
+      // Source notifications coalesce into one refresh per frame (HUB-111); a peer of an owned
+      // list only updates the navigation facts, which are drawn when the notification returns.
       sources.set(next, next.subscribe(entry(() => {
         // A scoped list belongs to its source; peer observations only update navigation facts.
         const owner = state.place.scope?.owner;
