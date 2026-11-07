@@ -3,6 +3,7 @@
  * label, one description and one "when it applies" note per stored value, so the
  * two surfaces can never name the same setting differently (docs/settings.md).
  */
+import { CONTROLLER_PROMPT_STYLES, RENDER_SCALES, type ControllerPromptStyle, type RenderScale } from "./settings/core.js";
 
 /** When a saved change takes effect. `now` needs no note. */
 export type SettingApplies = "now" | "next-game" | "restart";
@@ -24,16 +25,20 @@ export const GAME_SETTINGS = {
   showDiagnostics: { label: "Diagnostics overlay", detail: "Show frame and memory diagnostics in open game windows.", applies: "now", keywords: "fps debug performance" },
 } as const satisfies Readonly<Record<string, Copy>>;
 
-export const RENDER_SCALE_OPTIONS = [
-  { label: "Standard · 1×", value: 1 },
-  { label: "High · 1.5×", value: 1.5 },
-  { label: "Very high · 2×", value: 2 },
-] as const;
+const RENDER_SCALE_LABELS: Readonly<Record<RenderScale, string>> = {
+  1: "Standard · 1×",
+  1.5: "High · 1.5×",
+  2: "Very high · 2×",
+};
 
-export const CONTROLLER_SYMBOL_OPTIONS = [
-  { label: "Game default", value: "game-default" },
-  { label: "PlayStation", value: "playstation" },
-] as const;
+const CONTROLLER_SYMBOL_LABELS: Readonly<Record<ControllerPromptStyle, string>> = {
+  "game-default": "Game default",
+  playstation: "PlayStation",
+};
+
+/** Option lists follow the setting's own value list, so every stored value has exactly one option. */
+export const RENDER_SCALE_OPTIONS = RENDER_SCALES.map((value) => ({ value, label: RENDER_SCALE_LABELS[value] }));
+export const CONTROLLER_SYMBOL_OPTIONS = CONTROLLER_PROMPT_STYLES.map((value) => ({ value, label: CONTROLLER_SYMBOL_LABELS[value] }));
 
 /** Character Switch options, shown under that tool. */
 export const CHARACTER_DETAILS = [

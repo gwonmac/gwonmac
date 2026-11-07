@@ -2,6 +2,7 @@
  * Owns the compact, progressively disclosed Cartography controls beside the Compass.
  * It persists layer settings and semantic preset selections without owning the library.
  */
+import { CARTOGRAPHY_REVEAL_MODES, type CartographyRevealMode } from "../../../shared/cartography-overlay.js";
 import { resolveCartographyPreset } from "../../../shared/cartography-presets.js";
 import type { CartographyEvidenceExportResult } from "../../../shared/cartography-evidence.js";
 import type { AppSettings, RendererSettingsPatch } from "../../../shared/contracts.js";
@@ -24,6 +25,7 @@ import {
 const PANEL_WIDTH = 204;
 const PANEL_HEIGHT_ESTIMATE = 230;
 const SAVE_CONFIRMATION_MS = 1_200;
+const REACH_LABELS: Readonly<Record<CartographyRevealMode, string>> = { off: "Off", normal: "3×3", "birds-eye": "7×7" };
 type Layer = "grid" | "walkability";
 
 export type CartographyQaStatus = Readonly<{
@@ -263,10 +265,10 @@ export function createCartographyOverlayControls(options: Readonly<{
   reachLabel.textContent = "Reach";
   const reach = document.createElement("select");
   reach.setAttribute("aria-label", "Reveal range");
-  for (const [value, text] of [["off", "Off"], ["normal", "3×3"], ["birds-eye", "7×7"]] as const) {
+  for (const value of CARTOGRAPHY_REVEAL_MODES) {
     const option = document.createElement("option");
     option.value = value;
-    option.textContent = text;
+    option.textContent = REACH_LABELS[value];
     reach.append(option);
   }
   reachRow.append(reachLabel, reach);
@@ -459,8 +461,8 @@ export function createCartographyOverlayControls(options: Readonly<{
   bindSlider("grid", gridOpacity, "cartographyGridOpacity");
   bindSlider("walkability", walkabilityOpacity, "cartographyWalkabilityOpacity");
   reach.addEventListener("change", () => {
-    const value = reach.value;
-    if (value === "off" || value === "normal" || value === "birds-eye") apply({ cartographyRevealMode: value });
+    const value = CARTOGRAPHY_REVEAL_MODES.find((mode) => mode === reach.value);
+    if (value) apply({ cartographyRevealMode: value });
   });
   preset.addEventListener("change", () => {
     const settings = currentSettings();
