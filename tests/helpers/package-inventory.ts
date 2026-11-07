@@ -30,7 +30,7 @@ export const REQUIRED_PACKAGE_FILES = Object.freeze([
   "/build/renderer/enhancements.js",
   "/build/renderer/companion-snapshot.js",
   "/build/renderer/enhancement-cursor.js",
-  "/build/renderer/enhancement-readout.js",
+  "/build/renderer/features/target-readout/renderer/enhancement-readout.js",
   "/build/client/certification/enhancement-transform.js",
   "/build/client/certification/client-module.js",
   "/build/client/certification/enhancement-builds.js",

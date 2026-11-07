@@ -1,7 +1,7 @@
 /**
  * The Target Readout over the shared game snapshot.
  */
-import { createTargetReadout } from "../../renderer/enhancement-readout.js";
+import { createTargetReadout } from "./renderer/enhancement-readout.js";
 import type { ToolsCompanionPart } from "../../renderer/tools-companion-part.js";
 
 export default {

@@ -74,7 +74,7 @@ test("every relative ESM dependency reachable from a shipped entry point is pack
     packaged.has("/build/client/certification/local-client-verifier-process.js"),
     "the packaged utility verifier entry must ship beside its host",
   );
-  assert.ok(closure.has("/build/renderer/enhancement-readout.js"));
+  assert.ok(closure.has("/build/renderer/features/target-readout/renderer/enhancement-readout.js"));
   assert.ok(
     [...closure].some((file) =>
       file.startsWith("/build/renderer/launcher/assets/") && file.endsWith(".js")

@@ -123,7 +123,7 @@ const packagedClosure = relativeEsmClosure({
   readText: asarText,
 });
 assert.ok(packagedClosure.has("/build/client/certification/enhancement-builds.js"));
-assert.ok(packagedClosure.has("/build/renderer/enhancement-readout.js"));
+assert.ok(packagedClosure.has("/build/renderer/features/target-readout/renderer/enhancement-readout.js"));
 assert.ok(
   [...packagedClosure].some((file) =>
     file.startsWith("/build/renderer/launcher/assets/") && file.endsWith(".js")

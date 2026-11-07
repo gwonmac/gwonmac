@@ -7,7 +7,7 @@ import test from "node:test";
 import {
   createTargetReadout,
   targetReadout,
-} from "../../app/renderer/enhancement-readout.js";
+} from "../../app/features/target-readout/renderer/enhancement-readout.js";
 import {
   COMPANION_SNAPSHOT_ABI,
   COMPANION_SNAPSHOT_BYTES,
