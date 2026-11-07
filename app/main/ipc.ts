@@ -511,13 +511,8 @@ export function registerIpcHandlers(ctx: IpcContext): {
 
     diagnosticsRendererMilestone: channel(
       asMilestone,
-      (win, { name, rendererTimestampUs, fields }) => {
-        recordRendererMilestone(
-          ctx.windows.requireDiagnosticOwnerForWindow(win),
-          name,
-          rendererTimestampUs,
-          fields,
-        );
+      (win, milestone) => {
+        recordRendererMilestone(ctx.windows.requireDiagnosticOwnerForWindow(win), milestone);
       },
     ),
 

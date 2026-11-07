@@ -10,8 +10,8 @@ import {
   classifyWasmAbortReason,
   wasmAbortFingerprint,
 } from "../../app/renderer/wasm-abort-reason.ts";
-import { WASM_ABORT_REASON_KINDS } from "../../app/shared/diagnostics.ts";
-import { diagnosticEventRecord } from "../../app/main/diagnostics/schema.ts";
+import { WASM_ABORT_REASON_KINDS, type RendererMilestone } from "../../app/shared/diagnostics.ts";
+import { diagnosticEventRecord, diagnosticEventSpec } from "../../app/main/diagnostics/schema.ts";
 import { asRendererFingerprint } from "../../app/main/diagnostics/schema-fields.ts";
 import { parseRendererMilestoneArgs } from "../../app/main/ipc-values.ts";
 
@@ -172,6 +172,37 @@ describe("the recorded heap staircase", () => {
         fields,
       },
     );
+  });
+});
+
+describe("renderer milestone bounds", () => {
+  // The boundary and the export validator read one set of guards, so a value
+  // the boundary refuses can never be a declared value in an export either.
+  const growth = {
+    requestedBytes: 2_147_483_648, beforeBytes: 2_013_265_920, afterBytes: 2_013_265_920,
+    outcome: "refused", stackFingerprint: "211ffc96", stackDepth: 2,
+    frame0Function: 1, frame0Offset: 1, frame1Function: 0, frame1Offset: 0,
+    frame2Function: 0, frame2Offset: 0, frame3Function: 0, frame3Offset: 0,
+    generatedTextures: 3, deletedTextures: 1, liveTextures: 2, trackedTextures: 2,
+    knownTextureBytes: 0, textureUploadBytes: 0, unknownTextureAllocations: 0,
+    textureTrackingSaturated: false,
+  };
+  const cases: readonly [string, RendererMilestone, Record<string, unknown>, string][] = [
+    ["more than four stack frames", "wasm.growthRequested", { ...growth, stackDepth: 5 }, "stackDepth"],
+    ["more tracked textures than the probe keeps", "wasm.growthRequested", { ...growth, trackedTextures: 4_097 }, "trackedTextures"],
+    ["a fractional byte count", "wasm.growthRequested", { ...growth, requestedBytes: 1.5 }, "requestedBytes"],
+    ["a negative heap size", "wasm.exit", { code: 1, heapBytes: -1 }, "heapBytes"],
+    ["an unknown capability profile", "enhancement.installed", { companionAbi: 1, installation: 1, capabilityProfile: "invented" }, "capabilityProfile"],
+  ];
+  for (const [label, name, fields, field] of cases) {
+    it(`refuses ${label} at the boundary and in the export schema`, () => {
+      assert.throws(() => parseRendererMilestoneArgs([name, 12_000, fields]), /invalid renderer milestone/);
+      const guards: Readonly<Record<string, (value: unknown) => boolean>> = diagnosticEventSpec(name).fields;
+      assert.equal(guards[field]?.(fields[field]), false);
+    });
+  }
+  it("accepts the in-bounds record", () => {
+    assert.equal(parseRendererMilestoneArgs(["wasm.growthRequested", 12_000, growth]).name, "wasm.growthRequested");
   });
 });
 

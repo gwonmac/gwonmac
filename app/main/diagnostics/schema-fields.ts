@@ -61,6 +61,33 @@ export const uint32: FieldGuard<number> = (value): value is number =>
   && value <= 0xffff_ffff;
 export const boolean: FieldGuard<boolean> = (value): value is boolean =>
   typeof value === "boolean";
+export const safeInteger: FieldGuard<number> = (value): value is number =>
+  typeof value === "number" && Number.isSafeInteger(value);
+/** A non-negative safe integer: a byte size, count, or WASM index. */
+export const count: FieldGuard<number> = (value): value is number =>
+  safeInteger(value) && value >= 0;
+/** A count with a fixed ceiling, for values bounded by the producer. */
+export function countUpTo(max: number): FieldGuard<number> {
+  return (value): value is number => count(value) && value <= max;
+}
+/** A 1-based installation or attempt number. */
+export const ordinal: FieldGuard<number> = (value): value is number =>
+  safeInteger(value) && value >= 1;
+
+/**
+ * Whether `value` is an object with exactly the guarded keys and every value
+ * passes its guard. The export validator and the renderer-milestone boundary
+ * read the same guards.
+ */
+export function matchesFields(
+  guards: Readonly<Record<string, FieldGuard<DiagnosticScalar>>>,
+  value: unknown,
+): value is Record<string, DiagnosticScalar> {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const fields = value as Readonly<Record<string, unknown>>;
+  return Object.keys(fields).length === Object.keys(guards).length
+    && Object.entries(guards).every(([key, guard]) => Object.hasOwn(fields, key) && guard(fields[key]));
+}
 
 export function literal<T extends DiagnosticScalar>(
   values: readonly T[],
