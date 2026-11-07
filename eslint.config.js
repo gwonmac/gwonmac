@@ -296,7 +296,7 @@ export default tseslint.config(
     // Settings surface and the Tools Vue app import it. The main-process
     // project excludes it because that program has no DOM library, and these
     // rules do not need type information.
-    files: ["app/shared/ui/resize.ts", "app/shared/ui/frame.ts", "app/shared/ui/elite-map-pointer.ts", "app/shared/ui/elite-marker-paint.ts", "app/shared/ui/hub-view.ts"],
+    files: ["app/shared/ui/resize.ts", "app/shared/ui/frame.ts", "app/shared/ui/elite-map-pointer.ts", "app/shared/ui/elite-marker-paint.ts", "app/shared/ui/hub-view.ts", "app/shared/ui/focusable.ts"],
     languageOptions: {
       parserOptions: { projectService: false },
     },

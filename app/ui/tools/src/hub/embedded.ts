@@ -1,11 +1,11 @@
 /**
  * The Hub's Vue view, built as `tools/hub-app.js` beside the Tools bundle (vite.config.ts). Core
  * loads it without the Tools application, so it reaches only Vue, these components and
- * app/shared. A paint patches the DOM synchronously, so the controller can measure and focus
- * right after it.
+ * app/shared. A paint patches the DOM synchronously and applies the model's focus target in
+ * the same call, so the controller can measure right after it.
  */
 import { h, render, type Ref, type VNode } from 'vue';
-import type { EmbeddedHubView, HubViewElements } from '../../../../shared/ui/hub-view';
+import type { EmbeddedHubView, HubFocusReader, HubViewElements } from '../../../../shared/ui/hub-view';
 import HubBuildDetails from './HubBuildDetails.vue';
 import HubShell from './HubShell.vue';
 
@@ -13,9 +13,9 @@ export const mountHubView: EmbeddedHubView['mountHubView'] = (parent, model) => 
   // A fresh props object per paint; the model's regions are replaced, never mutated, so only
   // the regions that changed redraw.
   const paint = (next: typeof model): VNode => { const vnode = h(HubShell, { model: { ...next } }); render(vnode, parent); return vnode; };
-  const exposed = paint(model).component?.exposed as { root: Ref<HTMLDialogElement | undefined>; receipt: Ref<HTMLElement | undefined> } | undefined;
+  const exposed = paint(model).component?.exposed as { root: Ref<HTMLDialogElement | undefined>; receipt: Ref<HTMLElement | undefined>; focus: HubFocusReader } | undefined;
   const root = exposed?.root.value, receipt = exposed?.receipt.value;
-  if (!root || !receipt) throw new Error('Hub view did not mount');
+  if (!exposed || !root || !receipt) throw new Error('Hub view did not mount');
   const required = <T extends Element>(selector: string) => {
     const element = root.querySelector<T>(selector);
     if (!element) throw new Error(`Hub control missing: ${selector}`);
@@ -31,6 +31,7 @@ export const mountHubView: EmbeddedHubView['mountHubView'] = (parent, model) => 
   return {
     elements,
     paint,
+    focus: exposed.focus,
     mountBuildDetails(target, builds) {
       const vnode = h(HubBuildDetails, { builds });
       render(vnode, target);

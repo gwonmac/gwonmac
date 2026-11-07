@@ -3,7 +3,7 @@
   <section class="hub-panel ui-frame ui-art-frame" data-locked="true">
     <canvas aria-hidden="true" class="ui-frame-artwork">
     <header class="hub-heading ui-window-head">
-      <button aria-label="Back" class="ui-button hub-back" data-variant="quiet" hidden="">
+      <button aria-label="Back" class="ui-button hub-back" data-focus-key="back" data-variant="quiet" hidden="">
         "← Back"
       <span class="hub-name" id="hub-name">
         "Hub"
@@ -15,10 +15,10 @@
       <span class="hub-context">
       <span class="hub-move-hint" hidden="" id="hub-move-hint">
         "⌥ arrows move · ⇧ 48 px"
-      <button aria-label="Lock Hub position" aria-pressed="true" class="ui-window-lock hub-lock" title="Unlock to move and resize" type="button">
+      <button aria-label="Lock Hub position" aria-pressed="true" class="ui-window-lock hub-lock" data-focus-key="lock" title="Unlock to move and resize" type="button">
         <svg aria-hidden="true" viewBox="0 0 24 24">
           <path class="lock-shackle" d="M7 11V7a5 5 0 0 1 10 0v4"></path><rect x="5" y="11" width="14" height="10" rx="2"></rect>
-      <button aria-label="Close Hub" class="ui-window-close hub-close" title="Close Hub">
+      <button aria-label="Close Hub" class="ui-window-close hub-close" data-focus-key="close" title="Close Hub">
         "×"
     <section aria-label="Build to apply" class="hub-summary" hidden="">
     <div class="hub-search ui-hub-search">
@@ -42,8 +42,8 @@
     <footer class="hub-footer">
       <span class="hub-legend">
       <span class="hub-count">
-      <button class="hub-primary ui-button" data-variant="primary">
-      <button aria-expanded="false" aria-haspopup="menu" class="hub-actions ui-button" data-variant="quiet">
+      <button class="hub-primary ui-button" data-focus-key="primary" data-variant="primary">
+      <button aria-expanded="false" aria-haspopup="menu" class="hub-actions ui-button" data-focus-key="actions" data-variant="quiet">
         "Actions"
     <div aria-label="Actions" class="hub-menu" hidden="" role="menu">
     <button aria-label="Resize Hub" class="ui-window-resize hub-resize" hidden="" title="Drag to resize, or use arrow keys">
@@ -55,7 +55,7 @@
   <section class="hub-panel ui-frame ui-art-frame" data-busy="false" data-locked="true">
     <canvas aria-hidden="true" class="ui-frame-artwork">
     <header class="hub-heading ui-window-head">
-      <button aria-description="Return to Home" aria-keyshortcuts="Meta+Backspace" aria-label="Back" class="ui-button hub-back" data-variant="quiet" hidden="" title="Back (⌘⌫)">
+      <button aria-description="Return to Home" aria-keyshortcuts="Meta+Backspace" aria-label="Back" class="ui-button hub-back" data-focus-key="back" data-variant="quiet" hidden="" title="Back (⌘⌫)">
         "←"
       <span class="hub-name" id="hub-name">
         "Hub"
@@ -67,10 +67,10 @@
       <span class="hub-context">
       <span class="hub-move-hint" hidden="" id="hub-move-hint">
         "⌥ arrows move · ⇧ 48 px"
-      <button aria-label="Lock Hub position" aria-pressed="true" class="ui-window-lock hub-lock" title="Unlock to move and resize" type="button">
+      <button aria-label="Lock Hub position" aria-pressed="true" class="ui-window-lock hub-lock" data-focus-key="lock" title="Unlock to move and resize" type="button">
         <svg aria-hidden="true" viewBox="0 0 24 24">
           <path class="lock-shackle" d="M7 11V7a5 5 0 0 1 10 0v4"></path><rect x="5" y="11" width="14" height="10" rx="2"></rect>
-      <button aria-label="Close Hub" class="ui-window-close hub-close" title="Close Hub">
+      <button aria-label="Close Hub" class="ui-window-close hub-close" data-focus-key="close" title="Close Hub">
         "×"
     <section aria-label="Build to apply" class="hub-summary" hidden="">
     <div class="hub-search ui-hub-search">
@@ -224,12 +224,12 @@
             "⎋"
           " Close"
       <span class="hub-count">
-      <button class="hub-primary ui-button" data-variant="primary" title="Choose character">
+      <button class="hub-primary ui-button" data-focus-key="primary" data-variant="primary" title="Choose character">
         <span class="hub-primary-label">
           "Choose character"
         <kbd class="ui-kbd">
           "↵"
-      <button aria-expanded="false" aria-haspopup="menu" aria-keyshortcuts="Meta+J" class="hub-actions ui-button" data-variant="quiet">
+      <button aria-expanded="false" aria-haspopup="menu" aria-keyshortcuts="Meta+J" class="hub-actions ui-button" data-focus-key="actions" data-variant="quiet">
         "Actions"
         <kbd aria-hidden="true" class="ui-kbd">
           "⌘"
@@ -245,7 +245,7 @@
   <section class="hub-panel ui-frame ui-art-frame" data-busy="false" data-locked="true">
     <canvas aria-hidden="true" class="ui-frame-artwork">
     <header class="hub-heading ui-window-head">
-      <button aria-description="Return to Home" aria-keyshortcuts="Meta+Backspace" aria-label="Back" class="ui-button hub-back" data-variant="quiet" hidden="" title="Back (⌘⌫)">
+      <button aria-description="Return to Home" aria-keyshortcuts="Meta+Backspace" aria-label="Back" class="ui-button hub-back" data-focus-key="back" data-variant="quiet" hidden="" title="Back (⌘⌫)">
         "←"
       <span class="hub-name" id="hub-name">
         "Hub"
@@ -257,10 +257,10 @@
       <span class="hub-context">
       <span class="hub-move-hint" hidden="" id="hub-move-hint">
         "⌥ arrows move · ⇧ 48 px"
-      <button aria-label="Lock Hub position" aria-pressed="true" class="ui-window-lock hub-lock" title="Unlock to move and resize" type="button">
+      <button aria-label="Lock Hub position" aria-pressed="true" class="ui-window-lock hub-lock" data-focus-key="lock" title="Unlock to move and resize" type="button">
         <svg aria-hidden="true" viewBox="0 0 24 24">
           <path class="lock-shackle" d="M7 11V7a5 5 0 0 1 10 0v4"></path><rect x="5" y="11" width="14" height="10" rx="2"></rect>
-      <button aria-label="Close Hub" class="ui-window-close hub-close" title="Close Hub">
+      <button aria-label="Close Hub" class="ui-window-close hub-close" data-focus-key="close" title="Close Hub">
         "×"
     <section aria-label="Build to apply" class="hub-summary" hidden="">
     <div class="hub-search ui-hub-search">
@@ -851,12 +851,12 @@
           " Clear"
       <span class="hub-count">
         "61 results"
-      <button class="hub-primary ui-button" data-variant="primary" title="Open Settings">
+      <button class="hub-primary ui-button" data-focus-key="primary" data-variant="primary" title="Open Settings">
         <span class="hub-primary-label">
           "Open Settings"
         <kbd class="ui-kbd">
           "↵"
-      <button aria-expanded="false" aria-haspopup="menu" aria-keyshortcuts="Meta+J" class="hub-actions ui-button" data-variant="quiet">
+      <button aria-expanded="false" aria-haspopup="menu" aria-keyshortcuts="Meta+J" class="hub-actions ui-button" data-focus-key="actions" data-variant="quiet">
         "Actions"
         <kbd aria-hidden="true" class="ui-kbd">
           "⌘"
@@ -872,7 +872,7 @@
   <section class="hub-panel ui-frame ui-art-frame" data-busy="false" data-locked="true">
     <canvas aria-hidden="true" class="ui-frame-artwork">
     <header class="hub-heading ui-window-head">
-      <button aria-description="Return to Home" aria-keyshortcuts="Meta+Backspace" aria-label="Back" class="ui-button hub-back" data-variant="quiet" hidden="" title="Back (⌘⌫)">
+      <button aria-description="Return to Home" aria-keyshortcuts="Meta+Backspace" aria-label="Back" class="ui-button hub-back" data-focus-key="back" data-variant="quiet" hidden="" title="Back (⌘⌫)">
         "←"
       <span class="hub-name" id="hub-name">
         "Hub"
@@ -884,10 +884,10 @@
       <span class="hub-context">
       <span class="hub-move-hint" hidden="" id="hub-move-hint">
         "⌥ arrows move · ⇧ 48 px"
-      <button aria-label="Lock Hub position" aria-pressed="true" class="ui-window-lock hub-lock" title="Unlock to move and resize" type="button">
+      <button aria-label="Lock Hub position" aria-pressed="true" class="ui-window-lock hub-lock" data-focus-key="lock" title="Unlock to move and resize" type="button">
         <svg aria-hidden="true" viewBox="0 0 24 24">
           <path class="lock-shackle" d="M7 11V7a5 5 0 0 1 10 0v4"></path><rect x="5" y="11" width="14" height="10" rx="2"></rect>
-      <button aria-label="Close Hub" class="ui-window-close hub-close" title="Close Hub">
+      <button aria-label="Close Hub" class="ui-window-close hub-close" data-focus-key="close" title="Close Hub">
         "×"
     <section aria-label="Build to apply" class="hub-summary" hidden="">
     <div class="hub-search ui-hub-search">
@@ -1478,12 +1478,12 @@
           " Clear"
       <span class="hub-count">
         "61 results"
-      <button class="hub-primary ui-button" data-variant="primary" title="Open in Launcher">
+      <button class="hub-primary ui-button" data-focus-key="primary" data-variant="primary" title="Open in Launcher">
         <span class="hub-primary-label">
           "Open in Launcher"
         <kbd class="ui-kbd">
           "↵"
-      <button aria-expanded="false" aria-haspopup="menu" aria-keyshortcuts="Meta+J" class="hub-actions ui-button" data-variant="quiet" disabled="">
+      <button aria-expanded="false" aria-haspopup="menu" aria-keyshortcuts="Meta+J" class="hub-actions ui-button" data-focus-key="actions" data-variant="quiet" disabled="">
         "Actions"
         <kbd aria-hidden="true" class="ui-kbd">
           "⌘"
@@ -1499,7 +1499,7 @@
   <section class="hub-panel ui-frame ui-art-frame" data-busy="false" data-locked="true">
     <canvas aria-hidden="true" class="ui-frame-artwork">
     <header class="hub-heading ui-window-head">
-      <button aria-description="Return to Home" aria-keyshortcuts="Meta+Backspace" aria-label="Back" class="ui-button hub-back" data-variant="quiet" hidden="" title="Back (⌘⌫)">
+      <button aria-description="Return to Home" aria-keyshortcuts="Meta+Backspace" aria-label="Back" class="ui-button hub-back" data-focus-key="back" data-variant="quiet" hidden="" title="Back (⌘⌫)">
         "←"
       <span class="hub-name" id="hub-name">
         "Hub"
@@ -1511,10 +1511,10 @@
       <span class="hub-context">
       <span class="hub-move-hint" hidden="" id="hub-move-hint">
         "⌥ arrows move · ⇧ 48 px"
-      <button aria-label="Lock Hub position" aria-pressed="true" class="ui-window-lock hub-lock" title="Unlock to move and resize" type="button">
+      <button aria-label="Lock Hub position" aria-pressed="true" class="ui-window-lock hub-lock" data-focus-key="lock" title="Unlock to move and resize" type="button">
         <svg aria-hidden="true" viewBox="0 0 24 24">
           <path class="lock-shackle" d="M7 11V7a5 5 0 0 1 10 0v4"></path><rect x="5" y="11" width="14" height="10" rx="2"></rect>
-      <button aria-label="Close Hub" class="ui-window-close hub-close" title="Close Hub">
+      <button aria-label="Close Hub" class="ui-window-close hub-close" data-focus-key="close" title="Close Hub">
         "×"
     <section aria-label="Build to apply" class="hub-summary" hidden="">
     <div class="hub-search ui-hub-search">
@@ -1570,13 +1570,13 @@
           " Clear"
       <span class="hub-count">
         "1 result"
-      <button class="hub-primary ui-button" data-variant="primary" title="Copy 1,000 gold">
+      <button class="hub-primary ui-button" data-focus-key="primary" data-variant="primary" title="Copy 1,000 gold">
         <img alt="" class="hub-primary-art" src="app/shared/images/currency/Gold.png">
         <span class="hub-primary-label">
           "Copy 1,000 gold"
         <kbd class="ui-kbd">
           "↵"
-      <button aria-expanded="false" aria-haspopup="menu" aria-keyshortcuts="Meta+J" class="hub-actions ui-button" data-variant="quiet" disabled="">
+      <button aria-expanded="false" aria-haspopup="menu" aria-keyshortcuts="Meta+J" class="hub-actions ui-button" data-focus-key="actions" data-variant="quiet" disabled="">
         "Actions"
         <kbd aria-hidden="true" class="ui-kbd">
           "⌘"
@@ -1592,7 +1592,7 @@
   <section class="hub-panel ui-frame ui-art-frame" data-busy="false" data-locked="true">
     <canvas aria-hidden="true" class="ui-frame-artwork">
     <header class="hub-heading ui-window-head">
-      <button aria-description="Return to Home" aria-keyshortcuts="Meta+Backspace" aria-label="Back" class="ui-button hub-back" data-variant="quiet" title="Back (⌘⌫)">
+      <button aria-description="Return to Home" aria-keyshortcuts="Meta+Backspace" aria-label="Back" class="ui-button hub-back" data-focus-key="back" data-variant="quiet" title="Back (⌘⌫)">
         "←"
       <span class="hub-name" id="hub-name">
         "Hub"
@@ -1608,10 +1608,10 @@
       <span class="hub-context">
       <span class="hub-move-hint" hidden="" id="hub-move-hint">
         "⌥ arrows move · ⇧ 48 px"
-      <button aria-label="Lock Hub position" aria-pressed="true" class="ui-window-lock hub-lock" title="Unlock to move and resize" type="button">
+      <button aria-label="Lock Hub position" aria-pressed="true" class="ui-window-lock hub-lock" data-focus-key="lock" title="Unlock to move and resize" type="button">
         <svg aria-hidden="true" viewBox="0 0 24 24">
           <path class="lock-shackle" d="M7 11V7a5 5 0 0 1 10 0v4"></path><rect x="5" y="11" width="14" height="10" rx="2"></rect>
-      <button aria-label="Close Hub" class="ui-window-close hub-close" title="Close Hub">
+      <button aria-label="Close Hub" class="ui-window-close hub-close" data-focus-key="close" title="Close Hub">
         "×"
     <section aria-label="Build to apply" class="hub-summary">
       <span class="hub-summary-label">
@@ -1679,12 +1679,12 @@
           <div class="hub-rate-controls">
             <label>
               "Price basis"
-              <select aria-label="Price basis" class="ui-select" data-choices="[{"value":"buy","label":"Trader buys"},{"value":"sell","label":"Trader sells"}]" .value="buy">
+              <select aria-label="Price basis" class="ui-select" data-choices="[{"value":"buy","label":"Trader buys"},{"value":"sell","label":"Trader sells"}]" data-focus-key="rate-basis" .value="buy">
                 <option value="buy">
                   "Trader buys"
                 <option value="sell">
                   "Trader sells"
-            <button class="ui-button">
+            <button class="ui-button" data-focus-key="rate-details">
               "Refresh quotes"
       <div aria-labelledby="hub-group-1" role="group">
         <div class="hub-group" id="hub-group-1" role="presentation">
@@ -1824,12 +1824,12 @@
           " Back"
       <span class="hub-count">
         "7 results"
-      <button class="hub-primary ui-button" data-variant="primary" title="Copy 1,000 gold">
+      <button class="hub-primary ui-button" data-focus-key="primary" data-variant="primary" title="Copy 1,000 gold">
         <span class="hub-primary-label">
           "Copy 1,000 gold"
         <kbd class="ui-kbd">
           "↵"
-      <button aria-expanded="false" aria-haspopup="menu" aria-keyshortcuts="Meta+J" class="hub-actions ui-button" data-variant="quiet">
+      <button aria-expanded="false" aria-haspopup="menu" aria-keyshortcuts="Meta+J" class="hub-actions ui-button" data-focus-key="actions" data-variant="quiet">
         "Actions"
         <kbd aria-hidden="true" class="ui-kbd">
           "⌘"
@@ -1845,7 +1845,7 @@
   <section class="hub-panel ui-frame ui-art-frame" data-busy="false" data-locked="true">
     <canvas aria-hidden="true" class="ui-frame-artwork">
     <header class="hub-heading ui-window-head">
-      <button aria-description="Return to Home" aria-keyshortcuts="Meta+Backspace" aria-label="Back" class="ui-button hub-back" data-variant="quiet" title="Back (⌘⌫)">
+      <button aria-description="Return to Home" aria-keyshortcuts="Meta+Backspace" aria-label="Back" class="ui-button hub-back" data-focus-key="back" data-variant="quiet" title="Back (⌘⌫)">
         "←"
       <span class="hub-name" id="hub-name">
         "Hub"
@@ -1861,10 +1861,10 @@
       <span class="hub-context">
       <span class="hub-move-hint" hidden="" id="hub-move-hint">
         "⌥ arrows move · ⇧ 48 px"
-      <button aria-label="Lock Hub position" aria-pressed="true" class="ui-window-lock hub-lock" title="Unlock to move and resize" type="button">
+      <button aria-label="Lock Hub position" aria-pressed="true" class="ui-window-lock hub-lock" data-focus-key="lock" title="Unlock to move and resize" type="button">
         <svg aria-hidden="true" viewBox="0 0 24 24">
           <path class="lock-shackle" d="M7 11V7a5 5 0 0 1 10 0v4"></path><rect x="5" y="11" width="14" height="10" rx="2"></rect>
-      <button aria-label="Close Hub" class="ui-window-close hub-close" title="Close Hub">
+      <button aria-label="Close Hub" class="ui-window-close hub-close" data-focus-key="close" title="Close Hub">
         "×"
     <section aria-label="Build to apply" class="hub-summary">
       <span class="hub-summary-label">
@@ -1932,12 +1932,12 @@
           <div class="hub-rate-controls" hidden="">
             <label>
               "Price basis"
-              <select aria-label="Price basis" class="ui-select" data-choices="[{"value":"buy","label":"Trader buys"},{"value":"sell","label":"Trader sells"}]" .value="buy">
+              <select aria-label="Price basis" class="ui-select" data-choices="[{"value":"buy","label":"Trader buys"},{"value":"sell","label":"Trader sells"}]" data-focus-key="rate-basis" .value="buy">
                 <option value="buy">
                   "Trader buys"
                 <option value="sell">
                   "Trader sells"
-            <button class="ui-button">
+            <button class="ui-button" data-focus-key="rate-details">
               "Refresh quotes"
       <div aria-labelledby="hub-group-1" role="group">
         <div class="hub-group" id="hub-group-1" role="presentation">
@@ -2077,12 +2077,12 @@
           " Back"
       <span class="hub-count">
         "7 results"
-      <button class="hub-primary ui-button" data-variant="primary" title="Apply build">
+      <button class="hub-primary ui-button" data-focus-key="primary" data-variant="primary" title="Apply build">
         <span class="hub-primary-label">
           "Apply build"
         <kbd class="ui-kbd">
           "↵"
-      <button aria-expanded="false" aria-haspopup="menu" aria-keyshortcuts="Meta+J" class="hub-actions ui-button" data-variant="quiet">
+      <button aria-expanded="false" aria-haspopup="menu" aria-keyshortcuts="Meta+J" class="hub-actions ui-button" data-focus-key="actions" data-variant="quiet">
         "Actions"
         <kbd aria-hidden="true" class="ui-kbd">
           "⌘"
@@ -2098,7 +2098,7 @@
   <section class="hub-panel ui-frame ui-art-frame" data-busy="false" data-locked="true">
     <canvas aria-hidden="true" class="ui-frame-artwork">
     <header class="hub-heading ui-window-head">
-      <button aria-description="Return to Home" aria-keyshortcuts="Meta+Backspace" aria-label="Back" class="ui-button hub-back" data-variant="quiet" title="Back (⌘⌫)">
+      <button aria-description="Return to Home" aria-keyshortcuts="Meta+Backspace" aria-label="Back" class="ui-button hub-back" data-focus-key="back" data-variant="quiet" title="Back (⌘⌫)">
         "←"
       <span class="hub-name" id="hub-name">
         "Hub"
@@ -2114,10 +2114,10 @@
       <span class="hub-context">
       <span class="hub-move-hint" hidden="" id="hub-move-hint">
         "⌥ arrows move · ⇧ 48 px"
-      <button aria-label="Lock Hub position" aria-pressed="true" class="ui-window-lock hub-lock" title="Unlock to move and resize" type="button">
+      <button aria-label="Lock Hub position" aria-pressed="true" class="ui-window-lock hub-lock" data-focus-key="lock" title="Unlock to move and resize" type="button">
         <svg aria-hidden="true" viewBox="0 0 24 24">
           <path class="lock-shackle" d="M7 11V7a5 5 0 0 1 10 0v4"></path><rect x="5" y="11" width="14" height="10" rx="2"></rect>
-      <button aria-label="Close Hub" class="ui-window-close hub-close" title="Close Hub">
+      <button aria-label="Close Hub" class="ui-window-close hub-close" data-focus-key="close" title="Close Hub">
         "×"
     <section aria-label="Build to apply" class="hub-summary">
       <span class="hub-summary-label">
@@ -2185,12 +2185,12 @@
           <div class="hub-rate-controls">
             <label>
               "Price basis"
-              <select aria-label="Price basis" class="ui-select" data-choices="[{"value":"buy","label":"Trader buys"},{"value":"sell","label":"Trader sells"}]" .value="buy">
+              <select aria-label="Price basis" class="ui-select" data-choices="[{"value":"buy","label":"Trader buys"},{"value":"sell","label":"Trader sells"}]" data-focus-key="rate-basis" .value="buy">
                 <option value="buy">
                   "Trader buys"
                 <option value="sell">
                   "Trader sells"
-            <button class="ui-button">
+            <button class="ui-button" data-focus-key="rate-details">
               "Refresh quotes"
       <div aria-labelledby="hub-group-1" role="group">
         <div class="hub-group" id="hub-group-1" role="presentation">
@@ -2330,12 +2330,12 @@
           " Back"
       <span class="hub-count">
         "7 results"
-      <button class="hub-primary ui-button" data-variant="primary" title="Copy 1,000 gold">
+      <button class="hub-primary ui-button" data-focus-key="primary" data-variant="primary" title="Copy 1,000 gold">
         <span class="hub-primary-label">
           "Copy 1,000 gold"
         <kbd class="ui-kbd">
           "↵"
-      <button aria-expanded="true" aria-haspopup="menu" aria-keyshortcuts="Meta+J" class="hub-actions ui-button" data-variant="quiet">
+      <button aria-expanded="true" aria-haspopup="menu" aria-keyshortcuts="Meta+J" class="hub-actions ui-button" data-focus-key="actions" data-variant="quiet">
         "Actions"
         <kbd aria-hidden="true" class="ui-kbd">
           "⌘"
@@ -2364,7 +2364,7 @@
   <section class="hub-panel ui-frame ui-art-frame" data-busy="false" data-locked="true">
     <canvas aria-hidden="true" class="ui-frame-artwork">
     <header class="hub-heading ui-window-head">
-      <button aria-description="Return to Builds" aria-keyshortcuts="Meta+Backspace" aria-label="Back" class="ui-button hub-back" data-variant="quiet" title="Back (⌘⌫)">
+      <button aria-description="Return to Builds" aria-keyshortcuts="Meta+Backspace" aria-label="Back" class="ui-button hub-back" data-focus-key="back" data-variant="quiet" title="Back (⌘⌫)">
         "←"
       <span class="hub-name" id="hub-name">
         "Hub"
@@ -2384,10 +2384,10 @@
       <span class="hub-context">
       <span class="hub-move-hint" hidden="" id="hub-move-hint">
         "⌥ arrows move · ⇧ 48 px"
-      <button aria-label="Lock Hub position" aria-pressed="true" class="ui-window-lock hub-lock" title="Unlock to move and resize" type="button">
+      <button aria-label="Lock Hub position" aria-pressed="true" class="ui-window-lock hub-lock" data-focus-key="lock" title="Unlock to move and resize" type="button">
         <svg aria-hidden="true" viewBox="0 0 24 24">
           <path class="lock-shackle" d="M7 11V7a5 5 0 0 1 10 0v4"></path><rect x="5" y="11" width="14" height="10" rx="2"></rect>
-      <button aria-label="Close Hub" class="ui-window-close hub-close" title="Close Hub">
+      <button aria-label="Close Hub" class="ui-window-close hub-close" data-focus-key="close" title="Close Hub">
         "×"
     <section aria-label="Build to apply" class="hub-summary" hidden="">
     <div class="hub-search ui-hub-search" hidden="">
@@ -2417,12 +2417,12 @@
           <div class="hub-rate-controls" hidden="">
             <label>
               "Price basis"
-              <select aria-label="Price basis" class="ui-select" data-choices="[{"value":"buy","label":"Trader buys"},{"value":"sell","label":"Trader sells"}]" .value="buy">
+              <select aria-label="Price basis" class="ui-select" data-choices="[{"value":"buy","label":"Trader buys"},{"value":"sell","label":"Trader sells"}]" data-focus-key="rate-basis" .value="buy">
                 <option value="buy">
                   "Trader buys"
                 <option value="sell">
                   "Trader sells"
-            <button class="ui-button">
+            <button class="ui-button" data-focus-key="rate-details">
               "Refresh quotes"
       <div aria-labelledby="hub-group-1" role="group">
         <div class="hub-group" id="hub-group-1" role="presentation">
@@ -2598,10 +2598,10 @@
             "⌫"
           " Back"
       <span class="hub-count">
-      <button class="hub-primary ui-button" data-variant="primary" title="Done">
+      <button class="hub-primary ui-button" data-focus-key="primary" data-variant="primary" title="Done">
         <span class="hub-primary-label">
           "Done"
-      <button aria-expanded="false" aria-haspopup="menu" aria-keyshortcuts="Meta+J" class="hub-actions ui-button" data-variant="quiet" disabled="">
+      <button aria-expanded="false" aria-haspopup="menu" aria-keyshortcuts="Meta+J" class="hub-actions ui-button" data-focus-key="actions" data-variant="quiet" disabled="">
         "Actions"
         <kbd aria-hidden="true" class="ui-kbd">
           "⌘"
@@ -2617,7 +2617,7 @@
   <section class="hub-panel ui-frame ui-art-frame" data-busy="false" data-locked="true">
     <canvas aria-hidden="true" class="ui-frame-artwork">
     <header class="hub-heading ui-window-head">
-      <button aria-description="Return to Build details" aria-keyshortcuts="Meta+Backspace" aria-label="Back" class="ui-button hub-back" data-variant="quiet" title="Back (⌘⌫)">
+      <button aria-description="Return to Build details" aria-keyshortcuts="Meta+Backspace" aria-label="Back" class="ui-button hub-back" data-focus-key="back" data-variant="quiet" title="Back (⌘⌫)">
         "←"
       <span class="hub-name" id="hub-name">
         "Hub"
@@ -2641,10 +2641,10 @@
       <span class="hub-context">
       <span class="hub-move-hint" hidden="" id="hub-move-hint">
         "⌥ arrows move · ⇧ 48 px"
-      <button aria-label="Lock Hub position" aria-pressed="true" class="ui-window-lock hub-lock" title="Unlock to move and resize" type="button">
+      <button aria-label="Lock Hub position" aria-pressed="true" class="ui-window-lock hub-lock" data-focus-key="lock" title="Unlock to move and resize" type="button">
         <svg aria-hidden="true" viewBox="0 0 24 24">
           <path class="lock-shackle" d="M7 11V7a5 5 0 0 1 10 0v4"></path><rect x="5" y="11" width="14" height="10" rx="2"></rect>
-      <button aria-label="Close Hub" class="ui-window-close hub-close" title="Close Hub">
+      <button aria-label="Close Hub" class="ui-window-close hub-close" data-focus-key="close" title="Close Hub">
         "×"
     <section aria-label="Build to apply" class="hub-summary" hidden="">
     <div class="hub-search ui-hub-search" hidden="">
@@ -2674,12 +2674,12 @@
           <div class="hub-rate-controls" hidden="">
             <label>
               "Price basis"
-              <select aria-label="Price basis" class="ui-select" data-choices="[{"value":"buy","label":"Trader buys"},{"value":"sell","label":"Trader sells"}]" .value="buy">
+              <select aria-label="Price basis" class="ui-select" data-choices="[{"value":"buy","label":"Trader buys"},{"value":"sell","label":"Trader sells"}]" data-focus-key="rate-basis" .value="buy">
                 <option value="buy">
                   "Trader buys"
                 <option value="sell">
                   "Trader sells"
-            <button class="ui-button">
+            <button class="ui-button" data-focus-key="rate-details">
               "Refresh quotes"
       <div aria-labelledby="hub-group-1" role="group">
         <div class="hub-group" id="hub-group-1" role="presentation">
@@ -2816,12 +2816,12 @@
             "⌫"
           " Back"
       <span class="hub-count">
-      <button class="hub-primary ui-button" data-variant="primary" title="Save">
+      <button class="hub-primary ui-button" data-focus-key="primary" data-variant="primary" title="Save">
         <span class="hub-primary-label">
           "Save"
         <kbd class="ui-kbd">
           "↵"
-      <button aria-expanded="false" aria-haspopup="menu" aria-keyshortcuts="Meta+J" class="hub-actions ui-button" data-variant="quiet">
+      <button aria-expanded="false" aria-haspopup="menu" aria-keyshortcuts="Meta+J" class="hub-actions ui-button" data-focus-key="actions" data-variant="quiet">
         "Actions"
         <kbd aria-hidden="true" class="ui-kbd">
           "⌘"
@@ -2837,7 +2837,7 @@
   <section class="hub-panel ui-frame ui-art-frame" data-busy="false" data-locked="true">
     <canvas aria-hidden="true" class="ui-frame-artwork">
     <header class="hub-heading ui-window-head">
-      <button aria-description="Return to Build details" aria-keyshortcuts="Meta+Backspace" aria-label="Back" class="ui-button hub-back" data-variant="quiet" title="Back (⌘⌫)">
+      <button aria-description="Return to Build details" aria-keyshortcuts="Meta+Backspace" aria-label="Back" class="ui-button hub-back" data-focus-key="back" data-variant="quiet" title="Back (⌘⌫)">
         "←"
       <span class="hub-name" id="hub-name">
         "Hub"
@@ -2861,10 +2861,10 @@
       <span class="hub-context">
       <span class="hub-move-hint" hidden="" id="hub-move-hint">
         "⌥ arrows move · ⇧ 48 px"
-      <button aria-label="Lock Hub position" aria-pressed="true" class="ui-window-lock hub-lock" title="Unlock to move and resize" type="button">
+      <button aria-label="Lock Hub position" aria-pressed="true" class="ui-window-lock hub-lock" data-focus-key="lock" title="Unlock to move and resize" type="button">
         <svg aria-hidden="true" viewBox="0 0 24 24">
           <path class="lock-shackle" d="M7 11V7a5 5 0 0 1 10 0v4"></path><rect x="5" y="11" width="14" height="10" rx="2"></rect>
-      <button aria-label="Close Hub" class="ui-window-close hub-close" title="Close Hub">
+      <button aria-label="Close Hub" class="ui-window-close hub-close" data-focus-key="close" title="Close Hub">
         "×"
     <section aria-label="Build to apply" class="hub-summary" hidden="">
     <div class="hub-search ui-hub-search" hidden="">
@@ -2894,12 +2894,12 @@
           <div class="hub-rate-controls" hidden="">
             <label>
               "Price basis"
-              <select aria-label="Price basis" class="ui-select" data-choices="[{"value":"buy","label":"Trader buys"},{"value":"sell","label":"Trader sells"}]" .value="buy">
+              <select aria-label="Price basis" class="ui-select" data-choices="[{"value":"buy","label":"Trader buys"},{"value":"sell","label":"Trader sells"}]" data-focus-key="rate-basis" .value="buy">
                 <option value="buy">
                   "Trader buys"
                 <option value="sell">
                   "Trader sells"
-            <button class="ui-button">
+            <button class="ui-button" data-focus-key="rate-details">
               "Refresh quotes"
       <div aria-labelledby="hub-group-1" role="group">
         <div class="hub-group" id="hub-group-1" role="presentation">
@@ -3036,12 +3036,12 @@
             "⌫"
           " Back"
       <span class="hub-count">
-      <button class="hub-primary ui-button" data-variant="primary" title="Save">
+      <button class="hub-primary ui-button" data-focus-key="primary" data-variant="primary" title="Save">
         <span class="hub-primary-label">
           "Save"
         <kbd class="ui-kbd">
           "↵"
-      <button aria-expanded="true" aria-haspopup="menu" aria-keyshortcuts="Meta+J" class="hub-actions ui-button" data-variant="quiet">
+      <button aria-expanded="true" aria-haspopup="menu" aria-keyshortcuts="Meta+J" class="hub-actions ui-button" data-focus-key="actions" data-variant="quiet">
         "Actions"
         <kbd aria-hidden="true" class="ui-kbd">
           "⌘"
@@ -3070,7 +3070,7 @@
   <section class="hub-panel ui-frame ui-art-frame" data-busy="false" data-locked="true">
     <canvas aria-hidden="true" class="ui-frame-artwork">
     <header class="hub-heading ui-window-head">
-      <button aria-description="Return to Form" aria-keyshortcuts="Meta+Backspace" aria-label="Back" class="ui-button hub-back" data-variant="quiet" title="Back (⌘⌫)">
+      <button aria-description="Return to Form" aria-keyshortcuts="Meta+Backspace" aria-label="Back" class="ui-button hub-back" data-focus-key="back" data-variant="quiet" title="Back (⌘⌫)">
         "←"
       <span class="hub-name" id="hub-name">
         "Hub"
@@ -3098,10 +3098,10 @@
       <span class="hub-context">
       <span class="hub-move-hint" hidden="" id="hub-move-hint">
         "⌥ arrows move · ⇧ 48 px"
-      <button aria-label="Lock Hub position" aria-pressed="true" class="ui-window-lock hub-lock" title="Unlock to move and resize" type="button">
+      <button aria-label="Lock Hub position" aria-pressed="true" class="ui-window-lock hub-lock" data-focus-key="lock" title="Unlock to move and resize" type="button">
         <svg aria-hidden="true" viewBox="0 0 24 24">
           <path class="lock-shackle" d="M7 11V7a5 5 0 0 1 10 0v4"></path><rect x="5" y="11" width="14" height="10" rx="2"></rect>
-      <button aria-label="Close Hub" class="ui-window-close hub-close" title="Close Hub">
+      <button aria-label="Close Hub" class="ui-window-close hub-close" data-focus-key="close" title="Close Hub">
         "×"
     <section aria-label="Build to apply" class="hub-summary" hidden="">
     <div class="hub-search ui-hub-search" hidden="">
@@ -3131,12 +3131,12 @@
           <div class="hub-rate-controls" hidden="">
             <label>
               "Price basis"
-              <select aria-label="Price basis" class="ui-select" data-choices="[{"value":"buy","label":"Trader buys"},{"value":"sell","label":"Trader sells"}]" .value="buy">
+              <select aria-label="Price basis" class="ui-select" data-choices="[{"value":"buy","label":"Trader buys"},{"value":"sell","label":"Trader sells"}]" data-focus-key="rate-basis" .value="buy">
                 <option value="buy">
                   "Trader buys"
                 <option value="sell">
                   "Trader sells"
-            <button class="ui-button">
+            <button class="ui-button" data-focus-key="rate-details">
               "Refresh quotes"
       <div aria-labelledby="hub-group-1" role="group">
         <div class="hub-group" id="hub-group-1" role="presentation">
@@ -3271,10 +3271,10 @@
             "⌫"
           " Back"
       <span class="hub-count">
-      <button class="hub-primary ui-button" data-variant="primary" title="Done">
+      <button class="hub-primary ui-button" data-focus-key="primary" data-variant="primary" title="Done">
         <span class="hub-primary-label">
           "Done"
-      <button aria-expanded="false" aria-haspopup="menu" aria-keyshortcuts="Meta+J" class="hub-actions ui-button" data-variant="quiet" disabled="">
+      <button aria-expanded="false" aria-haspopup="menu" aria-keyshortcuts="Meta+J" class="hub-actions ui-button" data-focus-key="actions" data-variant="quiet" disabled="">
         "Actions"
         <kbd aria-hidden="true" class="ui-kbd">
           "⌘"
@@ -3290,7 +3290,7 @@
   <section class="hub-panel ui-frame ui-art-frame" data-busy="false" data-locked="true">
     <canvas aria-hidden="true" class="ui-frame-artwork">
     <header class="hub-heading ui-window-head">
-      <button aria-description="Return to Build details" aria-keyshortcuts="Meta+Backspace" aria-label="Back" class="ui-button hub-back" data-variant="quiet" title="Back (⌘⌫)">
+      <button aria-description="Return to Build details" aria-keyshortcuts="Meta+Backspace" aria-label="Back" class="ui-button hub-back" data-focus-key="back" data-variant="quiet" title="Back (⌘⌫)">
         "←"
       <span class="hub-name" id="hub-name">
         "Hub"
@@ -3314,10 +3314,10 @@
       <span class="hub-context">
       <span class="hub-move-hint" hidden="" id="hub-move-hint">
         "⌥ arrows move · ⇧ 48 px"
-      <button aria-label="Lock Hub position" aria-pressed="true" class="ui-window-lock hub-lock" title="Unlock to move and resize" type="button">
+      <button aria-label="Lock Hub position" aria-pressed="true" class="ui-window-lock hub-lock" data-focus-key="lock" title="Unlock to move and resize" type="button">
         <svg aria-hidden="true" viewBox="0 0 24 24">
           <path class="lock-shackle" d="M7 11V7a5 5 0 0 1 10 0v4"></path><rect x="5" y="11" width="14" height="10" rx="2"></rect>
-      <button aria-label="Close Hub" class="ui-window-close hub-close" title="Close Hub">
+      <button aria-label="Close Hub" class="ui-window-close hub-close" data-focus-key="close" title="Close Hub">
         "×"
     <section aria-label="Build to apply" class="hub-summary" hidden="">
     <div class="hub-search ui-hub-search" hidden="">
@@ -3347,12 +3347,12 @@
           <div class="hub-rate-controls" hidden="">
             <label>
               "Price basis"
-              <select aria-label="Price basis" class="ui-select" data-choices="[{"value":"buy","label":"Trader buys"},{"value":"sell","label":"Trader sells"}]" .value="buy">
+              <select aria-label="Price basis" class="ui-select" data-choices="[{"value":"buy","label":"Trader buys"},{"value":"sell","label":"Trader sells"}]" data-focus-key="rate-basis" .value="buy">
                 <option value="buy">
                   "Trader buys"
                 <option value="sell">
                   "Trader sells"
-            <button class="ui-button">
+            <button class="ui-button" data-focus-key="rate-details">
               "Refresh quotes"
       <div aria-labelledby="hub-group-1" role="group">
         <div class="hub-group" id="hub-group-1" role="presentation">
@@ -3489,12 +3489,12 @@
             "⌫"
           " Back"
       <span class="hub-count">
-      <button class="hub-primary ui-button" data-variant="primary" title="Save">
+      <button class="hub-primary ui-button" data-focus-key="primary" data-variant="primary" title="Save">
         <span class="hub-primary-label">
           "Save"
         <kbd class="ui-kbd">
           "↵"
-      <button aria-expanded="false" aria-haspopup="menu" aria-keyshortcuts="Meta+J" class="hub-actions ui-button" data-variant="quiet">
+      <button aria-expanded="false" aria-haspopup="menu" aria-keyshortcuts="Meta+J" class="hub-actions ui-button" data-focus-key="actions" data-variant="quiet">
         "Actions"
         <kbd aria-hidden="true" class="ui-kbd">
           "⌘"
@@ -3510,7 +3510,7 @@
   <section class="hub-panel ui-frame ui-art-frame" data-busy="false" data-locked="true">
     <canvas aria-hidden="true" class="ui-frame-artwork">
     <header class="hub-heading ui-window-head">
-      <button aria-description="Return to Home" aria-keyshortcuts="Meta+Backspace" aria-label="Back" class="ui-button hub-back" data-variant="quiet" title="Back (⌘⌫)">
+      <button aria-description="Return to Home" aria-keyshortcuts="Meta+Backspace" aria-label="Back" class="ui-button hub-back" data-focus-key="back" data-variant="quiet" title="Back (⌘⌫)">
         "←"
       <span class="hub-name" id="hub-name">
         "Hub"
@@ -3526,10 +3526,10 @@
       <span class="hub-context">
       <span class="hub-move-hint" hidden="" id="hub-move-hint">
         "⌥ arrows move · ⇧ 48 px"
-      <button aria-label="Lock Hub position" aria-pressed="true" class="ui-window-lock hub-lock" title="Unlock to move and resize" type="button">
+      <button aria-label="Lock Hub position" aria-pressed="true" class="ui-window-lock hub-lock" data-focus-key="lock" title="Unlock to move and resize" type="button">
         <svg aria-hidden="true" viewBox="0 0 24 24">
           <path class="lock-shackle" d="M7 11V7a5 5 0 0 1 10 0v4"></path><rect x="5" y="11" width="14" height="10" rx="2"></rect>
-      <button aria-label="Close Hub" class="ui-window-close hub-close" title="Close Hub">
+      <button aria-label="Close Hub" class="ui-window-close hub-close" data-focus-key="close" title="Close Hub">
         "×"
     <section aria-label="Build to apply" class="hub-summary" hidden="">
     <div class="hub-search ui-hub-search">
@@ -3542,12 +3542,12 @@
     <div class="hub-rate-controls" hidden="">
       <label>
         "Price basis"
-        <select aria-label="Price basis" class="ui-select" data-choices="[{"value":"buy","label":"Trader buys"},{"value":"sell","label":"Trader sells"}]" .value="buy">
+        <select aria-label="Price basis" class="ui-select" data-choices="[{"value":"buy","label":"Trader buys"},{"value":"sell","label":"Trader sells"}]" data-focus-key="rate-basis" .value="buy">
           <option value="buy">
             "Trader buys"
           <option value="sell">
             "Trader sells"
-      <button class="ui-button">
+      <button class="ui-button" data-focus-key="rate-details">
         "Refresh quotes"
     <div aria-busy="false" aria-label="Results" class="hub-results ui-scroll" id="hub-results" role="listbox" tabindex="-1">
       <div aria-labelledby="hub-group-0" role="group">
@@ -3763,12 +3763,12 @@
           " Back"
       <span class="hub-count">
         "16 results"
-      <button class="hub-primary ui-button" data-variant="primary" title="Fill search with char <name>">
+      <button class="hub-primary ui-button" data-focus-key="primary" data-variant="primary" title="Fill search with char <name>">
         <span class="hub-primary-label">
           "Fill search with char <name>"
         <kbd class="ui-kbd">
           "↵"
-      <button aria-expanded="false" aria-haspopup="menu" aria-keyshortcuts="Meta+J" class="hub-actions ui-button" data-variant="quiet" disabled="">
+      <button aria-expanded="false" aria-haspopup="menu" aria-keyshortcuts="Meta+J" class="hub-actions ui-button" data-focus-key="actions" data-variant="quiet" disabled="">
         "Actions"
         <kbd aria-hidden="true" class="ui-kbd">
           "⌘"
@@ -3784,7 +3784,7 @@
   <section class="hub-panel ui-frame ui-art-frame" data-busy="false" data-locked="true">
     <canvas aria-hidden="true" class="ui-frame-artwork">
     <header class="hub-heading ui-window-head">
-      <button aria-description="Return to Home" aria-keyshortcuts="Meta+Backspace" aria-label="Back" class="ui-button hub-back" data-variant="quiet" title="Back (⌘⌫)">
+      <button aria-description="Return to Home" aria-keyshortcuts="Meta+Backspace" aria-label="Back" class="ui-button hub-back" data-focus-key="back" data-variant="quiet" title="Back (⌘⌫)">
         "←"
       <span class="hub-name" id="hub-name">
         "Hub"
@@ -3800,10 +3800,10 @@
       <span class="hub-context">
       <span class="hub-move-hint" hidden="" id="hub-move-hint">
         "⌥ arrows move · ⇧ 48 px"
-      <button aria-label="Lock Hub position" aria-pressed="true" class="ui-window-lock hub-lock" title="Unlock to move and resize" type="button">
+      <button aria-label="Lock Hub position" aria-pressed="true" class="ui-window-lock hub-lock" data-focus-key="lock" title="Unlock to move and resize" type="button">
         <svg aria-hidden="true" viewBox="0 0 24 24">
           <path class="lock-shackle" d="M7 11V7a5 5 0 0 1 10 0v4"></path><rect x="5" y="11" width="14" height="10" rx="2"></rect>
-      <button aria-label="Close Hub" class="ui-window-close hub-close" title="Close Hub">
+      <button aria-label="Close Hub" class="ui-window-close hub-close" data-focus-key="close" title="Close Hub">
         "×"
     <section aria-label="Build to apply" class="hub-summary" hidden="">
     <div class="hub-search ui-hub-search">
@@ -3816,12 +3816,12 @@
     <div class="hub-rate-controls" hidden="">
       <label>
         "Price basis"
-        <select aria-label="Price basis" class="ui-select" data-choices="[{"value":"buy","label":"Trader buys"},{"value":"sell","label":"Trader sells"}]" .value="buy">
+        <select aria-label="Price basis" class="ui-select" data-choices="[{"value":"buy","label":"Trader buys"},{"value":"sell","label":"Trader sells"}]" data-focus-key="rate-basis" .value="buy">
           <option value="buy">
             "Trader buys"
           <option value="sell">
             "Trader sells"
-      <button class="ui-button">
+      <button class="ui-button" data-focus-key="rate-details">
         "Refresh quotes"
     <div aria-busy="false" aria-label="Results" class="hub-results ui-scroll" id="hub-results" role="listbox" tabindex="-1">
     <p class="hub-empty" hidden="">
@@ -3853,12 +3853,12 @@
           " Back"
       <span class="hub-count">
         "16 results"
-      <button class="hub-primary ui-button" data-variant="primary" title="Fill search with char <name>">
+      <button class="hub-primary ui-button" data-focus-key="primary" data-variant="primary" title="Fill search with char <name>">
         <span class="hub-primary-label">
           "Fill search with char <name>"
         <kbd class="ui-kbd">
           "↵"
-      <button aria-expanded="false" aria-haspopup="menu" aria-keyshortcuts="Meta+J" class="hub-actions ui-button" data-variant="quiet" disabled="">
+      <button aria-expanded="false" aria-haspopup="menu" aria-keyshortcuts="Meta+J" class="hub-actions ui-button" data-focus-key="actions" data-variant="quiet" disabled="">
         "Actions"
         <kbd aria-hidden="true" class="ui-kbd">
           "⌘"

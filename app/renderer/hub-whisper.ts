@@ -4,7 +4,7 @@
  */
 import type { WhisperSession } from '../shared/whisper-session.js';
 import type { Hub } from './hub.js';
-import { focusable } from './surface-controller.js';
+import { focusable } from '../shared/ui/focusable.js';
 
 export function toggleHubWhispers(event: Event, hub: Hub, root: HTMLElement, session: WhisperSession) {
   event.preventDefault();

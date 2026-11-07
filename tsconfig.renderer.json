@@ -21,5 +21,5 @@
   // One extension: the renderer holds no JavaScript, so `allowJs`, `checkJs` and
   // a `**/*.js` glob went with the last file they applied to. `**/*.ts` subsumes
   // the ambient `app/renderer/gw-native.d.ts` that used to be named separately.
-  "include": ["app/renderer/**/*.ts", "app/features/*/companion.ts", "app/features/companion-parts.ts", "app/features/*/renderer/**/*.ts", "app/shared/ui/resize.ts", "app/shared/ui/frame.ts", "app/shared/ui/elite-map-pointer.ts", "app/shared/ui/elite-marker-paint.ts", "app/shared/ui/hub-view.ts"]
+  "include": ["app/renderer/**/*.ts", "app/features/*/companion.ts", "app/features/companion-parts.ts", "app/features/*/renderer/**/*.ts", "app/shared/ui/resize.ts", "app/shared/ui/frame.ts", "app/shared/ui/elite-map-pointer.ts", "app/shared/ui/elite-marker-paint.ts", "app/shared/ui/hub-view.ts", "app/shared/ui/focusable.ts"]
 }

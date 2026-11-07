@@ -24,6 +24,7 @@
  * Destructive confirmations share one arming rule for the same reason, and a
  * native sheet opens only after the press that asked for it has ended.
  */
+import { focusable, focusableElements } from "../shared/ui/focusable.js";
 
 type Surface = Readonly<{
   root: HTMLElement;
@@ -45,16 +46,6 @@ type ModalDialog = Readonly<{
   backdrop?(): void;
   restoreFocus(): HTMLElement | null;
 }>;
-
-const FOCUSABLE = [
-  "button:not([disabled])",
-  "input:not([disabled])",
-  "select:not([disabled])",
-  "textarea:not([disabled])",
-  "a[href]",
-  "summary",
-  '[tabindex]:not([tabindex="-1"])',
-].join(",");
 
 /**
  * A pointerdown belongs to the previous press of a cancelled run only within
@@ -104,26 +95,6 @@ export function closeDisclosure(target: EventTarget | null, root: Element): bool
   expanded.open = false;
   expanded.querySelector("summary")?.focus({ preventScroll: true });
   return true;
-}
-
-/**
- * The one rule for a control the keyboard can use now: shown, enabled, not
- * hidden or inert. Tab wrapping and every "first usable control" focus share it,
- * so focus never goes to a disabled button, which refuses it and leaves <body>.
- */
-export function focusable(element: Element): element is HTMLElement {
-  return element instanceof HTMLElement
-    && element.matches(FOCUSABLE)
-    && !element.matches(":disabled")
-    && !element.hidden
-    && element.getAttribute("aria-hidden") !== "true"
-    && element.closest("[hidden], [inert]") === null
-    && element.getClientRects().length > 0;
-}
-
-/** The usable controls in `root`, in document order. */
-export function focusableElements(root: ParentNode): HTMLElement[] {
-  return [...root.querySelectorAll<HTMLElement>(FOCUSABLE)].filter(focusable);
 }
 
 export function installSurfaceController(

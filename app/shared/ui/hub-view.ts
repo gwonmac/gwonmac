@@ -1,9 +1,10 @@
 /**
- * The contract between the Hub's controller (app/renderer/hub.ts) and its Vue view
- * (app/ui/tools/src/hub, built as `tools/hub-app.js`). The controller owns state, search,
- * keyboard and focus; the view draws exactly these facts and hands back the elements the
- * controller measures, focuses and attaches its listeners to. Core loads the view module
- * alone, never the Tools application.
+ * The contract between the Hub's controller (app/renderer/hub.ts with its engine,
+ * hub-engine.ts) and its Vue view (app/ui/tools/src/hub, built as `tools/hub-app.js`). The
+ * controller owns state, search and where the keyboard should be, as a focus target; the
+ * view draws exactly these facts, owns the focus zones that put the keyboard there, and hands
+ * back the elements the controller measures and attaches its listeners to. Core loads the
+ * view module alone, never the Tools application.
  */
 import type { HubRow, HubSummary } from '../hub.js';
 import type { resolveShortcuts } from '../keyboard-shortcuts.js';
@@ -35,6 +36,24 @@ export type HubGlyphs = Readonly<{
   box: Readonly<{ left: number; top: number; width: number; height: number }> | null;
   segments: readonly Readonly<{ text: string; token?: Readonly<{ start: number; end: number; unit: string }> }>[];
   icons: readonly Readonly<{ url: string; unit: string; left: number }>[];
+}>;
+/**
+ * The Hub's focus zones. `results` is the list stage: DOM focus stays in the Hub search and the
+ * selection moves by aria-activedescendant (D-2). `search` is the page's search: the Hub
+ * search, else a view's own search field.
+ */
+export type HubFocusZone = 'search' | 'heading' | 'results' | 'view' | 'footer' | 'menu';
+/**
+ * Where the keyboard should be. A key names one control (its `data-focus-key`); without a key,
+ * the zone's first control. A key that is gone, or a zone that is not shown, falls back to the
+ * search when it shows, else the view's first control, else Back. `range` is a text selection.
+ */
+export type HubFocusTarget = Readonly<{ zone: HubFocusZone; key?: string; range?: readonly [number, number] }>;
+/** A focus target the view applies once after the paint that carries a new `seq`. */
+export type HubFocusRequest = HubFocusTarget & Readonly<{
+  seq: number;
+  /** A restored page's key may mount late (a loading view): it still takes the keyboard until the player acts. */
+  wait?: boolean;
 }>;
 export type HubPrimary = Readonly<{ label: string; art?: string; keycap: boolean; disabled: boolean; variant: 'primary' | 'danger' }>;
 export type HubReceipt = Readonly<{
@@ -83,6 +102,7 @@ export type HubViewModel = {
   actions: Readonly<{ keys: boolean; disabled: boolean; expanded: boolean }>;
   menu: Readonly<{ hidden: boolean; bottom?: string; items: readonly HubMenuItem[] }>;
   receipt: HubReceipt;
+  focus?: HubFocusRequest;
 };
 
 /** The stable elements the controller keeps; the view never replaces them. */
@@ -93,10 +113,20 @@ export type HubViewElements = Readonly<{
   menu: HTMLElement; receipt: HTMLElement;
 }>;
 export type HubBuildDetails = readonly (HubSummary | HubRow)[];
+/** Where the keyboard is, read from the view's focus zones. */
+export type HubFocusReader = Readonly<{
+  /** The keyboard's place as a target a later paint can restore. */
+  capture(): HubFocusTarget;
+  /** The zone that holds the keyboard now; null outside the Hub. */
+  at(): HubFocusZone | null;
+  /** Where typing goes: the Hub search on list stages, else a list view's own search (Travel, Characters). */
+  searchField(): HTMLInputElement | null;
+}>;
 export type HubViewHandle = Readonly<{
   elements: HubViewElements;
-  /** Redraws the model now, so the controller can measure and focus right after. */
+  /** Redraws the model now, applying its focus request, so the controller can measure right after. */
   paint(model: HubViewModel): void;
+  focus: HubFocusReader;
   /** Mounts Build details into a view host; returns its section and its disposal. */
   mountBuildDetails(target: HTMLElement, builds: HubBuildDetails): Readonly<{ element: HTMLElement; dispose(): void }>;
   dispose(): void;
