@@ -36,6 +36,6 @@ export const HUB_TOOL_ROWS: readonly HubToolEntry[] = Object.freeze(hubTools.fla
   if ("settings" in row.open) open = row.open;
   else if (event !== undefined) open = { ...row.open, event };
   else throw new Error(`The ${feature} Hub row opens through an event its tool does not name.`);
-  return [{ detail: row.detail, open, ...(row.action ? { action: row.action } : {}), ...(row.aliases ? { aliases: row.aliases } : {}),
+  return [{ detail: row.detail, iconKind: row.iconKind, open, ...(row.action ? { action: row.action } : {}), ...(row.aliases ? { aliases: row.aliases } : {}),
     id: hub.command, feature, title: tool.label, keywords: "keywords" in tool ? tool.keywords : "" }];
 }));

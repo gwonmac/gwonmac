@@ -22,7 +22,7 @@ export default defineFeature({
     keywords: "chest bank storage",
     hub: {
       command: "storage", order: 5,
-      row: { detail: "Open your storage chest", aliases: ["Open Xunlai Storage"], open: { closesHub: true } },
+      row: { detail: "Open your storage chest", iconKind: "storage", aliases: ["Open Xunlai Storage"], open: { closesHub: true } },
     },
   },
   shortcuts: [{ action: "storage.open", binding: { key: "s", shift: false, option: false }, menuItem: "open-xunlai-storage" }],

@@ -5,6 +5,7 @@
 import type { HubFeatureSetting } from "../features/index.js";
 import type { HubShortcut } from "./hub-preferences.js";
 import type { HubPages } from "./ui/hub-pages.js";
+import type { HubIconKind } from "./ui/hub-icon.js";
 import { HUB_TOOL_ORDER } from "./hub-tools.js";
 export type HubRow = Readonly<{
   id: string;
@@ -38,7 +39,10 @@ export type HubRow = Readonly<{
    */
   navigate?(task: HubTask): void;
   searchQuery?: string;
+  /** The row's own art, drawn instead of an icon. */
   icon?: string;
+  /** The Hub icon family's drawing for a row without art; the source picks it, `command` by default. */
+  iconKind?: HubIconKind;
   quoteBasis?: HubQuoteBasis;
   conversion?: Readonly<{ input: string; from: string; to: string; iconFrom?: string; iconTo?: string }>;
   unavailable?: string;

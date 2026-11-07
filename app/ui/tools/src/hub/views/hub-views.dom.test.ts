@@ -77,8 +77,8 @@ afterEach(() => { hub.dispose(); vi.useRealTimers(); vi.restoreAllMocks(); });
 /** The account's build and team references, as the Build Library's source owns them. */
 function library(entries: HubShortcut[]): HubSource {
   const rows: Record<string, HubRow> = {
-    'build:1': { id: 'build:1', title: 'Healer', detail: 'Monk build', group: 'Builds', action: 'Apply build', run() {} },
-    'team:1': { id: 'team:1', title: 'Speed team', detail: 'Team', group: 'Teams', action: 'Apply team', run() {} },
+    'build:1': { id: 'build:1', iconKind: 'builds', title: 'Healer', detail: 'Monk build', group: 'Builds', action: 'Apply build', run() {} },
+    'team:1': { id: 'team:1', iconKind: 'team', title: 'Speed team', detail: 'Team', group: 'Teams', action: 'Apply team', run() {} },
   };
   return {
     search: () => [], lookup: id => rows[id], setVisible() {}, subscribe: () => () => {},

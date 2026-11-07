@@ -23,7 +23,7 @@ export default defineFeature({
     keywords: "characters relog alts profession",
     hub: {
       command: "character", order: 1, keyOrder: 1,
-      row: { detail: "Choose another character", action: "Choose character", open: { page: true } },
+      row: { detail: "Choose another character", iconKind: "character", action: "Choose character", open: { page: true } },
     },
   },
   shortcuts: [{ action: "character.switch", binding: { key: "e", shift: false, option: false }, menuItem: "switch-character" }],

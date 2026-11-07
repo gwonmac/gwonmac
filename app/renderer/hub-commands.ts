@@ -13,6 +13,7 @@ import { normaliseHubQuery, parseHubQuery, type HubRow, type HubSource, type Hub
 import type { SettingsTarget } from '../shared/settings-catalogue.js';
 import { featureActivationRequested, type FeatureId } from '../shared/feature-contracts.js';
 import type { Hub } from './hub.js';
+import type { HubIconKind } from '../shared/ui/hub-icon.js';
 
 /** A tool's event: a tool that is not running leaves it unhandled, and the action refuses. */
 const dispatch = (name: string, detail?: unknown) => {
@@ -36,14 +37,14 @@ export function createHubCommands(hub: Hub, openSettings: (target?: SettingsTarg
           // A tool that opens after the Hub closes never refuses: the Hub is gone (Xunlai Storage).
           : open.closesHub ? () => { hub.close(); window.dispatchEvent(new CustomEvent(open.event, { cancelable: true })); }
           : () => dispatch(open.event, open.show ? 'show' : undefined);
-        return { id: tool.id, title: tool.title, keywords: tool.keywords, detail: tool.detail, ...(tool.aliases ? { aliases: tool.aliases } : {}), group: 'Tools',
+        return { id: tool.id, title: tool.title, keywords: tool.keywords, detail: tool.detail, iconKind: tool.iconKind, ...(tool.aliases ? { aliases: tool.aliases } : {}), group: 'Tools',
           action: tool.action ?? `Open ${tool.title}`, ...('page' in open && open.page ? { navigate: run } : {}), run };
       }),
       { id: 'commands', title: 'Commands', detail: 'Search words, calculator examples and keys', aliases: ['?'], keywords: 'help guide examples cheatsheet shortcuts keys', group: 'Commands', action: 'Browse commands', run: () => hub.showRows('Commands', examples) },
       // Launcher and the website are for a typed search; the first screen stays on the game (HUB-185).
       ...(!query.trim() ? [] : [
         { id: 'launcher', title: 'Show Launcher', detail: 'Accounts, updates and game files', keywords: 'launcher administration', group: 'Commands', action: 'Show Launcher', run: async (task: HubTask) => { await window.gwNative.app.showLauncher(); task.done(); } },
-        { id: 'help', title: 'Project website', detail: 'Documentation and latest changes', keywords: 'help documentation', group: 'Commands', action: 'Open website', run: async (task: HubTask) => { await window.gwNative.app.openExternal('github'); task.done(); } },
+        { id: 'help', iconKind: 'help' as const, title: 'Project website', detail: 'Documentation and latest changes', keywords: 'help documentation', group: 'Commands', action: 'Open website', run: async (task: HubTask) => { await window.gwNative.app.openExternal('github'); task.done(); } },
         // Call Target stays on its own shortcut: it acts only while the game has focus (HUB-133).
         // Resign's row comes from its owner, with its refusal before Enter (resign-command.ts).
         // Quit or Reload opens the account's confirmation sheet, never a direct quit (HUB-001).
@@ -77,22 +78,24 @@ export function createHubCommands(hub: Hub, openSettings: (target?: SettingsTarg
       example('Calculate', '', '2 * 250 + 75', '2 * 250 + 75', 'Plain arithmetic'),
       example('Calculate', '', 'titles', 'titles', 'Plan title points'),
     ];
-    const rows: HubRow[] = entries.filter(entry => !entry.tool || enabled.has(entry.tool)).map((entry, index) => ({ id: `example:${index}`, title: entry.title, detail: entry.detail, group: entry.group, action: `Fill search with ${entry.title}`, searchQuery: entry.fill, run() {} }));
+    // An example draws the icon of the rows it finds.
+    const icons: Readonly<Record<string, HubIconKind>> = { Places: 'travel', Characters: 'person', Builds: 'builds', People: 'person', Accounts: 'person' };
+    const rows: HubRow[] = entries.filter(entry => !entry.tool || enabled.has(entry.tool)).map((entry, index) => ({ id: `example:${index}`, title: entry.title, detail: entry.detail, group: entry.group, ...(icons[entry.group] ? { iconKind: icons[entry.group] } : {}), action: `Fill search with ${entry.title}`, searchQuery: entry.fill, run() {} }));
     // Keys: a tool's shortcut can change in Settings; the Hub's own keys are fixed.
     const bindings = resolveShortcuts(window.gwToolsSettings?.().shortcutOverrides ?? {});
     const keys = (action: ShortcutAction) => shortcutKeycaps(bindings[action]).map(cap => cap.label).join('') || 'Not set';
-    rows.push(...HUB_TOOL_KEYS.filter(({ command }) => enabled.has(command)).map(({ command, tool, action, label }) => ({ id: `key:${command}`, title: label, detail: keys(action), group: 'Keys & shortcuts', action: 'Change shortcut', run: openSettings({ section: 'tools', control: `tool:${tool}` }) })));
+    rows.push(...HUB_TOOL_KEYS.filter(({ command }) => enabled.has(command)).map(({ command, tool, action, label }) => ({ id: `key:${command}`, title: label, detail: keys(action), group: 'Keys & shortcuts', ...(command === 'travel' ? { iconKind: 'travel' as const } : {}), action: 'Change shortcut', run: openSettings({ section: 'tools', control: `tool:${tool}` }) })));
     for (const [id, name, detail] of [['actions', 'Actions for the selected row', '⌘J'], ['back', 'Back', '⌘⌫'], ['escape', 'Clear, back, then close', '⎋'], ['open', 'Open a row with a page', '→']] as const)
       rows.push({ id: `key:${id}`, title: name, detail, group: 'Keys & shortcuts', action: 'Fixed key', unavailable: 'The Hub’s own keys do not change.', run() {} });
     return rows;
   }
   return {
     searchNames: { Commands: 'commands' },
-    // The player's own words, in the market Trade has open; `trade:` gives the row Trade's icon (HUB-124).
+    // The player's own words, in the market Trade has open, with Trade's icon (HUB-124).
     search(query) {
       const parsed = parseHubQuery(query);
       return parsed.scope === 'trade' && parsed.term && featureActivationRequested('tradeChat', window.gwToolsSettings?.() ?? {})
-        ? [{ id: 'trade:query', title: `Search Trade for ${parsed.text}`, detail: 'Offers and character names', group: 'Tools', action: `Search Trade for ${parsed.text}`, run: () => dispatch('gw:trade-toggle', { query: parsed.text }) }] : [];
+        ? [{ id: 'trade:query', iconKind: 'trade', title: `Search Trade for ${parsed.text}`, detail: 'Offers and character names', group: 'Tools', action: `Search Trade for ${parsed.text}`, run: () => dispatch('gw:trade-toggle', { query: parsed.text }) }] : [];
     },
     commands,
     // A typed word that starts a command example names it under the search.

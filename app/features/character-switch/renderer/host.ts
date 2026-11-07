@@ -64,7 +64,7 @@ export function installCharacterSwitchHost(parent: HTMLElement): CharacterSwitch
       const refusal = characterSwitchRefusal(source);
       const matched = matchHubRows(characters.characters.map((character, index): HubRow => {
         const current = index === currentCharacterIndex(source);
-        return { id: `character:${character.characterKey}`, title: character.name,
+        return { id: `character:${character.characterKey}`, iconKind: 'character', title: character.name,
           ...(professionPresentation(character.primaryProfession) ? { icon: professionPresentation(character.primaryProfession)!.icon } : {}),
           detail: `${professionPresentation(character.primaryProfession)?.name ?? ''} · Level ${character.level}`,
           keywords: professionPresentation(character.primaryProfession)?.name ?? '', group: 'Characters', action: current ? 'Current character' : `Switch to ${character.name}`, consequential: true,

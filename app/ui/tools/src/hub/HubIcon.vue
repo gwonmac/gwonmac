@@ -2,10 +2,10 @@
 /** A row's icon: its own art, else the Hub icon family's drawing for its kind. */
 import { computed } from 'vue';
 import type { HubRow } from '../../../../shared/hub';
-import { hubIconKind, hubIconSvg } from '../../../../shared/ui/hub-icon';
+import { hubIconSvg } from '../../../../shared/ui/hub-icon';
 
-const props = defineProps<{ row: Pick<HubRow, 'id' | 'group' | 'icon'> }>();
-const kind = computed(() => hubIconKind(props.row));
+const props = defineProps<{ row: Pick<HubRow, 'icon' | 'iconKind'> }>();
+const kind = computed(() => props.row.iconKind ?? 'command');
 </script>
 
 <template>

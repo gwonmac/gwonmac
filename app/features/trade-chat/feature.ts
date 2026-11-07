@@ -18,7 +18,7 @@ export default defineFeature({
     keywords: "kamadan prices trading market trader",
     hub: {
       command: "trade", order: 4, keyOrder: 3,
-      row: { detail: "Find offers and contact sellers", open: { show: true } },
+      row: { detail: "Find offers and contact sellers", iconKind: "trade", open: { show: true } },
     },
   },
   shortcuts: [{ action: "trade.toggle", binding: { key: "k", shift: false, option: false }, menuItem: "toggle-trade" }],

@@ -182,7 +182,7 @@ export function manageHubShortcuts(hub: HubPresenter<HTMLElement>, store: HubSho
 export function createHubPreferences(hub: HubPresenter<HTMLElement> & Readonly<{ shortcuts: HubShortcutStore; resetPosition(): void }>): HubSource {
   return {
     search: () => [],
-    commands: () => [{ id: 'hub-preferences', title: 'Hub preferences', detail: 'Pins and exact search phrases', keywords: 'aliases vocabulary', group: 'Commands', action: 'Adjust Hub', run: () => manageHubShortcuts(hub, hub.shortcuts, hub.resetPosition) }],
+    commands: () => [{ id: 'hub-preferences', iconKind: 'settings', title: 'Hub preferences', detail: 'Pins and exact search phrases', keywords: 'aliases vocabulary', group: 'Commands', action: 'Adjust Hub', run: () => manageHubShortcuts(hub, hub.shortcuts, hub.resetPosition) }],
     personalize: row => [{ label: 'Set search phrase…', run: () => editHubShortcut(hub, row, hub.shortcuts, () => !!hub.shortcuts.lookup(row.id)) }],
     setVisible() {},
     subscribe: () => () => {},

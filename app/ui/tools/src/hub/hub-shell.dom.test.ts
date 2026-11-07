@@ -58,11 +58,11 @@ const details = (row: HubRow): HubRow => ({ ...row, actions: () => [...row.actio
   const page = pages.mount('buildDetails', target, { builds: [summary, row] }); page.element.focus(); return page.dispose;
 }) }] });
 const sectionBase: readonly HubRow[] = [
-  { id: 'build:1', title: 'Healer', detail: 'Monk build', group: 'Builds', action: 'Apply build', skills, attributes, professions, folder: 'PvE', consequential: true, run() {} },
-  { id: 'build:2', title: 'Status build', detail: 'No attributes', group: 'Builds', action: 'Apply build', skills: skills.slice(0, 1), attributeStatus: 'Attributes unavailable', folder: '', run() {} },
+  { id: 'build:1', iconKind: 'builds', title: 'Healer', detail: 'Monk build', group: 'Builds', action: 'Apply build', skills, attributes, professions, folder: 'PvE', consequential: true, run() {} },
+  { id: 'build:2', iconKind: 'builds', title: 'Status build', detail: 'No attributes', group: 'Builds', action: 'Apply build', skills: skills.slice(0, 1), attributeStatus: 'Attributes unavailable', folder: '', run() {} },
   { id: 'quote:result', title: '1,000 gold', detail: 'From traders', group: 'Calculator', action: 'Copy 1,000 gold', conversion: { input: '1p', from: 'p', to: 'g' }, quoteBasis: { value: 'buy', options: [{ value: 'buy', label: 'Trader buys' }, { value: 'sell', label: 'Trader sells' }], choose() {}, details: { label: 'Refresh quotes', run() {} } }, run() {} },
-  { id: 'place:1', title: 'Kamadan', detail: 'Outpost', group: 'Places', action: 'Travel', navigate() {}, leavesArea: true, run() {} },
-  { id: 'person:1', title: 'Friend', detail: 'Online', group: 'People', action: 'Whisper', icon: 'friend.png', actions: () => [{ label: 'Invite to party', run() {} }], run() {} },
+  { id: 'place:1', iconKind: 'travel', title: 'Kamadan', detail: 'Outpost', group: 'Places', action: 'Travel', navigate() {}, leavesArea: true, run() {} },
+  { id: 'person:1', iconKind: 'person', title: 'Friend', detail: 'Online', group: 'People', action: 'Whisper', icon: 'friend.png', actions: () => [{ label: 'Invite to party', run() {} }], run() {} },
   { id: 'danger:1', title: 'Delete', detail: 'Remove it', group: 'Commands', action: 'Delete', destructive: true, readOnly: true, preview: 'Line one\nLine two', run() {} },
   { id: 'off:1', title: 'Unavailable', detail: 'Not now', group: 'Commands', action: 'Use', unavailable: 'Not in an outpost.', run() {} },
 ];

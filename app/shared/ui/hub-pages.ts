@@ -25,7 +25,7 @@ export type HubPhraseFormProps = Readonly<{
   input(value: string): void;
 }>;
 
-export type HubPreferenceEntry = Readonly<{ id: string; label: string; icon: Pick<HubRow, 'id' | 'group' | 'icon'> }>;
+export type HubPreferenceEntry = Readonly<{ id: string; label: string; icon: Pick<HubRow, 'icon' | 'iconKind'> }>;
 /** Hub preferences: pins and phrases in their two storage groups, Home's order (HUB-090). */
 export type HubPreferencesProps = Readonly<{
   groups: readonly Readonly<{ label: string; entries: readonly HubPreferenceEntry[] }>[];

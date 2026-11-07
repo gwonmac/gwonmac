@@ -13,15 +13,17 @@ import type { EnhancementProgram } from "../shared/enhancement-contracts.js";
 import type { ShortcutBinding } from "../shared/keyboard-shortcuts.js";
 import type { SettingSpecs } from "../shared/settings/define.js";
 import type { SettingsSection } from "../shared/settings-catalogue.js";
+import type { HubIconKind } from "../shared/ui/hub-icon.js";
 
 /**
- * A Tools row Core draws for a tool without loading its code: its detail, its action name
- * (`Open <label>` by default) and how it opens; it matches the tool's `keywords`. A tool
+ * A Tools row Core draws for a tool without loading its code: its detail, its icon, its action
+ * name (`Open <label>` by default) and how it opens; it matches the tool's `keywords`. A tool
  * opens through its own `event`, asked to `show` (never to close), as a Hub page (`page`, so
  * Right Arrow opens it too) or after the Hub closes (`closesHub`); or at a Settings section.
  */
 export type HubToolRow = Readonly<{
   detail: string;
+  iconKind: HubIconKind;
   action?: string;
   aliases?: readonly string[];
   open: Readonly<{ show?: true; page?: true; closesHub?: true }> | Readonly<{ settings: SettingsSection }>;

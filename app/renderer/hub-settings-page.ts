@@ -94,9 +94,9 @@ export function createHubSettings(hub: Hub) {
   const source: HubSource = {
     search: () => [],
     commands: query => [
-      { id: 'settings', title: 'Settings', detail: 'Tools, maps, appearance and game · ⌘,', keywords: 'preferences graphics appearance hotkeys shortcuts', group: 'Commands', action: 'Open Settings', run: open() },
+      { id: 'settings', iconKind: 'settings', title: 'Settings', detail: 'Tools, maps, appearance and game · ⌘,', keywords: 'preferences graphics appearance hotkeys shortcuts', group: 'Commands', action: 'Open Settings', run: open() },
       // Settings are found by their own words (HUB-063). They follow the commands, so a command's own word keeps its row first.
-      ...(normaliseHubQuery(query).length < 3 ? [] : SETTINGS_SECTIONS).map(({ id, label, keywords }) => ({ id: `settings:${id}`, title: label, detail: HUB_SECTIONS.has(id) ? 'Settings section' : 'Settings section in the launcher', keywords, group: 'Settings', action: HUB_SECTIONS.has(id) ? `Open ${label} settings` : 'Open in Launcher', run: open({ section: id }) })),
+      ...(normaliseHubQuery(query).length < 3 ? [] : SETTINGS_SECTIONS).map(({ id, label, keywords }) => ({ id: `settings:${id}`, iconKind: 'settings' as const, title: label, detail: HUB_SECTIONS.has(id) ? 'Settings section' : 'Settings section in the launcher', keywords, group: 'Settings', action: HUB_SECTIONS.has(id) ? `Open ${label} settings` : 'Open in Launcher', run: open({ section: id }) })),
       ...(normaliseHubQuery(query).length < 3 ? [] : SETTINGS).map(settingRow),
     ],
     setVisible() {},

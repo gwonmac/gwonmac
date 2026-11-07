@@ -94,7 +94,7 @@ export default defineFeature({
     keywords: "grid terrain compass opacity",
     hub: {
       command: "maps", order: 6,
-      row: { detail: "Exploration grid, walkable terrain and compass ranges", action: "Adjust maps", open: { settings: "maps" } },
+      row: { detail: "Exploration grid, walkable terrain and compass ranges", iconKind: "maps", action: "Adjust maps", open: { settings: "maps" } },
     },
   },
   shortcuts: [

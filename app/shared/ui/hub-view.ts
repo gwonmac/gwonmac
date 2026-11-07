@@ -147,7 +147,7 @@ export type HubViewHandle = Readonly<{
 export const hubPrimaryArt = (row: HubRow | undefined): string | undefined => row?.conversion?.iconTo;
 /** Whether a row draws as the one before it, so its mounted option stays; its actions still come from the new row. */
 export const hubRowPaintsSame = (row: HubRow, previous: HubRow | undefined): boolean => !!previous && row.id === previous.id && row.title === previous.title
-  && row.detail === previous.detail && row.group === previous.group && row.icon === previous.icon
+  && row.detail === previous.detail && row.group === previous.group && row.icon === previous.icon && row.iconKind === previous.iconKind
   && row.action === previous.action && row.destructive === previous.destructive && row.unavailable === previous.unavailable
   && row.readOnly === previous.readOnly && !!row.navigate === !!previous.navigate && row.preview === previous.preview
   && row.folder === previous.folder && row.attributeStatus === previous.attributeStatus

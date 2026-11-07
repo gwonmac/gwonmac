@@ -293,7 +293,7 @@ export function createHubLibrary(controller: LibraryController, host: ToolsHost,
             preferred: !refusal, consequential: !refusal, action: refusal ? 'Review availability' : applyAction(item.value, id), ...(refusal ? { readOnly: true } : { pending: applyPending(item.value.name) }),
             navigate: () => compareTarget(id), run: (task: HubTask) => refusal ? compareTarget(id) : apply(item, expected, id, task) };
         }).sort((a, b) => Number(a.group !== 'In your party') - Number(b.group !== 'In your party') || (a.group === 'In your party' ? 0 : a.title.localeCompare(b.title)));
-        return withDetails(rows.length ? rows : [{ id: 'heroes-unavailable', title: 'No heroes observed', detail: 'Enter a PvE outpost to read your heroes.', group: 'Heroes', action: 'Choose hero', unavailable: 'Hero information is not available yet.', run() {} }]);
+        return withDetails(rows.length ? rows : [{ id: 'heroes-unavailable', iconKind: 'person', title: 'No heroes observed', detail: 'Enter a PvE outpost to read your heroes.', group: 'Heroes', action: 'Choose hero', unavailable: 'Hero information is not available yet.', run() {} }]);
       }, summary, undefined, source);
     }
     if (recentHero !== undefined) { compareTarget(recentHero); return; }
@@ -303,7 +303,7 @@ export function createHubLibrary(controller: LibraryController, host: ToolsHost,
     ]), summary, undefined, source);
   }
   function buildRow(item: Item & { kind: 'build' }, duplicate = all().some(other => other.kind === 'build' && other.value.id !== item.value.id && other.value.name === item.value.name)): HubRow {
-    const row: HubRow = { id: `build:${item.value.id}`, title: item.value.name, detail: duplicate ? (templateFolder(item.value) === null ? 'Saved library' : 'Guild Wars templates') : '', matches: query => buildMatcher(query)(item.value), folder: templateFolder(item.value), professions: buildProfessions(item.value.professions),
+    const row: HubRow = { id: `build:${item.value.id}`, iconKind: 'builds', title: item.value.name, detail: duplicate ? (templateFolder(item.value) === null ? 'Saved library' : 'Guild Wars templates') : '', matches: query => buildMatcher(query)(item.value), folder: templateFolder(item.value), professions: buildProfessions(item.value.professions),
     keywords: [item.value.professions[0], PROFESSIONS[item.value.professions[0]].name, ...item.value.tags, templateFolder(item.value)?.replaceAll('/', ' ') ?? '', templateFolder(item.value) ?? ''].join(' '),
     group: 'Builds', attributes: buildAttributes(item.value.attributes), skills: skillPreview(item.value), action: 'Choose target', navigate: () => chooseBuild(item), run: () => chooseBuild(item),
     actions: () => [detailsAction([{ ...row, ...workspace(item.value) }]), ...workspaceActions(item)] };
@@ -322,7 +322,7 @@ export function createHubLibrary(controller: LibraryController, host: ToolsHost,
         return path && path.startsWith(prefix) && path !== folder ? [path.slice(prefix.length).split('/')[0]!] : [];
       }))].sort();
       const folderRows: HubRow[] = children.map(name => ({
-        id: `folder:${prefix}${name}`, title: name, detail: 'Template folder', group: 'Folders', action: 'Open folder', navigate: () => browseTemplates(prefix + name), run: () => browseTemplates(prefix + name),
+        id: `folder:${prefix}${name}`, iconKind: 'folder', title: name, detail: 'Template folder', group: 'Folders', action: 'Open folder', navigate: () => browseTemplates(prefix + name), run: () => browseTemplates(prefix + name),
       }));
       const files = templates.filter(build => templateFolder(build) === folder).map(value => buildRow({ kind: 'build', value }));
       return [...folderRows, ...files, ...templateStates(), ...(!folderRows.length && !files.length && !reading && !templateProblem ? [{ id: 'templates-empty', title: 'No skill templates here', detail: 'Save a skill template in Guild Wars, then retry.', group: 'Sources', action: 'Refresh templates', run: async () => { await readTemplates(); refresh(); } }] : [])];
@@ -330,7 +330,7 @@ export function createHubLibrary(controller: LibraryController, host: ToolsHost,
   }
   /** Reads the template files, then opens them, unless the player moved on or closed the Hub meanwhile (HUB-004). */
   async function openTemplates(task: HubTask) { try { await readTemplates(); } catch { templateProblem = 'Could not read templates.'; } if (task.live()) browseTemplates(); }
-  const libraryRow = (): HubRow => ({ id: 'builds', title: TOOL_PRESENTATION['build-management'].label, detail: 'Browse saved builds and teams', aliases: ['library', 'lib', 'bu', 'build', 'builds', 'team', 'teams', 'skills', 'templates'], keywords: 'templates skills folders builds teams', group: 'Tools', action: 'Browse builds', navigate() { browseLibrary(); }, run: () => browseLibrary() });
+  const libraryRow = (): HubRow => ({ id: 'builds', iconKind: 'builds', title: TOOL_PRESENTATION['build-management'].label, detail: 'Browse saved builds and teams', aliases: ['library', 'lib', 'bu', 'build', 'builds', 'team', 'teams', 'skills', 'templates'], keywords: 'templates skills folders builds teams', group: 'Tools', action: 'Browse builds', navigate() { browseLibrary(); }, run: () => browseLibrary() });
   function browseLibrary(query = '') {
     hub.showRows('Build Library', () => {
       const items = all();
@@ -338,7 +338,7 @@ export function createHubLibrary(controller: LibraryController, host: ToolsHost,
       for (const item of items) if (item.kind === 'build') names.set(item.value.name, (names.get(item.value.name) ?? 0) + 1);
       return [
         ...items.filter((item): item is Item & { kind: 'team' } => item.kind === 'team').map(item => teamRow(item)),
-        { id: 'game-templates', title: 'Guild Wars templates', detail: 'Your existing skill template files and folders', group: 'Builds', action: 'Browse templates', navigate: openTemplates, run: openTemplates },
+        { id: 'game-templates', iconKind: 'folder', title: 'Guild Wars templates', detail: 'Your existing skill template files and folders', group: 'Builds', action: 'Browse templates', navigate: openTemplates, run: openTemplates },
         ...items.filter((item): item is Item & { kind: 'build' } => item.kind === 'build' && !String(item.value.id).startsWith('template:')).map(item => buildRow(item, (names.get(item.value.name) ?? 0) > 1)),
         ...templateStates(),
       ];
@@ -413,7 +413,7 @@ export function createHubLibrary(controller: LibraryController, host: ToolsHost,
     // Browsing never needs an apply snapshot; only an explicit unique team action does.
     const expected = direct ? revision(item) : '';
     const refusal = direct ? assess(item, null) : null;
-    return { id: `team:${item.value.id}`, title: item.value.name, detail: teamDetail(item),
+    return { id: `team:${item.value.id}`, iconKind: 'team', title: item.value.name, detail: teamDetail(item),
       group: 'Teams', preview: preview(item), action: direct ? `Apply team ${item.value.name}` : `Review ${item.value.name}`, consequential: direct, navigate: () => review(item),
       ...(refusal ? { unavailable: refusal } : {}), ...(direct ? { pending: applyPending(item.value.name) } : {}), actions: () => workspaceActions(item),
       run: task => direct ? apply(item, expected, null, task) : review(item) };
@@ -437,9 +437,9 @@ export function createHubLibrary(controller: LibraryController, host: ToolsHost,
     search(query) {
       const parsed = parseHubQuery(['team', 'teams'].includes(query.trim().toLowerCase()) ? 'team ' : query);
       if (parsed.scope && parsed.scope !== 'team' && parsed.scope !== 'build') return [];
-      if (parsed.scope === 'team' && controller.loading.value) return [{ id: 'teams-loading', title: 'Loading teams…', detail: '', group: 'Teams', action: 'Loading teams', unavailable: 'Build Library is loading.', run() {} }];
+      if (parsed.scope === 'team' && controller.loading.value) return [{ id: 'teams-loading', iconKind: 'team', title: 'Loading teams…', detail: '', group: 'Teams', action: 'Loading teams', unavailable: 'Build Library is loading.', run() {} }];
       // Bare and scoped team queries list every team; build and library words open the library.
-      if ((!parsed.term && parsed.scope !== 'team') || ['build', 'builds', 'build library', 'templates', 'library', 'lib', 'bu', 'skills'].includes(query.trim().toLowerCase()) && parsed.scope !== 'team') return [libraryRow(), ...(!query.trim() ? controller.recentBuilds.value.flatMap(recent => { const item = all().find((item): item is Item & { kind: 'build' } => item.kind === 'build' && item.value.id === recent.id); return item ? [{ ...buildRow(item), id: `recent:${recent.id}:${recent.hero ?? 'me'}`, detail: `Recently applied to ${targetName(recent.hero)}`, group: 'Continue', run: () => chooseBuild(item, recent.hero), navigate: () => chooseBuild(item, recent.hero) }] : []; }) : templateStates())];
+      if ((!parsed.term && parsed.scope !== 'team') || ['build', 'builds', 'build library', 'templates', 'library', 'lib', 'bu', 'skills'].includes(query.trim().toLowerCase()) && parsed.scope !== 'team') return [libraryRow(), ...(!query.trim() ? controller.recentBuilds.value.flatMap(recent => { const item = all().find((item): item is Item & { kind: 'build' } => item.kind === 'build' && item.value.id === recent.id); return item ? [{ ...buildRow(item), id: `recent:${recent.id}:${recent.hero ?? 'me'}`, iconKind: 'command' as const, detail: `Recently applied to ${targetName(recent.hero)}`, group: 'Continue', run: () => chooseBuild(item, recent.hero), navigate: () => chooseBuild(item, recent.hero) }] : []; }) : templateStates())];
       const items = all();
       const names = new Map<string, number>();
       for (const item of items) if (item.kind === 'build') names.set(item.value.name, (names.get(item.value.name) ?? 0) + 1);
@@ -462,7 +462,7 @@ export function createHubLibrary(controller: LibraryController, host: ToolsHost,
       const shown = parsed.scope ? ordered : ordered.filter(item => ++seen[item.kind] <= 8);
       const more: HubRow[] = parsed.scope ? [] : (['team', 'build'] as const).flatMap(kind => {
         const total = ordered.filter(item => item.kind === kind).length;
-        return total > 8 ? [{ id: `${kind}s:more`, title: `${total - 8} more — open in Build Library`, detail: '', group: kind === 'build' ? 'Builds' : 'Teams', action: 'Open in Build Library', navigate: () => browseLibrary(parsed.term), run: () => browseLibrary(parsed.term) }] : [];
+        return total > 8 ? [{ id: `${kind}s:more`, iconKind: kind === 'build' ? 'builds' : 'team', title: `${total - 8} more — open in Build Library`, detail: '', group: kind === 'build' ? 'Builds' : 'Teams', action: 'Open in Build Library', navigate: () => browseLibrary(parsed.term), run: () => browseLibrary(parsed.term) }] : [];
       });
       return [...(['team', 'teams'].includes(query.toLowerCase()) ? [libraryRow()] : []), ...shown.map(item => {
         if (item.kind === 'build') return buildRow(item, (names.get(item.value.name) ?? 0) > 1);

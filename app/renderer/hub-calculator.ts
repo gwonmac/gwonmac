@@ -56,7 +56,7 @@ export function createHubCalculator(options: {
   }
   const result=(id:string,title:string,detail:string,value:string):HubRow=>({id,title,detail,group:'Calculator',action:'Copy result',run:()=>options.copy(value,title)});
   const titleRows=(entries:NonNullable<ReturnType<typeof calculateTitle>>):HubRow[]=>entries.map((entry,index)=>({
-    id:`title:${index}`,title:entry.title,detail:entry.example&&!entry.detail.includes(entry.example)?`${entry.detail} · ${entry.example}`:entry.detail,group:'Titles',
+    id:`title:${index}`,iconKind:'title',title:entry.title,detail:entry.example&&!entry.detail.includes(entry.example)?`${entry.detail} · ${entry.example}`:entry.detail,group:'Titles',
     ...(entry.problem?{unavailable:entry.title}:{}),
     ...(!entry.input&&!entry.example&&!entry.problem?{preview:entry.detail}:{}),
     action:entry.problem?'Edit calculation':entry.next?'Compare items':entry.example?'Try example':'Copy result',
@@ -77,7 +77,7 @@ export function createHubCalculator(options: {
   /** The calculator's own tools, found by their words (HUB-063). */
   function calculatorCommands(term:string):HubRow[]{
     return [
-      {id:'title:help',title:'Title calculator',detail:'Points, items needed and offer comparisons',keywords:'titles calc calculator points party',group:'Commands',action:'Open calculator',searchQuery:'titles',run(){}},
+      {id:'title:help',iconKind:'title' as const,title:'Title calculator',detail:'Points, items needed and offer comparisons',keywords:'titles calc calculator points party',group:'Commands',action:'Open calculator',searchQuery:'titles',run(){}},
       {id:'currency-rates',title:'Conversion rates',detail:settings().mode==='manual'?'Your rates':'Automatic observed prices',keywords:'rate currency exchange calc ecto platinum gold',group:'Calculator',action:'Choose rates',run:()=>editRates()},
     ].filter(row=>hubTier(row,term)!==null);
   }
@@ -89,7 +89,7 @@ export function createHubCalculator(options: {
     search(query){
       const saved=settings(),manual=saved.mode==='manual',rates={ecto:saved.ecto,armbrace:saved.armbrace,zkey:saved.zkey};
       const term=query.toLowerCase().trim().replace(/\s+/gu,' ');
-      if(!term){clear();return [{id:'title:help',title:'Title calculator',detail:'Points, items needed and offer comparisons',group:'Commands',action:'Open calculator',searchQuery:'titles',run(){}}];}
+      if(!term){clear();return [{id:'title:help',iconKind:'title' as const,title:'Title calculator',detail:'Points, items needed and offer comparisons',group:'Commands',action:'Open calculator',searchQuery:'titles',run(){}}];}
       const titleResults=calculateTitle(term);
       if(titleResults){clear();return [...titleRows(titleResults),...(term==='titles'||term==='title calculator'?[]:calculatorCommands(term))];}
       if(term==='rates'||term==='conversion rates')return [{id:'currency-rates',title:'Conversion rates',detail:settings().mode==='manual'?'Your rates':'Automatic observed prices',group:'Calculator',action:'Choose rates',run:()=>editRates()}];
