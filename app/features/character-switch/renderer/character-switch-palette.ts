@@ -2,23 +2,23 @@
  * Owns the Core Command-E character palette, including focus and keyboard use.
  * It renders one bounded source and never reads game memory or native exports.
  */
-import { HUB_SEARCH_GLYPH } from '../shared/ui/hub-search.js';
-import { installSearchEditing, resumeSearchInput } from "./search-input.js";
-import { isHubBackKey } from "../shared/keyboard-shortcuts.js";
-import { hubMatch, normaliseHubQuery, type HubViewFooter } from "../shared/hub.js";
+import { HUB_SEARCH_GLYPH } from '../../../shared/ui/hub-search.js';
+import { installSearchEditing, resumeSearchInput } from "../../../renderer/search-input.js";
+import { isHubBackKey } from "../../../shared/keyboard-shortcuts.js";
+import { hubMatch, normaliseHubQuery, type HubViewFooter } from "../../../shared/hub.js";
 import type {
   CharacterSummary,
-} from "./companion-character-list-snapshot.js";
-import { professionPresentation } from "../shared/profession-assets.js";
-import { travelDestination } from "../shared/travel-destinations.js";
+} from "../../../renderer/companion-character-list-snapshot.js";
+import { professionPresentation } from "../../../shared/profession-assets.js";
+import { travelDestination } from "../../../shared/travel-destinations.js";
 import type {
   CharacterSwitchFailureCode,
   CharacterSwitchSource,
-} from "./character-switch-model.js";
-import { currentCharacterIndex } from "./character-switch-model.js";
-import { closeDisclosure } from "./surface-controller.js";
-import { bindLeaveAreaChoice, leaveAreaCopy } from "./leave-area.js";
-import { listIndexAfter, listKeyStep } from "../shared/ui/list-keys.js";
+} from "../../../renderer/character-switch-model.js";
+import { currentCharacterIndex } from "../../../renderer/character-switch-model.js";
+import { closeDisclosure } from "../../../renderer/surface-controller.js";
+import { bindLeaveAreaChoice, leaveAreaCopy } from "../../../renderer/leave-area.js";
+import { listIndexAfter, listKeyStep } from "../../../shared/ui/list-keys.js";
 
 const failureMessage = (code: CharacterSwitchFailureCode): string => {
   switch (code) {

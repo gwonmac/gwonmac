@@ -5,7 +5,7 @@
 import { matchHubRows, normaliseHubQuery, parseHubQuery, type HubRow, type HubSource } from '../shared/hub.js';
 import { professionPresentation } from '../shared/profession-assets.js';
 import { currentCharacterIndex, type CharacterSwitchSource } from "./character-switch-model.js";
-import { characterSwitchRefusal, createCharacterSwitchPalette } from "./character-switch-palette.js";
+import { characterSwitchRefusal, createCharacterSwitchPalette } from "../features/character-switch/renderer/character-switch-palette.js";
 
 export interface CharacterSwitchHost {
   attach(source: CharacterSwitchSource): () => void;
