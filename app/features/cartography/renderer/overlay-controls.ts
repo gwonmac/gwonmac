@@ -20,6 +20,7 @@ import {
   projectCompassControlPosition,
   type CompassControlPlacement,
 } from "./compass-control-placement.js";
+import { isolateFromGame } from "../../../renderer/non-activating-surface.js";
 
 const PANEL_WIDTH = 204;
 const PANEL_HEIGHT_ESTIMATE = 230;
@@ -420,9 +421,7 @@ export function createCartographyOverlayControls(options: Readonly<{
       sync(true);
     });
   };
-  for (const type of ["pointerdown", "pointerup", "click", "wheel", "keydown", "keyup"]) {
-    root.addEventListener(type, (event) => event.stopPropagation());
-  }
+  isolateFromGame(root);
   trigger.addEventListener("click", () => setOpen(!open));
   root.addEventListener("keydown", (event) => {
     if (event.key !== "Escape" || !open) return;
