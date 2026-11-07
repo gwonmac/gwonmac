@@ -136,6 +136,7 @@ export function createLauncherService(input: Readonly<{
       await (toolsRuntime?.resetSettings() ?? preferences.resetCoreSettings());
       await launcherState.resetPresentation();
       await texturePacks.select(null);
+      logEvent({ k: "settings.reset" });
       orchestrator.publish();
     },
     captureShortcut: (win, action) => captureLauncherShortcut(

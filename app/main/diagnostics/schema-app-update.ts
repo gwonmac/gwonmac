@@ -81,20 +81,6 @@ export const APP_AND_UPDATE_EVENT_SCHEMA = {
     level: "error",
     fields: { code },
   },
-  "app.relaunchFailed": {
-    scope: "app",
-    subsystem: "app",
-    level: "error",
-    fields: {
-      action: literal([
-        "capabilityEnable",
-        "capabilityUnload",
-        "cacheClear",
-        "gameStorageReset",
-      ] as const),
-      code,
-    },
-  },
   "app.beforeQuit": { scope: "app", subsystem: "app", level: "info", fields: none },
   "app.unexpectedUserData": {
     scope: "app",
@@ -458,12 +444,6 @@ export const APP_AND_UPDATE_EVENT_SCHEMA = {
     level: "error",
     fields: { code },
   },
-  "settings.resetFailed": {
-    scope: "app",
-    subsystem: "settings",
-    level: "error",
-    fields: { code },
-  },
   "credentials.loadFailed": {
     scope: "owner",
     subsystem: "credentials",
@@ -542,23 +522,11 @@ export const APP_AND_UPDATE_EVENT_SCHEMA = {
     level: "info",
     fields: { outcome: steamSignInOutcome },
   },
-  "filesystem.resetRequested": {
-    scope: "owner",
-    subsystem: "filesystem",
-    level: "warn",
-    fields: none,
-  },
   "filesystem.resetCompleted": {
     scope: "owner",
     subsystem: "filesystem",
     level: "warn",
     fields: none,
-  },
-  "filesystem.resetFailed": {
-    scope: "owner",
-    subsystem: "filesystem",
-    level: "error",
-    fields: { code },
   },
   /**
    * How many build templates an export wrote, and nothing about them. No
@@ -585,24 +553,6 @@ export const APP_AND_UPDATE_EVENT_SCHEMA = {
   },
 
   // Chunk cache and full download.
-  "cache.infoFailed": {
-    scope: "app",
-    subsystem: "cache",
-    level: "error",
-    fields: { code },
-  },
-  "cache.clearRequested": {
-    scope: "app",
-    subsystem: "cache",
-    level: "info",
-    fields: none,
-  },
-  "cache.clearRequestFailed": {
-    scope: "app",
-    subsystem: "cache",
-    level: "error",
-    fields: { code },
-  },
   "cache.clearedAtStartup": {
     scope: "app",
     subsystem: "cache",
@@ -799,12 +749,6 @@ export const APP_AND_UPDATE_EVENT_SCHEMA = {
     subsystem: "update",
     level: "error",
     fields: { code, fallbackCode: code },
-  },
-  "client.candidatePromotionFailed": {
-    scope: "app",
-    subsystem: "update",
-    level: "error",
-    fields: { code },
   },
   "client.candidatePromoted": {
     scope: "app",

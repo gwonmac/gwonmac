@@ -184,12 +184,6 @@ function plainMilestoneSchema<const Names extends readonly string[]>(
 
 export const PROTOCOL_AND_RENDERER_EVENT_SCHEMA = {
   // Protocol requests and their four closed span families.
-  "protocol.installed": {
-    scope: "app",
-    subsystem: "protocol",
-    level: "info",
-    fields: none,
-  },
   "dns.resolve.begin": {
     scope: "owner",
     subsystem: "dns",
