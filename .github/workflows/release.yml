@@ -59,8 +59,9 @@ jobs:
             echo "Release v$VERSION exists. Choose a higher version." >&2
             exit 1
           fi
-          tagged="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v$VERSION" --jq .object.sha 2>/dev/null || true)"
-          if [ -n "$tagged" ] && [ "$tagged" != "$GITHUB_SHA" ]; then
+          # gh api prints the 404 body on stdout, so only a successful lookup names a tagged commit.
+          if tagged="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v$VERSION" --jq .object.sha 2>/dev/null)" \
+            && [ "$tagged" != "$GITHUB_SHA" ]; then
             echo "Tag v$VERSION points at $tagged, not $GITHUB_SHA." >&2
             exit 1
           fi
