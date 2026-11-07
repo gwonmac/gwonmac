@@ -36,6 +36,24 @@ export type HubGlyphs = Readonly<{
   segments: readonly Readonly<{ text: string; token?: Readonly<{ start: number; end: number; unit: string }> }>[];
   icons: readonly Readonly<{ url: string; unit: string; left: number }>[];
 }>;
+/**
+ * The Hub's focus zones. `results` is the list stage: DOM focus stays in the Hub search and the
+ * selection moves by aria-activedescendant (D-2). `search` is the page's search: the Hub
+ * search, else a view's own search field.
+ */
+export type HubFocusZone = 'search' | 'heading' | 'results' | 'view' | 'footer' | 'menu';
+/**
+ * Where the keyboard should be. A key names one control (its `data-focus-key`); without a key,
+ * the zone's first control. A key that is gone, or a zone that is not shown, falls back to the
+ * search when it shows, else the view's first control, else Back. `range` is a text selection.
+ */
+export type HubFocusTarget = Readonly<{ zone: HubFocusZone; key?: string; range?: readonly [number, number] }>;
+/** A focus target the view applies once after the paint that carries a new `seq`. */
+export type HubFocusRequest = HubFocusTarget & Readonly<{
+  seq: number;
+  /** A restored page's key may mount late (a loading view): it still takes the keyboard until the player acts. */
+  wait?: boolean;
+}>;
 export type HubPrimary = Readonly<{ label: string; art?: string; keycap: boolean; disabled: boolean; variant: 'primary' | 'danger' }>;
 export type HubReceipt = Readonly<{
   text: string; announcement: string; hidden: boolean;
