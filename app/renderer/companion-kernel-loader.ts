@@ -51,13 +51,20 @@ type LoadedCompanionKernel = Readonly<{
   sha256: string;
 }>;
 
+/** The kernel regions Core allocates; an extension may supply any other one. */
+export type CoreKernelRegion =
+  "snapshot" | "config" | "cursor" | "toolbox" | "party" | "playRegion" | "characterList";
+
 type CompanionKernelRequest = Readonly<{
   memory: WebAssembly.Memory;
   runtimePointer: number;
   featureFlags: number;
   friendRoot: number;
-  /** A region left out is not installed; the configuration always is. */
-  regions: Readonly<Partial<CompanionKernelRegions> & Pick<CompanionKernelRegions, "config">>;
+  /** Core's regions are always installed; an extension region left out is not. */
+  regions: Readonly<
+    Pick<CompanionKernelRegions, CoreKernelRegion>
+    & Partial<Omit<CompanionKernelRegions, CoreKernelRegion>>
+  >;
 }>;
 
 const signatureModule = new WebAssembly.Module(companionKernelSignatureBytes());

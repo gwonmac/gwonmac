@@ -12,7 +12,7 @@ import type {
   CompanionCoreMemoryNeeds,
   allocateCompanionCoreMemory,
 } from "./companion-core-memory-installation.js";
-import type { installCompanionKernel } from "./companion-kernel-loader.js";
+import type { CoreKernelRegion, installCompanionKernel } from "./companion-kernel-loader.js";
 import type {
   OptionalObserverReaders,
   SkillCooldownConsumer,
@@ -27,9 +27,6 @@ import type { createPlayRegionObservationInstallation } from "./play-region-stat
 type CoreMemory = ReturnType<typeof allocateCompanionCoreMemory>;
 type Kernel = Awaited<ReturnType<typeof installCompanionKernel>>;
 type PlayRegions = ReturnType<typeof createPlayRegionObservationInstallation>;
-/** The kernel regions Core allocates; an extension may supply any other one. */
-type CoreKernelRegion =
-  "snapshot" | "config" | "cursor" | "toolbox" | "party" | "playRegion" | "characterList";
 
 export type CompanionObserverExtension = Readonly<{
   pollers: readonly { poll(): void; enabled?(): boolean }[];
