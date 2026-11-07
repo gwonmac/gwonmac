@@ -64,6 +64,18 @@ function buildMatcher(query: string): (build: Build) => boolean {
   };
 }
 
+type BuildDetailsHub = Pick<HubPresenter<HTMLElement>, 'showView'>;
+/** Build details: every build's skills and attributes on a page of its own, owned by `owner`. */
+export const buildDetailsAction = (hub: BuildDetailsHub, builds: readonly HubBuildDetail[], owner?: HubSource): HubAction => ({
+  label: 'Show build details',
+  run: () => hub.showView('Build details', (target, _back, _footer, pages) => {
+    const page = pages.mount('buildDetails', target, { builds }); page.element.focus(); return page.dispose;
+  }, undefined, undefined, owner),
+});
+/** Every row on a target page shows the build to apply beside the row's own in Build details, after the row's own actions. */
+export const withBuildDetails = (hub: BuildDetailsHub, summary: HubBuildDetail, rows: readonly HubRow[], owner?: HubSource): HubRow[] =>
+  rows.map((row): HubRow => ({ ...row, actions: () => [...row.actions?.() ?? [], buildDetailsAction(hub, [summary, row], owner)] }));
+
 export function createHubLibrary(controller: LibraryController, host: ToolsHost, hub: HubPresenter<HTMLElement>, openWorkspace?: (item: Build | Team) => void) {
   let templates: readonly Build[] = [];
   let templateProblem = '';
@@ -258,10 +270,6 @@ export function createHubLibrary(controller: LibraryController, host: ToolsHost,
   /** Opens a saved build or team in the Build Library; Guild Wars templates have no record there. */
   const workspaceActions = (item: Item): HubAction[] => openWorkspace && (item.kind === 'team' || templateFolder(item.value) === null)
     ? [{ label: HUB_WORKSPACE_ACTION, run: () => openWorkspace(item.value) }] : [];
-  /** Build details: every build row's skills and attributes, beside the build to apply on a target page. */
-  const detailsAction = (builds: readonly HubBuildDetail[]): HubAction => ({ label: 'Show build details', run: () => hub.showView('Build details', (target, _back, _footer, pages) => {
-    const page = pages.mount('buildDetails', target, { builds }); page.element.focus(); return page.dispose;
-  }, undefined, undefined, source) });
   function chooseBuild(item: Item & { kind: 'build' }, recentHero?: HeroId | null) {
     const expected = revision(item);
     const summary = { ...workspace(item.value), label: 'Build to apply', title: item.value.name, detail: '', folder: templateFolder(item.value), skills: skillPreview(item.value), attributes: buildAttributes(item.value.attributes), professions: buildProfessions(item.value.professions) };
@@ -275,8 +283,7 @@ export function createHubLibrary(controller: LibraryController, host: ToolsHost,
         action: applyAction(item.value, hero), consequential: true, pending: applyPending(item.value.name),
         ...(refusal ? { unavailable: refusal } : {}), run: task => apply(item, expected, hero, task) };
     };
-    // Every row on a target page shows the build to apply beside the target's own in Build details.
-    const withDetails = (rows: readonly HubRow[]) => rows.map((row): HubRow => ({ ...row, actions: () => [detailsAction([summary, row])] }));
+    const withDetails = (rows: readonly HubRow[]) => withBuildDetails(hub, summary, rows, source);
     function compareTarget(hero: HeroId | null) {
       hub.showRows(targetName(hero), () => withDetails([applyRow(hero, hero === null ? 'Apply to me' : `Apply to ${targetName(hero)}`)]), summary, undefined, source);
     }
@@ -309,7 +316,7 @@ export function createHubLibrary(controller: LibraryController, host: ToolsHost,
     const row: HubRow = { id: `build:${item.value.id}`, iconKind: 'builds', title: item.value.name, detail: duplicate ? (templateFolder(item.value) === null ? 'Saved library' : 'Guild Wars templates') : '', matches: query => buildMatcher(query)(item.value), folder: templateFolder(item.value), professions: buildProfessions(item.value.professions),
     keywords: [item.value.professions[0], PROFESSIONS[item.value.professions[0]].name, ...item.value.tags, templateFolder(item.value)?.replaceAll('/', ' ') ?? '', templateFolder(item.value) ?? ''].join(' '),
     group: 'Builds', attributes: buildAttributes(item.value.attributes), skills: skillPreview(item.value), action: 'Choose target', navigate: () => chooseBuild(item), run: () => chooseBuild(item),
-    actions: () => [detailsAction([{ ...row, ...workspace(item.value) }]), ...workspaceActions(item)] };
+    actions: () => [buildDetailsAction(hub, [{ ...row, ...workspace(item.value) }], source), ...workspaceActions(item)] };
     return row;
   }
   const templateStates = (): HubRow[] => [

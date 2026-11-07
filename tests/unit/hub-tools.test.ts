@@ -7,6 +7,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { FEATURES } from '../../app/features/index.ts';
+import { FEATURE_SELECTION_POLICIES } from '../../app/shared/feature-contracts.ts';
+import { createHubCommands } from '../../app/renderer/hub-commands.ts';
 import { HUB_TOOL_ORDER, HUB_TOOL_ROWS } from '../../app/shared/hub-tools.ts';
 import { matchHubRows } from '../../app/shared/hub.ts';
 
@@ -27,9 +29,18 @@ const OLD_HUB_WORDS = [
   ['maps', 'grid terrain compass opacity'],
 ] as const;
 
+/** Settings with every feature selected, so the Hub's commands list every Tools row. */
+const everyFeature = Object.fromEntries(Object.values(FEATURE_SELECTION_POLICIES).flatMap(({ activation }) =>
+  [[activation.setting, true], ...('master' in activation ? [[activation.master, true]] : [])]));
+
 test('every word a Tools row answered still finds it', () => {
-  // The rows as hub-commands.ts draws them: the manifest's title and keywords, nothing else.
-  const rows = HUB_TOOL_ROWS.map(tool => ({ id: tool.id, title: tool.title, detail: tool.detail, keywords: tool.keywords, group: 'Tools', action: tool.action ?? `Open ${tool.title}`, run() {} }));
+  // The Tools rows as the Hub's built-in commands draw them (hub-commands.ts).
+  Object.assign(globalThis, { window: { gwToolsSettings: () => everyFeature } });
+  const hub = { close() {}, show() {}, showRows() {}, suspend() {}, shortcuts: { lookup: () => undefined } };
+  const { commands } = createHubCommands(hub, () => async () => {});
+  assert.ok(commands);
+  const rows = commands('').filter(row => row.group === 'Tools');
+  assert.deepEqual(rows.map(row => row.id), HUB_TOOL_ROWS.map(tool => tool.id));
   for (const [id, words] of OLD_HUB_WORDS) for (const word of words.split(' ')) {
     assert.ok(matchHubRows(rows, word).some(row => row.id === id), `${word} finds ${id}`);
   }

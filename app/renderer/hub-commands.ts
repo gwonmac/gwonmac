@@ -21,8 +21,11 @@ const dispatch = (name: string, detail?: unknown) => {
   }
 };
 
+/** The Hub as its commands use it: to close, suspend or show it, open a page, and find a saved row. */
+type CommandsHub = Pick<Hub, 'close' | 'show' | 'showRows' | 'suspend'> & Readonly<{ shortcuts: Pick<Hub['shortcuts'], 'lookup'> }>;
+
 /** `openSettings` is the Settings source's row action, at a section or control when given. */
-export function createHubCommands(hub: Hub, openSettings: (target?: SettingsTarget) => (task: HubTask) => Promise<void>): HubSource {
+export function createHubCommands(hub: CommandsHub, openSettings: (target?: SettingsTarget) => (task: HubTask) => Promise<void>): HubSource {
   /** The command rows; launcher, website and reload are for a typed search only. */
   const commands = (query: string): HubRow[] => {
     const settings = window.gwToolsSettings?.() ?? {};

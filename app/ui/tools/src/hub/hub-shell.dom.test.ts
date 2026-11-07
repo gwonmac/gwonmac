@@ -17,6 +17,7 @@ import { createHub } from '../../../../renderer/hub';
 import { withHubBuiltins } from '../../../../renderer/hub-builtins';
 import { describeFocus, serializeDom } from './dom-snapshot';
 import { mountHubView } from './embedded';
+import { withBuildDetails } from '../hub-library';
 
 const dom = () => [...document.body.children].flatMap(child => serializeDom(child)).join('\n');
 const views: string[] = [];
@@ -53,10 +54,6 @@ afterEach(() => { window.gwHub?.dispose(); vi.useRealTimers(); });
 const skills = Array.from({ length: 3 }, (_, index) => ({ name: `Skill ${index + 1}`, iconUrl: `skill-${index + 1}.png`, elite: index === 0, ...(index === 2 ? { changed: true, description: 'Hits hard.' } : {}) }));
 const attributes = [{ name: 'Healing Prayers', icon: 'monk.png', attributes: [{ name: 'Healing Prayers', label: 'HP', rank: 12, nextRank: 11 }, { name: 'Divine Favor', label: 'DF', rank: 9 }] }];
 const professions = [{ code: 'Mo', name: 'Monk', icon: 'mo.png' }, { code: 'Me', name: 'Mesmer', icon: 'me.png' }];
-/** Every row on a page with a build summary offers Build details beside it, as the Library's target pages do. */
-const details = (row: HubRow): HubRow => ({ ...row, actions: () => [...row.actions?.() ?? [], { label: 'Show build details', run: () => window.gwHub?.showView('Build details', (target, _back, _footer, pages) => {
-  const page = pages.mount('buildDetails', target, { builds: [summary, row] }); page.element.focus(); return page.dispose;
-}) }] });
 const sectionBase: readonly HubRow[] = [
   { id: 'build:1', iconKind: 'builds', title: 'Healer', detail: 'Monk build', group: 'Builds', action: 'Apply build', skills, attributes, professions, folder: 'PvE', consequential: true, run() {} },
   { id: 'build:2', iconKind: 'builds', title: 'Status build', detail: 'No attributes', group: 'Builds', action: 'Apply build', skills: skills.slice(0, 1), attributeStatus: 'Attributes unavailable', folder: '', run() {} },
@@ -66,7 +63,6 @@ const sectionBase: readonly HubRow[] = [
   { id: 'danger:1', title: 'Delete', detail: 'Remove it', group: 'Commands', action: 'Delete', destructive: true, readOnly: true, preview: 'Line one\nLine two', run() {} },
   { id: 'off:1', title: 'Unavailable', detail: 'Not now', group: 'Commands', action: 'Use', unavailable: 'Not in an outpost.', run() {} },
 ];
-const sectionRows = (): readonly HubRow[] => sectionBase.map(details);
 const summary = { label: 'Current build', title: 'Healer', detail: 'Your build', skills, attributes, professions, folder: 'PvE' };
 
 test('the Hub keeps its DOM structure, classes, ARIA and focus in every main view', async () => {
@@ -89,7 +85,8 @@ test('the Hub keeps its DOM structure, classes, ARIA and focus in every main vie
   input.value = '1p in g'; input.dispatchEvent(new Event('input', { bubbles: true })); await settle();
   capture('calculator query');
 
-  hub.showRows('Builds', sectionRows, summary, 'builds'); await settle();
+  // Every row offers Build details as the Library's target pages do (hub-library.ts).
+  hub.showRows('Builds', () => withBuildDetails(hub, summary, sectionBase), summary, 'builds'); await settle();
   capture('section');
   key(input, { key: 'ArrowDown' }); key(input, { key: 'ArrowDown' }); await settle();
   capture('section, quote selected');
