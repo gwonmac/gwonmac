@@ -25,11 +25,13 @@ import { resolveShortcuts } from "../shared/keyboard-shortcuts.js";
 interface LauncherAccountsOwner {
   state(): AccountsState;
   validateOpenable(ids: readonly ProfileId[]): void;
-  queue(ids: readonly ProfileId[]): void;
+  /** Queues the profiles Play should open and returns them. */
+  queue(ids: readonly ProfileId[]): readonly ProfileId[];
   releaseQueued(ids: readonly ProfileId[]): void;
   releaseAllQueued(): void;
-  drain(): Promise<void>;
-  isOpen(id: ProfileId): boolean;
+  /** Resolves once none of `ids` waits; rejects only with a failure of one of them. */
+  drain(ids: readonly ProfileId[]): Promise<void>;
+  readonly draining: boolean;
   show(id: ProfileId): boolean;
 }
 
@@ -121,20 +123,6 @@ export class LauncherOrchestrator {
 
   async play(ids: readonly ProfileId[]): Promise<void> {
     this.options.accounts.validateOpenable(ids);
-    // Launch intent is independent of the remembered batch selection.
-    const runtime = new Map(
-      this.options.accounts.state().profiles.map((profile) => [profile.id, profile]),
-    );
-    const launchable = ids.filter((id) => {
-      const profile = runtime.get(id);
-      if (!profile || profile.archived) return false;
-      if (profile.state === "failed") return true;
-      return profile.state === "ready" && !this.options.accounts.isOpen(id);
-    });
-    if (launchable.length === 0) {
-      this.publish();
-      return;
-    }
     const playable = this.options.hasActiveClient() || this.options.allowUnreadyLaunch === true;
     if (!playable && this.options.getProgress().phase === "error") {
       // Repair is one global launcher state, not a profile launch failure.
@@ -143,9 +131,15 @@ export class LauncherOrchestrator {
       this.publish();
       return;
     }
-    this.options.accounts.queue(launchable);
+    // Launch intent is independent of the remembered batch selection.
+    const active = new Set(
+      this.options.accounts.state().profiles
+        .filter((profile) => !profile.archived)
+        .map((profile) => profile.id),
+    );
+    const queued = this.options.accounts.queue(ids.filter((id) => active.has(id)));
     // Without a playable client the queue waits until clientChanged drains it.
-    if (playable) await this.options.accounts.drain();
+    if (playable && queued.length > 0) await this.options.accounts.drain(queued);
     this.publish();
   }
 
@@ -161,16 +155,19 @@ export class LauncherOrchestrator {
   }
 
   clientChanged(): void {
-    const waiting = this.options.accounts.state().profiles.some((profile) => profile.state === "queued");
+    const waiting = this.options.accounts.state().profiles
+      .filter((profile) => profile.state === "queued")
+      .map((profile) => profile.id);
     if (this.options.hasActiveClient()) {
-      if (waiting) {
+      // A running drain already takes every waiting profile.
+      if (waiting.length > 0 && !this.options.accounts.draining) {
         // Per-profile failures are already on each row; the launcher shows them.
-        void this.options.accounts.drain().catch(() => undefined).finally(() => this.publish());
+        void this.options.accounts.drain(waiting).catch(() => undefined).finally(() => this.publish());
       }
       this.publish();
       return;
     }
-    if (this.options.getProgress().phase === "error" && waiting) {
+    if (this.options.getProgress().phase === "error" && waiting.length > 0) {
       this.options.accounts.releaseAllQueued();
       this.publish();
     }

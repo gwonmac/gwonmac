@@ -7,7 +7,7 @@ import { DEFAULT_SETTINGS, type AccountsState, type DownloadProgress } from "../
 import type { LauncherSnapshot } from "../../app/shared/launcher-contracts.ts";
 import { LauncherStateStore, loadOrCreateLauncherState } from "../../app/main/core/launcher-state.ts";
 import { Mutex } from "../../app/main/core/mutex.ts";
-import { drainLaunchQueue, ProfileRuntimeStore } from "../../app/main/core/profile-runtime.ts";
+import { drainLaunchQueue, LaunchDrain, ProfileRuntimeStore } from "../../app/main/core/profile-runtime.ts";
 import { LauncherOrchestrator } from "../../app/main/launcher-orchestrator.ts";
 import { parseProfileId, type ProfileId } from "../../app/shared/multiple-accounts.ts";
 
@@ -20,13 +20,14 @@ afterEach(async () => {
 });
 
 /**
- * The controller's queue and drain are the real ones; only opening a window
- * is replaced, by a step that can be held open with `blocker`.
+ * The controller's queue, play rule and drain are the real ones; only opening
+ * a window is replaced, by a step that can be held open with `blocker`.
  */
 class AccountsFixture {
   readonly runtime = new ProfileRuntimeStore();
   readonly lock = new Mutex();
   opened: ProfileId[] = [];
+  retried: ProfileId[] = [];
   openProfiles = new Set<ProfileId>();
   blocker: Promise<void> | null = null;
 
@@ -52,8 +53,8 @@ class AccountsFixture {
     if (ids.some((id) => id !== first && id !== second)) throw new Error("unknown profile");
   }
 
-  queue(ids: readonly ProfileId[]): void {
-    this.runtime.queue(ids, (id) => this.openProfiles.has(id) && this.runtime.get(id).state !== "failed");
+  queue(ids: readonly ProfileId[]): readonly ProfileId[] {
+    return this.runtime.queue(ids, (id) => this.runtime.get(id), (id) => this.openProfiles.has(id));
   }
 
   releaseQueued(ids: readonly ProfileId[]): void {
@@ -64,24 +65,30 @@ class AccountsFixture {
     this.runtime.releaseQueued(this.runtime.waiting());
   }
 
-  async drain(): Promise<void> {
-    await drainLaunchQueue(this.runtime, this.lock, {
-      open: async (id) => {
-        this.opened.push(id);
-        this.runtime.set(id, "opening");
+  readonly #drain = new LaunchDrain(this.runtime, async () => {
+    const outcome = await drainLaunchQueue(this.runtime, this.lock, {
+      open: async ({ profileId, retry }) => {
+        this.opened.push(profileId);
+        if (retry) this.retried.push(profileId);
+        this.runtime.set(profileId, "opening");
         await this.blocker;
-        this.openProfiles.add(id);
-        this.runtime.set(id, "running");
+        this.openProfiles.add(profileId);
+        this.runtime.set(profileId, "running");
       },
       settle: async () => undefined,
     });
+    return outcome.failures;
+  });
+
+  drain(ids: readonly ProfileId[]): Promise<void> {
+    return this.#drain.drain(ids);
+  }
+
+  get draining(): boolean {
+    return this.#drain.running;
   }
 
   show(id: ProfileId): boolean {
-    return this.openProfiles.has(id);
-  }
-
-  isOpen(id: ProfileId): boolean {
     return this.openProfiles.has(id);
   }
 }
@@ -246,6 +253,7 @@ describe("main-owned launcher orchestration", () => {
     await value.orchestrator.play([first]);
 
     assert.deepEqual(value.accounts.opened, [first]);
+    assert.deepEqual(value.accounts.retried, [first]);
   });
 
   it("keeps global client failure out of profile-local failure state", async () => {

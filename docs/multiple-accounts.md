@@ -140,14 +140,18 @@ remain packaged macOS qualification boundaries.
 
 ## Launch queue and first frame
 
-The main process owns one ordered queue of requested profile IDs, kept by
-`MultipleAccountsController` with each profile's launch state: a profile is
-Waiting exactly while it is in the queue. Play always appends to the queue.
-With a playable client the queue drains at once; during first preparation the
+The main process owns one ordered queue of requested profile IDs, kept in
+`core/profile-runtime.ts` with each profile's launch state: a profile is
+Waiting exactly while it is in the queue. Play appends a Ready profile without
+a window, and a Failed one as a retry that replaces its window and starts with
+fresh renderer recovery, also after the player closed that window. With a
+playable client the queue drains at once; during first preparation the
 profiles wait and preparation continues independently. The drain opens one
 profile at a time and takes the next one from the queue each time, so Cancel
 waiting removes any profile that has not started, also while an earlier
-profile of the same Play is still opening. The first candidate window
+profile of the same Play is still opening. A Play that joins a running drain
+waits for its own profiles and fails only if one of them failed; new windows
+cascade from the first profile of each Play. The first candidate window
 completes the existing client canary before another profile starts; if the
 canary fails, every waiting profile returns to Ready. A global client failure
 moves the launcher to one repair state without marking every profile as
