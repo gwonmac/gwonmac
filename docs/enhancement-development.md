@@ -361,7 +361,7 @@ app/features/<id>/
 
 A tool's `event` is the one name of the renderer event that runs it: its
 shortcut's command fires it through `app/renderer/commands.ts`
-(`RENDERER_COMMAND_EVENTS` in `app/shared/shortcut-commands.ts`), and so does
+(`TOOL_COMMAND_EVENTS` in `app/shared/hub-tools.ts`), and so does
 its Core Hub row.
 
 Code that several features use stays where it is: the capability registry and

@@ -6,8 +6,7 @@
  * these rows against the query itself (HubSource `commands`); this module attaches them as one
  * built-in source (hub-builtins.ts).
  */
-import { HUB_TOOL_KEYS } from '../shared/tool-presentation.js';
-import { HUB_TOOL_ROWS } from '../shared/hub-tools.js';
+import { HUB_TOOL_KEYS, HUB_TOOL_ROWS } from '../shared/hub-tools.js';
 import { resolveShortcuts, shortcutKeycaps, type ShortcutAction } from '../shared/keyboard-shortcuts.js';
 import { normaliseHubQuery, parseHubQuery, type HubRow, type HubSource, type HubTask } from '../shared/hub.js';
 import type { SettingsTarget } from '../shared/settings-catalogue.js';

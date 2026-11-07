@@ -1,12 +1,19 @@
 /**
- * The Hub's Tools rows that Core draws from each tool's manifest (`tool.hub`, app/features), and
- * the order of every Tools row on a root search. A manifest-only Hub entry needs no other edit:
- * hub-commands.ts draws the rows, rankHubRows (app/shared/hub.ts) orders them.
+ * Every tool's one entry from its manifest (`tool`, app/features): the Hub's Tools rows, their
+ * order on a root search, the Commands page's shortcut rows and the shortcut each row shows,
+ * and the renderer event each tool command fires (app/renderer/commands.ts). A manifest-only
+ * Hub entry needs no other edit: hub-commands.ts draws the rows, rankHubRows
+ * (app/shared/hub.ts) orders them.
  */
-import { FEATURES, type FeatureId } from "../features/index.js";
+import { FEATURES, type FeatureId, type GlobalTool, type ShortcutAction } from "../features/index.js";
 import type { HubToolRow } from "../features/define.js";
+import type { RendererCommand } from "./contracts.js";
+import { isShortcutCommandAction, SHORTCUT_COMMANDS } from "./shortcut-commands.js";
+import { TOOL_PRESENTATION } from "./tool-presentation.js";
 
-const hubTools = FEATURES.flatMap((feature) => "tool" in feature && "hub" in feature.tool ? [{ feature: feature.id, tool: feature.tool, hub: feature.tool.hub }] : [])
+/** Each tool with its feature and its own shortcut (TOOL_PRESENTATION's `action`). */
+const tools = FEATURES.flatMap((feature) => "tool" in feature ? [{ feature: feature.id, tool: feature.tool, action: TOOL_PRESENTATION[feature.tool.id].action }] : []);
+const hubTools = tools.flatMap((entry) => "hub" in entry.tool ? [{ ...entry, hub: entry.tool.hub }] : [])
   .sort((left, right) => left.hub.order - right.hub.order);
 
 /** A Tools row's id: the command its tool's manifest names, or Core's own Accounts row. */
@@ -14,6 +21,30 @@ export type HubToolCommand = (typeof hubTools)[number]["hub"]["command"] | "acco
 
 /** The Tools rows by their manifest order; Core's Switch Account row comes last. */
 export const HUB_TOOL_ORDER: readonly HubToolCommand[] = Object.freeze([...hubTools.map(({ hub }) => hub.command), "accounts"]);
+
+/** The shortcut a Hub Tools row, or its `key:` row on the Commands page, shows. */
+export function hubToolShortcut(command: string): ShortcutAction | undefined {
+  return hubTools.find(({ hub }) => hub.command === command)?.action;
+}
+
+export type HubToolKey = Readonly<{ command: HubToolCommand; tool: GlobalTool; action: ShortcutAction; label: string }>;
+/** The Hub Commands page's shortcut rows, in `keyOrder`. */
+export const HUB_TOOL_KEYS: readonly HubToolKey[] = Object.freeze(hubTools
+  .flatMap(({ hub, tool, action }) => action !== undefined && "keyOrder" in hub
+    ? [{ keyOrder: hub.keyOrder, key: Object.freeze({ command: hub.command, tool: tool.id, action, label: tool.label }) }] : [])
+  .sort((left, right) => left.keyOrder - right.keyOrder)
+  .map(({ key }) => key));
+
+/**
+ * The renderer event each tool command fires: the `event` of the tool whose own shortcut sends
+ * that command last (the commands before it only clear held input). The menus and the Tools
+ * window send the same commands.
+ */
+export const TOOL_COMMAND_EVENTS: ReadonlyMap<RendererCommand["type"], string> = new Map(tools.flatMap(({ tool, action }) => {
+  const event = "event" in tool ? tool.event : undefined;
+  const sent = action !== undefined && isShortcutCommandAction(action) ? SHORTCUT_COMMANDS[action].at(-1) : undefined;
+  return event !== undefined && sent ? [[sent.type, event] as const] : [];
+}));
 
 type ToolOpen = HubToolRow["open"];
 export type HubToolEntry = Readonly<{

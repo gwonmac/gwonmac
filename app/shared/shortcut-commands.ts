@@ -3,11 +3,10 @@
  * (app/ui/tools/src/hub-fixture-main.ts) share: the renderer commands main sends, in order, or
  * the map layer setting it flips. A shortcut runs only while its feature is selected
  * (SHORTCUT_FEATURES). The renderer (app/renderer/commands.ts) turns each tool command into
- * its tool's event (RENDERER_COMMAND_EVENTS) and refuses what no listener claims.
+ * its tool's event (TOOL_COMMAND_EVENTS, app/shared/hub-tools.ts) and refuses what no listener claims.
  */
 import type { AppSettings, RendererCommand } from "./contracts.js";
-import { FEATURES, type ShortcutAction } from "../features/index.js";
-import type { FeatureDefinition } from "../features/define.js";
+import type { ShortcutAction } from "../features/index.js";
 
 /** The map layers a shortcut flips in settings; no renderer command runs. */
 export const SHORTCUT_MAP_LAYERS = {
@@ -37,19 +36,4 @@ export const SHORTCUT_COMMANDS: Readonly<Record<ShortcutCommandAction, readonly 
 
 export const isMapLayerShortcut = (action: ShortcutAction): action is keyof typeof SHORTCUT_MAP_LAYERS => action in SHORTCUT_MAP_LAYERS;
 
-const isCommandAction = (action: string): action is ShortcutCommandAction => Object.hasOwn(SHORTCUT_COMMANDS, action);
-const definitions: readonly FeatureDefinition[] = FEATURES;
-/**
- * The renderer event each tool command fires: the `event` of the tool whose shortcut sends
- * that command last (the commands before it only clear held input). The menus and the Tools
- * window send the same commands.
- */
-export const RENDERER_COMMAND_EVENTS: ReadonlyMap<RendererCommand["type"], string> = new Map(
-  definitions.flatMap(({ tool, shortcuts = [] }) => {
-    const event = tool?.event;
-    return event === undefined ? [] : shortcuts.flatMap(({ action }) => {
-      const sent = isCommandAction(action) ? SHORTCUT_COMMANDS[action].at(-1) : undefined;
-      return sent ? [[sent.type, event] as const] : [];
-    });
-  }),
-);
+export const isShortcutCommandAction = (action: string): action is ShortcutCommandAction => Object.hasOwn(SHORTCUT_COMMANDS, action);

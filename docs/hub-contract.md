@@ -16,7 +16,9 @@ calculator, commands, Hub preferences and Settings) attach from the one Core
 list in `app/renderer/hub-builtins.ts`, the way a feature attaches its own. A
 tool's Tools row, its open event and its place among the Tools rows live in its
 manifest's `tool.hub` (`app/features/define.ts`); `app/shared/hub-tools.ts`
-derives the rows Core draws and their order.
+derives, from one entry per tool, the rows Core draws, their order, the Commands
+page's shortcut rows, the shortcut each row shows and the event each tool
+command fires.
 Each entry point of `hub.ts` (a DOM event, a presenter call, a timer or a
 frame) writes the view model and paints it once when it ends; before it hands
 the DOM to a row's action or a page, it paints the finished model first. It

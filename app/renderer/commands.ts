@@ -32,9 +32,9 @@
       new window.CustomEvent(name, { cancelable: true, detail }),
     );
 
-  // Every tool's event, from the manifests through the shortcut table main sends from. The
-  // import starts at once, so the first shortcut does not wait on it.
-  const toolEvents = import('../shared/shortcut-commands.js').then(({ RENDERER_COMMAND_EVENTS }) => RENDERER_COMMAND_EVENTS);
+  // Every tool's event, from each tool's one entry (app/shared/hub-tools.ts). The import starts
+  // at once, so the first shortcut does not wait on it.
+  const toolEvents = import('../shared/hub-tools.js').then(({ TOOL_COMMAND_EVENTS }) => TOOL_COMMAND_EVENTS);
 
   async function capture(command: CaptureCommand) {
     const diagnostics = window.gwDiagnostics;
@@ -129,7 +129,7 @@
         await capture(command);
         break;
       default: {
-        // A tool command fires its tool's event (RENDERER_COMMAND_EVENTS). Main sends one
+        // A tool command fires its tool's event (TOOL_COMMAND_EVENTS). Main sends one
         // only while its feature is selected, and the listener checks again, so an
         // unclaimed event is the ordinary answer of a launch without that tool.
         const event = (await toolEvents).get(command.type);

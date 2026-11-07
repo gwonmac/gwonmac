@@ -8,7 +8,7 @@ import { computed } from 'vue';
 import type { HubRow } from '../../../../shared/hub';
 import type { HubShortcutBindings } from '../../../../shared/ui/hub-view';
 import { shortcutKeycaps } from '../../../../shared/keyboard-shortcuts';
-import { HUB_COMMAND_SHORTCUTS } from '../../../../shared/tool-presentation';
+import { hubToolShortcut } from '../../../../shared/hub-tools';
 import HubBuildInfo from './HubBuildInfo.vue';
 import HubIcon from './HubIcon.vue';
 import HubImage from './HubImage.vue';
@@ -34,7 +34,7 @@ const description = computed(() => [props.row.skills ? props.row.unavailable ?? 
   props.row.skills ? `Skills: ${props.row.skills.map(skill => skill.name).join(', ')}` : '',
   props.row.navigate ? 'Right Arrow opens the child page.' : ''].filter(Boolean).join('. ') || undefined);
 const keyRow = computed(() => props.row.id.startsWith('key:'));
-const shortcut = computed(() => HUB_COMMAND_SHORTCUTS[keyRow.value ? props.row.id.slice(4) : props.row.id]);
+const shortcut = computed(() => hubToolShortcut(keyRow.value ? props.row.id.slice(4) : props.row.id));
 // A key row names its keys as keycaps; its detail stays only for a fixed key or one not set.
 const detail = computed(() => keyRow.value && !props.row.unavailable && props.row.detail !== 'Not set' ? '' : props.row.unavailable ?? props.row.detail);
 const keycaps = computed((): readonly { label: string; name?: string }[] => keyRow.value && !shortcut.value ? [...props.row.detail].map(label => ({ label }))
