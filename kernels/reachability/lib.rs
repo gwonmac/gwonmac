@@ -1,9 +1,11 @@
 //! Bounded current-instance reachability for Cartography.
 //!
-//! The host supplies only a player id, map id, certified world anchor, and one
-//! host-owned output/scratch region. This module follows the exact Guild Wars
-//! pathing structures internally and publishes only a fixed cell bitset. No
-//! native pointer or graph record crosses back into JavaScript.
+//! The host installs the certified context root and agent array of the client's
+//! layout once. Each classification then supplies only a player id, map id,
+//! certified world anchor, and one host-owned output/scratch region. This
+//! module follows the exact Guild Wars pathing structures internally and
+//! publishes only a fixed cell bitset. No native pointer or graph record
+//! crosses back into JavaScript.
 //!
 //! The bounded graph flood, paired-portal traversal, blocked-plane rule, and
 //! travel-doorway test are ported from GWToolbox++ Pathing.cpp and
@@ -16,7 +18,7 @@
 use core::panic::PanicInfo;
 use core::ptr::{read_volatile, write_volatile};
 
-const ABI: u32 = 3;
+const ABI: u32 = 4;
 const MAGIC: u32 = 0x5257_4347; // GCWR
 const STATUS_READY: u32 = 1;
 const STATUS_INVALID_INPUT: u32 = 2;
@@ -71,21 +73,11 @@ const GAME_UNITS_PER_MAP_UNIT: f32 = 96.0;
 const MAP_UNITS_PER_CELL: f32 = 32.0;
 const GAME_UNITS_PER_CELL: f32 = GAME_UNITS_PER_MAP_UNIT * MAP_UNITS_PER_CELL;
 
-const OFFICIAL_CONTEXT_ROOT: u32 = 0x5a0e70;
-const OFFICIAL_AGENT_ARRAY: u32 = 0x5a4de8;
-const RELOCATED_CONTEXT_ROOT: u32 = 0x5a29b0;
-const RELOCATED_AGENT_ARRAY: u32 = 0x5a6928;
-const LAYOUT_OFFICIAL: u32 = 1;
-const LAYOUT_RELOCATED: u32 = 2;
-const LAYOUT_OCTOBER: u32 = 3;
-const OCTOBER_CONTEXT_ROOT: u32 = 5918848;
-const OCTOBER_AGENT_ARRAY: u32 = 5935096;
-const LAYOUT_OCTOBER_22: u32 = 4;
-const OCTOBER_22_CONTEXT_ROOT: u32 = 5919152;
-const OCTOBER_22_AGENT_ARRAY: u32 = 5935416;
-const LAYOUT_NOVEMBER_3: u32 = 5;
-const NOVEMBER_3_CONTEXT_ROOT: u32 = 5919552;
-const NOVEMBER_3_AGENT_ARRAY: u32 = 5935816;
+// The certified roots of the client's layout, set once by
+// `cartography_reachability_install`. Zero until then.
+static mut LAYOUT_ID: u32 = 0;
+static mut CONTEXT_ROOT: u32 = 0;
+static mut AGENT_ARRAY: u32 = 0;
 
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
@@ -300,24 +292,10 @@ unsafe fn resolve_layout(
 }
 
 unsafe fn context(layout_id: u32, map_id: u32, player_id: u32) -> Result<Context, u32> {
-    match layout_id {
-        LAYOUT_OFFICIAL => unsafe {
-            resolve_layout(OFFICIAL_CONTEXT_ROOT, OFFICIAL_AGENT_ARRAY, map_id, player_id)
-        },
-        LAYOUT_RELOCATED => unsafe {
-            resolve_layout(RELOCATED_CONTEXT_ROOT, RELOCATED_AGENT_ARRAY, map_id, player_id)
-        },
-        LAYOUT_OCTOBER => unsafe {
-            resolve_layout(OCTOBER_CONTEXT_ROOT, OCTOBER_AGENT_ARRAY, map_id, player_id)
-        },
-        LAYOUT_OCTOBER_22 => unsafe {
-            resolve_layout(OCTOBER_22_CONTEXT_ROOT, OCTOBER_22_AGENT_ARRAY, map_id, player_id)
-        },
-        LAYOUT_NOVEMBER_3 => unsafe {
-            resolve_layout(NOVEMBER_3_CONTEXT_ROOT, NOVEMBER_3_AGENT_ARRAY, map_id, player_id)
-        },
-        _ => Err(STATUS_AMBIGUOUS_LAYOUT),
+    if layout_id != unsafe { LAYOUT_ID } {
+        return Err(STATUS_AMBIGUOUS_LAYOUT);
     }
+    unsafe { resolve_layout(CONTEXT_ROOT, AGENT_ARRAY, map_id, player_id) }
 }
 
 unsafe fn load_planes(context: Context) -> Result<([Plane; MAX_PLANES], u32), u32> {
@@ -1233,11 +1211,7 @@ pub unsafe extern "C" fn cartography_reachability_classify(
 ) -> u32 {
     if region == 0 || region & 3 != 0 || region_bytes != REGION_BYTES
         || !contains(region, REGION_BYTES)
-        || !(layout_id == LAYOUT_OFFICIAL
-            || layout_id == LAYOUT_RELOCATED
-            || layout_id == LAYOUT_OCTOBER
-            || layout_id == LAYOUT_OCTOBER_22
-            || layout_id == LAYOUT_NOVEMBER_3)
+        || layout_id == 0
         || map_id == 0 || map_id > 2_000 || area_epoch == 0
         || player_id == 0 || width == 0 || height == 0
         || width.checked_mul(height).is_none_or(|cells| cells > MAX_CELLS)
@@ -1293,6 +1267,31 @@ pub unsafe extern "C" fn cartography_reachability_classify(
             status
         }
     }
+}
+
+/// Installs the certified roots of the client's layout, once per instance:
+/// classification reads through them and takes no address itself. Returns 1
+/// when accepted. A second install, a zero layout id, or a root that is null,
+/// unaligned, or outside linear memory is refused and changes nothing.
+#[no_mangle]
+pub unsafe extern "C" fn cartography_reachability_install(
+    layout_id: u32,
+    context_root: u32,
+    agent_array: u32,
+) -> u32 {
+    if unsafe { LAYOUT_ID } != 0
+        || layout_id == 0
+        || context_root == 0 || context_root & 3 != 0 || !contains(context_root, 4)
+        || agent_array == 0 || agent_array & 3 != 0 || !contains(agent_array, 12)
+    {
+        return 0;
+    }
+    unsafe {
+        LAYOUT_ID = layout_id;
+        CONTEXT_ROOT = context_root;
+        AGENT_ARRAY = agent_array;
+    }
+    1
 }
 
 #[no_mangle]

@@ -1,6 +1,8 @@
 /**
- * Loads the sealed, pointer-private reachability side module. Native graph
- * addresses never cross this boundary; callers receive one copied cell bitset.
+ * Loads the sealed reachability side module. The only native addresses that
+ * cross this boundary are the two certified roots of the client's layout,
+ * installed once on the first classification; callers receive one copied cell
+ * bitset.
  */
 import {
   CARTOGRAPHY_REACHABILITY_ABI,
@@ -12,7 +14,11 @@ import {
   CARTOGRAPHY_REACHABILITY_RUNTIME_BYTES,
   cartographyReachabilitySignatureBytes,
 } from "../../../shared/cartography-reachability-kernel-contract.js";
-import { isCartographyLayoutId, type CartographyLayoutId } from "../../../shared/cartography-spike.js";
+import {
+  CARTOGRAPHY_LAYOUT_ROOTS,
+  isCartographyLayoutId,
+  type CartographyLayoutId,
+} from "../../../shared/cartography-spike.js";
 
 const MAGIC = 0x5257_4347;
 const HEADER_BYTES = 72;
@@ -89,6 +95,7 @@ type Classify = (
   mapMinX: number, mapMinY: number, mapMaxX: number, mapMaxY: number,
   revealRadius: number,
 ) => number;
+type Install = (layoutId: number, contextRoot: number, agentArray: number) => number;
 
 const signatureModule = new WebAssembly.Module(
   cartographyReachabilitySignatureBytes(),
@@ -306,11 +313,20 @@ export async function installCartographyReachabilityKernel(
       || bytes() !== CARTOGRAPHY_REACHABILITY_REGION_BYTES
     ) throw new Error("Cartography reachability kernel rejected its ABI");
     const classify = instance.exports.cartography_reachability_classify as Classify;
+    const install = instance.exports.cartography_reachability_install as Install;
+    let installed = false;
     let lastDiagnostic: CartographyReachabilityDiagnostic | null = null;
     return Object.freeze({
       sha256: kernelSha256,
       classify(input) {
         if (disposed) return null;
+        // The kernel keeps the first layout's roots; a later layout id is
+        // refused by the kernel as an ambiguous layout.
+        if (!installed) {
+          const roots = CARTOGRAPHY_LAYOUT_ROOTS[input.layoutId];
+          installed = install(input.layoutId, roots.contextRoot, roots.agentArray) === 1;
+          if (!installed) return null;
+        }
         classify(
           output.pointer,
           CARTOGRAPHY_REACHABILITY_REGION_BYTES,

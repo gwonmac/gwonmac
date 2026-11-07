@@ -5,10 +5,12 @@ import {
   CARTOGRAPHY_REACHABILITY_REGION_BYTES,
   cartographyReachabilitySignatureBytes,
 } from "../../app/shared/cartography-reachability-kernel-contract.js";
+import {
+  CARTOGRAPHY_MEMORY_LAYOUTS,
+  type CartographyMemoryLayout,
+} from "../../app/client/certification/cartography-transform-internals.js";
 
 const A = Object.freeze({
-  contextRoot: 0x5a0e70,
-  agentArray: 0x5a4de8,
   contexts: 0x10_000,
   game: 0x11_000,
   mapContext: 0x12_000,
@@ -43,7 +45,9 @@ const MAP_BOUNDS = [176 * 32, 20 * 32, 192 * 32, 36 * 32] as const;
 type Kernel = Readonly<{
   memory: WebAssembly.Memory;
   view: DataView;
+  install(layoutId: number, contextRoot: number, agentArray: number): number;
   classify(radius?: 1 | 3): number;
+  classifyLayout(layoutId: number): number;
   classifyShape(
     width: number,
     height: number,
@@ -86,14 +90,11 @@ function trap(
   return at;
 }
 
-async function createKernel(layoutId: 1 | 2 | 3 | 4 | 5 = 1): Promise<Kernel> {
-  const layout = {
-    1: { contextRoot: 0x5a0e70, agentArray: 0x5a4de8 },
-    2: { contextRoot: 0x5a29b0, agentArray: 0x5a6928 },
-    3: { contextRoot: 5918848, agentArray: 5935096 },
-    4: { contextRoot: 5919152, agentArray: 5935416 },
-    5: { contextRoot: 5919552, agentArray: 5935816 },
-  }[layoutId];
+async function createKernel(
+  layout: CartographyMemoryLayout = CARTOGRAPHY_MEMORY_LAYOUTS.official,
+  { installed = true }: { installed?: boolean } = {},
+): Promise<Kernel> {
+  const { layoutId } = layout;
   const bytes = await readFile("build/renderer/cartography-reachability-kernel.wasm");
   const module = new WebAssembly.Module(bytes);
   const memory = new WebAssembly.Memory({ initial: 112 });
@@ -140,9 +141,21 @@ async function createKernel(layoutId: 1 | 2 | 3 | 4 | 5 = 1): Promise<Kernel> {
   const classify = instance.exports.cartography_reachability_classify as (
     ...args: number[]
   ) => number;
+  const install = instance.exports.cartography_reachability_install as (
+    ...args: number[]
+  ) => number;
+  if (installed) assert.equal(install(layoutId, layout.contextRoot, layout.agentArray), 1);
   return {
     memory,
     view,
+    install,
+    classifyLayout(id) {
+      return classify(
+        A.region, CARTOGRAPHY_REACHABILITY_REGION_BYTES,
+        id, MAP_ID, AREA_EPOCH, PLAYER_ID,
+        0, 0, WIDTH, HEIGHT, ...MAP_BOUNDS, 1,
+      );
+    },
     classify(radius = 1) {
       return classify(
         A.region, CARTOGRAPHY_REACHABILITY_REGION_BYTES,
@@ -237,6 +250,29 @@ function addTravelDoorway(kernel: Kernel, fileId = 0xa825): void {
 }
 
 describe("Cartography reachability kernel", () => {
+  it("installs one layout's roots once and reads only through them", async () => {
+    const { layoutId, contextRoot, agentArray } = CARTOGRAPHY_MEMORY_LAYOUTS.official;
+    const kernel = await createKernel(CARTOGRAPHY_MEMORY_LAYOUTS.official, { installed: false });
+    assert.equal(kernel.classify(), 6, "no read before install");
+    for (const [label, args] of [
+      ["zero layout id", [0, contextRoot, agentArray]],
+      ["null context root", [layoutId, 0, agentArray]],
+      ["unaligned context root", [layoutId, contextRoot + 2, agentArray]],
+      ["context root outside memory", [layoutId, kernel.memory.buffer.byteLength, agentArray]],
+      ["null agent array", [layoutId, contextRoot, 0]],
+      ["unaligned agent array", [layoutId, contextRoot, agentArray + 1]],
+      ["agent array header outside memory", [layoutId, contextRoot, kernel.memory.buffer.byteLength - 8]],
+    ] as const) assert.equal(kernel.install(args[0], args[1], args[2]), 0, label);
+    assert.equal(kernel.install(layoutId, contextRoot, agentArray), 1);
+    assert.equal(kernel.classify(), 1);
+    const relocated = CARTOGRAPHY_MEMORY_LAYOUTS.relocated;
+    assert.equal(kernel.install(layoutId, contextRoot, agentArray), 0, "second install");
+    assert.equal(kernel.install(relocated.layoutId, relocated.contextRoot, relocated.agentArray), 0);
+    assert.equal(kernel.classifyLayout(relocated.layoutId), 6, "another layout id");
+    assert.equal(kernel.view.getUint32(A.region + 16, true), 6);
+    assert.equal(kernel.classify(), 1);
+  });
+
   it("accepts spare native array capacity beyond the bounded live size", async () => {
     const kernel = await createKernel();
     kernel.view.setUint32(A.staticData + 0x18 + 4, 1_024, true);
@@ -263,13 +299,13 @@ describe("Cartography reachability kernel", () => {
     assert.equal(kernel.view.getUint32(A.region + 36, true), 512);
   });
 
-  for (const layoutId of [1, 2, 3, 4, 5] as const) it(`layout ${layoutId} includes connected ground and excludes disconnected ground`, async () => {
-    const kernel = await createKernel(layoutId);
+  for (const layout of Object.values(CARTOGRAPHY_MEMORY_LAYOUTS)) it(`layout ${layout.layoutId} includes connected ground and excludes disconnected ground`, async () => {
+    const kernel = await createKernel(layout);
     assert.equal(kernel.classify(), 1);
     const header = new DataView(kernel.memory.buffer, A.region, 72);
     assert.equal(header.getUint32(20, true), MAP_ID);
     assert.equal(header.getUint32(24, true), AREA_EPOCH);
-    assert.equal(header.getUint32(28, true), layoutId);
+    assert.equal(header.getUint32(28, true), layout.layoutId);
     assert.equal(header.getUint32(44, true), 3);
     assert.equal(header.getUint32(48, true), 2);
     assert.equal(header.getUint32(52, true), 2);

@@ -10,7 +10,7 @@ import {
   uleb,
   type FunctionType,
 } from "../../main/core/wasm-binary.js";
-import type { CartographyLayoutId } from "../../shared/cartography-spike.js";
+import { CARTOGRAPHY_LAYOUT_ROOTS, type CartographyLayoutId } from "../../shared/cartography-spike.js";
 
 const FRAME_LAYOUT = Object.freeze({
   frameBytes: 0x1c8,
@@ -182,7 +182,7 @@ type Certificate<T> = Readonly<{ [K in keyof T]: T[K] extends number ? number : 
 type WorldMapCertificate = Certificate<typeof WORLD_MAP_CERTIFICATE>;
 
 export type CartographyMemoryLayout = Readonly<{
-  /** The kernel's layout number; lib.rs holds the same roots under it. */
+  /** The id the derived client publishes; its roots come from CARTOGRAPHY_LAYOUT_ROOTS. */
   layoutId: CartographyLayoutId;
   compass: Certificate<typeof COMPASS_CERTIFICATE>;
   missionMap: Certificate<typeof MISSION_MAP_CERTIFICATE>;
@@ -197,58 +197,53 @@ export type CartographyMemoryLayout = Readonly<{
 export const CARTOGRAPHY_MEMORY_LAYOUTS = Object.freeze({
   official: Object.freeze({
     layoutId: 1,
+    ...CARTOGRAPHY_LAYOUT_ROOTS[1],
     compass: COMPASS_CERTIFICATE,
     missionMap: MISSION_MAP_CERTIFICATE,
     worldMap: WORLD_MAP_CERTIFICATE,
     frameArray: 0x5a1fdc,
     frameCount: 0x5a1fe4,
-    contextRoot: 0x5a0e70,
     areaInfo: 0x1cc5c0,
-    agentArray: 0x5a4de8,
   }),
   relocated: Object.freeze({
     layoutId: 2,
+    ...CARTOGRAPHY_LAYOUT_ROOTS[2],
     compass: COMPASS_CERTIFICATE,
     missionMap: MISSION_MAP_CERTIFICATE,
     worldMap: WORLD_MAP_CERTIFICATE,
     frameArray: 0x5a3b1c,
     frameCount: 0x5a3b24,
-    contextRoot: 0x5a29b0,
     areaInfo: 0x1cc700,
-    agentArray: 0x5a6928,
   }),
   october: Object.freeze({
     layoutId: 3,
+    ...CARTOGRAPHY_LAYOUT_ROOTS[3],
     compass: OCTOBER_COMPASS_CERTIFICATE,
     missionMap: OCTOBER_MISSION_MAP_CERTIFICATE,
     worldMap: OCTOBER_WORLD_MAP_CERTIFICATE,
     frameArray: 5923308,
     frameCount: 5923316,
-    contextRoot: 5918848,
     areaInfo: 1892352,
-    agentArray: 5935096,
   }),
   october22: Object.freeze({
     layoutId: 4,
+    ...CARTOGRAPHY_LAYOUT_ROOTS[4],
     compass: OCTOBER_22_COMPASS_CERTIFICATE,
     missionMap: OCTOBER_22_MISSION_MAP_CERTIFICATE,
     worldMap: OCTOBER_22_WORLD_MAP_CERTIFICATE,
     frameArray: 5923628,
     frameCount: 5923636,
-    contextRoot: 5919152,
     areaInfo: 1891136,
-    agentArray: 5935416,
   }),
   november3: Object.freeze({
     layoutId: 5,
+    ...CARTOGRAPHY_LAYOUT_ROOTS[5],
     compass: NOVEMBER_3_COMPASS_CERTIFICATE,
     missionMap: NOVEMBER_3_MISSION_MAP_CERTIFICATE,
     worldMap: NOVEMBER_3_WORLD_MAP_CERTIFICATE,
     frameArray: 5924028,
     frameCount: 5924036,
-    contextRoot: 5919552,
     areaInfo: 1891376,
-    agentArray: 5935816,
   }),
 } satisfies Readonly<Record<string, CartographyMemoryLayout>>);
 

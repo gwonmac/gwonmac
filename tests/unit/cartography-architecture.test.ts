@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import { readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
+import { CARTOGRAPHY_LAYOUT_ROOTS } from "../../app/shared/cartography-spike.ts";
 
 const ROOT = process.cwd();
 const RENDERER = path.join(ROOT, "app/features/cartography/renderer");
@@ -54,21 +55,15 @@ test("one missing map surface cannot disable the other Cartography surfaces", as
   assert.match(installer, /worldMapReader\s*\?\?\s*unavailableWorldMap/);
 });
 
-test("both native owners agree on the exact finite layout roots", async () => {
-  const transform = await readFile(
-    path.join(ROOT, "app/client/certification/cartography-transform-internals.ts"),
-    "utf8",
-  );
-  const kernel = await readFile(
-    path.join(ROOT, "kernels/reachability/lib.rs"),
-    "utf8",
-  );
-  for (const root of ["0x5a0e70", "0x5a29b0"]) {
-    assert.equal(transform.match(new RegExp(root, "g"))?.length, 1, root);
-    assert.equal(kernel.match(new RegExp(root, "g"))?.length, 1, root);
-  }
-  for (const agentArray of ["0x5a4de8", "0x5a6928"]) {
-    assert.equal(transform.match(new RegExp(agentArray, "g"))?.length, 1, agentArray);
-    assert.equal(kernel.match(new RegExp(agentArray, "g"))?.length, 1, agentArray);
+test("each layout's roots have one home", async () => {
+  const copies = await Promise.all([
+    "app/client/certification/cartography-transform-internals.ts",
+    "kernels/reachability/lib.rs",
+  ].map((file) => readFile(path.join(ROOT, file), "utf8")));
+  for (const roots of Object.values(CARTOGRAPHY_LAYOUT_ROOTS)) {
+    for (const root of [roots.contextRoot, roots.agentArray]) {
+      const spellings = new RegExp(`\\b(?:${root}|0x${root.toString(16)})\\b`, "i");
+      for (const copy of copies) assert.doesNotMatch(copy, spellings);
+    }
   }
 });

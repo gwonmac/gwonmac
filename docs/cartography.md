@@ -173,8 +173,13 @@ Canvas rectangle or artwork, not camera motion.
 Client updates require one coherent surface certificate and memory layout. The
 October layout is checked through current character, region, and observation
 proofs before the transform selects its exact frame dispatchers and table slots.
-The reachability kernel accepts that same layout identifier. Its offline tests
-populate only the selected layout's globals and execute the compiled kernel.
+The reachability kernel holds no layout of its own. On the first classification
+the loader installs that layout identifier with its certified context root and
+agent array (`CARTOGRAPHY_LAYOUT_ROOTS` in `app/shared/cartography-spike.ts`).
+The kernel accepts one install per instance, checks both roots for alignment
+and bounds, and answers any other layout identifier as an ambiguous layout. Its
+offline tests install each layout in `CARTOGRAPHY_MEMORY_LAYOUTS`, populate only
+that layout's globals, and execute the compiled kernel.
 A successful Enhancement proof does not prove these separate Maps boundaries.
 
 Textures are published from the application's animation frame, outside the
