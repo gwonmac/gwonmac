@@ -286,9 +286,14 @@ A new client can need all of these:
   kernel for each accepted layout: checked arithmetic keeps it free of static
   panic formatting;
 - the World Map display owner, Compass owner, pathing hashes, Guild Hall
-  producer, area-type accessor, and the native render family; and
+  producer, area-type accessor, and the native render family;
 - `tests/fixtures/retained-client.ts`, which maps retained function indices and
-  static addresses for the real-client tests.
+  static addresses for the real-client tests; and
+- `tests/fixtures/native-friend-queue.ts`, which lists the friend queue roles
+  (allocator, context, pending, request) and the moved native owners per
+  client hash. The friend observer, queue, and records evidence tests in
+  `tests/client-artifact/` refuse a client it does not list, so they turn red
+  on every new client until its roles are reinspected and added.
 
 Compose partial records per feature: a missing historical field must not make
 current actions disappear. After accepting facts, verify the complete shipped
