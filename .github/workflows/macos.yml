@@ -1,0 +1,67 @@
+# The macOS net under the Linux gate: native build, kernels, integration and
+# release tests, a small Electron journey set, and the ad-hoc package. Not a
+# required check. It runs after every merge to main, on PRs labelled `mac`
+# (AGENTS.md says which PRs get it), and by hand. A red main is fixed forward.
+name: macOS
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# On main a burst of merges runs once: the running job finishes and only the
+# newest pending one follows. A new push to a PR replaces its run.
+concurrency:
+  group: macos-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  macos:
+    if: >-
+      github.event_name != 'pull_request'
+      || (contains(github.event.pull_request.labels.*.name, 'mac')
+        && (github.event.action != 'labeled' || github.event.label.name == 'mac'))
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          rust: "true"
+      - run: pnpm build
+      - run: node scripts/kernels.mjs verify
+      - name: Integration and release tests
+        run: node --import ./scripts/ts-hook.mjs --test --test-timeout=60000 tests/integration/*.ts tests/release/*.ts
+      - run: pnpm exec playwright install chromium
+      # The journeys a player takes first: launch and shell, the local client
+      # verifier and the Tools boundary, the sandbox, keyboard input, accounts,
+      # and settings reset. The whole suite stays available: pnpm test:electron.
+      - name: Electron journeys
+        run: >-
+          pnpm test:electron
+          app.spec.ts launcher-shell.spec.ts local-client-verifier.spec.ts
+          tools-launch-boundary.spec.ts sandbox.spec.ts input-keyboard.spec.ts
+          multiple-accounts.spec.ts settings-reset.spec.ts
+      - name: Hub specs that need macOS
+        run: pnpm --filter @gwonmac/tools-ui test:e2e --grep @macos
+      - name: Package ad hoc and smoke-test the app
+        run: |
+          node scripts/clean-output.mjs
+          pnpm exec electron-forge package
+          node --import ./scripts/ts-hook.mjs tests/packaged-smoke.ts
+          node --import ./scripts/ts-hook.mjs tests/packaged-enhancement-runtime.ts
+      - name: Upload failure evidence
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: macos-${{ github.run_attempt }}
+          path: test-results
+          if-no-files-found: ignore
+          retention-days: 7

@@ -1,0 +1,49 @@
+# The one setup every job uses: pnpm from package.json `packageManager`, Node
+# from .nvmrc (package.json `engines` is the floor), the pnpm store cache, and
+# the Electron binary cache. Callers check out the repository first.
+name: Setup
+description: Install pnpm, Node, optional Rust, and the locked dependencies.
+
+inputs:
+  electron:
+    description: Download the Electron binary. Jobs that never start Electron pass "false".
+    default: "true"
+  rust:
+    description: Install the Rust toolchain rust-toolchain.toml names (for pnpm build).
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
+    - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+      with:
+        node-version-file: .nvmrc
+        cache: pnpm
+    - name: Require Apple Silicon
+      if: runner.os == 'macOS'
+      shell: bash
+      run: test "$(uname -m)" = "arm64"
+    # The runner image's default toolchain is not this repository's.
+    - name: Install the pinned Rust toolchain
+      if: inputs.rust == 'true'
+      shell: bash
+      run: rustup toolchain install
+    # Electron's postinstall downloads ~100 MB from GitHub releases, which
+    # sometimes answers 5xx for minutes. scripts/install-electron.mjs retries;
+    # this cache means a job downloads only when the locked Electron changes.
+    - name: Read the locked Electron version
+      if: inputs.electron == 'true'
+      id: electron
+      shell: bash
+      run: echo "version=$(grep -m1 -oE '^  electron@[0-9.]+' pnpm-lock.yaml | cut -d@ -f2)" >> "$GITHUB_OUTPUT"
+    - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      if: inputs.electron == 'true'
+      with:
+        path: ${{ runner.os == 'macOS' && '~/Library/Caches/electron' || '~/.cache/electron' }}
+        key: electron-${{ runner.os }}-${{ runner.arch }}-${{ steps.electron.outputs.version }}
+    - name: Install dependencies
+      shell: bash
+      env:
+        ELECTRON_SKIP_BINARY_DOWNLOAD: ${{ inputs.electron == 'true' && '0' || '1' }}
+      run: pnpm install --frozen-lockfile

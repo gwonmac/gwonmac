@@ -1,0 +1,321 @@
+# One release: run this workflow on main (or a hotfix/* branch) with a version,
+# approve the `release` environment once, test the draft with
+# `pnpm release:test v<version>`, then click Publish. This workflow never
+# publishes and commits nothing. docs/releasing.md owns the procedure.
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version, for example 1.4.0 (1.4.0-rc.1 makes a pre-release)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  # Seconds on Linux, before anyone approves anything.
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      prerelease: ${{ steps.version.outputs.prerelease }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      VERSION: ${{ inputs.version }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version-file: .nvmrc
+      - name: Validate the source branch and the version
+        id: version
+        env:
+          REF: ${{ github.ref }}
+        run: |
+          case "$REF" in
+            refs/heads/main | refs/heads/hotfix/*) ;;
+            *) echo "Release from main or hotfix/*, not $REF." >&2; exit 1 ;;
+          esac
+          if ! [[ "$VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-(beta|rc)\.(0|[1-9][0-9]*))?$ ]]; then
+            echo "Version must be SemVer X.Y.Z or X.Y.Z-(beta|rc).N, not $VERSION." >&2
+            exit 1
+          fi
+          # scripts/macos-version.ts owns the bounds Apple's bundle version allows.
+          node -e 'import("./scripts/macos-version.ts").then((m) => console.log(m.macOSBundleVersions(process.argv[1])))' "$VERSION"
+          if [[ "$VERSION" == *-* ]]; then prerelease=true; else prerelease=false; fi
+          echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"
+      - name: Refuse a version that already shipped
+        run: |
+          if gh release view "v$VERSION" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release v$VERSION exists. Choose a higher version." >&2
+            exit 1
+          fi
+          tagged="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v$VERSION" --jq .object.sha 2>/dev/null || true)"
+          if [ -n "$tagged" ] && [ "$tagged" != "$GITHUB_SHA" ]; then
+            echo "Tag v$VERSION points at $tagged, not $GITHUB_SHA." >&2
+            exit 1
+          fi
+
+  # The ArenaNet compatibility gate on the exact client published now. It needs
+  # no secrets, so it runs outside the approval and beside the signed build.
+  qualify:
+    needs: prepare
+    runs-on: macos-15
+    timeout-minutes: 60
+    # Shared with client-watch.yml: one ArenaNet client download at a time.
+    # Each download stays under ARENANET_REQUEST_CEILING (app/shared/contracts.ts).
+    concurrency:
+      group: arenanet-client
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          rust: "true"
+      - run: pnpm build
+      - name: Download the current ArenaNet client
+        id: client
+        run: pnpm client:official --download "$RUNNER_TEMP/client"
+      - name: Qualify the exact client
+        env:
+          GW_CLIENT_JS: ${{ steps.client.outputs.js }}
+          GW_CLIENT_WASM: ${{ steps.client.outputs.wasm }}
+        run: |
+          node build/tools-cli/certification.js verify "$GW_CLIENT_WASM"
+          node build/tools-cli/certification.js double-click "$GW_CLIENT_WASM"
+          pnpm test:client-artifact
+          node --import ./scripts/ts-hook.mjs scripts/qualify-extended-memory.ts "$GW_CLIENT_JS" "$GW_CLIENT_WASM"
+
+  build:
+    needs: prepare
+    runs-on: macos-15
+    timeout-minutes: 60
+    environment: release
+    permissions:
+      attestations: write
+      contents: read
+      id-token: write
+    env:
+      VERSION: ${{ inputs.version }}
+      PINNED_IDENTITY: 7F9A56793C16683742AA7818FE65221A884FA108
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          rust: "true"
+      # In the runner only. The tag records the commit; nothing is committed.
+      - run: npm pkg set "version=$VERSION"
+
+      - name: Import Developer ID and notarization credentials
+        env:
+          CERTIFICATE_B64: ${{ secrets.APPLE_DEVELOPER_ID_P12 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_PASSWORD }}
+          PROFILE_B64: ${{ secrets.APPLE_DEVELOPER_ID_PROFILE }}
+          NOTARY_KEY_B64: ${{ secrets.APPLE_API_KEY_P8 }}
+          API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          umask 077
+          for name in CERTIFICATE_B64 CERTIFICATE_PASSWORD PROFILE_B64 NOTARY_KEY_B64 API_KEY_ID API_ISSUER_ID; do
+            test -n "${!name}" || { echo "Secret for $name is missing." >&2; exit 1; }
+          done
+          test "$TEAM_ID" = "9NN976MFZ4"
+          keychain="$RUNNER_TEMP/release-$(openssl rand -hex 16).keychain-db"
+          keychain_password="$(openssl rand -hex 32)"
+          certificate="$RUNNER_TEMP/developer-id.p12"
+          profile="$RUNNER_TEMP/gwonmac.provisionprofile"
+          api_key="$RUNNER_TEMP/AuthKey_${API_KEY_ID}.p8"
+          printf '%s' "$CERTIFICATE_B64" | base64 --decode > "$certificate"
+          printf '%s' "$PROFILE_B64" | base64 --decode > "$profile"
+          printf '%s' "$NOTARY_KEY_B64" | base64 --decode > "$api_key"
+          {
+            echo "APPLE_ORIGINAL_KEYCHAIN=$(security default-keychain -d user | tr -d '\" ')"
+            echo "APPLE_KEYCHAIN=$keychain"
+            echo "APPLE_PROVISIONING_PROFILE=$profile"
+            echo "APPLE_API_KEY_PATH=$api_key"
+            echo "APPLE_API_KEY_ID=$API_KEY_ID"
+            echo "APPLE_API_ISSUER_ID=$API_ISSUER_ID"
+            echo "APPLE_SIGNING_IDENTITY=$PINNED_IDENTITY"
+          } >> "$GITHUB_ENV"
+          security create-keychain -p "$keychain_password" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$keychain_password" "$keychain"
+          security import "$certificate" -k "$keychain" -P "$CERTIFICATE_PASSWORD" \
+            -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s \
+            -k "$keychain_password" "$keychain" >/dev/null
+          security list-keychains -d user -s "$keychain"
+          security default-keychain -d user -s "$keychain"
+          rm -f "$certificate"
+          # Profile, Team ID, entitlements, and expiry are checked by the signer
+          # itself (scripts/apple-signing.ts); this only proves the identity.
+          security find-identity -v -p codesigning "$keychain" | grep -q "$PINNED_IDENTITY"
+
+      # Forge signs, notarizes, and staples the app (forge.config.ts).
+      - name: Build, sign, notarize, and staple
+        env:
+          GW_PACKAGE_INTENT: release
+        run: |
+          pnpm make
+          node scripts/kernels.mjs verify
+
+      - name: Notarize and staple the DMG
+        run: |
+          test "$(find out/make -type f -name '*.dmg' | wc -l | tr -d ' ')" = 1
+          dmg="$(find out/make -type f -name '*.dmg')"
+          xcrun notarytool submit "$dmg" --wait \
+            --key "$APPLE_API_KEY_PATH" --key-id "$APPLE_API_KEY_ID" --issuer "$APPLE_API_ISSUER_ID"
+          # Hosted runners sometimes lose the connection to Apple's ticket
+          # service. Retry only that transport error.
+          for attempt in 1 2 3 4 5; do
+            if output="$(xcrun stapler staple -v "$dmg" 2>&1)"; then echo "$output"; break; fi
+            echo "$output"
+            if [ "$attempt" = 5 ] || ! grep -q NSURLErrorDomain <<<"$output"; then exit 1; fi
+            sleep 30
+          done
+
+      - name: Collect the release assets
+        run: |
+          assets="$RUNNER_TEMP/assets"
+          base="Guild-Wars-Reforged-$VERSION-macOS-arm64"
+          mkdir "$assets"
+          cp "$(find out/make -type f -name '*.zip')" "$assets/$base.zip"
+          cp "$(find out/make -type f -name '*.dmg')" "$assets/$base.dmg"
+          # RELEASES.json names the absolute, immutable ZIP URL of this tag.
+          node --import ./scripts/ts-hook.mjs scripts/release-manifest.ts \
+            "$VERSION" "v$VERSION" "$base.zip" "$(git show -s --format=%cI HEAD)" "$assets/RELEASES.json"
+          echo "ASSETS=$assets" >> "$GITHUB_ENV"
+          echo "APP=$(find out -name 'Guild Wars Reforged.app' -type d -not -path '*/make/*' -print -quit)" >> "$GITHUB_ENV"
+
+      # scripts/verify-signed-app.ts owns every assertion about a signed
+      # package; the pinned SHA-1 is the one check it leaves to the release.
+      - name: Verify signature, notarization, and the pinned identity
+        env:
+          GW_SIGNED_CHANNEL: release
+        run: |
+          unzipped="$RUNNER_TEMP/unzipped"
+          ditto -x -k "$ASSETS"/*.zip "$unzipped"
+          pnpm verify:signed-app "$APP" "$ASSETS"/*.dmg
+          pnpm verify:signed-app "$unzipped/Guild Wars Reforged.app"
+          codesign -d --extract-certificates="$RUNNER_TEMP/leaf" "$unzipped/Guild Wars Reforged.app"
+          signer="$(shasum -a 1 "$RUNNER_TEMP/leaf0" | awk '{print toupper($1)}')"
+          test "$signer" = "$PINNED_IDENTITY" || { echo "Signed by $signer, not $PINNED_IDENTITY." >&2; exit 1; }
+
+      # A newly signed copy, so the Keychain test can replace the app the way
+      # an update does. Signing needs the keychain, so this runs before cleanup.
+      - name: Prepare the signed replacement app
+        env:
+          GW_SIGN_CHANNEL: release
+        run: |
+          replacement="$RUNNER_TEMP/replacement/Guild Wars Reforged.app"
+          mkdir -p "$(dirname "$replacement")"
+          ditto "$APP" "$replacement"
+          rm "$replacement/Contents/Resources/distribution-channel.json"
+          printf 'newly signed replacement\n' > "$replacement/Contents/Resources/upgrade-proof"
+          GW_SIGN_APP_PATH="$replacement" node --import ./scripts/ts-hook.mjs scripts/sign-distribution-app.ts
+          codesign --verify --deep --strict "$replacement"
+          echo "REPLACEMENT=$replacement" >> "$GITHUB_ENV"
+
+      - name: Remove the signing material
+        if: always()
+        run: |
+          if [ -n "${APPLE_ORIGINAL_KEYCHAIN:-}" ]; then
+            security default-keychain -d user -s "$APPLE_ORIGINAL_KEYCHAIN" || true
+            security list-keychains -d user -s "$APPLE_ORIGINAL_KEYCHAIN" || true
+          fi
+          if [ -n "${APPLE_KEYCHAIN:-}" ]; then security delete-keychain "$APPLE_KEYCHAIN" || true; fi
+          rm -f "${APPLE_API_KEY_PATH:-}" "${APPLE_PROVISIONING_PROFILE:-}"
+          printf '%s=\n' APPLE_KEYCHAIN APPLE_API_KEY_PATH APPLE_PROVISIONING_PROFILE >> "$GITHUB_ENV"
+
+      - name: Smoke-test the signed app and its Keychain continuity
+        env:
+          GW_PACKAGE_INTENT: release
+          GW_SIGNED_CHANNEL: release
+        run: |
+          node --import ./scripts/ts-hook.mjs tests/packaged-smoke.ts
+          node --import ./scripts/ts-hook.mjs tests/packaged-enhancement-runtime.ts
+          GW_SIGNED_APP_PATH="$APP" GW_SIGNED_REPLACEMENT_APP_PATH="$REPLACEMENT" \
+            node --import ./scripts/ts-hook.mjs tests/signed-keychain-runtime.ts
+
+      - name: Write checksums
+        run: |
+          cd "$ASSETS"
+          shasum -a 256 -- *.zip *.dmg RELEASES.json > SHA256SUMS.txt
+          shasum -a 256 -c SHA256SUMS.txt
+          { echo '### Release assets'; echo '```'; cat SHA256SUMS.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: |
+            ${{ env.ASSETS }}/*.zip
+            ${{ env.ASSETS }}/*.dmg
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-assets
+          path: ${{ env.ASSETS }}
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
+
+  # No draft exists unless qualification and the signed build both passed.
+  draft:
+    needs: [prepare, qualify, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PRERELEASE: ${{ needs.prepare.outputs.prerelease }}
+      TAG: v${{ inputs.version }}
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: release-assets
+          path: assets
+      - name: Tag the commit and create the draft release
+        run: |
+          (cd assets && shasum -a 256 -c SHA256SUMS.txt)
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "A release or draft $TAG exists. Delete the old draft first." >&2
+            exit 1
+          fi
+          if ! gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" >/dev/null 2>&1; then
+            gh api "repos/$GITHUB_REPOSITORY/git/refs" -f "ref=refs/tags/$TAG" -f "sha=$GITHUB_SHA" >/dev/null
+          fi
+          # Generated notes (.github/release.yml hides Dependabot), regrouped by
+          # the Conventional Commit type of each PR title.
+          gh api "repos/$GITHUB_REPOSITORY/releases/generate-notes" \
+            -f "tag_name=$TAG" -f "target_commitish=$GITHUB_SHA" --jq .body > generated.md
+          awk '
+            /^## / { section = $0 }
+            section ~ /What.s Changed/ && /^## / { next }
+            section ~ /What.s Changed/ && /^\* feat[(!:]/ { feat = feat $0 "\n"; next }
+            section ~ /What.s Changed/ && /^\* fix[(!:]/ { fix = fix $0 "\n"; next }
+            section ~ /What.s Changed/ && /^\* / { other = other $0 "\n"; next }
+            { rest = rest $0 "\n" }
+            END {
+              if (feat) printf "## Features\n%s\n", feat
+              if (fix) printf "## Fixes\n%s\n", fix
+              if (other) printf "## Other changes\n%s\n", other
+              printf "%s", rest
+            }' generated.md > notes.md
+          args=(--repo "$GITHUB_REPOSITORY" --verify-tag --draft --title "$TAG" --notes-file notes.md)
+          if [ "$PRERELEASE" = true ]; then args+=(--prerelease --latest=false); fi
+          gh release create "$TAG" "${args[@]}" assets/*
+          echo "Draft $TAG is ready. Run \`pnpm release:test $TAG\`, then publish it." >> "$GITHUB_STEP_SUMMARY"
