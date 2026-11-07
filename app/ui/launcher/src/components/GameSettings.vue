@@ -3,7 +3,6 @@ import type { InGamePatch, InGameSnapshot } from "../settings-host";
 import { computed } from "vue";
 import { CONTROLLER_SYMBOL_OPTIONS, GAME_SETTINGS, RENDER_SCALE_OPTIONS, settingDetail } from "@shared/setting-copy";
 import { extendedMemoryView } from "@shared/extended-memory-view";
-import type { ControllerPromptStyle, RenderScale } from "@shared/settings/core";
 import type { LauncherSnapshot } from "@shared/launcher-contracts";
 
 const props = defineProps<{ snapshot: InGameSnapshot; extendedMemory?: LauncherSnapshot["extendedMemory"] | undefined; save: (patch: InGamePatch) => Promise<void> }>();
@@ -11,16 +10,26 @@ const props = defineProps<{ snapshot: InGameSnapshot; extendedMemory?: LauncherS
 const memory = computed(() => props.extendedMemory ? extendedMemoryView(props.snapshot.settings.extendedMemoryEnabled, props.extendedMemory) : null);
 const checked = (event: Event) => (event.currentTarget as HTMLInputElement).checked;
 const value = (event: Event) => (event.currentTarget as HTMLSelectElement).value;
+/** The option the select shows; undefined for a value no option offers, which is not saved. */
+const picked = <T extends string | number>(options: readonly Readonly<{ value: T }>[], event: Event) => options.find((option) => String(option.value) === value(event))?.value;
+function saveRenderScale(event: Event) {
+  const renderScale = picked(RENDER_SCALE_OPTIONS, event);
+  if (renderScale !== undefined) void props.save({ renderScale });
+}
+function saveControllerPromptStyle(event: Event) {
+  const controllerPromptStyle = picked(CONTROLLER_SYMBOL_OPTIONS, event);
+  if (controllerPromptStyle !== undefined) void props.save({ controllerPromptStyle });
+}
 </script>
 
 <template>
   <h1>Game</h1>
   <p class="section-intro">Applies to every account. Graphics, audio and key bindings inside Guild Wars are changed in the game.</p>
   <div class="setting-group">
-    <label data-setting="renderScale"><span><strong>{{ GAME_SETTINGS.renderScale.label }}</strong><small>{{ settingDetail(GAME_SETTINGS.renderScale) }}</small></span><select :value="snapshot.settings.renderScale" @change="save({ renderScale: Number(value($event)) as RenderScale })"><option v-for="option in RENDER_SCALE_OPTIONS" :key="option.value" :value="option.value">{{ option.label }}</option></select></label>
+    <label data-setting="renderScale"><span><strong>{{ GAME_SETTINGS.renderScale.label }}</strong><small>{{ settingDetail(GAME_SETTINGS.renderScale) }}</small></span><select :value="snapshot.settings.renderScale" @change="saveRenderScale"><option v-for="option in RENDER_SCALE_OPTIONS" :key="option.value" :value="option.value">{{ option.label }}</option></select></label>
     <label data-setting="extendedMemoryEnabled"><span><strong>{{ GAME_SETTINGS.extendedMemoryEnabled.label }}</strong><small>{{ settingDetail(GAME_SETTINGS.extendedMemoryEnabled) }}</small><small v-if="memory && memory.level !== 'neutral'" class="setting-state" :class="memory.level">{{ memory.label }}. {{ memory.detail }}</small></span><input type="checkbox" :checked="snapshot.settings.extendedMemoryEnabled" @change="save({ extendedMemoryEnabled: checked($event) })" /></label>
     <label data-setting="autoRelogAfterReload"><span><strong>{{ GAME_SETTINGS.autoRelogAfterReload.label }}</strong><small>{{ settingDetail(GAME_SETTINGS.autoRelogAfterReload) }}</small></span><input type="checkbox" :checked="snapshot.settings.autoRelogAfterReload" @change="save({ autoRelogAfterReload: checked($event) })" /></label>
-    <label data-setting="controllerPromptStyle"><span><strong>{{ GAME_SETTINGS.controllerPromptStyle.label }}</strong><small>{{ settingDetail(GAME_SETTINGS.controllerPromptStyle) }}</small></span><select :value="snapshot.settings.controllerPromptStyle" @change="save({ controllerPromptStyle: value($event) as ControllerPromptStyle })"><option v-for="option in CONTROLLER_SYMBOL_OPTIONS" :key="option.value" :value="option.value">{{ option.label }}</option></select></label>
+    <label data-setting="controllerPromptStyle"><span><strong>{{ GAME_SETTINGS.controllerPromptStyle.label }}</strong><small>{{ settingDetail(GAME_SETTINGS.controllerPromptStyle) }}</small></span><select :value="snapshot.settings.controllerPromptStyle" @change="saveControllerPromptStyle"><option v-for="option in CONTROLLER_SYMBOL_OPTIONS" :key="option.value" :value="option.value">{{ option.label }}</option></select></label>
     <label data-setting="showDiagnostics"><span><strong>{{ GAME_SETTINGS.showDiagnostics.label }}</strong><small>{{ settingDetail(GAME_SETTINGS.showDiagnostics) }}</small></span><input type="checkbox" :checked="snapshot.settings.showDiagnostics" @change="save({ showDiagnostics: checked($event) })" /></label>
   </div>
 </template>
