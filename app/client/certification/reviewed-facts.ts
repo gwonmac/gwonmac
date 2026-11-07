@@ -2,10 +2,12 @@
  * The one lookup for per-client reviewed facts.
  *
  * Each ArenaNet client generation that needed review has one file,
- * `reviewed-client-<id>.ts`: its exact Enhancement records and the relocation
+ * `reviewed-client-<id>.ts`: its exact Enhancement records, the relocation
  * identities measured on its bytes for the reviewed body digests and role
- * fingerprints that proofs name. Proofs never name a client. They ask `reviewedBuilds()` and
- * `reviewedIdentities(literal)`, which read only the active generations.
+ * fingerprints that proofs name, and the proof facts its review added. Proofs
+ * never name a client. They ask `reviewedBuilds()`, `reviewedIdentities()`,
+ * `reviewedAlternatives()` and `reviewedEntries()`, which read only the active
+ * generations.
  *
  * The verifier runs with every generation unless a caller passes fewer: the
  * offline replay passes only the generations older than the client it replays,
@@ -14,6 +16,13 @@
  * Retiring a generation deletes its file and its entry below.
  */
 import type { KnownEnhancementBuild } from "./enhancement-build-model.js";
+import type { ResignChatPath } from "./enhancement-resign-proof.js";
+import type { WhisperPath } from "./enhancement-whisper-proof.js";
+import type { NativeRenderFamily } from "./native-render-reference.js";
+import type { PathingFamily } from "./pathing-spike-proof.js";
+import type { CartographyMemoryLayoutId } from "./pathing-spike-transform.js";
+import type { FriendLifecycleRoleFamily } from "./friend-lifecycle-evidence.js";
+import type { GuildHallAreaTypeFamily } from "./enhancement-local-actions-proof.js";
 import { AUGUST_FACTS } from "./reviewed-client-2026-08-build-1eb07e32.js";
 import { OCTOBER_1_FACTS } from "./reviewed-client-2026-10-01-7b4c3548d670.js";
 import { OCTOBER_22_FACTS } from "./reviewed-client-2026-10-22-ce3192033b14.js";
@@ -42,6 +51,33 @@ export type ClientGeneration = Readonly<{
    * to a module with the same digest.
    */
   memoryCodeSha256?: string;
+  /** The per-client proof facts this generation's review added. */
+  facts?: GenerationFacts;
+}>;
+
+/**
+ * Per-client facts that a proof cannot derive from the bytes alone, each in
+ * the shape its proof owns. A proof reads them only through `reviewedEntries`
+ * or `perReviewedFacts`, so a replay sees only the facts of active generations.
+ */
+export type GenerationFacts = Readonly<{
+  /**
+   * Alternatives this review accepted for a reviewed reference literal (a
+   * body digest or role fingerprint): another digest or same-length
+   * fingerprint, or a role fingerprint over a body of another length with the
+   * reference role's spans and signature.
+   */
+  alternatives?: Readonly<Record<string, readonly ReviewedAlternative[]>>;
+  resignChatPaths?: readonly ResignChatPath[];
+  whisperPaths?: readonly WhisperPath[];
+  nativeRenderFamilies?: readonly NativeRenderFamily[];
+  pathingFamilies?: readonly PathingFamily[];
+  /** Cartography memory layouts (kernel layout ids) this client's review accepted. */
+  cartographyLayouts?: readonly CartographyMemoryLayoutId[];
+  friendLifecycleRoles?: readonly FriendLifecycleRoleFamily[];
+  guildHallAreaTypeFamilies?: readonly GuildHallAreaTypeFamily[];
+  /** Template-saving helper bodies, keyed by `<role>@<call offset>` or `moved:<callee>`. */
+  templateCalleeBodies?: Readonly<Record<string, readonly string[]>>;
 }>;
 
 /**
@@ -75,6 +111,45 @@ export function withReviewedFacts<Value>(
 
 export function reviewedGenerations(): readonly ClientGeneration[] {
   return active;
+}
+
+export type ReviewedAlternative = string | Readonly<{ bodyLength: number; fingerprint: string }>;
+
+const alternativeIndex = perReviewedFacts((generations) => {
+  const index = new Map<string, ReviewedAlternative[]>();
+  for (const generation of generations) {
+    for (const [literal, alternatives] of Object.entries(generation.facts?.alternatives ?? {})) {
+      index.set(literal, [...index.get(literal) ?? [], ...alternatives]);
+    }
+  }
+  return index;
+});
+
+/** The alternatives that active generations reviewed for `literal`. */
+export function reviewedAlternatives(literal: string): readonly ReviewedAlternative[] {
+  return alternativeIndex().get(literal) ?? [];
+}
+
+/** `derive` over the active generations, computed once per active set. */
+export function perReviewedFacts<Value>(
+  derive: (generations: readonly ClientGeneration[]) => Value,
+): () => Value {
+  const cache = new WeakMap<readonly ClientGeneration[], { value: Value }>();
+  return () => {
+    const cached = cache.get(active);
+    if (cached) return cached.value;
+    const value = derive(active);
+    cache.set(active, { value });
+    return value;
+  };
+}
+
+/** The entries every active generation's facts hold under `pick`, oldest first. */
+export function reviewedEntries<Entry>(
+  pick: (facts: GenerationFacts) => readonly Entry[] | undefined,
+): () => readonly Entry[] {
+  return perReviewedFacts((generations) => Object.freeze(generations.flatMap((generation) =>
+    generation.facts ? pick(generation.facts) ?? [] : [])));
 }
 
 /** The active generation that holds `build`, if any. */

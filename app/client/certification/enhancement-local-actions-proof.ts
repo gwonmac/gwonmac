@@ -50,7 +50,7 @@ import {
 import type { EnhancementProofContext } from "./wasm-evidence.js";
 import { tickEvidence } from "./enhancement-tick-evidence.js";
 import { memoryCodeSha256 } from "./relocation-identity.js";
-import { generationOf } from "./reviewed-facts.js";
+import { generationOf, reviewedEntries } from "./reviewed-facts.js";
 import { verifyLayout } from "./semantic-proof.js";
 import {
   ENHANCEMENT_BUILDS,
@@ -90,25 +90,29 @@ const GUILD_HALL_NATIVE_MESSAGES: readonly Readonly<{
     hashes: ["ff6bcc8db69cbb7fddc17af6d4b7a4c052cb6cd17e335155db495c2e435290c9"] },
   { enter: 0x1000_0183, leave: 0x1000_0185, hashes: [
     "fab247e15279c61c5783bc16f6c02cbf411b3056979f6a765b61763e52bc7d87",
-    // October 22: the same producer with renumbered callees.
-    "3adcc506569c2134909f4a1429062c579d9e28a9bcdecae5bafa55b9120b71c9",
   ] },
 ]);
 
+export type GuildHallAreaTypeFamily = Readonly<{
+  context: string;
+  lookup: string;
+  accessor: string;
+}>;
+
 // Clients whose area-type accessor no longer matches the semantic role: the
 // reviewed accessor counts only beside its exact area context and lookup.
-const GUILD_HALL_AREA_TYPE_FAMILIES = Object.freeze([
+// Later clients add their families in their generation files.
+const BASE_GUILD_HALL_AREA_TYPE_FAMILIES: readonly GuildHallAreaTypeFamily[] = Object.freeze([
   { context: "47c33ee2f7272a3a33d56b448bda7db8fcfe1e16c69048a3eff07ee0222a4c31",
     lookup: "aacd25153c9917d4e0323b9569a0bfd58bb241b7fc068e389477727154ef636b",
     accessor: "f405d7b00e65454a318152154a1bf02744fdbdd61c4ec7da800650aab8d2e2aa" },
-  { context: "4c7ccdfd23aa3144a9d44b439df0293493ac7b04c19475cbb224580610c0e29e",
-    lookup: "081506484a3019e40c1a934f95f88ff3911d70640c0f446afc6c3a3fb4975e5e",
-    accessor: "43acce2aef9325f192efa422dee707362fe3b16feaa891447c5256d6eae86099" },
-] as const);
+]);
+const generationGuildHallFamilies = reviewedEntries((facts) => facts.guildHallAreaTypeFamilies);
 
 // A relink can match two families; they must then name one accessor.
 function reviewedGuildHallAreaTypeAccessor(module: ModuleShape): number | null {
-  const matches = new Set(GUILD_HALL_AREA_TYPE_FAMILIES.flatMap(({ context, lookup, accessor }) =>
+  const families = [...BASE_GUILD_HALL_AREA_TYPE_FAMILIES, ...generationGuildHallFamilies()];
+  const matches = new Set(families.flatMap(({ context, lookup, accessor }) =>
     uniqueExactFunction(module, context, ["i32"], ["i32"]) !== null
     && uniqueExactFunction(module, lookup, ["i32"], ["i32"]) !== null
       ? [uniqueExactFunction(module, accessor, [], ["i32"])] : []));
@@ -196,9 +200,6 @@ const GAME_THREAD_DRAIN_ROLE = semanticRole(
   ]),
   ["i32", "i32"],
   [],
-  // October 22 client: identical body; one reviewed callee index moved.
-  ["e97bf7c3b2f0e47b07f1cde77500e509a88ec364a94fec0980ea3862ce04b7ca",
-  ],
 );
 
 const CHAT_ALIASES_ROLE = semanticRole(
@@ -258,8 +259,6 @@ const UI_DISPATCHER_ROLE = semanticRole(
   ]),
   ["i32", "i32", "i32"],
   [],
-  // October 22 client: same body; the assertion source line moved (3901 -> 3907).
-  ["bd1a37645f311cea53ba09df62c09c40a1c67aa3c7f61faf5694d5b5f1ca06ce"],
 );
 
 const TRAVEL_PRODUCER_ROLE = semanticRole(
@@ -404,10 +403,6 @@ const HERO_PANEL_ROLES = [
 const HERO_PANEL_PACKER_HASHES = [
   "b107cbd1f2b0c9596df848b19cab8219285e6f4ff45bb5d3bd06cd3d643afe57",
   "10aaa2a03010eea192af9f03466665a3036ecd2dc6b94ebe8ff8bdbc9471ba9e",
-  // October 22 client: same packer; only assertion string pointers moved.
-  "46b73500a7f2d248c607d281f91c3fb6b9337297c1f6fd71dc831f10efdc865b",
-  // November 3 client: same packer; callee indices and string pointers moved.
-  "04aeae48a5e6dd724c95f312c65354b2f434cf1ed67d008bf2f667d57cb52fb1",
 ];
 
 function deriveHeroPanelMessages(module: ModuleShape, dispatcher: number) {
@@ -418,7 +413,7 @@ function deriveHeroPanelMessages(module: ModuleShape, dispatcher: number) {
   const packer = soleValue(values, "panel.pack");
   if (soleValue(values, "panel.ui") !== dispatcher
     || !signatureMatches(module, packer, ["i32", "i32"], ["i32"])
-    || !HERO_PANEL_PACKER_HASHES.includes(functionBodySha256(module, packer))) return null;
+    || reviewedBodyMatch(module, packer, HERO_PANEL_PACKER_HASHES) === null) return null;
   return Object.freeze({
     hideHeroPanelMessage: unsignedOperand(body, 150),
     showHeroPanelMessage: unsignedOperand(body, 128),

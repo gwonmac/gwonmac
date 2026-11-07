@@ -3,7 +3,7 @@
  * Runtime certification never grants a capability from these facts alone:
  * the isolated semantic verifier re-derives every fact from the bytes first.
  */
-import type { ClientGeneration } from "./reviewed-facts.js";
+import type { ClientGeneration, GenerationFacts } from "./reviewed-facts.js";
 import type { KnownEnhancementBuild } from "./enhancement-build-model.js";
 
 // November 3 facts: the October 22 record remapped by unique normalized
@@ -837,12 +837,18 @@ const IDENTITIES: Readonly<Record<string, readonly string[]>> = Object.freeze({
     ["2ff5607595b18fafeea320ae1076a9850bce9a961cc86a461ea8e03542c4f50b"],
   "0428ae5c52c81b8335b03d591f2d379f637df339abfece497aaa345373490404":
     ["01b1ed90e1edf24375dab1a7c128c4cd4335066f4d710d5d2accbc8e06f7dc6f"],
+  "04aeae48a5e6dd724c95f312c65354b2f434cf1ed67d008bf2f667d57cb52fb1":
+    ["b5fcf482b465aab30ccd171a99ce1fd60bf8669b2813a8492535744ab7cd8397"],
   "06c0e7ea8532c1ac11c1a0909ea07d6471108d688d94f49c38fccdf45d2968f7":
     ["cee7a410703bc755f2f2c9cb33e0cead8b2790810990c9a2b96fd302cda9dbdb"],
   "2241b6c2c774a5bf31ccc43cf112ebbc7aa061870dfff34a457652e3d47ded55":
     ["d6813f236348c065757d08142b9cd9a26cbc176c52375e6dded8cd0125651f18"],
   "2a91d529aa19c39b435491b4567896663bcd99cfea4b16b98d36bc80ef80ea60":
     ["b1576c485ad2e0286122cf366efed176fdf78fb2ec3919b07653c559f2a0da1b"],
+  "2c91f376bb30a4cbea12f9557b1e274f993d3e6f008698e3019ee5e9c851554b":
+    ["be00b30ae93deb293d96cb9de53d0169d50554054304735d5d9ef60c8047a3e6"],
+  "40389b68860c884753ef1fd10af52165f7a2a8457611cb33bf68c8077dba0403":
+    ["81878849e725a425039f0bd1110285075198a721b05932d0d463a2e5cb1c4192"],
   "47b690af00d5ba4191961b5f8eb4e55a40b08cfdd0439a2017b8a6dc69b2afe1":
     ["c0cf967d81a38315f171a7aa8b46aef98307361a22cab07f12f4f12493d17e73"],
   "5caccbd29c47d0b4b21773363d1ae25a5677d6a4a249d5dfdee580958c834e6b":
@@ -857,10 +863,145 @@ const IDENTITIES: Readonly<Record<string, readonly string[]>> = Object.freeze({
     ["0385fb3abb8f05f322b89d21e8c59d87281ef4b6907921320a276eb22e6edabe"],
   "e7a7adeb46c24e4f889e39042d025795a1b801fc854e7058208e5e272f14c8c6":
     ["ead316e17d0faa1453a087a5100e6ad5c5fb41959a4b6c5b0580f57b525b7d40"],
+  "e7fbbc497109cfa7683ff89600e26e0e0fa486506865de27f5341f9102c8f256":
+    ["3c2d39b431b3d3abac32bf1422af53bf3dec4b570d07e5bb64fb5bac6f059d21"],
   "ece875d8de34f7d77a9d1c81ad17604c0318424fce3650e9aeeec8d842f632ac":
     ["dda2994518aed06fbe0679c0f2aa2892c7d4151e4f91ece96c849ffc0b6d44ec"],
   "f7abfedeef22ca266f67334ba3fb337c815ffb48a969347097a9d16eef739b26":
     ["0cde501c58bbe91864997e1d192886216cb834ae1eb962ca96cff12168614b76"],
+});
+
+// Per-client proof facts this client's review added.
+const FACTS: GenerationFacts = Object.freeze<GenerationFacts>({
+  resignChatPaths: Object.freeze([
+    // The October 22 path renumbered again (reviewed callee and operand moves only).
+    { editor: [13696, "47b690af00d5ba4191961b5f8eb4e55a40b08cfdd0439a2017b8a6dc69b2afe1"],
+      history: [7888, "e7052010aa2d4b48cad89f8e7ec28e328c05da695ef4c6e2ce0ba1e4aa32840f"],
+      sender: Object.freeze({ functionIndex: 7880,
+        params: Object.freeze(["i32", "i32"] as const), results: Object.freeze([] as const),
+        bodySha256: "ece875d8de34f7d77a9d1c81ad17604c0318424fce3650e9aeeec8d842f632ac" }) },
+  ] as const),
+  whisperPaths: Object.freeze([
+    // The October 22 path renumbered again (reviewed callee and operand moves only).
+    { sender: 7880,
+      functions: [
+        [359, "1c87ab4b0831420341935898d106c902d85897a116b4beb7492bf4ab3b1ea9c7", ["i32", "i32", "i32"], []],
+        [11747, "8e66a730acb5424aeb93f5f174ececa587c4c1c12ff9a4db2cd96dad2f584906", ["i32"], []],
+        [5866, "013beb33a62a8148261e2a67f657f9b2e02bb618136dc62621831f68f6f3bce0", ["i32", "i32", "i32"], ["i32"]],
+        [5872, "06c0e7ea8532c1ac11c1a0909ea07d6471108d688d94f49c38fccdf45d2968f7", ["i32", "i32", "i32", "i32"], ["i32"]],
+        [11745, "2a91d529aa19c39b435491b4567896663bcd99cfea4b16b98d36bc80ef80ea60", ["i32", "i32"], []],
+        [8848, "6694fdf5dc2395af5adab5e60840eba7467316720b57c4e3a64f4526bb027b5c", ["i32"], ["i32"]],
+        [5780, "2241b6c2c774a5bf31ccc43cf112ebbc7aa061870dfff34a457652e3d47ded55", ["i32", "i32", "i32", "i32", "i32"], ["i32"]],
+      ] },
+  ] as const),
+  nativeRenderFamilies: Object.freeze([{
+    // The October 22 owners renumbered again. Bodies differ only by reviewed
+    // callee indices and relocated static operands.
+    functions: Object.freeze({
+      264: [264, "3830c5c32eaf8b6065c7aa6ceda30b76ac731d8e513c505c16a5e5e95813e9b8"],
+      748: [749, "ea76feee7b569ef8efb821578b9daa35596f90a8ed002acc77b93df62440d0fe"],
+      750: [751, "adbba34c96c4a33047dbac1fa875c6d5af740ad26bc969517576134676f18b6e"],
+      1333: [1334, "591a0df00c5b820fdba23ee622c2ead65cf27be2942bedf891c328f1b20c84f3"],
+      1334: [1335, "244f37d817ffa8948380fddd1646df33b59100e85e50db2e4a917e0123a5f0bf"],
+      1357: [1358, "114f27084df400549c52165b97c41f190f498b4150492c34d72407b8612c678d"],
+      1444: [1445, "0c9d80366576b62a2292874a98d887363d5a8ee0de63c77dff7abcdb03ef8c1e"],
+      1445: [1446, "d02167e498f0239edd4fcbc7eb24eea9d0c4ebd1d3e74606a100d9680a9d3cff"],
+      1446: [1447, "84a0bdad74c997be930d40cc13a660c841b2b54ec8635ff675bf5c8b498ae619"],
+      1448: [1449, "23ef37d7d7ba501fbf2d33da13999609f5cbfeff98fe3a8849c0c6cd8d1fb609"],
+      1449: [1450, "738df6d2b288a8f11512ab504f499103fe27e18b29e6d5f2015a879aa3641981"],
+      1522: [1523, "6d0cb22b41929e6cf0f18029da42efd235152b1584c0709328bf82b5d8a9f1a6"],
+      1530: [1531, "4d3d76ce224db9ada9ffdf70b31e5d2fdc0b16e6e2ab2bad9f2a1d98600690c2"],
+      1532: [1533, "d04aadc21c7a35ba1376ae6d437dc5a4bf891f2762a364e3e61ac61278e01408"],
+      1554: [1555, "034910086d195f29148b9357f7657b6ebd5c64d1bf95c9a1997551209e307b2e"],
+      1556: [1557, "baf8934e4a1d5731f37dbb6883b9a733121a56d4e657882e95bb395ef2faab65"],
+      1559: [1560, "2fd7490ab39967f63dea682590c2dbb7efdeca56745228a42becec9e951e3d05"],
+      1563: [1564, "d53047d0f2c7e92ef20d58312ec6c5d11d0291766aaf539664f60d96b27bb46f"],
+      1564: [1565, "cc8cb073b94e6be17d22172b10c40657abcbb71aecf94b98c9bf3e235808df71"],
+      1565: [1566, "ab81c2000b9f41b99819c0ee2aaed8d993d23ffb2f096452d394de4393c13822"],
+      1569: [1570, "a032a1d123be8dea68f425b063665c5bbfe56957de88214572fc3fcfc94b3b81"],
+      1572: [1573, "25671de11910c9bb0178497a25e75b3a4c6a54d2f972d251b63e2f29fadb2109"],
+      1579: [1580, "458c24c2997da50bbf039661661f634ce1b3dec4db7ce5efafd10e67b0c328e4"],
+      2187: [2188, "f763aa113b41936d0271f1370366c6abd343fde5461da767979b6917fc076a13"],
+      2249: [2250, "3215f76fea3575263a5c0a55d37e48299f38c00196e1ba6145ced3b1e526f43a"],
+      2902: [2903, "148db22d2c7d9a287148f85a001b51dfa4eaefc98c0aaf92a2d6120cc303397d"],
+      2922: [2923, "dc227e6ec361b5a3b6915f7077eb24599d881436b7975f94147e222dd9de16e5"],
+      2956: [2957, "f39923ce9cc32ca38d67974c90c687559bda007a2b907347736cdd885bbb9a99"],
+      3137: [3138, "bd67560da9e5d593a401bd80ed0d14309788375f501dc2a2f29585d78e1d82b1"],
+      5595: [5596, "75ce03879fcbcaee3e0f225ceeb4d56ee2cb6462716ccf73c22abdac9a8254b5"],
+      6271: [6272, "420c3f943c09e0008cfc4d7cefd9890df677ca38343bb1770bf6eeb38d80898b"],
+      6284: [6285, "0a09c613c93d32df6a0418bc0f253fb8f7358686da92c74ecca515d5302d9e16"],
+      6285: [6286, "6dd186f0b33dbd772c06a45d53cb94c9aa8668b1b890ecb1cb4944c02bcf458c"],
+      6295: [6296, "f83911b288fc6ee380c8e97535784945a63858aec595a4e94bcb534f4824fe82"],
+      6446: [6447, "66782f51d85ccfa80793fe0e99034244ca856cd78511638df8cb159cdb573997"],
+      6447: [6448, "46e423238f12da05654400fd44ee7dd27c113845407ceb969b9b27ea6bf4805e"],
+      6450: [6451, "6916aa4460da4f8daf943da674f1ed5723c5438f40dd5d7935e4ca23984730e8"],
+      6488: [6489, "e446fc9b6f0557a10b02fd6bf3dcdf21c684b695d79b0964445a7646bb482680"],
+      6490: [6491, "89094ccffaf91259cc442fc78e4989157f9ac1916421ca5f3af7ce6f0c5d0a6a"],
+      6492: [6493, "57974d4547c2931412c686c03ed73810688a1608b290e47fff10a717eaf6a87d"],
+      6584: [6585, "fd3d40f1b25ee6eda8dce279db1a32953e18c1bf7318bb690658c41354f5218f"],
+      6585: [6586, "123fcdb86adbe4c88d450254420146d6b8dabb8b1ccd1320f3e938221849e397"],
+      6593: [6594, "fd9a3a63443292ecb8ede9746eef83fa10d30dfc88a443f963e35a9b8bce3a0d"],
+      6598: [6599, "f23e956b8fcb72a5a05877690c69bed18e42bd358590433f5f182701b226f044"],
+      6827: [6828, "75bbce640571d0157ff966a7183373ae34f26b62693e962b5bf1486ab9740485"],
+      13125: [13101, "df2d57f0dce7810ef896c520d05b4d42344ddd9e37912a81a869786c1cb06ba2"],
+      13162: [13138, "3bbc822c71a47f8f19a4cc9cc4cef189df261a47fc859c7e9521dd2eb536763d"],
+      14063: [14041, "22aaeda8b66592b6303ccd0466ea36e9a271d62ee831c49eeb16885c485cba2c"],
+      14112: [14090, "217c7e3c872095c053b651adc245e4bc50dda03d5a120938b4a427b62dfacaa4"],
+      14116: [14094, "d44129b3a53e9bd7e339ed3d7339299fe70311e3ae019a90a404fdf0d9e65f4f"],
+      14126: [14104, "e983879d9000dca32609583148b5e824f28164214254420e41c187fa1ec4f82e"],
+      14132: [14110, "701f05333391c6526b24838efc331fda085b4dd65eb728d9affc258bcf14478b"],
+      14137: [14115, "49739e00e0cd0517475e53a4dfabd88c7c559b77f8943de5144c19412830aeb0"],
+      14147: [14125, "b47aa2a9b0df83431a59ccf6754b9435af7f2f4b9e35be532930ce89323854ae"],
+      16125: [16117, "4f5e46e89797a30c4270945ae2f5dbb0e601035a702523946e7603c995fc06cc"],
+      16136: [16128, "95bd218acc4357157fda114932452986e9f43868ea8d3108c2921393b0962002"],
+      16170: [16162, "730c3f4186739f814abebca3371a856aca7d6de22d27f5727f6ad03e7277c1c9"],
+      16224: [16216, "6226350aead9ae0f1e94c6baf4810da2dc68f254cfc8884dc2914cf2fcfa4e03"],
+    } as const),
+    modelTypeOffset: 1341088, graphicsDevice: 2745352, underMouse: 5921740,
+  }]),
+  pathingFamilies: Object.freeze([{
+    // The five pathing functions renumbered (+1); their callee indices and string
+    // pointers moved; record shapes and relations are unchanged.
+    functions: { loader: 3209, converter: 3217, boundWriter: 3274, coordinateWriter: 3282, builder: 3289 },
+    hashes: [{
+      loader: "3666716979fde05badb08fcb7be50a64e47bc8aeb80bc27bc8a82865442be3cb",
+      converter: "9ff3014e767f4925d635bdfc83c1e94079510145b56475ce01ea75c670fe1c05",
+      boundWriter: "7cfb9f1b504575c2dce539b38de6d741b1009ba5b0607de7c9161b03a5db06fd",
+      coordinateWriter: "7c38b28eb9782a324d24130841e2c109feb172a33f657522ced3278d9c7e7d25",
+      builder: "0f1dfd8047975dd5e605a27fef529729a4b2f1dde78153897a79ad4fa8fcad2a",
+    }],
+  }]),
+  cartographyLayouts: Object.freeze(["november3"] as const),
+  friendLifecycleRoles: Object.freeze([Object.freeze({
+    // Callees and static state moved again; the connection event and logout
+    // handlers assert with GcAuthCmd.cpp source lines that moved by seven.
+    eventDispatcher: [708, ["i32", "i32", "i32", "i32", "i32", "i32"], [], "d05e5d09bdbfdadbdcf36806642669ee6906ce4fd462dec626eb22f3d3e0df69"],
+    callbackListInsert: [510, ["i32", "i32", "i32", "i32"], [], "ac639836d43e92dcd33a5c65fa8d94fa088f402fb62681650f71a3bd2d101f26"],
+    eventRegistration: [303, ["i32", "i32", "i32"], [], "129c49c7ab0d84f1c428c978cfd9f761b76048af02efc096a2c36d925eab2656"],
+    rosterRegistration: [30, [], [], "cbc2d5efbb269fcb74411a2ff4e0e6b7cd18cecf0d17e08efd7fa872da648029"],
+    queueDispatcher: [568, ["i32", "i32", "i32", "i32", "i32", "i32"], [], "5f4b679e850cdbf5273bdcd51b73e4f0a0397b5465faf1747b90b99bf8839963"],
+    queueDrain: [154, ["i32", "i32"], [], "7f75809bb1414cfbdfc9aa39218133cf48428088fb6f11712fd6432ed60ba521"],
+    queueAppend: [644, ["i32", "i32", "i32", "i32", "i32", "i32"], ["i32"], "87376639db6c8e1fd2e72a7489ca737d83086d673f03930eed09d062bde70994"],
+    queueFacade: [179, ["i32", "i32", "i32", "i32", "i32"], ["i32"], "13b9c7743346ddc37f8cdd42b58c2914e6596e36139f12584a3670db116b73f5"],
+    rosterCallback: [872, ["i32", "i32"], [], "6660fdb5b02f1dc6c3a235b6be081bb52f2e148a60ddedb377cdd88153d0a4e2"],
+    clear: [18, ["i32"], [], "d94f5f3480655bff618e0a910472d906ab7e9ec2264a85d2e8a469c896113a6a"],
+    teardown: [47, [], [], "bb72f6d7d931afb794beddaca7e0f8854433d0724845849b601c816e246c52b6"],
+    requestPump: [566, ["i32"], [], "9102b2ab141f8c21c4e1ff39ad511ea5d785f4573dfe477f20ddb97de3bbce10"],
+    requestSent: [308, ["i32"], [], "2aeb4477289e781fb3aa57e4f7cae5aca872536b5229d15cd81553b2709905a9"],
+    requestCompleted: [135, ["i32", "i32"], ["i32"], "7e80d653d1077f72f868789973010da5b011c2728c6d43ad9554e53cd11fd720"],
+    rosterEntry: [213, ["i32", "i32", "i32", "i32"], [], "47a667d21f1c472ebb462d6253440b7efccd3f9257425689f6635c6008708d19"],
+    loginCompleted: [842, ["i32"], [], "5126e2ae3cef548722e3ccd539f40c40c9f12754fee50856f0278dcc0b0f861e"],
+    loginStart: [386, ["i32", "i32", "i32"], [], "3924464319cf59baecbeb4c78d3c31f144bff9ada16cd2ec5c6e6907ef2cd3a7"],
+    connectionEvent: [1084, ["i32", "i32", "i32", "i32", "i32"], ["i32"], "3f8f84593f5d9efe8fe6bf43b2829a8f827ce70ee56430e762afde39661ae620"],
+    disconnect: [70, ["i32"], [], "6af541a904883bfec8e0ae09525157f10819c96ced8b11d48acf273f0b25e0c1"],
+    logout: [206, ["i32"], [], "7921999e36adfdafbb88f041c42a5bdf4fa305da01c36045aba56610725e33c8"],
+    connected: [342, ["i32", "i32"], ["i32"], "b5258d2937ae73dcacc82e55cd94868b2085bfa2749d9b3ffcde3f0cbd2eb879"],
+  } as const)]),
+  // Alternatives to reviewed reference literals: the same function in the same role.
+  alternatives: {
+    // Compass owner: callee indices and static addresses moved.
+    "968c145474ccf26e7b2b8bd64ee11c06cecd0e9d0af011474560111c421cf209": ["403a318ba671af0d5d5624c6ba7dde998fb94621f701b9c54ac8b70d4810ef16"],
+  },
 });
 
 export const NOVEMBER_3_FACTS: ClientGeneration = Object.freeze({
@@ -884,4 +1025,5 @@ export const NOVEMBER_3_FACTS: ClientGeneration = Object.freeze({
     "d5e3a36c3336cf3e42867228919ae973072dc54fb442d80244067a3f308b5fd5": "cb2351264724c96192d923cfaf5b1894c366feeff58de8dc75775ba8d40f84f5",
   }),
   identities: IDENTITIES,
+  facts: FACTS,
 });

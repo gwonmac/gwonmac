@@ -3,7 +3,7 @@
  * Runtime certification never grants a capability from these facts alone:
  * the isolated semantic verifier re-derives every fact from the bytes first.
  */
-import type { ClientGeneration } from "./reviewed-facts.js";
+import type { ClientGeneration, GenerationFacts } from "./reviewed-facts.js";
 import type { KnownEnhancementBuild } from "./enhancement-build-model.js";
 
 // October 22 facts: the October record remapped by unique normalized
@@ -862,6 +862,8 @@ const IDENTITIES: Readonly<Record<string, readonly string[]>> = Object.freeze({
     ["2fe4771536b1900001a6e01fbc57b2900a0a363e90993b2f68615b725b2b5106"],
   "152773bfd5a8ce9f2c57da2cce836665ccdb9e4a1dd91848a7f2a6769ac091a2":
     ["0cfddbaf3a564d43d603df94dea77a4b23bce6a18195b8ae05aee93c6613e92c"],
+  "16968cd2810aadb90cac6a524ead33cccc3d633400cacb599770391361847b99":
+    ["f0f80247a9b6bd5109a3f18a06fb30bf1917b167ee16275d3dfe2cd7688e6f22"],
   "1c87ab4b0831420341935898d106c902d85897a116b4beb7492bf4ab3b1ea9c7":
     ["f141ce860ad232b7b3e6eece93dea98836d7e032faeb3d2cb012b5ceb45a5809"],
   "1d6008c169d1dacfa8cde21d77a071336d056d2fa14677c3d468154d8689532a":
@@ -904,6 +906,8 @@ const IDENTITIES: Readonly<Record<string, readonly string[]>> = Object.freeze({
     ["67971a1202e5b9ccb9e0e2c8612c591a69868da904f9a0417839a5c6c5250dd0"],
   "3317e78afc6f79ebe49e205870dd7776c79856917cd6865a6e0ff1a87a5195e2":
     ["4f52c79d983cf6c9db538a2d9659322d29cf25c29c60952de3a200ed7e3e57df"],
+  "35541e26cd5badf9bbf37b1e7a57489cb762e5ecffcb0f90e4069d4c63bd4c09":
+    ["3728a1f5a3b57919c6e1d88a405167cf1f468b72419a43012f1d0491f53eee88"],
   "35e374a944b7401965998e31575be14cd7fa30daaad6dc03804f713bff8d916f":
     ["d08a6fcf768f60c022e59c1c080c011fb4801aaed6cac4dc657b32d39f6c4479"],
   "3709d9679f87e42ce28cefa257af0e89727c0ec16c66bdb5f98482fdbdb8f98c":
@@ -934,6 +938,8 @@ const IDENTITIES: Readonly<Record<string, readonly string[]>> = Object.freeze({
     ["38c4f3bdfddcd162ee0d4fb377af3c81b3d8e91637fcecda46db3b2bed9b2bed"],
   "4635f44aaacc946ac089da8203845c02e5c3b5a190ccf70fa35b1769f86686a0":
     ["3ceba6716c6ee117c430d7a6c486f0b237f7b856cb7ceafbf05cad9a034adce0"],
+  "46b73500a7f2d248c607d281f91c3fb6b9337297c1f6fd71dc831f10efdc865b":
+    ["b5fcf482b465aab30ccd171a99ce1fd60bf8669b2813a8492535744ab7cd8397"],
   "483e9a39a81c93a2b4744034d338355bd6a8647998676d4384e134e8347ae88e":
     ["037e256eea7db569aea42d02910755cc81b1bd7eb3e4283ef9b0dfcf5b71e2c7"],
   "4c7c4590e83e2eb3e9014a2dabd7ad2556f00f93a37a425121347e12e65aad37":
@@ -956,6 +962,8 @@ const IDENTITIES: Readonly<Record<string, readonly string[]>> = Object.freeze({
     ["ad492f8d90004f48b52da7990f61f93d0f0a6faaf2ca837e39e0673f05b67840"],
   "55a9bca40e9e16713b0473d83afbe7264cd9578f0077d99075afafb076d5fa66":
     ["b48981bc854c21af1d8e9523265e79b6a512e55f573a044243c2a80b6d028836"],
+  "562b11e132a331b10a14d793a7b334997a6ecf2bdffd3115c9252391bbe4b0f0":
+    ["356d0e3c0d72b3bd2afee4bd054b2a1e2a0db8cf8b26726f9d1af841c59a3470"],
   "5b3490ae4c66dad083b8cbea456d2e47d41ff794e9c03aa15acdf2b6523915ec":
     ["caf859e551e3d6989d3c321d13b4814ca22553daf8ef16d2224d71594ee9e07b"],
   "5b53e7ea08a053c2ac512a6b28660f8d927c477968df8043471ec2c2dbceee5d":
@@ -974,6 +982,8 @@ const IDENTITIES: Readonly<Record<string, readonly string[]>> = Object.freeze({
     ["7909f0356a39b15cc2c7043d22778145a64f84625ddb93a9c8b45430c0415c60"],
   "6694fdf5dc2395af5adab5e60840eba7467316720b57c4e3a64f4526bb027b5c":
     ["fbdb43d4901285767db36c1d8b231169595c8a0d8aeb63c18ebaba1a2911a454"],
+  "6698663ffed7669e3fa3922260e1e773179b41a5147fd961af44acc157839914":
+    ["3c2d39b431b3d3abac32bf1422af53bf3dec4b570d07e5bb64fb5bac6f059d21"],
   "66d6960cf4f889c97977b4f8ae79461e0f7034b22c24af50bc19ac9ea4803226":
     ["9b91a62b83b7c5558d0467fb6f61595551a89f0f3a80e6233447acddd8e1c9c5"],
   "6a82f4ed9aded37247ccd15d5822c1118f9412c7be28c7d5b7faf3d0d194086b":
@@ -1100,8 +1110,12 @@ const IDENTITIES: Readonly<Record<string, readonly string[]>> = Object.freeze({
     ["ce33258be0ceafb3ff03b7855dcb6a2bd986ead9393a40b18a7824e1735aed66"],
   "b8ede3a030d6dbe916834d24b05d2a1d1e90c77bbf992e38ecfef314f36a328c":
     ["df61b8643a92b76c9362e100e7b8a461a9937ce02778112e2277a4fcddff4cad"],
+  "b9898076fd712f74e586f60df2a7e551c68db82b3726025815f46b78f32b8413":
+    ["6528ff9959eb98ebd6f3eeecdfb45bd3b12e3931155fe2d7c5d91067de21419f"],
   "b9b40600c58634730684ebf668a33af0c500f99c7e6e4c113e131e0692730e94":
     ["7bea8f8b4f6cbb8aee9548260eaad539f61f4e04a521abbde6f78a45c362aca1"],
+  "b9d3e9ffd560b43d918aa004088193c11e51da699d754682f651b02b5cdb8ab4":
+    ["be00b30ae93deb293d96cb9de53d0169d50554054304735d5d9ef60c8047a3e6"],
   "bb472c938517d6be0477a7b15cd387b1acef31a8572dc556a2072e615af91db5":
     ["cf568bef67513629657c641e31b4166b521b3302ed2d0e1f27c82dd9200da3e1"],
   "bc12b3ab4d27eff749e60b03ff18c292e285f6237409d97b1331f816938cd771":
@@ -1120,6 +1134,8 @@ const IDENTITIES: Readonly<Record<string, readonly string[]>> = Object.freeze({
     ["f9360690c57b766b286c114def8780029162f9f10411a949795b1292cc7d82e4"],
   "c6136e2323c751086990dc6ded74644906739a4ec2d148aa1881224aad3fc202":
     ["24e57baa09c141c7151e7a2374dcd7acc0484f1801efc4d1014ad4b5ac1e7893"],
+  "c6e2e54332d133eb208974890b255570fb2fcc9a802ea52957b4a64116f7e72c":
+    ["0a1664f64d0a4de97dfbccbb3ffe02a656afa110157e9e49bd40e989c57c1cda"],
   "c6ef04ab4bddab108d5b0f7c90acb55f7d6eab79b0c28355ca89b43751c02060":
     ["2512caa525b65b5f06be8142134c1bcc7197fbdb3b6ed40c875fb3425cc69975"],
   "c7da1da4f3c1d8f53d3bf6463b088fe12557de59888dc4e47130120529b275ea":
@@ -1128,6 +1144,8 @@ const IDENTITIES: Readonly<Record<string, readonly string[]>> = Object.freeze({
     ["0f5357f94631a6c10cbca52839dd46a7cfdcd734c54295c7fd220fbcc8130c67"],
   "cd6b4adea9a0d131da290460d6bd379487e59f538297b8cf327a410fef3bae38":
     ["fad5744a7e192aea391b021979c372dc37b85402642955d50f5bf42c862d0186"],
+  "cf152611218510e0d086fb2808834d0381f64c237c9b4ee185eabcd58a850a6b":
+    ["81878849e725a425039f0bd1110285075198a721b05932d0d463a2e5cb1c4192"],
   "cf1a45dde7bff3edb7a2b16c9a074f2d8e86e15e32560f0d9efc4395046f4649":
     ["90db05dd20a778fdcf58f57bdcf9fee038b3839cc594b4a9f6cff69dda8cd0a6"],
   "cf61db8f13d258c90d5005bc4dc3d8d72f57561febeefa27428cbeac5d6dd6d6":
@@ -1184,6 +1202,8 @@ const IDENTITIES: Readonly<Record<string, readonly string[]>> = Object.freeze({
     ["2d1ba95bafe9906fc2a5bc3a512d535b1c015953502af4fd9f2aa6bc353d2bcb"],
   "f1f53c94b6340f394c360c3af0f5604ad5514488751fb18ce360585ddfeb2fa7":
     ["fcc6f1cbde9e050fc6cda5c5173f032b52ed8be03cb05aa5fb21026c40b5d573"],
+  "f234e09fc78c540418d7ee1e02bb339caf4e95b91dad5803dd87f1b1f229eede":
+    ["0f296f9a9b927fe2a47ebaf4eb68b35ebe9429c5926b4f0d046f5d1b20e35df6"],
   "f4649cdc08d2f6cec6d2719956745aabd769ef5787dba529cc476457de2daa66":
     ["0385fb3abb8f05f322b89d21e8c59d87281ef4b6907921320a276eb22e6edabe"],
   "f6211064a9095c95a0e3c5985cc7be8ac1a60f2f4d2ee4f71f4f17ffada7730d":
@@ -1212,6 +1232,314 @@ const IDENTITIES: Readonly<Record<string, readonly string[]>> = Object.freeze({
     ["41d33aeaf230d0bbc6f3c528dd9e96232a82db7fd24c9762882ba8a0cfb84257"],
 });
 
+// Per-client proof facts this client's review added.
+const FACTS: GenerationFacts = Object.freeze<GenerationFacts>({
+  resignChatPaths: Object.freeze([
+    // The October path renumbered; bodies differ only in reviewed callee
+    // indices and relocated operands.
+    { editor: [13691, "1db8ba05f768aac797e225582b746434ca4b75d565d94aad4c3814afc3bd6af6"],
+      history: [7887, "f4649cdc08d2f6cec6d2719956745aabd769ef5787dba529cc476457de2daa66"],
+      sender: Object.freeze({ functionIndex: 7879,
+        params: Object.freeze(["i32", "i32"] as const), results: Object.freeze([] as const),
+        bodySha256: "3947df1c888113fe94a12fea2f3d500387b71f2e56b8ddf970d571621248b584" }) },
+  ] as const),
+  whisperPaths: Object.freeze([
+    // The October path renumbered (reviewed callee and operand moves only).
+    { sender: 7879,
+      functions: [
+        [358, "1c87ab4b0831420341935898d106c902d85897a116b4beb7492bf4ab3b1ea9c7", ["i32", "i32", "i32"], []],
+        [11744, "6e67ac04077857e0da665be75ad5ed98a9927a5607bc1ddbd78fb1ab8039f04c", ["i32"], []],
+        [5865, "f7a2017ce827175b1c593cc6f62f34bcc06c43593157a8f267305eec062e9a0a", ["i32", "i32", "i32"], ["i32"]],
+        [5871, "013e7a049e0be2d3e4597d1feee0bad39f0ba1fe1d5ffd82cf35397630264e10", ["i32", "i32", "i32", "i32"], ["i32"]],
+        [11742, "a6c78374f4e6a901900a6f8102a49fa487170877630e532b9e1d9388bda1d93a", ["i32", "i32"], []],
+        [8847, "6694fdf5dc2395af5adab5e60840eba7467316720b57c4e3a64f4526bb027b5c", ["i32"], ["i32"]],
+        [5779, "5fd1c714b97dfb852012420d0e8d5f32e28bd9fee000590de08958ba78a11031", ["i32", "i32", "i32", "i32", "i32"], ["i32"]],
+      ] },
+  ] as const),
+  nativeRenderFamilies: Object.freeze([{
+    // The October owners at their renumbered indices. Bodies differ only by
+    // reviewed callee indices and relocated static operands.
+    functions: Object.freeze({
+      264: [264, "94ec7217d0fb11ead98600b7b8aa2b71ee55fad6b936d2133088b33c9962a37d"],
+      748: [748, "f1f53c94b6340f394c360c3af0f5604ad5514488751fb18ce360585ddfeb2fa7"],
+      750: [750, "0eebb2bfac9638f17b674c5990802c188a3a98d432d4c4a6737fb7f4551a9e82"],
+      1333: [1333, "2a2380fe271d2f3933c1749f73bfffbf6d967b605a59473d0e449053cb937dd5"],
+      1334: [1334, "8c2f991e381aec54c79bb3f236652fade8de44da3fa92cfe45556bc4af60f183"],
+      1357: [1357, "f03a6885a613d93b5bf27e62afcaffd5bad1ec08f238960baf04d4c3cdf4d5e5"],
+      1444: [1444, "e2e5d918d727ef14b7fdaef41f3446c65193f6fbe80446be6566a477681a0904"],
+      1445: [1445, "ea7a7ab8c07165ee61b3c8239cc8140771eeee9b8677841632064817b116d1ee"],
+      1446: [1446, "875e9edf6a7f4c6837dd661b3e487dc87b8f2be0be416272c54c14dbe116c5dc"],
+      1448: [1448, "6580203bcf57308ea063af0cf46b314a2e867c29791a5a5295082a0219c03981"],
+      1449: [1449, "1c11192753e67ba74ed7db55945f93c10d72b799061fd31b496fc2cdc0d6d26b"],
+      1522: [1522, "b3f4866ffd9ff0fd9f0bbdf9411161a78cb2b23fdc917a73fe33b000fc907d13"],
+      1530: [1530, "bac0f3e38dc0b587dacfe3fcfc9a7527124f20cc07d54837da50def04cff29f6"],
+      1532: [1532, "f75cc657befc8f51513048bfa7fd7fae85f7b689e47f300a15b0343e924b082e"],
+      1554: [1554, "06c86f4e20b8c3713eaed0f50ab36aeedef50a7539649dbdfe2628a3ab5554ff"],
+      1556: [1556, "1bcca33c2669e2c14a46c1c325653b3c2e73bdd073b4ac7194d27922b195f531"],
+      1559: [1559, "72ab3beab5262b9e3bb92a2695479eadc0ed735e8bf8c4dfb02b25b2232d38be"],
+      1563: [1563, "9969e5908a09a60a335a30adeec9da025c7d33fa8bf278eb5f80464e3cf7fb20"],
+      1564: [1564, "4c7a70b4c78dc64bead8081fe4faca0e32911c1bc53d58bb5fbc2a9386b5f1ff"],
+      1565: [1565, "0185f0d5b13a947c1a5f7219ece1a98d0beb89a43b12a0f3d9bb617d0505d384"],
+      1569: [1569, "58eae3c31255da6e2582ded4e0615fadbb5619ecdbff597bba9dcbe166d315c4"],
+      1572: [1572, "0d881eec84eb2b448d3369ceb3f3225398bdd4ddfbd4f94f282422f24ed956fe"],
+      1579: [1579, "11a75789cdf24acade096cfa060b013d6141704fbbb74af31be80251e4b71b9d"],
+      2187: [2187, "06c41429f7f2d794d0c061e23335f11cb06a2e7a02a8a81da39988eb81f569f6"],
+      2249: [2249, "51d5de10730b93272866f3917776eaeecb3a68aabaaf8213f0667a315da141d7"],
+      2902: [2902, "23f71618e47ebe1e6ce6d50f5290541213e0ecc426374a772a87eb75e4831a2c"],
+      2922: [2922, "f4c491012226f9c08387bee278c9e91338ab82de5c71bbfb64ac62017df31777"],
+      2956: [2956, "dedf71e8cbad3dc24b3395c14bc1dc9efeba767687dd25232da35d150d39c4cf"],
+      3137: [3137, "7b85811f2e1b9f0a13e66b76ccb01795d0f4288e9a3fbf9900530cdfa1fc1339"],
+      5595: [5595, "3af2d946882f262b60718623a18d3977acf92194150c65ea4fab8684906ed703"],
+      6271: [6271, "be00d4ff939b6259324f83b9d53bc1c3f3019f027c1e2c605189fb90946a6212"],
+      6284: [6284, "ee1c414b1434b2bba3f690497cd88a7d0381cd6948643a8c47a0035917175ec5"],
+      6285: [6285, "98f46fb22fd105072fb6f5d3ccd8665fd7d4245d493b9f076264f3ebdc5d5191"],
+      6295: [6295, "1b0c75eca543e147f8a6ea4965befb9591b03b8b482586bc45b90f47eef77ac0"],
+      6446: [6446, "f0d0f6091ea4b8749c00cf2973a0b8911a49993b0afe79182952b7d3cca715f7"],
+      6447: [6447, "0d43f0fabac0c7d463f4a6b073a45e16941642f88416841b0d8524e2348b38c8"],
+      6450: [6450, "643f6733c8a74d823848b179fe61383cb9706e5f5181d1d016c48e64831648a0"],
+      6488: [6488, "04fc81d673ee0a07d8de4e00a57d318c54cb0b68230f6d86fad10ec03d88dc08"],
+      6490: [6490, "ad22c95211ae5de444cbee2a37f1a07c2b9fb6e0d6f23caa758fd7ba9ac7d91c"],
+      6492: [6492, "d163abd18f36b31e89ed488c1e60435c83b56d065f1936405d89400f2c772a08"],
+      6584: [6584, "498a580fe1f2863df8c929ecbff1e8f864ed96ff53f7b18b803ae84dfb2545a7"],
+      6585: [6585, "4d9928f3e8c33a8b056fb4788f987afb22e7699cc4dd331fdd95f2e43b7965b9"],
+      6593: [6593, "35aa20e5d81ca4dfb8962dd9bcb1ada197af1bb86001f6012fc1bdcfdf1cca92"],
+      6598: [6598, "91f5cf516b125fd6181e4e003e4b6d7acc841c37052438bf9d213ff71e27bf87"],
+      6827: [6827, "c777401e75f6220143cd3bc2f5573ac8b64b550796f0813ed85350d136af8c2c"],
+      13125: [13096, "4551e1ad9a08c2e1e81337ccf3b59c4a2654fbabac9389c317300d9a3f5a6d88"],
+      13162: [13133, "78097eeffeda60e8515e4165d071541ec4dbdbe55065a7b243ba4f5d910a58b2"],
+      14063: [14036, "0974bc46436ed9ea7c2d7c18f8c0b8a23dba3ff7e8d22c0ad61f21f27acd7948"],
+      14112: [14085, "f23d7dab7f956f4afb6a08d9ac733628dbf01d6c50ba70f9d0cb818fce3ac5e0"],
+      14116: [14089, "729d1412702fe4623a7163973c7427e3e7d54213f6432824786ad2210ca962de"],
+      14126: [14099, "256397ed0536d44ea656323cddb51bc29fb2b87b6af98a5793ff8ee9292a7c6a"],
+      14132: [14105, "bac5eee8d292fefb8c69b2b4539f1ad1bc22dffab4e8593ca0beb0821dd30b1c"],
+      14137: [14110, "7cd1bc60cf003ca029aa52e133acde34ca8d3f1692636904f852170c9c97740a"],
+      14147: [14120, "b47aa2a9b0df83431a59ccf6754b9435af7f2f4b9e35be532930ce89323854ae"],
+      16125: [16112, "59c2c2556eeb11939ddfca127f48e9147c954fda6644dfc100bcacbbbb78561c"],
+      16136: [16123, "73c890f5440d0ee73e0b71408fc0b04cb728660f8d34e5c5cfbe2a94dd2b1667"],
+      16170: [16157, "96ee4aaabf5072bb3a7657d86461ab56d48b7d1be88f07e0ba4662a5f03c5421"],
+      16224: [16211, "7d9544f06ff6453d5c0af45b2da1fab79fea540ff077d715c439e603658a13ac"],
+    } as const),
+    modelTypeOffset: 1341088, graphicsDevice: 2744952, underMouse: 5921340,
+  }]),
+  pathingFamilies: Object.freeze([{
+    // The August indices; only source-path and assertion string pointers moved.
+    functions: { loader: 3208, converter: 3216, boundWriter: 3273, coordinateWriter: 3281, builder: 3288 },
+    hashes: [{
+      loader: "0c06d90dc7e34f23599e1bdee39e88834caaecd3af7a90d504189190cab7801e",
+      converter: "ee19b011e40f47e602a1bfb68b7cff9baca3a959b4bc6a2b8aba9830b321f193",
+      boundWriter: "8850a945edc4d36ed0032841c451d40844b6bdab864de79e8847c5a7cb4d975e",
+      coordinateWriter: "45b114e3982a2433572cf1c9589398b47b0d8e4931958f80788c5efb08fcc715",
+      builder: "47b1743a0f714bdb0c2d03ca8e6fb4ae4ef25278b29cff2f68ef5070f7ba50bc",
+    }],
+  }]),
+  cartographyLayouts: Object.freeze(["october22"] as const),
+  friendLifecycleRoles: Object.freeze([Object.freeze({
+    // Message IDs and source-line witnesses shifted by one and static state
+    // moved; every call and connection-store relation is unchanged.
+    eventDispatcher: [708, ["i32", "i32", "i32", "i32", "i32", "i32"], [], "d05e5d09bdbfdadbdcf36806642669ee6906ce4fd462dec626eb22f3d3e0df69"],
+    callbackListInsert: [510, ["i32", "i32", "i32", "i32"], [], "ac639836d43e92dcd33a5c65fa8d94fa088f402fb62681650f71a3bd2d101f26"],
+    eventRegistration: [303, ["i32", "i32", "i32"], [], "129c49c7ab0d84f1c428c978cfd9f761b76048af02efc096a2c36d925eab2656"],
+    rosterRegistration: [30, [], [], "cbc2d5efbb269fcb74411a2ff4e0e6b7cd18cecf0d17e08efd7fa872da648029"],
+    queueDispatcher: [568, ["i32", "i32", "i32", "i32", "i32", "i32"], [], "5f4b679e850cdbf5273bdcd51b73e4f0a0397b5465faf1747b90b99bf8839963"],
+    queueDrain: [154, ["i32", "i32"], [], "7f75809bb1414cfbdfc9aa39218133cf48428088fb6f11712fd6432ed60ba521"],
+    queueAppend: [644, ["i32", "i32", "i32", "i32", "i32", "i32"], ["i32"], "87376639db6c8e1fd2e72a7489ca737d83086d673f03930eed09d062bde70994"],
+    queueFacade: [179, ["i32", "i32", "i32", "i32", "i32"], ["i32"], "13b9c7743346ddc37f8cdd42b58c2914e6596e36139f12584a3670db116b73f5"],
+    rosterCallback: [872, ["i32", "i32"], [], "6660fdb5b02f1dc6c3a235b6be081bb52f2e148a60ddedb377cdd88153d0a4e2"],
+    clear: [18, ["i32"], [], "d94f5f3480655bff618e0a910472d906ab7e9ec2264a85d2e8a469c896113a6a"],
+    teardown: [47, [], [], "bb72f6d7d931afb794beddaca7e0f8854433d0724845849b601c816e246c52b6"],
+    requestPump: [566, ["i32"], [], "9102b2ab141f8c21c4e1ff39ad511ea5d785f4573dfe477f20ddb97de3bbce10"],
+    requestSent: [308, ["i32"], [], "2aeb4477289e781fb3aa57e4f7cae5aca872536b5229d15cd81553b2709905a9"],
+    requestCompleted: [135, ["i32", "i32"], ["i32"], "7e80d653d1077f72f868789973010da5b011c2728c6d43ad9554e53cd11fd720"],
+    rosterEntry: [213, ["i32", "i32", "i32", "i32"], [], "47a667d21f1c472ebb462d6253440b7efccd3f9257425689f6635c6008708d19"],
+    loginCompleted: [842, ["i32"], [], "5126e2ae3cef548722e3ccd539f40c40c9f12754fee50856f0278dcc0b0f861e"],
+    loginStart: [386, ["i32", "i32", "i32"], [], "3924464319cf59baecbeb4c78d3c31f144bff9ada16cd2ec5c6e6907ef2cd3a7"],
+    connectionEvent: [1084, ["i32", "i32", "i32", "i32", "i32"], ["i32"], "f3d7ae43b928a0164a75d78e00c2a96a45fca4db7dc71d26024775361d580a4e"],
+    disconnect: [70, ["i32"], [], "6af541a904883bfec8e0ae09525157f10819c96ced8b11d48acf273f0b25e0c1"],
+    logout: [206, ["i32"], [], "951991fe548dc3f2a0929f8e044fb72986e79c33230ff37faa50a022e1664643"],
+    connected: [342, ["i32", "i32"], ["i32"], "b5258d2937ae73dcacc82e55cd94868b2085bfa2749d9b3ffcde3f0cbd2eb879"],
+  } as const)]),
+  templateCalleeBodies: Object.freeze({
+    "screenshot-initializer@145": [
+      "39588467c28056e405de7c7ccfae6406a55c2fdd6fe5c098e2463f515e150d4c",
+    ],
+    "screenshot-initializer@235": [
+      "41f2ad0db5a53500e1f5dc2997ecc088474aef40f50fc859e602d9608d511285",
+    ],
+    "directory-sink@776": [
+      "3317e78afc6f79ebe49e205870dd7776c79856917cd6865a6e0ff1a87a5195e2",
+    ],
+    "directory-sink@1104": [
+      "3317e78afc6f79ebe49e205870dd7776c79856917cd6865a6e0ff1a87a5195e2",
+    ],
+    "screenshot-sink@228": [
+      "ee1a49f2a81244b7bc055fd861e81d5a2dc5d3b6ec82ce6044be2b35dc83ec1f",
+    ],
+    "screenshot-sink@952": [
+      "df3cea5724a9ba0e5f08965c82bfb5a6d703f991c718dd6e72e5a867f5ac1a62",
+    ],
+    "screenshot-sink@1215": [
+      "3317e78afc6f79ebe49e205870dd7776c79856917cd6865a6e0ff1a87a5195e2",
+    ],
+    "screenshot-sink@1235": [
+      "3317e78afc6f79ebe49e205870dd7776c79856917cd6865a6e0ff1a87a5195e2",
+    ],
+    "screenshot-sink@1412": [
+      "41f2ad0db5a53500e1f5dc2997ecc088474aef40f50fc859e602d9608d511285",
+    ],
+    "skill-scan@585": [
+      "dea6fb367ceaed35d245132686f1968cacdfc91d5074967ac1cd16477fc3d908",
+    ],
+    "skill-scan@898": [
+      "3af2d946882f262b60718623a18d3977acf92194150c65ea4fab8684906ed703",
+    ],
+    "skill-scan@1013": [
+      "7412f7e8c717d242295a3bcff19ecbb6ab94087026ca81204b208203a968d1b5",
+    ],
+    "equipment-scan@613": [
+      "64df59a14dea52ba83e26c9a485a03b4eab19cff407feda34eb0b2c3f12ae30e",
+    ],
+    "equipment-scan@1055": [
+      "3af2d946882f262b60718623a18d3977acf92194150c65ea4fab8684906ed703",
+    ],
+    "equipment-scan@1211": [
+      "9d15fca77c779c94d8525c7d3b9a555d233f8f41027088ea2d3da59cb7d8326f",
+    ],
+    "moved:callee02": [
+      "139139b77f2ae9ac179610919f9ce2bbe41a3ff5b4e76abf73bc5bc4bb3ef83b",
+    ],
+    "moved:callee03": [
+      "3db3429fc0c9517f7e70987bfa0b93e02607317cfa478349b3ceba089e4f1757",
+    ],
+    "moved:callee05": [
+      "30484bc0e8064e33a1857aee6f826be04522e41b64027516a2fb792976c7712f",
+    ],
+    "moved:callee07": [
+      "dbcadc02907cff650426b68bbf3e4b23db4a569dd407ae6088d8b42bda5ff2ee",
+    ],
+    "moved:callee09": [
+      "85c9209ec6ab5816fd03a3199399f6e4d5df13027889f143c27a7f0180f78a9e",
+    ],
+    "moved:callee10": [
+      "7d97b71f5d156c1f05cd7e6634df55bce242cc3f26231c63665a4f90686ad057",
+    ],
+    "moved:callee11": [
+      "b7438c827d6311ba9717adbaae7f4354ad6cf200e85b6a053d7e821c14eb53ff",
+    ],
+    "moved:callee13": [
+      "152773bfd5a8ce9f2c57da2cce836665ccdb9e4a1dd91848a7f2a6769ac091a2",
+    ],
+    "moved:callee14": [
+      "3af2d946882f262b60718623a18d3977acf92194150c65ea4fab8684906ed703",
+    ],
+    "moved:callee18": [
+      "9a25d91557bf40566ba9ece25b3fbdba513dbe39cdb01d8437136c3b7e4a3b56",
+    ],
+    "moved:callee19": [
+      "52da1316c9b34cbe105e61f8fb57299fae34b578b9374a90cb99b5b62125abd1",
+    ],
+    "moved:callee20": [
+      "f7a2017ce827175b1c593cc6f62f34bcc06c43593157a8f267305eec062e9a0a",
+    ],
+    "moved:callee21": [
+      "045a6ee62e8d1f734569522014a858a6758b2c3a539a900f28d203acc5669d04",
+    ],
+    "moved:callee22": [
+      "0ee5da3f9ac0784d90d4929af0c95fb4f30a6031131d2bb6448ab5d65347ef2d",
+    ],
+    "moved:callee23": [
+      "f6211064a9095c95a0e3c5985cc7be8ac1a60f2f4d2ee4f71f4f17ffada7730d",
+    ],
+    "moved:callee24": [
+      "f1f53c94b6340f394c360c3af0f5604ad5514488751fb18ce360585ddfeb2fa7",
+    ],
+    "moved:callee25": [
+      "e0367d789b61fd5925ce7e5bf91edf877c4da34ecb35aec0e05b891d8a05a123",
+    ],
+    "moved:callee26": [
+      "03844b0c6a4d337ba3fe8d0ff5c2a49d2e0b0361139cf5304f7ad96d8c45077c",
+    ],
+    "moved:callee28": [
+      "8ecb0d6602cdaba02ae722c0c63d16dda2ac17c24cff9632be9b004f2b87e162",
+    ],
+    "moved:callee29": [
+      "904295e566954f26871fa81daaceb0bd909895d6130b48b84d8cb5aaa4a11488",
+    ],
+    "moved:callee31": [
+      "7a9d15aca8e00a91fe5d9ea16eb882c3d42b7fc7566f89be0a09f66c7576d19f",
+    ],
+    "moved:callee32": [
+      "e0805ec3c8e1395354738f31e9e9939cc1008cf480843ddfdb4b8a17fcce779d",
+    ],
+    "moved:callee36": [
+      "bc12b3ab4d27eff749e60b03ff18c292e285f6237409d97b1331f816938cd771",
+    ],
+    "moved:callee37": [
+      "7f02d1cc20202f00c260b788d76771103bbf7fd7f0ee0d668452ad4e985aa22d",
+    ],
+    "moved:callee38": [
+      "a559309977e2046c42b074002eddea657b260075a9ff88c35c33218d885e7534",
+    ],
+    "moved:callee41": [
+      "5e6a5f7de8ba304c3cef666164ad58cd9a98f3ca2fc4f0936b84697d15b38cbb",
+    ],
+    "moved:callee42": [
+      "e9cde57ea98b6cc14857a2c959d18bea23e541e6a5dfdbf253d19fe47743c82d",
+    ],
+    "moved:callee43": [
+      "4fa038d51707e69ff165e87c54b46fb668f35782d5231bc437609ed4dbaacd5d",
+    ],
+    "moved:callee44": [
+      "d2cbabb903aaf2e40ab483446c8e4f76f30226be812839d03e7ea9674d191286",
+    ],
+    "moved:callee45": [
+      "28d6b4daa55ba4af3b714af8d168812cbe9142517924bb38111a15d5f25ecab1",
+    ],
+  }),
+  // Alternatives to reviewed reference literals: the same function in the same role.
+  alternatives: {
+    // Guild Hall native message producer: callees renumbered.
+    "fab247e15279c61c5783bc16f6c02cbf411b3056979f6a765b61763e52bc7d87": ["3adcc506569c2134909f4a1429062c579d9e28a9bcdecae5bafa55b9120b71c9"],
+    // Game-thread drain: identical body; one reviewed callee index moved.
+    "99f25dda4f00ee0aee4950f638ce5ae485ce25d5319a480f3ae8e7f0df452895": ["e97bf7c3b2f0e47b07f1cde77500e509a88ec364a94fec0980ea3862ce04b7ca"],
+    // UI dispatcher: same body; the assertion source line moved (3901 -> 3907).
+    "0c464900f79570672bf60d83386a9388a68204e519bda6b391021c7e855afc4a": ["bd1a37645f311cea53ba09df62c09c40a1c67aa3c7f61faf5694d5b5f1ca06ce"],
+    // Hero panel packer: only assertion string pointers moved.
+    "10aaa2a03010eea192af9f03466665a3036ecd2dc6b94ebe8ff8bdbc9471ba9e": ["46b73500a7f2d248c607d281f91c3fb6b9337297c1f6fd71dc831f10efdc865b"],
+    // Pre-game character array reader: callees and relocated operands moved.
+    "6a06520c167ee5693f963ae52777221d6fd961222104e853212a359065a65e98": ["f8b8bedf6f71429d4c03eac5b02a1b0b397ca696361cf014dc89c2639b4f1875"],
+    // Pre-game selected character reader: callees and relocated operands moved.
+    "98199404d6647d4992d54073b08e0436123f87cd6d30d734d0ffb46c5f7ad552": ["f1bdea374b3bf67822e7fc8ed4a173b7e213ee865d77469c8a4f77c560aad0ce"],
+    // Pre-game frame parent: callees and relocated operands moved.
+    "47471cef99aa5e8df678cddb7a7340e4ef1ad05c9a67f6ab90ed61875a910c71": ["3b866a4e5d9e1e09b60c7e92acb62fb069c800e96ca0113e971e8353655e7ab0"],
+    // Pre-game frame message: callees and relocated operands moved.
+    "c90eccbb0cb8c13058b017e4edb6452161f04c800d10f35b26f280921e6714ca": ["aa73fe42c13b207f22b9fb3ec2a7a390119f8fc0f35a3a1a2cb60e84f43115fd"],
+    // Pre-game logout producer: callees and relocated operands moved.
+    "c28e4801b717aaafddcd99305edf49aa938fd6e9adb19829a60a22e6215db435": ["85dd3fead9b386dc920924374f8d12bc8a0d6ab7d3f84e9240c0a6a918c87ee7"],
+    // Pre-game frame constructor: identical body; one reviewed callee index moved.
+    "5ffea848000894bd9d125990acb4974301d885065c3f1e4c2926fdd147ddaae9": ["d163b9fd10495ddd5fae4947a468532425290ee316ba66190e59e91b7471d5a0"],
+    // Skill-slot constructor: identical body; one reviewed callee index moved.
+    "c6e2c7620ad7fc34a4ed78c716639e648755cf8010a73a03eade8873e202cb4e": ["c4edab6f9b07609efbb005194c4bf075b504c0da552637acf79c6b8805aa3013"],
+    // Skill-slot allocator: identical body; four reviewed callee indices moved.
+    "c42147cced310b1a2caffa8c91e6a824f156ce274c413a5033fa233598a64b7c": ["cd19729848a8981a6c93b2e6df14d8c65a6b9861557319b876b27e176e8bb2d3"],
+    // Attribute commit: same eight calls in the same order. One reviewed
+    // behaviour change: lookup result 11 now also takes the existing reset
+    // path (field +16 = -1), alongside 0. No new stored state appears.
+    "cf7aa8709af2199c7f266560d807fffa582f3573521513ef6547aadecec8d5e8": [
+      { bodyLength: 166, fingerprint: "f87a53c521f38915783764c18327bb345ac6b4e1ee89e4b7a7a6c8fede9c2d76" },
+    ],
+    // Target selector: identical control flow; the related target fields moved with the shared observation storage.
+    "89d6081789bb8fa302685b140e58a68eb24f7533ec07c7059c97523ce5060110": ["3789c63f2f9c7189d49ac9d02ba40a7c555fb5f07027d34c6872ff079ee97d16"],
+    // Compass owner: callees and static addresses moved.
+    "968c145474ccf26e7b2b8bd64ee11c06cecd0e9d0af011474560111c421cf209": ["914b7d302bc76177c3b75ba3372d795198eb9b132545638b69c56996770f2b14"],
+  },
+  // A Guild Hall area-type accessor counts only beside its exact area context and lookup.
+  guildHallAreaTypeFamilies: [{
+    context: "4c7ccdfd23aa3144a9d44b439df0293493ac7b04c19475cbb224580610c0e29e",
+    lookup: "081506484a3019e40c1a934f95f88ff3911d70640c0f446afc6c3a3fb4975e5e",
+    accessor: "43acce2aef9325f192efa422dee707362fe3b16feaa891447c5256d6eae86099",
+  }],
+});
+
 export const OCTOBER_22_FACTS: ClientGeneration = Object.freeze({
   id: "2026-10-22-ce3192033b14",
   builds: Object.freeze([BUILD]),
@@ -1233,4 +1561,5 @@ export const OCTOBER_22_FACTS: ClientGeneration = Object.freeze({
     "d5e3a36c3336cf3e42867228919ae973072dc54fb442d80244067a3f308b5fd5": "845200d2aae2d929e80fa3ebf334133e6d9dfa4fb1d2dfca3383c0a5c6186b14",
   }),
   identities: IDENTITIES,
+  facts: FACTS,
 });

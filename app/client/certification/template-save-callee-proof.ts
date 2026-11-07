@@ -3,6 +3,7 @@
  * bodies. Call positions may move only with the independently identified callee.
  */
 import type { TemplateSaveModuleView } from "./template-save-module-view.js";
+import { perReviewedFacts } from "./reviewed-facts.js";
 import { reviewedBodyMatch } from "./wasm-evidence.js";
 
 interface CalleeWitness {
@@ -15,12 +16,12 @@ const reviewed = (signature: string, bodyHashes: readonly string[]) =>
   Object.freeze({ signature, bodyHashes });
 
 // These are feature-local helper bodies, never whole-client launch authority.
-// The retained August, October 1 and October 22 bodies preserve the caller's
-// argument and control-flow contract. October 22 changed only relocated string
-// pointers and one assertion line number. A relink that changes only callee
-// indices and static addresses (November 3) matches through the reviewed
-// relocation identities of these bodies. A new helper body must refuse until
-// it is reviewed.
+// The retained August and October 1 bodies preserve the caller's argument and
+// control-flow contract. Later generations add their reviewed bodies in their
+// generation files (October 22 changed only relocated string pointers and one
+// assertion line number). A relink that changes only callee indices and static
+// addresses (November 3) matches through the reviewed relocation identities of
+// these bodies. A new helper body must refuse until it is reviewed.
 const CALL_WITNESSES: Readonly<Record<string, readonly CalleeWitness[]>> = {
   "screenshot-initializer": [
     { offset: 39, signature: "()->()", bodyHashes: [
@@ -31,12 +32,10 @@ const CALL_WITNESSES: Readonly<Record<string, readonly CalleeWitness[]>> = {
     { offset: 145, signature: "(i32)->(i32)", bodyHashes: [
       "d4ee1c0b9e04c0a9c2ba20c2db8cb27a4374196429d731cea023f0c92d6438a0",
       "47db5be8d94d4d1c66e1fc602e14588b6de79dd55e50830f518dd88d7a9a5ce7",
-      "39588467c28056e405de7c7ccfae6406a55c2fdd6fe5c098e2463f515e150d4c",
     ] },
     { offset: 235, signature: "(i32,i32)->()", bodyHashes: [
       "4ab967be169dbe74a1e5f2c4f477ebcaed66b101c8887b812104058de42e0e45",
       "658aaf6e5f8a2b0b5d86ffab032a37ab98b63f2967c18fde2db7afa041086882",
-      "41f2ad0db5a53500e1f5dc2997ecc088474aef40f50fc859e602d9608d511285",
     ] },
   ],
   "writer": [
@@ -49,12 +48,10 @@ const CALL_WITNESSES: Readonly<Record<string, readonly CalleeWitness[]>> = {
     { offset: 776, signature: "(i32,i32)->()", bodyHashes: [
       "27de9130f902e343143030751962177d77853da9e841eb7afbfd3c6c494e556d",
       "af39ac84af3f910dea532421a1d27a77621d13caf6894de83b62ccf9c56841b7",
-      "3317e78afc6f79ebe49e205870dd7776c79856917cd6865a6e0ff1a87a5195e2",
     ] },
     { offset: 1104, signature: "(i32,i32)->()", bodyHashes: [
       "27de9130f902e343143030751962177d77853da9e841eb7afbfd3c6c494e556d",
       "af39ac84af3f910dea532421a1d27a77621d13caf6894de83b62ccf9c56841b7",
-      "3317e78afc6f79ebe49e205870dd7776c79856917cd6865a6e0ff1a87a5195e2",
     ] },
   ],
   "screenshot-sink": [
@@ -69,119 +66,90 @@ const CALL_WITNESSES: Readonly<Record<string, readonly CalleeWitness[]>> = {
     { offset: 228, signature: "(i32,i32)->()", bodyHashes: [
       "178b6da0fc63cdec62cb7e2813ec45270d8508f6da86af1194ae2adb074aaf1b",
       "301c3af464b30961e0bb24276782d7176f314baf7391ff280b26d68978604d5e",
-      "ee1a49f2a81244b7bc055fd861e81d5a2dc5d3b6ec82ce6044be2b35dc83ec1f",
     ] },
     { offset: 952, signature: "(i32)->(i32)", bodyHashes: [
       "df3092089ab2fe5a657b174ee6d40c21e06ab1791d3fbfc7a2c017844ad44f87",
       "65d0ad5584cb83ea51954f0f2c11f9de9e92a814fc9c01be299dd0f31224efeb",
-      "df3cea5724a9ba0e5f08965c82bfb5a6d703f991c718dd6e72e5a867f5ac1a62",
     ] },
     { offset: 1215, signature: "(i32,i32)->()", bodyHashes: [
       "27de9130f902e343143030751962177d77853da9e841eb7afbfd3c6c494e556d",
       "af39ac84af3f910dea532421a1d27a77621d13caf6894de83b62ccf9c56841b7",
-      "3317e78afc6f79ebe49e205870dd7776c79856917cd6865a6e0ff1a87a5195e2",
     ] },
     { offset: 1235, signature: "(i32,i32)->()", bodyHashes: [
       "27de9130f902e343143030751962177d77853da9e841eb7afbfd3c6c494e556d",
       "af39ac84af3f910dea532421a1d27a77621d13caf6894de83b62ccf9c56841b7",
-      "3317e78afc6f79ebe49e205870dd7776c79856917cd6865a6e0ff1a87a5195e2",
     ] },
     { offset: 1275, signature: "()->()", bodyHashes: [
       "c80071ce142d86c2fe30af2e5559a706c2fae7ff85070d0fd1c22514a54aa12e",
+      // The October sink wrapper. November 3 shifted both one-call wrappers
+      // by one index, so the initializer wrapper at offset 39 has these bytes.
       "97cd70b9233c07a24510bffa9b1bcd44846a2620713e091291203644f652ea68",
-      // November 3 shifted both one-call wrappers by one index, so the
-      // initializer wrapper above now has this sink wrapper's October bytes.
     ] },
     { offset: 1412, signature: "(i32,i32)->()", bodyHashes: [
       "4ab967be169dbe74a1e5f2c4f477ebcaed66b101c8887b812104058de42e0e45",
       "658aaf6e5f8a2b0b5d86ffab032a37ab98b63f2967c18fde2db7afa041086882",
-      "41f2ad0db5a53500e1f5dc2997ecc088474aef40f50fc859e602d9608d511285",
     ] },
   ],
   "skill-scan": [
     { offset: 585, signature: "(i32,i32)->(i32)", bodyHashes: [
       "d674b5ca59ca7108de5892ebeb26ddbc640eb58ce88db2cb2155262f78e70e21",
       "c40c500091fd2b07b07eb17db068fad70814fe8e1fe52ec336bc3838e0e68892",
-      "dea6fb367ceaed35d245132686f1968cacdfc91d5074967ac1cd16477fc3d908",
     ] },
     { offset: 898, signature: "(i32,i32,i32)->()", bodyHashes: [
       "2d9c21a01d2ea73b47cba5da45fd09648fc01c49d0bd3e7957a2b8f4952a778a",
       "7360f098727dd1b104924223849d92074c517ddccbcf03a3ef3f55789622035c",
-      "3af2d946882f262b60718623a18d3977acf92194150c65ea4fab8684906ed703",
     ] },
     { offset: 1013, signature: "(i32,i32,i32)->()", bodyHashes: [
       "bfd9130ffc32c0866207bacd52684127f19affc9c4a29d14d9862de924bd0113",
       "10c0e2dd4cbe0782b9c9d92126eadc01bff409612ad3e03e104dcde520515311",
-      "7412f7e8c717d242295a3bcff19ecbb6ab94087026ca81204b208203a968d1b5",
     ] },
   ],
   "equipment-scan": [
     { offset: 613, signature: "(i32,i32)->(i32)", bodyHashes: [
       "90de93d9c38a832d11cb22e6e59b69bad31732f462942edf3b3114a9106dc500",
       "bcbe21869c2763fa664de3bc9d9c21d7964ed62814f41223c1734e8f48848f04",
-      "64df59a14dea52ba83e26c9a485a03b4eab19cff407feda34eb0b2c3f12ae30e",
     ] },
     { offset: 1055, signature: "(i32,i32,i32)->()", bodyHashes: [
       "2d9c21a01d2ea73b47cba5da45fd09648fc01c49d0bd3e7957a2b8f4952a778a",
       "7360f098727dd1b104924223849d92074c517ddccbcf03a3ef3f55789622035c",
-      "3af2d946882f262b60718623a18d3977acf92194150c65ea4fab8684906ed703",
     ] },
     { offset: 1211, signature: "(i32,i32,i32)->()", bodyHashes: [
       "3ec70d19cc641ee9483ee336bfc421dac0768902bb0a2666b669633ca195b7b3",
       "66a258793ca455cfa84e66cfe57cec1561149520bf43ec6bcbce8c0f02fdb7c5",
-      "9d15fca77c779c94d8525c7d3b9a555d233f8f41027088ea2d3da59cb7d8326f",
     ] },
   ],
 };
 
 // Helper calls that first moved in the November 3 client, when ArenaNet
 // inserted functions below them. Each callee is identified by its signature
-// and its complete reviewed October 22 body, or that body's relocation
-// identity on a relink. Clients before October 22 are never served again, so
-// their bodies are not listed.
+// and a complete reviewed body, or that body's relocation identity on a
+// relink. Bodies below are shared with older clients; October 22 adds the rest
+// in its generation file.
 const MOVED_CALLEES = {
   callee01: reviewed("(i32,i32)->()", [
     "fab95ac17337f47eb40041e800b82b5e5eab7f5c19a7cebf59955a3db9e136c4",
   ]),
-  callee02: reviewed("(i32,i32,i32,i32)->()", [
-    "139139b77f2ae9ac179610919f9ce2bbe41a3ff5b4e76abf73bc5bc4bb3ef83b",
-  ]),
-  callee03: reviewed("(i32,i32,i32,i32)->()", [
-    "3db3429fc0c9517f7e70987bfa0b93e02607317cfa478349b3ceba089e4f1757",
-  ]),
+  callee02: reviewed("(i32,i32,i32,i32)->()", []),
+  callee03: reviewed("(i32,i32,i32,i32)->()", []),
   callee04: reviewed("(i32,i32,i32)->()", [
     "1c87ab4b0831420341935898d106c902d85897a116b4beb7492bf4ab3b1ea9c7",
   ]),
-  callee05: reviewed("(i32,i32,i32)->()", [
-    "30484bc0e8064e33a1857aee6f826be04522e41b64027516a2fb792976c7712f",
-  ]),
+  callee05: reviewed("(i32,i32,i32)->()", []),
   callee06: reviewed("(i32,i32,i32)->(i32)", [
     "6b212ed9b073a98a778eb517317f9859cdbf464cf452697860b87a0e5e8d92ff",
   ]),
-  callee07: reviewed("(i32,i32,i32,i32)->(i32)", [
-    "dbcadc02907cff650426b68bbf3e4b23db4a569dd407ae6088d8b42bda5ff2ee",
-  ]),
+  callee07: reviewed("(i32,i32,i32,i32)->(i32)", []),
   callee08: reviewed("(i32)->(i32)", [
     "483e9a39a81c93a2b4744034d338355bd6a8647998676d4384e134e8347ae88e",
   ]),
-  callee09: reviewed("(i32,i32,i32,i32,i32)->(i32)", [
-    "85c9209ec6ab5816fd03a3199399f6e4d5df13027889f143c27a7f0180f78a9e",
-  ]),
-  callee10: reviewed("(i32)->()", [
-    "7d97b71f5d156c1f05cd7e6634df55bce242cc3f26231c63665a4f90686ad057",
-  ]),
-  callee11: reviewed("(i32,i32,i32)->()", [
-    "b7438c827d6311ba9717adbaae7f4354ad6cf200e85b6a053d7e821c14eb53ff",
-  ]),
+  callee09: reviewed("(i32,i32,i32,i32,i32)->(i32)", []),
+  callee10: reviewed("(i32)->()", []),
+  callee11: reviewed("(i32,i32,i32)->()", []),
   callee12: reviewed("(i32,i32)->(i32)", [
     "b8ede3a030d6dbe916834d24b05d2a1d1e90c77bbf992e38ecfef314f36a328c",
   ]),
-  callee13: reviewed("(i32,i32,i32)->()", [
-    "152773bfd5a8ce9f2c57da2cce836665ccdb9e4a1dd91848a7f2a6769ac091a2",
-  ]),
-  callee14: reviewed("(i32,i32,i32)->()", [
-    "3af2d946882f262b60718623a18d3977acf92194150c65ea4fab8684906ed703",
-  ]),
+  callee13: reviewed("(i32,i32,i32)->()", []),
+  callee14: reviewed("(i32,i32,i32)->()", []),
   callee15: reviewed("(i32)->(i32)", [
     "e283934ec12bc0c0dc23d2afd90ea0443fc75b7168da5a4c9ec5a55021180771",
   ]),
@@ -191,52 +159,25 @@ const MOVED_CALLEES = {
   callee17: reviewed("(i32,i32,i32)->(i32)", [
     "c7da1da4f3c1d8f53d3bf6463b088fe12557de59888dc4e47130120529b275ea",
   ]),
-  callee18: reviewed("(i32,i32,i32)->(i32)", [
-    "9a25d91557bf40566ba9ece25b3fbdba513dbe39cdb01d8437136c3b7e4a3b56",
-  ]),
-  callee19: reviewed("(i32,i32,i32,i32)->(i32)", [
-    "52da1316c9b34cbe105e61f8fb57299fae34b578b9374a90cb99b5b62125abd1",
-  ]),
-  callee20: reviewed("(i32,i32,i32)->(i32)", [
-    "f7a2017ce827175b1c593cc6f62f34bcc06c43593157a8f267305eec062e9a0a",
-    "013beb33a62a8148261e2a67f657f9b2e02bb618136dc62621831f68f6f3bce0",
-  ]),
-  callee21: reviewed("(i32,i32,i32)->()", [
-    "045a6ee62e8d1f734569522014a858a6758b2c3a539a900f28d203acc5669d04",
-  ]),
-  callee22: reviewed("(i32,i32,i32)->(i32)", [
-    "0ee5da3f9ac0784d90d4929af0c95fb4f30a6031131d2bb6448ab5d65347ef2d",
-  ]),
-  callee23: reviewed("(i32,i32,i32)->()", [
-    "f6211064a9095c95a0e3c5985cc7be8ac1a60f2f4d2ee4f71f4f17ffada7730d",
-  ]),
-  callee24: reviewed("(i32)->()", [
-    "f1f53c94b6340f394c360c3af0f5604ad5514488751fb18ce360585ddfeb2fa7",
-  ]),
-  callee25: reviewed("(i32,i32)->()", [
-    "e0367d789b61fd5925ce7e5bf91edf877c4da34ecb35aec0e05b891d8a05a123",
-  ]),
-  callee26: reviewed("(i32,i32)->(i32)", [
-    "03844b0c6a4d337ba3fe8d0ff5c2a49d2e0b0361139cf5304f7ad96d8c45077c",
-  ]),
+  callee18: reviewed("(i32,i32,i32)->(i32)", []),
+  callee19: reviewed("(i32,i32,i32,i32)->(i32)", []),
+  callee20: reviewed("(i32,i32,i32)->(i32)", []),
+  callee21: reviewed("(i32,i32,i32)->()", []),
+  callee22: reviewed("(i32,i32,i32)->(i32)", []),
+  callee23: reviewed("(i32,i32,i32)->()", []),
+  callee24: reviewed("(i32)->()", []),
+  callee25: reviewed("(i32,i32)->()", []),
+  callee26: reviewed("(i32,i32)->(i32)", []),
   callee27: reviewed("(i32,i32,i32,i32)->(i32)", [
     "4d08a3cde5c979729cf97e90ae3873d3633da52793334638395efafd0dd29622",
   ]),
-  callee28: reviewed("(i32,i32,i32,i32)->()", [
-    "8ecb0d6602cdaba02ae722c0c63d16dda2ac17c24cff9632be9b004f2b87e162",
-  ]),
-  callee29: reviewed("(i32,i32,i32,i32,i32,i32)->(i32)", [
-    "904295e566954f26871fa81daaceb0bd909895d6130b48b84d8cb5aaa4a11488",
-  ]),
+  callee28: reviewed("(i32,i32,i32,i32)->()", []),
+  callee29: reviewed("(i32,i32,i32,i32,i32,i32)->(i32)", []),
   callee30: reviewed("(i32)->()", [
     "d30f207317d2f41fb835151734edb4f8a942a81d5c54052ed90a2197aede80fa",
   ]),
-  callee31: reviewed("(i32,i32,i32,i32)->()", [
-    "7a9d15aca8e00a91fe5d9ea16eb882c3d42b7fc7566f89be0a09f66c7576d19f",
-  ]),
-  callee32: reviewed("(i32,i32,i32,i32,i32,i32,i32,i32,i32)->()", [
-    "e0805ec3c8e1395354738f31e9e9939cc1008cf480843ddfdb4b8a17fcce779d",
-  ]),
+  callee31: reviewed("(i32,i32,i32,i32)->()", []),
+  callee32: reviewed("(i32,i32,i32,i32,i32,i32,i32,i32,i32)->()", []),
   callee33: reviewed("(i32)->(i32)", [
     "4c7c4590e83e2eb3e9014a2dabd7ad2556f00f93a37a425121347e12e65aad37",
   ]),
@@ -246,36 +187,20 @@ const MOVED_CALLEES = {
   callee35: reviewed("(i32)->()", [
     "9c753eb67c287ac128bbdd725290aaa3079e7711e787b2c9c337cafa5ac7bc26",
   ]),
-  callee36: reviewed("(i32)->()", [
-    "bc12b3ab4d27eff749e60b03ff18c292e285f6237409d97b1331f816938cd771",
-  ]),
-  callee37: reviewed("(i32,i32)->()", [
-    "7f02d1cc20202f00c260b788d76771103bbf7fd7f0ee0d668452ad4e985aa22d",
-  ]),
-  callee38: reviewed("(i32,i32,i32,i32)->()", [
-    "a559309977e2046c42b074002eddea657b260075a9ff88c35c33218d885e7534",
-  ]),
+  callee36: reviewed("(i32)->()", []),
+  callee37: reviewed("(i32,i32)->()", []),
+  callee38: reviewed("(i32,i32,i32,i32)->()", []),
   callee39: reviewed("()->()", [
     "8476683033ad31f0b011834d9caad51f0a23c8e1ba88e10ac0c583146eb4c156",
   ]),
   callee40: reviewed("(i32,i32,i32)->(i32)", [
     "4635f44aaacc946ac089da8203845c02e5c3b5a190ccf70fa35b1769f86686a0",
   ]),
-  callee41: reviewed("(i32,i32,i32,i32,i32)->(i32)", [
-    "5e6a5f7de8ba304c3cef666164ad58cd9a98f3ca2fc4f0936b84697d15b38cbb",
-  ]),
-  callee42: reviewed("(i32,i32,i32)->(i32)", [
-    "e9cde57ea98b6cc14857a2c959d18bea23e541e6a5dfdbf253d19fe47743c82d",
-  ]),
-  callee43: reviewed("(i32,i32,i32)->(i32)", [
-    "4fa038d51707e69ff165e87c54b46fb668f35782d5231bc437609ed4dbaacd5d",
-  ]),
-  callee44: reviewed("(i32,i32,i32,i32,i32)->(i32)", [
-    "d2cbabb903aaf2e40ab483446c8e4f76f30226be812839d03e7ea9674d191286",
-  ]),
-  callee45: reviewed("(i32)->(i32)", [
-    "28d6b4daa55ba4af3b714af8d168812cbe9142517924bb38111a15d5f25ecab1",
-  ]),
+  callee41: reviewed("(i32,i32,i32,i32,i32)->(i32)", []),
+  callee42: reviewed("(i32,i32,i32)->(i32)", []),
+  callee43: reviewed("(i32,i32,i32)->(i32)", []),
+  callee44: reviewed("(i32,i32,i32,i32,i32)->(i32)", []),
+  callee45: reviewed("(i32)->(i32)", []),
 } as const;
 
 const MOVED_CALL_SITES: Readonly<Record<string, readonly (readonly [number, keyof typeof MOVED_CALLEES])[]>> = {
@@ -333,15 +258,32 @@ const MOVED_CALL_SITES: Readonly<Record<string, readonly (readonly [number, keyo
   ],
 };
 
+// Each generation adds the helper bodies its review accepted, keyed by
+// `<role>@<call offset>` or `moved:<callee>`.
+const generationBodies = perReviewedFacts((generations) => {
+  const bodies = new Map<string, string[]>();
+  for (const generation of generations) {
+    for (const [key, hashes] of Object.entries(generation.facts?.templateCalleeBodies ?? {})) {
+      bodies.set(key, [...bodies.get(key) ?? [], ...hashes]);
+    }
+  }
+  return bodies;
+});
+
 export function normalizeTemplateCalleeCalls(
   view: TemplateSaveModuleView,
   local: number,
   role: string,
   normalized: Uint8Array,
 ): void {
+  const reviewedBodies = generationBodies();
+  const withGenerations = (witness: CalleeWitness, key: string): CalleeWitness => ({
+    ...witness, bodyHashes: [...witness.bodyHashes, ...reviewedBodies.get(key) ?? []],
+  });
   const witnesses: readonly CalleeWitness[] = [
-    ...CALL_WITNESSES[role] ?? [],
-    ...(MOVED_CALL_SITES[role] ?? []).map(([offset, name]) => ({ offset, ...MOVED_CALLEES[name] })),
+    ...(CALL_WITNESSES[role] ?? []).map((witness) => withGenerations(witness, `${role}@${witness.offset}`)),
+    ...(MOVED_CALL_SITES[role] ?? []).map(([offset, name]) =>
+      withGenerations({ offset, ...MOVED_CALLEES[name] }, `moved:${name}`)),
   ];
   // Small synthetic locator fixtures have no production helper sites.
   if (witnesses.some(({ offset }) => offset + 6 > normalized.byteLength)) return;

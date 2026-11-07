@@ -10,7 +10,7 @@ import {
   codeOperandOccurrences,
   enhancementProofContext,
   functionBody,
-  functionBodySha256,
+  reviewedBodyMatch,
   MAX_INPUT_BYTES,
   matchesEvidenceInput,
   mutableSpans,
@@ -139,10 +139,7 @@ const TARGET_SELECTOR_ROLES = [
     { start: 611, end: 616, role: "target.assert-file", addressClass: "immutable-data" },
     { start: 661, end: 666, role: "target.manual", addressClass: "mutable-static" },
     { start: 672, end: 677, role: "target.automatic", addressClass: "mutable-static" },
-  ], ["i32", "i32"], [],
-  // October 22 client: identical control flow; the related target fields
-  // moved with the shared observation storage.
-  ["3789c63f2f9c7189d49ac9d02ba40a7c555fb5f07027d34c6872ff079ee97d16"]),
+  ], ["i32", "i32"], []),
 ];
 const TARGET_CALLER_ROLES = [
   TARGET_CALLER_ROLE,
@@ -257,18 +254,16 @@ type ExactTargetRole = Readonly<{
   results: readonly string[];
 }>;
 
-// November 3 client: the additional mapId, agentFields and agentModel bodies
-// differ only in callee indices and static addresses.
 const EXACT_TARGET_ROLES = Object.freeze({
   gameCharacter: { bodySha256: "f234e09fc78c540418d7ee1e02bb339caf4e95b91dad5803dd87f1b1f229eede", params: ["i32"], results: ["i32"] },
-  mapId: { bodySha256: "6698663ffed7669e3fa3922260e1e773179b41a5147fd961af44acc157839914", additionalBodySha256: ["e7fbbc497109cfa7683ff89600e26e0e0fa486506865de27f5341f9102c8f256"], params: ["i32"], results: ["i32"] },
+  mapId: { bodySha256: "6698663ffed7669e3fa3922260e1e773179b41a5147fd961af44acc157839914", params: ["i32"], results: ["i32"] },
   mapState: { bodySha256: "35cea95a660e3e1964f2fab0342b60c9a96ebc563638feceb328231fb97b27cd", params: ["i32", "i32"], results: [] },
   currentMap: { bodySha256: "c6e2e54332d133eb208974890b255570fb2fcc9a802ea52957b4a64116f7e72c", params: [], results: ["i32"] },
   instanceType: { bodySha256: "b9898076fd712f74e586f60df2a7e551c68db82b3726025815f46b78f32b8413", params: ["i32"], results: ["i32"] },
   playerNumber: { bodySha256: "3656f5655d9704c608247be52aaf1654141bce2db8f085c6cef4c967c7068acf", additionalBodySha256: ["562b11e132a331b10a14d793a7b334997a6ecf2bdffd3115c9252391bbe4b0f0"], params: [], results: ["i32"] },
   worldContext: { bodySha256: "35541e26cd5badf9bbf37b1e7a57489cb762e5ecffcb0f90e4069d4c63bd4c09", params: ["i32"], results: ["i32"] },
-  agentFields: { bodySha256: "b9d3e9ffd560b43d918aa004088193c11e51da699d754682f651b02b5cdb8ab4", additionalBodySha256: ["2c91f376bb30a4cbea12f9557b1e274f993d3e6f008698e3019ee5e9c851554b"], params: ["i32"], results: [] },
-  agentModel: { bodySha256: "cf152611218510e0d086fb2808834d0381f64c237c9b4ee185eabcd58a850a6b", additionalBodySha256: ["40389b68860c884753ef1fd10af52165f7a2a8457611cb33bf68c8077dba0403"], params: ["i32", "i32", "i32"], results: ["i32"] },
+  agentFields: { bodySha256: "b9d3e9ffd560b43d918aa004088193c11e51da699d754682f651b02b5cdb8ab4", params: ["i32"], results: [] },
+  agentModel: { bodySha256: "cf152611218510e0d086fb2808834d0381f64c237c9b4ee185eabcd58a850a6b", params: ["i32", "i32", "i32"], results: ["i32"] },
   areaCount: { bodySha256: "dc05263b317b11744dc07fdd0ee520bf3d9811e9869580c570ff81959ef2fd9b", params: ["i32", "i32", "i32"], results: ["i32"] },
   areaFlags: { bodySha256: "1cc6aeaa4c4f9228ee4984a26506f2f72d2b6ad4aeec4e50b1dd019504516382", params: [], results: ["i32"] },
 } as const satisfies Readonly<Record<string, ExactTargetRole>>);
@@ -299,7 +294,7 @@ function exactTargetFunction(
   const candidates = module.functionTypeIndices.flatMap((_, index) =>
     index >= module.functionImportCount
     && signatureMatches(module, index, role.params, role.results)
-    && hashes.includes(functionBodySha256(module, index)) ? [index] : []);
+    && reviewedBodyMatch(module, index, hashes) !== null ? [index] : []);
   return candidates.length === 1 ? candidates[0]! : null;
 }
 
@@ -419,7 +414,7 @@ export function inspectTargetRoleCandidates(
         return module.functionTypeIndices.reduce((count, _, index) =>
           index >= module.functionImportCount
           && signatureMatches(module, index, role.params, role.results)
-          && hashes.includes(functionBodySha256(module, index))
+          && reviewedBodyMatch(module, index, hashes) !== null
             ? count + 1
             : count, 0);
       }),

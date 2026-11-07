@@ -6,6 +6,7 @@ import { createHash } from "node:crypto";
 import type { DecodedFunction, ModuleShape } from "./enhancement-evidence-types.js";
 import { inspectFriendTable } from "./friend-table-evidence.js";
 import { friendSemanticBodyShape } from "./friend-semantic-shape.js";
+import { perReviewedFacts, REVIEWED_GENERATIONS, type ClientGeneration } from "./reviewed-facts.js";
 import { signatureMatches, wasmEvidence } from "./wasm-evidence.js";
 import type { WasmDataEvidence } from "./wasm-data-evidence.js";
 
@@ -44,30 +45,21 @@ const OCTOBER_ROLE_SPECS = Object.freeze({
   disconnect: [70, ["i32"], [], "6f0532c66baf13c8fd305ae99973c0e528647a896c59f82263faef2b63255e1c"],
   connected: [342, ["i32", "i32"], ["i32"], "a98901c58036ff36cd4281829bd04b2bfd045f36dde2d87b6393bf6f1a47bf27"],
 } as const);
-// October 22 shifted message IDs and source-line witnesses by one and moved
-// static state; every call and connection-store relation is unchanged.
-const OCTOBER_22_ROLE_SPECS = Object.freeze({
-  ...OCTOBER_ROLE_SPECS,
-  rosterRegistration: [30, [], [], "cbc2d5efbb269fcb74411a2ff4e0e6b7cd18cecf0d17e08efd7fa872da648029"],
-  teardown: [47, [], [], "bb72f6d7d931afb794beddaca7e0f8854433d0724845849b601c816e246c52b6"],
-  loginStart: [386, ["i32", "i32", "i32"], [], "3924464319cf59baecbeb4c78d3c31f144bff9ada16cd2ec5c6e6907ef2cd3a7"],
-  connectionEvent: [1084, ["i32", "i32", "i32", "i32", "i32"], ["i32"], "f3d7ae43b928a0164a75d78e00c2a96a45fca4db7dc71d26024775361d580a4e"],
-  disconnect: [70, ["i32"], [], "6af541a904883bfec8e0ae09525157f10819c96ced8b11d48acf273f0b25e0c1"],
-  connected: [342, ["i32", "i32"], ["i32"], "b5258d2937ae73dcacc82e55cd94868b2085bfa2749d9b3ffcde3f0cbd2eb879"],
-} as const);
-// November 3 moved callees and static state again; the connection event and
-// logout handlers assert with GcAuthCmd.cpp source lines that moved by seven.
-const NOVEMBER_3_ROLE_SPECS = Object.freeze({
-  ...OCTOBER_22_ROLE_SPECS,
-  connectionEvent: [1084, ["i32", "i32", "i32", "i32", "i32"], ["i32"], "3f8f84593f5d9efe8fe6bf43b2829a8f827ce70ee56430e762afde39661ae620"],
-  logout: [206, ["i32"], [], "7921999e36adfdafbb88f041c42a5bdf4fa305da01c36045aba56610725e33c8"],
-} as const);
-const ROLE_FAMILIES = Object.freeze([
-  ROLE_SPECS, OCTOBER_ROLE_SPECS, OCTOBER_22_ROLE_SPECS, NOVEMBER_3_ROLE_SPECS,
-]);
+/** One reviewed client's complete friend-lifecycle role family. */
+export type FriendLifecycleRoleFamily = Readonly<Record<
+  keyof typeof ROLE_SPECS,
+  readonly [number, readonly string[], readonly string[], string]
+>>;
 
+const BASE_FAMILIES: readonly FriendLifecycleRoleFamily[] = Object.freeze([ROLE_SPECS, OCTOBER_ROLE_SPECS]);
+const familiesOf = (generations: readonly ClientGeneration[]): readonly FriendLifecycleRoleFamily[] =>
+  [...BASE_FAMILIES, ...generations.flatMap((generation) => generation.facts?.friendLifecycleRoles ?? [])];
+const activeFamilies = perReviewedFacts(familiesOf);
+
+// The observer's semantic digest covers every reviewed family the release
+// carries, whichever are active, because the renderer pins it.
 export const FRIEND_LIFECYCLE_SEMANTIC_SHA256 = createHash("sha256").update(JSON.stringify({
-  roles: ROLE_FAMILIES,
+  roles: familiesOf(REVIEWED_GENERATIONS),
   contract: "request-roster-completion-user-event-envelope-dispatch-five-connection-stores-bounded-context-v3",
 })).digest("hex");
 
@@ -130,7 +122,7 @@ export function inspectFriendLifecycle(input: Uint8Array): FriendLifecycleEviden
     if (table.status !== "candidate") return unavailable("friend-record-proof-unavailable");
     const module = evidence.moduleView();
     const functions = evidence.decodeFunctions([]);
-    const families = ROLE_FAMILIES.map(specs => Object.fromEntries(
+    const families = activeFamilies().map(specs => Object.fromEntries(
       (Object.keys(ROLE_SPECS) as FriendLifecycleRole[]).map(role =>
         [role, uniqueRole(module, evidence.data, functions, role, specs)])) as Record<
         FriendLifecycleRole, DecodedFunction | null

@@ -6,7 +6,7 @@ import { concat, encodeCode, encodeIndexVector, encodeSection, parseCode, parseE
   parseIndexVector, sectionById, sleb, splitSections, uleb, vectorPayload, WASM_HEADER } from "../../main/core/wasm-binary.js";
 import { call, encodeName, f32Const, f32Load, f32Store, globalGet, globalSet, i32Const, i32Load, i32Store, localGet, localSet, op } from "./wasm-emit.js";
 import { NATIVE_RENDER_REFERENCE_FUNCTIONS, nativeGraphicsBusy, nativeModelBusy,
-  resolveNativeRenderBindings, reviewedNativeRenderFunctions, NATIVE_RENDER_FAMILY_COUNT,
+  resolveNativeRenderBindings, reviewedNativeRenderFunctions, nativeRenderFamilyCount,
   type NativeRenderFunctionBodies } from "./native-render-reference.js";
 import { isDeepStrictEqual } from "node:util";
 import { wasmEvidence } from "./wasm-evidence.js";
@@ -111,7 +111,7 @@ export const NATIVE_HUD_RENDERING_PROOF: Readonly<{ functionBodies: NativeRender
   Object.freeze({ functionBodies: CHECKED });
 
 export function isNativeHudRenderingProof(value: unknown): boolean {
-  return Array.from({ length: NATIVE_RENDER_FAMILY_COUNT }).some((_, family) => isDeepStrictEqual(value,
+  return Array.from({ length: nativeRenderFamilyCount() }).some((_, family) => isDeepStrictEqual(value,
     { functionBodies: reviewedNativeRenderFunctions(CHECKED, family) }));
 }
 
