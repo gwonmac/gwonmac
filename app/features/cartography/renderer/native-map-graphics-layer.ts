@@ -2,7 +2,7 @@
  * Composes map painters into bounded textures for native Mission and World Map.
  * These canvases stay detached; only each game's map draw event presents them.
  */
-import { disposeCartographyResources } from "../../../renderer/cartography-lifecycle.js";
+import { disposeCartographyResources } from "./cartography-lifecycle.js";
 import { NATIVE_PUBLISH_BUSY } from "../../../shared/native-publish.js";
 import { CARTOGRAPHY_MAP_GRAPHICS_SURFACES, NATIVE_MAP_GRAPHICS_HEADER_BYTES, NATIVE_MAP_GRAPHICS_MAGIC,
   NATIVE_MAP_GRAPHICS_MAX_SIZE, NATIVE_MAP_QUAD_BYTES, NATIVE_MAP_QUADS_MAGIC, NATIVE_MAP_QUADS_MAX,

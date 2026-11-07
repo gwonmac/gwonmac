@@ -42,6 +42,7 @@ import {
   ENHANCEMENT_TRANSFORM_ABI,
   ENHANCEMENT_CAPABILITY_FIELDS,
   NO_ENHANCEMENT_CAPABILITIES,
+  capabilityRecord,
   type EnhancementCapabilities,
   type EnhancementProgram,
 } from "../shared/enhancement-contracts.js";
@@ -402,120 +403,12 @@ export class ClientRuntime {
                 ? "preparation-failed"
                 : "game-update",
             },
-        nativeCursor: optionalFeatureStatus(
-          requested.nativeCursor,
-          effective.nativeCursor,
-          supported.nativeCursor,
+        ...capabilityRecord((capability) => optionalFeatureStatus(
+          requested[capability],
+          effective[capability],
+          supported[capability],
           preparationFailed,
-        ),
-        playRegionObservation: optionalFeatureStatus(
-          requested.playRegionObservation,
-          effective.playRegionObservation,
-          supported.playRegionObservation,
-          preparationFailed,
-        ),
-        targetObservation: optionalFeatureStatus(
-          requested.targetObservation,
-          effective.targetObservation,
-          supported.targetObservation,
-          preparationFailed,
-        ),
-        partyObservation: optionalFeatureStatus(
-          requested.partyObservation,
-          effective.partyObservation,
-          supported.partyObservation,
-          preparationFailed,
-        ),
-        teamApply: optionalFeatureStatus(
-          requested.teamApply,
-          effective.teamApply,
-          supported.teamApply,
-          preparationFailed,
-        ),
-        travelAction: optionalFeatureStatus(
-          requested.travelAction,
-          effective.travelAction,
-          supported.travelAction,
-          preparationFailed,
-        ),
-        xunlaiAction: optionalFeatureStatus(
-          requested.xunlaiAction,
-          effective.xunlaiAction,
-          supported.xunlaiAction,
-          preparationFailed,
-        ),
-        chatAliases: optionalFeatureStatus(
-          requested.chatAliases,
-          effective.chatAliases,
-          supported.chatAliases,
-          preparationFailed,
-        ),
-        chatFiltering: optionalFeatureStatus(
-          requested.chatFiltering,
-          effective.chatFiltering,
-          supported.chatFiltering,
-          preparationFailed,
-        ),
-        skillSlotGeometry: optionalFeatureStatus(
-          requested.skillSlotGeometry,
-          effective.skillSlotGeometry,
-          supported.skillSlotGeometry,
-          preparationFailed,
-        ),
-        skillCooldownObservation: optionalFeatureStatus(
-          requested.skillCooldownObservation,
-          effective.skillCooldownObservation,
-          supported.skillCooldownObservation,
-          preparationFailed,
-        ),
-        playerEffectObservation: optionalFeatureStatus(
-          requested.playerEffectObservation,
-          effective.playerEffectObservation,
-          supported.playerEffectObservation,
-          preparationFailed,
-        ),
-        whisperChat: optionalFeatureStatus(
-          requested.whisperChat, effective.whisperChat, supported.whisperChat, preparationFailed,
-        ),
-        resignAction: optionalFeatureStatus(
-          requested.resignAction, effective.resignAction, supported.resignAction, preparationFailed,
-        ),
-        chatPrint: optionalFeatureStatus(
-          requested.chatPrint, effective.chatPrint, supported.chatPrint, preparationFailed,
-        ),
-        progressObservation: optionalFeatureStatus(
-          requested.progressObservation, effective.progressObservation,
-          supported.progressObservation, preparationFailed,
-        ),
-        alcoholObservation: optionalFeatureStatus(requested.alcoholObservation, effective.alcoholObservation, supported.alcoholObservation, preparationFailed),
-        nativeHudRendering: optionalFeatureStatus(
-          requested.nativeHudRendering, effective.nativeHudRendering,
-          supported.nativeHudRendering, preparationFailed,
-        ),
-        effectIconGeometry: optionalFeatureStatus(
-          requested.effectIconGeometry,
-          effective.effectIconGeometry,
-          supported.effectIconGeometry,
-          preparationFailed,
-        ),
-        preGameControls: optionalFeatureStatus(
-          requested.preGameControls,
-          effective.preGameControls,
-          supported.preGameControls,
-          preparationFailed,
-        ),
-        characterSwitchAction: optionalFeatureStatus(
-          requested.characterSwitchAction,
-          effective.characterSwitchAction,
-          supported.characterSwitchAction,
-          preparationFailed,
-        ),
-        quickItemMove: optionalFeatureStatus(
-          requested.quickItemMove,
-          effective.quickItemMove,
-          supported.quickItemMove,
-          preparationFailed,
-        ),
+        )),
       },
     };
     gauge("wasm.templateSaveCompatible", prepared.gameFileSaving.status === "available");

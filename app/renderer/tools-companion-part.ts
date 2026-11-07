@@ -11,6 +11,7 @@
  * feature, so shared code imports this contract and never a feature file.
  */
 import type { EnhancementCapabilities, EnhancementProgram } from "../shared/enhancement-contracts.js";
+import type { FeatureId } from "../shared/feature-contracts.js";
 import type { TravelFriend } from "../shared/friends.js";
 import type { TravelCommand } from "../shared/travel-command.js";
 import type {
@@ -46,9 +47,12 @@ export type ToolsPrepareInput = Readonly<{
   substrates: ToolsSubstrates;
 }>;
 
+/** The shared substrates in tools-companion-substrates.ts. */
+export type SubstrateId = "observation" | "friends" | "alcohol" | "effects" | "skillHud";
+
 export type ToolsCompanionPart<Prepared extends PreparedToolsPart = PreparedToolsPart> = Readonly<{
-  /** The feature id this part belongs to, or the name of a shared substrate. */
-  id: string;
+  /** The feature this part belongs to, or the shared substrate it is. */
+  id: FeatureId | SubstrateId;
   /** Checks the certified exports and creates the part's installations; no memory yet. */
   prepare(input: ToolsPrepareInput): Prepared | Promise<Prepared>;
 }>;

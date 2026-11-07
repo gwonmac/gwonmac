@@ -15,5 +15,4 @@ export default defineFeature({
     description: "Control-click items to move whole stacks through open storage or trade windows. Add Shift to choose an amount.",
     keywords: "items inventory stacks",
   },
-  capabilities: ["quickItemMove"],
 });

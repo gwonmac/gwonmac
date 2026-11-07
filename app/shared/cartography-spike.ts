@@ -2,6 +2,10 @@
  * Defines the fixed scalar contract for Cartography's certified native context
  * and map surfaces.
  * Exposes no raw WebAssembly pointers across the renderer boundary.
+ *
+ * The file and its `*_SPIKE_*` tables keep the name of the certified
+ * `gwonmac_*_spike_*` exports they list, which the certification chain also
+ * imports from here; the renderer-side types use the domain names.
  */
 
 /** The certified Cartography memory layouts, by the id the derived client publishes. */
@@ -231,7 +235,7 @@ export const WORLD_MAP_FRAME_SPIKE_SCALARS = Object.freeze([
   WORLD_MAP_FRAME_SPIKE_GLOBALS.bottomRightY,
 ]);
 
-export type NativeFrameSpikeSnapshot = Readonly<{
+export type NativeFrameSnapshot = Readonly<{
   status: number;
   generation: number;
   frameId: number;
@@ -244,13 +248,13 @@ export type NativeFrameSpikeSnapshot = Readonly<{
   top: number;
 }>;
 
-export type CompassFrameSpikeSnapshot = NativeFrameSpikeSnapshot & Readonly<{
+export type CompassFrameSnapshot = NativeFrameSnapshot & Readonly<{
   cameraSequence: number;
   compassDirectionX: number;
   compassDirectionY: number;
 }>;
 
-export type MissionMapFrameSpikeSnapshot = NativeFrameSpikeSnapshot & Readonly<{
+export type MissionMapFrameSnapshot = NativeFrameSnapshot & Readonly<{
   projectionStatus: number;
   projectionSequence: number;
   projectionGeneration: number;
@@ -265,7 +269,7 @@ export type MissionMapFrameSpikeSnapshot = NativeFrameSpikeSnapshot & Readonly<{
   nativeMapHeight: number;
 }>;
 
-export type WorldMapFrameSpikeSnapshot = NativeFrameSpikeSnapshot & Readonly<{
+export type WorldMapFrameSnapshot = NativeFrameSnapshot & Readonly<{
   sequence: number;
   continent: number;
   zoom: number;
@@ -275,7 +279,7 @@ export type WorldMapFrameSpikeSnapshot = NativeFrameSpikeSnapshot & Readonly<{
   bottomRightY: number;
 }>;
 
-export type SpikeController<T> = Readonly<{
+export type SnapshotController<T> = Readonly<{
   snapshot(): T | null;
 }>;
 
@@ -287,14 +291,14 @@ export type CartographyContextSnapshot = Readonly<{
   layoutId: CartographyLayoutId;
 }>;
 
-export type CartographyContextController = SpikeController<CartographyContextSnapshot> & Readonly<{
+export type CartographyContextController = SnapshotController<CartographyContextSnapshot> & Readonly<{
   /** Publish one fresh native identity before starting an atomic model read. */
   refresh(): boolean;
 }>;
 
-export type CompassFrameSpikeController = SpikeController<CompassFrameSpikeSnapshot>;
-export type MissionMapFrameSpikeController = SpikeController<MissionMapFrameSpikeSnapshot>;
-export type WorldMapFrameSpikeDiagnostic = Readonly<{
+export type CompassFrameController = SnapshotController<CompassFrameSnapshot>;
+export type MissionMapFrameController = SnapshotController<MissionMapFrameSnapshot>;
+export type WorldMapFrameDiagnostic = Readonly<{
   status: number | null;
   sequence: number | null;
   generation: number | null;
@@ -308,12 +312,12 @@ export type WorldMapFrameSpikeDiagnostic = Readonly<{
   bottomRightY: number | null;
 }>;
 
-export type WorldMapFrameSpikeController = SpikeController<WorldMapFrameSpikeSnapshot> & Readonly<{
+export type WorldMapFrameController = SnapshotController<WorldMapFrameSnapshot> & Readonly<{
   /** Closed scalar readout for live certification; contains no native pointers. */
-  diagnostics(): WorldMapFrameSpikeDiagnostic;
+  diagnostics(): WorldMapFrameDiagnostic;
 }>;
 
-export type ExplorationSpikeSnapshot = Readonly<{
+export type ExplorationSnapshot = Readonly<{
   status: number;
   sequence: number;
   generation: number;
@@ -322,17 +326,17 @@ export type ExplorationSpikeSnapshot = Readonly<{
   dwordCount: number;
 }>;
 
-export type ExplorationSpikeBitmap = Readonly<{
-  snapshot: ExplorationSpikeSnapshot;
+export type ExplorationBitmap = Readonly<{
+  snapshot: ExplorationSnapshot;
   words: Uint32Array;
 }>;
 
-export type ExplorationSpikeController = SpikeController<ExplorationSpikeSnapshot> & Readonly<{
+export type ExplorationController = SnapshotController<ExplorationSnapshot> & Readonly<{
   isExplored(cellX: number, cellY: number): boolean | null;
-  readBitmap(): ExplorationSpikeBitmap | null;
+  readBitmap(): ExplorationBitmap | null;
 }>;
 
-export type WorldMapAnchorSpikeSnapshot = Readonly<{
+export type WorldMapAnchorSnapshot = Readonly<{
   status: number;
   generation: number;
   continent: number;
@@ -344,4 +348,4 @@ export type WorldMapAnchorSpikeSnapshot = Readonly<{
   mapMaxY: number;
 }>;
 
-export type WorldMapAnchorSpikeController = SpikeController<WorldMapAnchorSpikeSnapshot>;
+export type WorldMapAnchorController = SnapshotController<WorldMapAnchorSnapshot>;

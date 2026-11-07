@@ -2,8 +2,8 @@
  * Closed Character Switch domain contract shared by the controller, host, and
  * palette. Presentation never receives native coordinates or open diagnostics.
  */
-import type { CompanionCharacterListState } from "./companion-character-list-snapshot.js";
-import type { CompanionPlayRegionState } from "./companion-play-region-snapshot.js";
+import type { CompanionCharacterListState } from "../../../renderer/companion-character-list-snapshot.js";
+import type { CompanionPlayRegionState } from "../../../renderer/companion-play-region-snapshot.js";
 
 export type CharacterSwitchContext =
   | "outpost"

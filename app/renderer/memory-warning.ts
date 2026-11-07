@@ -4,6 +4,7 @@
  */
 import type { AppSettings } from "../shared/contracts.js";
 import { memoryWarningCopy } from "./failure-messages.js";
+import { isolateFromGame } from "./non-activating-surface.js";
 
 export type MemoryWarningLevel = "low" | "critical";
 
@@ -145,12 +146,7 @@ export function bindMemoryWarning(
     document.getElementById("canvas")?.focus();
   };
 
-  for (const name of [
-    "keydown", "keyup", "pointerdown", "pointerup", "pointermove",
-    "mousedown", "mouseup", "mousemove", "click", "wheel", "contextmenu",
-  ]) {
-    root.addEventListener(name, (event) => event.stopPropagation());
-  }
+  isolateFromGame(root);
 
   autoRelog.addEventListener("change", () => {
     const selected = autoRelog.checked;

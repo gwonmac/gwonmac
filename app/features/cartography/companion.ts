@@ -1,10 +1,12 @@
 /**
  * Maps in the game host: Elite Skills inside the native maps, and the player
- * state the Maps app reads. Both follow the shared snapshot and party feeds.
+ * state and live play region the Maps stage reads. Both follow the shared
+ * snapshot and party feeds.
  */
 import {
   clearCartographyPlayerState,
   updateCartographyPlayerState,
+  connectCartographyPlayRegion,
 } from "./renderer/cartography-player-state.js";
 import { createEliteMapInstallation } from "./renderer/elite-map-installation.js";
 import type { ToolsCompanionPart } from "../../renderer/tools-companion-part.js";
@@ -29,6 +31,7 @@ export default {
         observation.observePartyWhen(wanted);
         observation.observeTargetWhen(wanted);
         observation.onState(updateCartographyPlayerState);
+        connectCartographyPlayRegion(() => context.playRegion());
         return {
           sync() {
             const region = context.snapshot().playRegionState;

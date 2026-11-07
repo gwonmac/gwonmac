@@ -34,21 +34,21 @@ import type {
   CartographyGridStats,
   CartographyModelStats,
   CompassRangeStats,
-} from "../features/cartography/renderer/overlay.js";
+} from "../features/cartography/renderer/host.js";
 import type {
-  CompassFrameSpikeController,
-  ExplorationSpikeController,
-  MissionMapFrameSpikeController,
-  WorldMapFrameSpikeController,
-  WorldMapAnchorSpikeController,
+  CompassFrameController,
+  ExplorationController,
+  MissionMapFrameController,
+  WorldMapFrameController,
+  WorldMapAnchorController,
 } from "../shared/cartography-spike.js";
 import type { CompanionCharacterListState } from "./companion-character-list-snapshot.js";
 import type { GameHub } from "./hub-builtins.js";
-import type { CharacterSwitchHost } from "./character-switch-host.js";
 import type {
   CharacterSwitchContext as SharedCharacterSwitchContext,
+  CharacterSwitchHost,
   CharacterSwitchSource,
-} from "./character-switch-model.js";
+} from "../features/character-switch/renderer/host.js";
 import type {
   InputTrace as SharedInputTrace,
   InputTraceEntry as SharedInputTraceEntry,
@@ -324,14 +324,14 @@ declare global {
     gwTextureStats?(): TextureMemorySnapshot;
     /** Bounded atlas-sized upload fingerprints; unpackaged development only. */
     gwControllerPromptTextureStats?(): ControllerPromptTextureStats;
-    /** Certified native Compass frame scalars; unpackaged development spike only. */
-    gwCompassFrameSpike?: CompassFrameSpikeController;
-    /** Certified native Mission Map frame scalars; unpackaged development spike only. */
-    gwMissionMapFrameSpike?: MissionMapFrameSpikeController;
-    gwWorldMapFrameSpike?: WorldMapFrameSpikeController;
-    gwWorldMapAnchorSpike?: WorldMapAnchorSpikeController;
-    /** Certified exploration bitmap dimensions and bounded bit reader; development only. */
-    gwExplorationSpike?: ExplorationSpikeController;
+    /** Certified native Compass frame scalars, published while Maps is installed. */
+    gwCompassFrame?: CompassFrameController;
+    /** Certified native Mission Map frame scalars, published while Maps is installed. */
+    gwMissionMapFrame?: MissionMapFrameController;
+    gwWorldMapFrame?: WorldMapFrameController;
+    gwWorldMapAnchor?: WorldMapAnchorController;
+    /** Certified exploration bitmap dimensions and bounded bit reader, published while Maps is installed. */
+    gwExploration?: ExplorationController;
     /** Unpackaged-development controller used to exercise Guild Wars' real gamepad UI. */
     gwVirtualGamepad?: VirtualGamepadController;
     gwLog(visible?: boolean): boolean;

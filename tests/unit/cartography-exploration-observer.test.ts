@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createExplorationSpikeReader } from
+import { createExplorationReader } from
   "../../app/features/cartography/renderer/exploration-observer.js";
 import { EXPLORATION_SPIKE_GLOBALS } from
   "../../app/shared/cartography-spike.js";
@@ -23,7 +23,7 @@ function exportsFor(words: readonly number[]): WebAssembly.Exports {
 }
 
 test("reads only bounded exploration cells", () => {
-  const reader = createExplorationSpikeReader(exportsFor([0b1000_0001]));
+  const reader = createExplorationReader(exportsFor([0b1000_0001]));
   assert.ok(reader);
   assert.deepEqual(reader.snapshot(), {
     status: 1,
@@ -55,7 +55,7 @@ test("refuses inconsistent exploration bounds", () => {
   const exports = exportsFor([0]);
   (exports[EXPLORATION_SPIKE_GLOBALS.width] as WebAssembly.Global).value = 64;
   (exports[EXPLORATION_SPIKE_GLOBALS.height] as WebAssembly.Global).value = 64;
-  const reader = createExplorationSpikeReader(exports);
+  const reader = createExplorationReader(exports);
   assert.ok(reader);
   assert.equal(reader.snapshot(), null, "one dword cannot contain a 4096-cell grid");
   assert.equal(reader.isExplored(0, 0), null);
@@ -65,7 +65,7 @@ test("refuses inconsistent exploration bounds", () => {
 test("reports a bounded refusal status without exposing bitmap data", () => {
   const exports = exportsFor([0xffff_ffff]);
   (exports[EXPLORATION_SPIKE_GLOBALS.status] as WebAssembly.Global).value = 4;
-  const reader = createExplorationSpikeReader(exports);
+  const reader = createExplorationReader(exports);
   assert.ok(reader);
   assert.equal(reader.snapshot()?.status, 4);
   assert.equal(reader.isExplored(0, 0), null);

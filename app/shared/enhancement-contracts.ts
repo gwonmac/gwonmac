@@ -237,12 +237,18 @@ const CAPABILITY_PROFILE = /^features-([0-9a-f]{2,6})$/;
 /** A compact transform identity whose hex mask follows the registry order. */
 export type EnhancementCapabilityProfile = `features-${string}`;
 
-function capabilitiesFromMask(mask: number): EnhancementCapabilities {
+/** A frozen record with one value per capability, in registry order. */
+export function capabilityRecord<Value>(
+  value: (capability: EnhancementCapability, index: number) => Value,
+): Readonly<Record<EnhancementCapability, Value>> {
+  // Object.fromEntries cannot type its keys; the map covers every registry id.
   return Object.freeze(Object.fromEntries(
-    ENHANCEMENT_CAPABILITY_FIELDS.map(
-      (field, index) => [field, (mask & (1 << index)) !== 0],
-    ),
-  )) as EnhancementCapabilities;
+    ENHANCEMENT_CAPABILITY_FIELDS.map((field, index) => [field, value(field, index)]),
+  )) as Readonly<Record<EnhancementCapability, Value>>;
+}
+
+function capabilitiesFromMask(mask: number): EnhancementCapabilities {
+  return capabilityRecord((_field, index) => (mask & (1 << index)) !== 0);
 }
 
 function capabilityMask(capabilities: EnhancementCapabilities): number | null {
@@ -283,30 +289,7 @@ export function isEnhancementCapabilityProfile(
     && enhancementCapabilitiesForProfile(value) !== null;
 }
 
-export const NO_ENHANCEMENT_CAPABILITIES: EnhancementCapabilities = Object.freeze({
-  nativeCursor: false,
-  targetObservation: false,
-  partyObservation: false,
-  teamApply: false,
-  travelAction: false,
-  xunlaiAction: false,
-  chatAliases: false,
-  skillSlotGeometry: false,
-  skillCooldownObservation: false,
-  playRegionObservation: false,
-  preGameControls: false,
-  characterSwitchAction: false,
-  chatFiltering: false,
-  quickItemMove: false,
-  playerEffectObservation: false,
-  effectIconGeometry: false,
-  resignAction: false,
-  whisperChat: false,
-  alcoholObservation: false,
-  nativeHudRendering: false,
-  chatPrint: false,
-  progressObservation: false,
-});
+export const NO_ENHANCEMENT_CAPABILITIES: EnhancementCapabilities = capabilityRecord(() => false);
 
 function isExactBooleanRecord<Key extends string>(
   value: unknown,
@@ -329,30 +312,7 @@ export function parseEnhancementCapabilities(
   if (!isExactBooleanRecord(value, ENHANCEMENT_CAPABILITY_FIELDS)) {
     return null;
   }
-  return Object.freeze({
-    nativeCursor: value.nativeCursor,
-    targetObservation: value.targetObservation,
-    partyObservation: value.partyObservation,
-    teamApply: value.teamApply,
-    travelAction: value.travelAction,
-    xunlaiAction: value.xunlaiAction,
-    chatAliases: value.chatAliases,
-    skillSlotGeometry: value.skillSlotGeometry,
-    skillCooldownObservation: value.skillCooldownObservation,
-    playRegionObservation: value.playRegionObservation,
-    preGameControls: value.preGameControls,
-    characterSwitchAction: value.characterSwitchAction,
-    chatFiltering: value.chatFiltering,
-    quickItemMove: value.quickItemMove,
-    playerEffectObservation: value.playerEffectObservation,
-    effectIconGeometry: value.effectIconGeometry,
-    resignAction: value.resignAction,
-    whisperChat: value.whisperChat,
-    alcoholObservation: value.alcoholObservation,
-    nativeHudRendering: value.nativeHudRendering,
-    chatPrint: value.chatPrint,
-    progressObservation: value.progressObservation,
-  });
+  return capabilityRecord((field) => value[field]);
 }
 
 export function sameEnhancementCapabilities(

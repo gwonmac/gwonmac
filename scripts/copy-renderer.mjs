@@ -10,8 +10,6 @@ import { pathToFileURL } from "node:url";
 // editor and OS files part of the build, so two clean checkouts could package
 // different applications. A new asset must be reviewed here.
 const ASSETS = [
-  "cartography-overlay-controls.css",
-  "character-switch.css",
   "hub.css",
   "favicon.ico",
   "favicon.png",
@@ -23,6 +21,13 @@ const ASSETS = [
   "images/playstation-controller-prompts.png",
   "index.html",
   "loading.css",
+];
+
+// A feature keeps its stylesheet in its own folder. It lands where Rollup
+// writes that folder's modules, so index.html names it by the same path.
+const FEATURE_ASSETS = [
+  "cartography/renderer/cartography-overlay-controls.css",
+  "character-switch/renderer/character-switch.css",
 ];
 
 // The design system lives in app/shared because the Tools application consumes
@@ -123,6 +128,9 @@ export function copyRendererAssets() {
 
   for (const relative of ASSETS) {
     copy(path.resolve("app/renderer", relative), relative);
+  }
+  for (const relative of FEATURE_ASSETS) {
+    copy(path.resolve("app/features", relative), path.join("features", relative));
   }
   for (const [from, relative] of SHARED_ASSETS) {
     copy(path.resolve(from), relative);

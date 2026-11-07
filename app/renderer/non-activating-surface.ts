@@ -20,10 +20,13 @@
  * also suppresses the compatibility mouse events, which would silently break
  * anything mounted inside the surface that listens for `mousedown` itself.
  *
- * What this does *not* do is filter key events. The overlay's own listeners
- * already stop events that originate inside it, and events targeted at the
- * canvas never pass through the overlay at all — so leaving focus where it was
- * is the entire mechanism. Nothing has to guess which keys the game should get.
+ * What this does *not* do is filter key events. `isolateFromGame` below stops
+ * events that originate inside a surface, and events targeted at the canvas
+ * never pass through the surface at all — so leaving focus where it was is the
+ * entire mechanism. Nothing has to guess which keys the game should get.
+ *
+ * This module owns both host-surface input rules: focus that follows the
+ * intent to type, and the one list of game input a surface stops.
  */
 
 /**
@@ -109,5 +112,30 @@ export function createNonActivatingSurface(
     dispose() {
       root.removeEventListener("mousedown", onMouseDown, true);
     },
+  };
+}
+
+/** Input the game listens for, which must stop at a host surface. */
+const GAME_INPUT_EVENTS = [
+  "keydown", "keyup", "pointerdown", "pointerup", "pointermove",
+  "mousedown", "mouseup", "mousemove", "click", "contextmenu",
+] as const;
+
+const stopAtSurface = (event: Event) => event.stopPropagation();
+
+/**
+ * Stops game input that starts inside `root` from reaching the game's document
+ * and window listeners. Returns the function that removes the listeners.
+ *
+ * `wheel` is passive: a non-passive wheel listener makes Chromium send native
+ * scrolling through the main thread. A surface only contains the event; it
+ * never cancels scrolling.
+ */
+export function isolateFromGame(root: HTMLElement): () => void {
+  for (const name of GAME_INPUT_EVENTS) root.addEventListener(name, stopAtSurface);
+  root.addEventListener("wheel", stopAtSurface, { passive: true });
+  return () => {
+    for (const name of GAME_INPUT_EVENTS) root.removeEventListener(name, stopAtSurface);
+    root.removeEventListener("wheel", stopAtSurface);
   };
 }

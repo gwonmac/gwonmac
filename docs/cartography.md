@@ -29,6 +29,21 @@ A Core launch installs no Maps or Compass native hooks, imports no Maps renderer
 implementation, and exposes no Maps IPC. Tools mode installs the certified hooks;
 its Maps switch then controls live activity. Turning Tools off stops activity
 immediately; restart the application to load the Core client without those hooks.
+The game host reaches Maps through one entry,
+`app/features/cartography/renderer/host.ts`, once the official client is
+instantiated; the host reads the switch through the feature's manifest. Elite
+Skills on the native maps run as the `cartography` companion part.
+
+Maps follows its manifest's region rule, PvE only. While the live play region
+is PvP or unknown, every Maps surface hides: the map overlays, the Compass
+terrain and reveal range, the range rings, both Compass controls, and the
+Elite Skills markers. The settings stay as they are, and the surfaces return
+when the region is PvE again. The region is the one every PvE feature reads:
+when the `cartography` companion part activates, it hands the Maps stage a
+reader of its policy source's live play region, and `featureRegionAllowsRequest`
+applies the manifest rule. The part removes the reader with its presentation.
+Without a reader (before activation, after disposal, or when no companion is
+certified) the region is unknown and Maps stays hidden.
 
 Maps settings remain available when Tools are off. The page explains how to
 enable Maps and whether an application restart is needed. An illustrative

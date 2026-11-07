@@ -4,6 +4,7 @@
  */
 import { createAlcoholTimerOverlay } from "./renderer/alcohol-timer-overlay.js";
 import type { ToolsCompanionPart } from "../../renderer/tools-companion-part.js";
+import { featureActivationRequested } from "../../shared/feature-contracts.js";
 
 export default {
   id: "alcoholTimer",
@@ -11,7 +12,7 @@ export default {
     return {
       activate(context) {
         const requested = () => capabilities.alcoholObservation
-          && context.snapshot().settings.gwonmacTools && context.snapshot().settings.alcoholTimerEnabled;
+          && featureActivationRequested("alcoholTimer", context.snapshot().settings);
         const shown = () => requested() && context.policy().alcoholTimer;
         alcohol.observeWhen(requested);
         effects.observePlayerEffectsWhen(() => shown() && capabilities.effectIconGeometry);

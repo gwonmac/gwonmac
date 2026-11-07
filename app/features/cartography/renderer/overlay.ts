@@ -2,8 +2,10 @@
  * Owns presentation of immutable Cartography models through independent surfaces.
  * Native observation and semantic classification never occur on animation frames.
  */
-import { disposeCartographyResources } from "../../../renderer/cartography-lifecycle.js";
+import { disposeCartographyResources } from "./cartography-lifecycle.js";
 import { resolveCartographyPreset } from "../../../shared/cartography-presets.js";
+import { featureRegionAllowsRequest } from "../../../shared/feature-contracts.js";
+import type { RuntimePlayRegion } from "../../../renderer/enhancement-runtime-policy.js";
 import type {
   CartographyEvidenceCapture,
   CartographyEvidenceExportResult,
@@ -94,16 +96,40 @@ function bitsetsEqual(
     && left.words.every((word, index) => word === right.words[index]);
 }
 
-export type CartographyOverlayDisposition = "controls-only" | "layers";
+export type CartographyOverlayDisposition = "hidden" | "controls-only" | "layers";
 
-/** Decide the whole overlay surface policy from the canonical model state. */
+/**
+ * Decide the whole overlay surface policy from the live play region and the
+ * canonical model state. Outside the region the Maps manifest allows (PvE),
+ * every Maps surface is hidden, its controls included.
+ */
 export function cartographyOverlayDisposition(
   state: CartographyState,
+  playRegion: RuntimePlayRegion,
 ): CartographyOverlayDisposition {
+  if (!featureRegionAllowsRequest("cartography", playRegion)) return "hidden";
   if (state.continent.status === "ready" || state.currentInstance.status === "ready") {
     return "layers";
   }
   return "controls-only";
+}
+
+/**
+ * The overlay's per-frame gate. It answers the disposition and withdraws every
+ * surface once, on the frame Maps becomes hidden; hidden frames after that do
+ * no work, and the next visible frame re-arms it.
+ */
+export function createCartographyOverlayGate(withdraw: () => void) {
+  let withdrawn = false;
+  return (state: CartographyState, playRegion: RuntimePlayRegion): CartographyOverlayDisposition => {
+    const disposition = cartographyOverlayDisposition(state, playRegion);
+    if (disposition !== "hidden") withdrawn = false;
+    else if (!withdrawn) {
+      withdrawn = true;
+      withdraw();
+    }
+    return disposition;
+  };
 }
 
 export function mountCartographyOverlay(options: Readonly<{
@@ -113,6 +139,8 @@ export function mountCartographyOverlay(options: Readonly<{
   parent: HTMLElement;
   canvas: HTMLCanvasElement;
   modelSources: CartographyModelSources;
+  /** The live play region; the overlay hides while Maps' manifest does not allow it. */
+  playRegion(): RuntimePlayRegion;
   settings(): AppSettings;
   persist(patch: RendererSettingsPatch): Promise<AppSettings>;
   exportEvidence(
@@ -363,7 +391,19 @@ export function mountCartographyOverlay(options: Readonly<{
       });
     };
 
+    const gate = createCartographyOverlayGate((): void => {
+      controls.hide();
+      compassRangeControls.hide();
+      compassRangeLayer.update(null, [], options.settings().compassRangeTheme);
+      safe("compass", () => options.nativeCompassRanges.update(null, 0));
+      terrainKey = "";
+      terrain = null;
+      hideAllLayers();
+    });
+
     const render = (): void => {
+      const playRegion = options.playRegion();
+      if (gate(state, playRegion) === "hidden") return;
       const now = view.performance.now();
       if (now >= nextModelPoll) {
         const previous = state;
@@ -430,7 +470,7 @@ export function mountCartographyOverlay(options: Readonly<{
         if (rangesAvailable) compassRangeControls.update(controlBox, settings, { index: 1, count: 2 });
         else compassRangeControls.hide();
       }
-      const disposition = cartographyOverlayDisposition(state);
+      const disposition = cartographyOverlayDisposition(state, playRegion);
       if (disposition !== "layers") {
         terrainKey = "";
         terrain = null;

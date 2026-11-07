@@ -1,7 +1,7 @@
 /** The chat-print queue hands lines to the game thread one at a time, in order, and never grows without bound. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createChatPrintInstallation } from "../../app/renderer/chat-print-installation.ts";
+import { createChatPrintInstallation } from "../../app/features/reminders/renderer/chat-print-installation.ts";
 import { CHAT_PRINT_MAILBOX as M, CHAT_PRINT_STATUS } from "../../app/shared/chat-print.ts";
 
 const POINTER = 64;

@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { characterSwitchContext } from "../../app/renderer/character-switch-model.js";
+import { characterSwitchContext } from "../../app/features/character-switch/renderer/character-switch-model.js";
 import type { CompanionPlayRegionState } from "../../app/renderer/companion-play-region-snapshot.js";
 
 const region = (instanceType: number, playRegion: "pve" | "pvp"): CompanionPlayRegionState => Object.freeze({

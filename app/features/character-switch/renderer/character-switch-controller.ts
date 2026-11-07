@@ -3,7 +3,7 @@
  * the certified game-thread actions; this controller owns only observed stage
  * progression, deadlines, and the private target-name lifetime.
  */
-import type { CompanionCharacterListState } from "./companion-character-list-snapshot.js";
+import type { CompanionCharacterListState } from "../../../renderer/companion-character-list-snapshot.js";
 import type {
   CharacterSwitchActionState,
   CharacterSwitchDiagnosticTransition,
@@ -15,7 +15,7 @@ import { currentCharacterIndex } from "./character-switch-model.js";
 import {
   CHARACTER_SWITCH_ACTION_ABI,
   type CharacterSwitchActionKind,
-} from "../shared/character-switch-action-abi.js";
+} from "../../../shared/character-switch-action-abi.js";
 
 const TRANSITION_LIMIT = 32;
 const SELECTOR_READY_BUDGET_MS = 8_000;

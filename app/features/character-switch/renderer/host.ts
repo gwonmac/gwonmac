@@ -1,11 +1,16 @@
 /**
- * Keeps Command-E owned by Core even when the current game build is unsupported.
- * A certified installation may replace only the source, never shortcut ownership.
+ * Character Switch's one entry for the game host. Keeps Command-E owned by Core
+ * even when the current game build is unsupported: a certified installation may
+ * replace only the source, never shortcut ownership. The Core companion
+ * installation builds that source with the controller exported here.
  */
-import { matchHubRows, normaliseHubQuery, parseHubQuery, type HubRow, type HubSource } from '../shared/hub.js';
-import { professionPresentation } from '../shared/profession-assets.js';
+import { matchHubRows, normaliseHubQuery, parseHubQuery, type HubRow, type HubSource } from '../../../shared/hub.js';
+import { professionPresentation } from '../../../shared/profession-assets.js';
 import { currentCharacterIndex, type CharacterSwitchSource } from "./character-switch-model.js";
-import { characterSwitchRefusal, createCharacterSwitchPalette } from "../features/character-switch/renderer/character-switch-palette.js";
+import { characterSwitchRefusal, createCharacterSwitchPalette } from "./character-switch-palette.js";
+
+export { createCharacterSwitchController, type CharacterSwitchController } from "./character-switch-controller.js";
+export { characterSwitchContext, type CharacterSwitchContext, type CharacterSwitchSource } from "./character-switch-model.js";
 
 export interface CharacterSwitchHost {
   attach(source: CharacterSwitchSource): () => void;

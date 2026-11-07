@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type {
   CartographyContextSnapshot,
-  ExplorationSpikeController,
-  WorldMapAnchorSpikeSnapshot,
-  WorldMapAnchorSpikeController,
+  ExplorationController,
+  WorldMapAnchorSnapshot,
+  WorldMapAnchorController,
 } from "../../app/shared/cartography-spike.js";
 import type { PublishedCompanionState } from "../../app/renderer/companion-snapshot.js";
 import {
@@ -98,7 +98,7 @@ function sources(
     READY_CONTEXT,
   ],
   kernelResult: CartographyReachabilitySnapshot | null = READY_KERNEL,
-  anchorSnapshot: WorldMapAnchorSpikeSnapshot = Object.freeze({
+  anchorSnapshot: WorldMapAnchorSnapshot = Object.freeze({
     status: 1, generation: AREA_EPOCH, continent: CONTINENT,
     worldAnchorX: 100, worldAnchorY: 200,
     mapMinX: 0, mapMinY: 0, mapMaxX: 1_000, mapMaxY: 1_000,
@@ -110,7 +110,7 @@ function sources(
     refresh: () => true,
     snapshot: () => contexts[Math.min(contextIndex++, contexts.length - 1)] ?? null,
   };
-  const exploration: ExplorationSpikeController = {
+  const exploration: ExplorationController = {
     snapshot: () => ({
       status: 1, sequence: 2, generation: AREA_EPOCH,
       width: WIDTH, height: HEIGHT,
@@ -126,7 +126,7 @@ function sources(
       words: new Uint32Array(Math.ceil(WIDTH * HEIGHT / 32)),
     }),
   };
-  const anchor: WorldMapAnchorSpikeController = {
+  const anchor: WorldMapAnchorController = {
     snapshot: () => anchorSnapshot,
   };
   const kernel: CartographyReachabilityController = {
@@ -365,7 +365,7 @@ test("unchanged exploration reads reuse continent masks; a changed bit invalidat
   const original = sources();
   let sequence = 1;
   let words = new Uint32Array(Math.ceil(WIDTH * HEIGHT / 32));
-  const exploration: ExplorationSpikeController = {
+  const exploration: ExplorationController = {
     ...original.exploration,
     readBitmap: () => ({ snapshot: {status: 1, sequence: sequence++, generation: AREA_EPOCH, width: WIDTH, height: HEIGHT, dwordCount: words.length}, words: words.slice() }),
   };

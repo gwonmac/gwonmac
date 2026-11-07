@@ -5,7 +5,7 @@
 import { toggleHubWhispers, whisperFocusReturn } from '../../../renderer/hub-whisper.js';
 import type { WhisperSession } from "../../../shared/whisper-session.js";
 import type { EmbeddedToolsBundle } from "../../../shared/tools-bundle-contracts.js";
-import { createNonActivatingSurface } from "../../../renderer/non-activating-surface.js";
+import { createNonActivatingSurface, isolateFromGame } from "../../../renderer/non-activating-surface.js";
 import { ensureToolsStylesheet } from "../../../renderer/tools-stylesheet.js";
 
 export function createWhisperSurface(parent: HTMLElement, session: WhisperSession) {
@@ -50,10 +50,7 @@ export function createWhisperSurface(parent: HTMLElement, session: WhisperSessio
   });
   // Reparenting during a press cancels the click and pointer capture in Chromium.
   root.addEventListener("pointerdown", () => surface.raise(), true);
-  const stop = (event: Event) => event.stopPropagation();
-  for (const name of ["keydown", "keyup", "pointerdown", "pointerup", "pointermove",
-    "mousedown", "mouseup", "mousemove", "click", "contextmenu"]) root.addEventListener(name, stop);
-  root.addEventListener("wheel", stop, { passive: true });
+  isolateFromGame(root);
   ensureToolsStylesheet(document);
   const specifier = "../../../tools/tools-app.js";
   void import(specifier).then((bundle: EmbeddedToolsBundle<HTMLElement>) => {
