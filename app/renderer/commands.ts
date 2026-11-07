@@ -5,7 +5,8 @@
  * turns them into renderer actions.
  *
  * index.html loads this as a classic script, so the file carries no top-level
- * import or export and names the contracts through type-only `import(…)`.
+ * import or export: it names the contracts through type-only `import(…)` and
+ * loads the shared tables with a dynamic one.
  */
 (() => {
   'use strict';
@@ -30,6 +31,10 @@
     !window.dispatchEvent(
       new window.CustomEvent(name, { cancelable: true, detail }),
     );
+
+  // Every tool's event, from the manifests through the shortcut table main sends from. The
+  // import starts at once, so the first shortcut does not wait on it.
+  const toolEvents = import('../shared/shortcut-commands.js').then(({ RENDERER_COMMAND_EVENTS }) => RENDERER_COMMAND_EVENTS);
 
   async function capture(command: CaptureCommand) {
     const diagnostics = window.gwDiagnostics;
@@ -90,54 +95,6 @@
         await detail.done;
         break;
       }
-      case 'tools.toggle':
-        // Nothing listens unless the Toolbox capability installed, and a player
-        // who pressed the shortcut is owed the difference between "opened" and
-        // "nothing happened". The overlay cancels the event to claim it; an
-        // uncancelled one means no overlay is installed, which is the ordinary
-        // case on a launch that did not ask for the capability.
-        if (!dispatch('gw:tools-toggle')) {
-          throw new Error(
-            'Tools is not available right now.',
-          );
-        }
-        break;
-      case 'whispers.toggle':
-        if (!dispatch('gw:whispers-toggle')) return 'unhandled';
-        break;
-      case 'trade.toggle':
-        if (!dispatch('gw:trade-toggle')) {
-          throw new Error('Trade Chat is not available right now.');
-        }
-        break;
-      case 'storage.open': {
-        dispatch('gw:storage-open');
-        break;
-      }
-      case 'travel.toggle': {
-        const result: { error?: unknown } = {};
-        if (!dispatch('gw:travel-toggle', result)) {
-          throw new Error('Travel is not available in this launch.');
-        }
-        if (result.error !== undefined) throw result.error;
-        break;
-      }
-      case 'character.toggle': {
-        const result: { error?: unknown } = {};
-        if (!dispatch('gw:character-toggle', result)) {
-          throw new Error('Character switching is not available in this launch.');
-        }
-        if (result.error !== undefined) throw result.error;
-        break;
-      }
-      case 'game.call-target':
-        if (!window.gwNative.init.enhancementSelection.tools) return 'unhandled';
-        if (!dispatch('gw:call-target')) return 'unhandled';
-        break;
-      case 'game.resign':
-        if (!window.gwNative.init.enhancementSelection.tools) return 'unhandled';
-        dispatch('gw:resign-show');
-        break;
       case 'filesystem.sync':
         await new Promise<void>((resolve, reject) => {
           // ArenaNet's generated glue publishes FS on the global object.
@@ -171,6 +128,16 @@
       case 'diagnostics.capture':
         await capture(command);
         break;
+      default: {
+        // A tool command fires its tool's event (RENDERER_COMMAND_EVENTS). Main sends one
+        // only while its feature is selected, and the listener checks again, so an
+        // unclaimed event is the ordinary answer of a launch without that tool.
+        const event = (await toolEvents).get(command.type);
+        if (event === undefined) break;
+        const result: { error?: unknown } = {};
+        if (!dispatch(event, result)) return 'unhandled';
+        if (result.error !== undefined) throw result.error;
+      }
     }
   });
 })();

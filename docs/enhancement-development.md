@@ -349,7 +349,7 @@ A feature folder holds every file that only that feature uses:
 
 ```
 app/features/<id>/
-  feature.ts     manifest: settings, activation, region, tool, shortcut (all processes)
+  feature.ts     manifest: settings, activation, region, tool (its renderer event, Hub row), shortcut (all processes)
   companion.ts   the game-host part (renderer)
   main.ts        the main-process part
   renderer/      renderer-only modules: DOM, game host, overlays, stylesheets (no Node.js)
@@ -357,6 +357,11 @@ app/features/<id>/
   main/          main-process-only modules: stores, files, IPC parsing
   shared/        contracts and pure logic that two processes use
 ```
+
+A tool's `event` is the one name of the renderer event that runs it: its
+shortcut's command fires it through `app/renderer/commands.ts`
+(`RENDERER_COMMAND_EVENTS` in `app/shared/shortcut-commands.ts`), and so does
+its Core Hub row.
 
 Code that several features use stays where it is: the capability registry and
 the proofs in `app/client/certification/`, the kernels, the shared substrates,

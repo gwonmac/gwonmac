@@ -15,6 +15,7 @@ export type HubToolCommand = (typeof hubTools)[number]["hub"]["command"] | "acco
 /** The Tools rows by their manifest order; Core's Switch Account row comes last. */
 export const HUB_TOOL_ORDER: readonly HubToolCommand[] = Object.freeze([...hubTools.map(({ hub }) => hub.command), "accounts"]);
 
+type ToolOpen = HubToolRow["open"];
 export type HubToolEntry = Readonly<{
   id: HubToolCommand;
   /** The feature whose activation shows the row. */
@@ -22,12 +23,19 @@ export type HubToolEntry = Readonly<{
   title: string;
   /** The tool's `keywords`, which Settings search matches too. */
   keywords: string;
-}> & HubToolRow;
+  /** A Settings section, or the tool's own `event` and how the row fires it. */
+  open: Extract<ToolOpen, { settings: unknown }> | (Exclude<ToolOpen, { settings: unknown }> & Readonly<{ event: string }>);
+}> & Omit<HubToolRow, "open">;
 
 /** The Tools rows Core draws, in their order. */
 export const HUB_TOOL_ROWS: readonly HubToolEntry[] = Object.freeze(hubTools.flatMap(({ feature, tool, hub }): HubToolEntry[] => {
   if (!("row" in hub)) return [];
   const row: HubToolRow = hub.row;
-  return [{ detail: row.detail, open: row.open, ...(row.action ? { action: row.action } : {}), ...(row.aliases ? { aliases: row.aliases } : {}),
+  const event = "event" in tool ? tool.event : undefined;
+  let open: HubToolEntry["open"];
+  if ("settings" in row.open) open = row.open;
+  else if (event !== undefined) open = { ...row.open, event };
+  else throw new Error(`The ${feature} Hub row opens through an event its tool does not name.`);
+  return [{ detail: row.detail, open, ...(row.action ? { action: row.action } : {}), ...(row.aliases ? { aliases: row.aliases } : {}),
     id: hub.command, feature, title: tool.label, keywords: "keywords" in tool ? tool.keywords : "" }];
 }));

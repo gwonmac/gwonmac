@@ -27,6 +27,7 @@ export default defineFeature({
   tool: {
     id: "quick-travel",
     label: "Travel",
+    event: "gw:travel-toggle",
     description: "Search destinations and travel between outposts.",
     keywords: "travel outposts map progress vanquish cartographer",
     hub: { command: "travel", order: 0, keyOrder: 0 },

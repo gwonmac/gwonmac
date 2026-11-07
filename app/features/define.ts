@@ -17,14 +17,14 @@ import type { SettingsSection } from "../shared/settings-catalogue.js";
 /**
  * A Tools row Core draws for a tool without loading its code: its detail, its action name
  * (`Open <label>` by default) and how it opens; it matches the tool's `keywords`. A tool
- * opens through its own event, asked to `show` (never to close), as a Hub page (`page`, so
+ * opens through its own `event`, asked to `show` (never to close), as a Hub page (`page`, so
  * Right Arrow opens it too) or after the Hub closes (`closesHub`); or at a Settings section.
  */
 export type HubToolRow = Readonly<{
   detail: string;
   action?: string;
   aliases?: readonly string[];
-  open: Readonly<{ event: string; show?: true; page?: true; closesHub?: true }> | Readonly<{ settings: SettingsSection }>;
+  open: Readonly<{ show?: true; page?: true; closesHub?: true }> | Readonly<{ settings: SettingsSection }>;
 }>;
 
 /** What selects a feature, before its region and any live-state gate. */
@@ -54,6 +54,12 @@ export type FeatureDefinition = Readonly<{
     description: string;
     /** Extra words Settings search and the tool's Hub row match. */
     keywords?: string;
+    /**
+     * The renderer event that runs this tool. Its shortcut's command fires it
+     * (app/renderer/commands.ts), and so does its Hub row. A listener cancels the event to
+     * claim it and, given an object detail, sets `error` on it to refuse.
+     */
+    event?: `gw:${string}`;
     /**
      * The Hub's Tools row that runs this tool and shows its shortcut, by its id `command`.
      * `order` places it among the Tools rows, lowest first; `keyOrder`, when present, also

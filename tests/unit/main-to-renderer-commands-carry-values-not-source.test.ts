@@ -29,8 +29,9 @@ const preloadSource: string = await bundlePreload("tools", root);
 // and module the renderer build uses. Reading app/ and transpiling is
 // what keeps this test buildless; reading build/renderer would make it depend
 // on a build the unit suite does not run.
+const routerPath = path.join(root, "app/renderer/commands.ts");
 const routerSource = ts.transpileModule(
-  await readFile(path.join(root, "app/renderer/commands.ts"), "utf8"),
+  await readFile(routerPath, "utf8"),
   {
     compilerOptions: {
       target: ts.ScriptTarget.ES2022,
@@ -87,12 +88,11 @@ function harness(argv: string[]) {
   const flushed = new Promise<void>((resolve) => {
     releaseFlush = resolve;
   });
-  // The Toolbox overlay, present or not. It claims the toggle by cancelling
-  // the event, exactly as the real overlay does, and `tools.toggle` is refused
-  // when nothing claims it — the ordinary case on a launch without the
-  // capability.
-  let toolboxListening = false;
-  let storageListening = false;
+  // A tool's listener, present or not. It claims its event by cancelling it,
+  // exactly as the real listeners do, and refuses by setting `error` on the
+  // detail; a command nothing claims is unhandled, the ordinary case on a
+  // launch without that tool.
+  const listening = new Map<string, unknown>();
   let transientDismissals = 0;
   const window = {
     gwNative: api,
@@ -139,18 +139,23 @@ function harness(argv: string[]) {
     }) {
       dispatched.push(event.type);
       dispatchedDetails.push("detail" in event ? event.detail : undefined);
-      if (toolboxListening && event.type === "gw:tools-toggle") {
+      if (listening.has(event.type)) {
         event.preventDefault();
-      }
-      if (storageListening && event.type === "gw:storage-open") {
-        event.preventDefault();
+        const refusal = listening.get(event.type);
+        if (refusal !== undefined && "detail" in event && typeof event.detail === "object" && event.detail !== null) {
+          Object.assign(event.detail, { error: refusal });
+        }
       }
       return !event.defaultPrevented;
     },
   };
   const context: Record<string, unknown> = { console, window };
   context.globalThis = context;
-  vm.runInNewContext(routerSource, context);
+  // The router imports the shared tables at run time; they load as the test's own modules.
+  vm.runInNewContext(routerSource, context, {
+    filename: routerPath,
+    importModuleDynamically: vm.constants.USE_MAIN_CONTEXT_DEFAULT_LOADER,
+  });
 
   const deliver = (id: number, command: RendererCommand): void => {
     for (const handler of listeners.get("gw:renderer:command") ?? []) {
@@ -171,11 +176,14 @@ function harness(argv: string[]) {
     acknowledgements,
     releaseFlush,
     window,
-    installToolbox: () => {
-      toolboxListening = true;
+    listen: (event: string, refusal?: Error) => {
+      listening.set(event, refusal);
     },
-    installStorage: () => {
-      storageListening = true;
+    settled: async (count: number) => {
+      // A tool command waits on the router's import of the shared tables.
+      for (let turn = 0; turn < 50 && acknowledgements().length < count; turn += 1) {
+        await new Promise(setImmediate);
+      }
     },
     transientDismissals: () => transientDismissals,
   };
@@ -240,11 +248,11 @@ test("menu commands reach the game renderer as events", async () => {
   const fixture = harness(ARGV);
   fixture.deliver(1, { type: "input.reset" });
   fixture.deliver(2, { type: "diagnostics.toggle" });
-  fixture.installToolbox();
+  fixture.listen("gw:tools-toggle");
   fixture.deliver(3, { type: "tools.toggle" });
-  fixture.installStorage();
+  fixture.listen("gw:storage-open");
   fixture.deliver(4, { type: "storage.open" });
-  await new Promise(setImmediate);
+  await fixture.settled(4);
   assert.deepEqual(fixture.dispatched, [
     "gw:input-reset",
     "gw:diagnostics-toggle",
@@ -287,18 +295,37 @@ test("input harness state crosses as an explicit value and is acknowledged", asy
   assert.deepEqual(fixture.acknowledgements(), [[1, "completed"]]);
 });
 
-test("the Tools shortcut is refused when there is no Toolbox to toggle", async () => {
-  // The capability is off on an ordinary launch, and an event nobody listens
-  // for is indistinguishable from one that worked. The command has to fail so
-  // the menu can say so rather than appear to have done something.
-  //
-  // The event is still dispatched: asking is how the router finds out. Nothing
-  // cancels it, and that uncancelled dispatch is the refusal.
-  const fixture = harness(ARGV);
-  fixture.deliver(1, { type: "tools.toggle" });
-  await new Promise(setImmediate);
-  assert.deepEqual(fixture.dispatched, ["gw:tools-toggle"]);
-  assert.deepEqual(fixture.acknowledgements(), [[1, "failed"]]);
+// Each tool command and the event its tool's manifest names. A typo or a
+// missing `event` in a manifest leaves the command dispatching nothing.
+const TOOL_COMMANDS = [
+  ["tools.toggle", "gw:tools-toggle"],
+  ["trade.toggle", "gw:trade-toggle"],
+  ["whispers.toggle", "gw:whispers-toggle"],
+  ["storage.open", "gw:storage-open"],
+  ["travel.toggle", "gw:travel-toggle"],
+  ["character.toggle", "gw:character-toggle"],
+  ["game.call-target", "gw:call-target"],
+  ["game.resign", "gw:resign-show"],
+] as const;
+
+test("a tool command is unhandled when no listener claims its event, and fails when the listener refuses", async () => {
+  // An event nobody listens for is indistinguishable from one that worked, so
+  // the router asks: it dispatches the event, and an uncancelled dispatch is
+  // the answer of a launch without that tool. A listener that claims the event
+  // and refuses sets the reason on the detail, and the command fails.
+  for (const [type, event] of TOOL_COMMANDS) {
+    for (const [listener, outcome] of [["absent", "unhandled"], ["claims", "completed"], ["refuses", "failed"]] as const) {
+      const fixture = harness(ARGV);
+      if (listener !== "absent") fixture.listen(event, listener === "refuses" ? new Error("refused") : undefined);
+      fixture.deliver(1, { type });
+      await fixture.settled(1);
+      assert.deepEqual(
+        { dispatched: fixture.dispatched.filter((name) => name !== "gw:input-reset"), acknowledged: fixture.acknowledgements() },
+        { dispatched: [event], acknowledged: [[1, outcome]] },
+        `${type} with its listener ${listener}`,
+      );
+    }
+  }
 });
 
 test("a capture level crosses as a number, not as interpolated source", async () => {

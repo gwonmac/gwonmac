@@ -13,11 +13,12 @@ export default defineFeature({
   tool: {
     id: "trade-chat",
     label: "Trade Chat",
+    event: "gw:trade-toggle",
     description: "Browse the trade feed.",
     keywords: "kamadan prices trading market trader",
     hub: {
       command: "trade", order: 4, keyOrder: 3,
-      row: { detail: "Find offers and contact sellers", open: { event: "gw:trade-toggle", show: true } },
+      row: { detail: "Find offers and contact sellers", open: { show: true } },
     },
   },
   shortcuts: [{ action: "trade.toggle", binding: { key: "k", shift: false, option: false }, menuItem: "toggle-trade" }],
