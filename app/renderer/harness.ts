@@ -548,50 +548,14 @@ let applyAppearance:
 let inputHost: GameInputController | null = null;
 let inputTrace: InputTrace | null = null;
 let gamepadTrace: import('./gamepad-trace.js').GamepadTraceController | null = null;
-const emptySkillKeyBindings:
-  import('../shared/contracts.js').AppSettings['skillKeyBindings'] =
-    [null, null, null, null, null, null, null, null];
-window.gwToolsSettings = () => Object.freeze({
-  hubShortcuts: appSettings?.hubShortcuts ?? [],
-  ...(appSettings?{calculatorRates:appSettings.calculatorRates}:{}),
-  shortcutOverrides: appSettings?.shortcutOverrides ?? {},
-  gwonmacTools: appSettings?.gwonmacTools ?? false,
-  buildLibrary: appSettings?.buildLibrary ?? true,
-  tradeChat: appSettings?.tradeChat ?? true,
-  xunlaiStorage: appSettings?.xunlaiStorage ?? false,
-  travelPalette: appSettings?.travelPalette ?? false,
-  targetReadout: appSettings?.targetReadout ?? false,
-  characterSwitchEnabled: appSettings?.characterSwitchEnabled ?? true,
-  resignEnabled: appSettings?.resignEnabled ?? false,
-  whispersEnabled: appSettings?.whispersEnabled ?? false,
-  callTargetEnabled: appSettings?.callTargetEnabled ?? false,
-  cartographyEnabled: appSettings?.cartographyEnabled ?? true,
-  cartographyOverlayEnabled: appSettings?.cartographyOverlayEnabled ?? false,
-  cartographyGridEnabled: appSettings?.cartographyGridEnabled ?? false,
-  compassRangeIndicatorsEnabled: appSettings?.compassRangeIndicatorsEnabled ?? false,
-  eliteSkillsEnabled: appSettings?.eliteSkillsEnabled ?? true,
-  eliteMissionMapMarkers: appSettings?.eliteMissionMapMarkers ?? "saved",
-  skillKeyBindings: appSettings?.skillKeyBindings ?? emptySkillKeyBindings,
-  skillKeyLabelsEnabled: appSettings?.skillKeyLabelsEnabled ?? false,
-  skillCooldownOverlayEnabled: appSettings?.skillCooldownOverlayEnabled ?? true,
-  chatFiltersEnabled: appSettings?.chatFiltersEnabled ?? false,
-  chatFilterAllyDrops: appSettings?.chatFilterAllyDrops ?? false,
-  chatFilterHallOfHeroes: appSettings?.chatFilterHallOfHeroes ?? false,
-  chatFilterTitleAchievements: appSettings?.chatFilterTitleAchievements ?? false,
-  quickItemMove: appSettings?.quickItemMove ?? false,
-  effectTimersEnabled: appSettings?.effectTimersEnabled ?? false,
-  alcoholTimerEnabled: appSettings?.alcoholTimerEnabled ?? false,
-  remindersEnabled: appSettings?.remindersEnabled ?? false,
-  reminderCons: appSettings?.reminderCons ?? true,
-  reminderPcons: appSettings?.reminderPcons ?? true,
-  reminderAlcohol: appSettings?.reminderAlcohol ?? true,
-  reminderBeforeEnd: appSettings?.reminderBeforeEnd ?? true,
-  reminderAtEnd: appSettings?.reminderAtEnd ?? true,
-  reminderSound: appSettings?.reminderSound ?? false,
-  alcoholTimerPosition: appSettings?.alcoholTimerPosition ?? Object.freeze({ corner: "top-left", x: 4, y: 58, locked: true }),
-  skillCooldownColor: appSettings?.skillCooldownColor
-    ?? Object.freeze({ kind: 'preset', preset: 'red' }),
-});
+// The Tools view of the settings, defaults included, comes from the one settings
+// table. boot() loads it with the host modules; until then there is nothing to show.
+let projectToolsSettings:
+  typeof import('../shared/settings/index.js').toolsSettings | null = null;
+window.gwToolsSettings = () => {
+  if (!projectToolsSettings) throw new Error('Tools settings are not loaded yet');
+  return projectToolsSettings(appSettings);
+};
 window.gwApplySettings = (next) => {
   const previousScale = appSettings?.renderScale;
   const updated = { ...next };
@@ -602,9 +566,11 @@ window.gwApplySettings = (next) => {
   window.gwDiagnostics?.setVisible(updated.showDiagnostics);
   applyAppearance(updated);
   updateCartography();
-  window.dispatchEvent(new CustomEvent('gw:tools-settings', {
-    detail: window.gwToolsSettings(),
-  }));
+  if (projectToolsSettings) {
+    window.dispatchEvent(new CustomEvent('gw:tools-settings', {
+      detail: window.gwToolsSettings(),
+    }));
+  }
   if (inputHost) log('settings applied');
 };
 
@@ -1377,6 +1343,7 @@ function loadGlue(isProxyRouteLabel: (route: string) => boolean) {
       controllerPromptTexture,
       texturePackModule,
       characterSwitch,
+      settingsTable,
     ] = await Promise.all([
       import('./platform-capabilities.js'),
       import('./socket-host.js'),
@@ -1400,7 +1367,9 @@ function loadGlue(isProxyRouteLabel: (route: string) => boolean) {
       import('./controller-prompt-texture.js'),
       import('./texture-pack.js'),
       import('./character-switch-host.js'),
+      import('../shared/settings/index.js'),
     ]);
+    projectToolsSettings = settingsTable.toolsSettings;
     host = {
       ...clientExit,
       ...memoryAttribution,
