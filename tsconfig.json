@@ -38,5 +38,5 @@
   // A feature's companion part and their registry are renderer code that only
   // app/renderer imports, so the renderer program checks them.
   "exclude": ["node_modules", "out", "app/renderer", "app/ui", "app/preload",
-    "app/features/*/companion.ts", "app/features/companion-parts.ts", "app/shared/ui/resize.ts", "app/shared/ui/frame.ts", "app/shared/ui/elite-map-pointer.ts", "app/shared/ui/elite-marker-paint.ts"]
+    "app/features/*/companion.ts", "app/features/companion-parts.ts", "app/shared/ui/resize.ts", "app/shared/ui/frame.ts", "app/shared/ui/elite-map-pointer.ts", "app/shared/ui/elite-marker-paint.ts", "app/shared/ui/hub-view.ts"]
 }

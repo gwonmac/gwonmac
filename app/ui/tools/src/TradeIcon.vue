@@ -29,7 +29,7 @@ defineProps<{ name: "star" | "player" | "market"; filled?: boolean }>();
     aria-hidden="true"
     fill="none"
   >
-    <!-- The same scales as Trade's Hub icon (hub-icons.ts), so both name one tool. -->
+    <!-- The same scales as Trade's Hub icon (app/shared/ui/hub-icon.ts), so both name one tool. -->
     <path d="M12 3v17M7 6h10M5 8l-3 7h6L5 8Zm14 0-3 7h6l-3-7ZM7 21h10" />
   </svg>
 </template>

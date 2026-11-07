@@ -69,8 +69,9 @@ export const BUILD_PHASES = [
     // build/renderer/launcher/, and build/renderer/settings/: the same Settings
     // page as a module for the Hub.
     { name: "launcher", command: "pnpm", args: ["--filter", "@gwonmac/launcher-ui", "build"] },
-    // The Tools application, bundled once for the renderer. Vite writes and
-    // empties only build/renderer/tools/.
+    // The Tools application and the Hub's view (hub-app.js, which Core loads
+    // too), bundled once for the renderer. Vite writes and empties only
+    // build/renderer/tools/.
     { name: "tools", command: "pnpm", args: ["--filter", "@gwonmac/tools-ui", "build:embedded"] },
     // The only native addon. It uses raw Node-API version 8, whose ABI remains
     // stable across the Node and Electron upgrades this project takes. The

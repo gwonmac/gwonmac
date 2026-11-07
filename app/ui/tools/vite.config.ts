@@ -48,10 +48,15 @@ export default defineConfig(({ mode }) => {
             new URL("../../../build/renderer/tools", import.meta.url),
           ),
           sourcemap: false,
+          // Two entries share one Vue chunk: the Tools application, and the Hub's view, which
+          // Core loads too, so it reaches no Tools code (src/hub/embedded.ts).
           lib: {
-            entry: fileURLToPath(new URL("./src/embedded.ts", import.meta.url)),
+            entry: {
+              "tools-app": fileURLToPath(new URL("./src/embedded.ts", import.meta.url)),
+              "hub-app": fileURLToPath(new URL("./src/hub/embedded.ts", import.meta.url)),
+            },
             formats: ["es"],
-            fileName: () => "tools-app.js",
+            fileName: (_format, name) => `${name}.js`,
             cssFileName: "tools-app",
           },
         }
