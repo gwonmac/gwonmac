@@ -118,7 +118,7 @@ describe("an observation live run cannot reach the automation tier", () => {
   });
 
   it("opens no parent-process command channel for an observation run", () => {
-    // main.ts serves AUTOMATION_COMMAND over the Node IPC channel. Without the
+    // capture-control.ts serves AUTOMATION_COMMAND over the Node IPC channel. Without the
     // channel there is nothing to send on: child.send does not exist.
     assert.deepEqual(planFor("cursor-capture").stdio, ["ignore", "pipe", "pipe"]);
     assert.deepEqual(planFor("graphics-probe").stdio, ["ignore", "pipe", "pipe"]);

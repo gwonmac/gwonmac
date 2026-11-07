@@ -123,7 +123,8 @@ selection.
 
 | Path | Responsibility |
 | --- | --- |
-| `app/main/main.ts` | Composition root and application lifecycle |
+| `app/main/main.ts` | Entry point: work before `ready`, single-instance lock, fatal-error paths |
+| `app/main/bootstrap.ts` | Launch order: builds the named main-process services after `ready` |
 | `app/client/active-client.ts` | Immutable active-generation slot |
 | `app/client/client-runtime.ts` | Client activation, health proof, rollback, and content downloads |
 | `app/client/patch-client.ts` | ArenaNet manifest and artifact preparation |
