@@ -6,7 +6,7 @@
 import {
   clearCartographyPlayerState,
   updateCartographyPlayerState,
-  updateCartographyPlayRegion,
+  connectCartographyPlayRegion,
 } from "./renderer/cartography-player-state.js";
 import { createEliteMapInstallation } from "./renderer/elite-map-installation.js";
 import type { ToolsCompanionPart } from "../../renderer/tools-companion-part.js";
@@ -31,12 +31,12 @@ export default {
         observation.observePartyWhen(wanted);
         observation.observeTargetWhen(wanted);
         observation.onState(updateCartographyPlayerState);
+        connectCartographyPlayRegion(() => context.playRegion());
         return {
           sync() {
             const region = context.snapshot().playRegionState;
             const next = region.status === "ready" ? `${region.characterKey}:${region.mapId}` : "";
             if (next !== identity) { observation.setParty(null); identity = next; }
-            updateCartographyPlayRegion(context.playRegion());
             eliteMaps.update(context.policy().cartography && context.snapshot().settings.eliteSkillsEnabled);
           },
           disposePresentation: [clearCartographyPlayerState, () => eliteMaps.dispose()],
