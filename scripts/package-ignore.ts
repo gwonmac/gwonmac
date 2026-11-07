@@ -19,10 +19,18 @@ export function ignorePackageFile(file: string): boolean {
     || p === "/node_modules/pngjs/lib"
     || p.startsWith("/node_modules/pngjs/lib/")
   ) return false;
-  if (p === "/build" || p === "/build/main" || p === "/build/client" || p === "/build/shared") {
+  // build/features holds each feature's manifest and main-process part; the main
+  // runtime imports them through app/features/main-parts.ts.
+  if (
+    p === "/build" || p === "/build/main" || p === "/build/client" || p === "/build/shared"
+    || p === "/build/features"
+  ) {
     return false;
   }
-  if (p.startsWith("/build/main/") || p.startsWith("/build/client/") || p.startsWith("/build/shared/")) {
+  if (
+    p.startsWith("/build/main/") || p.startsWith("/build/client/") || p.startsWith("/build/shared/")
+    || p.startsWith("/build/features/")
+  ) {
     return p.endsWith(".map") || p.endsWith(".d.ts") || p.endsWith(".d.ts.map");
   }
   if (p === "/build/renderer") return false;
