@@ -2,7 +2,7 @@
  * The Effect Timers overlay on the native HUD layer. It reads the shared
  * player-effect and effect-icon feeds and adds its demand to them.
  */
-import { createEffectTimerOverlayConsumer } from "../../renderer/effect-timer-overlay-consumer.js";
+import { createEffectTimerOverlayConsumer } from "./renderer/effect-timer-overlay-consumer.js";
 import type { ToolsCompanionPart } from "../../renderer/tools-companion-part.js";
 
 export default {
