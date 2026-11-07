@@ -31,7 +31,8 @@ for (const style of ['guild-wars', 'obsidian'] as const) {
           const expected = el.getBoundingClientRect().left + Number.parseFloat(style.paddingLeft) - el.scrollLeft + context.measureText(el.value.slice(0, offset)).width;
           const walker = document.createTreeWalker(glyphs, NodeFilter.SHOW_TEXT);
           let remaining = offset, node = walker.nextNode();
-          while (node && remaining > (node.textContent?.length ?? 0)) { remaining -= node.textContent?.length ?? 0; node = walker.nextNode(); }
+          // Vue's list anchors are empty text nodes with no layout box; a caret boundary lives in a node with text.
+          while (node && (!node.textContent || remaining > node.textContent.length)) { remaining -= node.textContent?.length ?? 0; node = walker.nextNode(); }
           const range = document.createRange(); range.setStart(node!, remaining); range.collapse(true);
           const actual = range.getBoundingClientRect().left;
           return { offset, expected, actual, error: Math.abs(actual - expected) };
