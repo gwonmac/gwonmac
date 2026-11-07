@@ -253,7 +253,7 @@ test('root typing and complete library entry stay within the scale budget (HUB-1
     await new Promise(resolve => setTimeout(resolve, 100));
     const rootLongTasks = [...longTasks, ...observer.takeRecords().map(record => record.duration)];
     longTasks.length = 0;
-    const started = performance.now(); window.gwHub!.browseBuilds();
+    const started = performance.now(); window.gwHub!.openRow('builds', 'builds', 'Build Library is unavailable.');
     const entry = performance.now() - started;
     // Observe every deferred batch, including those beyond the first 100 ms.
     while (document.querySelectorAll('.hub-build-row').length < 1000) await new Promise(requestAnimationFrame);
@@ -279,7 +279,7 @@ test('End and Back reach rows the 1000-build Library has not painted yet (HUB-11
   await expect(page.locator('#app')).toHaveAttribute('data-ready', 'true');
   // Entry and End in one task: later frames cannot have painted the last row yet.
   const end = await page.evaluate(() => {
-    window.gwHub!.browseBuilds();
+    window.gwHub!.openRow('builds', 'builds', 'Build Library is unavailable.');
     const input = document.querySelector<HTMLInputElement>('.hub-search input')!;
     const painted = document.querySelectorAll('.hub-row').length;
     const height = document.getElementById('hub-results')!.getBoundingClientRect().height;
