@@ -20,6 +20,8 @@ import {
   LOCAL_FEATURE_INVARIANTS,
   LOCAL_VERIFICATION_REASONS,
 } from "../app/client/certification/local-client-verification-contract.js";
+import { CARTOGRAPHY_MEMORY_LAYOUTS } from
+  "../app/client/certification/cartography-transform-internals.js";
 import { SEMANTIC_VERIFIER_ABI } from
   "../app/client/certification/semantic-proof.js";
 import { isDigest } from "../app/shared/digest.js";
@@ -348,7 +350,7 @@ function cartographyEvidence(value: JsonRecord): JsonRecord {
       chain.memoryLayout,
       `cartography.chains[${index}].memoryLayout`,
     );
-    if (memoryLayout !== "official" && memoryLayout !== "relocated" && memoryLayout !== "october") {
+    if (!Object.hasOwn(CARTOGRAPHY_MEMORY_LAYOUTS, memoryLayout)) {
       throw new Error("Cartography memory layout is not closed");
     }
     return Object.freeze({
