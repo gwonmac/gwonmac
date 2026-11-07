@@ -56,6 +56,9 @@ export type HubRatesProps = Readonly<{
 /** The evidence behind a market estimate, as label and value pairs, with a way to the rates. */
 export type HubPriceDetailsProps = Readonly<{ entries: readonly (readonly [label: string, value: string])[]; editRates(): void }>;
 
+/** The host the launcher's Settings page mounts into; `failed` when that page could not load. */
+export type HubSettingsHostProps = Readonly<{ failed: boolean }>;
+
 /** The Hub's own pages, drawn by the kit into a view's target. */
 export type HubPages<Target> = Readonly<{
   confirm: HubPageMount<HubConfirmProps, Target>;
@@ -63,4 +66,5 @@ export type HubPages<Target> = Readonly<{
   preferences: HubPageMount<HubPreferencesProps, Target>;
   rates: HubPageMount<HubRatesProps, Target>;
   priceDetails: HubPageMount<HubPriceDetailsProps, Target>;
+  settingsHost: HubPageMount<HubSettingsHostProps, Target>;
 }>;

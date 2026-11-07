@@ -1,7 +1,8 @@
 /**
  * The Hub's Settings page: the launcher's Settings page, built as `settings/settings-app.js`
  * (app/ui/launcher/src/hub-entry.ts) and loaded on first use. It belongs to every launch, Core
- * included, because Tools are turned on here (docs/settings.md).
+ * included, because Tools are turned on here (docs/settings.md). The Hub's Vue kit draws the
+ * host it mounts into (app/ui/tools/src/hub/views/settings).
  */
 import type { EmbeddedSettings } from '../shared/hub-settings.js';
 import type { HubPresenter } from '../shared/hub.js';
@@ -27,10 +28,9 @@ function load(document: Document) {
 /** Shows Settings as a Hub page, at a section or control when given. */
 export function showHubSettings(hub: HubPresenter<HTMLElement>, target: SettingsTarget | null) {
   let landing: Element | null = null;
-  hub.showView('Settings', host => {
-    const view = host.ownerDocument.createElement('div');
-    view.className = 'hub-settings-host';
-    host.append(view);
+  hub.showView('Settings', (host, _back, _footer, pages) => {
+    const frame = pages.settingsHost(host, { failed: false });
+    const view = frame.element;
     let page: SettingsPage | null = null;
     let disposed = false;
     const refresh = () => page?.refresh();
@@ -45,7 +45,7 @@ export function showHubSettings(hub: HubPresenter<HTMLElement>, target: Settings
         mayTakeFocus: () => { const focused = host.ownerDocument.activeElement; return !focused || focused === landing || focused === host.ownerDocument.body || view.contains(focused); },
       });
     }).catch(() => {
-      if (!disposed) view.textContent = 'Settings could not be loaded. Use Settings in the launcher.';
+      if (!disposed) frame.update({ failed: true });
     });
     window.addEventListener('gw:tools-settings', refresh);
     return () => {
@@ -53,7 +53,7 @@ export function showHubSettings(hub: HubPresenter<HTMLElement>, target: Settings
       window.removeEventListener('gw:tools-settings', refresh);
       page?.dispose();
       if (shown === page) shown = null;
-      view.remove();
+      frame.dispose();
     };
   }, undefined, 'settings');
   landing = document.activeElement;
