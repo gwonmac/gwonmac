@@ -35,5 +35,8 @@
   // second compilation of the same files under a lib that has no `Document`.
   // app/preload is bundled by Rollup into build/preload and checked by
   // tsconfig.tests.json; emitting it here would only leave unused copies.
-  "exclude": ["node_modules", "out", "app/renderer", "app/ui", "app/preload", "app/shared/ui/resize.ts", "app/shared/ui/frame.ts", "app/shared/ui/elite-map-pointer.ts", "app/shared/ui/elite-marker-paint.ts"]
+  // A feature's companion part and their registry are renderer code that only
+  // app/renderer imports, so the renderer program checks them.
+  "exclude": ["node_modules", "out", "app/renderer", "app/ui", "app/preload",
+    "app/features/*/companion.ts", "app/features/companion-parts.ts", "app/shared/ui/resize.ts", "app/shared/ui/frame.ts", "app/shared/ui/elite-map-pointer.ts", "app/shared/ui/elite-marker-paint.ts"]
 }
