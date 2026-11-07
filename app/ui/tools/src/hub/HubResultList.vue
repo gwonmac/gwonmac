@@ -9,13 +9,15 @@ import type { HubRateControls, HubViewModel } from '../../../../shared/ui/hub-vi
 import HubResultRow from './HubResultRow.vue';
 
 const props = defineProps<{ results: HubViewModel['results']; rates: HubRateControls; busy: boolean | undefined }>();
-type Section = { id: string; group: string; rows: { row: HubRow; index: number }[] };
+type Section = { key: string; id: string; group: string; rows: { row: HubRow; index: number }[] };
 const sections = computed(() => {
   const list: Section[] = [];
   props.results.rows.slice(0, props.results.painted).forEach((row, index) => {
     const last = list.at(-1);
     if (last?.group === row.group) last.rows.push({ row, index });
-    else list.push({ id: `hub-group-${index}`, group: row.group, rows: [{ row, index }] });
+    // Keyed by group, not position: when a narrower query drops an earlier group, the rows that
+    // stay keep their DOM nodes and a pointer action already aimed at them (HUB-170).
+    else list.push({ key: `${row.group}#${list.filter(section => section.group === row.group).length}`, id: `hub-group-${index}`, group: row.group, rows: [{ row, index }] });
   });
   return list;
 });
@@ -26,7 +28,7 @@ const sections = computed(() => {
     id="hub-results" class="hub-results ui-scroll" :class="{ 'hub-preview-list': results.previewList }" role="listbox" aria-label="Results" tabindex="-1"
     :hidden="results.hidden" :aria-busy="busy"
   >
-    <div v-for="section in sections" :key="section.id" role="group" :aria-labelledby="section.id">
+    <div v-for="section in sections" :key="section.key" role="group" :aria-labelledby="section.id">
       <div :id="section.id" class="hub-group" role="presentation">{{ section.group }}</div>
       <HubResultRow
         v-for="entry in section.rows" :key="entry.row.id" :row="entry.row" :index="entry.index"
