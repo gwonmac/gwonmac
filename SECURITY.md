@@ -3,7 +3,7 @@
 ## Report a vulnerability
 
 Use GitHub's
-[private vulnerability reporting](https://github.com/Mat4m0/gwonmac/security/advisories/new).
+[private vulnerability reporting](https://github.com/gwonmac/gwonmac/security/advisories/new).
 You can also contact `matthias@lupinum.com`.
 
 Do not report a security issue in a public issue, discussion, or pull request.
@@ -20,13 +20,9 @@ data.
 
 ## Supported versions
 
-We review security findings for:
-
-- the latest published Stable release;
-- the current public Beta or release candidate; and
-- `main` when the finding affects the next release.
-
-Older releases do not receive fixes.
+We review security findings for the latest published release and for `main`
+when the finding affects the next release. Older releases do not receive
+fixes.
 
 ## Ordinary bugs
 

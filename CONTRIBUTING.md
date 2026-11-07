@@ -1,144 +1,51 @@
 # Contributing
 
-## Read this first
+We are not actively accepting broad contributions. Small bug fixes, reliability
+and security fixes, measured performance improvements, and maintenance that
+removes code are welcome.
 
-We are not actively accepting broad contributions.
-
-Small bug fixes, reliability fixes, and focused maintenance changes are
-welcome. Contact us before you start a large change. Open an issue and describe
-the problem, the proposed scope, and the proof you plan to add.
-
-An issue does not guarantee that we will accept the change. This project keeps
-a narrow scope because it hosts an online game client and shares ArenaNet's
-services with other players.
-
-## Changes we are likely to accept
-
-- Small, focused bug fixes.
-- Small reliability or security fixes.
-- Measured performance improvements.
-- Maintenance that removes code or reduces complexity.
-- Documentation corrections that match executable behavior.
-
-## Contact us before these changes
-
-- New product features.
-- User-interface redesigns.
-- New dependencies or processes.
-- New persistent or wire formats.
-- Changes to client certification, networking, credentials, updates, or
-  releases.
-- Changes larger than one focused pull request.
-
-Do not start a rewrite without agreement on the problem and scope.
-
-## Choose the correct branch
-
-Normal feature and maintenance pull requests target `main`. Keep incomplete
-work on its topic branch. A merge to `main` does not require an immediate app
-release.
-
-Only release stabilization and emergency Stable patches target a canonical
-`release/YYYY.M.PATCH` branch. Do not add a feature after a release branch is
-created. Read [Development and rollout](docs/development-workflow.md) before you
-prepare, fix, or publish a release.
+Open an issue first for new features, UI redesigns, new dependencies or
+processes, new persistent or wire formats, changes to client certification,
+networking, credentials, updates, or releases, and anything larger than one
+focused pull request. An issue does not guarantee that we accept the change:
+this project hosts an online game client and shares ArenaNet's services with
+other players.
 
 ## Report a bug
 
-In a game window, select **Help → Report a Bug…**. Choose
-**Help → Diagnostics → Export Recent Diagnostics…** to create a diagnostics
-`.zip` file. Attach it to the bug report if it is useful.
+In a game window, choose **Help → Report a Bug…**. To attach diagnostics,
+choose **Help → Diagnostics → Export Recent Diagnostics…** and add the `.zip` to
+the [bug form](https://github.com/gwonmac/gwonmac/issues/new?template=bug-report.yml).
+Never attach credentials, packet captures, private account data, game binaries,
+or crash dumps. Report security issues privately as described in
+[SECURITY.md](SECURITY.md).
 
-Do not attach credentials, packet captures, private account data, game
-binaries, or crash dumps. Report a security issue through the private process
-in [SECURITY.md](SECURITY.md).
+## Set up and run
 
-## Set up the project
+Follow [Build from source](README.md#build-from-source), then read
+[AGENTS.md](AGENTS.md): it holds the rules, commands, and source map.
 
-Read [AGENTS.md](AGENTS.md) before you change code. Use
-[docs/README.md](docs/README.md) to find the document that owns your area.
+- `pnpm dev` opens the real launcher with the normal `Guild Wars` profile.
+  `pnpm dev --isolated` uses a fresh profile and prints it; reuse it with
+  `pnpm dev --profile /absolute/path`.
+- `pnpm launcher:fixture fresh` opens a disposable offline launcher
+  (also `single`, `multi`, `mixed`, `interrupted`, `corrupt`; add `--keep`).
+- `pnpm tools:dev` and `pnpm hub:dev` open the Tools and Hub UI in a browser
+  with fixtures, without the game.
+- Keep logs, screenshots, and profiles in the ignored `test-results/` folder.
 
-```bash
-xcode-select --install
-corepack enable
-pnpm install --frozen-lockfile
-pnpm exec playwright install chromium
-pnpm dev
-```
+## Pull requests
 
-Requirements are listed in the [README](README.md#build-from-source).
+1. Change one behavior or one ownership boundary, and target `main`.
+2. Explain the problem and name the invariant the change protects.
+3. Add the smallest executable proof and remove the old path in the same change.
+4. Update the doc that owns the changed behavior.
+5. Run `pnpm check`. CI runs the Electron and packaged suites.
 
-## Keep the pull request small
+Use a Conventional Commit title; PRs are squash-merged. For a UI change, add
+before-and-after images, and a short video when timing or motion matters. Do
+not run live ArenaNet tests unless the invariant needs them; name any live test
+in the PR.
 
-1. Change one behavior or one ownership boundary.
-2. Explain the user or maintainer problem.
-3. Name the invariant that the change protects.
-4. Add the smallest executable proof.
-5. Remove the old path in the same change.
-6. Update the document that owns the changed behavior.
-
-Do not mix cleanup, features, and unrelated fixes. For a user-interface change,
-include clear before-and-after images. Include a short video when timing,
-motion, or interaction is important.
-
-## Verify the change
-
-Start with the smallest relevant proof:
-
-| Change | Fast proof |
-| --- | --- |
-| Pure main or renderer rule | Run the owning unit test file. |
-| Process, window, or input behavior | Run the owning Electron test file. |
-| Website behavior | Run `pnpm test:website`. |
-| Markdown | Run `pnpm check:links`. |
-
-Use `pnpm run check` while you work:
-
-```bash
-pnpm run check
-```
-
-GitHub **Application verification** runs the complete macOS gate for the pull
-request. Require it to pass before merge.
-
-Run the complete gate locally when you change CI, packaging, signing, or
-release behavior, or when CI cannot provide the required evidence:
-
-```bash
-pnpm verify
-```
-
-If you changed `apps/website`, also run:
-
-```bash
-pnpm test:website
-```
-
-Automatic Vercel Preview deployments are disabled for ordinary branches. A
-repository collaborator can request one for the current pull-request head by
-commenting `/vercel` on a same-repository pull request. Comment again after a
-new commit to update the Preview. The Vercel link appears in the PR checks, and
-the derived `preview/pr-<number>` branch is removed when the PR closes.
-
-For a branch that should receive a Preview after every push, name it
-`preview/<topic>` before opening the pull request. Fork pull requests are not
-deployed because Preview environment values must not be exposed to untrusted
-code.
-
-Do not run live ArenaNet tests unless the invariant requires them. Live tests
-must be deliberate, bounded, and named in the pull request.
-
-## Pull request description
-
-State:
-
-- what changed;
-- why it is needed;
-- what was deleted or simplified;
-- which invariant proves the result; and
-- which commands or manual checks passed.
-
-Opening a pull request does not create an obligation to merge it. We may ask
-you to reduce the scope, defer it, or close it.
-
-Contributions are licensed under GPL-3.0-only.
+Opening a pull request does not oblige us to merge it. Contributions are
+licensed under GPL-3.0-only.

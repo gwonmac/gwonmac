@@ -12,7 +12,7 @@ macOS supplies interaction.
 - Keep visual style and typeface independent in in-game GWonMac panels. The
   locally converted Guild Wars body font is the default; Inter/system type is
   the modern option, and Palatino is the fail-safe when the game asset is not
-  available. Utility windows such as the Multiple Accounts Hub keep macOS
+  available. Utility windows keep macOS
   system type.
 - Use one gold accent (`#e8b75c`) for selection and primary action. Reserve red
   for destructive actions and green for an already-open account.
@@ -35,25 +35,20 @@ macOS supplies interaction.
 - Keep motion short and functional. Reduced-motion mode removes nonessential
   transitions and animation.
 
-## Multiple Accounts Hub
+## Accounts in the launcher
 
-The Hub uses a 960×700 hidden-inset window with a 640×560 minimum. Its chooser
-is content-sized and anchored at bottom-right; compact widths turn it into a
-bottom sheet. Account rows scroll within the chooser, so many accounts do not
-move the primary action off-screen.
+There is no Single or Multiple Accounts mode. The launcher always opens first
+and answers one question: which accounts should open? Account administration
+uses progressive disclosure:
 
-Game Settings only enables or leaves Multiple Accounts mode. The Hub is the
-single account-management surface, including the empty **Create First Account**
-flow and its optional one-time copy from Single Account data.
-
-The launch surface answers one question: which accounts should open? Account
-administration uses progressive disclosure:
-
-1. The chooser shows selection, launch state, Retry, and the primary action.
-2. A row's More menu exposes Edit Account and Archive Account.
+1. Compact rows show selection checkboxes, launch state, **Play** or **Show**,
+   and **Try again** or **Cancel** where they apply. The main launch button opens
+   the checked group. The list scrolls inside the picker, so many accounts never
+   move the primary action off-screen.
+2. **Edit** changes an account's name, icon, and color.
 3. Modal sheets handle creation and editing.
-4. Hub Settings handles archived accounts, permanent deletion, and account-mode
-   switching.
 
-Player text says **account**. Internal code may retain **profile** for stable
-IDs, paths, partitions, and existing domain types.
+Player text says **account**. Internal code may keep **profile** for stable
+IDs, paths, partitions, and existing domain types. The in-game command palette
+is the **Hub**; do not use that name for the account picker.
+[Account profiles](docs/multiple-accounts.md) owns the behavior.
