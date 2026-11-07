@@ -16,4 +16,5 @@ export default defineFeature({
     hub: { command: "whispers", keyOrder: 4 },
   },
   shortcuts: [{ action: "whispers.toggle", binding: { key: "d", shift: false, option: false }, menuItem: "open-whispers" }],
+  capabilities: ["whisperChat"],
 });

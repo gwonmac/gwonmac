@@ -30,4 +30,5 @@ export default defineFeature({
     description: "A quiet, movable alcohol countdown. Hidden when sober; amber in the last 15 seconds.",
     keywords: "drunk alcohol timer",
   },
+  capabilities: ["playerEffectObservation", "effectIconGeometry", "alcoholObservation"],
 });

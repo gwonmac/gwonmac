@@ -31,4 +31,5 @@ export default defineFeature({
     label: "Skill Key Labels",
     description: "Show your own control labels on the eight skill slots.",
   },
+  capabilities: ["skillSlotGeometry", "nativeHudRendering"],
 });

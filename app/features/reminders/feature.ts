@@ -22,4 +22,5 @@ export default defineFeature({
     description: "Remind you in chat before cons, pcons or alcohol run out. Only you see these lines.",
     keywords: "cons pcons alcohol reminder chime",
   },
+  capabilities: ["playerEffectObservation", "alcoholObservation", "chatPrint"],
 });

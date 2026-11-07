@@ -24,4 +24,5 @@ export default defineFeature({
     hub: { command: "builds", keyOrder: 2 },
   },
   shortcuts: [{ action: "tools.toggle", binding: { key: "b", shift: false, option: false }, menuItem: "toggle-tools" }],
+  capabilities: ["partyObservation"],
 });

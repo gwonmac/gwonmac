@@ -23,4 +23,5 @@ export default defineFeature({
     hub: { command: "character", keyOrder: 1 },
   },
   shortcuts: [{ action: "character.switch", binding: { key: "e", shift: false, option: false }, menuItem: "switch-character" }],
+  capabilities: ["preGameControls", "characterSwitchAction"],
 });

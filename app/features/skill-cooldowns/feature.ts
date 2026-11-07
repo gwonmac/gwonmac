@@ -32,4 +32,5 @@ export default defineFeature({
     description: "Show numeric recharge timers on the skill bar.",
     keywords: "recharge timer skill bar",
   },
+  capabilities: ["skillSlotGeometry", "skillCooldownObservation", "nativeHudRendering"],
 });
