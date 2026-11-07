@@ -161,3 +161,16 @@ test('the Price basis picker keeps its presses, and Enter on it runs the row it 
   key(basis, { key: 'Enter', repeat: true }); await settle();
   expect(runs).toEqual(['copy']);
 });
+
+test('a view page mounts under its own Back and breadcrumbs, so it measures and takes focus there', async () => {
+  const hub = withHubBuiltins(createHub(document.body, { mountHubView }));
+  window.gwHub = hub;
+  hub.show(); await settle();
+  hub.showRows('Builds', () => sectionBase); await settle();
+  let seen: unknown = null;
+  hub.showView('Form', () => {
+    seen = [document.querySelector('.hub-back')?.getAttribute('aria-description'), [...document.querySelectorAll('.hub-crumb')].map(crumb => crumb.textContent?.trim())];
+    return () => {};
+  }); await settle();
+  expect(seen).toEqual(['Return to Builds', ['Home', 'Builds']]);
+});
