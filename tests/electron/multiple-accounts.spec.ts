@@ -56,7 +56,7 @@ Module.instantiateWasm({ env: testGraphics }, function () {
 `;
 
 for (const scenario of ["multi", "mixed", "interrupted"] as const) {
-  test(`${scenario} account data bootstraps into the unified launcher`, async () => {
+  test(`${scenario} account data bootstraps into the unified launcher`, { tag: "@journey" }, async () => {
     test.setTimeout(60_000);
     const fixture = await launchCachedClient(`gw-${scenario}-bootstrap-`, {
       GW_TEST_RETURN_LAUNCHER: "1",
@@ -109,7 +109,7 @@ for (const scenario of ["multi", "mixed", "interrupted"] as const) {
   });
 }
 
-test("corrupt launcher preferences recover conservatively and remain visible across restart", async () => {
+test("corrupt launcher preferences recover conservatively and remain visible across restart", { tag: "@journey" }, async () => {
   const corruptBytes = Buffer.from("{not-json\n");
   const fixture = await launchCachedClient(
     "gw-launcher-corrupt-state-",
@@ -169,7 +169,7 @@ async function seedTwoProfiles(userData: string): Promise<void> {
   }));
 }
 
-test("fresh startup creates Main and adds an account without restart", async () => {
+test("fresh startup creates Main and adds an account without restart", { tag: "@journey" }, async () => {
   const fixture = await launchCachedClient("gw-launcher-fresh-", {
     GW_TEST_RETURN_LAUNCHER: "1",
   });
@@ -208,7 +208,7 @@ test("fresh startup creates Main and adds an account without restart", async () 
   }
 });
 
-test("serializes concurrent profile launches behind one client canary", async () => {
+test("serializes concurrent profile launches behind one client canary", { tag: "@journey" }, async () => {
   const fixture = await launchCachedClient(
     "gw-launcher-concurrent-open-",
     { GW_TEST_RETURN_LAUNCHER: "1" },
@@ -267,7 +267,7 @@ test("serializes concurrent profile launches behind one client canary", async ()
   }
 });
 
-test("applies launcher settings to every open profile and reflects in-game changes", async () => {
+test("applies launcher settings to every open profile and reflects in-game changes", { tag: "@journey" }, async () => {
   const fixture = await launchCachedClient(
     "gw-launcher-settings-broadcast-",
     { GW_TEST_RETURN_LAUNCHER: "1" },
@@ -372,7 +372,7 @@ test("applies launcher settings to every open profile and reflects in-game chang
   }
 });
 
-test("an existing Single account is adopted before a new profile is added", async () => {
+test("an existing Single account is adopted before a new profile is added", { tag: "@journey" }, async () => {
   const fixture = await launchCachedClient(
     "gw-launcher-adopted-",
     { GW_TEST_RETURN_LAUNCHER: "1" },
@@ -408,7 +408,7 @@ test("an existing Single account is adopted before a new profile is added", asyn
   }
 });
 
-test("Show never duplicates a game and companion close policy stays profile-local", async () => {
+test("Show never duplicates a game and companion close policy stays profile-local", { tag: "@journey" }, async () => {
   const fixture = await launchCachedClient(
     "gw-launcher-companion-",
     { GW_BACKGROUND_LAUNCH: "0", GW_TEST_RETURN_LAUNCHER: "1" },
@@ -524,7 +524,7 @@ test("Show never duplicates a game and companion close policy stays profile-loca
   }
 });
 
-test("the account workspace survives a full application restart", async () => {
+test("the account workspace survives a full application restart", { tag: "@journey" }, async () => {
   test.setTimeout(60_000);
   const first = await launchCachedClient("gw-launcher-restart-", {
     GW_TEST_RETURN_LAUNCHER: "1",
@@ -552,7 +552,7 @@ test("the account workspace survives a full application restart", async () => {
   }
 });
 
-test("global map settings live in the launcher and survive restart", async () => {
+test("global map settings live in the launcher and survive restart", { tag: "@journey" }, async () => {
   test.setTimeout(60_000);
   const first = await launchOffline("gw-launcher-maps-", {
     GW_TEST_RETURN_LAUNCHER: "1",
@@ -594,7 +594,7 @@ test("global map settings live in the launcher and survive restart", async () =>
   }
 });
 
-test("renderer recovery stays inside one profile and leaves the launcher alive", async () => {
+test("renderer recovery stays inside one profile and leaves the launcher alive", { tag: "@journey" }, async () => {
   const fixture = await launchCachedClient("gw-launcher-recovery-", {
     GW_TEST_RETURN_LAUNCHER: "1",
     GW_TEST_ALLOW_UNREADY_LAUNCH: "0",
@@ -677,7 +677,7 @@ test("renderer recovery stays inside one profile and leaves the launcher alive",
   }
 });
 
-test("mandatory client repair blocks Play without rejecting and stays global", async () => {
+test("mandatory client repair blocks Play without rejecting and stays global", { tag: "@journey" }, async () => {
   const fixture = await launchOffline("gw-launcher-repair-", {
     GW_TEST_ALLOW_UNREADY_LAUNCH: "0",
     GW_TEST_RETURN_LAUNCHER: "1",
@@ -703,7 +703,7 @@ test("mandatory client repair blocks Play without rejecting and stays global", a
   }
 });
 
-test("a production renderer reveals the game only after its first submitted frame", async () => {
+test("a production renderer reveals the game only after its first submitted frame", { tag: "@journey" }, async () => {
   const fixture = await launchCachedClient("gw-first-frame-cutover-", {
     GW_TEST_RETURN_LAUNCHER: "1",
     GW_TEST_ALLOW_UNREADY_LAUNCH: "0",
@@ -752,7 +752,7 @@ test("a production renderer reveals the game only after its first submitted fram
   }
 });
 
-test("first-frame presentation does not steal focus after the launcher loses it", async () => {
+test("first-frame presentation does not steal focus after the launcher loses it", { tag: "@journey" }, async () => {
   const fixture = await launchCachedClient("gw-first-frame-no-focus-steal-", {
     GW_TEST_RETURN_LAUNCHER: "1",
     GW_TEST_ALLOW_UNREADY_LAUNCH: "0",
@@ -788,7 +788,7 @@ test("first-frame presentation does not steal focus after the launcher loses it"
   }
 });
 
-test("a missing first frame times out only its profile window", async () => {
+test("a missing first frame times out only its profile window", { tag: "@journey" }, async () => {
   const fixture = await launchCachedClient("gw-first-frame-timeout-", {
     GW_TEST_RETURN_LAUNCHER: "1",
     GW_TEST_ALLOW_UNREADY_LAUNCH: "0",

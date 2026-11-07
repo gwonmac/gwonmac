@@ -12,6 +12,7 @@ import { createInterface } from "node:readline/promises";
 import { pathToFileURL } from "node:url";
 import { RELEASE_REPO } from "../app/shared/project-identity.ts";
 import { macOSBundleVersions } from "./macos-version.ts";
+import { releaseAssets, releaseOfTag, type Release } from "./release.ts";
 import { verifySignedApplication } from "./verify-signed-app.ts";
 
 const PRODUCT = "Guild Wars Reforged";
@@ -22,11 +23,6 @@ export interface DraftRelease {
   isPrerelease: boolean;
   targetCommitish: string;
   assets: { name: string }[];
-}
-
-export interface ReleaseTag {
-  version: string;
-  prerelease: boolean;
 }
 
 export interface ReleaseTestDependencies {
@@ -118,24 +114,6 @@ export function isDateNumberedVersion(appVersion: string): boolean {
   return /^20\d{2}\./u.test(appVersion);
 }
 
-export function expectedAssets(version: string): string[] {
-  const base = `Guild-Wars-Reforged-${version}-macOS-arm64`;
-  return [
-    `${base}.dmg`,
-    `${base}.zip`,
-    "RELEASES.json",
-    "SHA256SUMS.txt",
-  ].sort();
-}
-
-export function parseReleaseTestTag(tag: string): ReleaseTag {
-  const match = /^v((?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-(beta|rc)\.\d+)?)$/u.exec(tag);
-  if (!match) {
-    throw new Error("tag must be a Stable, Beta, or RC release such as v1.0.0");
-  }
-  return { version: match[1]!, prerelease: match[2] !== undefined };
-}
-
 function appIsRunning(dependencies: ReleaseTestDependencies): boolean {
   return dependencies.status(
     "pgrep",
@@ -159,17 +137,17 @@ function readDraft(
 export function assertDraftMetadata(
   tag: string,
   draft: DraftRelease,
-  releaseTag: ReleaseTag,
+  release: Release,
 ): void {
   if (!draft.isDraft) throw new Error(`${tag} is not a draft release`);
-  if (draft.isPrerelease !== releaseTag.prerelease) {
+  if (draft.isPrerelease !== release.prerelease) {
     throw new Error(`${tag} has inconsistent GitHub prerelease metadata`);
   }
   if (!/^[0-9a-f]{40}$/u.test(draft.targetCommitish)) {
     throw new Error(`${tag} does not target one exact commit`);
   }
   const actual = draft.assets.map(({ name }) => name).sort();
-  const expected = expectedAssets(releaseTag.version);
+  const expected = releaseAssets(release);
   if (JSON.stringify(actual) !== JSON.stringify(expected)) {
     throw new Error(
       `unexpected release assets\nexpected: ${expected.join(", ")}\nactual: ${actual.join(", ")}`,
@@ -181,7 +159,7 @@ export async function runDraftReleaseTest(
   tag: string,
   dependencies: ReleaseTestDependencies,
 ): Promise<void> {
-  const releaseTag = parseReleaseTestTag(tag);
+  const release = releaseOfTag(tag);
   if (dependencies.platform !== "darwin" || dependencies.arch !== "arm64") {
     throw new Error("release:test requires an Apple Silicon Mac");
   }
@@ -190,8 +168,8 @@ export async function runDraftReleaseTest(
   }
   dependencies.run("gh", ["auth", "status"]);
   const draft = readDraft(dependencies, tag);
-  assertDraftMetadata(tag, draft, releaseTag);
-  const expectedBundle = macOSBundleVersions(releaseTag.version);
+  assertDraftMetadata(tag, draft, release);
+  const expectedBundle = macOSBundleVersions(release.version);
   const installed = {
     appVersion: plist(dependencies, dependencies.installedApp, "CFBundleShortVersionString"),
     buildVersion: plist(dependencies, dependencies.installedApp, "CFBundleVersion"),
@@ -215,14 +193,13 @@ export async function runDraftReleaseTest(
     dependencies.log(`Downloading and verifying ${tag} in ${temporary}`);
     gh(dependencies, ["release", "download", tag, "--dir", temporary]);
     const downloaded = readdirSync(temporary).sort();
-    if (JSON.stringify(downloaded) !== JSON.stringify(expectedAssets(releaseTag.version))) {
+    if (JSON.stringify(downloaded) !== JSON.stringify(releaseAssets(release))) {
       throw new Error("downloaded asset inventory changed after draft inspection");
     }
     dependencies.run("shasum", ["-a", "256", "-c", "SHA256SUMS.txt"], temporary);
 
-    const base = `Guild-Wars-Reforged-${releaseTag.version}-macOS-arm64`;
-    const zip = path.join(temporary, `${base}.zip`);
-    const dmg = path.join(temporary, `${base}.dmg`);
+    const zip = path.join(temporary, release.zip);
+    const dmg = path.join(temporary, release.dmg);
     gh(dependencies, ["attestation", "verify", zip]);
     gh(dependencies, ["attestation", "verify", dmg]);
 

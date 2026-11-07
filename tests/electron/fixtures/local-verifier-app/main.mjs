@@ -1,6 +1,6 @@
 import { app, BrowserWindow } from "electron";
 
-// `pnpm verify` typechecks a clean checkout before it creates build/. Resolve
+// `pnpm typecheck` runs on a checkout with no build/ (the CI check job). Resolve
 // the compiled host at runtime so this fixture exercises the shipped entry
 // without making generated output a typecheck prerequisite.
 const hostUrl = new URL(

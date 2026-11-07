@@ -9,7 +9,8 @@
  *
  * Plain SemVer: `X.Y.Z`, optionally `-alpha.N` / `-beta.N` / `-rc.N`,
  * optionally tag-prefixed with `v`. scripts/macos-version.ts maps the same
- * shape onto Apple's two bundle version fields.
+ * shape onto Apple's two bundle version fields, and scripts/release.ts decides
+ * which of these versions the release workflow may publish.
  */
 
 export type ReleaseChannel = "alpha" | "beta" | "rc" | "stable";
@@ -111,4 +112,14 @@ export function formatReleaseVersion(version: ReleaseVersion): string {
   return version.channel === "stable"
     ? core
     : `${core}-${version.channel}.${version.sequence}`;
+}
+
+/**
+ * The two downloads of one release, named from its canonical version text. The
+ * release workflow writes them; the updater manifest, `pnpm release:test` and
+ * the website read them.
+ */
+export function releaseAssetNames(version: string): { readonly dmg: string; readonly zip: string } {
+  const base = `Guild-Wars-Reforged-${version}-macOS-arm64`;
+  return { dmg: `${base}.dmg`, zip: `${base}.zip` };
 }

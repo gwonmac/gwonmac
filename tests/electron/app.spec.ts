@@ -88,7 +88,7 @@ async function openFirstProfile(app: ElectronApplication) {
   return page;
 }
 
-test.describe("Electron application", () => {
+test.describe("Electron application", { tag: "@journey" }, () => {
   test("a second instance exits and reveals the primary window", async () => {
     const env = launchEnv({
       GW_REQUIRE_CACHED_CLIENT: "1",

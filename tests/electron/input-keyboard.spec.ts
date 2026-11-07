@@ -16,7 +16,7 @@ type OskModuleHost = NonNullable<Window["Module"]> & {
   oskActiveInput?: EventTarget | null;
 };
 
-test.describe("renderer keyboard input", () => {
+test.describe("renderer keyboard input", { tag: "@journey" }, () => {
   test("keeps game text entry native-assistance free without blurring the game", async () => {
     const fixture = await launchPlayableClient("gw-text-input-e2e-");
     try {

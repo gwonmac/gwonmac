@@ -13,7 +13,7 @@ const hostDoubleClickMs = (app: ElectronApplication) =>
       : null;
   });
 
-test.describe("sandbox boundary", () => {
+test.describe("sandbox boundary", { tag: "@journey" }, () => {
   test("exposes only the frozen application capabilities", async () => {
     const fixture = await launchOffline("gw-sandbox-e2e-");
     try {
