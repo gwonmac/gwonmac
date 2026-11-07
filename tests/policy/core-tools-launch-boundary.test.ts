@@ -84,7 +84,9 @@ function assertUnreachable(
 test("the Core renderer graph cannot evaluate optional Tools implementation", () => {
   const graph = staticClosure("app/renderer/enhancements.ts");
   assertUnreachable(graph, [
-    "app/renderer/certified-companion-tools.ts",
+    "app/renderer/certified-companion-tools-installation.ts",
+    "app/renderer/tools-companion-substrates.ts",
+    "app/features/companion-parts.ts",
     "app/renderer/companion-snapshot.ts",
     "app/renderer/companion-skill-snapshot.ts",
     "app/renderer/enhancement-readout.ts",
@@ -104,6 +106,7 @@ test("the Core main graph cannot evaluate optional stores, IPC, or network code"
     "app/main/cartography-evidence-export.ts",
     "app/main/tools-runtime.ts",
     "app/main/tools-ipc.ts",
+    "app/features/main-parts.ts",
     "app/main/trade-ipc.ts",
     "app/main/core/trade-chat-service.ts",
     "app/main/core/trade-saved-store.ts",

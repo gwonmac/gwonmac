@@ -13,8 +13,7 @@ import {
   uleb,
   WASM_HEADER,
 } from "../../app/main/core/wasm-binary.js";
-import { configuredChatFilterMask } from
-  "../../app/renderer/certified-companion-tools-installation.js";
+import { configuredChatFilterMask } from "../../app/features/chat-filters/companion.js";
 
 const fact = Object.freeze({
   writeToChatLogMessage: 0x1000_007f,
