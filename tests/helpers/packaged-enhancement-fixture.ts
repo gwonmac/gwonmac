@@ -34,10 +34,10 @@ import {
   skillBarOf,
   type BuildLibrary,
 } from "../../app/shared/builds/library.ts";
-// The canonical tables, not their emitted copies. `pnpm typecheck` runs before
-// `pnpm build` in `pnpm verify`, so a static import of `build/` here would make
-// checking depend on output that may not exist yet. The packaged app under
-// test is built from these same sources.
+// The canonical tables, not their emitted copies. `pnpm typecheck` runs on a
+// checkout with no `build/` (the CI check job), so a static import of `build/`
+// here would make checking depend on output that may not exist yet. The
+// packaged app under test is built from these same sources.
 import {
   ENHANCEMENT_BUILDS,
   enhancementConfigWords,

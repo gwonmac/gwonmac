@@ -33,10 +33,13 @@ pnpm typecheck                   # all TypeScript projects
 ```
 
 Never run Electron or Playwright UI suites locally (`pnpm test:electron`,
-`pnpm --filter @gwonmac/tools-ui test:e2e`, `pnpm verify*`, packaged tests).
-They take focus from the person working on this Mac. CI runs them.
-Add the label `mac` to PRs that touch `app/main`, `app/preload`, `app/native`,
-`packaging/`, or `forge.config.ts`, so `macos.yml` runs before the merge.
+`pnpm --filter @gwonmac/tools-ui test:e2e`, packaged tests). They take focus
+from the person working on this Mac. CI runs them: `ci.yml` runs the Hub suite
+on Linux; `macos.yml` runs the `@macos` Hub specs and the Electron suite, all
+of it on main and the tests tagged `@journey` on PRs that change app, build, or
+test code (its `paths` filter). Tag an Electron test `@journey` only when it
+guards a path every player takes. Client-artifact tests need the official
+client and run in release qualification and client watch.
 
 ## Must stay
 

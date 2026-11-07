@@ -1,14 +1,38 @@
 # The macOS net under the Linux gate: native build, kernels, integration and
-# release tests, a small Electron journey set, and the ad-hoc package. Not a
-# required check. It runs after every merge to main, on PRs labelled `mac`
-# (AGENTS.md says which PRs get it), and by hand. A red main is fixed forward.
+# release tests, the Electron suite, the @macos Hub specs, and the ad-hoc
+# package. Not a required check. It runs on every push to main, by hand, and on
+# PRs that change what it tests (the `paths` below). PRs run the Electron tests
+# tagged @journey; main and manual runs run the whole suite in shards. A red
+# main is fixed forward.
 name: macOS
 
 on:
   push:
     branches: [main]
   pull_request:
-    types: [opened, synchronize, reopened, labeled]
+    paths:
+      - "app/**"
+      - "kernels/**"
+      - "packaging/**"
+      - "forge.config.ts"
+      - "scripts/**"
+      - "tests/electron/**"
+      - "tests/integration/**"
+      - "tests/release/**"
+      - "tests/fixtures/**"
+      - "tests/helpers/**"
+      - "tests/packaged-*.ts"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - ".cargo/**"
+      - ".nvmrc"
+      - "tsconfig*.json"
+      - ".github/actions/setup/**"
+      - ".github/workflows/macos.yml"
   workflow_dispatch:
 
 permissions:
@@ -22,10 +46,6 @@ concurrency:
 
 jobs:
   macos:
-    if: >-
-      github.event_name != 'pull_request'
-      || (contains(github.event.pull_request.labels.*.name, 'mac')
-        && (github.event.action != 'labeled' || github.event.label.name == 'mac'))
     runs-on: macos-15
     timeout-minutes: 45
     steps:
@@ -40,15 +60,6 @@ jobs:
       - name: Integration and release tests
         run: node --import ./scripts/ts-hook.mjs --test --test-timeout=60000 tests/integration/*.ts tests/release/*.ts
       - run: pnpm exec playwright install chromium
-      # The journeys a player takes first: launch and shell, the local client
-      # verifier and the Tools boundary, the sandbox, keyboard input, accounts,
-      # and settings reset. The whole suite stays available: pnpm test:electron.
-      - name: Electron journeys
-        run: >-
-          pnpm test:electron
-          app.spec.ts launcher-shell.spec.ts local-client-verifier.spec.ts
-          tools-launch-boundary.spec.ts sandbox.spec.ts input-keyboard.spec.ts
-          multiple-accounts.spec.ts settings-reset.spec.ts
       - name: Hub specs that need macOS
         run: pnpm --filter @gwonmac/tools-ui test:e2e --grep @macos
       - name: Package ad hoc and smoke-test the app
@@ -62,6 +73,39 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: macos-${{ github.run_attempt }}
+          path: test-results
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # A PR runs the tests tagged @journey (the paths every player takes) on one
+  # Mac. Main and manual runs split the whole suite over four Macs.
+  electron:
+    runs-on: macos-15
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(github.event_name == 'pull_request' && '[1]' || '[1, 2, 3, 4]') }}
+    env:
+      SHARD: ${{ matrix.shard }}/${{ strategy.job-total }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          rust: "true"
+      - run: pnpm build
+      - name: Electron tests
+        run: |
+          args=(--shard="$SHARD")
+          if [ "$GITHUB_EVENT_NAME" = pull_request ]; then args+=(--grep=@journey); fi
+          pnpm test:electron "${args[@]}"
+      - name: Upload failure evidence
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: electron-${{ github.run_attempt }}-${{ matrix.shard }}
           path: test-results
           if-no-files-found: ignore
           retention-days: 7
