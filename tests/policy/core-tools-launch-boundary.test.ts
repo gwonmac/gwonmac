@@ -84,7 +84,9 @@ function assertUnreachable(
 test("the Core renderer graph cannot evaluate optional Tools implementation", () => {
   const graph = staticClosure("app/renderer/enhancements.ts");
   assertUnreachable(graph, [
-    "app/renderer/certified-companion-tools.ts",
+    "app/renderer/certified-companion-tools-installation.ts",
+    "app/renderer/tools-companion-substrates.ts",
+    "app/features/companion-parts.ts",
     "app/renderer/companion-snapshot.ts",
     "app/renderer/companion-skill-snapshot.ts",
     "app/renderer/enhancement-readout.ts",
