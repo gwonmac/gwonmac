@@ -55,7 +55,7 @@ const attributes = [{ name: 'Healing Prayers', icon: 'monk.png', attributes: [{ 
 const professions = [{ code: 'Mo', name: 'Monk', icon: 'mo.png' }, { code: 'Me', name: 'Mesmer', icon: 'me.png' }];
 /** Every row on a page with a build summary offers Build details beside it, as the Library's target pages do. */
 const details = (row: HubRow): HubRow => ({ ...row, actions: () => [...row.actions?.() ?? [], { label: 'Show build details', run: () => window.gwHub?.showView('Build details', (target, _back, _footer, pages) => {
-  const page = pages.buildDetails(target, { builds: [summary, row] }); page.element.focus(); return page.dispose;
+  const page = pages.mount('buildDetails', target, { builds: [summary, row] }); page.element.focus(); return page.dispose;
 }) }] });
 const sectionBase: readonly HubRow[] = [
   { id: 'build:1', title: 'Healer', detail: 'Monk build', group: 'Builds', action: 'Apply build', skills, attributes, professions, folder: 'PvE', consequential: true, run() {} },

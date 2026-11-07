@@ -38,7 +38,7 @@ export function createHubCalculator(options: {
       let mode:HubRatesProps['mode']=manual||preferManual?'manual':'trader',status='',focus:HubPageFocus|undefined,shown=true,saving=false;
       const props=():HubRatesProps=>({mode,fields:fields.map(([key,label])=>({key,label,value:rates[key]})),status,...(focus?{focus}:{}),
         changeMode:next=>{mode=next;},input:(key,value)=>{typed.set(key,value);},submit});
-      const page=pages.rates(target,props());
+      const page=pages.mount('rates', target,props());
       const say=(message:string)=>{status=message;if(shown)page.update(props());};
       // The footer's "Use these rates" submits; Enter in a rate field runs it, ⌘↵ too.
       function submit(){if(saving)return;void (async()=>{try{
@@ -181,7 +181,7 @@ export function createHubCalculator(options: {
                   const entries:[string,string][]=[['Source',observed.sample?'Sample data — not live Kamadan prices':'Recent Kamadan trade ads'],['Price basis',side==='wts'?'Seller asking prices':'Buyer offers']];
                   for(const entry of evidence)entries.push(['Median rate',`1 ${currencyInfo(entry.item).name} = ${formatFraction(fraction(BigInt(entry.numerator),BigInt(entry.denominator)))} ${entry.denomination}`],['Advertisers',`${entry.advertisers} advertisers (${currencyInfo(entry.item).name})`]);
                   entries.push(['Ads since',new Date(oldest).toLocaleString()],['Newest ad',new Date(newest).toLocaleString()],['Last fetched',new Date(observed.fetchedAt).toLocaleString()]);
-                  return pages.priceDetails(target,{entries,editRates:()=>editRates()}).dispose;
+                  return pages.mount('priceDetails', target,{entries,editRates:()=>editRates()}).dispose;
                 });
                 priceDetails.set(row.id, showPriceDetails);
                 rows.push({ ...row, detail: `${marketSnapshot.sample ? 'Sample prices · ' : ''}${side === 'wts' ? 'Seller asking prices' : 'Buyer offers'} · Inferred median · Newest ad ${ageLabel}${!explicit?' · Default target':''}`, actions: () => [{ label: 'Show price details', run: showPriceDetails }] });

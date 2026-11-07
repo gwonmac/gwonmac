@@ -50,7 +50,7 @@ export function createHubAccounts(hub: AccountsHub, api: { get(): Promise<HubAcc
   function confirmReplace(profile: Profile, title: string, current: string) {
     hub.showView(`Close ${current}?`, (target, back, footer, pages) => {
       // The page itself takes focus, so Enter reaches the named primary once it has armed.
-      const page = pages.confirm(target, { question: `${title}?`, consequence: `${profile.name} opens first. Then ${current} saves and closes.` });
+      const page = pages.mount('confirm', target, { question: `${title}?`, consequence: `${profile.name} opens first. Then ${current} saves and closes.` });
       footer.primary({ label: title, destructive: true, armed: true, run: task => open(profile, 'replace', task, back) });
       footer.secondary({ label: `Keep ${current}`, run: back });
       return page.dispose;

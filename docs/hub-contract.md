@@ -26,9 +26,13 @@ goes away. Every Hub view names its controls with `data-focus-key`, so the
 keyboard can return to the same control and a form's session draft returns to
 the same field (`app/ui/tools/src/hub/drafts.ts`); only the launcher's Settings page,
 which the Hub hosts, keeps its own names. The Hub's own pages (preferences, the
-phrase form, rates, price details, confirmations, the Settings host) are Vue
-components in `app/ui/tools/src/hub/views`; their controllers in
-`app/renderer` keep state, validation and saves. This document records intent
+phrase form, rates, price details, Build details, confirmations, the Settings
+host) are Vue components in `app/ui/tools/src/hub/views`; their controllers in
+`app/renderer` keep state, validation and saves. A view mounts a page by its
+name in `HubPageProps` (`app/shared/ui/hub-pages.ts`). Each page folder names
+its pages in an `index.ts`, and the kit's registry collects those folders and
+every feature's `app/features/<id>/hub-views/`, so a feature adds a page from
+its own folder. This document records intent
 and links to current owners. Code and tests own exact values and accepted
 states.
 

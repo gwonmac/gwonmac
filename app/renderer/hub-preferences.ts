@@ -44,7 +44,7 @@ export function editHubShortcut(hub: HubPresenter<HTMLElement>, row: HubRow, sto
     let error = '';
     let focus: HubPageFocus | undefined;
     const props = () => ({ title: row.title, initial, error, ...(focus ? { focus } : {}), input: (next: string) => { value = next; invalid(''); } });
-    const page = pages.phraseForm(target, props());
+    const page = pages.mount('phraseForm', target, props());
     /** Shows why the phrase cannot be saved, or nothing; a refusal puts the keyboard back in the field. */
     function invalid(message: string, refocus = false) {
       if (message === error && !refocus) return;
@@ -135,7 +135,7 @@ export function manageHubShortcuts(hub: HubPresenter<HTMLElement>, store: HubSho
         resetPosition: () => { resetPosition(); status = 'Hub position and size reset. Window locked.'; draw(); },
       };
     }
-    const draw = () => { if (page) page.update(props()); else page = pages.preferences(target, props()); };
+    const draw = () => { if (page) page.update(props()); else page = pages.mount('preferences', target, props()); };
     function paint() {
       const visible = entries();
       if (!visible.some(entry => entry.id === chosen)) chosen = visible[0]?.id ?? null;
@@ -148,7 +148,7 @@ export function manageHubShortcuts(hub: HubPresenter<HTMLElement>, store: HubSho
     /** One confirmation page for both removals: it names what goes and what stays, and Keep is the way out. */
     function confirm(caption: string, question: string, consequence: string, label: string, remove: () => Promise<void>, receipt: string) {
       hub.showView(caption, (confirmTarget, cancel, confirmFooter, confirmPages) => {
-        const confirmation = confirmPages.confirm(confirmTarget, { question, consequence });
+        const confirmation = confirmPages.mount('confirm', confirmTarget, { question, consequence });
         confirmFooter.primary({ label, destructive: true, armed: true, run: async task => { await remove(); if (task.live()) { cancel(); hub.notify(receipt); } else task.done(receipt); } });
         confirmFooter.secondary({ label: 'Keep', run: cancel });
         return confirmation.dispose;

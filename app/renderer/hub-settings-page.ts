@@ -31,7 +31,7 @@ function load(document: Document) {
 export function showHubSettings(hub: HubPresenter<HTMLElement>, target: SettingsTarget | null) {
   let landing: Element | null = null;
   hub.showView('Settings', (host, _back, _footer, pages) => {
-    const frame = pages.settingsHost(host, { failed: false });
+    const frame = pages.mount('settingsHost', host, { failed: false });
     const view = frame.element;
     let page: SettingsPage | null = null;
     let disposed = false;

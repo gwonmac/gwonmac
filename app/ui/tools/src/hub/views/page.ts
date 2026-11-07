@@ -4,8 +4,11 @@
  * and a page's focus request, applied once per new `seq` after the paint that carries it.
  */
 import { h, render, watch, type Component, type Ref } from 'vue';
-import type { HubPage, HubPageFocus } from '../../../../../shared/ui/hub-pages';
+import type { HubPage, HubPageFocus, HubPageProps } from '../../../../../shared/ui/hub-pages';
 import { findFocusKey } from '../focus-zone';
+
+/** A page folder's pages by the name views mount them with (HubPageProps). */
+export type HubPageComponents = Partial<Readonly<Record<keyof HubPageProps, Component>>>;
 
 export function mountPage<Props extends object>(component: Component, target: HTMLElement, props: Props): HubPage<Props, HTMLElement> {
   // A fresh props object per draw, so every fact the controller passes is compared again.

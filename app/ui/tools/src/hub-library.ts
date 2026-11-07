@@ -257,7 +257,7 @@ export function createHubLibrary(controller: LibraryController, host: ToolsHost,
     ? [{ label: HUB_WORKSPACE_ACTION, run: () => openWorkspace(item.value) }] : [];
   /** Build details: every build row's skills and attributes, beside the build to apply on a target page. */
   const detailsAction = (builds: readonly HubBuildDetail[]): HubAction => ({ label: 'Show build details', run: () => hub.showView('Build details', (target, _back, _footer, pages) => {
-    const page = pages.buildDetails(target, { builds }); page.element.focus(); return page.dispose;
+    const page = pages.mount('buildDetails', target, { builds }); page.element.focus(); return page.dispose;
   }, undefined, undefined, source) });
   function chooseBuild(item: Item & { kind: 'build' }, recentHero?: HeroId | null) {
     const expected = revision(item);
