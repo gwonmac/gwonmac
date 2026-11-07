@@ -7,7 +7,7 @@ import {
   QUICK_ITEM_MOVE_SCRATCH_BYTES,
   quickItemMoveExports,
   type QuickItemMoveInstallation,
-} from "../../renderer/quick-item-move-installation.js";
+} from "./renderer/quick-item-move-installation.js";
 import type { ToolsCompanionPart } from "../../renderer/tools-companion-part.js";
 
 export default {
