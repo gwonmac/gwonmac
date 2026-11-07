@@ -5,7 +5,7 @@
   "bio": "Building the unofficial Guild Wars Reforged launcher for macOS — free, open source, and made for Apple Silicon.",
   "avatar": "/matamo.png",
   "links": [
-    { "label": "GitHub", "href": "https://github.com/Mat4m0/gwonmac" },
+    { "label": "GitHub", "href": "https://github.com/gwonmac/gwonmac" },
     { "label": "Discord", "href": "https://discord.gg/Z9ft52RBD3" }
   ]
 }

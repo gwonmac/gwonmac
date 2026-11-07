@@ -14,6 +14,7 @@ import type { LatestRelease } from "../../server/utils/release-select";
 import { getLocalizedSiteText } from "#ginko-docs/config/site.utils";
 import { useGinkoDocsConfig } from "#ginko-docs/composables/useGinkoDocsConfig";
 import { useSchemaJsonLd } from "#ginko-docs/composables/useSchemaJsonLd";
+import site from "../../site.json";
 
 const config = useGinkoDocsConfig();
 const { locale } = useI18n();
@@ -377,7 +378,7 @@ useSchemaJsonLd(() => [
     name: "GWonMac",
     url: config.site.url,
     logo: `${config.site.url}/reforged-logo.webp`,
-    sameAs: ["https://github.com/Mat4m0/gwonmac", "https://discord.gg/Z9ft52RBD3"],
+    sameAs: [site.links.github, site.links.discord],
   },
 ]);
 </script>
