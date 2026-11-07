@@ -421,9 +421,6 @@ export class MultipleAccountsController {
   archive(profileId: ProfileId): Promise<AccountsState> {
     return this.accountsLock.run(async () => {
       const workspace = this.activeWorkspace();
-      if (profileId === workspace.legacyPrimaryProfileId) {
-        throw new Error("The adopted Main account cannot be archived");
-      }
       this.refuseProfileRemovalWhileActive(profileId, "archiving");
       const next = archiveMultiProfile(workspace, profileId);
       await saveMultiWorkspace(this.options.paths.multiWorkspace, next);

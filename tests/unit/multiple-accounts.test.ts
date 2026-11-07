@@ -170,6 +170,27 @@ describe("Multiple Accounts documents", () => {
     }), AppError);
   });
 
+  it("never archives Main account, the first active account in the list", () => {
+    const one = parseProfileId("00000000-0000-4000-8000-000000000001");
+    const two = parseProfileId("00000000-0000-4000-8000-000000000002");
+    const three = parseProfileId("00000000-0000-4000-8000-000000000003");
+    const fresh = [one, two, three].reduce((workspace, id) => addMultiProfile(workspace, { id, name: `Account ${id.at(-1)}`, templates: "private", builds: "private" }), createMultiWorkspace());
+    const firstArchived = parseMultiWorkspace({ ...fresh, profiles: fresh.profiles.map((candidate) => candidate.id === one ? { ...candidate, archived: true } : candidate) });
+    const adopted = { ...fresh, legacyPrimaryProfileId: LEGACY_PRIMARY_PROFILE_ID };
+    const cases = [
+      ["fresh install, first account", fresh, one, false],
+      ["fresh install, later account", fresh, two, true],
+      ["first account archived, next one is Main", firstArchived, two, false],
+      ["first account archived, later account", firstArchived, three, true],
+      ["adopted Main account", adopted, LEGACY_PRIMARY_PROFILE_ID, false],
+      ["adopted install, first listed profile", adopted, one, true],
+    ] as const;
+    for (const [label, workspace, id, allowed] of cases) {
+      if (allowed) assert.equal(archiveMultiProfile(workspace, id).profiles.find((candidate) => candidate.id === id)?.archived, true, label);
+      else assert.throws(() => archiveMultiProfile(workspace, id), /Main account cannot be archived/u, label);
+    }
+  });
+
   it("adds, updates, and archives profiles without changing stable IDs", () => {
     const first = addMultiProfile(createMultiWorkspace(), {
       id: "00000000-0000-4000-8000-000000000001",

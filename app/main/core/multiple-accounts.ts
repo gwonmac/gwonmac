@@ -216,6 +216,12 @@ export function archiveMultiProfile(
   workspace: MultiWorkspace,
   profileId: ProfileId,
 ): MultiWorkspace {
+  // Main account is the first active account in the launcher list: the adopted
+  // legacy profile when there is one, else the first profile not archived.
+  // It never archives, so one account always stays to play.
+  const main = workspace.legacyPrimaryProfileId
+    ?? workspace.profiles.find((profile) => !profile.archived)?.id;
+  if (profileId === main) throw new Error("Main account cannot be archived");
   if (!workspace.profiles.some((profile) => profile.id === profileId)) {
     throw new AppError("bad_multi_workspace", "profile does not exist");
   }

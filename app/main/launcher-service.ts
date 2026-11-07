@@ -100,9 +100,6 @@ export function createLauncherService(input: Readonly<{
     show: (id) => orchestrator.show(id),
     cancelQueued: (ids) => orchestrator.cancel(ids),
     archive: async (id) => {
-      if (accounts.state().profiles.find((profile) => !profile.archived)?.id === id) {
-        throw new Error("Main account cannot be archived");
-      }
       await accounts.archive(id);
     },
     restore: async (id) => {

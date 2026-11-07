@@ -103,6 +103,11 @@ Deleting a normal archived profile is journaled before native cleanup. The
 adopted Main account cannot be archived or deleted while it owns released
 storage.
 
+Main account is the first active account in the launcher list: the adopted
+profile when there is one, else the first profile that is not archived.
+`archiveMultiProfile` refuses to archive it for every caller, so one account
+always stays to play.
+
 ## Companion window policy
 
 The launcher remains visible while profiles open. After complete success, it
