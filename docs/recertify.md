@@ -288,8 +288,9 @@ so first check what still refuses.
    moved.
 6. Run the replay test again. It must pass, and the new client's record must
    prove every feature it supports with every generation. A client that is not
-   a relink of the previous generation needs its patch-day template verdict
-   in `TEMPLATE_ON_PATCH_DAY`.
+   a relink of the previous generation needs its patch-day row in `PATCH_DAY`:
+   its template verdict, the features it refuses and its module stages with
+   only older facts. A row may only get better.
 7. Compare all members of one function family. A matching sender alone does not
    prove its editor, history, packet, lifecycle, or dispatcher.
 
