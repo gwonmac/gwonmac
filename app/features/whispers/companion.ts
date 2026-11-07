@@ -8,6 +8,7 @@ import { createWhisperSession } from "../../shared/whisper-session.js";
 import type { ToolsCompanionPart } from "../../renderer/tools-companion-part.js";
 import { createWhisperInstallation } from "./renderer/whisper-installation.js";
 import { createWhisperSurface } from "./renderer/whisper-surface.js";
+import { featureActivationRequested } from "../../shared/feature-contracts.js";
 
 export default {
   id: "whispers",
@@ -53,7 +54,7 @@ export default {
               session.setAvailable(true);
             } else {
               surface?.setEnabled(false);
-              if (!context.snapshot().settings.whispersEnabled || !context.snapshot().settings.gwonmacTools) {
+              if (!featureActivationRequested("whispers", context.snapshot().settings)) {
                 surface?.dispose(); surface = null; session.reset();
               }
             }

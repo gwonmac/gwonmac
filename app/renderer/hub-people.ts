@@ -3,6 +3,7 @@
  * Uses the shared observer and the existing private whisper session.
  */
 import { currentTravelFriend, presenceLabel, type TravelFriend, type TravelFriends } from '../shared/friends.js';
+import { featureActivationRequested } from '../shared/feature-contracts.js';
 import { travelDestination } from '../shared/travel.js';
 import { hubTier, parseHubQuery, type HubRow, type HubSource, type HubTask } from '../shared/hub.js';
 import { normaliseCharacterName } from '../shared/player-text.js';
@@ -11,8 +12,7 @@ import { isCharacterName, isFullCharacterName } from '../shared/whispers.js';
 import type { Hub } from './hub.js';
 import type { PartyInvite } from './party-invite.js';
 
-const toolEnabled = (setting: 'whispersEnabled' | 'travelPalette') =>
-  !!window.gwToolsSettings?.().gwonmacTools && !!window.gwToolsSettings?.()[setting];
+const toolEnabled = (feature: 'whispers' | 'travel') => featureActivationRequested(feature, window.gwToolsSettings?.() ?? {});
 const MAX_PEOPLE = 8;
 const PARTIAL_NAME = 'Type the full character name';
 const WHISPER_WAITING = 'Whispers is waiting for Guild Wars chat…';
@@ -33,7 +33,7 @@ export function createHubPeople(hub: Pick<Hub, 'attach' | 'showRows' | 'notify'>
   const unsubscribe = session.subscribe(refresh);
   const unsubscribeParty = party?.subscribe(refresh);
   const whisper = (name: string) => {
-    if (!toolEnabled('whispersEnabled')) throw new Error('Whispers is disabled.');
+    if (!toolEnabled('whispers')) throw new Error('Whispers is disabled.');
     if (!session.state.available) throw new Error(WHISPER_WAITING);
     session.open(name, { visible: false });
     window.dispatchEvent(new CustomEvent('gw:whispers-toggle', { cancelable: true, detail: 'show' }));
@@ -41,7 +41,7 @@ export function createHubPeople(hub: Pick<Hub, 'attach' | 'showRows' | 'notify'>
   // Another tool asks for a conversation (Trade's Whisper). Accepting cancels the event; while
   // Whispers cannot open, nothing is queued for a later ⌘D and the caller says why (HUB-129).
   const contact = (event: Event) => {
-    if (!(event instanceof CustomEvent) || typeof event.detail !== 'string' || !toolEnabled('whispersEnabled') || !session.state.available) return;
+    if (!(event instanceof CustomEvent) || typeof event.detail !== 'string' || !toolEnabled('whispers') || !session.state.available) return;
     event.preventDefault();
     whisper(event.detail);
   };
@@ -67,7 +67,7 @@ export function createHubPeople(hub: Pick<Hub, 'attach' | 'showRows' | 'notify'>
    * null lets it start. Invite points to it only when it can start.
    */
   function travelInviteReason(party: PartyInvite, friend: TravelFriend | undefined, current: boolean): string | null | undefined {
-    if (!friend || !travel || !toolEnabled('travelPalette')) return undefined;
+    if (!friend || !travel || !toolEnabled('travel')) return undefined;
     return travelReason(friend, current) ?? (friend.character ? party.travelUnavailable(friend) : 'This friend is offline');
   }
   function personRows(name: string, friendKey?: string): () => readonly HubRow[] {
@@ -82,16 +82,16 @@ export function createHubPeople(hub: Pick<Hub, 'attach' | 'showRows' | 'notify'>
       const changed = !!friendKey && (!friend || currentName !== name);
       const current = !!selectedFriend && selectedFeed.status === 'ready' && !!currentTravelFriend(feed, selectedFriend, selectedFeed.generation);
       const reason = travelReason(friend, current);
-      const rows: HubRow[] = toolEnabled('whispersEnabled') ? [{ id: 'person:whisper', title: 'Whisper', detail: `Message ${currentName}`, group: 'Actions', action: 'Write whisper',
+      const rows: HubRow[] = toolEnabled('whispers') ? [{ id: 'person:whisper', title: 'Whisper', detail: `Message ${currentName}`, group: 'Actions', action: 'Write whisper',
         ...(changed ? { unavailable: 'This friend changed or is unavailable. Select them again.' } : !session.state.available ? { unavailable: WHISPER_WAITING } : {}),
         run: () => whisper(currentName) }] : [];
-      if (friendKey && toolEnabled('travelPalette')) rows.push({ id: 'person:travel', title: 'Travel to outpost', detail: `${destination?.name ?? 'Location unavailable'} · Any district`, group: 'Actions', action: destination ? `Travel to ${destination.name}` : 'Travel', consequential: true, preferred: false,
+      if (friendKey && toolEnabled('travel')) rows.push({ id: 'person:travel', title: 'Travel to outpost', detail: `${destination?.name ?? 'Location unavailable'} · Any district`, group: 'Actions', action: destination ? `Travel to ${destination.name}` : 'Travel', consequential: true, preferred: false,
         ...(reason ? { unavailable: reason } : {}), run: async task => {
           if (!selectedFriend || selectedFeed.status !== 'ready' || !travel) throw new Error('Friend travel is unavailable');
           await travel.run(selectedFriend, selectedFeed.generation);
           task.done();
         } });
-      if (party && toolEnabled('whispersEnabled')) {
+      if (party && toolEnabled('whispers')) {
         // Invites address a character; an offline friend has only an account alias.
         const target = friendKey ? friend?.character ?? '' : name;
         const offline = !!friendKey && (!friend || friend.status === 'offline' || !friend.character);
@@ -123,7 +123,7 @@ export function createHubPeople(hub: Pick<Hub, 'attach' | 'showRows' | 'notify'>
     subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); },
     setVisible() {},
     search(query) {
-      const whispersEnabled = toolEnabled('whispersEnabled');
+      const whispersEnabled = toolEnabled('whispers');
       const parsed = parseHubQuery(query);
       // `travel <friend>` offers the trip to that friend's outpost, the row their page offers,
       // after the places Travel lists for the same words (HUB-142).
