@@ -104,7 +104,6 @@ function asBoundedInteger(
 }
 const SETTINGS_KEYS = new Set(Object.keys(DEFAULT_SETTINGS));
 const SETTINGS_FORMAT = 1;
-const LEGACY_DATA_STRATEGIES: ReadonlySet<unknown> = new Set([null, "quick", "full"]);
 
 function asBool(v: unknown, field: string): boolean {
   if (typeof v !== "boolean") {
@@ -262,12 +261,6 @@ export function parseSettings(raw: unknown): AppSettings {
     }
     out.skillKeyBindings = cloneSkillKeyBindings(src.skillKeyBindings);
   }
-  // Before labels had their own switch, configuring any label enabled the
-  // overlay. Preserve that expressed choice for existing profiles while a
-  // new profile with no labels keeps the feature off.
-  if (!("skillKeyLabelsEnabled" in src)) {
-    out.skillKeyLabelsEnabled = out.skillKeyBindings.some((binding) => binding !== null);
-  }
   if ("skillCooldownColor" in src) {
     if (!isSkillCooldownColor(src.skillCooldownColor)) {
       throw new AppError("bad_settings", "settings.skillCooldownColor has an invalid color");
@@ -355,14 +348,6 @@ export function parseSettings(raw: unknown): AppSettings {
   if ("showDiagnostics" in src) {
     out.showDiagnostics = asBool(src.showDiagnostics, "showDiagnostics");
   }
-  if ("dataStrategy" in src && !LEGACY_DATA_STRATEGIES.has(src.dataStrategy)) {
-    throw new AppError(
-      "bad_settings",
-      "settings.dataStrategy must be quick, full, or null",
-    );
-  }
-  // Hard cutover: every readable legacy value becomes the rollback-safe value.
-  out.dataStrategy = "full";
   if ("autoCheckUpdates" in src) {
     out.autoCheckUpdates = asBool(src.autoCheckUpdates, "autoCheckUpdates");
   }
@@ -497,9 +482,6 @@ export async function saveSettings(path: string, value: AppSettings): Promise<Ap
   await writeAtomicJson(path, {
     formatVersion: SETTINGS_FORMAT,
     ...cleaned,
-    // Rollback projection only. `buildLibrary` remains the sole runtime and
-    // type-system source of truth.
-    teamManagement: cleaned.buildLibrary,
   });
   return cleaned;
 }

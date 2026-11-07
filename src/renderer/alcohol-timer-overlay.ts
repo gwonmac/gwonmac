@@ -3,24 +3,9 @@
  * position keeps a fixed distance from the nearest game-window corner.
  */
 import { DEFAULT_ALCOHOL_TIMER_POSITION, formatAlcoholTimer, type AlcoholTimerPosition } from "../shared/alcohol-timer.js";
-import { captureCornerPosition, restoreCornerPosition, isCornerPosition } from "../shared/corner-position.js";
+import { captureCornerPosition, restoreCornerPosition } from "../shared/corner-position.js";
 import type { AlcoholState } from "./companion-alcohol-snapshot.js";
-import type { CompanionEffectIconState } from "./companion-effect-snapshot.js";
 import { createNonActivatingSurface } from "./non-activating-surface.js";
-
-export function legacyAlcoholTimerAnchor(geometry: CompanionEffectIconState, bounds: DOMRect) {
-  if (geometry.status !== "ready" || bounds.width <= 0 || bounds.height <= 0) return null;
-  const scaleX = bounds.width / geometry.viewportWidth;
-  const scaleY = bounds.height / geometry.viewportHeight;
-  // Preserve the old developer-build placement once before saving a corner.
-  // See internals/migrations.md; live effects never drive the new placement.
-  const left = geometry.icons.length > 0
-    ? Math.min(...geometry.icons.map(icon => icon.left)) : geometry.anchor.left;
-  const bottom = geometry.icons.length > 0
-    ? Math.min(...geometry.icons.map(icon => icon.bottom)) : geometry.anchor.top;
-  return { x: bounds.left + left * scaleX,
-    y: bounds.top + (geometry.viewportHeight - bottom) * scaleY, scaleX, scaleY };
-}
 
 export function createAlcoholTimerOverlay(parent: HTMLElement, canvas: HTMLCanvasElement,
   savePosition: (value: AlcoholTimerPosition) => Promise<unknown>) {
@@ -60,12 +45,11 @@ export function createAlcoholTimerOverlay(parent: HTMLElement, canvas: HTMLCanva
   let receivedPosition = position;
   const queuedPositions = new Set<AlcoholTimerPosition>();
   const samePosition = (a: AlcoholTimerPosition, b: AlcoholTimerPosition) => a.x === b.x && a.y === b.y && a.locked === b.locked
-    && (isCornerPosition(a) ? a.corner : null) === (isCornerPosition(b) ? b.corner : null);
+    && a.corner === b.corner;
   let savedPosition = position;
   let enabled = false;
   let disposed = false;
   let pendingSave = Promise.resolve();
-  let geometry: CompanionEffectIconState = { status: "waiting", reason: "memory" };
   let alcohol: AlcoholState = { status: "waiting" };
   let drag: { id: number; x: number; y: number; left: number; top: number; before: AlcoholTimerPosition } | null = null;
   const viewport = () => {
@@ -79,9 +63,7 @@ export function createAlcoholTimerOverlay(parent: HTMLElement, canvas: HTMLCanva
   };
   const render = () => {
     const bounds = canvas.getBoundingClientRect();
-    const legacyAnchor = isCornerPosition(position) ? null : legacyAlcoholTimerAnchor(geometry, bounds);
     const visible = enabled && bounds.width > 0 && bounds.height > 0
-      && (isCornerPosition(position) || legacyAnchor !== null)
       && (!position.locked || (alcohol.status === "ready" && alcohol.remainingMs > 0));
     root.style.display = visible ? "flex" : "none";
     if (!visible) return;
@@ -94,28 +76,19 @@ export function createAlcoholTimerOverlay(parent: HTMLElement, canvas: HTMLCanva
     handle.style.outline = position.locked ? "" : "1px dashed #eadcc277";
     handle.style.background = position.locked ? "transparent" : "#18231d55";
     lock.hidden = position.locked;
-    if (legacyAnchor) {
-      const migrated = capture(legacyAnchor.x + position.x * legacyAnchor.scaleX,
-        legacyAnchor.y + position.y * legacyAnchor.scaleY);
-      if (!migrated) return;
-      position = { ...migrated, locked: position.locked };
-      // Keep the same visible position if this one-time persistence attempt fails.
-      commit(position);
-    }
-    if (!isCornerPosition(position)) return;
     const point = restoreCornerPosition(position, viewport(), size());
     if (!point) return;
     root.style.left = `${bounds.left + point.left}px`; root.style.top = `${bounds.top + point.top}px`;
     lock.style.left = point.left + size().width + 33 <= bounds.width ? "calc(100% + 5px)" : "-33px";
   };
-  const commit = (fallback?: AlcoholTimerPosition) => {
+  const commit = () => {
     const next = { ...position };
     queuedPositions.add(next);
     pendingSave = pendingSave.then(async () => {
       if (disposed) return;
       try { await savePosition(next); savedPosition = next; error.textContent = ""; }
       catch {
-        if (samePosition(position, next)) position = fallback ?? savedPosition;
+        if (samePosition(position, next)) position = savedPosition;
         error.textContent = "Position could not be saved. Try again.";
         render();
       } finally { queuedPositions.delete(next); }
@@ -164,7 +137,6 @@ export function createAlcoholTimerOverlay(parent: HTMLElement, canvas: HTMLCanva
   view.addEventListener("blur", cancel); view.addEventListener("resize", render);
   return {
     setAlcohol(next: AlcoholState) { alcohol = next; render(); },
-    setGeometry(next: CompanionEffectIconState) { geometry = next; if (!isCornerPosition(position)) render(); },
     setSettings(next: AlcoholTimerPosition, active: boolean) {
       const changed = !samePosition(next, receivedPosition);
       receivedPosition = next;

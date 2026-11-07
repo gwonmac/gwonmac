@@ -419,7 +419,6 @@ function activateTools(input: ToolsInput): CompanionExtensionSession {
   let observingFriends = false;
   let alcoholOverlay: ReturnType<typeof createAlcoholTimerOverlay> | null = null;
   let unsubscribeAlcohol: (() => void) | null = null;
-  let unsubscribeAlcoholGeometry: (() => void) | null = null;
   let effectOverlay: ReturnType<typeof createEffectTimerOverlayConsumer> | null = null;
   let unsubscribeEffects: (() => void) | null = null;
   let unsubscribeEffectIcons: (() => void) | null = null;
@@ -490,7 +489,7 @@ function activateTools(input: ToolsInput): CompanionExtensionSession {
       () => { unsubscribeEffects?.(); unsubscribeEffects = null; },
       () => { unsubscribeEffectIcons?.(); unsubscribeEffectIcons = null; },
       () => { effectOverlay?.dispose(); effectOverlay = null; },
-      () => { unsubscribeAlcohol?.(); unsubscribeAlcoholGeometry?.(); alcoholOverlay?.dispose(); alcoholOverlay = null; },
+      () => { unsubscribeAlcohol?.(); alcoholOverlay?.dispose(); alcoholOverlay = null; },
       () => hud?.dispose(),
       () => { resign?.dispose(); },
       () => { partyInvite?.dispose(); partyInvite = null; },
@@ -544,7 +543,6 @@ function activateTools(input: ToolsInput): CompanionExtensionSession {
     if (capabilities.alcoholObservation) {
       alcoholOverlay = createAlcoholTimerOverlay(document.body, canvas, alcoholTimerPosition => window.gwNative.settings.set({ alcoholTimerPosition }));
       unsubscribeAlcohol = alcohol.subscribe(alcoholOverlay.setAlcohol);
-      unsubscribeAlcoholGeometry = effectIcons.subscribe(alcoholOverlay.setGeometry);
     }
     if (!hud) return;
     effectOverlay = createEffectTimerOverlayConsumer(document.body, canvas, hud);

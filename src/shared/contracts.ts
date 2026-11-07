@@ -497,12 +497,6 @@ export interface AppSettings {
   memoryWarningPosition: Readonly<{ x: number; y: number }> | null;
   showDiagnostics: boolean;
   /**
-   * Rollback-only storage field. Runtime behavior is always `full`; keeping
-   * this exact key lets the currently supported Stable release read a profile
-   * written by this version without restoring its first-run chooser.
-   */
-  dataStrategy: "full";
-  /**
    * Automatic release checks: one static channel request when no settled
    * attempt was recorded in the previous six hours, including across app
    * restarts. It is on by default so players stay current and declared plainly
@@ -666,7 +660,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
   autoRelogAfterReload: false,
   memoryWarningPosition: null,
   showDiagnostics: false,
-  dataStrategy: "full",
   autoCheckUpdates: true,
   lastUpdateCheckAt: null,
   compatibilityNoticeSeenFor: null,

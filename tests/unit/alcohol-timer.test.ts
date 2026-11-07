@@ -5,9 +5,9 @@ import { isAlcoholTimerPosition, formatAlcoholTimer } from "../../src/shared/alc
 import { readCompanionAlcohol } from "../../src/renderer/companion-alcohol-snapshot.ts";
 
 test("saved alcohol offsets are finite, bounded and exact", () => {
-  assert.equal(isAlcoholTimerPosition({ x: -50.5, y: 25, locked: false }), true);
-  for (const value of [null, {}, { x: NaN, y: 0, locked: true }, { x: 0, y: 32769, locked: true },
-    { x: 0, y: 0, locked: 1 }, { x: 0, y: 0, locked: true, extra: 1 }]) {
+  for (const value of [null, {}, { x: 0, y: 0, locked: true }, { corner: "top-left", x: NaN, y: 0, locked: true },
+    { corner: "top-left", x: 0, y: 32769, locked: true }, { corner: "top-left", x: 0, y: 0, locked: 1 },
+    { corner: "top-left", x: 0, y: 0, locked: true, extra: 1 }]) {
     assert.equal(isAlcoholTimerPosition(value), false);
   }
   for (const corner of ["top-left", "top-right", "bottom-left", "bottom-right"]) {
@@ -31,20 +31,4 @@ test("alcohol rejects torn, unidentified and out-of-range snapshots", () => {
     seed(); words[index] = value; assert.deepEqual(readCompanionAlcohol(buffer, 4), { status: "waiting" });
   }
   for (const pointer of [-4, 0, 5, 36, NaN]) assert.deepEqual(readCompanionAlcohol(buffer, pointer), { status: "waiting" });
-});
-
-
-test("legacy migration resolves the former offset below visible Effects rows", async () => {
-  const { legacyAlcoholTimerAnchor } = await import("../../src/renderer/alcohol-timer-overlay.ts");
-  const bounds = { x: 20, y: 30, left: 20, top: 30, right: 520, bottom: 430, width: 500, height: 400, toJSON() {} };
-  const geometry = { status: "ready" as const, sequence: 2, generation: 1, frameId: 1,
-    viewportWidth: 1000, viewportHeight: 800,
-    anchor: { left: 100, right: 700, bottom: 300, top: 750 },
-    icons: [{ skillId: 1, left: 100, right: 150, bottom: 700, top: 750 }] };
-  assert.deepEqual(legacyAlcoholTimerAnchor(geometry, bounds), { x: 70, y: 80, scaleX: 0.5, scaleY: 0.5 });
-  assert.deepEqual(legacyAlcoholTimerAnchor({ ...geometry, icons: [...geometry.icons,
-    { skillId: 2, left: 160, right: 210, bottom: 640, top: 690 }] }, bounds),
-  { x: 70, y: 110, scaleX: 0.5, scaleY: 0.5 });
-  assert.deepEqual(legacyAlcoholTimerAnchor({ ...geometry, icons: [] }, bounds),
-    { x: 70, y: 55, scaleX: 0.5, scaleY: 0.5 });
 });

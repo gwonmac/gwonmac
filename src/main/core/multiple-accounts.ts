@@ -1,9 +1,9 @@
 /**
- * The durable profile registry and legacy rollback document readers.
+ * The durable profile registry and the reader of the released mode document.
  *
- * The candidate never writes `launcher-mode.json`; its reader and writer stay
- * only for supported Stable tests and rollback code. Workspace publication
- * uses the repository's atomic file publisher.
+ * The app never writes `launcher-mode.json`; it only reads one that an older
+ * release left behind. Workspace publication uses the repository's atomic
+ * file publisher.
  */
 import { randomUUID } from "node:crypto";
 import { readFile, rename } from "node:fs/promises";
@@ -47,15 +47,6 @@ async function readDocument(path: string): Promise<unknown | null> {
 export async function loadAccountMode(path: string): Promise<AccountMode> {
   const value = await readDocument(path);
   return value === null ? "single" : parseLauncherMode(value).mode;
-}
-
-export async function saveAccountMode(
-  path: string,
-  mode: AccountMode,
-): Promise<AccountMode> {
-  const parsed = parseLauncherMode({ formatVersion: 1, mode });
-  await writeAtomicJson(path, parsed, DOCUMENT_MODE);
-  return parsed.mode;
 }
 
 export async function loadMultiWorkspace(
