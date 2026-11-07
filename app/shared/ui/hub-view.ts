@@ -8,6 +8,7 @@
  */
 import type { HubRow, HubSummary } from '../hub.js';
 import type { resolveShortcuts } from '../keyboard-shortcuts.js';
+import type { HubPages } from './hub-pages.js';
 
 export type HubShortcutBindings = ReturnType<typeof resolveShortcuts>;
 /** A footer legend entry: its keycaps, then its word. */
@@ -129,6 +130,8 @@ export type HubViewHandle = Readonly<{
   focus: HubFocusReader;
   /** Mounts Build details into a view host; returns its section and its disposal. */
   mountBuildDetails(target: HTMLElement, builds: HubBuildDetails): Readonly<{ element: HTMLElement; dispose(): void }>;
+  /** The Hub's own pages, which the controller hands to every view it mounts. */
+  pages: HubPages<HTMLElement>;
   dispose(): void;
 }>;
 /** The exports of the Hub view module (`app/ui/tools/src/hub/embedded.ts`, built to `tools/hub-app.js`). */

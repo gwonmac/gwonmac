@@ -1,0 +1,47 @@
+/**
+ * The contract of the Hub's own pages that the Vue kit draws (app/ui/tools/src/hub/views, built
+ * into `tools/hub-app.js`): the facts each page shows and the callbacks it reports back. The
+ * page's controller in app/renderer owns its state, validation and IPC; the kit owns its DOM,
+ * keys and focus. The Hub hands these pages to every view it mounts (HubViewMount).
+ */
+import type { HubRow } from '../hub.js';
+
+/** A focus request a page applies once per new `seq`: the control with this `data-focus-key`. */
+export type HubPageFocus = Readonly<{ key: string; seq: number }>;
+/** A drawn page: redraw it with new facts, or remove it. `element` is its root. */
+export type HubPage<Props, Target> = Readonly<{ element: Target; update(props: Props): void; dispose(): void }>;
+export type HubPageMount<Props, Target> = (target: Target, props: Props) => HubPage<Props, Target>;
+
+/** A confirmation on its own page; the page itself takes the keyboard, and the footer asks. */
+export type HubConfirmProps = Readonly<{ question: string; consequence: string }>;
+
+/**
+ * The search-phrase form for one result (HUB-152): `initial` is the phrase the field starts
+ * with, `input` reports every edit. An empty `error` hides the error line.
+ */
+export type HubPhraseFormProps = Readonly<{
+  title: string; initial: string; error: string; focus?: HubPageFocus;
+  input(value: string): void;
+}>;
+
+export type HubPreferenceEntry = Readonly<{ id: string; label: string; icon: Pick<HubRow, 'id' | 'group' | 'icon'> }>;
+/** Hub preferences: pins and phrases in their two storage groups, Home's order (HUB-090). */
+export type HubPreferencesProps = Readonly<{
+  groups: readonly Readonly<{ label: string; entries: readonly HubPreferenceEntry[] }>[];
+  chosen: string | null;
+  canMoveUp: boolean; canMoveDown: boolean; canRemovePhrases: boolean;
+  status: string;
+  choose(id: string): void;
+  /** The pointer's context menu on an entry: the footer's Actions for the chosen entry. */
+  actions(): void;
+  move(direction: -1 | 1): void;
+  removePhrases(): void;
+  resetPosition(): void;
+}>;
+
+/** The Hub's own pages, drawn by the kit into a view's target. */
+export type HubPages<Target> = Readonly<{
+  confirm: HubPageMount<HubConfirmProps, Target>;
+  phraseForm: HubPageMount<HubPhraseFormProps, Target>;
+  preferences: HubPageMount<HubPreferencesProps, Target>;
+}>;

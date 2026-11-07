@@ -1,11 +1,12 @@
 /**
- * Explicit editing of the selected Hub object's search phrase and pin.
- * Keeps presentation separate from canonical game and storage owners.
+ * Explicit editing of the selected Hub object's search phrase and pin: the state, validation and
+ * saves of Hub preferences, the search-phrase form and their confirmations. The Hub's Vue kit
+ * draws the pages (app/ui/tools/src/hub/views/preferences). Keeps presentation separate from
+ * canonical game and storage owners.
  */
-import { hubIcon } from './hub-icons.js';
 import { HUB_SHORTCUT_LIMIT, isHubShortcuts, hubPhraseReserved, isLibraryHubShortcut, type HubShortcut } from '../shared/hub-preferences.js';
 import { normaliseHubQuery, type HubPresenter, type HubRow, type HubTask } from '../shared/hub.js';
-import { listIndexAfter, listKeyStep } from '../shared/ui/list-keys.js';
+import type { HubPage, HubPageFocus, HubPreferenceEntry, HubPreferencesProps } from '../shared/ui/hub-pages.js';
 
 /** The Hub's pins and phrases: read, resolve, save, and the result a phrase would already find by name. */
 export type HubShortcutStore = Readonly<{
@@ -36,47 +37,40 @@ function phraseProblem(phrase: string, id: string, next: readonly HubShortcut[],
  * draft stays for the session when the player leaves without saving (HUB-152).
  */
 export function editHubShortcut(hub: HubPresenter<HTMLElement>, row: HubRow, store: HubShortcutStore, available?: () => boolean) {
-  hub.showView('Search phrase', (target, back, footer) => {
-    const doc = target.ownerDocument;
-    const form = doc.createElement('form'); form.className = 'hub-detail'; form.noValidate = true;
-    const heading = doc.createElement('h2'); heading.textContent = row.title;
-    const field = doc.createElement('div'); field.className = 'ui-field';
-    const label = doc.createElement('label'); label.className = 'ui-field-label'; label.htmlFor = 'hub-phrase'; label.textContent = 'Search phrase';
-    const input = doc.createElement('input'); input.className = 'ui-input'; input.id = 'hub-phrase'; input.maxLength = 64; input.autocomplete = 'off'; input.spellcheck = false;
-    input.value = store.get().find(entry => entry.id === row.id)?.phrase ?? '';
-    const hint = doc.createElement('p'); hint.className = 'ui-field-hint'; hint.id = 'hub-phrase-hint';
-    hint.textContent = `Type this exact phrase in Hub to find ${row.title}. Its name stays the same. Leave the field empty to remove the phrase.`;
-    const error = doc.createElement('p'); error.className = 'ui-field-error'; error.id = 'hub-phrase-error'; error.setAttribute('role', 'alert'); error.hidden = true;
-    field.append(label, input, hint, error);
-    form.append(heading, field); target.append(form);
-    const invalid = (message: string) => {
-      error.textContent = message; error.hidden = !message;
-      if (message) { input.setAttribute('aria-invalid', 'true'); input.setAttribute('aria-describedby', `${error.id} ${hint.id}`); }
-      else { input.removeAttribute('aria-invalid'); input.setAttribute('aria-describedby', hint.id); }
-    };
-    invalid('');
-    input.addEventListener('input', () => invalid(''));
+  hub.showView('Search phrase', (target, back, footer, pages) => {
+    let value = store.get().find(entry => entry.id === row.id)?.phrase ?? '';
+    const initial = value;
+    let error = '';
+    let focus: HubPageFocus | undefined;
+    const props = () => ({ title: row.title, initial, error, ...(focus ? { focus } : {}), input: (next: string) => { value = next; invalid(''); } });
+    const page = pages.phraseForm(target, props());
+    /** Shows why the phrase cannot be saved, or nothing; a refusal puts the keyboard back in the field. */
+    function invalid(message: string, refocus = false) {
+      if (message === error && !refocus) return;
+      error = message;
+      if (refocus) focus = { key: 'phrase', seq: (focus?.seq ?? 0) + 1 };
+      page.update(props());
+    }
     // The Hub's named footer action owns saving and its page-session boundary.
     const submit = async (task: HubTask) => {
       const current = store.get(); const old = current.find(entry => entry.id === row.id);
-      const phrase = normaliseHubQuery(input.value);
-      if (!phrase && !old?.phrase) { invalid('Type a search phrase.'); input.focus(); return; }
+      const phrase = normaliseHubQuery(value);
+      if (!phrase && !old?.phrase) { invalid('Type a search phrase.', true); return; }
       const edited = { id: row.id, phrase, pinned: old?.pinned ?? false };
       const next = old ? current.flatMap(entry => entry.id !== row.id ? [entry] : phrase || old.pinned ? [edited] : []) : [...current, edited];
       const problem = phrase ? phraseProblem(phrase, row.id, next, store) : null;
-      if (problem) { invalid(problem); input.focus(); return; }
+      if (problem) { invalid(problem, true); return; }
       try { await store.save(next); }
       catch {
         if (!task.live()) throw new Error('Could not save the phrase. Try again.');
-        invalid('Could not save the phrase. Try again.'); input.focus(); return;
+        invalid('Could not save the phrase. Try again.', true); return;
       }
       const receipt = phrase ? `“${phrase}” now finds ${row.title}.` : `Removed the search phrase for ${row.title}.`;
       if (task.live()) { back(); hub.notify(receipt); }
       else task.done(receipt);
     };
-    form.onsubmit = event => event.preventDefault();
     footer.primary({ label: 'Save phrase', run: submit });
-    input.focus(); return () => form.remove();
+    return page.dispose;
   }, available);
 }
 
@@ -91,25 +85,9 @@ export function editHubShortcut(hub: HubPresenter<HTMLElement>, row: HubRow, sto
 export function manageHubShortcuts(hub: HubPresenter<HTMLElement>, store: HubShortcutStore, resetPosition: () => void) {
   const { get, lookup, save } = store;
   let chosen: string | null = null;
-  hub.showView('Hub preferences', (target, _back, footer) => {
-    const doc = target.ownerDocument;
-    const view = doc.createElement('section'); view.className = 'hub-detail hub-preferences';
-    const heading = doc.createElement('h2'); heading.textContent = 'Pins and search phrases';
-    const list = doc.createElement('div'); list.className = 'hub-preference-list'; list.id = 'hub-preference-list'; list.tabIndex = 0;
-    list.setAttribute('role', 'listbox'); list.setAttribute('aria-label', 'Pins and search phrases');
-    const tools = doc.createElement('div'); tools.className = 'hub-preference-tools';
-    const tool = (label: string, keys: string, shortcut: string) => {
-      const button = doc.createElement('button'); button.type = 'button'; button.className = 'ui-button'; button.textContent = label;
-      button.title = `${label} (${keys})`; button.setAttribute('aria-keyshortcuts', shortcut); button.setAttribute('aria-controls', list.id);
-      tools.append(button); return button;
-    };
-    const up = tool('Move up', '⌥⌘↑', 'Alt+Meta+ArrowUp');
-    const down = tool('Move down', '⌥⌘↓', 'Alt+Meta+ArrowDown');
-    const hint = doc.createElement('p'); hint.textContent = 'Choose a result, then Actions to pin it or give it a search phrase.';
-    const reset = doc.createElement('button'); reset.type = 'button'; reset.className = 'ui-button'; reset.textContent = 'Remove all search phrases…';
-    const position = doc.createElement('button'); position.type = 'button'; position.className = 'ui-button'; position.textContent = 'Reset Hub position';
-    const status = doc.createElement('p'); status.setAttribute('role', 'status');
-    view.append(heading, list, tools, hint, reset, position, status); target.append(view);
+  hub.showView('Hub preferences', (target, _back, footer, pages) => {
+    let page: HubPage<HubPreferencesProps, HTMLElement> | null = null;
+    let status = '';
     // The order the player sees; saves run one after another with the latest order.
     let order: HubShortcut[] = [...get()];
     let saving = Promise.resolve();
@@ -123,7 +101,7 @@ export function manageHubShortcuts(hub: HubPresenter<HTMLElement>, store: HubSho
     const persist = () => {
       const next = [...order];
       pending += 1;
-      saving = saving.then(() => save(next)).catch(() => { status.textContent = 'Could not save. Try again.'; order = [...get()]; paint(); }).finally(() => { pending -= 1; });
+      saving = saving.then(() => save(next)).catch(() => { status = 'Could not save. Try again.'; order = [...get()]; paint(); }).finally(() => { pending -= 1; });
     };
     const neighbour = (direction: -1 | 1) => {
       const visible = entries(); const index = visible.findIndex(entry => entry.id === chosen);
@@ -135,37 +113,32 @@ export function manageHubShortcuts(hub: HubPresenter<HTMLElement>, store: HubSho
       if (!other || !chosen) return;
       const at = order.findIndex(entry => entry.id === chosen); const to = order.findIndex(entry => entry.id === other.id);
       [order[at], order[to]] = [order[to]!, order[at]!];
-      status.textContent = ''; paint(); persist();
+      status = ''; paint(); persist();
     }
+    function props(): HubPreferencesProps {
+      const groups: { label: string; entries: HubPreferenceEntry[] }[] = [];
+      entries().forEach((entry, index, visible) => {
+        // Home lists places and tools first, then this account's builds and teams.
+        if (!index || isLibraryHubShortcut(entry.id) !== isLibraryHubShortcut(visible[index - 1]!.id)) {
+          groups.push({ label: isLibraryHubShortcut(entry.id) ? 'Builds and teams' : 'Places and tools', entries: [] });
+        }
+        const row = lookup(entry.id)!;
+        groups.at(-1)!.entries.push({ id: entry.id, label: `${row.title}${entry.phrase ? ` · ${entry.phrase}` : ''}${entry.pinned ? ' · Pinned' : ''}`, icon: row });
+      });
+      return {
+        groups, chosen, canMoveUp: !!neighbour(-1), canMoveDown: !!neighbour(1), canRemovePhrases: !!phrased().length, status,
+        choose: id => { chosen = id; paint(); },
+        actions: () => footer.openActions(),
+        move,
+        removePhrases: confirmReset,
+        resetPosition: () => { resetPosition(); status = 'Hub position and size reset. Window locked.'; draw(); },
+      };
+    }
+    const draw = () => { if (page) page.update(props()); else page = pages.preferences(target, props()); };
     function paint() {
       const visible = entries();
       if (!visible.some(entry => entry.id === chosen)) chosen = visible[0]?.id ?? null;
-      list.replaceChildren();
-      let group: HTMLElement | null = null;
-      visible.forEach((entry, index) => {
-        // Home lists places and tools first, then this account's builds and teams.
-        if (!group || isLibraryHubShortcut(entry.id) !== isLibraryHubShortcut(visible[index - 1]!.id)) {
-          group = doc.createElement('div'); group.className = 'hub-preference-group'; group.setAttribute('role', 'group');
-          const name = doc.createElement('div'); name.className = 'hub-group'; name.setAttribute('role', 'presentation');
-          name.id = `hub-preference-group-${index}`; name.textContent = isLibraryHubShortcut(entry.id) ? 'Builds and teams' : 'Places and tools';
-          group.setAttribute('aria-labelledby', name.id); group.append(name); list.append(group);
-        }
-        const option = doc.createElement('div'); option.className = 'hub-preference-option'; option.id = `hub-preference-${index}`;
-        option.setAttribute('role', 'option'); option.setAttribute('aria-selected', String(entry.id === chosen));
-        const identity = doc.createElement('span'); identity.textContent = `${title(entry)}${entry.phrase ? ` · ${entry.phrase}` : ''}${entry.pinned ? ' · Pinned' : ''}`;
-        const canonical = lookup(entry.id);
-        if (canonical) option.append(hubIcon(doc, canonical));
-        option.append(identity);
-        option.onclick = () => { chosen = entry.id; paint(); list.focus({ preventScroll: true }); };
-        option.oncontextmenu = event => { event.preventDefault(); chosen = entry.id; paint(); list.focus({ preventScroll: true }); footer.openActions(); };
-        group.append(option);
-        if (entry.id === chosen) { list.setAttribute('aria-activedescendant', option.id); option.scrollIntoView({ block: 'nearest' }); }
-      });
-      if (!chosen) list.removeAttribute('aria-activedescendant');
-      list.hidden = tools.hidden = !visible.length; hint.hidden = !!visible.length;
-      // aria-disabled, not disabled: the focused button keeps focus at the end of the list.
-      up.setAttribute('aria-disabled', String(!neighbour(-1))); down.setAttribute('aria-disabled', String(!neighbour(1)));
-      reset.disabled = !phrased().length;
+      draw();
       const selected = visible.find(entry => entry.id === chosen);
       const row = selected && lookup(selected.id);
       footer.primary(row ? { label: `Set phrase for ${row.title}`, run: () => editHubShortcut(hub, row, store, () => !!lookup(row.id)) } : null);
@@ -173,14 +146,11 @@ export function manageHubShortcuts(hub: HubPresenter<HTMLElement>, store: HubSho
     }
     /** One confirmation page for both removals: it names what goes and what stays, and Keep is the way out. */
     function confirm(caption: string, question: string, consequence: string, label: string, remove: () => Promise<void>, receipt: string) {
-      hub.showView(caption, (confirmTarget, cancel, confirmFooter) => {
-        const page = doc.createElement('section'); page.className = 'hub-detail hub-confirm'; page.tabIndex = 0;
-        const ask = doc.createElement('h2'); ask.textContent = question; page.setAttribute('aria-label', question);
-        const copy = doc.createElement('p'); copy.textContent = consequence;
-        page.append(ask, copy); confirmTarget.append(page);
+      hub.showView(caption, (confirmTarget, cancel, confirmFooter, confirmPages) => {
+        const confirmation = confirmPages.confirm(confirmTarget, { question, consequence });
         confirmFooter.primary({ label, destructive: true, armed: true, run: async task => { await remove(); if (task.live()) { cancel(); hub.notify(receipt); } else task.done(receipt); } });
         confirmFooter.secondary({ label: 'Keep', run: cancel });
-        return () => page.remove();
+        return confirmation.dispose;
       });
     }
     function confirmRemove(entry: HubShortcut) {
@@ -202,22 +172,7 @@ export function manageHubShortcuts(hub: HubPresenter<HTMLElement>, store: HubSho
         await save(get().flatMap(entry => !visible.has(entry.id) ? [entry] : entry.pinned ? [{ ...entry, phrase: '' }] : []));
       }, `Removed ${phrases}.`);
     }
-    up.onclick = () => move(-1); down.onclick = () => move(1);
-    view.addEventListener('keydown', event => {
-      if (event.isComposing) return;
-      if (event.altKey && event.metaKey && !event.ctrlKey && !event.shiftKey && (event.key === 'ArrowUp' || event.key === 'ArrowDown')) {
-        event.preventDefault(); move(event.key === 'ArrowUp' ? -1 : 1); return;
-      }
-      const step = event.target === list ? listKeyStep(event, 5) : null;
-      if (step === null) return;
-      event.preventDefault();
-      const visible = entries();
-      const target = visible[listIndexAfter(visible.findIndex(entry => entry.id === chosen), visible.length, step)];
-      if (target) { chosen = target.id; paint(); }
-    });
-    reset.onclick = confirmReset;
-    position.onclick = () => { resetPosition(); status.textContent = 'Hub position and size reset. Window locked.'; };
     paint();
-    return () => { window.removeEventListener('gw:tools-settings', changed); view.remove(); };
+    return () => { window.removeEventListener('gw:tools-settings', changed); page?.dispose(); };
   });
 }

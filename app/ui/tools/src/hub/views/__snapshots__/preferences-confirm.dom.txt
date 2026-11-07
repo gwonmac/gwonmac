@@ -54,7 +54,7 @@
       "No matches"
     <pre class="hub-preview ui-scroll" hidden="">
     <div aria-busy="false" class="hub-view">
-      <section aria-label="Remove Xunlai Storage from Hub?" class="hub-detail hub-confirm" tabindex="0">
+      <section aria-label="Remove Xunlai Storage from Hub?" class="hub-detail hub-confirm" data-focus-key="confirm" tabindex="0">
         <h2>
           "Remove Xunlai Storage from Hub?"
         <p>
@@ -150,7 +150,7 @@
       "No matches"
     <pre class="hub-preview ui-scroll" hidden="">
     <div aria-busy="false" class="hub-view">
-      <section aria-label="Remove 1 search phrase?" class="hub-detail hub-confirm" tabindex="0">
+      <section aria-label="Remove 1 search phrase?" class="hub-detail hub-confirm" data-focus-key="confirm" tabindex="0">
         <h2>
           "Remove 1 search phrase?"
         <p>

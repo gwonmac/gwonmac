@@ -4,6 +4,7 @@
  */
 import type { HubFeatureSetting } from "../features/index.js";
 import type { HubShortcut } from "./hub-preferences.js";
+import type { HubPages } from "./ui/hub-pages.js";
 export type HubRow = Readonly<{
   id: string;
   title: string;
@@ -146,7 +147,8 @@ export type HubViewAction = Readonly<{ label: string; run(task: HubTask): void |
  * A view can open that same menu for its selected item through openActions().
  */
 export type HubViewFooter = Readonly<{ primary(action: HubViewAction | null): void; secondary(action: HubViewAction | null): void; openActions(): void }>;
-export type HubViewMount<Target> = (target: Target, back: () => void, footer: HubViewFooter) => () => void;
+/** Mounts a view into its page; `pages` are the Hub's own pages the kit draws (app/shared/ui/hub-pages.ts). */
+export type HubViewMount<Target> = (target: Target, back: () => void, footer: HubViewFooter, pages: HubPages<Target>) => () => void;
 
 /**
  * A page a direct shortcut opens (⌘T, ⌘E, ⌘B, Settings) or an action returns to (Accounts);

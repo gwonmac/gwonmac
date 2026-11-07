@@ -1009,7 +1009,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     paintViewFooter();
     // The page mounts into a host that already shows, so it can measure and take focus.
     sync();
-    disposeView = view.mount(content, restoreParent, shell);
+    disposeView = view.mount(content, restoreParent, shell, ui.pages);
     restoreDrafts([...state.history.map(pageTitle), view.title].join(' › '));
     paintNavigation();
     // A view that took the keyboard keeps it; else its first usable control, never <body>.

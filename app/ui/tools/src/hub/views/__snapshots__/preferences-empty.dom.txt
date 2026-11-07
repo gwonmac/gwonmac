@@ -53,17 +53,17 @@
       <section class="hub-detail hub-preferences">
         <h2>
           "Pins and search phrases"
-        <div aria-label="Pins and search phrases" class="hub-preference-list" hidden="" id="hub-preference-list" role="listbox" tabindex="0">
+        <div aria-label="Pins and search phrases" class="hub-preference-list" data-focus-key="preferences-list" hidden="" id="hub-preference-list" role="listbox" tabindex="0">
         <div class="hub-preference-tools" hidden="">
-          <button aria-controls="hub-preference-list" aria-disabled="true" aria-keyshortcuts="Alt+Meta+ArrowUp" class="ui-button" title="Move up (⌥⌘↑)" type="button">
+          <button aria-controls="hub-preference-list" aria-disabled="true" aria-keyshortcuts="Alt+Meta+ArrowUp" class="ui-button" data-focus-key="preferences-move-up" title="Move up (⌥⌘↑)" type="button">
             "Move up"
-          <button aria-controls="hub-preference-list" aria-disabled="true" aria-keyshortcuts="Alt+Meta+ArrowDown" class="ui-button" title="Move down (⌥⌘↓)" type="button">
+          <button aria-controls="hub-preference-list" aria-disabled="true" aria-keyshortcuts="Alt+Meta+ArrowDown" class="ui-button" data-focus-key="preferences-move-down" title="Move down (⌥⌘↓)" type="button">
             "Move down"
         <p>
           "Choose a result, then Actions to pin it or give it a search phrase."
-        <button class="ui-button" disabled="" type="button">
+        <button class="ui-button" data-focus-key="preferences-remove-phrases" disabled="" type="button">
           "Remove all search phrases…"
-        <button class="ui-button" type="button">
+        <button class="ui-button" data-focus-key="preferences-reset-position" type="button">
           "Reset Hub position"
         <p role="status">
     <div class="hub-footer-status">

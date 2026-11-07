@@ -1,6 +1,7 @@
 /** The browser party fixture must satisfy the real planner before it can prove UI flows. */
 import { expect, test } from 'vitest';
 import { createHubGameFixture } from './hub-game-fixture';
+import { HUB_PAGES } from './hub/views';
 import { resolveTeamApplyPlan } from '../../../shared/builds/team-apply';
 import { validateBuildFor } from '../../../shared/builds/validate';
 import type { HubTask } from '../../../shared/hub';
@@ -337,7 +338,7 @@ test('a team apply that fails after the player moved on names the team and keeps
   source!.search('team gom afk')[0]!.run(task);
   const target = document.createElement('div');
   let primary: import('../../../shared/hub').HubViewAction | null = null;
-  review!(target, () => {}, { primary(next) { primary = next; }, secondary() {}, openActions() {} });
+  review!(target, () => {}, { primary(next) { primary = next; }, secondary() {}, openActions() {} }, HUB_PAGES);
   expect(target.querySelector('[role=status]')?.textContent).toMatch(/^Team partly applied\. Synthetic interruption/);
   expect(target.textContent).toContain('Completed');
   expect(target.textContent).toContain('Enabling Hard Mode confirmed.');
@@ -366,7 +367,7 @@ test('a team apply that fails after the player moved on names the team and keeps
   expect(source!.search('team gom afk')[0]!.detail).toBe('Not applied · Review');
   source!.search('team gom')[0]!.navigate!(task);
   const refused = document.createElement('div');
-  review!(refused, () => {}, { primary() {}, secondary() {}, openActions() {} });
+  review!(refused, () => {}, { primary() {}, secondary() {}, openActions() {} }, HUB_PAGES);
   expect(refused.textContent).not.toContain('partly');
   expect(refused.textContent).not.toContain('Completed');
   app.unmount();
@@ -534,7 +535,7 @@ test('invalid team reviews name the failing slot and open the same saved team in
   expect(row.unavailable).toBe('Choose a behavior for slot 2.\nSlot 8 has an invalid build.');
   row.navigate!(task);
   const target = document.createElement('div');
-  review!(target, () => {}, { primary(action) { expect(action?.disabled).toBe(true); }, secondary(action) { edit = action; }, openActions() {} });
+  review!(target, () => {}, { primary(action) { expect(action?.disabled).toBe(true); }, secondary(action) { edit = action; }, openActions() {} }, HUB_PAGES);
   expect(target.querySelector('[role=status]')?.textContent).toBe('Choose a behavior for slot 2.\nSlot 8 has an invalid build.');
   const members = target.querySelectorAll('.hub-review-roster > section');
   expect(members[1]?.textContent).toContain('Choose a behavior for slot 2.');
