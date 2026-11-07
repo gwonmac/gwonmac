@@ -220,6 +220,23 @@ describe("main-owned launcher orchestration", () => {
     assert.deepEqual(value.accounts.opened, [first]);
   });
 
+  it("does not chain a publish onto a running drain for every client progress tick", async () => {
+    const value = await fixture();
+    let release!: () => void;
+    value.accounts.blocker = new Promise<void>((resolve) => { release = resolve; });
+    value.activate();
+    const played = value.orchestrator.play([first, second]);
+    await new Promise((resolve) => setImmediate(resolve));
+    for (let tick = 0; tick < 5; tick += 1) value.activate();
+    const beforeRelease = value.snapshots.length;
+    release();
+    await played;
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.deepEqual(value.accounts.opened, [first, second]);
+    // Only Play's own publish follows the drain.
+    assert.equal(value.snapshots.length - beforeRelease, 1);
+  });
+
   it("checks open state without focusing an already-open profile", async () => {
     const value = await fixture();
     value.accounts.openProfiles.add(first);
