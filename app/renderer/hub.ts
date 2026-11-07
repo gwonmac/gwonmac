@@ -3,8 +3,10 @@
  * actions, pins and phrases, receipts and transient modal lifetime. It names no source: the
  * built-in ones attach from hub-builtins.ts, the features' from their own owners, and each says
  * what it adds through its HubSource fields (app/shared/hub.ts). Navigation, keys and where the
- * keyboard goes belong to the engine (hub-engine.ts): this adapter turns DOM events into engine
- * events and applies its effects. Optional Tools contributes local results and views without
+ * keyboard goes belong to the engine (hub-engine.ts), and what a list shows to hub-results.ts;
+ * the status line, form drafts and footer wording are pure modules beside it (hub-status.ts,
+ * hub-drafts.ts, hub-footer.ts). This adapter turns DOM events into engine events and applies
+ * its effects. Optional Tools contributes local results and views without
  * entering Core's imports. The Hub's Vue view (app/ui/tools/src/hub, built as `tools/hub-app.js`)
  * draws the model this adapter keeps (app/shared/ui/hub-view.ts), measures what it draws and puts
  * the keyboard on its focus target. Each entry point (a DOM event, a presenter call, a timer or
@@ -19,11 +21,14 @@ import { isHubShortcuts, isLibraryHubShortcut, LIBRARY_UNAVAILABLE, type HubShor
 import { currencyIcon } from '../shared/currency-assets.js';
 import { armConfirmation, closeDisclosure } from './surface-controller.js';
 import { composeHubResults, chooseHubSelection } from './hub-results.js';
+import { createHubStatus, type HubStatusLine } from './hub-status.js';
+import { createHubDrafts } from './hub-drafts.js';
+import { hubLegend, hubRowPrimary, hubViewPrimary } from './hub-footer.js';
 import { HUB_FALLBACK, hubAtHome, hubInitialState, hubKey, hubReduce, hubRunning, hubSuspendedOn, hubTaskLive, type HubEffect, type HubEvent, type HubPage, type HubPlace, type HubStep } from './hub-engine.js';
 import { createHoverSelection } from '../shared/ui/hover-selection.js';
 import { FEATURES, featureActivationRequested } from '../shared/feature-contracts.js';
-import { HUB_LOCATED_DESTINATIONS, hubMatch, parseHubQuery, normaliseHubQuery, type HubAction, type HubDestination, type HubRow, type HubSource, type HubSummary, type HubTask, type HubViewAction, type HubViewFooter, type HubViewMount } from '../shared/hub.js';
-import { hubPrimaryArt, hubRowPaintsSame, type EmbeddedHubView, type HubFocusTarget, type HubLegendEntry, type HubMenuItem, type HubPrimary, type HubViewModel } from '../shared/ui/hub-view.js';
+import { HUB_LOCATED_DESTINATIONS, hubMatch, isHubCalculation, parseHubQuery, normaliseHubQuery, type HubAction, type HubDestination, type HubRow, type HubSource, type HubSummary, type HubTask, type HubViewAction, type HubViewFooter, type HubViewMount } from '../shared/hub.js';
+import { hubRowPaintsSame, type EmbeddedHubView, type HubFocusTarget, type HubMenuItem, type HubPrimary, type HubViewModel } from '../shared/ui/hub-view.js';
 
 const NONE: readonly never[] = [];
 /** Shallow equality: a region with the same fields is the same region and does not redraw. */
@@ -94,7 +99,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
   const hubWindow = installHubWindow(panel, heading, lock, resize);
   // A measuring layer adds artwork in native word gaps; the input remains the sole editor (HubSearchBar).
   function paintGlyphs() {
-    const calculation = root.open && !state.place.view && !state.place.scope && !parseHubQuery(state.query).scope && /^\s*(?:\d|\.\d)/u.test(state.query);
+    const calculation = root.open && !state.place.view && !state.place.scope && isHubCalculation(state.query);
     patch('glyphs', { calculation, text: calculation ? state.query : '' });
   }
   let announceTimer: ReturnType<typeof setTimeout> | undefined;
@@ -185,31 +190,10 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
   }
   /** Withdraw only pages whose actual source is unavailable; other drafts and searches stay. */
   const withdrawPages = () => send({ type: 'withdraw' });
-  /**
-   * Form drafts last the session, keyed by page path and the field's focus key: leaving a form
-   * keeps what was typed and returning restores it, unless the stored value the field started
-   * from changed. The view reads and writes the fields (HubDraftFields).
-   */
-  const drafts = new Map<string, { initial: string; value: string }>();
-  const draftInitials = new Map<string, string>();
-  let draftPage: string | null = null;
-  function restoreDrafts(path: string) {
-    draftPage = path; draftInitials.clear();
-    for (const [field, value] of ui.drafts.read()) {
-      const key = `${path} › ${field}`, draft = drafts.get(key);
-      draftInitials.set(key, value);
-      if (draft && draft.initial !== value) drafts.delete(key);
-      else if (draft) ui.drafts.write(field, draft.value);
-    }
-  }
-  function keepDrafts() {
-    if (draftPage === null) return;
-    for (const [field, value] of ui.drafts.read()) {
-      const key = `${draftPage} › ${field}`, initial = draftInitials.get(key) ?? value;
-      if (value === initial) drafts.delete(key); else drafts.set(key, { initial, value });
-    }
-    draftPage = null;
-  }
+  /** Form drafts last the session, by page path and focus key (hub-drafts.ts); the view reads and writes the fields. */
+  const drafts = createHubDrafts();
+  const restoreDrafts = (path: string) => { for (const [field, value] of drafts.restore(path, ui.drafts.read())) ui.drafts.write(field, value); };
+  const keepDrafts = () => drafts.keep(() => ui.drafts.read());
   /** Draws a page Back, a breadcrumb or a resume returns to; the engine already stands on it. */
   function restorePage(page: Page, resumed?: true) {
     resetView();
@@ -234,20 +218,10 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
   let previousFocus: HTMLElement | null = null;
   /** A row action runs on this page; the footer and status name it until it ends (HUB-083). */
   const busy = () => !!hubRunning(state);
-  /** A late task's receipt outlives the typing that ended its session; any other report replaces it. */
-  let receiptInStatus = false;
-  /**
-   * The latest progress of a running action, on its page or left behind by Back, typing or a
-   * close (KEY-19). The status line falls back to it, busy, whenever it has nothing newer to say.
-   */
-  let progress: { owner: object; message: string } | null = null;
-  let progressInStatus = false;
-  const statusText = () => model.status?.text ?? '';
-  function report(message: string, receipt = false) {
-    const text = message || progress?.message || '';
-    receiptInStatus = receipt && !!message; progressInStatus = !message && !!text;
-    put('status', { text, busy: progressInStatus }); paintBusy();
-  }
+  /** The status line: reports, a running action's progress and receipts (hub-status.ts). */
+  const status = createHubStatus();
+  const showStatus = (line: HubStatusLine | null) => { if (line) { put('status', line); paintBusy(); } };
+  const report = (message: string, receipt = false) => showStatus(status.report(message, receipt));
   /** The rows sources leave the Hub to match: they follow every result (HubSource `commands`). */
   const commandRows = (query = state.query) => enabledSources().flatMap(source => source.commands?.(query) ?? []);
   const shortcuts = () => [...(window.gwToolsSettings?.().hubShortcuts ?? []), ...enabledSources().flatMap(source => source.shortcuts?.get() ?? [])];
@@ -289,10 +263,8 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     // A row action that opened a view ends here: the view names the footer now.
     if (viewFooter) { paintViewFooter(); return; }
     // A running action keeps the footer: it names what runs, disabled, until it ends (HUB-083).
-    const working = hubRunning(state);
-    const art = !working ? hubPrimaryArt(row) : undefined;
-    setPrimary({ label: working ? working.label : row ? row.action : 'Select a result', ...(art ? { art } : {}), keycap: !!row && !working,
-      disabled: !row || !!row.unavailable || !!working, variant: row?.destructive ? 'danger' : 'primary' });
+    const working = hubRunning(state) ?? null;
+    setPrimary(hubRowPrimary(row, working));
     // Footer slots never hide, so nothing slides under a resting pointer; they disable instead.
     // Actions opens only where it lists more than the primary (HUB-043).
     setActions(!row || !!working || menuEntries(row).length < 2);
@@ -311,17 +283,13 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
   /** `aria-busy` and the thin bar under the search while this page's action runs or the status line shows progress. */
   function paintBusy() {
     const view = !!viewFooter && (busy() || !!viewFooter.primary?.running);
-    put('busy', { panel: busy() || view || progressInStatus, list: busy() && !viewFooter, view });
+    put('busy', { panel: busy() || view || status.busy, list: busy() && !viewFooter, view });
   }
   /** The footer's key legend names only keys that act here and now. */
   function paintLegend(row: HubRow | undefined) {
-    const keys: HubLegendEntry[] = [];
-    if (!viewFooter && rows.length > 1 && !busy()) keys.push([['↑', '↓'], 'Select']);
-    if (!viewFooter && row?.navigate) keys.push([['→'], 'Open']);
     // A list stage types into the Hub search; a view mounted here, into its own search, if any.
     const typed = viewFooter ? !!disposeView && !!ui.focus.searchField()?.value : !!state.query;
-    keys.push([['⎋'], typed ? 'Clear' : state.history.length ? 'Back' : 'Close']);
-    if (!atHome()) keys.push([['⌘', '⌫'], 'Back']);
+    const keys = hubLegend({ view: !!viewFooter, rows: rows.length, opens: !!row?.navigate, running: busy(), typed, parent: state.history.length > 0, home: atHome() });
     if (model.legend && JSON.stringify(model.legend) === JSON.stringify(keys)) return;
     put('legend', keys);
   }
@@ -330,10 +298,8 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
   function paintViewFooter() {
     if (!viewFooter) return;
     const action = viewFooter.primary ?? done;
-    // Enter runs a named primary, so only that one carries the keycap, and not while it runs.
     const running = busy();
-    setPrimary({ label: action.label, keycap: !!viewFooter.primary && !running && !action.running,
-      disabled: !!action.disabled || running || !!action.running, variant: action.destructive ? 'danger' : 'primary' });
+    setPrimary(hubViewPrimary(action, !!viewFooter.primary, running));
     if (!action.armed) { viewArming?.arming.disarm(); viewArming = null; }
     else if (viewArming?.label !== action.label) {
       viewArming?.arming.disarm(); viewArming = { label: action.label, arming: armConfirmation(primary) }; viewArming.arming.arm();
@@ -491,7 +457,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     patch('results', { previewList: !compactBuilds && rows.some(row => !!row.preview), compact: compactBuilds, bindings });
     startPainting(rows);
     const chosen = chooseHubSelection({ scoped, query: state.query, rows, phrases: composed.phrases, previous: previousRows, selected: state.selected,
-      reset, awaiting: awaitingResults, cards: cards(), status: { text: statusText(), receipt: receiptInStatus } });
+      reset, awaiting: awaitingResults, cards: cards(), status: { text: status.text, receipt: status.receipt } });
     awaitingResults = chosen.awaiting;
     // A settled loading refusal clears before the selection paints; a lost selection is named after it.
     if (chosen.report === '') report('');
@@ -514,7 +480,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
       live,
       // Progress repaints only over itself or an empty line (or on its own page): a newer
       // message, e.g. a refusal or another action's failure, stays until the next report('').
-      progress: entry((message: string) => { progress = { owner: token, message }; if (live() || progressInStatus || !statusText()) report(''); }),
+      progress: entry((message: string) => showStatus(status.progress(token, message, live()))),
       done: entry((receipt?: string) => send({ type: 'done', session: started, ...(receipt ? { receipt } : {}) })),
       fail: entry((error: unknown) => {
         // A step the player declined, e.g. Stay here on "Leave this area?", is no failure.
@@ -522,7 +488,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
         send({ type: 'failed', session: started, message: error instanceof Error ? error.message : 'The action could not complete. Try again.' });
       }),
       // An action that ended without a receipt, e.g. one whose view shows its own outcome, never leaves its progress behind.
-      end: entry(() => { if (progress?.owner !== token) return; progress = null; if (progressInStatus) report(''); }),
+      end: entry(() => showStatus(status.end(token))),
     };
   }
   /**
@@ -607,7 +573,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     // An observer withdraws only its own resolved failure, never another owner's outcome.
     if (outcome === 'cleared') {
       step({ type: 'uncarry', message });
-      if (receiptInStatus && statusText() === message) report('');
+      showStatus(status.withdraw(message));
       if (model.receipt.text === message) { clearTimeout(receiptTimer); patch('receipt', { hidden: true, announcement: '' }); }
       return;
     }
@@ -675,7 +641,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     for (const source of sources.keys()) source.setVisible(sourceEnabled(source));
     apply(opened);
   }
-  input.addEventListener('input', entry(() => { step({ type: 'type', query: input.value }); if (!receiptInStatus) report(''); refresh(true); }));
+  input.addEventListener('input', entry(() => { step({ type: 'type', query: input.value }); showStatus(status.moved()); refresh(true); }));
   // List stages keep DOM focus in search; the selection moves by aria-activedescendant (D-2).
   input.addEventListener('keydown', entry((event: KeyboardEvent) => {
     if (event.isComposing) return;
@@ -796,7 +762,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
   }
   /** Mounts a view page, a new one or one that Back restores, with its footer and drafts. */
   function mountView(view: MountedView) {
-    resetView(); if (!receiptInStatus) report(''); clearTimeout(announceTimer); resultAnnouncement = ''; patch('empty', { hidden: true });
+    resetView(); showStatus(status.moved()); clearTimeout(announceTimer); resultAnnouncement = ''; patch('empty', { hidden: true });
     put('page', 'section'); patch('caption', { text: view.title });
     patch('preview', { hidden: true }); patch('hint', { hidden: true });
     patch('search', { hidden: true }); patch('results', { hidden: true }); patch('view', { hidden: false });
@@ -844,7 +810,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
       const scope: RowScope = { title, rows: getRows, ...(summary ? { summary } : {}), ...(destination ? { destination } : {}), ...(owner ? { owner } : {}) };
       enterPage(() => ({ scope, view: null }), query);
       resetView(); put('page', 'section'); patch('caption', { text: title });
-      nameSearch(title); if (!receiptInStatus) report(''); refresh(true); requestFocus({ zone: 'results' });
+      nameSearch(title); showStatus(status.moved()); refresh(true); requestFocus({ zone: 'results' });
     }),
     showView: entry((title: string, mount: HubViewMount<HTMLElement>, available?: () => boolean, destination?: HubDestination, owner?: HubSource) => {
       const view: MountedView = { title, mount, ...(available ? { available } : {}), ...(destination ? { destination } : {}), ...(owner ? { owner } : {}) };

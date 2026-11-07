@@ -143,6 +143,8 @@ export function parseHubQuery(value: string): { scope: HubScope | null; term: st
   const text = (scoped ? words.slice(1) : words).join(' ');
   return { scope: scoped ? scope : null, term: normaliseHubQuery(text), text };
 }
+/** A search that starts with a number is a calculation: on Home, the search draws each currency unit's art in it. */
+export const isHubCalculation = (value: string): boolean => /^\s*(?:\d|\.\d)/u.test(value);
 /** A name's words for matching, with punctuation trimmed from their edges: `(pre-Searing)` is `pre-searing` (HUB-143). */
 const hubWords = (name: string) => name.split(' ').map(word => word.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '')).filter(Boolean);
 /**

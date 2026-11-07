@@ -8,9 +8,12 @@ time: Enter, the footer and Actions name it while it runs) and a failure carried
 across a close. What a list shows and which row it selects (its ranking with
 pins, phrases and commands, ties, the initial row and a selection handed on by
 a loading row) are pure functions in `app/renderer/hub-results.ts`, tested by
-`tests/unit/hub-results.test.ts`. `app/renderer/hub.ts` owns search, receipts
-and the modal, and applies the engine's effects. It
-names no source: each source says what it adds through the optional
+`tests/unit/hub-results.test.ts`. Three more pure modules beside them hold
+what the status line says between reports, progress and receipts
+(`hub-status.ts`), the session's form drafts (`hub-drafts.ts`) and what the
+footer names, its primary and key legend (`hub-footer.ts`), each with its Node
+test. `app/renderer/hub.ts` owns the sources, search, the closed-Hub receipt and
+the modal, and applies the engine's effects. It names no source: each source says what it adds through the optional
 `HubSource` fields in `app/shared/hub.ts`. The built-in sources (accounts, the
 calculator, commands, Hub preferences and Settings) attach from the one Core
 list in `app/renderer/hub-builtins.ts`, the way a feature attaches its own. A
