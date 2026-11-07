@@ -1,5 +1,6 @@
 /**
- * `pnpm diagnostics:attribute-frames`: attributes long visible-frame gaps in a
+ * `node --import ./scripts/ts-hook.mjs app/tools-cli/diagnostics/attribute-frames.ts`:
+ * attributes long visible-frame gaps in a
  * Level 1 capture to what the main process was doing around them.
  *
  * Level 1 is where gains are judged, because Level 2 traces are
@@ -202,7 +203,7 @@ if (
   const input = process.argv[2];
   if (!input) {
     console.error(
-      "usage: pnpm diagnostics:attribute-frames <capture.zip> [threshold-ms]",
+      "usage: node --import ./scripts/ts-hook.mjs app/tools-cli/diagnostics/attribute-frames.ts <capture.zip> [threshold-ms]",
     );
     process.exitCode = 2;
   } else {

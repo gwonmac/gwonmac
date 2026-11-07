@@ -14,7 +14,9 @@ import {
 
 const input = process.argv[2];
 if (!input) {
-  console.error("usage: pnpm diagnostics:visual <capture.zip> [output-directory]");
+  console.error(
+    "usage: node --import ./scripts/ts-hook.mjs app/tools-cli/diagnostics/visual.ts <capture.zip> [output-directory]",
+  );
   process.exitCode = 2;
 } else {
   const archive = path.resolve(input);
