@@ -13,7 +13,10 @@ export default defineFeature({
     label: "Whispers",
     description: "A movable whisper panel alongside original chat. Conversations last for this session only.",
     keywords: "chat friends messages pm",
-    hub: { command: "whispers", keyOrder: 4 },
+    hub: {
+      command: "whispers", order: 2, keyOrder: 4,
+      row: { detail: "Conversations, friends and drafts", keywords: "people message", open: { event: "gw:whispers-toggle", show: true } },
+    },
   },
   shortcuts: [{ action: "whispers.toggle", binding: { key: "d", shift: false, option: false }, menuItem: "open-whispers" }],
 });

@@ -1,11 +1,13 @@
 /**
  * Owns the Hub's built-in commands: the rows that open a tool, the Commands page (the Hub's
- * cheatsheet), the typed-only commands, and the search that hands a typed item to Trade. A tool
- * opens through its own event, so Core names a tool without loading its code. The Hub matches
+ * cheatsheet), the typed-only commands, and the search that hands a typed item to Trade. The tool
+ * rows come from their manifests (app/shared/hub-tools.ts); a tool opens through its own event,
+ * so Core names a tool without loading its code. The Hub matches
  * these rows against the query itself (HubSource `commands`); this module attaches them as one
  * built-in source (hub-builtins.ts).
  */
-import { HUB_TOOL_KEYS, TOOL_PRESENTATION } from '../shared/tool-presentation.js';
+import { HUB_TOOL_KEYS } from '../shared/tool-presentation.js';
+import { HUB_TOOL_ROWS } from '../shared/hub-tools.js';
 import { resolveShortcuts, shortcutKeycaps, type ShortcutAction } from '../shared/keyboard-shortcuts.js';
 import { normaliseHubQuery, parseHubQuery, type HubRow, type HubSource, type HubTask } from '../shared/hub.js';
 import type { SettingsTarget } from '../shared/settings-catalogue.js';
@@ -25,17 +27,18 @@ export function createHubCommands(hub: Hub, openSettings: (target?: SettingsTarg
   const commands = (query: string): HubRow[] => {
     const settings = window.gwToolsSettings?.() ?? {};
     const on = (id: FeatureId) => featureActivationRequested(id, settings);
-    const tool = (id: string, title: string, detail: string, keywords: string, enabled: boolean | undefined, event: string): HubRow[] => enabled ? [{
-      id, title, keywords, detail, ...(id === 'storage' ? { aliases: ['Open Xunlai Storage'] } : {}), group: 'Tools', action: id === 'storage' ? 'Open Xunlai Storage' : `Open ${title}`,
-      run: () => { if (id === 'storage') { hub.close(); window.dispatchEvent(new CustomEvent(event, { cancelable: true })); } else dispatch(event, 'show'); },
-    }] : [];
     return [
-      // Travel's row comes from its owner, attached for its whole life with the command's refusal (HUB-135).
-      ...tool('trade', TOOL_PRESENTATION['trade-chat'].label, 'Find offers and contact sellers', 'kamadan prices trading market trader', on('tradeChat'), 'gw:trade-toggle'),
-      ...tool('whispers', TOOL_PRESENTATION['whispers'].label, 'Conversations, friends and drafts', 'friends people message chat', on('whispers'), 'gw:whispers-toggle'),
-      ...(on('characterSwitch') ? [{ id: 'character', title: TOOL_PRESENTATION['character-switch'].label, detail: 'Choose another character', keywords: 'relog profession characters alts', group: 'Tools', action: 'Choose character', navigate: () => dispatch('gw:character-toggle'), run: () => dispatch('gw:character-toggle') }] : []),
-      ...tool('storage', TOOL_PRESENTATION['xunlai-storage'].label, 'Open your storage chest', 'chest bank', on('xunlaiStorage'), 'gw:storage-open'),
-      ...(on('cartography') ? [{ id: 'maps', title: TOOL_PRESENTATION['maps'].label, detail: 'Exploration grid, walkable terrain and compass ranges', keywords: 'grid terrain compass opacity', group: 'Tools', action: 'Adjust maps', run: openSettings({ section: 'maps' }) }] : []),
+      // Travel's and Build Library's rows come from their owners; Travel's is attached for its
+      // whole life with the command's refusal (HUB-135).
+      ...HUB_TOOL_ROWS.filter(tool => on(tool.feature)).map((tool): HubRow => {
+        const open = tool.open;
+        const run = 'settings' in open ? openSettings({ section: open.settings })
+          // A tool that opens after the Hub closes never refuses: the Hub is gone (Xunlai Storage).
+          : open.closesHub ? () => { hub.close(); window.dispatchEvent(new CustomEvent(open.event, { cancelable: true })); }
+          : () => dispatch(open.event, open.show ? 'show' : undefined);
+        return { id: tool.id, title: tool.title, keywords: tool.keywords, detail: tool.detail, ...(tool.aliases ? { aliases: tool.aliases } : {}), group: 'Tools',
+          action: tool.action ?? `Open ${tool.title}`, ...('page' in open && open.page ? { navigate: run } : {}), run };
+      }),
       { id: 'commands', title: 'Commands', detail: 'Search words, calculator examples and keys', aliases: ['?'], keywords: 'help guide examples cheatsheet shortcuts keys', group: 'Commands', action: 'Browse commands', run: () => hub.showRows('Commands', examples) },
       // Launcher and the website are for a typed search; the first screen stays on the game (HUB-185).
       ...(!query.trim() ? [] : [

@@ -12,7 +12,10 @@ and the modal, and applies the engine's effects. It
 names no source: each source says what it adds through the optional
 `HubSource` fields in `app/shared/hub.ts`. The built-in sources (accounts, the
 calculator, commands, Hub preferences and Settings) attach from the one Core
-list in `app/renderer/hub-builtins.ts`, the way a feature attaches its own.
+list in `app/renderer/hub-builtins.ts`, the way a feature attaches its own. A
+tool's Tools row, its open event and its place among the Tools rows live in its
+manifest's `tool.hub` (`app/features/define.ts`); `app/shared/hub-tools.ts`
+derives the rows Core draws and their order.
 Each entry point of `hub.ts` (a DOM event, a presenter call, a timer or a
 frame) writes the view model and paints it once when it ends; before it hands
 the DOM to a row's action or a page, it paints the finished model first. It

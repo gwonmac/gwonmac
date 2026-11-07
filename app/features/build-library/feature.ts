@@ -21,7 +21,7 @@ export default defineFeature({
     label: "Build Library",
     description: "Save and load skill builds.",
     keywords: "builds templates skills",
-    hub: { command: "builds", keyOrder: 2 },
+    hub: { command: "builds", order: 3, keyOrder: 2 },
   },
   shortcuts: [{ action: "tools.toggle", binding: { key: "b", shift: false, option: false }, menuItem: "toggle-tools" }],
 });

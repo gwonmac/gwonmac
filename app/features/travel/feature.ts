@@ -29,7 +29,7 @@ export default defineFeature({
     label: "Travel",
     description: "Search destinations and travel between outposts.",
     keywords: "travel outposts map progress vanquish cartographer",
-    hub: { command: "travel", keyOrder: 0 },
+    hub: { command: "travel", order: 0, keyOrder: 0 },
   },
   shortcuts: [{ action: "travel.open", binding: { key: "t", shift: false, option: false }, menuItem: "open-travel" }],
 });

@@ -19,7 +19,10 @@ export default defineFeature({
     label: "Xunlai Storage",
     description: "Open storage in supported outposts.",
     keywords: "chest bank storage",
-    hub: { command: "storage" },
+    hub: {
+      command: "storage", order: 5,
+      row: { detail: "Open your storage chest", aliases: ["Open Xunlai Storage"], open: { event: "gw:storage-open", closesHub: true } },
+    },
   },
   shortcuts: [{ action: "storage.open", binding: { key: "s", shift: false, option: false }, menuItem: "open-xunlai-storage" }],
 });

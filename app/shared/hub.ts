@@ -5,6 +5,7 @@
 import type { HubFeatureSetting } from "../features/index.js";
 import type { HubShortcut } from "./hub-preferences.js";
 import type { HubPages } from "./ui/hub-pages.js";
+import { HUB_TOOL_ORDER } from "./hub-tools.js";
 export type HubRow = Readonly<{
   id: string;
   title: string;
@@ -180,12 +181,11 @@ export const HUB_WORKSPACE_ACTION = 'Open in Build Library';
  * the best answer of all, and a card (`answers`) answers its own grammar. A typed query that
  * names a tool or command as well as places answers with the tool: the Hub has a few of those
  * and hundreds of places (`ma` is Maps before Maguuma Stade). Everyday game actions stay ahead
- * of account management, and Commands, the way into everything else, leads the commands
- * (HUB-185). A scoped page keeps its source's order within each group.
+ * of account management (the Tools rows keep their manifests' `order`, HUB_TOOL_ORDER), and
+ * Commands, the way into everything else, leads the commands (HUB-185). A scoped page keeps its source's order within each group.
  */
 const HUB_GROUP_ORDER = ["Pinned", "Calculator", "Teams", "Folders", "Characters", "Builds", "Targets", "Current build", "Accounts", "In your party", "Unlocked heroes", "Heroes", "People", "Places", "Friends", "Continue", "Tools", "Commands", "Settings", "Sources", "Trade", "Calculate", "Keys & shortcuts"];
 const HUB_TYPED_FIRST = ['Tools', 'Commands'];
-const HUB_TOOL_ORDER = ['travel', 'character', 'whispers', 'builds', 'trade', 'storage', 'maps', 'accounts'];
 export function rankHubRows(rows: readonly HubRow[], query: string, options: Readonly<{ scoped: boolean; phrases: ReadonlySet<string>; answers(row: HubRow): boolean }>): readonly HubRow[] {
   const parsed = parseHubQuery(query);
   const ranked = !options.scoped && !parsed.scope && !!parsed.term;
@@ -194,7 +194,7 @@ export function rankHubRows(rows: readonly HubRow[], query: string, options: Rea
   if (ranked) for (const row of rows) best.set(row.group, Math.min(best.get(row.group) ?? Infinity, tierOf(row)));
   const typedFirst = ranked ? HUB_TYPED_FIRST : [];
   const groupIndex = (group: string) => { const first = typedFirst.indexOf(group); if (first >= 0) return first - typedFirst.length; const index = HUB_GROUP_ORDER.indexOf(group); return index < 0 ? HUB_GROUP_ORDER.length : index; };
-  const priority = (row: HubRow) => { if (options.scoped) return 0; if (row.group === 'Commands') return row.id === 'commands' ? -1 : 0; if (row.group !== 'Tools') return 0; const index = HUB_TOOL_ORDER.indexOf(row.id); return index < 0 ? HUB_TOOL_ORDER.length : index; };
+  const priority = (row: HubRow) => { if (options.scoped) return 0; if (row.group === 'Commands') return row.id === 'commands' ? -1 : 0; if (row.group !== 'Tools') return 0; const index = HUB_TOOL_ORDER.findIndex(command => command === row.id); return index < 0 ? HUB_TOOL_ORDER.length : index; };
   return [...rows].sort((a, b) => (ranked ? best.get(a.group)! - best.get(b.group)! : 0) || groupIndex(a.group) - groupIndex(b.group)
     || (ranked ? tierOf(a) - tierOf(b) : 0) || priority(a) - priority(b));
 }
