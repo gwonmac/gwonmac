@@ -3,9 +3,15 @@
   "git": {
     "deploymentEnabled": {
       "**": false,
-      "main": true,
-      "preview/*": true
+      "main": true
     }
   },
-  "ignoreCommand": "[ -n \"$VERCEL_GIT_PREVIOUS_SHA\" ] || exit 1; git cat-file -e \"$VERCEL_GIT_PREVIOUS_SHA\" 2>/dev/null || exit 1; git diff --quiet \"$VERCEL_GIT_PREVIOUS_SHA\" HEAD -- . ../app/shared ../package.json ../pnpm-lock.yaml ../pnpm-workspace.yaml"
+  "ignoreCommand": "[ -n \"$VERCEL_GIT_PREVIOUS_SHA\" ] || exit 1; git cat-file -e \"$VERCEL_GIT_PREVIOUS_SHA\" 2>/dev/null || exit 1; git diff --quiet \"$VERCEL_GIT_PREVIOUS_SHA\" HEAD -- . ../app/shared ../package.json ../pnpm-lock.yaml ../pnpm-workspace.yaml",
+  "redirects": [
+    {
+      "source": "/updates/stable/darwin/arm64/RELEASES.json",
+      "destination": "https://github.com/gwonmac/gwonmac/releases/latest/download/RELEASES.json",
+      "statusCode": 302
+    }
+  ]
 }
