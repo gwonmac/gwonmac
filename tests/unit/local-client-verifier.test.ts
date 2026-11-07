@@ -4,7 +4,9 @@ import {
   ENHANCEMENT_BUILDS,
   type KnownEnhancementBuild,
 } from "../../app/client/certification/enhancement-builds.js";
+import { withdrawRefusedFeatures } from "../../app/client/certification/enhancement-feature-acceptance.js";
 import {
+  acceptLocalClientVerification,
   isLocalClientVerification,
   localFeatureVerdictsForBuild,
   type LocalClientVerification,
@@ -12,7 +14,10 @@ import {
 import { SEMANTIC_VERIFIER_ABI } from "../../app/client/certification/semantic-proof.js";
 import { TEMPLATE_SAVE_BUILDS } from "../../app/client/certification/template-save-compat.js";
 import type { EnhancementCapabilities } from "../../app/shared/enhancement-contracts.js";
-import { enhancementCapabilityProfile } from "../../app/shared/enhancement-contracts.js";
+import {
+  ENHANCEMENT_CAPABILITY_FIELDS,
+  enhancementCapabilityProfile,
+} from "../../app/shared/enhancement-contracts.js";
 
 const ENHANCEMENT = ENHANCEMENT_BUILDS[0]!;
 const TEMPLATE = TEMPLATE_SAVE_BUILDS.find(
@@ -461,6 +466,69 @@ describe("local client verification boundary", () => {
   });
   it("accepts the verifier's complete baseline proof", () => {
     assert.equal(isLocalClientVerification(valid(), TEMPLATE.sha256, ALL), true);
+  });
+
+  it("withdraws only the feature whose facts no retained record accepts", () => {
+    // Travel from a later client next to the first client's other facts: no
+    // single retained record accepts both, so only Travel may turn off.
+    const mixed: KnownEnhancementBuild = {
+      ...ENHANCEMENT,
+      travelAction: ENHANCEMENT_BUILDS.at(-1)!.travelAction!,
+    };
+    const { travelAction, ...expected } = ENHANCEMENT;
+    assert.ok(travelAction);
+    const accepted = withdrawRefusedFeatures(mixed, ALL);
+    assert.deepEqual(accepted, expected);
+
+    const profile = enhancementCapabilityProfile({ ...ALL, travelAction: false })!;
+    const verification = verificationFor(
+      { ...accepted, outputSha256: { [profile]: "7".repeat(64) } },
+      ALL,
+    );
+    assert.equal(isLocalClientVerification(verification, TEMPLATE.sha256, ALL), true);
+    for (const feature of ENHANCEMENT_CAPABILITY_FIELDS) {
+      const expectedStatus = feature === "travelAction"
+        ? "changed"
+        : ALL[feature] ? "proved" : "not-requested";
+      assert.equal(verification.featureVerdicts[feature].status, expectedStatus, feature);
+    }
+  });
+
+  it("keeps the template verdict when the boundary refuses the Enhancement part", () => {
+    const message = verificationFor({
+      ...ENHANCEMENT,
+      travelAction: ENHANCEMENT_BUILDS.at(-1)!.travelAction!,
+      outputSha256: { "features-fff": ENHANCEMENT.outputSha256["features-fff"]! },
+    }, ALL);
+    assert.equal(isLocalClientVerification(message, TEMPLATE.sha256, ALL), false);
+
+    const kept = acceptLocalClientVerification(message, TEMPLATE.sha256, ALL);
+    assert.ok(kept?.featureVerdicts);
+    assert.equal(kept.status, "enhancement-refused");
+    assert.equal(kept.templateSaveBuild, TEMPLATE);
+    assert.equal(kept.enhancementBuild, null);
+    for (const feature of ENHANCEMENT_CAPABILITY_FIELDS) {
+      assert.deepEqual(
+        kept.featureVerdicts[feature],
+        ALL[feature]
+          ? {
+              status: "changed",
+              invariant: "enhancement.process-boundary",
+              inputSha256: TEMPLATE.outputSha256,
+              verifierAbi: SEMANTIC_VERIFIER_ABI,
+            }
+          : {
+              status: "not-requested",
+              inputSha256: TEMPLATE.outputSha256,
+              verifierAbi: SEMANTIC_VERIFIER_ABI,
+            },
+        feature,
+      );
+    }
+    assert.equal(acceptLocalClientVerification({
+      ...message,
+      templateSaveBuild: { ...TEMPLATE, outputSha256: "0".repeat(64) },
+    }, TEMPLATE.sha256, ALL), null);
   });
 
   it("accepts the chat filter certificate and rejects changed template facts", () => {

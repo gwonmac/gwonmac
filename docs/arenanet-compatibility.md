@@ -173,6 +173,14 @@ automatically surviving every routine rebuild.
 Compiled feature records can be partial. Compose independently derived values
 per feature. An absent historic field must not erase a proved current feature.
 Conflicting non-null values refuse that feature and its declared dependants.
+The verifier and the process boundary share one acceptance rule: a feature is
+accepted when every fact it needs matches one retained record, and different
+features may match different records. The verifier withdraws a refused feature
+with invariant `enhancement.retained-acceptance` before it pins the output hash.
+Template saving is a separate verdict: when the boundary refuses the
+Enhancement part of a message, it withdraws the whole Enhancement build (its
+pinned output hash covers every feature it carries) with invariant
+`enhancement.process-boundary` and keeps a valid template verdict.
 Guild Hall has a separate proof inside Travel: a changed Guild Hall producer
 withdraws Guild Hall while ordinary Travel stays available.
 

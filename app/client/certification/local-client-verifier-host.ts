@@ -5,8 +5,10 @@
  * The child gets the proof mode plus only the artifact paths and hashes that
  * proof needs.
  * A result is accepted only if it arrives from this launch's process and
- * survives `isLocalClientVerification` against that same hash. Profile state is
- * never certification authority, so every unknown exact hash runs the proof.
+ * survives `acceptLocalClientVerification` against that same hash, which keeps
+ * a valid template verdict when only the Enhancement part is refused. Profile
+ * state is never certification authority, so every unknown exact hash runs the
+ * proof.
  *
  * The timeout is the reason for the process at all: a client this app did not
  * produce must not be able to hang a launch by hanging the verifier.
@@ -14,7 +16,7 @@
 import { fileURLToPath } from "node:url";
 import { utilityProcess } from "electron";
 import {
-  isLocalClientVerification,
+  acceptLocalClientVerification,
   type LocalClientVerification,
 } from "./local-client-verifier.js";
 import {
@@ -89,11 +91,11 @@ export async function verifyClientLocally(options: {
       enhancementCapabilityProfile(options.requestedCapabilities) ?? "none",
     ],
     serviceName: "Guild Wars client compatibility verifier",
-    accept: (value) => isLocalClientVerification(
+    accept: (value) => acceptLocalClientVerification(
       value,
       options.officialSha256,
       options.requestedCapabilities,
-    ) ? value : null,
+    ),
   }).catch(() => null);
 }
 

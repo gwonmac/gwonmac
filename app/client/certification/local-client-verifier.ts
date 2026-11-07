@@ -14,7 +14,9 @@
  * after their complete field and packet ledgers prove independently.
  *
  * `isLocalClientVerification` re-validates every field of a result that crossed
- * the process boundary. Profile state is never consulted.
+ * the process boundary. The verifier and the boundary share one retained
+ * acceptance rule per feature (`enhancement-feature-acceptance.ts`). Profile
+ * state is never consulted.
  */
 import { deriveAlcoholObservation } from "./enhancement-alcohol-proof.js";
 import { deriveNativeHudRendering, provesNativeHudRendering } from "./native-hud-transform.js";
@@ -27,14 +29,17 @@ import { isDeepStrictEqual } from "node:util";
 import {
   enhancementCapabilityProfile,
   enhancementCapabilitiesRequested,
+  ENHANCEMENT_CAPABILITY_FIELDS,
   ENHANCEMENT_CAPABILITY_PRESETS,
   intersectEnhancementCapabilities,
   type EnhancementCapabilities,
 } from "../../shared/enhancement-contracts.js";
 import {
   ENHANCEMENT_BUILDS,
+  supportedEnhancementCapabilities,
   type KnownEnhancementBuild,
 } from "./enhancement-builds.js";
+import { withdrawRefusedFeatures } from "./enhancement-feature-acceptance.js";
 import {
   inspectEnhancementStructuralEvidence,
   inspectTargetRoleCandidates,
@@ -88,7 +93,10 @@ import {
 } from "./enhancement-player-effect-proof.js";
 import { deriveSkillSlotGeometry } from "./enhancement-skill-slot-geometry-proof.js";
 
-export { isLocalClientVerification } from "./local-client-verification-boundary.js";
+export {
+  acceptLocalClientVerification,
+  isLocalClientVerification,
+} from "./local-client-verification-boundary.js";
 export {
   LOCAL_FEATURE_INVARIANTS,
   LOCAL_VERIFICATION_REASONS,
@@ -1004,26 +1012,43 @@ function deriveEnhancementBuild(
     chatPrint: includeChatPrint,
     progressObservation: includeProgress,
   });
-  const effective = intersectEnhancementCapabilities(requestedCapabilities, maximum);
+  const located = intersectEnhancementCapabilities(requestedCapabilities, maximum);
+  // The boundary repeats this rule; applying it here first means a refusal
+  // withdraws only the refused features, with an output hash for the rest.
+  const accepted = withdrawRefusedFeatures(provisional, located);
+  const effective = accepted === provisional
+    ? located
+    : intersectEnhancementCapabilities(located, supportedEnhancementCapabilities(accepted));
+  const acceptanceFailures: LocalFeatureFailures = Object.freeze({
+    ...completeFailures,
+    ...Object.fromEntries(ENHANCEMENT_CAPABILITY_FIELDS
+      .filter((feature) => located[feature] && !effective[feature])
+      .map((feature) => [feature, retainedAcceptanceFailure])),
+  });
   const profile = enhancementCapabilityProfile(effective);
   if (profile === null || !enhancementCapabilitiesRequested(effective)) {
-    return Object.freeze({ build: null, failures });
+    return Object.freeze({ build: null, failures: accepted === provisional ? failures : acceptanceFailures });
   }
   const outputSha256 = Object.freeze({
     [profile]: sha256(transformEnhancementWasm(
       templateOutput,
-      provisional,
+      accepted,
       effective,
     )),
   });
   return Object.freeze({
     build: Object.freeze({
-      ...provisional,
+      ...accepted,
       outputSha256: Object.freeze(outputSha256),
     }),
-    failures: completeFailures,
+    failures: acceptanceFailures,
   });
 }
+
+const retainedAcceptanceFailure = Object.freeze({
+  status: "changed",
+  invariant: "enhancement.retained-acceptance",
+} as const);
 
 /**
  * Pure verifier entry point. It reads no profile state and performs no writes;
