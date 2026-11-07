@@ -15,12 +15,12 @@ import {
   compareToCertified,
   deriveTemplateSaveBuild,
   inspectTemplateSaveCandidate,
-} from "../../src/tools/template-save-recert.js";
+} from "../../app/tools-cli/template-save-recert.js";
 import {
   isLocalClientVerification,
   verifyLocalClientBytes,
-} from "../../src/main/certification/local-client-verifier.js";
-import { deriveEquivalentTemplateSaveBuild } from "../../src/main/certification/template-save-verifier.js";
+} from "../../app/client/certification/local-client-verifier.js";
+import { deriveEquivalentTemplateSaveBuild } from "../../app/client/certification/template-save-verifier.js";
 import {
   concat,
   encodeCode,
@@ -31,13 +31,13 @@ import {
   sectionById,
   splitSections,
   WASM_HEADER,
-} from "../../src/main/core/wasm-binary.js";
+} from "../../app/main/core/wasm-binary.js";
 import {
   ENHANCEMENT_BUILDS,
   enhancementProfilesForBuild,
   supportedEnhancementCapabilities,
-} from "../../src/main/certification/enhancement-builds.js";
-import { transformEnhancementWasm } from "../../src/main/certification/enhancement-transform.js";
+} from "../../app/client/certification/enhancement-builds.js";
+import { transformEnhancementWasm } from "../../app/client/certification/enhancement-transform.js";
 import {
   mutableSpans,
   decodeFunctions,
@@ -48,22 +48,22 @@ import {
   uniqueRoleFunction,
   unsignedOperand,
   wasmEvidence,
-} from "../../src/main/certification/wasm-evidence.js";
-import type { ModuleShape } from "../../src/main/certification/enhancement-evidence-types.js";
+} from "../../app/client/certification/wasm-evidence.js";
+import type { ModuleShape } from "../../app/client/certification/enhancement-evidence-types.js";
 import {
   rewriteTemplateSaveWasm,
-} from "../../src/main/certification/template-save-compat.js";
+} from "../../app/client/certification/template-save-compat.js";
 import {
   ENHANCEMENT_CAPABILITY_PRESETS,
   enhancementCapabilitiesForProfile,
   type EnhancementCapabilities,
-} from "../../src/shared/enhancement-contracts.js";
-import { inspectLocalActionRoleCandidates } from "../../src/main/certification/enhancement-local-actions-proof.js";
+} from "../../app/shared/enhancement-contracts.js";
+import { inspectLocalActionRoleCandidates } from "../../app/client/certification/enhancement-local-actions-proof.js";
 import {
   inspectTargetRoleCandidates,
   locateAutomaticCursor,
   locateAutomaticPlayRegion,
-} from "../../src/main/certification/enhancement-structural-evidence.js";
+} from "../../app/client/certification/enhancement-structural-evidence.js";
 
 const sha256 = (bytes: Uint8Array): string =>
   createHash("sha256").update(bytes).digest("hex");

@@ -16,36 +16,36 @@ import {
   enhancementCapabilitiesForProfile,
   type EnhancementCapabilityProfile,
   type EnhancementCapabilities,
-} from "../../src/shared/enhancement-contracts.js";
+} from "../../app/shared/enhancement-contracts.js";
 import {
   inspectEnhancementCache,
   prepareClientModule,
   type ClientCertification,
-} from "../../src/main/certification/client-module.js";
+} from "../../app/client/certification/client-module.js";
 import {
   rewriteTemplateSaveWasm,
   TEMPLATE_SAVE_TRANSFORM_ABI,
   type KnownTemplateSaveBuild,
-} from "../../src/main/certification/template-save-compat.js";
+} from "../../app/client/certification/template-save-compat.js";
 import {
   type EnhancementOutputHashes,
   type KnownEnhancementBuild,
-} from "../../src/main/certification/enhancement-builds.js";
+} from "../../app/client/certification/enhancement-builds.js";
 import {
   ENHANCEMENT_HOOK_EXPORT,
   ENHANCEMENT_MANIFEST_SECTION,
   transformEnhancementWasm,
-} from "../../src/main/certification/enhancement-transform.js";
+} from "../../app/client/certification/enhancement-transform.js";
 import {
   DOUBLE_CLICK_FLAG_EXPORT,
   rewriteWithBuild,
   type NativeDoubleClickBuild,
-} from "../../src/main/certification/native-double-click.js";
+} from "../../app/client/certification/native-double-click.js";
 import {
   parseCode,
   sectionById,
   splitSections,
-} from "../../src/main/core/wasm-binary.js";
+} from "../../app/main/core/wasm-binary.js";
 
 const CURSOR_TOOLBOX: EnhancementCapabilities = Object.freeze({
   nativeCursor: true,

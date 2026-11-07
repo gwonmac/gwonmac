@@ -7,7 +7,7 @@ import {
   verifyLayout,
   type FieldWitnesses,
   type ProofVerdict,
-} from "../../src/main/certification/semantic-proof.js";
+} from "../../app/client/certification/semantic-proof.js";
 
 describe("semantic proof primitives", () => {
   it("binds every verdict to one input and verifier ABI", () => {

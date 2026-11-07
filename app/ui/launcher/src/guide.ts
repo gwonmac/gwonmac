@@ -1,7 +1,7 @@
 /**
  * The launcher's Guide: the website's player guide pages, built into the app so
  * the Guide matches this version and works offline. The website renders the
- * same Markdown, so a page is written once in apps/website/content.
+ * same Markdown, so a page is written once in website/content.
  *
  * Links become action IDs the Help page resolves: `guide:<page>#<anchor>`,
  * `settings:<section>[/<control>]`, or `url:<https address>` for the browser.
@@ -11,7 +11,7 @@ import { parseSettingsTarget, type SettingsTarget } from "@shared/settings-catal
 import { LAUNCHER_GUIDE_ORIGINS } from "@shared/launcher-contracts";
 
 const WEBSITE = "https://www.gwonmac.com";
-const IMAGE_DIRECTORY = "../../website/public";
+const IMAGE_DIRECTORY = "../../../../website/public";
 
 /**
  * The website pages the Guide shows, by their docs path, grouped as in Help's
@@ -48,8 +48,8 @@ export type GuideAction =
   | Readonly<{ kind: "settings"; target: SettingsTarget }>
   | Readonly<{ kind: "url"; url: string }>;
 
-const sources = import.meta.glob<string>("../../website/content/en/1.docs/*/*.md", { query: "?raw", import: "default", eager: true });
-const images = import.meta.glob<string>("../../website/public/docs/**/*.{webp,png,jpg}", { query: "?url", import: "default", eager: true });
+const sources = import.meta.glob<string>("../../../../website/content/en/1.docs/*/*.md", { query: "?raw", import: "default", eager: true });
+const images = import.meta.glob<string>("../../../../website/public/docs/**/*.{webp,png,jpg}", { query: "?url", import: "default", eager: true });
 
 const isPage = (id: string): id is GuidePageId => (GUIDE_PAGE_IDS as readonly string[]).includes(id);
 

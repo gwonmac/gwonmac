@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url";
 import ts from "typescript";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const sourceRoot = path.join(root, "src/main");
+const sourceRoot = path.join(root, "app/main");
 
 function mainSources(at = sourceRoot): string[] {
   return readdirSync(at, { withFileTypes: true }).flatMap((entry) => {

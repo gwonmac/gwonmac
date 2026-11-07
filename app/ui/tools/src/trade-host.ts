@@ -12,8 +12,8 @@ import {
   type TraderPriceHistoryResult,
   type TraderQuote,
   type TraderQuoteSnapshot,
-} from "../../../src/shared/trade-chat";
-import type { GwNativeApi } from "../../../src/shared/contracts";
+} from "../../../shared/trade-chat";
+import type { GwNativeApi } from "../../../shared/contracts";
 
 export type TradeHost = Readonly<{
   subscribe(source: TradeSource): Promise<TradeSnapshot>;

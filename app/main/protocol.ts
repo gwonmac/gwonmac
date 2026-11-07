@@ -23,7 +23,7 @@ import {
   SKILL_ICON_PATTERN,
 } from "../shared/contracts.js";
 import { CLIENT_ARTIFACTS } from "./core/access-key.js";
-import type { ChunkStore } from "./core/chunk-store.js";
+import type { ChunkStore } from "../client/chunk-store.js";
 import {
   isProxyCookieHeader,
   isProxyFetchDestination,

@@ -1,13 +1,13 @@
 /* The Tools workbench's own layout.
  *
- * Everything visual comes from `src/shared/ui/tokens.css` and
- * `src/shared/ui/components.css`: buttons, chips, rows, wells, inputs, the
+ * Everything visual comes from `app/shared/ui/tokens.css` and
+ * `app/shared/ui/components.css`: buttons, chips, rows, wells, inputs, the
  * metal frame, the skill slots. This file positions them. It does not decide
  * what any of them look like, and
  * `tests/unit/the-ui-system-has-one-place-to-change-a-colour.test.ts` keeps it
  * that way.
  *
- * Embedded in the renderer, `src/renderer/index.html` links the two shared
+ * Embedded in the renderer, `app/renderer/index.html` links the two shared
  * stylesheets directly, so they are not imported here — the app must not ship
  * a second copy of the design system inside `tools-app.css`. The standalone
  * dev page loads them from `standalone.ts` instead.

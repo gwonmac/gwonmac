@@ -19,10 +19,10 @@ export function ignorePackageFile(file: string): boolean {
     || p === "/node_modules/pngjs/lib"
     || p.startsWith("/node_modules/pngjs/lib/")
   ) return false;
-  if (p === "/build" || p === "/build/main" || p === "/build/shared") {
+  if (p === "/build" || p === "/build/main" || p === "/build/client" || p === "/build/shared") {
     return false;
   }
-  if (p.startsWith("/build/main/") || p.startsWith("/build/shared/")) {
+  if (p.startsWith("/build/main/") || p.startsWith("/build/client/") || p.startsWith("/build/shared/")) {
     return p.endsWith(".map") || p.endsWith(".d.ts") || p.endsWith(".d.ts.map");
   }
   if (p === "/build/renderer") return false;

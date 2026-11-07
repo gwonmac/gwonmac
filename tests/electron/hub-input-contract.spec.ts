@@ -3,7 +3,7 @@ import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { closeOffline, isDomActiveElement, launchPlayableClient, type OfflineFixture } from './fixtures.mjs';
 import { startGameInput } from './input-helpers.js';
-import { teamId, teamSlotsOf } from '../../src/shared/builds/library.js';
+import { teamId, teamSlotsOf } from '../../app/shared/builds/library.js';
 
 /**
  * The Hub input contract at the native boundary (spec §13): physical shortcut
@@ -12,7 +12,7 @@ import { teamId, teamSlotsOf } from '../../src/shared/builds/library.js';
  * listeners. A key can reach the game only while the canvas has focus, so each
  * release check sends the key-up after the press has moved focus back to the
  * canvas. The browser fixture's golden matrix
- * (`apps/tools/tests/hub-keyboard-contract.spec.ts`) covers the same keys
+ * (`app/ui/tools/tests/hub-keyboard-contract.spec.ts`) covers the same keys
  * without the main process.
  */
 type RecordingWindow = typeof window & { __hubContractKeys?: string[]; __hubContractPointer?: string[]; __hubContractTrips?: number[] };
@@ -102,7 +102,7 @@ async function stubQuitOrReloadSheet(fixture: OfflineFixture) {
 async function installReadyTravel(page: Page) {
   await page.evaluate(async () => {
     const specifier = './travel-palette.js';
-    const module = await import(specifier) as typeof import('../../src/renderer/travel-palette.js');
+    const module = await import(specifier) as typeof import('../../app/renderer/travel-palette.js');
     const trips: number[] = [];
     (window as RecordingWindow).__hubContractTrips = trips;
     const ready = (mapId: number) => ({
@@ -175,7 +175,7 @@ test('Command-B and Command-T open their scope in the open Hub and never type in
     const { page } = fixture;
     await page.evaluate(async () => {
       const specifier = './travel-palette.js';
-      const module = await import(specifier) as typeof import('../../src/renderer/travel-palette.js');
+      const module = await import(specifier) as typeof import('../../app/renderer/travel-palette.js');
       module.createTravelPalette(document.body, {
         travel: () => undefined, guildHall: () => undefined, guildHallUnavailable: () => null, unavailable: () => null,
       }).setEnabled(true);
@@ -208,8 +208,8 @@ test('Command-D hands the open Hub to Whispers, and its closing release stays ou
     await page.evaluate(async () => {
       const modelPath = './shared/whisper-session.js';
       const surfacePath = './whisper-surface.js';
-      const model = await import(modelPath) as typeof import('../../src/shared/whisper-session.js');
-      const surface = await import(surfacePath) as typeof import('../../src/renderer/whisper-surface.js');
+      const model = await import(modelPath) as typeof import('../../app/shared/whisper-session.js');
+      const surface = await import(surfacePath) as typeof import('../../app/renderer/whisper-surface.js');
       const session = model.createWhisperSession(async () => {});
       session.setAvailable(true);
       surface.createWhisperSurface(document.body, session);
@@ -732,9 +732,9 @@ test('a native held Enter sends one invite and owns its repeats and release (HUB
     const { page } = fixture;
     await page.evaluate(async () => {
       const sessionPath = './shared/whisper-session.js', peoplePath = './hub-people.js', invitePath = './party-invite.js';
-      const { createWhisperSession } = await import(sessionPath) as typeof import('../../src/shared/whisper-session.js');
-      const { createHubPeople } = await import(peoplePath) as typeof import('../../src/renderer/hub-people.js');
-      const { createPartyInvite } = await import(invitePath) as typeof import('../../src/renderer/party-invite.js');
+      const { createWhisperSession } = await import(sessionPath) as typeof import('../../app/shared/whisper-session.js');
+      const { createHubPeople } = await import(peoplePath) as typeof import('../../app/renderer/hub-people.js');
+      const { createPartyInvite } = await import(invitePath) as typeof import('../../app/renderer/party-invite.js');
       const sent: string[] = []; Object.assign(window, { acceptanceInvites: sent });
       const session = createWhisperSession(async () => {}); session.setAvailable(true);
       const party = createPartyInvite({ region: () => ({ status: 'ready', sequence: 1, mapId: 55, instanceType: 0, playRegion: 'pve', travelContext: 'world', characterKey: null, guildHall: false, hasGuildHall: false, unlockedMapWords: null }),
@@ -758,7 +758,7 @@ test('a native held Enter applies one team and owns its repeats and release (HUB
       slots: teamSlotsOf(() => ({ hero: null, build: null, behaviour: null })) }] };
     await page.evaluate(async library => {
       const toolsPath = './tools/tools-app.js';
-      const { mountToolsApp } = await import(toolsPath) as import('../../src/shared/tools-bundle-contracts.js').EmbeddedToolsBundle<HTMLElement>;
+      const { mountToolsApp } = await import(toolsPath) as import('../../app/shared/tools-bundle-contracts.js').EmbeddedToolsBundle<HTMLElement>;
       const host = document.createElement('section'); host.id = 'native-team-host'; document.body.append(host);
       const modes: boolean[] = []; Object.assign(window, { acceptanceModes: modes });
       const observation = (hardMode: boolean) => ({ status: 'ready' as const, partyObserved: true, party: { status: 'ready' as const, rosterObserved: true, inOutpost: true, playRegion: 'pve' as const, hardMode,

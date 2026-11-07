@@ -7,7 +7,7 @@ import { describe, it } from "node:test";
 import {
   preserveCorruptDocument,
   quarantineCorruptDocument,
-} from "../../src/main/core/corrupt-document.js";
+} from "../../app/main/core/corrupt-document.js";
 
 describe("corrupt document quarantine", () => {
   it("can preserve bytes without creating an absent-document crash window", async () => {

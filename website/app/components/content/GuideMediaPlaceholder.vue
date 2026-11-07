@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // A screenshot or video that is still to be made. The launcher's Guide draws the
-// same block from the same Markdown (src/shared/launcher-markdown.ts).
+// same block from the same Markdown (app/shared/launcher-markdown.ts).
 defineProps<{ type?: "image" | "video" }>();
 </script>
 

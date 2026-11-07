@@ -16,24 +16,24 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { chromium } from "playwright";
 import type { Browser, Page } from "playwright";
-import type { PublishedClientManifest } from "../../src/main/core/published-client.ts";
+import type { PublishedClientManifest } from "../../app/client/published-client.ts";
 import {
   type AppSettingsPatch,
-} from "../../src/shared/contracts.ts";
+} from "../../app/shared/contracts.ts";
 import {
   ENHANCEMENT_CONFIG_WORD_COUNT,
   ENHANCEMENT_TRANSFORM_ABI,
   enhancementHooksFor,
   type EnhancementCapabilities,
-} from "../../src/shared/enhancement-contracts.ts";
+} from "../../app/shared/enhancement-contracts.ts";
 import { stopChildProcess } from "./child-process.ts";
-import { saveBuildLibrary } from "../../src/main/core/build-library.ts";
+import { saveBuildLibrary } from "../../app/main/core/build-library.ts";
 import {
   LIBRARY_VERSION,
   buildId,
   skillBarOf,
   type BuildLibrary,
-} from "../../src/shared/builds/library.ts";
+} from "../../app/shared/builds/library.ts";
 // The canonical tables, not their emitted copies. `pnpm typecheck` runs before
 // `pnpm build` in `pnpm verify`, so a static import of `build/` here would make
 // checking depend on output that may not exist yet. The packaged app under
@@ -41,16 +41,16 @@ import {
 import {
   ENHANCEMENT_BUILDS,
   enhancementConfigWords,
-} from "../../src/main/certification/enhancement-builds.ts";
+} from "../../app/client/certification/enhancement-builds.ts";
 import {
   COMPANION_CURSOR_BYTES,
   COMPANION_SNAPSHOT_BYTES,
   COMPANION_TOOLBOX_BYTES,
-} from "../../src/renderer/companion-snapshot.ts";
+} from "../../app/renderer/companion-snapshot.ts";
 import { root } from "../electron/fixtures.mts";
 import {
   DISTRIBUTION_CHANNEL_CONFIG,
-} from "../../src/shared/distribution-channel.ts";
+} from "../../app/shared/distribution-channel.ts";
 import { resolvePackageMode } from "../../scripts/package-mode.ts";
 import {
   seedCachedClient,
@@ -63,7 +63,7 @@ export { seedCachedClient } from "./cached-client.ts";
 
 /**
  * The host `Module` the renderer publishes for ArenaNet's generated glue. Only
- * what this file drives is named — `src/renderer/harness.ts` owns the object,
+ * what this file drives is named — `app/renderer/harness.ts` owns the object,
  * and the glue's own surface is ArenaNet's.
  */
 export interface HostModule {
@@ -102,7 +102,7 @@ export interface TargetReadoutFixture {
 /**
  * The packaged renderer's page. `Module` is a page global with no module to
  * import it from; everything the bridge exposes is on `window` and typed by
- * `src/renderer/gw-native.d.ts`.
+ * `app/renderer/gw-native.d.ts`.
  */
 export type PageGlobals = typeof globalThis & { Module?: HostModule };
 

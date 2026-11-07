@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { parseSettings } from "../../src/main/core/settings.ts";
-import { DEFAULT_SETTINGS } from "../../src/shared/contracts.ts";
+import { parseSettings } from "../../app/main/core/settings.ts";
+import { DEFAULT_SETTINGS } from "../../app/shared/contracts.ts";
 import {
   ENHANCEMENT_CAPABILITY_CONTRACTS,
   ENHANCEMENT_CAPABILITY_FIELDS,
@@ -12,19 +12,19 @@ import {
   intersectEnhancementCapabilities,
   validEnhancementCapabilities,
   type EnhancementCapability,
-} from "../../src/shared/enhancement-contracts.ts";
+} from "../../app/shared/enhancement-contracts.ts";
 import {
   ENHANCEMENT_CONFIG_FIELDS,
   ENHANCEMENT_CONFIG_WORD_COUNT,
   ENHANCEMENT_LAYOUT_FIELDS,
   ENHANCEMENT_LAYOUT_OWNERSHIP_IS_EXHAUSTIVE,
   ENHANCEMENT_LAYOUT_WORD_COUNT,
-} from "../../src/shared/enhancement-config.ts";
+} from "../../app/shared/enhancement-config.ts";
 import {
   FEATURE_SELECTION_POLICIES,
   featureActivationRequested,
   featureRegionAllowsRequest,
-} from "../../src/shared/feature-contracts.ts";
+} from "../../app/shared/feature-contracts.ts";
 
 test("the capability registry is the ordered wire vocabulary", () => {
   assert.deepEqual(ENHANCEMENT_CAPABILITY_CONTRACTS, [

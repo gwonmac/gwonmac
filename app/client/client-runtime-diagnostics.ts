@@ -12,8 +12,8 @@ import type {
 } from "../shared/enhancement-contracts.js";
 import { diagnosticProfilePolicy } from "../shared/diagnostic-profile.js";
 import type { ActiveClient } from "./active-client.js";
-import { clientArtifactPath, type GamePaths } from "./core/paths.js";
-import { sha256File } from "./core/derived-wasm.js";
+import { clientArtifactPath, type GamePaths } from "../main/core/paths.js";
+import { sha256File } from "./derived-wasm.js";
 
 export async function readClientRuntimeDiagnosticState(options: Readonly<{
   active: ActiveClient | null;

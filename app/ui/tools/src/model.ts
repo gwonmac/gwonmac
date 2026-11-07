@@ -3,9 +3,9 @@ import {
   type BuildId,
   type BuildLibrary,
   type Team,
-} from "../../../src/shared/builds/library";
-import { diffBuilds } from "../../../src/shared/builds/diff";
-import { heroLabel } from "../../../src/shared/builds/heroes";
+} from "../../../shared/builds/library";
+import { diffBuilds } from "../../../shared/builds/diff";
+import { heroLabel } from "../../../shared/builds/heroes";
 import type { SkillCatalogue } from "./skill-catalog";
 
 export type {
@@ -16,7 +16,7 @@ export type {
   SkillId,
   Team,
   TeamId,
-} from "../../../src/shared/builds/library";
+} from "../../../shared/builds/library";
 
 export type LibraryItem =
   | { kind: "build"; id: BuildId }

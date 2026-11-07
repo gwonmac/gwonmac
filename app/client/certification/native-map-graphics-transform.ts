@@ -6,7 +6,7 @@
 import {
   concat, encodeCode, encodeIndexVector, encodeSection, parseCode, parseExports,
   parseIndexVector, sectionById, sleb, splitSections, uleb, vectorPayload, WASM_HEADER,
-} from "../core/wasm-binary.js";
+} from "../../main/core/wasm-binary.js";
 import { encodeName } from "./cartography-transform-internals.js";
 import { NATIVE_RENDER_REFERENCE_FUNCTIONS, nativeGraphicsBusy, nativeModelBusy,
   resolveNativeRenderBindings } from "./native-render-reference.js";

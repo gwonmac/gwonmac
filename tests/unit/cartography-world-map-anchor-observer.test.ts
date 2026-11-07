@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createWorldMapAnchorSpikeReader } from
-  "../../src/renderer/cartography-spike/world-map-anchor-observer.js";
+  "../../app/renderer/cartography-spike/world-map-anchor-observer.js";
 import { WORLD_MAP_ANCHOR_SPIKE_GLOBALS } from
-  "../../src/shared/cartography-spike.js";
+  "../../app/shared/cartography-spike.js";
 
 function scalar(type: "i32" | "f32", value: number): WebAssembly.Global {
   return new WebAssembly.Global({ value: type, mutable: true }, value);

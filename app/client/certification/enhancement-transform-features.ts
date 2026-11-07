@@ -2,7 +2,7 @@
  * Feature-owned rewrite contributions consumed by the Enhancement assembler.
  * Generic WASM section assembly remains outside this module.
  */
-import { concat } from "../core/wasm-binary.js";
+import { concat } from "../../main/core/wasm-binary.js";
 import { partyInviteEnqueue, whisperConfigure, whisperEnqueue, whisperDrain } from "./enhancement-whisper-transform.js";
 import { resignConfigure, resignEnqueue, resignExecute, resignDrain } from "./enhancement-resign-transform.js";
 import { chatPrintConfigure, chatPrintDrain, chatPrintEnqueue } from "./enhancement-chat-print-transform.js";

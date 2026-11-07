@@ -3,7 +3,7 @@
  * It locates the bounded callback-to-consumer graph without build-local indexes.
  */
 import { createHash } from "node:crypto";
-import { functionImportIndex } from "../core/wasm-binary.js";
+import { functionImportIndex } from "../../main/core/wasm-binary.js";
 import type {
   DecodedFunction,
   InstructionOperandSite,

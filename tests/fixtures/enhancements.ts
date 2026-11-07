@@ -3,7 +3,7 @@ import {
   COMPANION_ABI,
   COMPANION_DISPATCH_KINDS,
   COMPANION_FEATURE_BITS,
-} from "../../src/shared/companion-abi.ts";
+} from "../../app/shared/companion-abi.ts";
 import {
   readCompanionCursorHeader,
   readCompanionCursorPixels,
@@ -19,33 +19,33 @@ import {
   COMPANION_TOOLBOX_BYTES,
   COMPANION_PARTY_BYTES,
   readCompanionParty,
-} from "../../src/renderer/companion-snapshot.ts";
+} from "../../app/renderer/companion-snapshot.ts";
 import {
   COMPANION_SKILL_COOLDOWN_BYTES,
   readCompanionSkillSlots,
   readCompanionSkillCooldowns,
   COMPANION_SKILL_SLOT_BYTES,
-} from "../../src/renderer/companion-skill-snapshot.ts";
-import { readCompanionFriends } from "../../src/renderer/companion-friend-snapshot.ts";
+} from "../../app/renderer/companion-skill-snapshot.ts";
+import { readCompanionFriends } from "../../app/renderer/companion-friend-snapshot.ts";
 import {
   COMPANION_EFFECT_ICON_BYTES,
   COMPANION_PLAYER_EFFECT_BYTES,
   readCompanionEffectIcons,
   readCompanionPlayerEffects,
-} from "../../src/renderer/companion-effect-snapshot.ts";
+} from "../../app/renderer/companion-effect-snapshot.ts";
 import {
   COMPANION_PLAY_REGION_BYTES,
   readCompanionPlayRegion,
-} from "../../src/renderer/companion-play-region-snapshot.ts";
+} from "../../app/renderer/companion-play-region-snapshot.ts";
 import {
   ENHANCEMENT_CONFIG_WORD_COUNT,
-} from "../../src/shared/enhancement-contracts.ts";
+} from "../../app/shared/enhancement-contracts.ts";
 import {
   ENHANCEMENT_CONFIG_FIELDS,
   ENHANCEMENT_DISPATCHER_CONFIG_START,
   ENHANCEMENT_EFFECT_DIRTY_CONFIG_START,
   ENHANCEMENT_LAYOUT_FIELDS,
-} from "../../src/shared/enhancement-config.ts";
+} from "../../app/shared/enhancement-config.ts";
 
 // Every read returns a discriminated union: `reason` belongs to the members
 // that rejected the region, the decoded fields to the members that accepted
@@ -527,7 +527,7 @@ export interface KernelOverrides {
  * A `.wasm` binary carries its signatures nowhere TypeScript can read them, so
  * `WebAssembly.Exports` is `Record<string, ExportValue>` and this is the one
  * dynamic boundary in the file. The `typeof` checks prove the two exports are
- * callable; the arities come from `src/companion-kernel/lib.rs`, and every
+ * callable; the arities come from `kernels/companion/lib.rs`, and every
  * call below is checked against these declarations rather than against
  * `Function`.
  */

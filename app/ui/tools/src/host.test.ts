@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { GwNativeApi } from "../../../src/shared/contracts";
-import type { TeamApplyPlan } from "../../../src/shared/builds/team-apply";
-import { liveParty } from "../../../src/shared/builds/live-party";
-import type { TeamApplyCommands } from "../../../src/shared/builds/team-apply-runner";
+import type { GwNativeApi } from "../../../shared/contracts";
+import type { TeamApplyPlan } from "../../../shared/builds/team-apply";
+import { liveParty } from "../../../shared/builds/live-party";
+import type { TeamApplyCommands } from "../../../shared/builds/team-apply-runner";
 import { createHubGameFixture } from "./hub-game-fixture";
 import { demoLibrary, demoParty } from "./fixtures";
 import { createDemoHost, createNativeHost } from "./host";

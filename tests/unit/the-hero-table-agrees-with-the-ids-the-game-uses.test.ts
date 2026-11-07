@@ -1,4 +1,4 @@
-// `src/shared/builds/heroes.ts` is a transcription, and the failure mode of a
+// `app/shared/builds/heroes.ts` is a transcription, and the failure mode of a
 // transcription is not a crash — it is a build that loads the wrong skill on the
 // wrong hero, or a hero picker whose seventh entry is somebody else. Nothing
 // downstream can detect that, because every value is plausible. So this file
@@ -25,9 +25,9 @@ import type {
   Attribute,
   AttributeRank,
   Profession,
-} from "../../src/shared/builds/library.ts";
-import { heroId } from "../../src/shared/builds/library.ts";
-import * as tables from "../../src/shared/builds/heroes.ts";
+} from "../../app/shared/builds/library.ts";
+import { heroId } from "../../app/shared/builds/library.ts";
+import * as tables from "../../app/shared/builds/heroes.ts";
 import {
   ATTRIBUTE_BY_ID,
   ATTRIBUTE_POINT_COST,
@@ -38,7 +38,7 @@ import {
   PROFESSION_BY_ID,
   PROFESSION_NONE_ID,
   PROFESSIONS,
-} from "../../src/shared/builds/heroes.ts";
+} from "../../app/shared/builds/heroes.ts";
 
 /** `Object.entries` widens the key; the records were declared with these. */
 const professionEntries = Object.entries(PROFESSIONS) as readonly (readonly [

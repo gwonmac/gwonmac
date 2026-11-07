@@ -4,9 +4,9 @@ import {
   characterActionExecute,
   characterActionFramePointerWithinMemory,
   characterSelectorSlot,
-} from "../../src/main/certification/enhancement-character-switch-transform.js";
-import { decodeFunctions } from "../../src/main/certification/wasm-instruction-evidence.js";
-import type { ModuleShape } from "../../src/main/certification/enhancement-evidence-types.js";
+} from "../../app/client/certification/enhancement-character-switch-transform.js";
+import { decodeFunctions } from "../../app/client/certification/wasm-instruction-evidence.js";
+import type { ModuleShape } from "../../app/client/certification/enhancement-evidence-types.js";
 import {
   concat,
   encodeCode,
@@ -14,7 +14,7 @@ import {
   uleb,
   sleb,
   WASM_HEADER,
-} from "../../src/main/core/wasm-binary.js";
+} from "../../app/main/core/wasm-binary.js";
 
 const bodyModule = (body: Uint8Array): ModuleShape => ({
   types: [],

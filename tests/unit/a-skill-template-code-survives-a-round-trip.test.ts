@@ -13,9 +13,9 @@ import test from "node:test";
 import {
   decodeSkillTemplate,
   encodeSkillTemplate,
-} from "../../src/shared/builds/skill-template.ts";
-import type { SkillTemplate } from "../../src/shared/builds/skill-template.ts";
-import { skillId } from "../../src/shared/builds/library.ts";
+} from "../../app/shared/builds/skill-template.ts";
+import type { SkillTemplate } from "../../app/shared/builds/skill-template.ts";
+import { skillId } from "../../app/shared/builds/library.ts";
 
 interface Vector {
   /** Where the code came from, and what it is here to exercise. */

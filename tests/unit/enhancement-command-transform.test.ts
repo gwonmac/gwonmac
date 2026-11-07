@@ -3,20 +3,20 @@ import { createHash } from "node:crypto";
 import { describe, it } from "node:test";
 import {
   transformEnhancementWasm,
-} from "../../src/main/certification/enhancement-transform.js";
-import { decodeEnhancementManifest } from "../../src/renderer/enhancement-manifest.js";
+} from "../../app/client/certification/enhancement-transform.js";
+import { decodeEnhancementManifest } from "../../app/renderer/enhancement-manifest.js";
 import {
   parseExports,
   sectionById,
   splitSections,
-} from "../../src/main/core/wasm-binary.js";
+} from "../../app/main/core/wasm-binary.js";
 import {
   intersectEnhancementCapabilities,
-} from "../../src/shared/enhancement-contracts.js";
+} from "../../app/shared/enhancement-contracts.js";
 import {
   PROFESSION_TRACE_SCHEMA,
   PROFESSION_TRACE_WORDS,
-} from "../../src/shared/profession-command-trace.js";
+} from "../../app/shared/profession-command-trace.js";
 import {
   commandBody,
   CURSOR_ONLY,

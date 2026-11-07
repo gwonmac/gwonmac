@@ -2,11 +2,11 @@
 #![no_std]
 #![deny(unsafe_op_in_unsafe_fn)]
 
-#[path = "../../src/companion-kernel/friend_records.rs"]
+#[path = "../../kernels/companion/friend_records.rs"]
 mod friend_records;
-#[path = "../../src/companion-kernel/friend_session.rs"]
+#[path = "../../kernels/companion/friend_session.rs"]
 mod friend_session;
-#[path = "../../src/companion-kernel/memory.rs"]
+#[path = "../../kernels/companion/memory.rs"]
 mod memory;
 
 #[panic_handler]

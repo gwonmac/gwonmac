@@ -4,7 +4,7 @@
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { COMPANION_ABI, COMPANION_FEATURE_BITS } from "../../src/shared/companion-abi.ts";
+import { COMPANION_ABI, COMPANION_FEATURE_BITS } from "../../app/shared/companion-abi.ts";
 import { ADDRESSES, createKernel, installGameGraph } from "../fixtures/enhancements.ts";
 
 const FEATURES = COMPANION_FEATURE_BITS.playRegionObservation

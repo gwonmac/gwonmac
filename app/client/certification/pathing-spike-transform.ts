@@ -37,7 +37,7 @@ import {
   vectorPayload,
   WASM_HEADER,
   type Section,
-} from "../core/wasm-binary.js";
+} from "../../main/core/wasm-binary.js";
 import { appendNativeMapGraphics } from "./native-map-graphics-transform.js";
 import { appendNativeCompassTerrain } from "./native-compass-terrain-transform.js";
 import { functionBodySha256, wasmEvidence } from "./wasm-evidence.js";

@@ -82,32 +82,32 @@ function assertUnreachable(
 }
 
 test("the Core renderer graph cannot evaluate optional Tools implementation", () => {
-  const graph = staticClosure("src/renderer/enhancements.ts");
+  const graph = staticClosure("app/renderer/enhancements.ts");
   assertUnreachable(graph, [
-    "src/renderer/certified-companion-tools.ts",
-    "src/renderer/companion-snapshot.ts",
-    "src/renderer/companion-skill-snapshot.ts",
-    "src/renderer/enhancement-readout.ts",
-    "src/renderer/toolbox-foundation.ts",
-    "src/renderer/skill-overlays-installation.ts",
-    "src/renderer/companion-policy-source.ts",
-    "src/renderer/tools-host.ts",
-    "src/renderer/travel-palette.ts",
-    "src/renderer/tools-stylesheet.ts",
+    "app/renderer/certified-companion-tools.ts",
+    "app/renderer/companion-snapshot.ts",
+    "app/renderer/companion-skill-snapshot.ts",
+    "app/renderer/enhancement-readout.ts",
+    "app/renderer/toolbox-foundation.ts",
+    "app/renderer/skill-overlays-installation.ts",
+    "app/renderer/companion-policy-source.ts",
+    "app/renderer/tools-host.ts",
+    "app/renderer/travel-palette.ts",
+    "app/renderer/tools-stylesheet.ts",
   ]);
 });
 
 test("the Core main graph cannot evaluate optional stores, IPC, or network code", () => {
-  const graph = staticClosure("src/main/main.ts");
+  const graph = staticClosure("app/main/main.ts");
   assertUnreachable(graph, [
-    "src/main/core/cartography-map-knowledge.ts",
-    "src/main/cartography-evidence-export.ts",
-    "src/main/tools-runtime.ts",
-    "src/main/tools-ipc.ts",
-    "src/main/trade-ipc.ts",
-    "src/main/core/trade-chat-service.ts",
-    "src/main/core/trade-saved-store.ts",
-    "src/main/core/travel-history.ts",
-    "src/main/core/build-library-coordinator.ts",
+    "app/main/core/cartography-map-knowledge.ts",
+    "app/main/cartography-evidence-export.ts",
+    "app/main/tools-runtime.ts",
+    "app/main/tools-ipc.ts",
+    "app/main/trade-ipc.ts",
+    "app/main/core/trade-chat-service.ts",
+    "app/main/core/trade-saved-store.ts",
+    "app/main/core/travel-history.ts",
+    "app/main/core/build-library-coordinator.ts",
   ]);
 });

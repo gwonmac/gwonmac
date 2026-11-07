@@ -5,7 +5,7 @@ import test from "node:test";
 import {
   isLocalClientVerification,
   verifyLocalClientBytes,
-} from "../../src/main/certification/local-client-verifier.js";
+} from "../../app/client/certification/local-client-verifier.js";
 
 test("the real client proves and validates Quick Item Move", {
   timeout: 60_000,

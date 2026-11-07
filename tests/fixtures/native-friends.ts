@@ -1,10 +1,10 @@
 /** Execute retained native friend paths against synthetic memory, with no client or network. */
 import assert from "node:assert/strict";
-import { wasmEvidence } from "../../src/main/certification/wasm-evidence.js";
+import { wasmEvidence } from "../../app/client/certification/wasm-evidence.js";
 import {
   concat, encodeCode, encodeIndexVector, encodeSection, paddedIndex,
   readUleb, sectionById, sleb, splitSections, uleb, WASM_HEADER,
-} from "../../src/main/core/wasm-binary.js";
+} from "../../app/main/core/wasm-binary.js";
 
 // Regression evidence for this retained input only. Never imported by production.
 const INPUT_SHA256 = "1eb07332632e2fca8aabf5baa14fa1a1e6a2a59ec7134dfb8f6231d924c9fd7b";

@@ -4,13 +4,13 @@
  */
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { ModuleShape } from "../../src/main/certification/enhancement-evidence-types.js";
+import type { ModuleShape } from "../../app/client/certification/enhancement-evidence-types.js";
 import {
   activeTableEvidence,
   decodeFunctions,
-} from "../../src/main/certification/wasm-evidence.js";
-import { WasmDataEvidence } from "../../src/main/certification/wasm-data-evidence.js";
-import { concat, uleb } from "../../src/main/core/wasm-binary.js";
+} from "../../app/client/certification/wasm-evidence.js";
+import { WasmDataEvidence } from "../../app/client/certification/wasm-data-evidence.js";
+import { concat, uleb } from "../../app/main/core/wasm-binary.js";
 
 function moduleWithBody(body: Uint8Array): ModuleShape {
   return {

@@ -7,7 +7,7 @@
   // was ever an input.
   //
   // This project checks that remainder against the real production contracts:
-  // the `src/**/*.ts` the tests import are pulled in by module resolution
+  // the `app/**/*.ts` the tests import are pulled in by module resolution
   // rather than by an `include` glob, so `tsconfig.json` stays the one place
   // that decides what `src` means.
   "compilerOptions": {
@@ -87,15 +87,15 @@
     "scripts/**/*.ts",
     "scripts/**/*.mjs",
     "scripts/**/*.mts",
-    "src/preload/preload.body.cjs",
-    "src/preload/preload.launcher.cjs",
-    "src/preload/preload.tools.cjs",
+    "app/preload/preload.body.cjs",
+    "app/preload/preload.launcher.cjs",
+    "app/preload/preload.tools.cjs",
 
     // Ambient declarations are reached by no `import`, so the renderer sources
     // the tests pull in would otherwise lose `Window.gwNative` and ArenaNet's
     // graphics globals. `tsconfig.renderer.json` includes this file for the
     // same reason.
-    "src/renderer/**/*.d.ts"
+    "app/renderer/**/*.d.ts"
   ],
   "exclude": ["node_modules", "out", "build"]
 }

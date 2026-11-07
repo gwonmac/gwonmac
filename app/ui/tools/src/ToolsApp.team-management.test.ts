@@ -1,8 +1,8 @@
 import { flushPromises } from "@vue/test-utils";
 import { describe, expect, it, vi } from "vitest";
-import { heroId, mapTeamSlots } from "../../../src/shared/builds/library";
-import { liveParty, unavailableParty } from "../../../src/shared/builds/live-party";
-import type { TeamApplyResult } from "../../../src/shared/builds/team-apply";
+import { heroId, mapTeamSlots } from "../../../shared/builds/library";
+import { liveParty, unavailableParty } from "../../../shared/builds/live-party";
+import type { TeamApplyResult } from "../../../shared/builds/team-apply";
 import { createDemoHost, type ToolsHost } from "./host";
 import { applicableHost, workbench } from "./ToolsApp.test-fixture";
 

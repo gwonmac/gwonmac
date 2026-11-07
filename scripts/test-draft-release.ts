@@ -10,7 +10,7 @@ import os from "node:os";
 import path from "node:path";
 import { createInterface } from "node:readline/promises";
 import { pathToFileURL } from "node:url";
-import { RELEASE_REPO } from "../src/shared/project-identity.ts";
+import { RELEASE_REPO } from "../app/shared/project-identity.ts";
 import { macOSBundleVersions } from "./macos-version.ts";
 import { verifySignedApplication } from "./verify-signed-app.ts";
 

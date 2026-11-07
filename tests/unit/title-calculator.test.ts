@@ -1,10 +1,10 @@
 /** Title values, whole-item rounding and refusal boundaries use offline fixtures. */
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { calculateTitle } from '../../src/shared/title-calculator.js';
-import { createHubCalculator } from '../../src/renderer/hub-calculator.js';
+import { calculateTitle } from '../../app/shared/title-calculator.js';
+import { createHubCalculator } from '../../app/renderer/hub-calculator.js';
 /** Calculator rows copy without navigating, so any live task serves. */
-const task: import('../../src/shared/hub.js').HubTask = { live: () => true, progress() {}, done() {} };
+const task: import('../../app/shared/hub.js').HubTask = { live: () => true, progress() {}, done() {} };
 
 test('known items convert only into their own title using base points',()=>{
   for(const [query,answer] of [['250 cupcakes in sweet points','500 Sweet Tooth points'],['1 stack grog in drunk points','750 Drunkard points'],['250 hunters ale to drunkard points','250 Drunkard points'],['2 stacks zkeys in zaishen points','2,500 Zaishen points'],['1 frosty tonic in party points','2 Party Animal points']])assert.equal(calculateTitle(query!)?.[0]?.title,answer);

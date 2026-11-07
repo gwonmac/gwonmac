@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { allocateCompanionCoreMemory } from "../../src/renderer/companion-core-memory-installation.ts";
+import { allocateCompanionCoreMemory } from "../../app/renderer/companion-core-memory-installation.ts";
 import {
   COMPANION_KERNEL_RUNTIME_BYTES,
   validateCompanionOwnedRegions,
-} from "../../src/renderer/companion-owned-regions.ts";
-import { PROFESSION_COMMAND_TRACE_BYTES } from "../../src/renderer/profession-command-trace.ts";
+} from "../../app/renderer/companion-owned-regions.ts";
+import { PROFESSION_COMMAND_TRACE_BYTES } from "../../app/renderer/profession-command-trace.ts";
 
 const CONFIG = Object.freeze([0x1122_3344, 0xaabb_ccdd, 7]);
 

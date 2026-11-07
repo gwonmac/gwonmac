@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { CredentialsStore } from "../../src/main/core/credentials.js";
+import { CredentialsStore } from "../../app/main/core/credentials.js";
 import type {
   NativeKeychain,
   SecretSlot,
-} from "../../src/main/core/native-keychain.js";
-import { AppError } from "../../src/shared/errors.js";
-import { parseProfileId } from "../../src/shared/multiple-accounts.js";
-import { multiSecretSlot } from "../../src/main/core/native-keychain.js";
+} from "../../app/main/core/native-keychain.js";
+import { AppError } from "../../app/shared/errors.js";
+import { parseProfileId } from "../../app/shared/multiple-accounts.js";
+import { multiSecretSlot } from "../../app/main/core/native-keychain.js";
 
 class FakeKeychain implements NativeKeychain {
   readonly values = new Map<SecretSlot, Buffer>();

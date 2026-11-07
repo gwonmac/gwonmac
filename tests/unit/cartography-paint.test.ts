@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { CARTOGRAPHY_UNSEEN_MARKERS } from "../../src/shared/cartography-overlay.js";
+import { CARTOGRAPHY_UNSEEN_MARKERS } from "../../app/shared/cartography-overlay.js";
 import {
   cartographyLineDash,
   cartographyHoverRevealRadius,
   drawUnseenCellMarker,
   strokeCasedPath,
   type CellCorners,
-} from "../../src/renderer/cartography-spike/cartography-paint.js";
-import { cartographyCellPresentation } from "../../src/renderer/cartography-spike/cartography-grid-layer.js";
+} from "../../app/renderer/cartography-spike/cartography-paint.js";
+import { cartographyCellPresentation } from "../../app/renderer/cartography-spike/cartography-grid-layer.js";
 
 class RecordingContext {
   readonly strokes: Readonly<{ color: unknown; width: number; dash: readonly number[] }>[] = [];

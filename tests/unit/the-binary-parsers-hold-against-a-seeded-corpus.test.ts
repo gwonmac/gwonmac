@@ -15,13 +15,13 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { describe, it } from "node:test";
 import { gzipSync } from "node:zlib";
-import { HASH_ALGOS } from "../../src/main/core/access-key.js";
+import { HASH_ALGOS } from "../../app/main/core/access-key.js";
 import {
   decodeChunk,
   parseContentHash,
   verifyChunkHash,
-} from "../../src/main/core/chunk-format.js";
-import { Manifest } from "../../src/main/core/manifest.js";
+} from "../../app/main/core/chunk-format.js";
+import { Manifest } from "../../app/main/core/manifest.js";
 import {
   concat,
   encodeCode,
@@ -37,8 +37,8 @@ import {
   splitSections,
   uleb,
   WASM_HEADER,
-} from "../../src/main/core/wasm-binary.js";
-import { AppError } from "../../src/shared/errors.js";
+} from "../../app/main/core/wasm-binary.js";
+import { AppError } from "../../app/shared/errors.js";
 
 const ROUNDS = 200;
 

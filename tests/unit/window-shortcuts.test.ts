@@ -1,8 +1,8 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import type { BrowserWindow } from "electron";
-import { setInputTraceEnabled } from "../../src/main/input-trace.js";
-import { DEFAULT_SETTINGS } from "../../src/shared/contracts.js";
+import { setInputTraceEnabled } from "../../app/main/input-trace.js";
+import { DEFAULT_SETTINGS } from "../../app/shared/contracts.js";
 import {
   captureWindowShortcut,
   captureWindowSkillKey,
@@ -11,7 +11,7 @@ import {
   installWindowShortcuts,
   releaseWindowShortcutKey,
   updateWindowShortcuts,
-} from "../../src/main/window-shortcuts.js";
+} from "../../app/main/window-shortcuts.js";
 
 type ShortcutInput = Pick<
   Electron.Input,

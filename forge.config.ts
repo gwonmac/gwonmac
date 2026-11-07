@@ -14,7 +14,7 @@ import {
 import {
   DISTRIBUTION_CHANNEL_CONFIG,
   distributionMarker,
-} from "./src/shared/distribution-channel.js";
+} from "./app/shared/distribution-channel.js";
 
 const packageVersion = (
   JSON.parse(
@@ -76,10 +76,10 @@ const config: ForgeConfig = {
     extraResource: [
       "LICENSE",
       "THIRD-PARTY-NOTICES.md",
-      "src/renderer/fonts/COPYING-QUALITYPE",
+      "app/renderer/fonts/COPYING-QUALITYPE",
       "build/renderer/fonts/COPYING-INTER",
-      "src/native/gw-dat/vendor/COPYING-GWTOOLBOX",
-      "src/native/gw-dat/vendor/COPYING-GUILDWARSMAPBROWSER",
+      "app/native/gw-dat/vendor/COPYING-GWTOOLBOX",
+      "app/native/gw-dat/vendor/COPYING-GUILDWARSMAPBROWSER",
     ],
     ...(distributionSigning ? { osxSign: distributionSigning } : {}),
     ...(releaseNotarization ? { osxNotarize: releaseNotarization } : {}),

@@ -5,15 +5,15 @@ import {
   PERIODIC_CHECK_DUE_MS,
   PERIODIC_CHECK_TICK_MS,
   periodicCheckDue,
-} from "../../src/main/app-updater.ts";
+} from "../../app/main/app-updater.ts";
 import type {
   AppUpdateErrorCode,
   AppUpdateState,
-} from "../../src/shared/contracts.ts";
+} from "../../app/shared/contracts.ts";
 import {
   APP_UPDATE_FEED_URL,
   releaseAssetUrl,
-} from "../../src/shared/project-identity.ts";
+} from "../../app/shared/project-identity.ts";
 
 function manifest(version: string) {
   const tag = `v${version}`;

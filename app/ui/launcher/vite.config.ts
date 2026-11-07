@@ -10,15 +10,15 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
-      "@site": fileURLToPath(new URL("../website/public", import.meta.url)),
-      "@shared": fileURLToPath(new URL("../../src/shared", import.meta.url)),
+      "@site": fileURLToPath(new URL("../../../website/public", import.meta.url)),
+      "@shared": fileURLToPath(new URL("../../shared", import.meta.url)),
     },
   },
   // `hub` builds the Settings page a second time, as the module the game window's Hub imports.
   build: mode === "hub"
     ? {
         emptyOutDir: true,
-        outDir: fileURLToPath(new URL("../../build/renderer/settings", import.meta.url)),
+        outDir: fileURLToPath(new URL("../../../build/renderer/settings", import.meta.url)),
         sourcemap: false,
         lib: {
           entry: fileURLToPath(new URL("./src/hub-entry.ts", import.meta.url)),
@@ -29,7 +29,7 @@ export default defineConfig(({ mode }) => ({
       }
     : {
         emptyOutDir: true,
-        outDir: fileURLToPath(new URL("../../build/renderer/launcher", import.meta.url)),
+        outDir: fileURLToPath(new URL("../../../build/renderer/launcher", import.meta.url)),
         sourcemap: false,
       },
   test: {

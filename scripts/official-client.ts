@@ -29,14 +29,14 @@ import { pathToFileURL } from "node:url";
 import {
   JSPI_ARTIFACTS,
   PATCH_REQUEST_TIMEOUT_MS,
-} from "../src/main/core/access-key.js";
-import { fingerprintClientGeneration } from "../src/main/core/client-fingerprint.js";
-import type { Manifest } from "../src/main/core/manifest.js";
-import { PatchClient } from "../src/main/core/patch-client.js";
-import { clientArtifactPath } from "../src/main/core/paths.js";
-import { createBoundedPatchFetch } from "../src/main/core/patch-transport.js";
-import { isDigest, type Digest } from "../src/shared/digest.js";
-import { SEMANTIC_VERIFIER_ABI } from "../src/main/certification/semantic-proof.js";
+} from "../app/main/core/access-key.js";
+import { fingerprintClientGeneration } from "../app/main/core/client-fingerprint.js";
+import type { Manifest } from "../app/main/core/manifest.js";
+import { PatchClient } from "../app/client/patch-client.js";
+import { clientArtifactPath } from "../app/main/core/paths.js";
+import { createBoundedPatchFetch } from "../app/main/core/patch-transport.js";
+import { isDigest, type Digest } from "../app/shared/digest.js";
+import { SEMANTIC_VERIFIER_ABI } from "../app/client/certification/semantic-proof.js";
 
 export const RECORD = "certificates/certified-client.json";
 

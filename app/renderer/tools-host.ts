@@ -113,7 +113,7 @@ export function mountToolsInto(
    *
    * Handed straight through. This module is a courier and does not learn what
    * a hero is — the sequence that turns a plan into commands lives beside the
-   * domain it reasons about, in `src/shared/builds`, which this bundle cannot
+   * domain it reasons about, in `app/shared/builds`, which this bundle cannot
    * import at run time and the Tools bundle compiles in.
    */
   commands: TeamApplyCommands | null,

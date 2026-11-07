@@ -4,14 +4,14 @@ import {
   createTeamApplyCommands,
   TEAM_COMMAND_PAYLOAD_BYTES,
   type EnhancementCommandEnqueue,
-} from "../../src/renderer/enhancement-team-commands.ts";
+} from "../../app/renderer/enhancement-team-commands.ts";
 import {
   createStorageCommand,
   initializeStorageDataWindow,
   STORAGE_DATA_WINDOW_BYTES,
-} from "../../src/renderer/enhancement-storage-command.ts";
-import type { ToolboxObservation } from "../../src/shared/builds/live-party.ts";
-import { heroId } from "../../src/shared/builds/library.ts";
+} from "../../app/renderer/enhancement-storage-command.ts";
+import type { ToolboxObservation } from "../../app/shared/builds/live-party.ts";
+import { heroId } from "../../app/shared/builds/library.ts";
 
 const PLAYER_AGENT = 7;
 const PAYLOAD = 0x100;

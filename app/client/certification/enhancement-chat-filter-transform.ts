@@ -2,7 +2,7 @@
  * Builds the bounded, fail-open chat filter that runs before the game UI
  * dispatcher and keeps all message contents inside the game module.
  */
-import { concat, sleb, uleb } from "../core/wasm-binary.js";
+import { concat, sleb, uleb } from "../../main/core/wasm-binary.js";
 import { ENHANCEMENT_CHAT_FILTER_MASKS } from "../../shared/enhancement-contracts.js";
 import type { KnownEnhancementBuild } from "./enhancement-build-model.js";
 

@@ -2,7 +2,7 @@
  * Emits the three named character-switch actions and their game-thread executor.
  * It owns no generic frame or UI-message export; callers can only logout, select, or Play.
  */
-import { concat, sleb, uleb } from "../core/wasm-binary.js";
+import { concat, sleb, uleb } from "../../main/core/wasm-binary.js";
 import type { EnhancementLayout } from "../../shared/enhancement-config.js";
 import { CHARACTER_SWITCH_ACTION_ABI } from "../../shared/character-switch-action-abi.js";
 

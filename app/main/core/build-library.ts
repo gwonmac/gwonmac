@@ -1,7 +1,7 @@
 /**
  * The durable half of the hero-builds toolbox: read and write `build-library.json`.
  *
- * The shape lives in `src/shared/builds/library.ts` because the renderer needs
+ * The shape lives in `app/shared/builds/library.ts` because the renderer needs
  * it too. What lives here is everything that touches a disk, and one decision
  * that shapes the whole feature:
  *

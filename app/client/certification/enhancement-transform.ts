@@ -77,7 +77,7 @@ import {
   WASM_HEADER,
   type FunctionType,
   type Section,
-} from "../core/wasm-binary.js";
+} from "../../main/core/wasm-binary.js";
 import {
   encodeEnhancementTable,
   enhancementTableSlotFunctions,

@@ -10,7 +10,7 @@
 // directory handle is opened only to reach `FileHandle.prototype`.
 import { open, type FileHandle } from "node:fs/promises";
 import { dirname } from "node:path";
-import { writeAtomic } from "../../src/main/core/atomic-file.js";
+import { writeAtomic } from "../../app/main/core/atomic-file.js";
 
 const target = process.argv[2];
 if (target === undefined) {

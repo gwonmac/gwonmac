@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { projectMissionMapFrame, projectNativeFrame } from
-  "../../src/renderer/cartography-spike/frame-placement.js";
+  "../../app/renderer/cartography-spike/frame-placement.js";
 
 const canvas = Object.freeze({ left: 0, top: 0, width: 1_512, height: 917 });
 const missionMap = Object.freeze({

@@ -15,8 +15,8 @@ import {
   travelBrowseScope,
   travelDestination,
   travelShortcutsFromStored,
-} from "../../src/shared/travel.js";
-import { travelDestinationAvailability, travelGameState } from "../../src/shared/travel-command.js";
+} from "../../app/shared/travel.js";
+import { travelDestinationAvailability, travelGameState } from "../../app/shared/travel-command.js";
 
 describe("Travel", () => {
   it("contains the complete reviewed direct-travel catalogue", () => {

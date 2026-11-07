@@ -8,8 +8,8 @@ import {
 } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { AppSettings } from "../../src/shared/contracts.js";
-import type { PublishedClientManifest } from "../../src/main/core/published-client.js";
+import type { AppSettings } from "../../app/shared/contracts.js";
+import type { PublishedClientManifest } from "../../app/client/published-client.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const electronBin = path.join(
@@ -20,7 +20,7 @@ const userData = path.join(root, "test-results", "live-user-data");
 
 /**
  * Emscripten's `FS`, as this smoke drives it. The host mounts it in
- * `src/renderer/harness.ts`; the client publishes it as a page global, so
+ * `app/renderer/harness.ts`; the client publishes it as a page global, so
  * there is no module to import the shape from.
  */
 type EmscriptenFilesystem = {

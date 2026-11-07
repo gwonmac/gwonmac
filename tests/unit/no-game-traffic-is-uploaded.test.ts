@@ -21,17 +21,17 @@
 //
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { SocketEvent } from "../../src/shared/contracts.ts";
-import { allowedName, isAllowedPort } from "../../src/main/core/allowlists.ts";
-import { AppError } from "../../src/shared/errors.ts";
-import { inspectEventLog } from "../../src/main/diagnostics/detector.ts";
-import { diagnosticEventRecord } from "../../src/main/diagnostics/schema.ts";
-import type { DiagnosticEvent } from "../../src/main/diagnostics/schema.ts";
+import type { SocketEvent } from "../../app/shared/contracts.ts";
+import { allowedName, isAllowedPort } from "../../app/main/core/allowlists.ts";
+import { AppError } from "../../app/shared/errors.ts";
+import { inspectEventLog } from "../../app/main/diagnostics/detector.ts";
+import { diagnosticEventRecord } from "../../app/main/diagnostics/schema.ts";
+import type { DiagnosticEvent } from "../../app/main/diagnostics/schema.ts";
 import {
   SocketManager,
   parseDestination,
   type ManagedSocket,
-} from "../../src/main/core/sockets.ts";
+} from "../../app/main/core/sockets.ts";
 
 class FakeSocket implements ManagedSocket {
   written: Uint8Array[] = [];

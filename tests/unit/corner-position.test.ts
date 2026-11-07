@@ -1,7 +1,7 @@
 /** Checks stable corner offsets shared by chat and alcohol overlays. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { captureCornerPosition, restoreCornerPosition } from "../../src/shared/corner-position.ts";
+import { captureCornerPosition, restoreCornerPosition } from "../../app/shared/corner-position.ts";
 
 const viewport = { width: 1000, height: 800, margin: 0 };
 const size = { width: 64, height: 26 };

@@ -8,7 +8,7 @@ import {
   removeTeamMember,
   teamSlotsOf,
   type TeamSlot,
-} from "../../src/shared/builds/library.js";
+} from "../../app/shared/builds/library.js";
 
 const empty = (): TeamSlot => ({ build: null, hero: null, behaviour: "guard" });
 const member = (hero: number, build: string, behaviour: TeamSlot["behaviour"]): TeamSlot => ({

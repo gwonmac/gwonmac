@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseHubSettingsChange, HUB_SETTINGS_FIELDS } from '../../src/shared/hub-settings.js';
+import { parseHubSettingsChange, HUB_SETTINGS_FIELDS } from '../../app/shared/hub-settings.js';
 
 test('Hub settings accepts in-game changes and rejects launcher administration', () => {
   assert.deepEqual(parseHubSettingsChange({ kind: 'settings', patch: { uiStyle: 'obsidian', uiPanelOpacity: 80, uiTextSize: 200 } }), { kind: 'settings', patch: { uiStyle: 'obsidian', uiPanelOpacity: 80, uiTextSize: 200 } });

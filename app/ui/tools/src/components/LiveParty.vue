@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import ProfessionIcon from "./ProfessionIcon.vue";
 import { computed } from "vue";
-import type { LiveParty } from "../../../../src/shared/builds/live-party";
-import { heroLabel } from "../../../../src/shared/builds/heroes";
+import type { LiveParty } from "../../../../shared/builds/live-party";
+import { heroLabel } from "../../../../shared/builds/heroes";
 
 const props = defineProps<{
   initiallyExpanded?: boolean;

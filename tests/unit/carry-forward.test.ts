@@ -1,17 +1,17 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { WASM_HEADER } from "../../src/main/core/wasm-binary.js";
+import { WASM_HEADER } from "../../app/main/core/wasm-binary.js";
 import { verifyLocalClientBytes } from
-  "../../src/main/certification/local-client-verifier.js";
+  "../../app/client/certification/local-client-verifier.js";
 import {
   createCarryForwardReport,
   formatCarryForwardMarkdown,
-} from "../../src/tools/carry-forward.js";
+} from "../../app/tools-cli/carry-forward.js";
 import {
   currentMessageAnchors,
   recertifyEnhancementBytes,
-} from "../../src/tools/enhancement-recert.js";
-import { inspectTemplateSaveCandidate } from "../../src/tools/template-save-recert.js";
+} from "../../app/tools-cli/enhancement-recert.js";
+import { inspectTemplateSaveCandidate } from "../../app/tools-cli/template-save-recert.js";
 
 describe("patch-day carry-forward report", () => {
   it("fails closed when no capability can be located", () => {

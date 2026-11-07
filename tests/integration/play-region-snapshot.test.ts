@@ -4,7 +4,7 @@ import {
   COMPANION_PLAY_REGION_BYTES,
   COMPANION_PLAY_REGION_ABI,
   readCompanionPlayRegion,
-} from "../../src/renderer/companion-play-region-snapshot.ts";
+} from "../../app/renderer/companion-play-region-snapshot.ts";
 
 function snapshot(overrides: Readonly<{
   magic?: number;

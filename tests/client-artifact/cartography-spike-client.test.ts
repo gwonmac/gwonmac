@@ -6,13 +6,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { prepareCartographySpike } from
-  "../../src/main/certification/cartography-spike-client.js";
+  "../../app/client/certification/cartography-spike-client.js";
 import { deriveCartographySpikeBuild } from
-  "../../src/main/certification/cartography-spike-verifier.js";
+  "../../app/client/certification/cartography-spike-verifier.js";
 import { verifyLocalClientBytes } from
-  "../../src/main/certification/local-client-verifier.js";
+  "../../app/client/certification/local-client-verifier.js";
 import { rewriteTemplateSaveWasm } from
-  "../../src/main/certification/template-save-compat.js";
+  "../../app/client/certification/template-save-compat.js";
 
 const sha256 = (bytes: Uint8Array): string =>
   createHash("sha256").update(bytes).digest("hex");

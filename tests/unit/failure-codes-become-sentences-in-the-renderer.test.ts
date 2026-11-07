@@ -17,9 +17,9 @@ import {
   failureDetail,
   memoryWarningCopy,
   suggestReport,
-} from "../../src/renderer/failure-messages.js";
-import { NOTICE_CODES } from "../../src/shared/contracts.ts";
-import { ERROR_CODES } from "../../src/shared/errors.ts";
+} from "../../app/renderer/failure-messages.js";
+import { NOTICE_CODES } from "../../app/shared/contracts.ts";
+import { ERROR_CODES } from "../../app/shared/errors.ts";
 
 describe("renderer failure messages", () => {
   it("answers every code in the catalogue with a sentence, on every surface", () => {

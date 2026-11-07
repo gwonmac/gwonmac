@@ -1,5 +1,5 @@
 import type { CharacterSwitchDiagnostics } from
-  "../../src/renderer/character-switch-model.js";
+  "../../app/renderer/character-switch-model.js";
 import { operatorCheckpoint } from "./scenario-checkpoint.js";
 
 type Context = Readonly<{

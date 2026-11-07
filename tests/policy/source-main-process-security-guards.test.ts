@@ -1,7 +1,7 @@
 // Reads repository text, and says so in its filename.
 //
 // Most security-posture assertions this repository used to make about
-// src/main by regular expression are now asked of the running application.
+// app/main by regular expression are now asked of the running application.
 // These are the call sites whose rejected branch cannot be constructed past
 // the surrounding Electron guard. Each predicate is executed by a unit test;
 // this file proves only that main still asks it. It lives under a filename
@@ -33,19 +33,19 @@ test("IPC still refuses a sender that is not the main frame at the canonical URL
   // for real in tests/electron/sandbox.spec.ts — means the main frame cannot
   // leave the canonical URL. `isCanonicalRendererUrl` itself is executed in
   // tests/unit/renderer-trust.test.ts.
-  const ipc = read("src/main/ipc-channel-registry.ts");
+  const ipc = read("app/main/ipc-channel-registry.ts");
   assert.match(ipc, /event\.senderFrame !== event\.sender\.mainFrame/u);
   assert.match(ipc, /isCanonicalRendererUrl\(event\.senderFrame\.url\)/u);
 });
 
 test("production resolves native windows only through the window registry", () => {
-  const sources = sourceFiles(path.join(root, "src/main"));
+  const sources = sourceFiles(path.join(root, "app/main"));
   for (const file of sources) {
     const source = readFileSync(file, "utf8");
     assert.doesNotMatch(source, /BrowserWindow\.(?:getAllWindows|getFocusedWindow|fromWebContents)\(/u, file);
   }
   assert.match(
-    read("src/main/ipc-channel-registry.ts"),
+    read("app/main/ipc-channel-registry.ts"),
     /registry\.windowForWebContents\(event\.sender\.id\)/u,
   );
 });
@@ -57,7 +57,7 @@ test("the proxy still answers only fetches", () => {
   // tests/electron/webgate.spec.ts; only this unreachable destination branch
   // remains a source assertion.
   assert.match(
-    read("src/main/protocol.ts"),
+    read("app/main/protocol.ts"),
     /if \(!isProxyFetchDestination\(destination\)\)/u,
   );
 });
@@ -68,7 +68,7 @@ test("the proxy response still crosses the canonical header boundary", () => {
   // synthetic 302 to net.fetch, so retain only this one production call-site
   // assertion rather than introducing a second transport implementation.
   assert.match(
-    read("src/main/protocol.ts"),
+    read("app/main/protocol.ts"),
     /proxyResponseHeaders\(\s*route,\s*upstream,\s*res\.status,\s*res\.headers,/u,
   );
 });

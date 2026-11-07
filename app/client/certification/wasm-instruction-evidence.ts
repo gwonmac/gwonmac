@@ -2,7 +2,7 @@
  * One bounded, anchor-independent instruction pass for shared WASM evidence.
  * Feature-specific constants are projected without rescanning function bodies.
  */
-import { readUleb } from "../core/wasm-binary.js";
+import { readUleb } from "../../main/core/wasm-binary.js";
 import type {
   DecodedFunction,
   DirectCallSite,

@@ -8,7 +8,7 @@ import {
   parseReleaseVersion,
   releaseMetadataMatchesStage,
   type ReleaseVersion,
-} from "../../src/shared/release.ts";
+} from "../../app/shared/release.ts";
 
 function parsed(value: string): ReleaseVersion {
   const version = parseReleaseVersion(value);

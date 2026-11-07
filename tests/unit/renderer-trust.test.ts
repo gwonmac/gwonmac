@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {
   isLauncherRendererUrl,
   isCanonicalRendererUrl,
-} from "../../src/main/core/renderer-trust.js";
+} from "../../app/main/core/renderer-trust.js";
 
 describe("canonical renderer URL", () => {
   it("allows the launcher document and nothing else", () => {

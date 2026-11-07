@@ -2,10 +2,10 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { verifyLocalClientBytes, isLocalClientVerification } from "../../src/main/certification/local-client-verifier.js";
-import { NO_ENHANCEMENT_CAPABILITIES } from "../../src/shared/enhancement-contracts.js";
-import { deriveResignAction } from "../../src/main/certification/enhancement-resign-proof.js";
-import { enhancementProofContext } from "../../src/main/certification/wasm-evidence.js";
+import { verifyLocalClientBytes, isLocalClientVerification } from "../../app/client/certification/local-client-verifier.js";
+import { NO_ENHANCEMENT_CAPABILITIES } from "../../app/shared/enhancement-contracts.js";
+import { deriveResignAction } from "../../app/client/certification/enhancement-resign-proof.js";
+import { enhancementProofContext } from "../../app/client/certification/wasm-evidence.js";
 
 test("the real client proves Resign and refuses a changed native sender", { timeout: 60_000 }, async () => {
   const filename = process.env.GW_CLIENT_WASM;

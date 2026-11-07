@@ -103,10 +103,10 @@ test.describe("visual problem report", () => {
         const importRenderer = async <T>(specifier: string): Promise<T> =>
           import(specifier);
         const { installGraphics } = await importRenderer<
-          typeof import("../../src/renderer/graphics.js")
+          typeof import("../../app/renderer/graphics.js")
         >("./graphics.js");
         const { createVisualFrameCapture } = await importRenderer<
-          typeof import("../../src/renderer/visual-frame-capture.js")
+          typeof import("../../app/renderer/visual-frame-capture.js")
         >("./visual-frame-capture.js");
         const canvas: HTMLCanvasElement & { offscreen?: OffscreenCanvas } =
           document.createElement("canvas");
@@ -330,13 +330,13 @@ test.describe("visual problem report", () => {
       ).toContain('"name":"graphics.visualProblem"');
 
       const validated = await execFileAsync(process.execPath, [
-        path.join(root, "build/tools/diagnostics/validate.js"),
+        path.join(root, "build/tools-cli/diagnostics/validate.js"),
         target,
       ]);
       expect(validated.stdout).toContain("valid capture");
       const analysisRoot = path.join(saveRoot, "analysis");
       const analyzed = await execFileAsync(process.execPath, [
-        path.join(root, "build/tools/diagnostics/visual.js"),
+        path.join(root, "build/tools-cli/diagnostics/visual.js"),
         target,
         analysisRoot,
       ]);

@@ -131,11 +131,11 @@ jobs:
         run: |
           mkdir -p "$EVIDENCE"
           set +e
-          node build/tools/certification.js double-click "$WASM" \
+          node build/tools-cli/certification.js double-click "$WASM" \
             > "$RUNNER_TEMP/double-click.raw.json" \
             2> "$RUNNER_TEMP/double-click.txt"
           double_click_exit=$?
-          node build/tools/certification.js cartography "$WASM" \
+          node build/tools-cli/certification.js cartography "$WASM" \
             > "$RUNNER_TEMP/cartography.raw.json" \
             2> "$RUNNER_TEMP/cartography.txt"
           cartography_exit=$?
@@ -183,11 +183,11 @@ jobs:
         run: |
           mkdir -p "$EVIDENCE"
           set +e
-          node build/tools/certification.js template "$WASM" --emit-ts \
+          node build/tools-cli/certification.js template "$WASM" --emit-ts \
             > "$EVIDENCE/template-save.json" 2> "$EVIDENCE/template-save.txt"
-          node build/tools/certification.js recertify "$WASM" \
+          node build/tools-cli/certification.js recertify "$WASM" \
             > "$EVIDENCE/enhancement.json" 2> "$EVIDENCE/enhancement.txt"
-          node build/tools/certification.js verify "$WASM" \
+          node build/tools-cli/certification.js verify "$WASM" \
             > "$EVIDENCE/runtime-verdicts.json" 2> "$EVIDENCE/runtime-verdicts.txt"
           set -e
 
@@ -221,8 +221,8 @@ jobs:
         run: |
           mkdir -p "$EVIDENCE"
           if [ -n "$WASM" ] && [ -f "$WASM" ] \
-            && [ -f build/tools/certification.js ]; then
-            node build/tools/certification.js compare "$WASM" "$EVIDENCE" || true
+            && [ -f build/tools-cli/certification.js ]; then
+            node build/tools-cli/certification.js compare "$WASM" "$EVIDENCE" || true
           fi
           if [ ! -s "$EVIDENCE/carry-forward.md" ]; then
             printf '%s\n' '## Guild Wars patch comparison' '' \

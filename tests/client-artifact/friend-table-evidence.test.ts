@@ -2,12 +2,12 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { inspectFriendTable } from "../../src/main/certification/friend-table-evidence.js";
-import { wasmEvidence } from "../../src/main/certification/wasm-evidence.js";
+import { inspectFriendTable } from "../../app/client/certification/friend-table-evidence.js";
+import { wasmEvidence } from "../../app/client/certification/wasm-evidence.js";
 import {
   concat, encodeCode, encodeSection, paddedIndex, parseCode,
   sectionById, splitSections, WASM_HEADER,
-} from "../../src/main/core/wasm-binary.js";
+} from "../../app/main/core/wasm-binary.js";
 
 test("friend candidate survives address and function movement and refuses changed relationships", {
   timeout: 120_000,

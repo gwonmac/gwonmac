@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { parseRangeHeader } from "../../src/main/core/ranges.js";
+import { parseRangeHeader } from "../../app/main/core/ranges.js";
 
 describe("ranges", () => {
   it("parses closed, open-ended, and suffix ranges", () => {

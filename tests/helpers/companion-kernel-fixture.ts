@@ -7,7 +7,7 @@ import {
   COMPANION_KERNEL_DYLINK0,
   COMPANION_KERNEL_EXPORT_VALUES,
 } from "../../scripts/companion-kernel-contract.mjs";
-import { COMPANION_KERNEL_SIGNATURES } from "../../src/shared/companion-kernel-contract.ts";
+import { COMPANION_KERNEL_SIGNATURES } from "../../app/shared/companion-kernel-contract.ts";
 
 export interface CompanionKernelFixtureOptions {
   readonly start?: boolean;

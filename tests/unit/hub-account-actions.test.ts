@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { activateHubAccount, hubAccountSnapshot } from '../../src/main/hub-account-actions.js';
-import { parseHubAccountRequest } from '../../src/main/accounts-ipc-values.js';
-import { parseProfileId } from '../../src/shared/multiple-accounts.js';
-import type { HubRow, HubTask } from '../../src/shared/hub.js';
-import type { LauncherProfileSummary } from '../../src/shared/launcher-contracts.js';
+import { activateHubAccount, hubAccountSnapshot } from '../../app/main/hub-account-actions.js';
+import { parseHubAccountRequest } from '../../app/main/accounts-ipc-values.js';
+import { parseProfileId } from '../../app/shared/multiple-accounts.js';
+import type { HubRow, HubTask } from '../../app/shared/hub.js';
+import type { LauncherProfileSummary } from '../../app/shared/launcher-contracts.js';
 const task: HubTask = { live: () => true, progress() {}, done() {} };
 const current = parseProfileId('9e1bd41c-cfc0-4ca8-a57f-2f0ca159c72d');
 const second = parseProfileId('e98a37bc-5211-4bc5-8094-0b1286b3c42d');
@@ -43,7 +43,7 @@ test('the account request cannot supply a source account or an arbitrary operati
 });
 
 test('Hub account choices reload on rename before any account operation', async () => {
-  const { createHubAccounts } = await import('../../src/renderer/hub-accounts.js');
+  const { createHubAccounts } = await import('../../app/renderer/hub-accounts.js');
   let snapshot = hubAccountSnapshot(fixture().accounts, current);
   let displayed: readonly HubRow[] = [];
   let opened = false;
@@ -58,7 +58,7 @@ test('Hub account choices reload on rename before any account operation', async 
 });
 
 test('Hub account actions keep the running game first and name each consequence (D-23)', async () => {
-  const { createHubAccounts } = await import('../../src/renderer/hub-accounts.js');
+  const { createHubAccounts } = await import('../../app/renderer/hub-accounts.js');
   for (const [state, detail, title] of [['ready', 'Saved account', 'Open Second'], ['running', 'Running', 'Show Second']] as const) {
     const f = fixture(); f.setState(state);
     const snapshot = hubAccountSnapshot(f.accounts, current);
@@ -73,7 +73,7 @@ test('Hub account actions keep the running game first and name each consequence 
 });
 
 test('Hub accounts name their loading and failed reads instead of acting or finding nothing (HUB-232, HUB-233)', async () => {
-  const { createHubAccounts } = await import('../../src/renderer/hub-accounts.js');
+  const { createHubAccounts } = await import('../../app/renderer/hub-accounts.js');
   const hub = { close() {}, notify() {}, attach: () => () => {}, showView() {}, showRows() {}, direct() {} };
   let fail!: (error: Error) => void;
   const events: string[] = [];

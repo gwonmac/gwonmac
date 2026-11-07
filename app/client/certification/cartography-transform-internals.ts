@@ -9,7 +9,7 @@ import {
   sleb,
   uleb,
   type FunctionType,
-} from "../core/wasm-binary.js";
+} from "../../main/core/wasm-binary.js";
 import type { CartographyLayoutId } from "../../shared/cartography-spike.js";
 
 const FRAME_LAYOUT = Object.freeze({

@@ -3,12 +3,12 @@ import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
-import { TravelHistoryStore } from "../../src/main/core/travel-history.js";
+import { TravelHistoryStore } from "../../app/main/core/travel-history.js";
 import {
   parseTravelHistoryDocument,
   recordVisitedTravel,
   travelCharacterKey,
-} from "../../src/shared/travel-history.js";
+} from "../../app/shared/travel-history.js";
 
 const characterA = travelCharacterKey("0123456789abcdef");
 const characterB = travelCharacterKey("fedcba9876543210");

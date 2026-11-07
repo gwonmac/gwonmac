@@ -4,7 +4,7 @@ import {
   attributeFrameStalls,
   parseRecorderEvents,
   visibleFrameTimestamps,
-} from "../../src/tools/diagnostics/attribute-frames.ts";
+} from "../../app/tools-cli/diagnostics/attribute-frames.ts";
 
 /** Build a GWFRAME1 buffer from [timestampUs, visible] pairs. */
 function frames(rows: Array<[number, number]>): Uint8Array {

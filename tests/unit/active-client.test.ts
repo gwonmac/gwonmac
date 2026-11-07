@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { ActiveClientSlot, type ClientGeneration } from "../../src/main/active-client.js";
+import { ActiveClientSlot, type ClientGeneration } from "../../app/client/active-client.js";
 
 const available = { status: "available" } as const;
 const unavailable = { status: "unavailable", reason: "game-update" } as const;

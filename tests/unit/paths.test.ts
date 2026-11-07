@@ -12,8 +12,8 @@ import {
   matchesExpectedProfile,
   multiProfilePaths,
   unpackedPath,
-} from "../../src/main/core/paths.ts";
-import { parseProfileId } from "../../src/shared/multiple-accounts.ts";
+} from "../../app/main/core/paths.ts";
+import { parseProfileId } from "../../app/shared/multiple-accounts.ts";
 
 describe("development profile identity", () => {
   it("accepts an alias of the same profile and refuses other or unresolved profiles", async () => {

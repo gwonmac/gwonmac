@@ -2,9 +2,9 @@
 import assert from "node:assert/strict";
 import { setTimeout as delay } from "node:timers/promises";
 import { describe, it, type TestContext } from "node:test";
-import { createCharacterSwitchController } from "../../src/renderer/character-switch-controller.js";
-import type { CharacterSummary, CompanionCharacterListState } from "../../src/renderer/companion-character-list-snapshot.js";
-import { CHARACTER_SWITCH_ACTION_ABI as ABI } from "../../src/shared/character-switch-action-abi.js";
+import { createCharacterSwitchController } from "../../app/renderer/character-switch-controller.js";
+import type { CharacterSummary, CompanionCharacterListState } from "../../app/renderer/companion-character-list-snapshot.js";
+import { CHARACTER_SWITCH_ACTION_ABI as ABI } from "../../app/shared/character-switch-action-abi.js";
 
 const characters = [
   { name: "Alpha", characterKey: "0000000000000001", primaryProfession: 1, secondaryProfession: 0, characterType: "roleplaying", campaign: 1, level: 20, mapId: 55 },

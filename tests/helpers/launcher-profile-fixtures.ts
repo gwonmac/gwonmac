@@ -1,7 +1,7 @@
 /** Disposable account-workspace shapes shared by Electron tests and developers. */
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { gamePaths } from "../../src/main/core/paths.js";
+import { gamePaths } from "../../app/main/core/paths.js";
 
 export const LAUNCHER_FIXTURE_SCENARIOS = [
   "fresh",

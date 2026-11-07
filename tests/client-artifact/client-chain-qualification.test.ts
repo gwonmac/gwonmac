@@ -6,39 +6,39 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { prepareClientModule, type PreparedClientModule } from
-  "../../src/main/certification/client-module.js";
+  "../../app/client/certification/client-module.js";
 import {
   enhancementOutputSha256,
-} from "../../src/main/certification/enhancement-builds.js";
-import { wasmEvidence, functionBodySha256 } from "../../src/main/certification/wasm-evidence.js";
+} from "../../app/client/certification/enhancement-builds.js";
+import { wasmEvidence, functionBodySha256 } from "../../app/client/certification/wasm-evidence.js";
 import { transformEnhancementWasm } from
-  "../../src/main/certification/enhancement-transform.js";
+  "../../app/client/certification/enhancement-transform.js";
 import { deriveFriendObserverCertificate } from
-  "../../src/main/certification/friend-observer-certificate.js";
+  "../../app/client/certification/friend-observer-certificate.js";
 import { deriveFriendObserverBuild } from
-  "../../src/main/certification/friend-observer-transform.js";
+  "../../app/client/certification/friend-observer-transform.js";
 import {
   isLocalClientVerification,
   verifyLocalClientBytes,
-} from "../../src/main/certification/local-client-verifier.js";
+} from "../../app/client/certification/local-client-verifier.js";
 import {
   deriveNativeDoubleClickBuild,
   isDerivedNativeDoubleClickBuild,
   rewriteNativeDoubleClickWasm,
-} from "../../src/main/certification/native-double-click.js";
+} from "../../app/client/certification/native-double-click.js";
 import { deriveCartographySpikeBuild } from
-  "../../src/main/certification/cartography-spike-verifier.js";
+  "../../app/client/certification/cartography-spike-verifier.js";
 import {
   deriveExtendedMemoryStructuralProof,
   rewriteExtendedMemoryWasm,
 } from
-  "../../src/main/certification/extended-memory.js";
+  "../../app/client/certification/extended-memory.js";
 import { rewriteTemplateSaveWasm } from
-  "../../src/main/certification/template-save-compat.js";
+  "../../app/client/certification/template-save-compat.js";
 import {
   enhancementCapabilityProfile,
   RELEASE_ENHANCEMENT_CAPABILITIES,
-} from "../../src/shared/enhancement-contracts.js";
+} from "../../app/shared/enhancement-contracts.js";
 
 const sha256 = (bytes: Uint8Array | string): string =>
   createHash("sha256").update(bytes).digest("hex");

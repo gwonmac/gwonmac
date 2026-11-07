@@ -12,7 +12,7 @@ import {
   selectLatestRelease,
   type LatestRelease,
 } from "../utils/release-select";
-import type { UpdateTrack } from "../../../../src/shared/release.js";
+import type { UpdateTrack } from "../../../app/shared/release.js";
 
 // The dependency tree carries both h3 v1 and v2 typings, whose H3Event types
 // conflict under `getQuery` — read the channel from the event path instead.

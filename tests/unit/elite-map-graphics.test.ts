@@ -1,9 +1,9 @@
 /** Verifies Elite markers stay world-anchored natively and repaint only when their drawing changes. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createEliteMapGraphics, type EliteMapGraphicsInput } from "../../src/renderer/elite-map-graphics.js";
-import { ELITE_MAP_GRAPHICS_SURFACES } from "../../src/shared/native-map-graphics.js";
-import type { EliteSceneMarker } from "../../src/shared/elite-map-scene.js";
+import { createEliteMapGraphics, type EliteMapGraphicsInput } from "../../app/renderer/elite-map-graphics.js";
+import { ELITE_MAP_GRAPHICS_SURFACES } from "../../app/shared/native-map-graphics.js";
+import type { EliteSceneMarker } from "../../app/shared/elite-map-scene.js";
 
 class CanvasPeer {
   width = 0; height = 0; paints = 0;

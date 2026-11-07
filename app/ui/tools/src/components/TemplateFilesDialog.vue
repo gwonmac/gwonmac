@@ -12,7 +12,7 @@ import type {
   TemplateFiles,
   TemplateFilesState,
   TemplateSelection,
-} from "../../../../src/shared/tools-bundle-contracts";
+} from "../../../../shared/tools-bundle-contracts";
 import UiDialog from "../ui/UiDialog.vue";
 
 const props = defineProps<{ open: boolean; files: TemplateFiles | null; unavailable: string | null }>();

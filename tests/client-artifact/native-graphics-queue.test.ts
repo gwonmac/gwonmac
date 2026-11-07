@@ -3,10 +3,10 @@ import { retainedClientFixture } from "../fixtures/retained-client.js";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { nativeGraphicsBusy, NATIVE_RENDER_REFERENCE_FUNCTIONS, resolveNativeRenderBindings } from "../../src/main/certification/native-render-reference.js";
-import { wasmEvidence } from "../../src/main/certification/wasm-evidence.js";
-import { concat, encodeCode, encodeSection, parseCode, sectionById, splitSections, uleb, WASM_HEADER } from "../../src/main/core/wasm-binary.js";
-import { encodeName } from "../../src/main/certification/cartography-transform-internals.js";
+import { nativeGraphicsBusy, NATIVE_RENDER_REFERENCE_FUNCTIONS, resolveNativeRenderBindings } from "../../app/client/certification/native-render-reference.js";
+import { wasmEvidence } from "../../app/client/certification/wasm-evidence.js";
+import { concat, encodeCode, encodeSection, parseCode, sectionById, splitSections, uleb, WASM_HEADER } from "../../app/main/core/wasm-binary.js";
+import { encodeName } from "../../app/client/certification/cartography-transform-internals.js";
 
 test("graphics guard rejects every phase that triggers the official GrDev flush assertion", async () => {
   assert.ok(process.env.GW_CLIENT_WASM);

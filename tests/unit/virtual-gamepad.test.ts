@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { installVirtualGamepad } from "../../src/renderer/virtual-gamepad.js";
+import { installVirtualGamepad } from "../../app/renderer/virtual-gamepad.js";
 
 const physicalPad = { id: "physical", index: 0 } as Gamepad;
 

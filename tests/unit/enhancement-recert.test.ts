@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import {
   inspectPostTemplateEnhancementBytes,
   recertifyEnhancementBytes,
-} from "../../src/tools/enhancement-recert.js";
+} from "../../app/tools-cli/enhancement-recert.js";
 import {
   concat,
   encodeCode,
@@ -11,7 +11,7 @@ import {
   encodeSection,
   uleb,
   WASM_HEADER,
-} from "../../src/main/core/wasm-binary.js";
+} from "../../app/main/core/wasm-binary.js";
 
 const MESSAGE_ANCHORS = Object.freeze({
   playerChatMessage: 0x1000_0082,

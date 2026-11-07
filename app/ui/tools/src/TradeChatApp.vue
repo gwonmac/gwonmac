@@ -18,7 +18,7 @@ import {
   type TradeSavedOffer,
   type TradeSavedState,
   type TradeSource,
-} from "../../../src/shared/trade-chat";
+} from "../../../shared/trade-chat";
 import {
   insertTradeMessage,
   tradeLedgerRows,
@@ -28,8 +28,8 @@ import {
   type TradeIntent,
 } from "./trade-ledger";
 import { useClassicFrame } from "./ui/use-classic-frame";
-import { listIndexAfter, listKeyStep, listPage } from "../../../src/shared/ui/list-keys";
-import { isHubBackKey } from "../../../src/shared/keyboard-shortcuts";
+import { listIndexAfter, listKeyStep, listPage } from "../../../shared/ui/list-keys";
+import { isHubBackKey } from "../../../shared/keyboard-shortcuts";
 import { useFloatingWindow } from "./use-floating-window";
 import TradeIcon from "./TradeIcon.vue";
 import TraderPrices from "./components/TraderPrices.vue";

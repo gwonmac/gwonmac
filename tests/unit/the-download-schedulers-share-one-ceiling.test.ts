@@ -11,11 +11,11 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { ARENANET_REQUEST_CEILING } from "../../src/shared/contracts.js";
+import { ARENANET_REQUEST_CEILING } from "../../app/shared/contracts.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
-const OWNER = "src/shared/contracts.ts";
+const OWNER = "app/shared/contracts.ts";
 
 // Names such a ceiling plausibly takes, bound to the value it has. The name
 // half is deliberately broad, because what this must catch is the constant
@@ -28,11 +28,11 @@ const CEILING_DECLARATION =
 
 const sources = execFileSync(
   "git",
-  ["ls-files", "--cached", "--others", "--exclude-standard", "src"],
+  ["ls-files", "--cached", "--others", "--exclude-standard", "app"],
   { cwd: root, encoding: "utf8" },
 )
   .split("\n")
-  .filter((file) => /^src\/.+\.(?:m|c)?ts$/u.test(file))
+  .filter((file) => /^app\/(?!ui\/).+\.(?:m|c)?ts$/u.test(file))
   .filter((file) => existsSync(path.join(root, file)));
 
 const read = (file: string) => readFileSync(path.join(root, file), "utf8");
@@ -54,11 +54,11 @@ test("no second declaration of the ceiling exists", () => {
 });
 
 test("the renderer's scheduler imports the module that declares it", () => {
-  const scheduler = read("src/renderer/image-source.ts");
+  const scheduler = read("app/renderer/image-source.ts");
   assert.match(
     scheduler,
     /^import \{\n\s*ARENANET_REQUEST_CEILING,/mu,
-    "src/renderer/image-source.ts no longer imports the ceiling as a value",
+    "app/renderer/image-source.ts no longer imports the ceiling as a value",
   );
 });
 

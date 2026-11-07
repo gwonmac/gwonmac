@@ -12,13 +12,13 @@ import assert from "node:assert/strict";
 import {
   runTeamApply,
   TeamApplyPreflightRefusal,
-} from "../../src/shared/builds/team-apply-runner.ts";
-import { heroId, skillId } from "../../src/shared/builds/library.ts";
+} from "../../app/shared/builds/team-apply-runner.ts";
+import { heroId, skillId } from "../../app/shared/builds/library.ts";
 import type {
   TeamApplyMember,
   TeamApplyRuntimeProblem,
-} from "../../src/shared/builds/team-apply.ts";
-import { preflightTeamApply } from "../../src/shared/builds/team-apply.ts";
+} from "../../app/shared/builds/team-apply.ts";
+import { preflightTeamApply } from "../../app/shared/builds/team-apply.ts";
 import {
   applyBuild as build,
   applyHarness as harness,

@@ -1,6 +1,6 @@
 import { mount } from "@vue/test-utils";
 import { describe, expect, it, vi } from "vitest";
-import type { TraderQuote } from "../../../../src/shared/trade-chat";
+import type { TraderQuote } from "../../../../shared/trade-chat";
 import PriceHistoryChart from "./PriceHistoryChart.vue";
 
 const DAY = 24 * 60 * 60 * 1_000;

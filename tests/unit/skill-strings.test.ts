@@ -5,7 +5,7 @@ import {
   formatSkillDescription,
   parseStringShard,
   stringShardIndex,
-} from "../../src/main/core/skill-strings.ts";
+} from "../../app/main/core/skill-strings.ts";
 
 function uleb(value: number): number[] {
   const bytes: number[] = [];

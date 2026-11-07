@@ -5,7 +5,7 @@ import {
   isSkillCooldownColor,
   isSkillCooldownCustomHex,
   skillCooldownCssColor,
-} from "../../src/shared/skill-cooldowns.js";
+} from "../../app/shared/skill-cooldowns.js";
 
 test("cooldown formatting rounds active values upward without showing zero", () => {
   assert.equal(formatSkillCooldown(0), null);

@@ -6,7 +6,7 @@ type KeyboardInputWindow = typeof window & {
   __gameKeys: string[];
 };
 
-type MemoryWarningModule = typeof import("../../src/renderer/memory-warning.js");
+type MemoryWarningModule = typeof import("../../app/renderer/memory-warning.js");
 
 /**
  * ArenaNet's generated host object owns the active OSK field. Intersecting its
@@ -265,7 +265,7 @@ test.describe("renderer keyboard input", () => {
       await page.evaluate(async () => {
         const moduleUrl: string = "gw://app/input.js";
         const { installGameInput } = await import(moduleUrl) as
-          typeof import("../../src/renderer/input.js");
+          typeof import("../../app/renderer/input.js");
         const canvas = document.createElement("canvas");
         canvas.tabIndex = 0;
         const loginField = document.createElement("input");

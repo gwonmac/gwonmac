@@ -53,12 +53,12 @@ import {
   PATCH_REQUEST_TIMEOUT_MS,
   PATCH_ROOT,
   SNAPSHOT,
-} from "./core/access-key.js";
+} from "../main/core/access-key.js";
 import { ActiveClientSlot, type ActiveClient } from "./active-client.js";
-import { pruneUnreferencedChunks } from "./core/chunk-cache.js";
-import { readClientCacheInfo } from "./core/client-cache-info.js";
-import { encodedChunkLimit } from "./core/chunk-format.js";
-import { ChunkStore } from "./core/chunk-store.js";
+import { pruneUnreferencedChunks } from "../main/core/chunk-cache.js";
+import { readClientCacheInfo } from "../main/core/client-cache-info.js";
+import { encodedChunkLimit } from "../main/core/chunk-format.js";
+import { ChunkStore } from "./chunk-store.js";
 import {
   prepareClientModule,
   type ClientCertification,
@@ -70,21 +70,21 @@ import {
   readRejectedClient,
   rejectClientCandidate,
   restoreInvalidClientCandidate,
-} from "./core/client-compatibility.js";
-import { sha256File } from "./core/derived-wasm.js";
-import type { Manifest } from "./core/manifest.js";
-import { Mutex } from "./core/mutex.js";
-import { PatchClient } from "./core/patch-client.js";
+} from "./client-compatibility.js";
+import { sha256File } from "./derived-wasm.js";
+import type { Manifest } from "../main/core/manifest.js";
+import { Mutex } from "../main/core/mutex.js";
+import { PatchClient } from "./patch-client.js";
 import {
   createBoundedPatchFetch,
   fetchPatchBytes,
   type PatchFetch,
-} from "./core/patch-transport.js";
-import { clientArtifactPath, clientManifestPath } from "./core/paths.js";
+} from "../main/core/patch-transport.js";
+import { clientArtifactPath, clientManifestPath } from "../main/core/paths.js";
 import {
   migrateLegacyPublishedClientManifest,
   verifyPublishedClientArtifacts,
-} from "./core/published-client.js";
+} from "./published-client.js";
 import {
   count,
   gauge,
@@ -92,8 +92,8 @@ import {
   observe,
   peakGauge,
   startClientUpdateSpan,
-} from "./diagnostics.js";
-import type { GamePaths } from "./paths.js";
+} from "../main/diagnostics.js";
+import type { GamePaths } from "../main/paths.js";
 import {
   verifyCartographyLocally,
   verifyFriendObserverLocally,
@@ -105,10 +105,10 @@ import type {
   AnyLocalFeatureInvariant,
   LocalFeatureVerdicts,
 } from "./certification/local-client-verification-contract.js";
-import { extendedMemoryRuntimeStatus } from "./extended-memory-runtime.js";
+import { extendedMemoryRuntimeStatus } from "../main/extended-memory-runtime.js";
 import { supportedEnhancementCapabilities } from "./certification/enhancement-builds.js";
 import { readClientRuntimeDiagnosticState } from "./client-runtime-diagnostics.js";
-import { selectOfficialDiagnosticClient } from "./client-diagnostic-selection.js";
+import { selectOfficialDiagnosticClient } from "../main/client-diagnostic-selection.js";
 import {
   diagnosticDigest,
   optionalFeatureStatus,

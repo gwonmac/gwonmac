@@ -11,14 +11,14 @@ import test from "node:test";
 import vm from "node:vm";
 import { fileURLToPath } from "node:url";
 import ts from "typescript";
-import * as contracts from "../../src/shared/contracts.ts";
-import * as enhancementContracts from "../../src/shared/enhancement-contracts.ts";
+import * as contracts from "../../app/shared/contracts.ts";
+import * as enhancementContracts from "../../app/shared/enhancement-contracts.ts";
 import {
   RENDERER_INIT_ARGUMENT,
   type GwNativeApi,
   type RendererCommand,
   type RendererInit,
-} from "../../src/shared/contracts.ts";
+} from "../../app/shared/contracts.ts";
 import { preloadSource as generatePreload } from "../../scripts/generate-preload.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
@@ -31,11 +31,11 @@ const preloadSource: string = generatePreload({
 // The router is a classic script — index.html loads it with a `<script>` tag
 // and it exports nothing — so the only way to drive it is to run its text. It
 // is TypeScript, so the text is transpiled here under the same target
-// and module the renderer build uses. Reading src/ and transpiling is
+// and module the renderer build uses. Reading app/ and transpiling is
 // what keeps this test buildless; reading build/renderer would make it depend
 // on a build the unit suite does not run.
 const routerSource = ts.transpileModule(
-  await readFile(path.join(root, "src/renderer/commands.ts"), "utf8"),
+  await readFile(path.join(root, "app/renderer/commands.ts"), "utf8"),
   {
     compilerOptions: {
       target: ts.ScriptTarget.ES2022,

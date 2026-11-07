@@ -69,7 +69,7 @@ const BRACKET_FORM = new RegExp(
  * Characters the client's own name field refuses, mapped to a space. The dot is
  * in the set, which is also what keeps a name away from this build's off-by-one
  * `Path::RemoveExtension` — the defect documented in
- * src/renderer/template-save-compatibility.ts. `*` and `?` are refused for a
+ * app/renderer/template-save-compatibility.ts. `*` and `?` are refused for a
  * second reason: the client lists a directory by glob, and
  * template-save-compatibility.ts turns both into wildcards.
  */

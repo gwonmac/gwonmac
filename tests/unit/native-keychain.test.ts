@@ -5,8 +5,8 @@ import {
   multiSecretSlot,
   type NativeKeychain,
   type SecretSlot,
-} from "../../src/main/core/native-keychain.js";
-import { nativeHostPath } from "../../src/main/native-host.js";
+} from "../../app/main/core/native-keychain.js";
+import { nativeHostPath } from "../../app/main/native-host.js";
 
 class FakeNativeKeychain implements NativeKeychain {
   readonly #items = new Map<SecretSlot, Buffer>();

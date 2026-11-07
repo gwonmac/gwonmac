@@ -7,15 +7,15 @@ import {
   LauncherStateStore,
   classifyLauncherInstallation,
   loadOrCreateLauncherState,
-} from "../../src/main/core/launcher-state.ts";
-import { parseProfileId } from "../../src/shared/multiple-accounts.ts";
+} from "../../app/main/core/launcher-state.ts";
+import { parseProfileId } from "../../app/shared/multiple-accounts.ts";
 import {
   parseLauncherExternalLink,
   parseLauncherPreferencesPatch,
   parseLauncherProfileAppearance,
   parseLauncherSettingsPatch,
-} from "../../src/shared/launcher-contracts.ts";
-import { DEFAULT_CUSTOM_UI_THEME } from "../../src/shared/ui-theme.js";
+} from "../../app/shared/launcher-contracts.ts";
+import { DEFAULT_CUSTOM_UI_THEME } from "../../app/shared/ui-theme.js";
 
 const roots: string[] = [];
 

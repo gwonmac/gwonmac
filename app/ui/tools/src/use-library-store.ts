@@ -1,5 +1,5 @@
 import { shallowRef, type Ref, type ShallowRef } from "vue";
-import { buildId, teamId } from "../../../src/shared/builds/library";
+import { buildId, teamId } from "../../../shared/builds/library";
 import type { ToolsHost } from "./host";
 import { cloneLibrary, type BuildLibrary, type LibraryItem } from "./model";
 

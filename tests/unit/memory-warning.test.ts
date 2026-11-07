@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { bindMemoryWarning } from "../../src/renderer/memory-warning.js";
+import { bindMemoryWarning } from "../../app/renderer/memory-warning.js";
 
 class FakeClassList {
   readonly values = new Set<string>();

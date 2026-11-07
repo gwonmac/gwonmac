@@ -10,7 +10,7 @@
 // export the harness calls.
 import assert from "node:assert/strict";
 import test from "node:test";
-import { WASM_BRIDGE_MARKERS } from "../../src/shared/contracts.ts";
+import { WASM_BRIDGE_MARKERS } from "../../app/shared/contracts.ts";
 
 // All but template-save compatibility import cleanly with no page at all;
 // template-save-compatibility.js reads the bridge markers as it is imported,
@@ -25,13 +25,13 @@ Object.assign(globalThis, {
 });
 
 const namespaces = await Promise.all([
-  import("../../src/renderer/client-exit.js"),
-  import("../../src/renderer/graphics.js"),
-  import("../../src/renderer/gl-program-cache.js"),
-  import("../../src/renderer/filesystem.js"),
-  import("../../src/renderer/input.js"),
-  import("../../src/renderer/template-save-compatibility.js"),
-  import("../../src/renderer/template-filesystem-trace.js"),
+  import("../../app/renderer/client-exit.js"),
+  import("../../app/renderer/graphics.js"),
+  import("../../app/renderer/gl-program-cache.js"),
+  import("../../app/renderer/filesystem.js"),
+  import("../../app/renderer/input.js"),
+  import("../../app/renderer/template-save-compatibility.js"),
+  import("../../app/renderer/template-filesystem-trace.js"),
 ]);
 
 test("every host module exports exactly one installer", () => {

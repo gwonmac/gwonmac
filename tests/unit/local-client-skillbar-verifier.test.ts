@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { ENHANCEMENT_BUILDS } from "../../src/main/certification/enhancement-builds.js";
+import { ENHANCEMENT_BUILDS } from "../../app/client/certification/enhancement-builds.js";
 import {
   diagnoseLocalSkillbarFailures,
   localSkillbarBuildFragment,
   type LocalSkillbarProofs,
-} from "../../src/main/certification/local-client-skillbar-verifier.js";
+} from "../../app/client/certification/local-client-skillbar-verifier.js";
 
 const build = ENHANCEMENT_BUILDS[0]!;
 

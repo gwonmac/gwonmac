@@ -4,7 +4,7 @@ import {
   installWasmMemoryAttribution,
   parseWasmStack,
   textureLevelBytes,
-} from "../../src/renderer/wasm-memory-attribution.ts";
+} from "../../app/renderer/wasm-memory-attribution.ts";
 
 const GL_TEXTURE_2D = 0x0de1;
 const GL_RGBA = 0x1908;

@@ -9,7 +9,7 @@ import type { inspectTemplateSaveCandidate } from "./template-save-recert.js";
 import type {
   LocalClientVerification,
   LocalFeatureVerdict,
-} from "../main/certification/local-client-verifier.js";
+} from "../client/certification/local-client-verifier.js";
 
 export type CarryForwardStatus =
   | "exact"

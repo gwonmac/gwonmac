@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { HUB_SEARCH_GLYPH } from '../../../../src/shared/ui/hub-search';
+import { HUB_SEARCH_GLYPH } from '../../../../shared/ui/hub-search';
 import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
 import {
   TRAVEL_SEARCH_QUERY_LIMIT,
@@ -13,20 +13,20 @@ import {
   travelDestination,
   type TravelDestination,
   type TravelRequest,
-} from "../../../../src/shared/travel";
+} from "../../../../shared/travel";
 import type { TravelHost } from "../travel-host";
-import type { TravelFriend } from "../../../../src/shared/friends";
+import type { TravelFriend } from "../../../../shared/friends";
 import {
   travelContextRefusal,
   travelDestinationAvailability,
-} from "../../../../src/shared/travel-command";
-import { TRAVEL_HISTORY_VISIBLE_LIMIT } from "../../../../src/shared/travel-history";
-import { guildWarsMapName } from "../../../../src/shared/guild-wars-map-names";
-import { isHubBackKey } from "../../../../src/shared/keyboard-shortcuts";
-import { createHoverSelection } from "../../../../src/shared/ui/hover-selection";
-import { listIndexAfter, listKeyStep, listPage } from "../../../../src/shared/ui/list-keys";
-import { hubMatch } from "../../../../src/shared/hub";
-import type { HubViewFooter } from "../../../../src/shared/hub";
+} from "../../../../shared/travel-command";
+import { TRAVEL_HISTORY_VISIBLE_LIMIT } from "../../../../shared/travel-history";
+import { guildWarsMapName } from "../../../../shared/guild-wars-map-names";
+import { isHubBackKey } from "../../../../shared/keyboard-shortcuts";
+import { createHoverSelection } from "../../../../shared/ui/hover-selection";
+import { listIndexAfter, listKeyStep, listPage } from "../../../../shared/ui/list-keys";
+import { hubMatch } from "../../../../shared/hub";
+import type { HubViewFooter } from "../../../../shared/hub";
 import { useTravelPreferences } from "../travel-preferences";
 import TravelDestinationPicker from "./TravelDestinationPicker.vue";
 

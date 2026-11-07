@@ -1,4 +1,4 @@
-// `src/shared/builds/live-party.ts` is the read counterpart of `team-apply.ts`,
+// `app/shared/builds/live-party.ts` is the read counterpart of `team-apply.ts`,
 // and the whole of its value is in refusing to fill a blank. The companion
 // publishes a fraction of what the type describes and will until the party
 // region lands, so every case below drives one unobserved field and asserts it
@@ -22,8 +22,8 @@ import {
   liveParty,
   professionPair,
   unavailableParty,
-} from "../../src/shared/builds/live-party.ts";
-import { heroId, skillId } from "../../src/shared/builds/library.ts";
+} from "../../app/shared/builds/live-party.ts";
+import { heroId, skillId } from "../../app/shared/builds/library.ts";
 
 test("an observation that is not ready is a party nobody can draw", () => {
   for (const status of ["waiting", "unsupported", "", "READY"]) {

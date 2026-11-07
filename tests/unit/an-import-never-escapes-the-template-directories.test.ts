@@ -2,7 +2,7 @@
 // import writes lands inside the game's own two template directories.
 //
 // It is a separate file because the mount does not defend itself. The
-// `normalize` that src/renderer/filesystem.ts installs onto FS rewrites
+// `normalize` that app/renderer/filesystem.ts installs onto FS rewrites
 // backslashes and carries no traversal guard, so `mkdirTree` will happily climb
 // out of the mount; the only thing standing between a hostile name and the rest
 // of IDBFS is the check in template-store.ts. Getting this wrong has cost two
@@ -14,12 +14,12 @@ import { test } from "node:test";
 import {
   combineParses,
   parseTemplateSource,
-} from "../../src/renderer/template-format.js";
+} from "../../app/renderer/template-format.js";
 import {
   type TemplateFileSystem,
   applyImport,
   planImport,
-} from "../../src/renderer/template-store.js";
+} from "../../app/renderer/template-store.js";
 
 const SKILLS = "OQCiUyo8AkVwR4KMMGAAAEAA";
 const EQUIPMENT = "Pk5hbug2fkaiklWVqQhyI90YjyIBLziyIBTpgyIBr7hyIbB";

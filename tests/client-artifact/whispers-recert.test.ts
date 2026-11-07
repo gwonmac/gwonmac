@@ -2,10 +2,10 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { verifyLocalClientBytes, isLocalClientVerification } from "../../src/main/certification/local-client-verifier.ts";
-import { NO_ENHANCEMENT_CAPABILITIES } from "../../src/shared/enhancement-contracts.ts";
-import { concat, encodeCode, encodeSection, parseCode, sectionById, splitSections, WASM_HEADER } from "../../src/main/core/wasm-binary.ts";
-import { wasmEvidence } from "../../src/main/certification/wasm-evidence.ts";
+import { verifyLocalClientBytes, isLocalClientVerification } from "../../app/client/certification/local-client-verifier.ts";
+import { NO_ENHANCEMENT_CAPABILITIES } from "../../app/shared/enhancement-contracts.ts";
+import { concat, encodeCode, encodeSection, parseCode, sectionById, splitSections, WASM_HEADER } from "../../app/main/core/wasm-binary.ts";
+import { wasmEvidence } from "../../app/client/certification/wasm-evidence.ts";
 
 const requested = { ...NO_ENHANCEMENT_CAPABILITIES, playRegionObservation: true, chatFiltering: true, whisperChat: true };
 test("whisper certification binds the current sender, copier and observer encoders", { timeout: 120_000 }, async () => {

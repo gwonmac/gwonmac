@@ -4,9 +4,9 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 import vm from "node:vm";
-import type { LauncherNativeApi } from "../../src/shared/launcher-contracts.ts";
-import { LAUNCHER_IPC } from "../../src/shared/launcher-contracts.ts";
-import { LEGACY_PRIMARY_PROFILE_ID } from "../../src/shared/multiple-accounts.ts";
+import type { LauncherNativeApi } from "../../app/shared/launcher-contracts.ts";
+import { LAUNCHER_IPC } from "../../app/shared/launcher-contracts.ts";
+import { LEGACY_PRIMARY_PROFILE_ID } from "../../app/shared/multiple-accounts.ts";
 
 const source = await readFile(
   path.resolve(import.meta.dirname, "../../build/preload/preload-launcher.cjs"),

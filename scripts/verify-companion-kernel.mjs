@@ -16,7 +16,7 @@ import {
 } from "./seal-companion-kernel.mjs";
 
 const artifact = COMPANION_KERNEL_ARTIFACT;
-const source = readFileSync("src/companion-kernel/lib.rs", "utf8");
+const source = readFileSync("kernels/companion/lib.rs", "utf8");
 
 const panicStart = source.indexOf("fn panic(");
 const panicEnd = source.indexOf("\n}", panicStart);

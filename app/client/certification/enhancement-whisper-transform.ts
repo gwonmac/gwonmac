@@ -3,7 +3,7 @@
  * Enqueue snapshots a whisper or party-invite line; execution consumes it once
  * and calls native chat. Each enqueue accepts only its own exact line shape.
  */
-import { concat, sleb, uleb } from "../core/wasm-binary.js";
+import { concat, sleb, uleb } from "../../main/core/wasm-binary.js";
 import {
   PARTY_INVITE_PREFIX, WHISPER_MAILBOX as M, WHISPER_LINE_UNITS, WHISPER_NAME_UNITS, WHISPER_MESSAGE_UNITS,
 } from "../../shared/whispers.js";

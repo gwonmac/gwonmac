@@ -1,7 +1,7 @@
 import { spawn, spawnSync } from "node:child_process";
 import { realpathSync } from "node:fs";
 import path from "node:path";
-import { DISTRIBUTION_CHANNEL_CONFIG } from "../src/shared/distribution-channel.ts";
+import { DISTRIBUTION_CHANNEL_CONFIG } from "../app/shared/distribution-channel.ts";
 
 const root = path.resolve(import.meta.dirname, "..");
 if (process.platform !== "darwin" || process.arch !== "arm64") {

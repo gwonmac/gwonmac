@@ -7,8 +7,8 @@ import {
   canSetAttributeRank,
   resolveSkillPlacement,
   withAttributeRank,
-} from "../../src/shared/builds/authoring.js";
-import { skillBarOf, skillId } from "../../src/shared/builds/library.js";
+} from "../../app/shared/builds/authoring.js";
+import { skillBarOf, skillId } from "../../app/shared/builds/library.js";
 
 describe("build authoring rules", () => {
   it("uses the exact nonlinear 200-point Guild Wars budget", () => {

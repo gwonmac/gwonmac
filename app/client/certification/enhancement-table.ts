@@ -7,7 +7,7 @@ import {
   readSleb,
   readUleb,
   uleb,
-} from "../core/wasm-binary.js";
+} from "../../main/core/wasm-binary.js";
 
 function fail(message: string): never {
   throw new Error(`enhancement table: ${message}`);

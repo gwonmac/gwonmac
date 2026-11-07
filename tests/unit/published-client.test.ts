@@ -14,10 +14,10 @@ import {
   migrateLegacyPublishedClientManifest,
   parsePublishedClientManifest,
   verifyPublishedClientArtifacts,
-} from "../../src/main/core/published-client.ts";
-import { clientFingerprint } from "../../src/main/core/client-compatibility.ts";
-import { Manifest } from "../../src/main/core/manifest.ts";
-import { AppError } from "../../src/shared/errors.ts";
+} from "../../app/client/published-client.ts";
+import { clientFingerprint } from "../../app/client/client-compatibility.ts";
+import { Manifest } from "../../app/main/core/manifest.ts";
+import { AppError } from "../../app/shared/errors.ts";
 
 describe("published client manifest", () => {
   const valid = {

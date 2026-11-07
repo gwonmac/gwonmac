@@ -1,17 +1,17 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { diagnosticEventRecord } from "../../src/main/diagnostics/schema.ts";
-import type { DiagnosticEvent } from "../../src/main/diagnostics/schema.ts";
-import { isRendererMetrics, type RendererMetrics } from "../../src/shared/diagnostics.ts";
+import { diagnosticEventRecord } from "../../app/main/diagnostics/schema.ts";
+import type { DiagnosticEvent } from "../../app/main/diagnostics/schema.ts";
+import { isRendererMetrics, type RendererMetrics } from "../../app/shared/diagnostics.ts";
 import { NO_ENHANCEMENT_CAPABILITIES } from
-  "../../src/shared/enhancement-contracts.ts";
+  "../../app/shared/enhancement-contracts.ts";
 import {
   analyzeFrames,
   comparisonWarnings,
   isDiagnosticReport,
   validateCapture,
   type Capture,
-} from "../../src/tools/diagnostics/common.ts";
+} from "../../app/tools-cli/diagnostics/common.ts";
 
 function metrics(): RendererMetrics {
   return {

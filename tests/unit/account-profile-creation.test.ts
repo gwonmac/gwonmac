@@ -7,17 +7,17 @@ import {
   createAccountProfile,
   nodeAccountProfileCreationDependencies,
   type AccountProfileCreationDependencies,
-} from "../../src/main/core/account-profile-creation.js";
-import { AtomicExclusiveWriteError } from "../../src/main/core/atomic-file.js";
+} from "../../app/main/core/account-profile-creation.js";
+import { AtomicExclusiveWriteError } from "../../app/main/core/atomic-file.js";
 import {
   addMultiProfile,
   createMultiWorkspace,
   loadMultiWorkspace,
   saveMultiWorkspace,
-} from "../../src/main/core/multiple-accounts.js";
-import { gamePaths, multiProfilePaths } from "../../src/main/core/paths.js";
-import { EMPTY_LIBRARY } from "../../src/shared/builds/parse-library.js";
-import { parseProfileId } from "../../src/shared/multiple-accounts.js";
+} from "../../app/main/core/multiple-accounts.js";
+import { gamePaths, multiProfilePaths } from "../../app/main/core/paths.js";
+import { EMPTY_LIBRARY } from "../../app/shared/builds/parse-library.js";
+import { parseProfileId } from "../../app/shared/multiple-accounts.js";
 
 const PROFILE_ID = parseProfileId("2d31e565-9fc8-4dde-9fd4-9d644f8283ae");
 

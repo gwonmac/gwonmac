@@ -3,12 +3,12 @@ import { retainedClientFixture } from "../fixtures/retained-client.js";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { transformCartographySpikeWasm } from "../../src/main/certification/pathing-spike-transform.js";
-import { wasmEvidence } from "../../src/main/certification/wasm-evidence.js";
-import { concat, encodeCode, encodeSection, parseCode, parseExports, sectionById, splitSections, uleb, WASM_HEADER } from "../../src/main/core/wasm-binary.js";
-import { encodeName } from "../../src/main/certification/cartography-transform-internals.js";
+import { transformCartographySpikeWasm } from "../../app/client/certification/pathing-spike-transform.js";
+import { wasmEvidence } from "../../app/client/certification/wasm-evidence.js";
+import { concat, encodeCode, encodeSection, parseCode, parseExports, sectionById, splitSections, uleb, WASM_HEADER } from "../../app/main/core/wasm-binary.js";
+import { encodeName } from "../../app/client/certification/cartography-transform-internals.js";
 import { NATIVE_MAP_GRAPHICS_MAGIC, NATIVE_MAP_GRAPHICS_SURFACES, NATIVE_MAP_QUADS_MAGIC, NATIVE_MAP_QUADS_MAX,
-  NATIVE_MAP_QUAD_SURFACES } from "../../src/shared/native-map-graphics.js";
+  NATIVE_MAP_QUAD_SURFACES } from "../../app/shared/native-map-graphics.js";
 
 test("each native map owns its mesh, restores matrices and refuses stale or malformed textures", async () => {
   assert.ok(process.env.GW_CLIENT_WASM);

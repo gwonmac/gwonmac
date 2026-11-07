@@ -1,14 +1,14 @@
 /** One Travel host serves both unified search and the existing detailed view. */
-import { TOOL_PRESENTATION } from '../../../src/shared/tool-presentation';
+import { TOOL_PRESENTATION } from '../../../shared/tool-presentation';
 import { createApp, h, reactive, shallowRef, watch } from 'vue';
-import type { HubPresenter, HubRow, HubSource, HubTask, HubViewMount } from '../../../src/shared/hub';
-import { matchHubRows, parseHubQuery, hubTier, normaliseHubQuery } from '../../../src/shared/hub';
-import { TRAVEL_DESTINATIONS, isPvpTravelDestination, travelDestination, type TravelDestination } from '../../../src/shared/travel';
-import { guildWarsMapName } from '../../../src/shared/guild-wars-map-names';
-import { travelContextRefusal, travelDestinationAvailability } from '../../../src/shared/travel-command';
+import type { HubPresenter, HubRow, HubSource, HubTask, HubViewMount } from '../../../shared/hub';
+import { matchHubRows, parseHubQuery, hubTier, normaliseHubQuery } from '../../../shared/hub';
+import { TRAVEL_DESTINATIONS, isPvpTravelDestination, travelDestination, type TravelDestination } from '../../../shared/travel';
+import { guildWarsMapName } from '../../../shared/guild-wars-map-names';
+import { travelContextRefusal, travelDestinationAvailability } from '../../../shared/travel-command';
 import TravelPalette from './components/TravelPalette.vue';
 import ProgressView, { type ProgressViewResume } from './components/ProgressView.vue';
-import { PROGRESS_GOAL_WORDS, currentProgressCampaign, progressGoalLeft, progressGoals, type GameProgressState, type ProgressCampaignId, type ProgressGoalId } from '../../../src/shared/game-progress';
+import { PROGRESS_GOAL_WORDS, currentProgressCampaign, progressGoalLeft, progressGoals, type GameProgressState, type ProgressCampaignId, type ProgressGoalId } from '../../../shared/game-progress';
 import type { TravelHost } from './travel-host';
 import { useTravelPreferences } from './travel-preferences';
 

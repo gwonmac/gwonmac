@@ -3,9 +3,9 @@
  * the repository's own catalogues; the AreaInfo fields (type, flags, region,
  * world-map position) are invented, so no game-file data ships here.
  */
-import { guildWarsMapName } from '../../../src/shared/guild-wars-map-names';
-import { TRAVEL_DESTINATIONS } from '../../../src/shared/travel';
-import type { AreaRow, GameProgressState, ProgressBits } from '../../../src/shared/game-progress';
+import { guildWarsMapName } from '../../../shared/guild-wars-map-names';
+import { TRAVEL_DESTINATIONS } from '../../../shared/travel';
+import type { AreaRow, GameProgressState, ProgressBits } from '../../../shared/game-progress';
 
 const MISSION = 5;
 const EXPLORABLE = 2;

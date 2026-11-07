@@ -24,8 +24,8 @@ import {
   writeAtomicExclusive,
   writeAtomicInDir,
   writeAtomicJson,
-} from "../../src/main/core/atomic-file.js";
-import { documentDirectories, gamePaths } from "../../src/main/core/paths.js";
+} from "../../app/main/core/atomic-file.js";
+import { documentDirectories, gamePaths } from "../../app/main/core/paths.js";
 
 async function scratch(): Promise<string> {
   return mkdtemp(join(tmpdir(), "gw-atomic-"));

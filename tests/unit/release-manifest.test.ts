@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { releaseManifest } from "../../scripts/release-manifest.ts";
-import { RELEASE_REPO_URL } from "../../src/shared/project-identity.ts";
-import { parseReleaseManifest } from "../../src/shared/release-manifest.ts";
+import { RELEASE_REPO_URL } from "../../app/shared/project-identity.ts";
+import { parseReleaseManifest } from "../../app/shared/release-manifest.ts";
 
 describe("Squirrel.Mac release manifest", () => {
   it("contains exactly one immutable release asset", () => {

@@ -2,7 +2,7 @@
  * Emits the closed Control-click item action. It reads only certified item,
  * inventory, trade, and frame fields and sends Guild Wars' native UI messages.
  */
-import { concat, sleb, uleb, type FunctionType } from "../core/wasm-binary.js";
+import { concat, sleb, uleb, type FunctionType } from "../../main/core/wasm-binary.js";
 import {
   QUICK_ITEM_MOVE_SCRATCH_BYTES,
   QUICK_ITEM_MOVE_PROMPT,

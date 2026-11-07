@@ -17,7 +17,7 @@ import { createHash } from "node:crypto";
 import { createReadStream } from "node:fs";
 import { mkdir, readFile, rm, stat } from "node:fs/promises";
 import path from "node:path";
-import { writeAtomic, writeAtomicJson } from "./atomic-file.js";
+import { writeAtomic, writeAtomicJson } from "../main/core/atomic-file.js";
 
 export interface DerivedWasmCache {
   /** sha256 of the module the transform consumes. Keys the cache entry. */

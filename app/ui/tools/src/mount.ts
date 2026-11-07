@@ -1,13 +1,13 @@
 /** Mounts one persistent library controller and its editor. */
-import type { HubPresenter } from '../../../src/shared/hub';
+import type { HubPresenter } from '../../../shared/hub';
 import { createApp, h, ref } from "vue";
 import ToolsApp from "./ToolsApp.vue";
 import {
   liveParty,
   type ToolboxObservation,
-} from "../../../src/shared/builds/live-party";
+} from "../../../shared/builds/live-party";
 import type { ToolsHost } from "./host";
-import type { ToolsAppHandle } from "../../../src/shared/tools-bundle-contracts";
+import type { ToolsAppHandle } from "../../../shared/tools-bundle-contracts";
 import { devTrace } from "./dev-trace";
 import "./styles.css";
 

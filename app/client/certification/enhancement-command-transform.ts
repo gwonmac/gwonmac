@@ -2,7 +2,7 @@
  * Shared mailbox, Team Apply, Xunlai, and slash-parser WASM builders.
  * It emits bounded mailbox builders without owning the surrounding module transform.
  */
-import { concat, sleb, uleb } from "../core/wasm-binary.js";
+import { concat, sleb, uleb } from "../../main/core/wasm-binary.js";
 
 const COMMAND_ARGS = 4;
 const STORAGE_COMMAND = -1;

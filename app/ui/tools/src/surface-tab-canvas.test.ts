@@ -7,7 +7,7 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 // The production owner, exercised with trusted-looking events.
 // eslint-disable-next-line no-restricted-imports
-import { installSurfaceController } from '../../../src/renderer/surface-controller';
+import { installSurfaceController } from '../../../renderer/surface-controller';
 
 let canvas: HTMLCanvasElement;
 let popout: HTMLDivElement;

@@ -1,8 +1,8 @@
 /** Checks persistence validation and the untrusted snapshot boundary. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { isAlcoholTimerPosition, formatAlcoholTimer } from "../../src/shared/alcohol-timer.ts";
-import { readCompanionAlcohol } from "../../src/renderer/companion-alcohol-snapshot.ts";
+import { isAlcoholTimerPosition, formatAlcoholTimer } from "../../app/shared/alcohol-timer.ts";
+import { readCompanionAlcohol } from "../../app/renderer/companion-alcohol-snapshot.ts";
 
 test("saved alcohol offsets are finite, bounded and exact", () => {
   for (const value of [null, {}, { x: 0, y: 0, locked: true }, { corner: "top-left", x: NaN, y: 0, locked: true },

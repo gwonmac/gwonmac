@@ -10,12 +10,12 @@ import {
   teamSlotsOf,
   type Build,
   type BuildLibrary,
-} from "../../src/shared/builds/library.js";
+} from "../../app/shared/builds/library.js";
 import {
   decodeTeamBundle,
   encodeTeamBundle,
   importTeamBundle,
-} from "../../src/shared/builds/team-bundle.js";
+} from "../../app/shared/builds/team-bundle.js";
 
 const prefix = "gwonmac-team:";
 const decodePayload = (code: string) => JSON.parse(Buffer.from(

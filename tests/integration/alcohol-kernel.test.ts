@@ -1,8 +1,8 @@
 /** Exercises real Rust alcohol observation with disposable native memory. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { COMPANION_FEATURE_BITS } from "../../src/shared/companion-abi.ts";
-import { readCompanionAlcohol } from "../../src/renderer/companion-alcohol-snapshot.ts";
+import { COMPANION_FEATURE_BITS } from "../../app/shared/companion-abi.ts";
+import { readCompanionAlcohol } from "../../app/renderer/companion-alcohol-snapshot.ts";
 import { ADDRESSES, createKernel, installGameGraph } from "../fixtures/enhancements.ts";
 const FEATURES = COMPANION_FEATURE_BITS.playRegionObservation | COMPANION_FEATURE_BITS.playerEffectObservation | COMPANION_FEATURE_BITS.alcoholObservation;
 async function fixture() {

@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { isCartographySpikeBuild } from
-  "../../src/main/certification/cartography-spike-verifier.js";
+  "../../app/client/certification/cartography-spike-verifier.js";
 import { CARTOGRAPHY_SPIKE_TRANSFORM_ABI } from
-  "../../src/main/certification/pathing-spike-transform.js";
+  "../../app/client/certification/pathing-spike-transform.js";
 
 const inputSha256 = "a".repeat(64);
 const outputSha256 = "b".repeat(64);

@@ -1,9 +1,9 @@
 /** The automatic-return owner must not miss a fast character-select transition. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { installAutomaticCharacterReturn } from "../../src/renderer/automatic-character-return.js";
-import { installLoginStatus } from "../../src/renderer/login-status.js";
-import type { RendererMilestone } from "../../src/shared/diagnostics.js";
+import { installAutomaticCharacterReturn } from "../../app/renderer/automatic-character-return.js";
+import { installLoginStatus } from "../../app/renderer/login-status.js";
+import type { RendererMilestone } from "../../app/shared/diagnostics.js";
 
 test("a timed-out return notice clears itself", async (context) => {
   const status = { hidden: true, textContent: "" };

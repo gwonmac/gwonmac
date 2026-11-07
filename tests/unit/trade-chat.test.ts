@@ -5,8 +5,8 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, it } from "node:test";
 import WebSocket from "ws";
-import { TradeChatService } from "../../src/main/core/trade-chat-service.js";
-import { TradeSavedStore } from "../../src/main/core/trade-saved-store.js";
+import { TradeChatService } from "../../app/main/core/trade-chat-service.js";
+import { TradeSavedStore } from "../../app/main/core/trade-saved-store.js";
 import {
   TRADE_LIMITS,
   parseTradePayload,
@@ -15,7 +15,7 @@ import {
   parseTraderPriceHistoryPayload,
   parseTraderPriceHistoryRequest,
   parseTraderQuotePayload,
-} from "../../src/shared/trade-chat.js";
+} from "../../app/shared/trade-chat.js";
 
 describe("trade chat contracts", () => {
   it("accepts numeric and numeric-string timestamps plus replacements", () => {

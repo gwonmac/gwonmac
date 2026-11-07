@@ -1,10 +1,10 @@
 <!-- Discovery filters for All matches; each filter has exactly one control. The Hunt list ignores them. -->
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { ELITE_REGIONS, type EliteLearnedFilter, type EliteViewPreferences } from "../../../../src/shared/elite-skills";
-import { PROFESSIONS } from "../../../../src/shared/builds/heroes";
-import { professionPresentation } from "../../../../src/shared/profession-assets";
-import type { Profession, ProfessionPair } from "../../../../src/shared/builds/library";
+import { ELITE_REGIONS, type EliteLearnedFilter, type EliteViewPreferences } from "../../../../shared/elite-skills";
+import { PROFESSIONS } from "../../../../shared/builds/heroes";
+import { professionPresentation } from "../../../../shared/profession-assets";
+import type { Profession, ProfessionPair } from "../../../../shared/builds/library";
 const props = defineProps<{
   preferences: EliteViewPreferences; disabled: boolean;
   myProfessions: ProfessionPair | null; learnedAvailable: boolean;

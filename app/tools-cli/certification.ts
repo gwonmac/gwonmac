@@ -3,7 +3,7 @@
  * official-client -> template-save -> Enhancement chain.
  *
  * It owns argument parsing, printing and exit codes, and nothing else. Every
- * answer comes from the modules `src/main/certification/` owns, so a report
+ * answer comes from the modules `app/client/certification/` owns, so a report
  * printed here and the decision a launch makes cannot disagree — and the four
  * separate commands this replaced cannot drift apart in how they locate the
  * installed client or spell a failure.
@@ -30,20 +30,20 @@ import {
   enhancementOutputSha256,
   findEnhancementBuild,
   supportedEnhancementCapabilities,
-} from "../main/certification/enhancement-builds.js";
-import { transformEnhancementWasm } from "../main/certification/enhancement-transform.js";
+} from "../client/certification/enhancement-builds.js";
+import { transformEnhancementWasm } from "../client/certification/enhancement-transform.js";
 import {
   deriveNativeDoubleClickBuild,
-} from "../main/certification/native-double-click.js";
+} from "../client/certification/native-double-click.js";
 import { deriveCartographySpikeBuild } from
-  "../main/certification/cartography-spike-verifier.js";
-import { preparePostTemplateSaveModule } from "../main/certification/template-save-verifier.js";
+  "../client/certification/cartography-spike-verifier.js";
+import { preparePostTemplateSaveModule } from "../client/certification/template-save-verifier.js";
 import {
   isLocalClientVerification,
   verifyLocalClientBytes,
-} from "../main/certification/local-client-verifier.js";
+} from "../client/certification/local-client-verifier.js";
 import { rewriteTemplateSaveWasm } from
-  "../main/certification/template-save-compat.js";
+  "../client/certification/template-save-compat.js";
 import {
   ENHANCEMENT_CAPABILITY_PRESETS,
   ENHANCEMENT_CAPABILITY_FIELDS,

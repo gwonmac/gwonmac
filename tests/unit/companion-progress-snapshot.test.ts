@@ -1,8 +1,8 @@
 /** The renderer's strict decoder for the companion progress publication. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { COMPANION_ABI } from "../../src/shared/companion-abi.ts";
-import { createCompanionProgressReader, sameGameProgress } from "../../src/renderer/companion-progress-snapshot.ts";
+import { COMPANION_ABI } from "../../app/shared/companion-abi.ts";
+import { createCompanionProgressReader, sameGameProgress } from "../../app/renderer/companion-progress-snapshot.ts";
 
 const ABI = COMPANION_ABI.progress;
 const POINTER = 64;

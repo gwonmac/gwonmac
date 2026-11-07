@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { unavailablePlatformCapabilities } from "../../src/renderer/platform-capabilities.js";
+import { unavailablePlatformCapabilities } from "../../app/renderer/platform-capabilities.js";
 
 describe("ArenaNet unavailable platform capabilities", () => {
   it("exposes only the two namespaces required by defective client guards", () => {

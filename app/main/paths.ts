@@ -2,7 +2,7 @@
  * The Electron-rooted entry to the path table.
  *
  * Which paths exist is decided in `./core/paths.ts`, which stays Electron-free
- * so it can be executed by a test and imported from `src/main/core/**`. This
+ * so it can be executed by a test and imported from `app/main/core/**`. This
  * module adds only what needs `app`: the per-user data root, the compiled
  * renderer directory, and the preload. Nothing here invents a path that the
  * core table does not already own.

@@ -1,14 +1,14 @@
 /** Hub presentation over the existing library controller and bounded apply owners. */
-import { TOOL_PRESENTATION } from '../../../src/shared/tool-presentation';
+import { TOOL_PRESENTATION } from '../../../shared/tool-presentation';
 import { watch } from 'vue';
-import { diffBuilds, diffSummary } from '../../../src/shared/builds/diff';
-import { buildAttributes, buildProfessions } from '../../../src/shared/builds/presentation';
-import { hubMatch, parseHubQuery, type HubPresenter, type HubRow, type HubSource, type HubTask } from '../../../src/shared/hub';
-import { buildId, skillId, type Build, type Team, type HeroId } from '../../../src/shared/builds/library';
-import { heroLabel, PROFESSIONS } from '../../../src/shared/builds/heroes';
-import { decodeSkillTemplate } from '../../../src/shared/builds/skill-template';
-import { preflightTeamApply, resolveTeamApplyPlan, type TeamApplyPlan } from '../../../src/shared/builds/team-apply';
-import type { TeamApplyEvent } from '../../../src/shared/builds/team-apply-runner';
+import { diffBuilds, diffSummary } from '../../../shared/builds/diff';
+import { buildAttributes, buildProfessions } from '../../../shared/builds/presentation';
+import { hubMatch, parseHubQuery, type HubPresenter, type HubRow, type HubSource, type HubTask } from '../../../shared/hub';
+import { buildId, skillId, type Build, type Team, type HeroId } from '../../../shared/builds/library';
+import { heroLabel, PROFESSIONS } from '../../../shared/builds/heroes';
+import { decodeSkillTemplate } from '../../../shared/builds/skill-template';
+import { preflightTeamApply, resolveTeamApplyPlan, type TeamApplyPlan } from '../../../shared/builds/team-apply';
+import type { TeamApplyEvent } from '../../../shared/builds/team-apply-runner';
 import { teamApplyStoredProblemMessage, teamApplyRuntimeProblemMessage } from './team-apply-presentation';
 import type { LibraryController } from './use-library';
 import type { ToolsHost } from './host';

@@ -1,4 +1,4 @@
-// `src/shared/builds/library.ts` claims two things that no amount of runtime
+// `app/shared/builds/library.ts` claims two things that no amount of runtime
 // checking would give you, and one that runtime checking is exactly right for.
 // This file proves all three, because the shapes are about to carry the whole
 // hero-builds feature and several other modules are written against them.
@@ -34,7 +34,7 @@ import type {
   Team,
   TeamSlot,
   TeamSlots,
-} from "../../src/shared/builds/library.ts";
+} from "../../app/shared/builds/library.ts";
 import {
   LIBRARY_VERSION,
   SKILL_SLOTS,
@@ -47,7 +47,7 @@ import {
   teamId,
   usedBy,
   variantsOf,
-} from "../../src/shared/builds/library.ts";
+} from "../../app/shared/builds/library.ts";
 
 /** Written out rather than mapped so the fixture helpers need no casts. */
 type Eight<T> = readonly [T, T, T, T, T, T, T, T];

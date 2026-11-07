@@ -3,18 +3,18 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { verifyLocalClientBytes } from "../../src/main/certification/local-client-verifier.js";
-import { rewriteTemplateSaveWasm } from "../../src/main/certification/template-save-compat.js";
-import { transformEnhancementWasm } from "../../src/main/certification/enhancement-transform.js";
+import { verifyLocalClientBytes } from "../../app/client/certification/local-client-verifier.js";
+import { rewriteTemplateSaveWasm } from "../../app/client/certification/template-save-compat.js";
+import { transformEnhancementWasm } from "../../app/client/certification/enhancement-transform.js";
 import {
   deriveFriendObserverBuild,
   FRIEND_LIFECYCLE_NOTIFICATIONS as N,
   isFriendObserverBuild,
   rewriteFriendObserverWasm,
-} from "../../src/main/certification/friend-observer-transform.js";
-import { RELEASE_ENHANCEMENT_CAPABILITIES } from "../../src/shared/enhancement-contracts.js";
-import { sectionById, splitSections } from "../../src/main/core/wasm-binary.js";
-import { decodeFriendObserverManifest } from "../../src/renderer/friend-observer-manifest.ts";
+} from "../../app/client/certification/friend-observer-transform.js";
+import { RELEASE_ENHANCEMENT_CAPABILITIES } from "../../app/shared/enhancement-contracts.js";
+import { sectionById, splitSections } from "../../app/main/core/wasm-binary.js";
+import { decodeFriendObserverManifest } from "../../app/renderer/friend-observer-manifest.ts";
 import { observerTransformFixture } from "../fixtures/friend-observer-transform.js";
 import { queueFixture } from "../fixtures/native-friend-queue.js";
 

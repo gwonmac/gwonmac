@@ -3,7 +3,7 @@
 // of calls, because every claim made with it is about what the game would find
 // afterwards — not about which method was reached.
 
-import type { TemplateFileSystem } from "../../src/renderer/template-store.js";
+import type { TemplateFileSystem } from "../../app/renderer/template-store.js";
 
 export const SKILLS_DIR = "/app:/Templates/Skills";
 export const EQUIPMENT_DIR = "/app:/Templates/Equipment";

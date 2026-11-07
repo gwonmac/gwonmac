@@ -17,8 +17,8 @@ import {
   rescueStranded,
   strandedTemplates,
   templatePath,
-} from "../../src/renderer/template-store.js";
-import type { TemplateCandidate } from "../../src/renderer/template-format.js";
+} from "../../app/renderer/template-store.js";
+import type { TemplateCandidate } from "../../app/renderer/template-format.js";
 import { EQUIPMENT_DIR, SKILLS_DIR, fakeFilesystem } from "./template-filesystem-fixture.js";
 
 const SKILLS = "OQCiUyo8AkVwR4KMMGAAAEAA";

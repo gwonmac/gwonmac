@@ -5,14 +5,14 @@ import {
   inspectEnhancementStructuralEvidence as inspectStructuralEvidence,
   locateAutomaticCursor,
   type PlayerChatMessageAnchors,
-} from "../../src/main/certification/enhancement-structural-evidence.js";
-import { ENHANCEMENT_BUILDS } from "../../src/main/certification/enhancement-builds.js";
+} from "../../app/client/certification/enhancement-structural-evidence.js";
+import { ENHANCEMENT_BUILDS } from "../../app/client/certification/enhancement-builds.js";
 import {
   functionBody,
   functionBodySha256,
   matchesEvidenceInput,
   wasmEvidence,
-} from "../../src/main/certification/wasm-evidence.js";
+} from "../../app/client/certification/wasm-evidence.js";
 import {
   concat,
   encodeCode,
@@ -22,7 +22,7 @@ import {
   uleb,
   WASM_HEADER,
   type FunctionType,
-} from "../../src/main/core/wasm-binary.js";
+} from "../../app/main/core/wasm-binary.js";
 
 const I32 = 0x7f;
 const PLAYER_CHAT = 0x1000_0082;

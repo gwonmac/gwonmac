@@ -10,7 +10,7 @@ const root = path.resolve(import.meta.dirname, "..");
 const contentRoot = path.join(root, "content/en/2.blog");
 const outputPath = path.join(root, "public/launcher/news-v1.json");
 const check = process.argv.includes("--check");
-// The app refuses the whole feed beyond these limits (src/main/core/launcher-news.ts).
+// The app refuses the whole feed beyond these limits (app/main/core/launcher-news.ts).
 const MAX_STORIES = 24;
 const MAX_TITLE = 140;
 const MAX_SUMMARY = 360;
@@ -90,7 +90,7 @@ stories.sort((left, right) => right.publishedAt.localeCompare(left.publishedAt))
 const generated = `${JSON.stringify({ version: 1, stories: stories.slice(0, MAX_STORIES) }, null, 2)}\n`;
 if (check) {
   const current = await readFile(outputPath, "utf8").catch(() => "");
-  if (current !== generated) throw new Error("launcher news feed is stale; run pnpm --dir apps/website generate:launcher-news");
+  if (current !== generated) throw new Error("launcher news feed is stale; run pnpm --dir website generate:launcher-news");
 } else {
   await writeFile(outputPath, generated);
 }

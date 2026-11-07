@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { parseSkillCatalogue } from "../../src/shared/skill-catalogue.js";
+import { parseSkillCatalogue } from "../../app/shared/skill-catalogue.js";
 
 const skill = () => ({
   id: 42,

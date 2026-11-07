@@ -14,7 +14,7 @@
  * that no real call can produce, where the renderer answers it.
  */
 import { createHash } from "node:crypto";
-// The dirfd markers are canonical in src/shared because the renderer half needs
+// The dirfd markers are canonical in app/shared because the renderer half needs
 // the same values and cannot import from here; the generated preload carries
 // them across. See WASM_BRIDGE_MARKERS.
 import { WASM_BRIDGE_MARKERS } from "../../shared/contracts.js";
@@ -32,7 +32,7 @@ import {
   uleb,
   WASM_HEADER,
   type Section,
-} from "../core/wasm-binary.js";
+} from "../../main/core/wasm-binary.js";
 
 declare const WebAssembly: {
   validate(bytes: Uint8Array): boolean;

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { concat, encodeCode, encodeSection, sleb, uleb, WASM_HEADER } from "../../src/main/core/wasm-binary.js";
-import { resignConfigure, resignDrain, resignEnqueue, resignExecute } from "../../src/main/certification/enhancement-resign-transform.js";
+import { concat, encodeCode, encodeSection, sleb, uleb, WASM_HEADER } from "../../app/main/core/wasm-binary.js";
+import { resignConfigure, resignDrain, resignEnqueue, resignExecute } from "../../app/client/certification/enhancement-resign-transform.js";
 
 const bytes = (...values: number[]) => Uint8Array.of(...values);
 const name = (value: string) => concat(uleb(value.length), new TextEncoder().encode(value));

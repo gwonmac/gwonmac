@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import net from "node:net";
 import type { AddressInfo } from "node:net";
 import { after, before, describe, it } from "node:test";
-import type { SocketEvent } from "../../src/shared/contracts.ts";
-import { SocketManager } from "../../src/main/core/sockets.ts";
+import type { SocketEvent } from "../../app/shared/contracts.ts";
+import { SocketManager } from "../../app/main/core/sockets.ts";
 
 // The sink is handed the owner alongside the contract event, so the recorded
 // shape is the event union widened by one field — and it stays a union, so a

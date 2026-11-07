@@ -67,5 +67,5 @@ for row in rows:
 output = '/**\n * Reviewed capture locations from GWToolbox++ ' + COMMIT + '.\n * Derived by scripts/import-elite-locations.py; preserve the third-party notice.\n */\nimport type { EliteLocation } from "./elite-skills.js";\n\nexport const ELITE_LOCATIONS: readonly EliteLocation[] = [\n'
 output += ''.join('  ' + json.dumps(row, ensure_ascii=False, separators=(',', ':')) + ',\n' for row in unique.values())
 output += '];\n'
-(ROOT / 'src/shared/elite-locations.ts').write_text(output)
+(ROOT / 'app/shared/elite-locations.ts').write_text(output)
 print(f'Imported {len(unique)} locations / {len(set(r["skillId"] for r in rows))} skills')

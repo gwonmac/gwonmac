@@ -9,7 +9,7 @@
  * ## Why this is found rather than pinned
  *
  * The table's address is build-specific, exactly like the `Layout` offsets in
- * `src/companion-kernel/`. But unlike those, it does not need live evidence to
+ * `kernels/companion/`. But unlike those, it does not need live evidence to
  * locate: the table has a *shape* no other data in the binary has, and
  * `findSkillTable` searches for that shape rather than trusting a constant. A
  * new ArenaNet build moves the table and this still finds it — which is also

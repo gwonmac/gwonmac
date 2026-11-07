@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { EXTENDED_MEMORY_MAX_BYTES } from "../../src/main/certification/extended-memory.js";
-import { extendedMemoryRuntimeStatus } from "../../src/main/extended-memory-runtime.js";
-import { WASM_HEAP_CAP_BYTES } from "../../src/shared/contracts.js";
+import { EXTENDED_MEMORY_MAX_BYTES } from "../../app/client/certification/extended-memory.js";
+import { extendedMemoryRuntimeStatus } from "../../app/main/extended-memory-runtime.js";
+import { WASM_HEAP_CAP_BYTES } from "../../app/shared/contracts.js";
 
 describe("extended memory runtime result", () => {
   it("keeps unresolved selection outside the result and maps standard mode", () => {

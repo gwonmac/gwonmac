@@ -285,7 +285,7 @@ test('Hub capture cancellation releases only its owning window (HUB-038)', async
   const { app, page } = fixture;
   const captures = (start: boolean) => app.evaluate(({ BrowserWindow }, { url, modulePath, start }) => {
     const load = process.getBuiltinModule('node:module').createRequire(modulePath);
-    const owner: typeof import('../../src/main/launcher-shortcut-capture.js') = load(modulePath);
+    const owner: typeof import('../../app/main/launcher-shortcut-capture.js') = load(modulePath);
     const game = BrowserWindow.getAllWindows().find(win => win.webContents.getURL() === url);
     const launcher = BrowserWindow.getAllWindows().find(win => win.webContents.getURL() === 'gw://app/launcher/index.html');
     if (!game || !launcher) throw new Error('Offline fixture windows are missing');

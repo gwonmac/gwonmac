@@ -3,15 +3,15 @@
  * A plain canvas stands in for the native map texture and uses the same painter
  * and pointer rules; it cannot prove native alignment or game panel coverage.
  */
-import { ELITE_LOCATIONS } from "../../../src/shared/elite-locations";
-import { EMPTY_ELITE_TRACKING, changeEliteTracking, parseEliteTracking } from "../../../src/shared/elite-skills";
-import { travelCharacterKey } from "../../../src/shared/travel-history";
-import { skillId } from "../../../src/shared/builds/library";
-import type { EliteMapSurface, EliteMapView } from "../../../src/shared/elite-map";
-import { EMPTY_ELITE_SCENE, eliteSpawnLinks, placeEliteMarkers, type EliteMapSurfaceName, type PlacedEliteMarker } from "../../../src/shared/elite-map-scene";
-import { ELITE_MISSION_MAP_MARKERS, type EliteMissionMapMarkers } from "../../../src/shared/elite-map-settings";
-import { createEliteArtwork, paintEliteDot, paintEliteMarker } from "../../../src/shared/ui/elite-marker-paint";
-import { installEliteMapPointer, type EliteMapPointer, type EliteMapPointerSurface } from "../../../src/shared/ui/elite-map-pointer";
+import { ELITE_LOCATIONS } from "../../../shared/elite-locations";
+import { EMPTY_ELITE_TRACKING, changeEliteTracking, parseEliteTracking } from "../../../shared/elite-skills";
+import { travelCharacterKey } from "../../../shared/travel-history";
+import { skillId } from "../../../shared/builds/library";
+import type { EliteMapSurface, EliteMapView } from "../../../shared/elite-map";
+import { EMPTY_ELITE_SCENE, eliteSpawnLinks, placeEliteMarkers, type EliteMapSurfaceName, type PlacedEliteMarker } from "../../../shared/elite-map-scene";
+import { ELITE_MISSION_MAP_MARKERS, type EliteMissionMapMarkers } from "../../../shared/elite-map-settings";
+import { createEliteArtwork, paintEliteDot, paintEliteMarker } from "../../../shared/ui/elite-marker-paint";
+import { installEliteMapPointer, type EliteMapPointer, type EliteMapPointerSurface } from "../../../shared/ui/elite-map-pointer";
 import type { SkillPresentation } from "./skill-catalog";
 import { mountEliteSkills } from "./elite-mount";
 const fixtureSkills = [

@@ -5,8 +5,8 @@ import {
   isPublicIp,
   parseDestination,
   ALLOWED_PORTS,
-} from "../../src/main/core/allowlists.js";
-import { ValidationError } from "../../src/shared/errors.js";
+} from "../../app/main/core/allowlists.js";
+import { ValidationError } from "../../app/shared/errors.js";
 
 describe("allowlists", () => {
   it("allows approved domain suffixes", () => {

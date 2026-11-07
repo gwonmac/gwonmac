@@ -7,7 +7,7 @@ import { promisify } from "node:util";
 import {
   DISTRIBUTION_CHANNEL_CONFIG,
   isDistributionChannel,
-} from "../src/shared/distribution-channel.ts";
+} from "../app/shared/distribution-channel.ts";
 import {
   closePackagedApp,
   launchPackagedApp,

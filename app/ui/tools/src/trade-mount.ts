@@ -2,7 +2,7 @@
 import { createApp, h, ref } from "vue";
 import TradeChatApp from "./TradeChatApp.vue";
 import type { TradeHost } from "./trade-host";
-import type { TradeChatHandle } from "../../../src/shared/tools-bundle-contracts";
+import type { TradeChatHandle } from "../../../shared/tools-bundle-contracts";
 
 export function mountTradeChat(
   target: HTMLElement,

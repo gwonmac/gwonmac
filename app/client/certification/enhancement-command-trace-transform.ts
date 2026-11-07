@@ -5,7 +5,7 @@
  * their byte encoding: preserve the certified builders and sender exactly while
  * copying their bounded scalar evidence into caller-owned globals.
  */
-import { concat, sleb, uleb } from "../core/wasm-binary.js";
+import { concat, sleb, uleb } from "../../main/core/wasm-binary.js";
 import {
   PROFESSION_TRACE_PAYLOAD_WORDS,
   PROFESSION_TRACE_SCHEMA,

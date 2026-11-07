@@ -4,13 +4,13 @@
  * durable preference write and stale-window refusal.
  */
 import { ref, type Ref } from "vue";
-import type { TravelFriends } from "../../../src/shared/friends";
-import type { GwNativeApi } from "../../../src/shared/contracts";
+import type { TravelFriends } from "../../../shared/friends";
+import type { GwNativeApi } from "../../../shared/contracts";
 import type {
   TravelCommand,
   TravelGameState,
-} from "../../../src/shared/travel-command";
-import { travelContextRefusal } from "../../../src/shared/travel-command";
+} from "../../../shared/travel-command";
+import { travelContextRefusal } from "../../../shared/travel-command";
 import {
   DEFAULT_TRAVEL_SHORTCUTS,
   TRAVEL_DESTINATIONS,
@@ -19,12 +19,12 @@ import {
   type TravelRequest,
   type TravelUserPreferences,
   type TravelUserPreferencesPatch,
-} from "../../../src/shared/travel";
+} from "../../../shared/travel";
 import {
   recordVisitedTravel,
   travelCharacterKey,
   type TravelHistory,
-} from "../../../src/shared/travel-history";
+} from "../../../shared/travel-history";
 import { createTravelHistoryObservation } from "./travel-history-observation";
 
 export type TravelAttempt =

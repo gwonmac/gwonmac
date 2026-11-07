@@ -41,7 +41,7 @@ import { errorCode } from "../shared/errors.js";
 import { INITIAL_PROGRESS } from "../shared/progress.js";
 import { diagnosticProfilePolicy } from "../shared/diagnostic-profile.js";
 import { AUTOMATION_COMMAND } from "../shared/automation.js";
-import { ClientRuntime } from "./client-runtime.js";
+import { ClientRuntime } from "../client/client-runtime.js";
 import { RendererClientSessions } from "./renderer-client-sessions.js";
 import { loadSettings } from "./core/settings.js";
 import { LauncherNewsService } from "./core/launcher-news.js";
@@ -88,7 +88,7 @@ import {
   ENHANCEMENT_AUTOMATION_ENABLED,
   enhancementSelectionFor,
   requestedEnhancementCapabilities,
-} from "./certification/enhancement-policy.js";
+} from "../client/certification/enhancement-policy.js";
 import { registerGwScheme } from "./protocol.js";
 import {
   flushWindowState,

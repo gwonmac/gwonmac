@@ -5,7 +5,7 @@ import path from "node:path";
 import {
   LEGACY_PRIMARY_PROFILE_ID,
   type ProfileId,
-} from "../../src/shared/multiple-accounts.js";
+} from "../../app/shared/multiple-accounts.js";
 import { seedLauncherProfileFixture } from "../helpers/launcher-profile-fixtures.js";
 import {
   closeOffline,
@@ -22,7 +22,7 @@ declare global {
   var __healthTokenDescriptor: PropertyDescriptor | undefined;
   interface Window {
     __concurrentProfileOpen?: Promise<void>;
-    __appliedSettings?: import("../../src/shared/contracts.js").AppSettings;
+    __appliedSettings?: import("../../app/shared/contracts.js").AppSettings;
   }
 }
 
@@ -230,7 +230,7 @@ test("serializes concurrent profile launches behind one client canary", async ()
         configurable: true,
         get: () => globalThis.__forcedCandidateHealthToken,
       });
-    }, path.join(root, "build/main/client-runtime.js"));
+    }, path.join(root, "build/client/client-runtime.js"));
 
     await fixture.page.evaluate(([first, second]) => {
       window.__concurrentProfileOpen = Promise.all([
@@ -262,7 +262,7 @@ test("serializes concurrent profile launches behind one client canary", async ()
       Object.defineProperty(ClientRuntime.prototype, "healthToken", descriptor);
       globalThis.__forcedCandidateHealthToken = null;
       globalThis.__healthTokenDescriptor = undefined;
-    }, path.join(root, "build/main/client-runtime.js")).catch(() => undefined);
+    }, path.join(root, "build/client/client-runtime.js")).catch(() => undefined);
     await closeOffline(fixture);
   }
 });
@@ -802,7 +802,7 @@ test("a missing first frame times out only its profile window", async () => {
         configurable: true,
         get: () => null,
       });
-    }, path.join(root, "build/main/client-runtime.js"));
+    }, path.join(root, "build/client/client-runtime.js"));
     await fixture.page.evaluate((profileId) => {
       window.__concurrentProfileOpen = window.launcherNative.profiles.play([
         profileId as ProfileId,

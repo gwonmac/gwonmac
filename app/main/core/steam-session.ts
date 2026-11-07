@@ -38,7 +38,7 @@ export interface StoredSteamSession {
 }
 
 /**
- * Shared with the IPC boundary parser in `src/main/ipc.ts`, which caps the
+ * Shared with the IPC boundary parser in `app/main/ipc.ts`, which caps the
  * client's storeback before it reaches this validator. One bound, named once.
  */
 export const MAX_TOKEN_LENGTH = 4096;

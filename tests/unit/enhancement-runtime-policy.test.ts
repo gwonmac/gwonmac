@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   enhancementRuntimePolicy,
-} from "../../src/renderer/enhancement-runtime-policy.js";
-import { FEATURE_SELECTION_POLICIES } from "../../src/shared/feature-contracts.js";
+} from "../../app/renderer/enhancement-runtime-policy.js";
+import { FEATURE_SELECTION_POLICIES } from "../../app/shared/feature-contracts.js";
 
 const off = Object.freeze({
   characterSwitchEnabled: false,

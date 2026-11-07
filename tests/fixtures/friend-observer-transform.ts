@@ -1,11 +1,11 @@
 /** Execute production observer wrappers with explicit native-call substitutes and synthetic memory. */
 import assert from "node:assert/strict";
-import type { FriendObserverCertificate } from "../../src/main/certification/friend-observer-certificate.js";
-import { wasmEvidence } from "../../src/main/certification/wasm-evidence.js";
+import type { FriendObserverCertificate } from "../../app/client/certification/friend-observer-certificate.js";
+import { wasmEvidence } from "../../app/client/certification/wasm-evidence.js";
 import {
   concat, encodeCode, encodeIndexVector, encodeSection, parseExports,
   sectionById, splitSections, uleb, WASM_HEADER,
-} from "../../src/main/core/wasm-binary.js";
+} from "../../app/main/core/wasm-binary.js";
 
 const WRAPPERS = [
   "clear", "teardown", "loginStart", "logout", "requestSent", "queueAppend",

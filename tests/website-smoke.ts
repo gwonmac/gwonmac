@@ -3,11 +3,11 @@ import { spawn } from "node:child_process";
 import { once } from "node:events";
 import { createServer } from "node:net";
 import { fileURLToPath } from "node:url";
-import { RELEASE_REPO, RELEASE_REPO_URL } from "../src/shared/project-identity.ts";
+import { RELEASE_REPO, RELEASE_REPO_URL } from "../app/shared/project-identity.ts";
 import {
   RELEASES_FALLBACK_URL,
   selectLatestRelease,
-} from "../apps/website/server/utils/release-select.ts";
+} from "../website/server/utils/release-select.ts";
 import { stopChildProcess } from "./helpers/child-process.ts";
 
 // The download button, executed rather than described. The server
@@ -217,7 +217,7 @@ assert.deepEqual(
 
 const host = "127.0.0.1";
 const websiteDirectory = fileURLToPath(
-  new URL("../apps/website/", import.meta.url),
+  new URL("../website/", import.meta.url),
 );
 
 const probe = createServer();

@@ -1,7 +1,7 @@
 import { isProxy, reactive } from "vue";
 import { describe, expect, it, vi } from "vitest";
-import type { GwNativeApi } from "../../../src/shared/contracts";
-import type { TradeSavedState } from "../../../src/shared/trade-chat";
+import type { GwNativeApi } from "../../../shared/contracts";
+import type { TradeSavedState } from "../../../shared/trade-chat";
 import { createDemoTradeHost, createNativeTradeHost } from "./trade-host";
 
 describe("native trade host", () => {

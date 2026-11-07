@@ -6,7 +6,7 @@ import test from "node:test";
 import {
   isLocalClientVerification,
   verifyLocalClientBytes,
-} from "../../src/main/certification/local-client-verifier.js";
+} from "../../app/client/certification/local-client-verifier.js";
 import {
   concat,
   encodeCode,
@@ -16,8 +16,8 @@ import {
   sectionById,
   splitSections,
   WASM_HEADER,
-} from "../../src/main/core/wasm-binary.js";
-import { wasmEvidence } from "../../src/main/certification/wasm-evidence.js";
+} from "../../app/main/core/wasm-binary.js";
+import { wasmEvidence } from "../../app/client/certification/wasm-evidence.js";
 
 const CORE_CAPABILITIES = Object.freeze({
   nativeCursor: true,

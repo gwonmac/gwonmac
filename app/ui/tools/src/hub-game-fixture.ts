@@ -1,15 +1,15 @@
 /** Synthetic game command boundary for Hub. Runs the production apply runners offline. */
-import { parseBuildLibrary } from '../../../src/shared/builds/parse-library';
+import { parseBuildLibrary } from '../../../shared/builds/parse-library';
 import { ref } from 'vue';
 import { createDemoHost, type ToolsHost } from './host';
 import { demoLibrary } from './fixtures';
-import { liveParty, type LiveParty } from '../../../src/shared/builds/live-party';
-import { buildId, teamId, mapTeamSlots, type BuildLibrary, skillBarOf, skillId, type Build, type HeroId, type ProfessionPair } from '../../../src/shared/builds/library';
-import { ATTRIBUTES, PROFESSIONS, heroLabel } from '../../../src/shared/builds/heroes';
-import { runBuildApply, runTeamApply, type TeamApplyCommands, type TeamApplyEnvironment } from '../../../src/shared/builds/team-apply-runner';
-import { encodeSkillTemplate } from '../../../src/shared/builds/skill-template';
+import { liveParty, type LiveParty } from '../../../shared/builds/live-party';
+import { buildId, teamId, mapTeamSlots, type BuildLibrary, skillBarOf, skillId, type Build, type HeroId, type ProfessionPair } from '../../../shared/builds/library';
+import { ATTRIBUTES, PROFESSIONS, heroLabel } from '../../../shared/builds/heroes';
+import { runBuildApply, runTeamApply, type TeamApplyCommands, type TeamApplyEnvironment } from '../../../shared/builds/team-apply-runner';
+import { encodeSkillTemplate } from '../../../shared/builds/skill-template';
 // eslint-disable-next-line no-restricted-imports
-import type { CompanionPlayRegionState } from '../../../src/renderer/companion-play-region-snapshot';
+import type { CompanionPlayRegionState } from '../../../renderer/companion-play-region-snapshot';
 
 const SCALE_WORDS = ['Swift', 'Iron', 'Quiet', 'Bright', 'Grim', 'Holy', 'Wild', 'Deep', 'Storm', 'Ember'] as const;
 const SCALE_ROLES = ['Healer', 'Smiter', 'Bonder', 'Nuker', 'Tank', 'Runner', 'Farmer', 'Interrupter', 'Minion Master', 'Spiker'] as const;

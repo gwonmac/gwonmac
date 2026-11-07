@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { formatRelogTranscript } from "../../src/main/diagnostics/relog-transcript.ts";
-import type { LogRecord } from "../../src/main/diagnostics/flight-recorder.ts";
+import { formatRelogTranscript } from "../../app/main/diagnostics/relog-transcript.ts";
+import type { LogRecord } from "../../app/main/diagnostics/flight-recorder.ts";
 
 function event(
   seq: number,

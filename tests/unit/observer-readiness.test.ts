@@ -5,7 +5,7 @@ import {
   setSkillCooldownReadiness,
   setSkillGeometryReadiness,
   subscribeObserverReadiness,
-} from "../../src/renderer/observer-readiness.ts";
+} from "../../app/renderer/observer-readiness.ts";
 
 test("observer readiness retains only closed presentation state", () => {
   const published: ReturnType<typeof observerReadiness>[] = [];

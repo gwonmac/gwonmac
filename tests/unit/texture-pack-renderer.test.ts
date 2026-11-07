@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { texmodHash, texmodRawHash } from "../../src/renderer/controller-prompt-texture.js";
-import { createControllerPromptAtlas, installControllerPromptTexture } from "../../src/renderer/controller-prompt-texture.js";
-import { installTexturePack } from "../../src/renderer/texture-pack.js";
+import { texmodHash, texmodRawHash } from "../../app/renderer/controller-prompt-texture.js";
+import { createControllerPromptAtlas, installControllerPromptTexture } from "../../app/renderer/controller-prompt-texture.js";
+import { installTexturePack } from "../../app/renderer/texture-pack.js";
 
 test("replaces an exact RGBA TexMod target only for the synchronous upload", () => {
   const original = Uint8Array.from([1, 2, 3, 255]);

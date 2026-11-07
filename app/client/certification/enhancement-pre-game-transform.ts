@@ -3,7 +3,7 @@
  * It mirrors GWCA's GetFrameByLabel boundary inside the game module and exports
  * only a closed state enum plus a privacy-safe diagnostic mask.
  */
-import { concat, sleb, uleb, type FunctionType } from "../core/wasm-binary.js";
+import { concat, sleb, uleb, type FunctionType } from "../../main/core/wasm-binary.js";
 import { ENHANCEMENT_TRANSFORM_ABI } from "../../shared/enhancement-contracts.js";
 import type { KnownEnhancementBuild } from "./enhancement-builds.js";
 

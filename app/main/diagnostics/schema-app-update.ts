@@ -18,11 +18,11 @@ import {
 import {
   isExtendedMemoryProfile,
   type ExtendedMemoryProfile,
-} from "../certification/extended-memory.js";
+} from "../../client/certification/extended-memory.js";
 import {
   LOCAL_FEATURE_INVARIANTS,
   type AnyLocalFeatureInvariant,
-} from "../certification/local-client-verification-contract.js";
+} from "../../client/certification/local-client-verification-contract.js";
 import {
   appPhase,
   appUpdateErrorCode,

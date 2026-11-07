@@ -1,7 +1,7 @@
 /** Verifies skill labels match the game's own description prefixes for known skills. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { skillType } from "../../src/main/core/skill-type.js";
+import { skillType } from "../../app/main/core/skill-type.js";
 
 const record = (type: number, extra: Partial<Parameters<typeof skillType>[0]> = {}) =>
   ({ type, flash: false, weaponRequirement: 0, combo: 0, profession: 0, ...extra });

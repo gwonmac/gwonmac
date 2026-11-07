@@ -1,8 +1,8 @@
 /** Currency glyph spans protect native text, ambiguous prefixes and the shared alias catalogue. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { CURRENCY_ALIASES } from '../../src/shared/hub-calculator.ts';
-import { recogniseCurrencyTokens } from '../../src/shared/hub-currency-tokens.ts';
+import { CURRENCY_ALIASES } from '../../app/shared/hub-calculator.ts';
+import { recogniseCurrencyTokens } from '../../app/shared/hub-currency-tokens.ts';
 test('currency glyphs keep exact spans for prefixes, compact amounts and multiword aliases', () => {
   for (const [text, expected] of [
     ['10 ectos in p', [[3, 8, 'ecto'], [12, 13, 'platinum']]],

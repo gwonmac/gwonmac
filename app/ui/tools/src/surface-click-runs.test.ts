@@ -6,7 +6,7 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 // The production owner, exercised with trusted-looking events.
 // eslint-disable-next-line no-restricted-imports
-import { armConfirmation, CONFIRMATION_ARMING_MS, installSurfaceController } from '../../../src/renderer/surface-controller';
+import { armConfirmation, CONFIRMATION_ARMING_MS, installSurfaceController } from '../../../renderer/surface-controller';
 
 type Controller = ReturnType<typeof installSurfaceController>;
 let controller: Controller;

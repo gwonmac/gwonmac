@@ -3,9 +3,9 @@ import test from "node:test";
 import {
   createProfessionCommandTrace,
   PROFESSION_COMMAND_TRACE_BYTES,
-} from "../../src/renderer/profession-command-trace.js";
-import type { ToolboxObservation } from "../../src/shared/builds/live-party.js";
-import { PROFESSION_TRACE_SCHEMA } from "../../src/shared/profession-command-trace.js";
+} from "../../app/renderer/profession-command-trace.js";
+import type { ToolboxObservation } from "../../app/shared/builds/live-party.js";
+import { PROFESSION_TRACE_SCHEMA } from "../../app/shared/profession-command-trace.js";
 
 const professionSnapshot = (
   count: number,

@@ -66,12 +66,12 @@ test("every relative ESM dependency reachable from a shipped entry point is pack
 
   // These are deliberately transitive rather than entry-point imports. They
   // prove the walk reached both the main and renderer dependency graphs.
-  assert.ok(closure.has("/build/main/certification/enhancement-builds.js"));
-  assert.ok(closure.has("/build/main/certification/local-client-verifier-host.js"));
-  assert.ok(closure.has("/build/main/certification/native-double-click.js"));
-  assert.ok(closure.has("/build/main/certification/extended-memory.js"));
+  assert.ok(closure.has("/build/client/certification/enhancement-builds.js"));
+  assert.ok(closure.has("/build/client/certification/local-client-verifier-host.js"));
+  assert.ok(closure.has("/build/client/certification/native-double-click.js"));
+  assert.ok(closure.has("/build/client/certification/extended-memory.js"));
   assert.ok(
-    packaged.has("/build/main/certification/local-client-verifier-process.js"),
+    packaged.has("/build/client/certification/local-client-verifier-process.js"),
     "the packaged utility verifier entry must ship beside its host",
   );
   assert.ok(closure.has("/build/renderer/enhancement-readout.js"));
@@ -119,7 +119,7 @@ test("the packaged launcher page ships no static Enhancement markup", () => {
   // only way into the Enhancement graph stays the gated dynamic import in
   // `harness.js`. The runtime surface belongs to an Electron session.
   //
-  // Read out of the packaged set, not out of src/: this is the page a player's
+  // Read out of the packaged set, not out of app/: this is the page a player's
   // renderer actually parses.
   assert.doesNotMatch(
     shippedText("/build/renderer/index.html"),
@@ -222,7 +222,7 @@ function enhancementGate({
   else delete environment.GW_LIVE_SMOKE;
   environment.GW_PROBE_PACKAGED = isPackaged ? "1" : "0";
   environment.GW_PROBE_POLICY = pathToFileURL(
-    path.join(root, "build/main/certification/enhancement-policy.js"),
+    path.join(root, "build/client/certification/enhancement-policy.js"),
   ).href;
   environment.GW_PROBE_ENHANCEMENT = pathToFileURL(
     path.join(root, "build/shared/enhancement-contracts.js"),
@@ -285,13 +285,13 @@ test("packaged builds refuse automation and developer programs independently", (
 
 test("the cursor remains required without a retired game-side setting", async () => {
   // Loaded from `build/`, which is this suite's subject, and typed from the
-  // `src/` modules `build/` is emitted from. The annotation is on the
+  // `app/` modules `build/` is emitted from. The annotation is on the
   // declaration rather than an assertion on the call: a dynamic `import()`
   // whose specifier is not a literal resolves to `any`, so without it a renamed
   // export would read as `undefined` here instead of failing `tsc`.
-  const { DEFAULT_SETTINGS }: typeof import("../../src/shared/contracts.ts") =
+  const { DEFAULT_SETTINGS }: typeof import("../../app/shared/contracts.ts") =
     await import(new URL("../../build/shared/contracts.js", import.meta.url).href);
-  const { parseSettings }: typeof import("../../src/main/core/settings.ts") =
+  const { parseSettings }: typeof import("../../app/main/core/settings.ts") =
     await import(new URL("../../build/main/core/settings.js", import.meta.url).href);
 
   assert.equal("nativeCursor" in DEFAULT_SETTINGS, false);

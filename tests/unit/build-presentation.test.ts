@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { buildAttributes, buildProfessions } from '../../src/shared/builds/presentation.js';
+import { buildAttributes, buildProfessions } from '../../app/shared/builds/presentation.js';
 
 test('compact attributes keep distinct labels, full names, ranks and owning profession art', () => {
   const attributes = buildAttributes({ FastCasting: 12, IllusionMagic: 9, InspirationMagic: 8, Curses: 5, DominationMagic: 0 });

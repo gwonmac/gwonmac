@@ -5,10 +5,10 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { transformCartographySpikeWasm } from
-  "../../src/main/certification/pathing-spike-transform.js";
+  "../../app/client/certification/pathing-spike-transform.js";
 import { deriveCartographySpikeBuild } from
-  "../../src/main/certification/cartography-spike-verifier.js";
-import { wasmEvidence } from "../../src/main/certification/wasm-evidence.js";
+  "../../app/client/certification/cartography-spike-verifier.js";
+import { wasmEvidence } from "../../app/client/certification/wasm-evidence.js";
 import {
   CARTOGRAPHY_CONTEXT_GLOBALS,
   COMPASS_FRAME_SPIKE_GLOBALS,
@@ -17,7 +17,7 @@ import {
   WORLD_MAP_ANCHOR_SPIKE_GLOBALS,
   WORLD_MAP_FRAME_SPIKE_GLOBALS,
 } from
-  "../../src/shared/cartography-spike.js";
+  "../../app/shared/cartography-spike.js";
 
 const sha256 = (bytes: Uint8Array): string =>
   createHash("sha256").update(bytes).digest("hex");

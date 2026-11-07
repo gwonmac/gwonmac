@@ -1,6 +1,6 @@
 /**
  * The Hub's Settings page: the launcher's Settings page, built as `settings/settings-app.js`
- * (apps/launcher/src/hub-entry.ts) and loaded on first use. It belongs to every launch, Core
+ * (app/ui/launcher/src/hub-entry.ts) and loaded on first use. It belongs to every launch, Core
  * included, because Tools are turned on here (docs/settings.md).
  */
 import type { EmbeddedSettings } from '../shared/hub-settings.js';

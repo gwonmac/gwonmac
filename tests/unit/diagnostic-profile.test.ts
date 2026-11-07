@@ -6,8 +6,8 @@ import { describe, it } from "node:test";
 import {
   loadDiagnosticProfile,
   saveDiagnosticProfile,
-} from "../../src/main/core/diagnostic-profile.ts";
-import { diagnosticProfilePolicy } from "../../src/shared/diagnostic-profile.ts";
+} from "../../app/main/core/diagnostic-profile.ts";
+import { diagnosticProfilePolicy } from "../../app/shared/diagnostic-profile.ts";
 
 describe("diagnostic profile storage", () => {
   it("defaults to standard and persists every closed profile", async () => {

@@ -8,7 +8,7 @@ import {
   applicationIdentifier,
   DISTRIBUTION_CHANNEL_CONFIG,
   type DistributionChannel,
-} from "../src/shared/distribution-channel.js";
+} from "../app/shared/distribution-channel.js";
 
 interface ProvisioningProfile {
   readonly DeveloperCertificates?: unknown;

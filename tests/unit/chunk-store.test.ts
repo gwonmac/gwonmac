@@ -4,8 +4,8 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it, after } from "node:test";
-import { ChunkStore } from "../../src/main/core/chunk-store.ts";
-import { AppError } from "../../src/shared/errors.ts";
+import { ChunkStore } from "../../app/client/chunk-store.ts";
+import { AppError } from "../../app/shared/errors.ts";
 
 const CHUNK = 4096;
 

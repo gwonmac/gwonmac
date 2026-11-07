@@ -2,7 +2,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { closeOffline, launchOffline, openSettings } from "./fixtures.mjs";
 
-type OverlayModule = typeof import("../../src/renderer/alcohol-timer-overlay.js");
+type OverlayModule = typeof import("../../app/renderer/alcohol-timer-overlay.js");
 type Timer = ReturnType<OverlayModule["createAlcoholTimerOverlay"]>;
 declare global { interface Window { alcoholFixture: Timer } }
 // The overlay consumes supplied snapshots; these tests need only the offline shell.

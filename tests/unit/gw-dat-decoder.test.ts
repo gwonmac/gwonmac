@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { runGwDatDecoder } from "../../src/main/core/gw-dat-decoder.js";
+import { runGwDatDecoder } from "../../app/main/core/gw-dat-decoder.js";
 
 const OPTIONS = {
   args: ["--eval", "process.exit(2)"],

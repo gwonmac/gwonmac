@@ -16,22 +16,22 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-const TOKENS = "src/shared/ui/tokens.css";
+const TOKENS = "app/shared/ui/tokens.css";
 
 /** Every stylesheet that is downstream of the tokens, and so may not hold a
  *  literal. The Tools workbench is on the list for the same reason the
  *  launcher is: two surfaces of one product cannot each own a palette. */
 const CONSUMERS = [
-  "src/shared/ui/components.css",
-  "src/renderer/cartography-overlay-controls.css",
-  "src/renderer/hub.css",
-  "apps/tools/src/styles.css",
-  "apps/tools/src/styles/base-shell.css",
-  "apps/tools/src/styles/library.css",
-  "apps/tools/src/styles/build.css",
-  "apps/tools/src/styles/catalogue.css",
-  "apps/tools/src/styles/team.css",
-  "apps/tools/src/styles/trade.css",
+  "app/shared/ui/components.css",
+  "app/renderer/cartography-overlay-controls.css",
+  "app/renderer/hub.css",
+  "app/ui/tools/src/styles.css",
+  "app/ui/tools/src/styles/base-shell.css",
+  "app/ui/tools/src/styles/library.css",
+  "app/ui/tools/src/styles/build.css",
+  "app/ui/tools/src/styles/catalogue.css",
+  "app/ui/tools/src/styles/team.css",
+  "app/ui/tools/src/styles/trade.css",
 ];
 
 /**
@@ -43,7 +43,7 @@ const CONSUMERS = [
  * one of these files stops holding a literal, it fails here until it is moved
  * up into `CONSUMERS`, where the real rule applies.
  */
-const NOT_YET_TOKENISED = ["src/renderer/harness.css", "src/renderer/character-switch.css"];
+const NOT_YET_TOKENISED = ["app/renderer/harness.css", "app/renderer/character-switch.css"];
 
 const tokens = readFileSync(TOKENS, "utf8");
 const consumers = CONSUMERS.map(
@@ -84,7 +84,7 @@ test("no component decides a colour for itself", () => {
         // projection/component layer where every surface gets the same state.
         const hex = line.match(/#[0-9a-fA-F]{3,8}\b/);
         const fn = line.match(/\b(rgba?|hsla?|oklch|lab|lch)\(/);
-        const mix = path !== "src/shared/ui/components.css" && line.match(/\bcolor-mix\(/);
+        const mix = path !== "app/shared/ui/components.css" && line.match(/\bcolor-mix\(/);
         if (hex || fn || mix) offenders.push(`${path}:${index + 1}: ${line.trim()}`);
       });
   }
@@ -152,8 +152,8 @@ test("style projections stay in tokens and consumers do not branch", () => {
 });
 
 test("persistent interaction states do not leak into neutral controls", () => {
-  const components = readFileSync("src/shared/ui/components.css", "utf8");
-  const toolsShell = readFileSync("apps/tools/src/styles/base-shell.css", "utf8");
+  const components = readFileSync("app/shared/ui/components.css", "utf8");
+  const toolsShell = readFileSync("app/ui/tools/src/styles/base-shell.css", "utf8");
   const rule = (source: string, selector: string): string => {
     const escaped = selector.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
     return source.match(new RegExp(`^${escaped}\\s*\\{([^}]*)\\}`, "mu"))?.[1] ?? "";
@@ -173,9 +173,9 @@ test("persistent interaction states do not leak into neutral controls", () => {
 });
 
 test("shared interaction feedback owns disabled, active, and error presentation", () => {
-  const components = code(readFileSync("src/shared/ui/components.css", "utf8"));
-  const catalogue = code(readFileSync("apps/tools/src/styles/catalogue.css", "utf8"));
-  const build = code(readFileSync("apps/tools/src/styles/build.css", "utf8"));
+  const components = code(readFileSync("app/shared/ui/components.css", "utf8"));
+  const catalogue = code(readFileSync("app/ui/tools/src/styles/catalogue.css", "utf8"));
+  const build = code(readFileSync("app/ui/tools/src/styles/build.css", "utf8"));
 
   for (const selector of [
     '.ui-button[aria-disabled="true"]',

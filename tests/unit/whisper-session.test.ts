@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createWhisperSession, findPeople, whisperUnread } from "../../src/shared/whisper-session.ts";
+import { createWhisperSession, findPeople, whisperUnread } from "../../app/shared/whisper-session.ts";
 
 test("original log owns messages, duplicate text stays distinct, collapse preserves draft", async () => {
   const requests: string[] = [];

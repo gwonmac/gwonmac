@@ -4,7 +4,7 @@
  */
 import { statfs } from "node:fs/promises";
 import type { CacheInfo } from "../../shared/contracts.js";
-import { FREE_MARGIN, type ChunkStore } from "./chunk-store.js";
+import { FREE_MARGIN, type ChunkStore } from "../../client/chunk-store.js";
 
 type CacheStore = Pick<
   ChunkStore,

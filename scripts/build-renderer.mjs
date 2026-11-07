@@ -8,7 +8,7 @@ const inputs = [
   "commands",
   "loading",
   "harness",
-].map((name) => path.resolve(`src/renderer/${name}.ts`));
+].map((name) => path.resolve(`app/renderer/${name}.ts`));
 
 /** @type {import("rollup").Plugin} */
 const rendererTypescript = {
@@ -39,7 +39,7 @@ try {
     dir: path.resolve("build/renderer"),
     format: "es",
     preserveModules: true,
-    preserveModulesRoot: path.resolve("src/renderer"),
+    preserveModulesRoot: path.resolve("app/renderer"),
     entryFileNames: "[name].js",
     sourcemap: true,
   });

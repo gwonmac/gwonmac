@@ -12,8 +12,8 @@ import {
   readRejectedClient,
   rejectClientCandidate,
   restoreInvalidClientCandidate,
-} from "../../src/main/core/client-compatibility.js";
-import { Manifest, type RawManifest } from "../../src/main/core/manifest.js";
+} from "../../app/client/client-compatibility.js";
+import { Manifest, type RawManifest } from "../../app/main/core/manifest.js";
 
 function rawManifest(overrides?: Partial<RawManifest>): RawManifest {
   return {

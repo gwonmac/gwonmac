@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import {
   validPathingShapeFacts,
   type PathingShapeFacts,
-} from "../../src/main/certification/pathing-spike-proof.js";
+} from "../../app/client/certification/pathing-spike-proof.js";
 
 const VALID: PathingShapeFacts = Object.freeze({
   converterCaller: 3208,

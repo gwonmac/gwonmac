@@ -10,8 +10,8 @@ import {
   RECORD,
   serializeCertifiedClientRecord,
 } from "../../scripts/official-client.ts";
-import { Manifest } from "../../src/main/core/manifest.js";
-import { asDigest } from "../../src/shared/digest.js";
+import { Manifest } from "../../app/main/core/manifest.js";
+import { asDigest } from "../../app/shared/digest.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 

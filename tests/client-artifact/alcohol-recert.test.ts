@@ -2,12 +2,12 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { verifyLocalClientBytes, isLocalClientVerification } from "../../src/main/certification/local-client-verifier.ts";
-import { transformEnhancementWasm } from "../../src/main/certification/enhancement-transform.ts";
-import { rewriteTemplateSaveWasm } from "../../src/main/certification/template-save-compat.ts";
-import { ENHANCEMENT_CAPABILITY_PRESETS } from "../../src/shared/enhancement-contracts.ts";
-import { deriveAlcoholObservation, ALCOHOL_PRODUCER_ROLE } from "../../src/main/certification/enhancement-alcohol-proof.ts";
-import { wasmEvidence, valuesForRole, soleValue, functionBody } from "../../src/main/certification/wasm-evidence.ts";
+import { verifyLocalClientBytes, isLocalClientVerification } from "../../app/client/certification/local-client-verifier.ts";
+import { transformEnhancementWasm } from "../../app/client/certification/enhancement-transform.ts";
+import { rewriteTemplateSaveWasm } from "../../app/client/certification/template-save-compat.ts";
+import { ENHANCEMENT_CAPABILITY_PRESETS } from "../../app/shared/enhancement-contracts.ts";
+import { deriveAlcoholObservation, ALCOHOL_PRODUCER_ROLE } from "../../app/client/certification/enhancement-alcohol-proof.ts";
+import { wasmEvidence, valuesForRole, soleValue, functionBody } from "../../app/client/certification/wasm-evidence.ts";
 
 test("alcohol proves the native payload and refuses producer or dispatch changes", async () => {
   assert.ok(process.env.GW_CLIENT_WASM, "GW_CLIENT_WASM must explicitly name the real artifact");

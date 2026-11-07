@@ -4,7 +4,7 @@ import type {
   CompassFrameSpikeSnapshot,
   MissionMapFrameSpikeSnapshot,
   WorldMapFrameSpikeSnapshot,
-} from "../../src/shared/cartography-spike.js";
+} from "../../app/shared/cartography-spike.js";
 import {
   cartographyCellPixelSize,
   CARTOGRAPHY_CELL_MAP_UNITS,
@@ -13,13 +13,13 @@ import {
   projectCartographyGridToCompass,
   projectCartographyGridToMissionMap,
   projectCartographyGridToWorldMap,
-} from "../../src/renderer/cartography-spike/cartography-grid-projection.js";
+} from "../../app/renderer/cartography-spike/cartography-grid-projection.js";
 import {
   cartographyClusterPresentation,
   cartographyProgressClusterOrigin,
   cartographyProgressClusterSize,
   cartographyRevealCounts,
-} from "../../src/renderer/cartography-spike/cartography-grid-layer.js";
+} from "../../app/renderer/cartography-spike/cartography-grid-layer.js";
 
 test("lets proven map knowledge replace a larger continent estimate", () => {
   assert.deepEqual(cartographyClusterPresentation({

@@ -20,8 +20,8 @@ type ProcessExit = { code: number | null; signal: NodeJS.Signals | null };
 /**
  * The socket host ArenaNet's glue reaches through `Module`.
  *
- * `Window.Module` in `src/renderer/gw-native.d.ts` declares only the canvas
- * member, so the surface `src/renderer/harness.ts` installs is named here.
+ * `Window.Module` in `app/renderer/gw-native.d.ts` declares only the canvas
+ * member, so the surface `app/renderer/harness.ts` installs is named here.
  * Widening that declaration is a renderer change, not a test one.
  */
 type GameSocket = {

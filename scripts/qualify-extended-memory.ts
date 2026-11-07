@@ -15,28 +15,28 @@ import {
   prepareExtendedMemoryArtifacts,
   rewriteExtendedMemoryJs,
   rewriteExtendedMemoryWasm,
-} from "../src/main/certification/extended-memory.js";
+} from "../app/client/certification/extended-memory.js";
 import {
   preparePostTemplateSaveModule,
-} from "../src/main/certification/template-save-verifier.js";
-import { transformEnhancementWasm } from "../src/main/certification/enhancement-transform.js";
+} from "../app/client/certification/template-save-verifier.js";
+import { transformEnhancementWasm } from "../app/client/certification/enhancement-transform.js";
 import {
   deriveNativeDoubleClickBuild,
   rewriteWithBuild,
-} from "../src/main/certification/native-double-click.js";
+} from "../app/client/certification/native-double-click.js";
 import {
   enhancementCapabilityProfile,
   NO_ENHANCEMENT_CAPABILITIES,
   RELEASE_ENHANCEMENT_CAPABILITIES,
   type EnhancementCapabilities,
-} from "../src/shared/enhancement-contracts.js";
+} from "../app/shared/enhancement-contracts.js";
 import {
   certificationFromLocalVerification,
-} from "../src/main/certification/client-certification.js";
-import { prepareClientModule } from "../src/main/certification/client-module.js";
+} from "../app/client/certification/client-certification.js";
+import { prepareClientModule } from "../app/client/certification/client-module.js";
 import {
   verifyLocalClientBytes,
-} from "../src/main/certification/local-client-verifier.js";
+} from "../app/client/certification/local-client-verifier.js";
 
 const [jsPath, wasmPath] = process.argv.slice(2);
 if (!jsPath || !wasmPath) {

@@ -27,71 +27,71 @@ const ASSETS = [
   "loading.css",
 ];
 
-// The design system lives in src/shared because the Tools application consumes
-// it too, and apps/** may only reach into src/shared (see eslint.config.js).
+// The design system lives in app/shared because the Tools application consumes
+// it too, and app/ui/tools/** may only reach into app/shared (see eslint.config.js).
 // The renderer loads it as `ui/…`, so it lands beside the renderer's own assets
 // rather than under a shared/ subtree nothing else would read. Listed here for
 // the same reason as everything above: a package input is explicit.
 /** @type {ReadonlyArray<readonly [source: string, destination: string]>} */
 const SHARED_ASSETS = [
-  ["src/shared/ui/tokens.css", "ui/tokens.css"],
-  ["src/shared/ui/components.css", "ui/components.css"],
-  ["src/shared/ui/frame/body.png", "shared/ui/frame/body.png"],
-  ["src/shared/ui/frame/header.png", "shared/ui/frame/header.png"],
+  ["app/shared/ui/tokens.css", "ui/tokens.css"],
+  ["app/shared/ui/components.css", "ui/components.css"],
+  ["app/shared/ui/frame/body.png", "shared/ui/frame/body.png"],
+  ["app/shared/ui/frame/header.png", "shared/ui/frame/header.png"],
   // Currency cards run in the unbundled renderer as well as the Vite Tools UI.
-  ["src/shared/images/currency/Gold.png", "shared/images/currency/Gold.png"],
-  ["src/shared/images/currency/Platinum.png", "shared/images/currency/Platinum.png"],
-  ["src/shared/images/currency/Armbrace_of_Truth.png", "shared/images/currency/Armbrace_of_Truth.png"],
-  ["src/shared/images/currency/Zaishen_Key.png", "shared/images/currency/Zaishen_Key.png"],
-  ["src/shared/images/materials/0b1985.png", "shared/images/materials/0b1985.png"],
-  ["src/shared/images/materials/0b1984.png", "shared/images/materials/0b1984.png"],
-  ["src/shared/images/materials/0b039b.png", "shared/images/materials/0b039b.png"],
-  ["src/shared/images/materials/0b03b4.png", "shared/images/materials/0b03b4.png"],
-  ["src/shared/images/materials/0b03bb.png", "shared/images/materials/0b03bb.png"],
-  ["src/shared/images/materials/0b03a8.png", "shared/images/materials/0b03a8.png"],
-  ["src/shared/images/materials/0b03a9.png", "shared/images/materials/0b03a9.png"],
-  ["src/shared/images/materials/0b03bc.png", "shared/images/materials/0b03bc.png"],
-  ["src/shared/images/materials/0b03b5.png", "shared/images/materials/0b03b5.png"],
-  ["src/shared/images/materials/0b039a.png", "shared/images/materials/0b039a.png"],
-  ["src/shared/images/materials/0b03b7.png", "shared/images/materials/0b03b7.png"],
-  ["src/shared/images/materials/0b03ba.png", "shared/images/materials/0b03ba.png"],
-  ["src/shared/images/materials/0b03b6.png", "shared/images/materials/0b03b6.png"],
-  ["src/shared/images/materials/0b039d.png", "shared/images/materials/0b039d.png"],
-  ["src/shared/images/materials/0b03b2.png", "shared/images/materials/0b03b2.png"],
-  ["src/shared/images/materials/0b039e.png", "shared/images/materials/0b039e.png"],
-  ["src/shared/images/materials/0b03b1.png", "shared/images/materials/0b03b1.png"],
-  ["src/shared/images/materials/0b03b0.png", "shared/images/materials/0b03b0.png"],
-  ["src/shared/images/materials/0b039f.png", "shared/images/materials/0b039f.png"],
-  ["src/shared/images/materials/0b03a1.png", "shared/images/materials/0b03a1.png"],
-  ["src/shared/images/materials/0b03af.png", "shared/images/materials/0b03af.png"],
-  ["src/shared/images/materials/0b03a0.png", "shared/images/materials/0b03a0.png"],
-  ["src/shared/images/materials/0b03a2.png", "shared/images/materials/0b03a2.png"],
-  ["src/shared/images/materials/0b03ad.png", "shared/images/materials/0b03ad.png"],
-  ["src/shared/images/materials/0b03ae.png", "shared/images/materials/0b03ae.png"],
-  ["src/shared/images/materials/0b03a3.png", "shared/images/materials/0b03a3.png"],
-  ["src/shared/images/materials/0b03aa.png", "shared/images/materials/0b03aa.png"],
-  ["src/shared/images/materials/0b03a7.png", "shared/images/materials/0b03a7.png"],
-  ["src/shared/images/materials/0b03a6.png", "shared/images/materials/0b03a6.png"],
-  ["src/shared/images/materials/0b03b8.png", "shared/images/materials/0b03b8.png"],
-  ["src/shared/images/materials/0b03ab.png", "shared/images/materials/0b03ab.png"],
-  ["src/shared/images/materials/0b03a4.png", "shared/images/materials/0b03a4.png"],
-  ["src/shared/images/materials/0b03a5.png", "shared/images/materials/0b03a5.png"],
-  ["src/shared/images/materials/0b03ac.png", "shared/images/materials/0b03ac.png"],
-  ["src/shared/images/materials/0b03b9.png", "shared/images/materials/0b03b9.png"],
-  ["src/shared/images/materials/0b0399.png", "shared/images/materials/0b0399.png"],
-  ["src/shared/images/professions/1.png", "shared/images/professions/1.png"],
-  ["src/shared/images/professions/2.png", "shared/images/professions/2.png"],
-  ["src/shared/images/professions/3.png", "shared/images/professions/3.png"],
-  ["src/shared/images/professions/4.png", "shared/images/professions/4.png"],
-  ["src/shared/images/professions/5.png", "shared/images/professions/5.png"],
-  ["src/shared/images/professions/6.png", "shared/images/professions/6.png"],
-  ["src/shared/images/professions/7.png", "shared/images/professions/7.png"],
-  ["src/shared/images/professions/8.png", "shared/images/professions/8.png"],
-  ["src/shared/images/professions/9.png", "shared/images/professions/9.png"],
-  ["src/shared/images/professions/10.png", "shared/images/professions/10.png"],
+  ["app/shared/images/currency/Gold.png", "shared/images/currency/Gold.png"],
+  ["app/shared/images/currency/Platinum.png", "shared/images/currency/Platinum.png"],
+  ["app/shared/images/currency/Armbrace_of_Truth.png", "shared/images/currency/Armbrace_of_Truth.png"],
+  ["app/shared/images/currency/Zaishen_Key.png", "shared/images/currency/Zaishen_Key.png"],
+  ["app/shared/images/materials/0b1985.png", "shared/images/materials/0b1985.png"],
+  ["app/shared/images/materials/0b1984.png", "shared/images/materials/0b1984.png"],
+  ["app/shared/images/materials/0b039b.png", "shared/images/materials/0b039b.png"],
+  ["app/shared/images/materials/0b03b4.png", "shared/images/materials/0b03b4.png"],
+  ["app/shared/images/materials/0b03bb.png", "shared/images/materials/0b03bb.png"],
+  ["app/shared/images/materials/0b03a8.png", "shared/images/materials/0b03a8.png"],
+  ["app/shared/images/materials/0b03a9.png", "shared/images/materials/0b03a9.png"],
+  ["app/shared/images/materials/0b03bc.png", "shared/images/materials/0b03bc.png"],
+  ["app/shared/images/materials/0b03b5.png", "shared/images/materials/0b03b5.png"],
+  ["app/shared/images/materials/0b039a.png", "shared/images/materials/0b039a.png"],
+  ["app/shared/images/materials/0b03b7.png", "shared/images/materials/0b03b7.png"],
+  ["app/shared/images/materials/0b03ba.png", "shared/images/materials/0b03ba.png"],
+  ["app/shared/images/materials/0b03b6.png", "shared/images/materials/0b03b6.png"],
+  ["app/shared/images/materials/0b039d.png", "shared/images/materials/0b039d.png"],
+  ["app/shared/images/materials/0b03b2.png", "shared/images/materials/0b03b2.png"],
+  ["app/shared/images/materials/0b039e.png", "shared/images/materials/0b039e.png"],
+  ["app/shared/images/materials/0b03b1.png", "shared/images/materials/0b03b1.png"],
+  ["app/shared/images/materials/0b03b0.png", "shared/images/materials/0b03b0.png"],
+  ["app/shared/images/materials/0b039f.png", "shared/images/materials/0b039f.png"],
+  ["app/shared/images/materials/0b03a1.png", "shared/images/materials/0b03a1.png"],
+  ["app/shared/images/materials/0b03af.png", "shared/images/materials/0b03af.png"],
+  ["app/shared/images/materials/0b03a0.png", "shared/images/materials/0b03a0.png"],
+  ["app/shared/images/materials/0b03a2.png", "shared/images/materials/0b03a2.png"],
+  ["app/shared/images/materials/0b03ad.png", "shared/images/materials/0b03ad.png"],
+  ["app/shared/images/materials/0b03ae.png", "shared/images/materials/0b03ae.png"],
+  ["app/shared/images/materials/0b03a3.png", "shared/images/materials/0b03a3.png"],
+  ["app/shared/images/materials/0b03aa.png", "shared/images/materials/0b03aa.png"],
+  ["app/shared/images/materials/0b03a7.png", "shared/images/materials/0b03a7.png"],
+  ["app/shared/images/materials/0b03a6.png", "shared/images/materials/0b03a6.png"],
+  ["app/shared/images/materials/0b03b8.png", "shared/images/materials/0b03b8.png"],
+  ["app/shared/images/materials/0b03ab.png", "shared/images/materials/0b03ab.png"],
+  ["app/shared/images/materials/0b03a4.png", "shared/images/materials/0b03a4.png"],
+  ["app/shared/images/materials/0b03a5.png", "shared/images/materials/0b03a5.png"],
+  ["app/shared/images/materials/0b03ac.png", "shared/images/materials/0b03ac.png"],
+  ["app/shared/images/materials/0b03b9.png", "shared/images/materials/0b03b9.png"],
+  ["app/shared/images/materials/0b0399.png", "shared/images/materials/0b0399.png"],
+  ["app/shared/images/professions/1.png", "shared/images/professions/1.png"],
+  ["app/shared/images/professions/2.png", "shared/images/professions/2.png"],
+  ["app/shared/images/professions/3.png", "shared/images/professions/3.png"],
+  ["app/shared/images/professions/4.png", "shared/images/professions/4.png"],
+  ["app/shared/images/professions/5.png", "shared/images/professions/5.png"],
+  ["app/shared/images/professions/6.png", "shared/images/professions/6.png"],
+  ["app/shared/images/professions/7.png", "shared/images/professions/7.png"],
+  ["app/shared/images/professions/8.png", "shared/images/professions/8.png"],
+  ["app/shared/images/professions/9.png", "shared/images/professions/9.png"],
+  ["app/shared/images/professions/10.png", "shared/images/professions/10.png"],
   // The website and Hub use one reviewed static painting. Keep it canonical in
   // the website package and copy it into the renderer at build time.
-  ["apps/website/public/bg-reforged.jpg", "images/bg-reforged.jpg"],
+  ["website/public/bg-reforged.jpg", "images/bg-reforged.jpg"],
 ];
 
 // Inter is a pinned build dependency rather than a checked-in binary. Copy its
@@ -122,7 +122,7 @@ const copy = (from, relative) => {
 };
 
 for (const relative of ASSETS) {
-  copy(path.resolve("src/renderer", relative), relative);
+  copy(path.resolve("app/renderer", relative), relative);
 }
 
 for (const [from, relative] of SHARED_ASSETS) {

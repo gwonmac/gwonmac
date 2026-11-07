@@ -8,11 +8,11 @@ import {
   watch,
   type Ref,
 } from "vue";
-import { installResizeGrip } from "../../../src/shared/ui/resize";
+import { installResizeGrip } from "../../../shared/ui/resize";
 import {
   restoreFloatingWindowPlacement,
   serializeFloatingWindowPlacement,
-} from "../../../src/shared/ui/window-placement";
+} from "../../../shared/ui/window-placement";
 
 export function useFloatingWindow(options: {
   mode: "standalone" | "embedded";

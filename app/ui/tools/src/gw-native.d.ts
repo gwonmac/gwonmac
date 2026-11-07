@@ -1,8 +1,8 @@
 import type {
   AppSettings,
   GwNativeApi,
-} from "../../../src/shared/contracts";
-import type { CustomUiTheme } from "../../../src/shared/ui-theme";
+} from "../../../shared/contracts";
+import type { CustomUiTheme } from "../../../shared/ui-theme";
 import type { FixtureCanvasEvent } from "./hub-fixture";
 
 export type StandaloneAppearanceFixture = Readonly<{

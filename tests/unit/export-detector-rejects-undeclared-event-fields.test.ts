@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { inspectEventLog } from "../../src/main/diagnostics/detector.ts";
+import { inspectEventLog } from "../../app/main/diagnostics/detector.ts";
 import {
   DIAGNOSTIC_EVENT_SCHEMA,
   diagnosticEventRecord,
-} from "../../src/main/diagnostics/schema.ts";
-import type { DiagnosticEvent } from "../../src/main/diagnostics/schema.ts";
-import { asDigest } from "../../src/shared/digest.ts";
+} from "../../app/main/diagnostics/schema.ts";
+import type { DiagnosticEvent } from "../../app/main/diagnostics/schema.ts";
+import { asDigest } from "../../app/shared/digest.ts";
 
 /**
  * Behaviour only: every case here runs the detector over a real JSONL document

@@ -29,12 +29,12 @@ import { join } from "node:path";
 import {
   ARENANET_REQUEST_CEILING,
   type DownloadActivity,
-} from "../../shared/contracts.js";
-import { AppError } from "../../shared/errors.js";
+} from "../shared/contracts.js";
+import { AppError } from "../shared/errors.js";
 import {
   DownloadRateAverage,
   secondsRemaining,
-} from "../../shared/progress.js";
+} from "../shared/progress.js";
 import {
   CLIENT_ARTIFACTS,
   MAX_PATCH_MANIFEST_BYTES,
@@ -42,13 +42,13 @@ import {
   PATCH_ROOT,
   REQUIRED_PATCH_FILES,
   SNAPSHOT,
-} from "./access-key.js";
+} from "../main/core/access-key.js";
 import {
   writeAll,
   writeAtomicInDir,
   writeAtomicJson,
-} from "./atomic-file.js";
-import { mapPool } from "./async-pool.js";
+} from "../main/core/atomic-file.js";
+import { mapPool } from "../main/core/async-pool.js";
 import {
   clientFingerprint,
   clientGenerationPaths,
@@ -59,13 +59,13 @@ import {
   decodeChunk,
   encodedChunkLimit,
   verifyChunkHash,
-} from "./chunk-format.js";
-import { Manifest, type CompressionMode, type ManifestFileEntry } from "./manifest.js";
+} from "../main/core/chunk-format.js";
+import { Manifest, type CompressionMode, type ManifestFileEntry } from "../main/core/manifest.js";
 import {
   fetchPatchBytes,
   type PatchFetch,
-} from "./patch-transport.js";
-import { clientArtifactPath, clientManifestPath } from "./paths.js";
+} from "../main/core/patch-transport.js";
+import { clientArtifactPath, clientManifestPath } from "../main/core/paths.js";
 import {
   parsePublishedClientManifest,
   readPublishedClientManifest,

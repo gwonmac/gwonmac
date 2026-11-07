@@ -1,4 +1,4 @@
-import type { SkillPlacementResolution } from "../../../src/shared/builds/authoring";
+import type { SkillPlacementResolution } from "../../../shared/builds/authoring";
 import type { SkillId } from "./model";
 import type { SkillCatalogue } from "./skill-catalog";
 

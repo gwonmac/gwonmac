@@ -39,7 +39,7 @@ export function parseHubSettingsChange(value: unknown): HubSettingsChange {
   throw new Error('Invalid Hub settings change');
 }
 
-/** The exports of the Hub's Settings module (`apps/launcher/src/hub-entry.ts`, built to `settings/settings-app.js`). */
+/** The exports of the Hub's Settings module (`app/ui/launcher/src/hub-entry.ts`, built to `settings/settings-app.js`). */
 export type EmbeddedSettings<Target> = Readonly<{
   mountSettings(target: Target, options: Readonly<{
     api: HubSettingsApi;

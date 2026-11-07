@@ -15,7 +15,7 @@ import { fileURLToPath } from "node:url";
 import ts from "typescript";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const schemaPath = path.join(root, "src/main/diagnostics/schema.ts");
+const schemaPath = path.join(root, "app/main/diagnostics/schema.ts");
 const schemaSource = readFileSync(schemaPath, "utf8");
 
 // Extend only the type passed to the two bottom-of-file guards. The production

@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import {
   COMPANION_SKILL_COOLDOWN_BYTES,
   readCompanionSkillCooldowns,
-} from "../../src/renderer/companion-skill-snapshot.ts";
+} from "../../app/renderer/companion-skill-snapshot.ts";
 
 function snapshot(overrides: Readonly<{
   sequence?: number;

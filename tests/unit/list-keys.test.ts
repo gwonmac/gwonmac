@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { listIndexAfter, listKeyStep, listPage } from "../../src/shared/ui/list-keys.js";
+import { listIndexAfter, listKeyStep, listPage } from "../../app/shared/ui/list-keys.js";
 
 const key = (value: string, modifiers: Partial<Pick<KeyboardEvent, "ctrlKey" | "altKey" | "metaKey" | "shiftKey">> = {}) =>
   ({ key: value, ctrlKey: false, altKey: false, metaKey: false, shiftKey: false, ...modifiers }) as KeyboardEvent;

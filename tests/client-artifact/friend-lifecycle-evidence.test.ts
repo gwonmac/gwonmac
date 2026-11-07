@@ -2,16 +2,16 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { inspectFriendLifecycle } from "../../src/main/certification/friend-lifecycle-evidence.js";
+import { inspectFriendLifecycle } from "../../app/client/certification/friend-lifecycle-evidence.js";
 import {
   deriveFriendObserverCertificate,
   isFriendObserverCertificate,
-} from "../../src/main/certification/friend-observer-certificate.js";
-import { wasmEvidence } from "../../src/main/certification/wasm-evidence.js";
+} from "../../app/client/certification/friend-observer-certificate.js";
+import { wasmEvidence } from "../../app/client/certification/wasm-evidence.js";
 import {
   concat, encodeCode, encodeSection, paddedIndex, parseCode,
   sectionById, splitSections, WASM_HEADER,
-} from "../../src/main/core/wasm-binary.js";
+} from "../../app/main/core/wasm-binary.js";
 
 test("friend lifecycle roles survive movement and refuse changed notification paths", {
   timeout: 120_000,

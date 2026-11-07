@@ -4,8 +4,8 @@ import { mkdtemp, mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, it } from "node:test";
-import { fingerprintClientGeneration } from "../../src/main/core/client-fingerprint.js";
-import { inspectEnhancementWorkspace } from "../../src/tools/enhancement-workspace.js";
+import { fingerprintClientGeneration } from "../../app/main/core/client-fingerprint.js";
+import { inspectEnhancementWorkspace } from "../../app/tools-cli/enhancement-workspace.js";
 
 describe("Enhancement workspace doctor", () => {
   it("fails closed for a missing profile", async () => {

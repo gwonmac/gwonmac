@@ -13,7 +13,7 @@ import {
   DISTRIBUTION_CHANNEL_CONFIG,
   DISTRIBUTION_CHANNELS,
   type DistributionChannel,
-} from "../../src/shared/distribution-channel.ts";
+} from "../../app/shared/distribution-channel.ts";
 
 const IDENTITY = "0123456789ABCDEF0123456789ABCDEF01234567";
 const NOW = Date.UTC(2026, 7, 1);

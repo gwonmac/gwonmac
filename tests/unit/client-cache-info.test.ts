@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   projectClientCacheInfo,
-} from "../../src/main/core/client-cache-info.ts";
-import { FREE_MARGIN } from "../../src/main/core/chunk-store.ts";
+} from "../../app/main/core/client-cache-info.ts";
+import { FREE_MARGIN } from "../../app/client/chunk-store.ts";
 
 describe("client cache projection", () => {
   it("reports an empty cache without an active generation", async () => {

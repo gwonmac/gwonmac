@@ -7,7 +7,7 @@ import path from "node:path";
 import { after, before, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { SCENARIOS } from "../../scripts/enhancements-live/scenarios.js";
-import { inspectWasmBytes } from "../../src/tools/wasm-inspection.js";
+import { inspectWasmBytes } from "../../app/tools-cli/wasm-inspection.js";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 let temporary: string;
@@ -76,7 +76,7 @@ test("unknown or mixed discovery arguments cannot fall through to a live run", (
 });
 
 test("doctor inspects an absent profile without building", () => {
-  const result = run("src/tools/certification.ts", ["doctor", "--profile", path.join(temporary, "absent")]);
+  const result = run("app/tools-cli/certification.ts", ["doctor", "--profile", path.join(temporary, "absent")]);
   assert.equal(result.status, 1, result.stderr);
   assert.equal(JSON.parse(result.stdout).readyForCachedLive, false);
 });
@@ -85,7 +85,7 @@ const emptyModule = Uint8Array.of(0, 97, 115, 109, 1, 0, 0, 0);
 test("supplied module inventory never claims synthetic or official provenance", async () => {
   const file = path.join(temporary, "Gw.jspi.wasm");
   await writeFile(file, emptyModule);
-  const result = run("src/tools/certification.ts", ["inspect", file]);
+  const result = run("app/tools-cli/certification.ts", ["inspect", file]);
   assert.equal(result.status, 0, result.stderr);
   assert.deepEqual(JSON.parse(result.stdout), {
     formatVersion: 1, status: "ok", runtimeAuthority: false,
@@ -105,11 +105,11 @@ test("inspection refuses missing, malformed, oversized, and invalid argument inp
   await file.truncate(64 * 1024 * 1024 + 1);
   await file.close();
   for (const [filename, reason] of [[path.join(temporary, "missing"), "cannot-read"], [temporary, "cannot-read"], [malformed, "invalid-wasm"], [large, "input-too-large"]]) {
-    const result = run("src/tools/certification.ts", ["inspect", filename!]);
+    const result = run("app/tools-cli/certification.ts", ["inspect", filename!]);
     assert.equal(result.status, 1, result.stderr);
     assert.deepEqual(JSON.parse(result.stdout), { formatVersion: 1, status: "refused", runtimeAuthority: false, reason });
   }
-  assert.equal(run("src/tools/certification.ts", ["inspect", "--unknown"]).status, 2);
+  assert.equal(run("app/tools-cli/certification.ts", ["inspect", "--unknown"]).status, 2);
 });
 
 test("inventory distinguishes imported and defined memory and table limits", () => {

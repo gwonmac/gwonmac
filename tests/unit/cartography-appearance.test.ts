@@ -13,8 +13,8 @@ import {
   normaliseCartographyPresetLibrary,
   normaliseCartographyPresetRef,
   normaliseCartographyPresetStyle,
-} from "../../src/shared/cartography-overlay.js";
-import { resolveCartographyPreset } from "../../src/shared/cartography-presets.js";
+} from "../../app/shared/cartography-overlay.js";
+import { resolveCartographyPreset } from "../../app/shared/cartography-presets.js";
 
 describe("cartography appearance", () => {
   it("owns exactly three deeply immutable built-in presets", () => {

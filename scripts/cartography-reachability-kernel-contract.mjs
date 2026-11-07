@@ -5,7 +5,7 @@ import {
   CARTOGRAPHY_REACHABILITY_IMPORTS,
   CARTOGRAPHY_REACHABILITY_REGION_BYTES,
   cartographyReachabilitySignatureBytes,
-} from "../src/shared/cartography-reachability-kernel-contract.ts";
+} from "../app/shared/cartography-reachability-kernel-contract.ts";
 
 const signatureModule = new WebAssembly.Module(
   cartographyReachabilitySignatureBytes(),

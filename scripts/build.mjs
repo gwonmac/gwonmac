@@ -43,7 +43,7 @@ if (nativeArchitecture === null) {
  */
 export function companionKernelRustcArgs(output) {
   return [
-    "src/companion-kernel/lib.rs",
+    "kernels/companion/lib.rs",
     "--edition=2021",
     "--target",
     "wasm32-unknown-unknown",
@@ -73,7 +73,7 @@ export function companionKernelRustcArgs(output) {
  */
 export function cartographyReachabilityKernelRustcArgs(output) {
   return [
-    "src/cartography-reachability-kernel/lib.rs",
+    "kernels/reachability/lib.rs",
     "--edition=2021",
     "--target", "wasm32-unknown-unknown",
     "--crate-type", "cdylib",
@@ -144,7 +144,7 @@ export const BUILD_STEPS = [
       "-Wextra",
       "-Werror",
       "-fvisibility=hidden",
-      "src/native/host/host.mm",
+      "app/native/host/host.mm",
       "-framework",
       "AppKit",
       "-framework",
@@ -158,7 +158,7 @@ export const BUILD_STEPS = [
     ],
   ],
   // The Guild Wars archive decoder. A separate executable rather than a second
-  // addon: it is hand-transcribed x86 (see src/native/gw-dat/vendor/README.md)
+  // addon: it is hand-transcribed x86 (see app/native/gw-dat/vendor/README.md)
   // parsing the player's own game files, and a malformed record should fail one
   // decode rather than take the application down with it. It is spawned once
   // per asset and the result is cached on disk, so the process boundary costs
@@ -167,7 +167,7 @@ export const BUILD_STEPS = [
   // -Wall/-Wextra/-Werror are deliberately not applied: this is vendored source
   // carried unmodified, and the -D/-Wno flags stand in for MSVC builtins clang
   // lacks rather than patching it. The third silences a warning about an `&&`
-  // that reads like a typo and is not one — src/native/gw-dat/vendor/README.md
+  // that reads like a typo and is not one — app/native/gw-dat/vendor/README.md
   // records why changing it would break the decode.
   [
     "xcrun",
@@ -181,17 +181,17 @@ export const BUILD_STEPS = [
       '-D__int64=long long',
       "-Wno-multichar",
       "-Wno-constant-logical-operand",
-      "-Isrc/native/gw-dat",
-      "src/native/gw-dat/decoder-main.cpp",
-      "src/native/gw-dat/vendor/gwdat/xentax.cpp",
-      "src/native/gw-dat/vendor/gwdat/AtexReader.cpp",
-      "src/native/gw-dat/vendor/gwdat/AtexDecompress.cpp",
-      "src/native/gw-dat/vendor/gwdat/AtexAsm.cpp",
+      "-Iapp/native/gw-dat",
+      "app/native/gw-dat/decoder-main.cpp",
+      "app/native/gw-dat/vendor/gwdat/xentax.cpp",
+      "app/native/gw-dat/vendor/gwdat/AtexReader.cpp",
+      "app/native/gw-dat/vendor/gwdat/AtexDecompress.cpp",
+      "app/native/gw-dat/vendor/gwdat/AtexAsm.cpp",
       "-o",
       "build/native/gw-dat-decode",
     ],
   ],
-  // Reads src/shared/contracts.ts and src/preload/preload.body.cjs and writes
+  // Reads app/shared/contracts.ts and app/preload/preload.body.cjs and writes
   // the Core and Tools preload artifacts, which nothing else here produces — so its
   // position is free. It is TypeScript, so it is spawned the one way this
   // repository runs a TypeScript file from Node — the same custom hook

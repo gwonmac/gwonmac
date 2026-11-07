@@ -5,8 +5,8 @@ import type {
   ExplorationSpikeController,
   WorldMapAnchorSpikeSnapshot,
   WorldMapAnchorSpikeController,
-} from "../../src/shared/cartography-spike.js";
-import type { PublishedCompanionState } from "../../src/renderer/companion-snapshot.js";
+} from "../../app/shared/cartography-spike.js";
+import type { PublishedCompanionState } from "../../app/renderer/companion-snapshot.js";
 import {
   bitsetHasCell,
   readCartographyState,
@@ -14,16 +14,16 @@ import {
   isCartographyProgressSupported,
   type CartographyModelSources,
   type GridCell,
-} from "../../src/renderer/cartography-spike/cartography-model.js";
+} from "../../app/renderer/cartography-spike/cartography-model.js";
 import type {
   CartographyReachabilityController,
   CartographyReachabilitySnapshot,
-} from "../../src/renderer/cartography-spike/reachability-kernel.js";
-import { captureCartographyEvidence } from "../../src/renderer/cartography-spike/evidence-capture.js";
+} from "../../app/renderer/cartography-spike/reachability-kernel.js";
+import { captureCartographyEvidence } from "../../app/renderer/cartography-spike/evidence-capture.js";
 import {
   TOOLBOX_CARTOGRAPHY_CONTINENTS,
   isToolboxCreditableCell,
-} from "../../src/renderer/cartography-spike/toolbox-cartography-data.js";
+} from "../../app/renderer/cartography-spike/toolbox-cartography-data.js";
 
 const MAP_ID = 650;
 const AREA_EPOCH = 7;

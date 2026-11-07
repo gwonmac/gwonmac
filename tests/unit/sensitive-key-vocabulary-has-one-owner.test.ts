@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import {
   isSensitiveKey,
   redactDiagnosticText,
-} from "../../src/main/diagnostics/text-scan.ts";
+} from "../../app/main/diagnostics/text-scan.ts";
 
 /**
  * One invariant, one owner. App-authored events are now closed by schema and

@@ -7,7 +7,7 @@ import {
   isSkillKeyBindings,
   skillKeyPresentation,
   withSkillKeyBinding,
-} from "../../src/shared/skill-key-bindings.js";
+} from "../../app/shared/skill-key-bindings.js";
 
 const modifiers = {
   control: true,

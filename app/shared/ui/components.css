@@ -24,8 +24,8 @@
  *
  * ## Consumers
  *
- * `src/renderer/harness.css` (the Settings dialog) and
- * `apps/tools/src/styles.css` (the Tools workbench). Both compose these
+ * `app/renderer/harness.css` (the Settings dialog) and
+ * `app/ui/tools/src/styles.css` (the Tools workbench). Both compose these
  * classes and add layout; neither defines a colour.
  */
 

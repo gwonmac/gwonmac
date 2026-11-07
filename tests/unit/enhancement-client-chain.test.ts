@@ -8,7 +8,7 @@ import {
   ENHANCEMENT_CAPABILITY_PRESETS,
   type EnhancementCapabilities,
   type EnhancementCapabilityProfile,
-} from "../../src/shared/enhancement-contracts.js";
+} from "../../app/shared/enhancement-contracts.js";
 import {
   enhancementOutputSha256,
   enhancementProfilesForBuild,
@@ -16,8 +16,8 @@ import {
   hasValidEnhancementProfileHashes,
   supportedEnhancementCapabilities,
   type KnownEnhancementBuild,
-} from "../../src/main/certification/enhancement-builds.js";
-import { TEMPLATE_SAVE_BUILDS } from "../../src/main/certification/template-save-compat.js";
+} from "../../app/client/certification/enhancement-builds.js";
+import { TEMPLATE_SAVE_BUILDS } from "../../app/client/certification/template-save-compat.js";
 
 const NO_CAPABILITIES = Object.freeze({
   nativeCursor: false,

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { concat, encodeCode, encodeSection, uleb, WASM_HEADER } from "../../src/main/core/wasm-binary.js";
-import { encodeName, encodeTypes, nativeFrameObserver, worldMapVisibilityObserver } from "../../src/main/certification/cartography-transform-internals.js";
+import { concat, encodeCode, encodeSection, uleb, WASM_HEADER } from "../../app/main/core/wasm-binary.js";
+import { encodeName, encodeTypes, nativeFrameObserver, worldMapVisibilityObserver } from "../../app/client/certification/cartography-transform-internals.js";
 
 function observer(body: Uint8Array, types: readonly ("i32" | "f32")[]) {
   const section = (id: number, body: Uint8Array) => encodeSection({ id, body });

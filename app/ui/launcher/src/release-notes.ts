@@ -8,8 +8,8 @@ import type { LauncherNewsStory } from "@shared/launcher-contracts";
 import { parseMarkdown } from "@shared/launcher-markdown";
 import { guideLink } from "./guide";
 
-const posts = import.meta.glob<string>("../../website/content/en/2.blog/*.md", { query: "?raw", import: "default", eager: true });
-const images = import.meta.glob<string>("../../website/public/blog/**/*.{webp,png,jpg,gif}", { query: "?url", import: "default", eager: true });
+const posts = import.meta.glob<string>("../../../../website/content/en/2.blog/*.md", { query: "?raw", import: "default", eager: true });
+const images = import.meta.glob<string>("../../../../website/public/blog/**/*.{webp,png,jpg,gif}", { query: "?url", import: "default", eager: true });
 
 export const releaseStoryId = (version: string) => `gwonmac-${version.replaceAll(".", "-")}`;
 

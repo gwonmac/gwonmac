@@ -1,7 +1,7 @@
 /** The login status must give its newest message sole dismissal authority. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { installLoginStatus } from "../../src/renderer/login-status.js";
+import { installLoginStatus } from "../../app/renderer/login-status.js";
 
 test("an older timer cannot hide a newer login status", (context) => {
   context.mock.timers.enable({ apis: ["setTimeout"] });

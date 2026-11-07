@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { COMPANION_ABI } from "../../src/shared/companion-abi.js";
+import { COMPANION_ABI } from "../../app/shared/companion-abi.js";
 import {
   formatEffectTimer,
   readCompanionEffectIcons,
   readCompanionPlayerEffects,
   remainingEffectMs,
-} from "../../src/renderer/companion-effect-snapshot.js";
-import { projectEffectTimerLabels } from "../../src/renderer/effect-timer-overlay-consumer.js";
+} from "../../app/renderer/companion-effect-snapshot.js";
+import { projectEffectTimerLabels } from "../../app/renderer/effect-timer-overlay-consumer.js";
 
 type EffectRecord = Readonly<{
   effectId: number;

@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { createCharacterSwitchController } from "../../src/renderer/character-switch-controller.js";
-import type { CompanionCharacterListState } from "../../src/renderer/companion-character-list-snapshot.js";
+import { createCharacterSwitchController } from "../../app/renderer/character-switch-controller.js";
+import type { CompanionCharacterListState } from "../../app/renderer/companion-character-list-snapshot.js";
 
 const ready = (sequence: number, selectedIndex: number): CompanionCharacterListState =>
   Object.freeze({

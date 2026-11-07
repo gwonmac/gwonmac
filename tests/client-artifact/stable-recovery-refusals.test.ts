@@ -2,13 +2,13 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { isLocalClientVerification, verifyLocalClientBytes } from "../../src/main/certification/local-client-verifier.js";
+import { isLocalClientVerification, verifyLocalClientBytes } from "../../app/client/certification/local-client-verifier.js";
 import {
   concat, encodeCode, encodeSection, parseCode, sectionById, splitSections, WASM_HEADER,
-} from "../../src/main/core/wasm-binary.js";
-import { wasmEvidence } from "../../src/main/certification/wasm-evidence.js";
+} from "../../app/main/core/wasm-binary.js";
+import { wasmEvidence } from "../../app/client/certification/wasm-evidence.js";
 
-import { NO_ENHANCEMENT_CAPABILITIES } from "../../src/shared/enhancement-contracts.js";
+import { NO_ENHANCEMENT_CAPABILITIES } from "../../app/shared/enhancement-contracts.js";
 
 const PREVIOUS_STABLE_CAPABILITIES = Object.freeze({
   ...NO_ENHANCEMENT_CAPABILITIES, nativeCursor: true, targetObservation: true,
@@ -17,8 +17,8 @@ const PREVIOUS_STABLE_CAPABILITIES = Object.freeze({
   playRegionObservation: true, preGameControls: true,
 });
 
-import { rewriteTemplateSaveWasm } from "../../src/main/certification/template-save-compat.js";
-import { locateAutomaticLocalActions } from "../../src/main/certification/enhancement-local-actions-proof.js";
+import { rewriteTemplateSaveWasm } from "../../app/client/certification/template-save-compat.js";
+import { locateAutomaticLocalActions } from "../../app/client/certification/enhancement-local-actions-proof.js";
 
 // ArenaNet rebuilt the October 22 client the same day. The rebuild changes
 // only two constant getters, initialized data and the build ID.

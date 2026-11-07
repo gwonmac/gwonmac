@@ -13,7 +13,7 @@ import type {
   ExtendedMemoryRuntimeStatus,
   RuntimeEnhancementVerification,
 } from "../shared/contracts.js";
-import type { ChunkStore } from "./core/chunk-store.js";
+import type { ChunkStore } from "./chunk-store.js";
 
 export interface ActiveClient {
   readonly generation: number;

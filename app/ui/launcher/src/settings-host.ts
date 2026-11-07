@@ -1,7 +1,7 @@
 /**
  * What the Settings page's in-game sections (Tools, Maps, Appearance, Game) read and change.
  * The launcher passes its whole snapshot and bridge; the Hub passes the game window's bounded
- * copy (src/shared/hub-settings.ts), so these sections may use only the fields main lets the
+ * copy (app/shared/hub-settings.ts), so these sections may use only the fields main lets the
  * game window change. Only the launcher can restart itself.
  */
 import type { LauncherNativeApi } from "@shared/launcher-contracts";

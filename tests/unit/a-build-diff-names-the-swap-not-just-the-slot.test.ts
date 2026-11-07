@@ -1,4 +1,4 @@
-// The point of `src/shared/builds/diff.ts` is not that it can tell two builds
+// The point of `app/shared/builds/diff.ts` is not that it can tell two builds
 // apart — comparing two records is easy, and a diff that answers "slot 3
 // changed" is easy and useless. The point is that every answer it gives is one
 // a player can read: the skill that left and the skill that arrived, a verb
@@ -33,20 +33,20 @@ import type {
   Team,
   TeamSlot,
   TeamSlots,
-} from "../../src/shared/builds/library.ts";
+} from "../../app/shared/builds/library.ts";
 import {
   LIBRARY_VERSION,
   buildId,
   heroId,
   skillId,
   teamId,
-} from "../../src/shared/builds/library.ts";
+} from "../../app/shared/builds/library.ts";
 import {
   diffBuilds,
   diffSummary,
   droppedByTeam,
   nearestBuild,
-} from "../../src/shared/builds/diff.ts";
+} from "../../app/shared/builds/diff.ts";
 
 /** Written out rather than mapped so the fixture helpers need no casts. */
 type Eight<T> = readonly [T, T, T, T, T, T, T, T];

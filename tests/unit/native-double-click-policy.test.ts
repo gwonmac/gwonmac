@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { applyNativeDoubleClickPress } from
-  "../../src/renderer/native-double-click.ts";
+  "../../app/renderer/native-double-click.ts";
 
 const press = (isTrusted: boolean, button: number, detail: number) =>
   ({ isTrusted, button, detail });

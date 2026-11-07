@@ -4,13 +4,13 @@
 import type {
   TeamApplyCommands,
   TeamApplyEnvironment,
-} from "../../src/shared/builds/team-apply-runner.ts";
-import { liveParty, type LiveParty } from "../../src/shared/builds/live-party.ts";
-import { skillId } from "../../src/shared/builds/library.ts";
+} from "../../app/shared/builds/team-apply-runner.ts";
+import { liveParty, type LiveParty } from "../../app/shared/builds/live-party.ts";
+import { skillId } from "../../app/shared/builds/library.ts";
 import type {
   TeamApplyMember,
   TeamApplyPlan,
-} from "../../src/shared/builds/team-apply.ts";
+} from "../../app/shared/builds/team-apply.ts";
 
 export type ApplySlot = {
   hero: number;

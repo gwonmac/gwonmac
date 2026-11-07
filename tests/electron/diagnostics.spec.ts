@@ -14,7 +14,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 import type { ElectronApplication } from "@playwright/test";
-import { RELEASE_REPO_URL } from "../../src/shared/project-identity.ts";
+import { RELEASE_REPO_URL } from "../../app/shared/project-identity.ts";
 import {
   closeOffline,
   launchOffline,
@@ -387,7 +387,7 @@ test.describe("diagnostics", () => {
       expect(capture.captureLevel).toBe(1);
 
       const validated = await execFileAsync(process.execPath, [
-        path.join(root, "build/tools/diagnostics/validate.js"),
+        path.join(root, "build/tools-cli/diagnostics/validate.js"),
         target,
       ]);
       expect(validated.stdout).toContain("valid capture");
@@ -927,7 +927,7 @@ test.describe("diagnostics", () => {
       expect(remaining.filter((name) => name.startsWith("chromium-"))).toEqual([]);
 
       const validated = await execFileAsync(process.execPath, [
-        path.join(root, "build/tools/diagnostics/validate.js"),
+        path.join(root, "build/tools-cli/diagnostics/validate.js"),
         target,
       ]);
       expect(validated.stdout).toContain("valid capture");

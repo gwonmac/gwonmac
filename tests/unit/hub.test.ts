@@ -1,9 +1,9 @@
 /** Search and shortcut refusal tests for the Core palette. */
-import { currentTravelFriend, type TravelFriend, type TravelFriends } from '../../src/shared/friends.js';
+import { currentTravelFriend, type TravelFriend, type TravelFriends } from '../../app/shared/friends.js';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { matchHubRows, parseHubQuery, type HubRow } from '../../src/shared/hub.js';
-import { resolveShortcuts, hubShortcutAvailable } from '../../src/shared/keyboard-shortcuts.js';
+import { matchHubRows, parseHubQuery, type HubRow } from '../../app/shared/hub.js';
+import { resolveShortcuts, hubShortcutAvailable } from '../../app/shared/keyboard-shortcuts.js';
 const row = (id: string, title: string, keywords = ''): HubRow => ({ id, title, keywords, group: 'Commands', detail: '', action: 'Open', run() {} });
 test('search ranks exact names and prefixes before keywords without executing anything', () => {
   const rows = [row('alias', 'Travel', 'Romi'), row('prefix', 'Romi Ranger'), row('exact', 'Romi')];
@@ -58,8 +58,8 @@ test('explicit scopes never reinterpret the remaining words as another action', 
 });
 
 test('saved phrases reject duplicates and private references in global settings', async () => {
-  const { isHubShortcuts } = await import('../../src/shared/hub-preferences.ts');
-  const { parseRendererSettingsPatch } = await import('../../src/main/core/settings.ts');
+  const { isHubShortcuts } = await import('../../app/shared/hub-preferences.ts');
+  const { parseRendererSettingsPatch } = await import('../../app/main/core/settings.ts');
   assert.equal(isHubShortcuts([{ id: 'travel', phrase: 'home', pinned: false }, { id: 'trade', phrase: 'HOME', pinned: false }]), false);
   assert.throws(() => parseRendererSettingsPatch({ hubShortcuts: [{ id: 'build:private', phrase: 'my build', pinned: true }] }), /Invalid Hub/);
 });

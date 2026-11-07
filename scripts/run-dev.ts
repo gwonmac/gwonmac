@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ElectronApplication } from "playwright";
-import { defaultGuildWarsProfile } from "../src/tools/enhancement-workspace.js";
+import { defaultGuildWarsProfile } from "../app/tools-cli/enhancement-workspace.js";
 import { activeProfileOwner } from "./enhancements-live/profile-lock.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");

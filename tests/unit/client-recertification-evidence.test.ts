@@ -8,10 +8,10 @@ import test from "node:test";
 import { createClientRecertificationEvidence } from
   "../../scripts/client-recertification-evidence.js";
 import { ENHANCEMENT_CAPABILITY_FIELDS } from
-  "../../src/shared/enhancement-contracts.js";
-import { SEMANTIC_VERIFIER_ABI } from "../../src/main/certification/semantic-proof.js";
+  "../../app/shared/enhancement-contracts.js";
+import { SEMANTIC_VERIFIER_ABI } from "../../app/client/certification/semantic-proof.js";
 import { LOCAL_FEATURE_INVARIANTS } from
-  "../../src/main/certification/local-client-verification-contract.js";
+  "../../app/client/certification/local-client-verification-contract.js";
 
 
 const sha256 = (value: Uint8Array | string): string =>

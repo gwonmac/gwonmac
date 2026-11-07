@@ -18,13 +18,13 @@ import {
   NATIVE_DOUBLE_CLICK_BUILDS,
   rewriteWithBuild,
   type NativeDoubleClickBuild,
-} from "../../src/main/certification/native-double-click.ts";
+} from "../../app/client/certification/native-double-click.ts";
 import {
   indexOfBytes,
   parseExports,
   sectionById,
   splitSections,
-} from "../../src/main/core/wasm-binary.ts";
+} from "../../app/main/core/wasm-binary.ts";
 
 const sha256 = (bytes: Uint8Array) =>
   createHash("sha256").update(bytes).digest("hex");

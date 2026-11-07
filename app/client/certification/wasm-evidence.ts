@@ -13,7 +13,7 @@ import {
   valueTypeName,
   type FunctionType,
   type Section,
-} from "../core/wasm-binary.js";
+} from "../../main/core/wasm-binary.js";
 import { relocationAwareFingerprint, type RelocationSpan } from "./semantic-proof.js";
 import type {
   DecodedFunction,

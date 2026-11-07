@@ -2,7 +2,7 @@
 import { createApp, h, ref } from "vue";
 import TravelPalette from "./components/TravelPalette.vue";
 import type { TravelHost } from "./travel-host";
-import type { TravelPaletteHandle } from "../../../src/shared/tools-bundle-contracts";
+import type { TravelPaletteHandle } from "../../../shared/tools-bundle-contracts";
 
 export function mountTravelPalette(
   target: HTMLElement,

@@ -4,7 +4,7 @@ import { describe, it } from "node:test";
 import {
   redactDiagnosticText,
   redactTraceStream,
-} from "../../src/main/diagnostics/text-scan.ts";
+} from "../../app/main/diagnostics/text-scan.ts";
 
 /**
  * The adversarial corpus is executed rather than described.

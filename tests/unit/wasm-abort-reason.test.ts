@@ -9,11 +9,11 @@ import { describe, it } from "node:test";
 import {
   classifyWasmAbortReason,
   wasmAbortFingerprint,
-} from "../../src/renderer/wasm-abort-reason.ts";
-import { WASM_ABORT_REASON_KINDS } from "../../src/shared/diagnostics.ts";
-import { diagnosticEventRecord } from "../../src/main/diagnostics/schema.ts";
-import { asRendererFingerprint } from "../../src/main/diagnostics/schema-fields.ts";
-import { parseRendererMilestoneArgs } from "../../src/main/ipc-values.ts";
+} from "../../app/renderer/wasm-abort-reason.ts";
+import { WASM_ABORT_REASON_KINDS } from "../../app/shared/diagnostics.ts";
+import { diagnosticEventRecord } from "../../app/main/diagnostics/schema.ts";
+import { asRendererFingerprint } from "../../app/main/diagnostics/schema-fields.ts";
+import { parseRendererMilestoneArgs } from "../../app/main/ipc-values.ts";
 
 describe("wasm abort reasons collapse into the closed vocabulary", () => {
   it("names the failure class of each known Emscripten abort shape", () => {

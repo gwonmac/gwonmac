@@ -3,7 +3,7 @@
 // against a *compiled* module under build/, and tests/policy runs without a
 // build.
 //
-// The renderer half of each pair cannot be imported. src/renderer/diagnostics.ts
+// The renderer half of each pair cannot be imported. app/renderer/diagnostics.ts
 // is a classic IIFE served over gw:// to a sandboxed page — it exports nothing
 // and has no module form — so the only way to compare its constants with the
 // canonical ones is to read them out of its text. That is a weaker proof than
@@ -19,14 +19,14 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")
 const read = (file: string) => readFileSync(path.join(root, file), "utf8");
 
 // Each canonical constant below is loaded from `build/`, which is the point of
-// this file, and typed from the `src/` module `build/` is emitted from. The
+// this file, and typed from the `app/` module `build/` is emitted from. The
 // annotation is on the declaration rather than an assertion on the call: a
 // dynamic `import()` whose specifier is not a literal resolves to `any`, so
 // without it the assertions would compare against an unchecked shape and a
 // renamed export would read as `undefined` instead of failing `tsc`.
 
 test("renderer and main process use the same histogram boundaries", async () => {
-  const renderer = read("src/renderer/diagnostics.ts");
+  const renderer = read("app/renderer/diagnostics.ts");
   const literal = renderer.match(/const histogramLimitsUs = \[([\s\S]*?)\];/)?.[1];
   assert.ok(literal, "renderer histogram boundaries are missing");
   const rendererBuckets = [
@@ -36,13 +36,13 @@ test("renderer and main process use the same histogram boundaries", async () => 
       ? Number.MAX_SAFE_INTEGER
       : Number(token.replaceAll("_", "")),
   );
-  const { DIAGNOSTIC_BUCKETS_US }: typeof import("../../src/shared/diagnostics.ts") =
+  const { DIAGNOSTIC_BUCKETS_US }: typeof import("../../app/shared/diagnostics.ts") =
     await import(new URL("../../build/shared/diagnostics.js", import.meta.url).href);
   assert.deepEqual(rendererBuckets, [...DIAGNOSTIC_BUCKETS_US]);
 });
 
 test("renderer and main process use the same diagnostic event allowlist", async () => {
-  const renderer = read("src/renderer/diagnostics.ts");
+  const renderer = read("app/renderer/diagnostics.ts");
   const literal = renderer.match(
     /const rendererEventNames = new Set\(\[([\s\S]*?)\]\);/,
   )?.[1];
@@ -50,7 +50,7 @@ test("renderer and main process use the same diagnostic event allowlist", async 
   const rendererNames = [...literal.matchAll(/'([^']+)'/g)]
     .map((match) => match[1])
     .sort();
-  const { RENDERER_EVENT_NAMES }: typeof import("../../src/shared/diagnostics.ts") =
+  const { RENDERER_EVENT_NAMES }: typeof import("../../app/shared/diagnostics.ts") =
     await import(new URL("../../build/shared/diagnostics.js", import.meta.url).href);
   assert.deepEqual(rendererNames, [...RENDERER_EVENT_NAMES].sort());
 });
@@ -66,9 +66,9 @@ test("every main→renderer event channel is named somewhere in main", async () 
   // The event channels have neither a registry nor a caller to execute:
   // main sends them, and a channel main never sends is dead weight nothing else
   // would notice.
-  const { EVENT_CHANNELS }: typeof import("../../src/shared/contracts.ts") =
+  const { EVENT_CHANNELS }: typeof import("../../app/shared/contracts.ts") =
     await import(new URL("../../build/shared/contracts.js", import.meta.url).href);
-  const main = execFileSync("git", ["ls-files", "--", "src/main"], {
+  const main = execFileSync("git", ["ls-files", "--", "app/main"], {
     cwd: root,
     encoding: "utf8",
   })

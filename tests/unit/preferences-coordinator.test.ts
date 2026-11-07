@@ -5,14 +5,14 @@ import type { FileHandle } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
-import { PreferencesCoordinator } from "../../src/main/core/preferences-coordinator.js";
-import { DEFAULT_SETTINGS, type AppSettings } from "../../src/shared/contracts.js";
+import { PreferencesCoordinator } from "../../app/main/core/preferences-coordinator.js";
+import { DEFAULT_SETTINGS, type AppSettings } from "../../app/shared/contracts.js";
 import {
   DEFAULT_TRAVEL_SHORTCUTS,
   replaceTravelShortcut,
-} from "../../src/shared/travel.js";
-import { CARTOGRAPHY_BUILTIN_PRESETS } from "../../src/shared/cartography-overlay.js";
-import { resolveShortcuts } from "../../src/shared/keyboard-shortcuts.js";
+} from "../../app/shared/travel.js";
+import { CARTOGRAPHY_BUILTIN_PRESETS } from "../../app/shared/cartography-overlay.js";
+import { resolveShortcuts } from "../../app/shared/keyboard-shortcuts.js";
 
 type ResetOutcome = Awaited<ReturnType<PreferencesCoordinator["resetSettings"]>>;
 

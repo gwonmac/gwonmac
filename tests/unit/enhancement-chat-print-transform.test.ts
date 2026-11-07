@@ -1,9 +1,9 @@
 /** Local chat lines: only bounded printable ASCII reaches the producer, once, after the game's own validator. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { concat, encodeCode, encodeSection, sleb, uleb, WASM_HEADER } from "../../src/main/core/wasm-binary.js";
-import { CHAT_PRINT_CHANNEL, chatPrintConfigure, chatPrintDrain, chatPrintEnqueue } from "../../src/main/certification/enhancement-chat-print-transform.js";
-import { CHAT_PRINT_MAILBOX as M, CHAT_PRINT_UNITS } from "../../src/shared/chat-print.js";
+import { concat, encodeCode, encodeSection, sleb, uleb, WASM_HEADER } from "../../app/main/core/wasm-binary.js";
+import { CHAT_PRINT_CHANNEL, chatPrintConfigure, chatPrintDrain, chatPrintEnqueue } from "../../app/client/certification/enhancement-chat-print-transform.js";
+import { CHAT_PRINT_MAILBOX as M, CHAT_PRINT_UNITS } from "../../app/shared/chat-print.js";
 
 const bytes = (...values: number[]) => Uint8Array.of(...values);
 const name = (value: string) => concat(uleb(value.length), new TextEncoder().encode(value));

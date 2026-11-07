@@ -4,7 +4,7 @@ import { describe, it } from "node:test";
 import {
   CARTOGRAPHY_REACHABILITY_REGION_BYTES,
   cartographyReachabilitySignatureBytes,
-} from "../../src/shared/cartography-reachability-kernel-contract.js";
+} from "../../app/shared/cartography-reachability-kernel-contract.js";
 
 const A = Object.freeze({
   contextRoot: 0x5a0e70,

@@ -32,7 +32,7 @@ import {
   DISTRIBUTION_CHANNEL_CONFIG,
   isDistributionChannel,
   type DistributionChannel,
-} from "../src/shared/distribution-channel.ts";
+} from "../app/shared/distribution-channel.ts";
 
 // Electron ships four helper applications, and exactly one of them is the
 // Plugin helper — the only target allowed to disable library validation and

@@ -9,15 +9,17 @@ import { fileURLToPath } from "node:url";
 import {
   DISTRIBUTION_CHANNEL_CONFIG,
   DISTRIBUTION_CHANNELS,
-} from "../../src/shared/distribution-channel.ts";
+} from "../../app/shared/distribution-channel.ts";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const read = (file: string) => readFileSync(path.join(root, file), "utf8");
 
-function shippedSources(directory = "src"): string[] {
+function shippedSources(directory = "app"): string[] {
   return readdirSync(path.join(root, directory), { withFileTypes: true })
     .flatMap((entry) => {
       const child = `${directory}/${entry.name}`;
+      // The UI packages were outside this scan before the move to app/.
+      if (child === "app/ui") return [];
       if (entry.isDirectory()) return shippedSources(child);
       return /\.(?:ts|mts|mjs|tsx|cjs|js|jsx|mm)$/u.test(entry.name) ? [child] : [];
     });
@@ -26,15 +28,15 @@ function shippedSources(directory = "src"): string[] {
 const shippedApplication = shippedSources().map(read).join("\n");
 // Geometry is the sole Core browser-storage owner. Remove only these exact calls
 // from the secret-surface check; any new key, argument or storage API still fails.
-const hubPlacement = read("src/renderer/hub-window.ts");
+const hubPlacement = read("app/renderer/hub-window.ts");
 const placementCalls = /localStorage\.(?:getItem\(storageKey\)|setItem\(storageKey, intent\)|removeItem\(storageKey\))/gu;
-const withoutPlacementStorage = shippedSources().map(file => file === "src/renderer/hub-window.ts"
+const withoutPlacementStorage = shippedSources().map(file => file === "app/renderer/hub-window.ts"
   ? read(file).replace(placementCalls, "approvedPlacementCall") : read(file)).join("\n");
 const legacyFilenameOwners = shippedSources().filter((file) =>
   /credentials\.bin|steam-session\.bin/u.test(read(file)),
 );
-const native = read("src/native/host/host.mm");
-const legacyCleanup = read("src/main/core/legacy-secret-cleanup.ts");
+const native = read("app/native/host/host.mm");
+const legacyCleanup = read("app/main/core/legacy-secret-cleanup.ts");
 
 test("saved login has exactly two Data Protection Keychain items", () => {
   assert.match(native, /kSecUseDataProtectionKeychain/);
@@ -54,7 +56,7 @@ test("saved login has exactly two Data Protection Keychain items", () => {
   assert.equal((native.match(/@"steam-session"/gu) ?? []).length, 1);
   assert.doesNotMatch(shippedApplication, /safeStorage|encryptString|decryptString/);
   assert.deepEqual(legacyFilenameOwners, [
-    "src/main/core/legacy-secret-cleanup.ts",
+    "app/main/core/legacy-secret-cleanup.ts",
   ]);
   assert.doesNotMatch(legacyCleanup, /recursive\s*:|clearStorageData|IndexedDB|IDBFS/);
   assert.match(legacyCleanup, /remove\(path\.join\(userData, filename\), \{ force: true \}\)/);

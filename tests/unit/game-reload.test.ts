@@ -2,8 +2,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { BrowserWindow } from "electron";
-import { GameReloader } from "../../src/main/game-reload.js";
-import { DEFAULT_SETTINGS } from "../../src/shared/contracts.js";
+import { GameReloader } from "../../app/main/game-reload.js";
+import { DEFAULT_SETTINGS } from "../../app/shared/contracts.js";
 
 function fixture(options: Readonly<{
   autoRelog?: boolean;

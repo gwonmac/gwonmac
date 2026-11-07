@@ -147,8 +147,8 @@ test.describe("sandbox boundary", () => {
     }
   });
 
-  // This used to be fourteen regular expressions over src/main/window.ts,
-  // src/main/ipc.ts and src/main/protocol.ts in the release suite — a test that
+  // This used to be fourteen regular expressions over app/main/window.ts,
+  // app/main/ipc.ts and app/main/protocol.ts in the release suite — a test that
   // proved those files contained certain characters. Eleven of them are asked
   // of the running application here instead: the preferences Chromium actually
   // applied, the guard actually attached, the policy actually served, and a

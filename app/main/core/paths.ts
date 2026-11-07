@@ -7,15 +7,15 @@
  * costs a user a re-download or a reset, so `tests/unit/paths.test.ts` pins
  * every resolved value as a literal.
  *
- * This module is deliberately Electron-free so `src/main/core/**` can share it
+ * This module is deliberately Electron-free so `app/main/core/**` can share it
  * and so the pinning test can execute it. The Electron-rooted entry point is
- * `src/main/paths.ts`.
+ * `app/main/paths.ts`.
  */
 import path from "node:path";
 import { realpath } from "node:fs/promises";
 import type { CLIENT_ARTIFACTS } from "./access-key.js";
 import type { ProfileId } from "../../shared/multiple-accounts.js";
-import { clientGenerationPaths } from "./client-compatibility.js";
+import { clientGenerationPaths } from "../../client/client-compatibility.js";
 
 /** Verify the developer's requested profile before starting client preparation. */
 export async function matchesExpectedProfile(actual: string, expected: string | undefined): Promise<boolean> {

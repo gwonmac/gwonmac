@@ -7,12 +7,12 @@ import {
   COMPANION_PARTY_BYTES,
   COMPANION_SNAPSHOT_BYTES,
   COMPANION_TOOLBOX_BYTES,
-} from "../../src/renderer/companion-snapshot.ts";
-import { TEAM_COMMAND_PAYLOAD_BYTES } from "../../src/renderer/enhancement-team-commands.ts";
-import { STORAGE_DATA_WINDOW_BYTES } from "../../src/renderer/enhancement-storage-command.ts";
-import { TRAVEL_PAYLOAD_BYTES } from "../../src/renderer/enhancement-travel-command.ts";
-import { COMPANION_PLAY_REGION_BYTES } from "../../src/renderer/companion-play-region-snapshot.ts";
-import { COMPANION_ABI } from "../../src/shared/companion-abi.ts";
+} from "../../app/renderer/companion-snapshot.ts";
+import { TEAM_COMMAND_PAYLOAD_BYTES } from "../../app/renderer/enhancement-team-commands.ts";
+import { STORAGE_DATA_WINDOW_BYTES } from "../../app/renderer/enhancement-storage-command.ts";
+import { TRAVEL_PAYLOAD_BYTES } from "../../app/renderer/enhancement-travel-command.ts";
+import { COMPANION_PLAY_REGION_BYTES } from "../../app/renderer/companion-play-region-snapshot.ts";
+import { COMPANION_ABI } from "../../app/shared/companion-abi.ts";
 import {
   closePackaged,
   CONFIG_BYTES,
@@ -94,10 +94,10 @@ async function installTargetReadout(
     // Page-relative, so it is resolved by the packaged renderer against
     // gw://app/ rather than by the checker against this directory. The
     // annotation is what keeps the import typed: the module it loads is the
-    // build of `src/renderer/enhancements.ts`.
+    // build of `app/renderer/enhancements.ts`.
     const specifier = "./certified-companion-installation.js";
     const { installCertifiedCompanion }:
-      typeof import("../../src/renderer/certified-companion-installation.ts") =
+      typeof import("../../app/renderer/certified-companion-installation.ts") =
       await import(specifier);
     const runtime = await installCertifiedCompanion(
       {
@@ -450,7 +450,7 @@ export async function assertCleanupSafetyGates() {
         await fixture.page.evaluate(async () => {
           const surfaceSpecifier = "./surface-controller.js";
           const { installSurfaceController }:
-            typeof import("../../src/renderer/surface-controller.ts") =
+            typeof import("../../app/renderer/surface-controller.ts") =
               await import(surfaceSpecifier);
           window.gwSurfaces = installSurfaceController(document);
           window.gwToolsSettings = () => Object.freeze({
@@ -852,16 +852,16 @@ export async function assertToolboxFoundationLifecycle() {
       const module = new WebAssembly.Module(Uint8Array.from(bytes));
       const specifier = "./certified-companion-installation.js";
       const { installCertifiedCompanion }:
-        typeof import("../../src/renderer/certified-companion-installation.ts") =
+        typeof import("../../app/renderer/certified-companion-installation.ts") =
           await import(specifier);
       const surfaceSpecifier = "./surface-controller.js";
       const { installSurfaceController }:
-        typeof import("../../src/renderer/surface-controller.ts") =
+        typeof import("../../app/renderer/surface-controller.ts") =
           await import(surfaceSpecifier);
       window.gwSurfaces = installSurfaceController(document);
       const snapshotSpecifier = "./companion-snapshot.js";
       const { readCompanionSnapshot }:
-        typeof import("../../src/renderer/companion-snapshot.ts") =
+        typeof import("../../app/renderer/companion-snapshot.ts") =
           await import(snapshotSpecifier);
       globalThis.dispatchEvent(new Event("pagehide"));
       window.gwToolsSettings = () => Object.freeze({
@@ -1400,7 +1400,7 @@ export async function assertRollbackAfterTablePublication() {
       const module = new WebAssembly.Module(Uint8Array.from(bytes));
       const specifier = "./certified-companion-installation.js";
       const { installCertifiedCompanion }:
-        typeof import("../../src/renderer/certified-companion-installation.ts") =
+        typeof import("../../app/renderer/certified-companion-installation.ts") =
           await import(specifier);
       const replacementResponse = await fetch("companion-kernel.wasm");
       if (!replacementResponse.ok) {

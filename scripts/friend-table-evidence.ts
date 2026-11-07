@@ -1,6 +1,6 @@
 /** Offline friend-table evidence only; this command never loads the game. */
 import { readFile } from "node:fs/promises";
-import { inspectFriendTable } from "../src/main/certification/friend-table-evidence.js";
+import { inspectFriendTable } from "../app/client/certification/friend-table-evidence.js";
 
 const args = process.argv.slice(2);
 if (args.length !== 1 || args[0]!.startsWith("--")) {

@@ -2,7 +2,7 @@
  * Tells the client which presses are double-clicks, using its own flag.
  *
  * The served module carries one exported mutable global (see
- * `src/main/certification/native-double-click.ts`). Its mousedown callback
+ * `app/client/certification/native-double-click.ts`). Its mousedown callback
  * copies that global into the input record's flag word, the translator carries
  * the word into the press message, and `FrMouse` masks bit 0 out of it as
  * `FLAG_DBL_CLICK`. All of that is the client's; the only thing missing was

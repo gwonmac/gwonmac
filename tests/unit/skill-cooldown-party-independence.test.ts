@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { ENHANCEMENT_CONFIG_FIELDS } from "../../src/shared/enhancement-config.ts";
+import { ENHANCEMENT_CONFIG_FIELDS } from "../../app/shared/enhancement-config.ts";
 import {
   ENHANCEMENT_CAPABILITY_CONTRACTS,
   enhancementCapabilitiesForProfile,
   enhancementConfigWordActive,
   enhancementHooksFor,
-} from "../../src/shared/enhancement-contracts.ts";
+} from "../../app/shared/enhancement-contracts.ts";
 
 test("the minimal cooldown profile needs play-region policy but no Party or UI hook", () => {
   const capabilities = enhancementCapabilitiesForProfile("features-300");

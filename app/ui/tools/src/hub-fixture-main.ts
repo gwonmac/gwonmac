@@ -6,9 +6,9 @@
  * row open a model of the native Quit-or-Reload sheet. Import this module before `commands.ts`: it installs
  * the command transport that `commands.ts` registers with when it loads.
  */
-import type { AppSettings, RendererCommand } from '../../../src/shared/contracts';
-import { featureActivationRequested, type FeatureId } from '../../../src/shared/feature-contracts';
-import { HUB_SHORTCUT, hubShortcutAvailable, resolveShortcuts, shortcutMatches, type ShortcutAction } from '../../../src/shared/keyboard-shortcuts';
+import type { AppSettings, RendererCommand } from '../../../shared/contracts';
+import { featureActivationRequested, type FeatureId } from '../../../shared/feature-contracts';
+import { HUB_SHORTCUT, hubShortcutAvailable, resolveShortcuts, shortcutMatches, type ShortcutAction } from '../../../shared/keyboard-shortcuts';
 
 const QUIT_CHORD = { key: 'q', shift: false, option: false } as const;
 type CommandHandler = (command: RendererCommand) => void | 'unhandled' | Promise<void | 'unhandled'>;

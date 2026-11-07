@@ -11,7 +11,7 @@ import {
   modifierOfCode,
   staleModifiers,
   type HeldKey,
-} from "../../src/renderer/held-keys.ts";
+} from "../../app/renderer/held-keys.ts";
 
 const flags = (ctrlKey: boolean, shiftKey: boolean, altKey: boolean) => ({ ctrlKey, shiftKey, altKey });
 

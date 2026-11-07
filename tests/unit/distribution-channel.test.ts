@@ -8,8 +8,8 @@ import {
   distributionCapabilities,
   distributionMarker,
   parseDistributionMarker,
-} from "../../src/shared/distribution-channel.ts";
-import { RELEASE_REPO } from "../../src/shared/project-identity.ts";
+} from "../../app/shared/distribution-channel.ts";
+import { RELEASE_REPO } from "../../app/shared/project-identity.ts";
 
 test("distribution channels derive the complete capability matrix", () => {
   assert.deepEqual(distributionCapabilities("release"), {

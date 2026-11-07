@@ -94,7 +94,7 @@ function createSignInWindow(
     show: false,
     // Modal, which on macOS means a sheet attached to the parent. This is
     // load-bearing and was verified the hard way: dropping `modal` made the
-    // window a plain child of a parent that `src/main/window.ts` restores to
+    // window a plain child of a parent that `app/main/window.ts` restores to
     // fullscreen, so macOS promoted it into that fullscreen space and sized it
     // to the whole screen — a full-screen Steam page instead of a contained
     // sign-in sheet, and a full-screen blank one during teardown.
@@ -259,7 +259,7 @@ export async function acquireSteamToken(
     // pulls assets from several hosts, so a renderer crash is a real failure
     // mode — and without this the window sits there dead while the client waits
     // on a credential that can no longer arrive. The game window
-    // (`src/main/window.ts`) and `src/main/renderer-commands.ts` both listen for
+    // (`app/main/window.ts`) and `app/main/renderer-commands.ts` both listen for
     // exactly this so pending work settles instead of waiting on a dead
     // renderer; this is the same rule for the same reason.
     win.webContents.on("render-process-gone", () =>

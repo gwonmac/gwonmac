@@ -7,7 +7,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { TEMPLATE_CEILINGS } from "../../src/shared/contracts.js";
+import { TEMPLATE_CEILINGS } from "../../app/shared/contracts.js";
 import {
   combineParses,
   decodeTemplateText,
@@ -18,7 +18,7 @@ import {
   sourceNameFromFileName,
   templateKind,
   templateRelativePath,
-} from "../../src/renderer/template-format.js";
+} from "../../app/renderer/template-format.js";
 
 const SKILLS = "OQCiUyo8AkVwR4KMMGAAAEAA";
 const EQUIPMENT = "Pk5hbug2fkaiklWVqQhyI90YjyIBLziyIBTpgyIBr7hyIbB";

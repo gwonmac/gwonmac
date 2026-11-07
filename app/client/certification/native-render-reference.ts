@@ -5,7 +5,7 @@
  */
 import { functionBodySha256 } from "./wasm-evidence.js";
 import type { ModuleShape } from "./enhancement-evidence-types.js";
-import { concat, sleb, uleb } from "../core/wasm-binary.js";
+import { concat, sleb, uleb } from "../../main/core/wasm-binary.js";
 
 /** Exact owners of the device pointer, queue phase and model reference field. */
 export const NATIVE_RENDER_REFERENCE_FUNCTIONS = [

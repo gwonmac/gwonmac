@@ -7,7 +7,7 @@ import {
   discardDerivedWasm,
   prepareDerivedWasm,
   type DerivedWasmCache,
-} from "../core/derived-wasm.js";
+} from "../derived-wasm.js";
 import {
   CARTOGRAPHY_SPIKE_TRANSFORM_ABI,
   transformCartographySpikeWasm,

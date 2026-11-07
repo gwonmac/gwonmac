@@ -1,16 +1,16 @@
 <!-- Elite skill discovery and one Hunt list per character, shared by both native maps. The host draws the chosen markers natively. -->
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from "vue";
-import { installResizeGrip } from "../../../src/shared/ui/resize";
-import type { EliteMapView } from "../../../src/shared/elite-map";
-import type { EliteMapHit, EliteMarkerScene, EliteSceneMarker } from "../../../src/shared/elite-map-scene";
-import { ELITE_MISSION_MAP_MARKERS, ELITE_MISSION_MAP_MARKER_SHORT_LABELS, type EliteMissionMapMarkers } from "../../../src/shared/elite-map-settings";
-import { ELITE_LOCATIONS } from "../../../src/shared/elite-locations";
-import { eliteContinent, eliteLearned, type EliteLocation, type EliteViewPreferences } from "../../../src/shared/elite-skills";
-import { guildWarsMapName } from "../../../src/shared/guild-wars-map-names";
-import { liveParty, unavailableParty } from "../../../src/shared/builds/live-party";
-import { PROFESSIONS } from "../../../src/shared/builds/heroes";
-import { skillId, type Profession } from "../../../src/shared/builds/library";
+import { installResizeGrip } from "../../../shared/ui/resize";
+import type { EliteMapView } from "../../../shared/elite-map";
+import type { EliteMapHit, EliteMarkerScene, EliteSceneMarker } from "../../../shared/elite-map-scene";
+import { ELITE_MISSION_MAP_MARKERS, ELITE_MISSION_MAP_MARKER_SHORT_LABELS, type EliteMissionMapMarkers } from "../../../shared/elite-map-settings";
+import { ELITE_LOCATIONS } from "../../../shared/elite-locations";
+import { eliteContinent, eliteLearned, type EliteLocation, type EliteViewPreferences } from "../../../shared/elite-skills";
+import { guildWarsMapName } from "../../../shared/guild-wars-map-names";
+import { liveParty, unavailableParty } from "../../../shared/builds/live-party";
+import { PROFESSIONS } from "../../../shared/builds/heroes";
+import { skillId, type Profession } from "../../../shared/builds/library";
 import type { SkillCatalogue, SkillPresentation } from "./skill-catalog";
 import { useEliteTracking, type EliteTrackingHost } from "./use-elite-tracking";
 import SkillDetails from "./components/SkillDetails.vue";

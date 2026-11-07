@@ -1,7 +1,7 @@
 /** Pasted-text cleanup shared by game paste and character-name search. */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { cleanPastedText, normaliseCharacterName } from '../../src/shared/player-text.ts';
+import { cleanPastedText, normaliseCharacterName } from '../../app/shared/player-text.ts';
 
 test('pasted text loses invisible characters and surrounding whitespace, nothing else', () => {
   assert.equal(cleanPastedText('Mo Kai '), 'Mo Kai', 'double-click selection adds a trailing space');

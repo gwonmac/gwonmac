@@ -4,7 +4,7 @@
  */
 import { createHash } from "node:crypto";
 import { normalizeTemplateCalleeCalls } from "./template-save-callee-proof.js";
-import { readSleb, readUleb } from "../core/wasm-binary.js";
+import { readSleb, readUleb } from "../../main/core/wasm-binary.js";
 import type { BridgeKind, KnownTemplateSaveBuild } from "./template-save-compat.js";
 import {
   TEMPLATE_STATIC_ANCHORS,

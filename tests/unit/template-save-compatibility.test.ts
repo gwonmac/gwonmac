@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { WASM_BRIDGE_MARKERS } from "../../src/shared/contracts.ts";
+import { WASM_BRIDGE_MARKERS } from "../../app/shared/contracts.ts";
 
 // The module is imported, not read and evaluated in a synthetic context. It
 // reads the marker values off the bridge as it is imported, so the page has to
@@ -14,7 +14,7 @@ const window = {
 };
 Object.assign(globalThis, { window });
 const { installTemplateSaveCompatibility } = await import(
-  "../../src/renderer/template-save-compatibility.js"
+  "../../app/renderer/template-save-compatibility.js"
 );
 
 // The canonical values, not a fourth copy of them: this is what proves the

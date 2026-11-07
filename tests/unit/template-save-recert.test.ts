@@ -12,15 +12,15 @@ import {
   insertBuildEntry,
   inspectTemplateSaveCandidate,
   TEMPLATE_SAVE_TABLE,
-} from "../../src/tools/template-save-recert.js";
+} from "../../app/tools-cli/template-save-recert.js";
 import {
   certifyTemplateSaveRewrite,
   rewriteTemplateSaveWasm,
   TEMPLATE_SAVE_BUILDS,
-} from "../../src/main/certification/template-save-compat.js";
+} from "../../app/client/certification/template-save-compat.js";
 import {
   preparePostTemplateSaveModule,
-} from "../../src/main/certification/template-save-verifier.js";
+} from "../../app/client/certification/template-save-verifier.js";
 function uleb(value: number): number[] {
   const out: number[] = [];
   do {

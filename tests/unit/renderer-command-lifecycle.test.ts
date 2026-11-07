@@ -41,7 +41,7 @@ register(
 );
 
 const { sendRendererCommand } = await import(
-  "../../src/main/renderer-commands.ts"
+  "../../app/main/renderer-commands.ts"
 );
 
 class FakeContents extends EventEmitter {

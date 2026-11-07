@@ -22,15 +22,15 @@ import {
   liveParty,
   unavailableParty,
   type ToolboxObservation,
-} from "../../src/shared/builds/live-party.ts";
+} from "../../app/shared/builds/live-party.ts";
 import {
   LIBRARY_VERSION,
   PARTY_SIZE,
   mapTeamSlots,
   type BuildLibrary,
-} from "../../src/shared/builds/library.ts";
-import { resolveTeamApplyPlan } from "../../src/shared/builds/team-apply.ts";
-import { validateBuild } from "../../src/shared/builds/validate.ts";
+} from "../../app/shared/builds/library.ts";
+import { resolveTeamApplyPlan } from "../../app/shared/builds/team-apply.ts";
+import { validateBuild } from "../../app/shared/builds/validate.ts";
 
 type RegionSlot = NonNullable<
   NonNullable<ToolboxObservation["party"]>["slots"]

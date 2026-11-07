@@ -4,10 +4,10 @@ import test from "node:test";
 import type {
   ClientSession,
   SteamTokenResult,
-} from "../../src/shared/contracts.js";
+} from "../../app/shared/contracts.js";
 import type {
   PublishedCompanionState,
-} from "../../src/renderer/companion-snapshot.js";
+} from "../../app/renderer/companion-snapshot.js";
 
 const preparing = {
   appVersion: "test",

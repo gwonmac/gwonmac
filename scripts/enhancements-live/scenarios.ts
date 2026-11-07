@@ -5,7 +5,7 @@
 // Playwright input (`page.mouse`, `page.keyboard`, `page.locator`) and the
 // parent-process command channel that main's `process.on("message")` handler
 // serves. Both are gated on `GW_ENHANCEMENT_AUTOMATION=1`, which
-// `src/main/certification/enhancement-policy.ts` refuses in a packaged app.
+// `app/client/certification/enhancement-policy.ts` refuses in a packaged app.
 //
 // **Observation** reads. Its fixed cursor-observer program selects only the
 // cursor, independent of saved product settings, and it is handed no input or
@@ -20,10 +20,10 @@ import type { StdioOptions } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { CDPSession, Page } from "playwright";
-import type { AutomationCommand } from "../../src/shared/automation.js";
-import type { EnhancementProgram } from "../../src/shared/enhancement-contracts.js";
-import type { CharacterSwitchDiagnostics } from "../../src/renderer/character-switch-model.js";
-import type { EnhancementDoctorReport } from "../../src/tools/enhancement-workspace.js";
+import type { AutomationCommand } from "../../app/shared/automation.js";
+import type { EnhancementProgram } from "../../app/shared/enhancement-contracts.js";
+import type { CharacterSwitchDiagnostics } from "../../app/renderer/character-switch-model.js";
+import type { EnhancementDoctorReport } from "../../app/tools-cli/enhancement-workspace.js";
 import { BENCHMARK_ARMS, isBalancedOrder } from "./benchmark.js";
 import { runToolboxFoundation, runToolboxHeroPanel } from "./toolbox-scenarios.js";
 import { operatorCheckpoint } from "./scenario-checkpoint.js";

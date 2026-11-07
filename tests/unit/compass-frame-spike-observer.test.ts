@@ -4,7 +4,7 @@ import {
   createCompassFrameSpikeReader,
   createMissionMapFrameSpikeReader,
   createWorldMapFrameSpikeReader,
-} from "../../src/renderer/cartography-spike/frame-observer.js";
+} from "../../app/renderer/cartography-spike/frame-observer.js";
 import {
   COMPASS_FRAME_SPIKE_GLOBALS,
   COMPASS_FRAME_SPIKE_SCALARS,
@@ -14,7 +14,7 @@ import {
   MISSION_MAP_PROJECTION_SPIKE_SCALARS,
   WORLD_MAP_FRAME_SPIKE_GLOBALS,
   WORLD_MAP_FRAME_SPIKE_SCALARS,
-} from "../../src/shared/cartography-spike.js";
+} from "../../app/shared/cartography-spike.js";
 
 function scalar(value: number, type: WebAssembly.ValueType = "i32"): WebAssembly.Global {
   return new WebAssembly.Global({ value: type, mutable: true }, value);

@@ -4,7 +4,7 @@
 // Nothing here reads source text.
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { createImageSource } from "../../src/renderer/image-source.js";
+import { createImageSource } from "../../app/renderer/image-source.js";
 
 const turn = () => new Promise<void>((resolve) => setImmediate(resolve));
 

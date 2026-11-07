@@ -3,12 +3,12 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
-import { ELITE_LOCATIONS } from "../../src/shared/elite-locations.js";
-import { EliteTrackingStore } from "../../src/main/core/elite-tracking.js";
+import { ELITE_LOCATIONS } from "../../app/shared/elite-locations.js";
+import { EliteTrackingStore } from "../../app/main/core/elite-tracking.js";
 import {
   DEFAULT_ELITE_VIEW, EMPTY_ELITE_TRACKING, changeEliteTracking, eliteContinent, eliteLearned, parseEliteTracking, parseEliteUpdate,
-} from "../../src/shared/elite-skills.js";
-import { travelCharacterKey } from "../../src/shared/travel-history.js";
+} from "../../app/shared/elite-skills.js";
+import { travelCharacterKey } from "../../app/shared/travel-history.js";
 
 const characterA = travelCharacterKey("0123456789abcdef");
 const characterB = travelCharacterKey("fedcba9876543210");

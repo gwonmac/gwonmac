@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { concat } from "../../src/main/core/wasm-binary.js";
-import { wasmEvidence } from "../../src/main/certification/wasm-evidence.js";
+import { concat } from "../../app/main/core/wasm-binary.js";
+import { wasmEvidence } from "../../app/client/certification/wasm-evidence.js";
 import {
   nativeFixture, ROOT, REQUEST, CONNECTION, SOCKET, ARRAY, RECORD, LOGIN_REPLY,
 } from "../fixtures/native-friends.js";

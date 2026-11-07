@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { nativeDoubleClickFlagForPress } from "../../src/renderer/native-double-click.ts";
+import { nativeDoubleClickFlagForPress } from "../../app/renderer/native-double-click.ts";
 
 const press = (button: number, detail: number, isTrusted = true) =>
   nativeDoubleClickFlagForPress({ button, detail, isTrusted });

@@ -4,9 +4,9 @@ import { test } from "node:test";
 import {
   AccountTemplateSessions,
   reconcileAccountTemplates,
-} from "../../src/main/core/account-template-library.js";
-import { AtomicPublicationUnconfirmedError } from "../../src/main/core/atomic-file.js";
-import type { AccountTemplateLibrary } from "../../src/shared/contracts.js";
+} from "../../app/main/core/account-template-library.js";
+import { AtomicPublicationUnconfirmedError } from "../../app/main/core/atomic-file.js";
+import type { AccountTemplateLibrary } from "../../app/shared/contracts.js";
 
 const A = "OQCiUyo8AkVwR4KMMGAAAEAA";
 const B = "OQCiUyo8AkVwR4KMMGAAAEAB";

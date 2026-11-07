@@ -37,7 +37,7 @@ export default defineConfig(({ mode }) => {
       alias: {
         "@": fileURLToPath(new URL("./src", import.meta.url)),
         // The launcher's Settings source, which the fixture serves as the Hub's Settings module.
-        "@shared": fileURLToPath(new URL("../../src/shared", import.meta.url)),
+        "@shared": fileURLToPath(new URL("../../shared", import.meta.url)),
       },
       dedupe: ["vue"],
     },
@@ -45,7 +45,7 @@ export default defineConfig(({ mode }) => {
       ? {
           emptyOutDir: true,
           outDir: fileURLToPath(
-            new URL("../../build/renderer/tools", import.meta.url),
+            new URL("../../../build/renderer/tools", import.meta.url),
           ),
           sourcemap: false,
           lib: {

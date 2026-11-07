@@ -1,6 +1,6 @@
 import type { CDPSession, Page } from "playwright";
-import { AUTOMATION_COMMAND } from "../../src/shared/automation.js";
-import type { AutomationCommand } from "../../src/shared/automation.js";
+import { AUTOMATION_COMMAND } from "../../app/shared/automation.js";
+import type { AutomationCommand } from "../../app/shared/automation.js";
 import {
   BENCHMARK_ARMS,
   compareArms,

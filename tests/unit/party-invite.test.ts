@@ -1,9 +1,9 @@
 /** Party invite and Travel-then-invite: outpost gate, fresh arrival, one invite, no retry, PvE only. */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import type { CompanionPlayRegionState } from '../../src/renderer/companion-play-region-snapshot.ts';
-import { createPartyInvite } from '../../src/renderer/party-invite.ts';
-import type { TravelFriend } from '../../src/shared/friends.ts';
+import type { CompanionPlayRegionState } from '../../app/renderer/companion-play-region-snapshot.ts';
+import { createPartyInvite } from '../../app/renderer/party-invite.ts';
+import type { TravelFriend } from '../../app/shared/friends.ts';
 
 const outpost = (mapId: number, characterKey: string | null = 'a', instanceType = 0, playRegion = 'pve') => ({
   status: 'ready', sequence: 1, mapId, instanceType, playRegion, travelContext: 'world', characterKey,

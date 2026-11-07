@@ -15,17 +15,17 @@ import {
   splitSections,
   uleb,
   WASM_HEADER,
-} from "../../src/main/core/wasm-binary.js";
+} from "../../app/main/core/wasm-binary.js";
 import {
   deriveNativeDoubleClickBuild,
   rewriteWithBuild,
-} from "../../src/main/certification/native-double-click.js";
+} from "../../app/client/certification/native-double-click.js";
 import {
   locateNativeDoubleClickRoute,
-} from "../../src/main/certification/native-double-click-route-proof.js";
+} from "../../app/client/certification/native-double-click-route-proof.js";
 import {
   wasmEvidence,
-} from "../../src/main/certification/wasm-evidence.js";
+} from "../../app/client/certification/wasm-evidence.js";
 
 declare const WebAssembly: { validate(bytes: Uint8Array): boolean };
 

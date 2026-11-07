@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { Manifest } from "../../src/main/core/manifest.js";
-import { AppError } from "../../src/shared/errors.js";
+import { Manifest } from "../../app/main/core/manifest.js";
+import { AppError } from "../../app/shared/errors.js";
 
 const hashA = "a".repeat(32);
 const hashB = "b".repeat(32);

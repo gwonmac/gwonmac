@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { FEEDBACK_URL, sendLauncherFeedback } from "../../src/main/core/launcher-feedback.ts";
-import { parseLauncherFeedback } from "../../src/shared/launcher-contracts.ts";
+import { FEEDBACK_URL, sendLauncherFeedback } from "../../app/main/core/launcher-feedback.ts";
+import { parseLauncherFeedback } from "../../app/shared/launcher-contracts.ts";
 
 const context = { appVersion: "1.0.0", macosVersion: "27.0" } as const;
 

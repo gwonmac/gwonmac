@@ -1,12 +1,12 @@
 /** Anonymous listing fixtures verify that only explicit prices become estimates. */
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { extractMarketObservations, estimateMarketRates, MARKET_MAX_AGE_MS, type MarketSnapshot } from '../../src/shared/market-rates.js';
-import { formatFraction } from '../../src/shared/hub-calculator.js';
-import { TradeChatService } from '../../src/main/core/trade-chat-service.js';
-import { createHubCalculator } from '../../src/renderer/hub-calculator.js';
+import { extractMarketObservations, estimateMarketRates, MARKET_MAX_AGE_MS, type MarketSnapshot } from '../../app/shared/market-rates.js';
+import { formatFraction } from '../../app/shared/hub-calculator.js';
+import { TradeChatService } from '../../app/main/core/trade-chat-service.js';
+import { createHubCalculator } from '../../app/renderer/hub-calculator.js';
 /** Calculator rows copy without navigating, so any live task serves. */
-const task: import('../../src/shared/hub.js').HubTask = { live: () => true, progress() {}, done() {} };
+const task: import('../../app/shared/hub.js').HubTask = { live: () => true, progress() {}, done() {} };
 const now=Date.now();
 const ad=(message:string,index=0,timestamp=now)=>({source:'kamadan' as const,message,sender:`Advertiser ${index}`,timestamp});
 

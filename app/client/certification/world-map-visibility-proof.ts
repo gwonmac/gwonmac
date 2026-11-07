@@ -2,7 +2,7 @@
  * Certifies the native World Map display flag at the start of its close path.
  * The frame can survive the fade, so frame destruction cannot own visibility.
  */
-import { readUleb } from "../core/wasm-binary.js";
+import { readUleb } from "../../main/core/wasm-binary.js";
 import { relocationAwareFingerprint } from "./semantic-proof.js";
 import { functionBody, signatureEvidence, type WasmEvidence } from "./wasm-evidence.js";
 

@@ -29,17 +29,17 @@ import {
   loadBuildLibrary,
   referencedBuildIds,
   saveBuildLibrary,
-} from "../../src/main/core/build-library.ts";
+} from "../../app/main/core/build-library.ts";
 import {
   EMPTY_LIBRARY,
   parseBuildLibrary,
-} from "../../src/shared/builds/parse-library.ts";
+} from "../../app/shared/builds/parse-library.ts";
 import {
   LIBRARY_VERSION,
   buildId,
   type BuildLibrary,
-} from "../../src/shared/builds/library.ts";
-import { AppError } from "../../src/shared/errors.ts";
+} from "../../app/shared/builds/library.ts";
+import { AppError } from "../../app/shared/errors.ts";
 
 const dir = () => mkdtemp(join(tmpdir(), "gw-build-library-"));
 

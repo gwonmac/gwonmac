@@ -8,7 +8,7 @@ import {
   type DerivedWasmCache,
   inspectDerivedWasmCache,
   prepareDerivedWasm,
-} from "../../src/main/core/derived-wasm.js";
+} from "../../app/client/derived-wasm.js";
 
 const scratchDirs: string[] = [];
 

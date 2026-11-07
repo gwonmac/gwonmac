@@ -10,8 +10,8 @@ import {
   type Build,
   type BuildLibrary,
   type Profession,
-} from "../../../src/shared/builds/library";
-import { liveParty } from "../../../src/shared/builds/live-party";
+} from "../../../shared/builds/library";
+import { liveParty } from "../../../shared/builds/live-party";
 import { createSkillCatalogue, type SkillPresentation } from "./skill-catalog";
 
 const names = [

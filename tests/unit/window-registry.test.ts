@@ -1,9 +1,9 @@
 /** The window registry is the only authority from IPC senders to profiles. */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { WindowRegistry } from "../../src/main/window-registry.js";
-import { parseProfileId } from "../../src/shared/multiple-accounts.js";
-import { AppError } from "../../src/shared/errors.js";
+import { WindowRegistry } from "../../app/main/window-registry.js";
+import { parseProfileId } from "../../app/shared/multiple-accounts.js";
+import { AppError } from "../../app/shared/errors.js";
 
 function fake(id: number, processId?: number) {
   let destroyed = false;

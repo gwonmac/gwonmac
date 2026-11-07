@@ -21,7 +21,7 @@ import {
   type MultiWorkspace,
   type ProfileId,
 } from "../shared/multiple-accounts.js";
-import type { ClientRuntime } from "./client-runtime.js";
+import type { ClientRuntime } from "../client/client-runtime.js";
 import {
   AccountTemplateSessions,
   loadAccountTemplateLibrary,

@@ -3,8 +3,8 @@ import { describe, it } from "node:test";
 import {
   launchIssueForStage,
   ProfileRuntimeStore,
-} from "../../src/main/core/profile-runtime.js";
-import type { ProfileId } from "../../src/shared/multiple-accounts.js";
+} from "../../app/main/core/profile-runtime.js";
+import type { ProfileId } from "../../app/shared/multiple-accounts.js";
 
 const id = (value: string) => value as ProfileId;
 

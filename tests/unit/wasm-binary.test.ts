@@ -19,7 +19,7 @@ import {
   uleb,
   valueTypeName,
   WASM_HEADER,
-} from "../../src/main/core/wasm-binary.js";
+} from "../../app/main/core/wasm-binary.js";
 
 function bytes(...values: number[]): Uint8Array {
   return Uint8Array.from(values);

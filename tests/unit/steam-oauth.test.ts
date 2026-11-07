@@ -7,7 +7,7 @@ import {
   newState,
   STEAM_OAUTH,
   type SteamOAuthConfig,
-} from "../../src/main/core/steam-oauth.js";
+} from "../../app/main/core/steam-oauth.js";
 
 /**
  * A second, deliberately non-Steam configuration. Every helper takes its
@@ -85,7 +85,7 @@ describe("the sign-in origin allowlist", () => {
 
   it("rejects a trailing-dot host rather than resolving it to the same name", () => {
     // `steamcommunity.com.` is the absolute-FQDN spelling of an allowed host,
-    // and `allowedName` in src/main/core/allowlists.ts *does* admit it — it
+    // and `allowedName` in app/main/core/allowlists.ts *does* admit it — it
     // strips the trailing dot before matching. This check deliberately does
     // not, and does not delegate to that helper: widening a sign-in allowlist
     // to a second spelling buys nothing (Steam never emits one) and the

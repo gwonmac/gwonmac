@@ -7,7 +7,7 @@ import {
   ENHANCEMENT_TRANSFORM_ABI,
   type EnhancementCapabilities,
 } from "../../shared/enhancement-contracts.js";
-import { concat, uleb, type Section } from "../core/wasm-binary.js";
+import { concat, uleb, type Section } from "../../main/core/wasm-binary.js";
 import {
   enhancementConfigWords,
   type KnownEnhancementBuild,

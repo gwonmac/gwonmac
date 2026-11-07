@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { runtimeFeatureVerdicts } from "../../src/main/client-runtime-values.js";
+import { runtimeFeatureVerdicts } from "../../app/client/client-runtime-values.js";
 import type { LocalFeatureVerdicts } from
-  "../../src/main/certification/local-client-verification-contract.js";
+  "../../app/client/certification/local-client-verification-contract.js";
 import { ENHANCEMENT_CAPABILITY_FIELDS } from
-  "../../src/shared/enhancement-contracts.js";
+  "../../app/shared/enhancement-contracts.js";
 
 test("runtime verdicts retain only closed per-feature debugging facts", () => {
   const verdicts = Object.fromEntries(ENHANCEMENT_CAPABILITY_FIELDS.map(

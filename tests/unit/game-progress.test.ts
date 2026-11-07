@@ -8,7 +8,7 @@ import {
   type AreaRow,
   type GameProgressState,
   type ProgressInputs,
-} from "../../src/shared/game-progress.ts";
+} from "../../app/shared/game-progress.ts";
 
 const MISSION = 5;
 const EXPLORABLE = 2;

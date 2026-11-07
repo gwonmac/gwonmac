@@ -1,8 +1,8 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { allowedName } from "../../src/main/core/allowlists.js";
-import { normalizeDnsName, resolveDns } from "../../src/main/core/dns.js";
-import { AllowlistError, ValidationError } from "../../src/shared/errors.js";
+import { allowedName } from "../../app/main/core/allowlists.js";
+import { normalizeDnsName, resolveDns } from "../../app/main/core/dns.js";
+import { AllowlistError, ValidationError } from "../../app/shared/errors.js";
 
 describe("dns suffix matching", () => {
   it("normalizes case and a trailing dot", () => {

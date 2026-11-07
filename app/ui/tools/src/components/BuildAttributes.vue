@@ -1,8 +1,8 @@
 <!-- Compact read-only attribute ranks, with full names available on each label. -->
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { Build } from '../../../../src/shared/builds/library';
-import { buildAttributes } from '../../../../src/shared/builds/presentation';
+import type { Build } from '../../../../shared/builds/library';
+import { buildAttributes } from '../../../../shared/builds/presentation';
 const props = defineProps<{ attributes: Build['attributes'] }>();
 const attributes = computed(() => buildAttributes(props.attributes));
 </script>

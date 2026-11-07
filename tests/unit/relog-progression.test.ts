@@ -4,7 +4,7 @@ import {
   isRelogCharacterEntryState,
   isRelogPostCharacterState,
   relogOutcomeForPlayable,
-} from "../../src/renderer/relog-progression.js";
+} from "../../app/renderer/relog-progression.js";
 
 test("loading cannot impersonate character selection or playable completion", () => {
   assert.equal(isRelogCharacterEntryState("character-select"), true);

@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { characterSwitchContext } from "../../src/renderer/character-switch-model.js";
-import type { CompanionPlayRegionState } from "../../src/renderer/companion-play-region-snapshot.js";
+import { characterSwitchContext } from "../../app/renderer/character-switch-model.js";
+import type { CompanionPlayRegionState } from "../../app/renderer/companion-play-region-snapshot.js";
 
 const region = (instanceType: number, playRegion: "pve" | "pvp"): CompanionPlayRegionState => Object.freeze({
   status: "ready", sequence: 1, mapId: 55, instanceType, playRegion, travelContext: "world",

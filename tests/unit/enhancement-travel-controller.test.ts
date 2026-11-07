@@ -1,7 +1,7 @@
 /** Travel's one availability answer names the real reason a player sees before Enter. */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { createTravelController } from "../../src/renderer/enhancement-travel-controller.js";
+import { createTravelController } from "../../app/renderer/enhancement-travel-controller.js";
 
 describe("Travel controller", () => {
   it("names a map load or character select, never the setting, while the region policy withdraws Travel (HUB-135)", () => {

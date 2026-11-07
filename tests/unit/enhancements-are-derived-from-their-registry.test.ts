@@ -21,7 +21,7 @@ import { register } from "node:module";
 import test from "node:test";
 import {
   DEFAULT_SETTINGS,
-} from "../../src/shared/contracts.ts";
+} from "../../app/shared/contracts.ts";
 import {
   ENHANCEMENTS,
   ENHANCEMENT_CAPABILITY_FIELDS,
@@ -36,7 +36,7 @@ import {
   parseEnhancementCapabilities,
   sameEnhancementCapabilities,
   type EnhancementCapabilities,
-} from "../../src/shared/enhancement-contracts.ts";
+} from "../../app/shared/enhancement-contracts.ts";
 
 register(
   `data:text/javascript,${encodeURIComponent(
@@ -64,9 +64,9 @@ const {
   ENHANCEMENT_AUTOMATION_ENABLED,
   enhancementSelectionFor,
   requestedEnhancementCapabilities,
-} = await import("../../src/main/certification/enhancement-policy.ts");
+} = await import("../../app/client/certification/enhancement-policy.ts");
 const { effectiveCapabilities } = await import(
-  "../../src/renderer/effective-enhancement-capabilities.ts"
+  "../../app/renderer/effective-enhancement-capabilities.ts"
 );
 
 test("a packaged build refuses every developer gate", () => {

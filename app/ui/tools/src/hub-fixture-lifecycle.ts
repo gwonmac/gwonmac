@@ -6,12 +6,12 @@
  * change first reads as the game's unavailable state for a moment, as it can live.
  */
 import { watch } from 'vue';
-import { isPvpTravelDestination } from '../../../src/shared/travel';
-import type { TravelGameState } from '../../../src/shared/travel-command';
+import { isPvpTravelDestination } from '../../../shared/travel';
+import type { TravelGameState } from '../../../shared/travel-command';
 // eslint-disable-next-line no-restricted-imports
-import { characterSwitchContext, type CharacterSwitchContext } from '../../../src/renderer/character-switch-model';
+import { characterSwitchContext, type CharacterSwitchContext } from '../../../renderer/character-switch-model';
 // eslint-disable-next-line no-restricted-imports
-import type { CompanionPlayRegionState } from '../../../src/renderer/companion-play-region-snapshot';
+import type { CompanionPlayRegionState } from '../../../renderer/companion-play-region-snapshot';
 import type { TravelHost } from './travel-host';
 
 export const FIXTURE_LIFECYCLES = [

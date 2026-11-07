@@ -1,8 +1,8 @@
 <!-- One capture choice: boss, area, positions, and notes beside a compact target action. -->
 <script setup lang="ts">
 import { computed } from "vue";
-import type { EliteLocation } from "../../../../src/shared/elite-skills";
-import { guildWarsMapName } from "../../../../src/shared/guild-wars-map-names";
+import type { EliteLocation } from "../../../../shared/elite-skills";
+import { guildWarsMapName } from "../../../../shared/guild-wars-map-names";
 const props = defineProps<{ location: EliteLocation; active: boolean; here: boolean; learned: boolean; disabled: boolean }>();
 const emit = defineEmits<{ target: []; wiki: [] }>();
 const impossible = computed(() => /impossible to capture/i.test(props.location.note ?? ""));

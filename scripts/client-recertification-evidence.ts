@@ -15,14 +15,14 @@ import {
   enhancementCapabilityProfile,
   isEnhancementCapabilityProfile,
   RELEASE_ENHANCEMENT_CAPABILITIES,
-} from "../src/shared/enhancement-contracts.js";
+} from "../app/shared/enhancement-contracts.js";
 import {
   LOCAL_FEATURE_INVARIANTS,
   LOCAL_VERIFICATION_REASONS,
-} from "../src/main/certification/local-client-verification-contract.js";
+} from "../app/client/certification/local-client-verification-contract.js";
 import { SEMANTIC_VERIFIER_ABI } from
-  "../src/main/certification/semantic-proof.js";
-import { isDigest } from "../src/shared/digest.js";
+  "../app/client/certification/semantic-proof.js";
+import { isDigest } from "../app/shared/digest.js";
 
 type JsonRecord = Readonly<Record<string, unknown>>;
 

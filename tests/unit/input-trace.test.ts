@@ -5,13 +5,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { BrowserWindow } from 'electron';
-import { IPC } from '../../src/shared/contracts.js';
+import { IPC } from '../../app/shared/contracts.js';
 import {
   inputTraceEnabled,
   recordMainInput,
   setInputTraceEnabled,
   setInputTraceVisibility,
-} from '../../src/main/input-trace.js';
+} from '../../app/main/input-trace.js';
 
 test('main input trace emits only while its renderer harness is enabled', () => {
   const sent: unknown[][] = [];

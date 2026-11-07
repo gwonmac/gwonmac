@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { concat, encodeCode, encodeSection, sleb, uleb, WASM_HEADER } from "../../src/main/core/wasm-binary.js";
-import { partyInviteEnqueue, whisperConfigure, whisperDrain, whisperEnqueue } from "../../src/main/certification/enhancement-whisper-transform.js";
-import { WHISPER_MAILBOX as M, partyInviteLine, whisperLine } from "../../src/shared/whispers.js";
+import { concat, encodeCode, encodeSection, sleb, uleb, WASM_HEADER } from "../../app/main/core/wasm-binary.js";
+import { partyInviteEnqueue, whisperConfigure, whisperDrain, whisperEnqueue } from "../../app/client/certification/enhancement-whisper-transform.js";
+import { WHISPER_MAILBOX as M, partyInviteLine, whisperLine } from "../../app/shared/whispers.js";
 
 const bytes = (...values: number[]) => Uint8Array.of(...values);
 const name = (value: string) => concat(uleb(value.length), new TextEncoder().encode(value));

@@ -7,11 +7,11 @@ import {
   toRef,
   watch,
 } from "vue";
-import { PROFESSIONS } from "../../../../src/shared/builds/heroes";
-import { encodeSkillTemplate } from "../../../../src/shared/builds/skill-template";
-import type { Profession, SkillId } from "../../../../src/shared/builds/library";
-import type { SkillUnlockObservation } from "../../../../src/shared/builds/live-party";
-import type { BuildProblem } from "../../../../src/shared/builds/validate";
+import { PROFESSIONS } from "../../../../shared/builds/heroes";
+import { encodeSkillTemplate } from "../../../../shared/builds/skill-template";
+import type { Profession, SkillId } from "../../../../shared/builds/library";
+import type { SkillUnlockObservation } from "../../../../shared/builds/live-party";
+import type { BuildProblem } from "../../../../shared/builds/validate";
 import type { LibraryController } from "../use-library";
 import {
   type AuthoringContext,

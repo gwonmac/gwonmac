@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
-import type { TraderQuote } from "../../../../src/shared/trade-chat";
+import type { TraderQuote } from "../../../../shared/trade-chat";
 
 const props = defineProps<{
   points: readonly TraderQuote[];

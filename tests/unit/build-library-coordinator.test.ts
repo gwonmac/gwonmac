@@ -4,8 +4,8 @@ import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
-import { BuildLibraryCoordinator } from "../../src/main/core/build-library-coordinator.js";
-import { EMPTY_LIBRARY } from "../../src/shared/builds/parse-library.js";
+import { BuildLibraryCoordinator } from "../../app/main/core/build-library-coordinator.js";
+import { EMPTY_LIBRARY } from "../../app/shared/builds/parse-library.js";
 
 test("rejects a stale write from another window", async () => {
   const directory = await mkdtemp(join(tmpdir(), "gwonmac-build-coordinator-"));

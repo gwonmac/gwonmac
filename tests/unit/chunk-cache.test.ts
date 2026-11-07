@@ -3,7 +3,7 @@ import { mkdtemp, mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
-import { pruneUnreferencedChunks } from "../../src/main/core/chunk-cache.js";
+import { pruneUnreferencedChunks } from "../../app/main/core/chunk-cache.js";
 
 const currentHash = "a".repeat(32);
 const previousHash = "b".repeat(40);

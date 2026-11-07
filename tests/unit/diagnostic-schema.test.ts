@@ -3,16 +3,16 @@
 // diagnostic-schema-rejects-free-text.test.ts.
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { AppError } from "../../src/shared/errors.ts";
+import { AppError } from "../../app/shared/errors.ts";
 import {
   diagnosticEventRecord,
   diagnosticEventSpec,
-} from "../../src/main/diagnostics/schema.ts";
-import { asAppVersion } from "../../src/main/diagnostics/schema-fields.ts";
+} from "../../app/main/diagnostics/schema.ts";
+import { asAppVersion } from "../../app/main/diagnostics/schema-fields.ts";
 import {
   asDigest,
   isDigest,
-} from "../../src/shared/digest.ts";
+} from "../../app/shared/digest.ts";
 
 const FINGERPRINT = "a".repeat(64);
 

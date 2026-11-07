@@ -1,16 +1,16 @@
 import { createHash } from "node:crypto";
-import type { EnhancementCapabilities } from "../../src/shared/enhancement-contracts.js";
+import type { EnhancementCapabilities } from "../../app/shared/enhancement-contracts.js";
 import {
   type EnhancementOutputHashes,
   type KnownEnhancementBuild,
-} from "../../src/main/certification/enhancement-builds.js";
-import { ENHANCEMENT_MANIFEST_SECTION } from "../../src/main/certification/enhancement-transform.js";
+} from "../../app/client/certification/enhancement-builds.js";
+import { ENHANCEMENT_MANIFEST_SECTION } from "../../app/client/certification/enhancement-transform.js";
 import {
   parseCode,
   sectionById,
   sleb,
   splitSections,
-} from "../../src/main/core/wasm-binary.js";
+} from "../../app/main/core/wasm-binary.js";
 
 export const UNSUPPORTED_ALL_CAPABILITIES: EnhancementCapabilities = Object.freeze({
   nativeCursor: true,

@@ -2,7 +2,7 @@
  * Owns Travel WebAssembly command builders.
  * Emits the matching game-thread drain branch.
  */
-import { concat, sleb, uleb } from "../core/wasm-binary.js";
+import { concat, sleb, uleb } from "../../main/core/wasm-binary.js";
 import { configureLocalAction } from "./enhancement-command-transform.js";
 
 const TRAVEL_COMMAND = -2;

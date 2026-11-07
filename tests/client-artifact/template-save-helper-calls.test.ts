@@ -15,12 +15,12 @@ import {
   sectionById,
   splitSections,
   WASM_HEADER,
-} from "../../src/main/core/wasm-binary.js";
+} from "../../app/main/core/wasm-binary.js";
 import {
   analyzeTemplateSaveCandidate,
   preparePostTemplateSaveModule,
-} from "../../src/main/certification/template-save-verifier.js";
-import { TemplateSaveModuleView } from "../../src/main/certification/template-save-module-view.js";
+} from "../../app/client/certification/template-save-verifier.js";
+import { TemplateSaveModuleView } from "../../app/client/certification/template-save-module-view.js";
 
 function editCode(
   input: Uint8Array,

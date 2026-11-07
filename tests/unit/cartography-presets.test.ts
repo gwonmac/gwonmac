@@ -5,7 +5,7 @@ import {
   CARTOGRAPHY_CUSTOM_PRESETS_MAX,
   DEFAULT_CARTOGRAPHY_PRESET_LIBRARY,
   type CartographyPresetLibrary,
-} from "../../src/shared/cartography-overlay.js";
+} from "../../app/shared/cartography-overlay.js";
 import {
   addCartographyPreset,
   deleteCartographyPreset,
@@ -14,7 +14,7 @@ import {
   resolveCartographyPreset,
   selectCartographyPreset,
   uniqueCartographyPresetName,
-} from "../../src/shared/cartography-presets.js";
+} from "../../app/shared/cartography-presets.js";
 
 const cartographer = CARTOGRAPHY_BUILTIN_PRESETS.cartographer.style;
 const synthwave = CARTOGRAPHY_BUILTIN_PRESETS.synthwave.style;

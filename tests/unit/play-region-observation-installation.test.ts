@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { createPlayRegionObservationInstallation } from "../../src/renderer/play-region-state-installation.ts";
+import { createPlayRegionObservationInstallation } from "../../app/renderer/play-region-state-installation.ts";
 
 const ready = (sequence: number, mapId = 81) => Object.freeze({
   status: "ready" as const,

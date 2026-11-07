@@ -2,7 +2,7 @@
  * Owns the argument-free Resign mailbox and fixed UTF-16 native chat call.
  * Text lives only on the game stack; the renderer cannot supply a command.
  */
-import { concat, sleb, uleb } from "../core/wasm-binary.js";
+import { concat, sleb, uleb } from "../../main/core/wasm-binary.js";
 
 const RESIGN_COMMAND = -6;
 const op = (...bytes: number[]) => Uint8Array.of(...bytes);

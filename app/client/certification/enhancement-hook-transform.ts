@@ -12,7 +12,7 @@ import {
   sleb,
   uleb,
   type FunctionType,
-} from "../core/wasm-binary.js";
+} from "../../main/core/wasm-binary.js";
 import type { KnownEnhancementBuild } from "./enhancement-build-model.js";
 
 export const ENHANCEMENT_DISPATCH_PARAMS = 6;

@@ -2,7 +2,7 @@
  * Closed evidence and location contracts shared by Enhancement proof modules.
  * The contracts carry facts but grant no capability.
  */
-import type { FunctionType } from "../core/wasm-binary.js";
+import type { FunctionType } from "../../main/core/wasm-binary.js";
 import type { KnownEnhancementBuild } from "./enhancement-builds.js";
 import type { RelocationSpan } from "./semantic-proof.js";
 import type {

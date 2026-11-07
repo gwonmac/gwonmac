@@ -1,13 +1,13 @@
 /** Verifies native HUD joins, atlas reuse and lifecycle without mounting browser overlays. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createNativeHudLayer, type NativeHudChannel, type NativeHudItem, type NativeHudLayer } from "../../src/renderer/native-hud-layer.js";
-import { createSkillKeyOverlayConsumer } from "../../src/renderer/skill-key-overlay-consumer.js";
-import { createSkillCooldownOverlayConsumer } from "../../src/renderer/skill-cooldown-overlay-consumer.js";
-import { createEffectTimerOverlayConsumer } from "../../src/renderer/effect-timer-overlay-consumer.js";
-import { EMPTY_SKILL_KEY_MODIFIERS } from "../../src/shared/skill-key-bindings.js";
-import { skillKeyPlateLayout } from "../../src/renderer/skill-key-artwork.js";
-import { NATIVE_HUD_MAGIC, NATIVE_HUD_HEADER as HEADER, NATIVE_HUD_KEYCAP } from "../../src/shared/native-hud.js";
+import { createNativeHudLayer, type NativeHudChannel, type NativeHudItem, type NativeHudLayer } from "../../app/renderer/native-hud-layer.js";
+import { createSkillKeyOverlayConsumer } from "../../app/renderer/skill-key-overlay-consumer.js";
+import { createSkillCooldownOverlayConsumer } from "../../app/renderer/skill-cooldown-overlay-consumer.js";
+import { createEffectTimerOverlayConsumer } from "../../app/renderer/effect-timer-overlay-consumer.js";
+import { EMPTY_SKILL_KEY_MODIFIERS } from "../../app/shared/skill-key-bindings.js";
+import { skillKeyPlateLayout } from "../../app/renderer/skill-key-artwork.js";
+import { NATIVE_HUD_MAGIC, NATIVE_HUD_HEADER as HEADER, NATIVE_HUD_KEYCAP } from "../../app/shared/native-hud.js";
 
 const geometry = {status: "ready" as const, sequence: 2, frameId: 43, viewportWidth: 800, viewportHeight: 600,
   slots: Array.from({length: 8}, (_, n) => ({left: 100 + n * 50, bottom: 20, right: 148 + n * 50, top: 68}))};

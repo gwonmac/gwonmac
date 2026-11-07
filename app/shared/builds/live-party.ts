@@ -52,8 +52,8 @@ import type {
 /**
  * What this module reads, expressed structurally rather than as an import.
  *
- * `CompanionToolboxState` in `src/renderer/companion-snapshot.ts` satisfies it,
- * but `src/shared` may not depend on the renderer — and shouldn't: the decoder
+ * `CompanionToolboxState` in `app/renderer/companion-snapshot.ts` satisfies it,
+ * but `app/shared` may not depend on the renderer — and shouldn't: the decoder
  * owns the wire format, this owns the domain, and naming the overlap here is
  * what keeps the seam from becoming a shared type both sides edit.
  */
@@ -463,7 +463,7 @@ const EMPTY_SLOT: TeamSlot = Object.freeze({
  * Turns the observed party into a stored team.
  *
  * Pure, and deliberately without a clock, a library or an id source of its own:
- * `mint` is injected because `src/shared` is imported by main and the renderer
+ * `mint` is injected because `app/shared` is imported by main and the renderer
  * both, and neither may assume the other's `crypto`. Nothing here reads the
  * library, so nothing here can collide with it — the caller uniques the names
  * it gets back, which is the only thing that needs to know what is already

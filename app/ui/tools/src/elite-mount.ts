@@ -1,8 +1,8 @@
 /** Mounts one Elite Skills planner; both map surfaces consume its character plan. */
 import { createApp, h, ref, shallowRef } from "vue";
 import EliteSkillsApp from "./EliteSkillsApp.vue";
-import { EMPTY_ELITE_MAP, type EliteMapHandle, type EliteMapHost, type EliteMapView } from "../../../src/shared/elite-map";
-import type { EliteLocation } from "../../../src/shared/elite-skills";
+import { EMPTY_ELITE_MAP, type EliteMapHandle, type EliteMapHost, type EliteMapView } from "../../../shared/elite-map";
+import type { EliteLocation } from "../../../shared/elite-skills";
 import type { EliteTrackingHost } from "./use-elite-tracking";
 import { createSkillCatalogue, type SkillPresentation } from "./skill-catalog";
 import "./styles.css";

@@ -1,13 +1,13 @@
 /** Keeps durable Travel history aligned with the currently certified character. */
 import { computed, shallowRef, type Ref } from "vue";
-import type { GwNativeApi } from "../../../src/shared/contracts";
-import type { TravelGameState } from "../../../src/shared/travel-command";
-import { travelDestination } from "../../../src/shared/travel";
+import type { GwNativeApi } from "../../../shared/contracts";
+import type { TravelGameState } from "../../../shared/travel-command";
+import { travelDestination } from "../../../shared/travel";
 import {
   EMPTY_TRAVEL_HISTORY,
   type TravelCharacterKey,
   type TravelHistory,
-} from "../../../src/shared/travel-history";
+} from "../../../shared/travel-history";
 
 type Observation = Readonly<{
   characterKey: TravelCharacterKey;

@@ -14,15 +14,15 @@
  */
 import { readFile, rename, rm, stat } from "node:fs/promises";
 import path from "node:path";
-import { isDigest } from "../../shared/digest.js";
-import { writeAtomicJson } from "./atomic-file.js";
+import { isDigest } from "../shared/digest.js";
+import { writeAtomicJson } from "../main/core/atomic-file.js";
 import {
   COMMON_ARTIFACTS,
   JSPI_ARTIFACTS,
   SNAPSHOT,
-} from "./access-key.js";
-import { fingerprintClientGeneration } from "./client-fingerprint.js";
-import type { Manifest } from "./manifest.js";
+} from "../main/core/access-key.js";
+import { fingerprintClientGeneration } from "../main/core/client-fingerprint.js";
+import type { Manifest } from "../main/core/manifest.js";
 
 const CANDIDATE_MARKER = ".candidate.json";
 

@@ -4,7 +4,7 @@
  * string. The drain prints it through the certified chat-log producer, which
  * adds the line to this player's own chat log and sends no packet.
  */
-import { concat, sleb, uleb } from "../core/wasm-binary.js";
+import { concat, sleb, uleb } from "../../main/core/wasm-binary.js";
 import { CHAT_PRINT_MAILBOX as M, CHAT_PRINT_STATUS, CHAT_PRINT_UNITS } from "../../shared/chat-print.js";
 import { mailboxConfigure } from "./enhancement-whisper-transform.js";
 

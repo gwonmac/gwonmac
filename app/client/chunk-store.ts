@@ -20,17 +20,17 @@
  */
 import { readFile, readdir, stat, statfs, unlink } from "node:fs/promises";
 import { join } from "node:path";
-import { ARENANET_REQUEST_CEILING } from "../../shared/contracts.js";
-import { AppError, type ErrorCode } from "../../shared/errors.js";
+import { ARENANET_REQUEST_CEILING } from "../shared/contracts.js";
+import { AppError, type ErrorCode } from "../shared/errors.js";
 import {
   DownloadRateAverage,
   secondsRemaining,
-} from "../../shared/progress.js";
-import { mapPool } from "./async-pool.js";
-import { writeAtomicInDir } from "./atomic-file.js";
-import { decodeChunk, verifyChunkHash } from "./chunk-format.js";
-import type { CompressionMode } from "./manifest.js";
-import { packResidentBits } from "./snapshot.js";
+} from "../shared/progress.js";
+import { mapPool } from "../main/core/async-pool.js";
+import { writeAtomicInDir } from "../main/core/atomic-file.js";
+import { decodeChunk, verifyChunkHash } from "../main/core/chunk-format.js";
+import type { CompressionMode } from "../main/core/manifest.js";
+import { packResidentBits } from "../main/core/snapshot.js";
 
 /**
  * The full download must fit with this much left over. Exported so the

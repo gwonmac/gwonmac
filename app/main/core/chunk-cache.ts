@@ -12,7 +12,7 @@ import { readdir, readFile, stat, unlink } from "node:fs/promises";
 import { join } from "node:path";
 import { mapPool } from "./async-pool.js";
 import { isContentHash } from "./chunk-format.js";
-import { parsePublishedClientManifest } from "./published-client.js";
+import { parsePublishedClientManifest } from "../../client/published-client.js";
 
 export interface ChunkPruneResult {
   files: number;

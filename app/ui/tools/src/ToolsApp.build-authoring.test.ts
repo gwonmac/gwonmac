@@ -1,6 +1,6 @@
 import { flushPromises } from "@vue/test-utils";
 import { beforeEach, describe, expect, it } from "vitest";
-import { unavailableParty } from "../../../src/shared/builds/live-party";
+import { unavailableParty } from "../../../shared/builds/live-party";
 import { createDemoHost } from "./host";
 import { workbench } from "./ToolsApp.test-fixture";
 

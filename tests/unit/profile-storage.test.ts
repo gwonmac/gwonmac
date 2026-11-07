@@ -4,15 +4,15 @@ import { describe, it } from "node:test";
 import {
   resolveAdoptedProfileStorage,
   resolveProfileStorage,
-} from "../../src/main/core/profile-storage.js";
-import { gamePaths } from "../../src/main/core/paths.js";
+} from "../../app/main/core/profile-storage.js";
+import { gamePaths } from "../../app/main/core/paths.js";
 import {
   LEGACY_PRIMARY_PROFILE_ID,
   parseMultiWorkspace,
   parseProfileId,
   type AccountWorkspace,
-} from "../../src/shared/multiple-accounts.js";
-import { AppError } from "../../src/shared/errors.js";
+} from "../../app/shared/multiple-accounts.js";
+import { AppError } from "../../app/shared/errors.js";
 
 const PRIVATE_ID = parseProfileId("00000000-0000-4000-8000-000000000001");
 const SHARED_ID = parseProfileId("00000000-0000-4000-8000-000000000002");

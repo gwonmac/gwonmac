@@ -9,9 +9,9 @@ import {
   type TravelDestination,
   type TravelShortcuts,
   type TravelSynonyms,
-} from "../../../src/shared/travel";
-import { hubPhraseReserved } from "../../../src/shared/hub-preferences";
-import { normaliseHubQuery } from "../../../src/shared/hub";
+} from "../../../shared/travel";
+import { hubPhraseReserved } from "../../../shared/hub-preferences";
+import { normaliseHubQuery } from "../../../shared/hub";
 import type { TravelHost, TravelPreferences } from "./travel-host";
 
 export function useTravelPreferences(host: TravelHost) {

@@ -6,7 +6,7 @@ import {
   WASM_HEAP_CAP_BYTES,
   type ExtendedMemoryRuntimeStatus,
 } from "../shared/contracts.js";
-import type { ExtendedMemoryMode } from "./certification/client-module.js";
+import type { ExtendedMemoryMode } from "../client/certification/client-module.js";
 
 /** The single projection from module selection into user-visible runtime truth. */
 export function extendedMemoryRuntimeStatus(

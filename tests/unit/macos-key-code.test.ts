@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { physicalCodeForMacKeyCode } from "../../src/main/core/macos-key-code.js";
+import { physicalCodeForMacKeyCode } from "../../app/main/core/macos-key-code.js";
 
 test("macOS key positions cover movement and player-bindable keys", () => {
   const physicalCodes = Array.from(

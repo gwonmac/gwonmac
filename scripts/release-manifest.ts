@@ -1,12 +1,12 @@
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { releaseAssetUrl } from "../src/shared/project-identity.js";
+import { releaseAssetUrl } from "../app/shared/project-identity.js";
 import {
   formatReleaseVersion,
   parseReleaseVersion,
-} from "../src/shared/release.js";
-import { parseReleaseManifest } from "../src/shared/release-manifest.js";
+} from "../app/shared/release.js";
+import { parseReleaseManifest } from "../app/shared/release-manifest.js";
 
 export function releaseManifest(options: {
   version: string;

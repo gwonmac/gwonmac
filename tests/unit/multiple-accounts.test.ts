@@ -16,14 +16,14 @@ import {
   restoreMultiProfile,
   saveMultiWorkspace,
   updateMultiProfile,
-} from "../../src/main/core/multiple-accounts.js";
+} from "../../app/main/core/multiple-accounts.js";
 import {
   LEGACY_PRIMARY_PROFILE_ID,
   parseMultiWorkspace,
   parseProfileId,
   profileNameKey,
-} from "../../src/shared/multiple-accounts.js";
-import { AppError } from "../../src/shared/errors.js";
+} from "../../app/shared/multiple-accounts.js";
+import { AppError } from "../../app/shared/errors.js";
 
 const ID = "2d31e565-9fc8-4dde-9fd4-9d644f8283ae";
 

@@ -7,7 +7,7 @@ import {
   proxyResponseHeaders,
   resolveProxyHost,
   rewriteProxyRedirect,
-} from "../../src/main/core/proxy-routes.js";
+} from "../../app/main/core/proxy-routes.js";
 
 describe("proxy-routes", () => {
   it("maps only the explicit ArenaNet/NCSoft route labels", () => {

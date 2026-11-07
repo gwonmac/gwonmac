@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { installGlProgramCache } from "../../src/renderer/gl-program-cache.js";
+import { installGlProgramCache } from "../../app/renderer/gl-program-cache.js";
 
 // The module is imported, not read and evaluated in a synthetic context. Its
 // cache lives entirely inside each install call, so a fresh fixture is a fresh

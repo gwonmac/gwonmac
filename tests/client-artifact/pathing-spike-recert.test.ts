@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { retainedClientFixture } from "../fixtures/retained-client.js";
 import test from "node:test";
-import { certifyPathingShape } from "../../src/main/certification/pathing-spike-proof.js";
-import { wasmEvidence } from "../../src/main/certification/wasm-evidence.js";
+import { certifyPathingShape } from "../../app/client/certification/pathing-spike-proof.js";
+import { wasmEvidence } from "../../app/client/certification/wasm-evidence.js";
 import {
   concat,
   encodeCode,
@@ -13,7 +13,7 @@ import {
   sectionById,
   splitSections,
   WASM_HEADER,
-} from "../../src/main/core/wasm-binary.js";
+} from "../../app/main/core/wasm-binary.js";
 
 /** August indices; the retained-client fixture moves them per client. */
 const PATHING_FUNCTIONS = Object.freeze([3208, 3216, 3273, 3281, 3288]);

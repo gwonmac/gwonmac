@@ -1,15 +1,15 @@
 import { expect, test } from "@playwright/test";
 import path from "node:path";
-import type { DownloadProgress } from "../../src/shared/contracts.js";
+import type { DownloadProgress } from "../../app/shared/contracts.js";
 import {
   closeOffline,
   launchOffline,
   root,
 } from "./fixtures.mjs";
 
-const clientRuntimeModule = path.join(root, "build/main/client-runtime.js");
-const chunkStoreModule = path.join(root, "build/main/core/chunk-store.js");
-const patchClientModule = path.join(root, "build/main/core/patch-client.js");
+const clientRuntimeModule = path.join(root, "build/client/client-runtime.js");
+const chunkStoreModule = path.join(root, "build/client/chunk-store.js");
+const patchClientModule = path.join(root, "build/client/patch-client.js");
 const pathsModule = path.join(root, "build/main/core/paths.js");
 
 test.describe("client generation coordination", () => {

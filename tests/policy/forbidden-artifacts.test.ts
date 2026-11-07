@@ -59,8 +59,8 @@ test("the application does not collect process-memory crash dumps", () => {
   // ship just as surely as one written in the entry point itself.
   const subsystem = tracked.filter(
     (file) =>
-      file === "src/main/diagnostics.ts" ||
-      file.startsWith("src/main/diagnostics/"),
+      file === "app/main/diagnostics.ts" ||
+      file.startsWith("app/main/diagnostics/"),
   );
   assert.ok(subsystem.length > 1, "the diagnostics subsystem is not tracked");
   for (const file of subsystem) {
@@ -111,8 +111,8 @@ test("only public identifiers and explicit profile-id fixtures are UUID-shaped",
     "9E1BD41C-CFC0-4CA8-A57F-2F0CA159C72D",
   ]);
   const profileIdFixtures = new Set([
-    "apps/launcher/src/fixtures.ts",
-    "apps/tools/src/hub-fixture.ts",
+    "app/ui/launcher/src/fixtures.ts",
+    "app/ui/tools/src/hub-fixture.ts",
     "tests/unit/hub-account-actions.test.ts",
     "tests/electron/multiple-accounts.spec.ts",
     "tests/electron/profile-close.spec.ts",

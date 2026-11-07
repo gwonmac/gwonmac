@@ -4,7 +4,7 @@ import {
   projectGamePointToMissionMap,
   projectMissionMapContentBox,
   projectTerrainToMissionMap,
-} from "../../src/renderer/cartography-spike/map-projections.js";
+} from "../../app/renderer/cartography-spike/map-projections.js";
 
 test("projects the certified Mission Map drawable area and player anchor", () => {
   const frame = Object.freeze({

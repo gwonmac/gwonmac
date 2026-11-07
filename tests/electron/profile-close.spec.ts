@@ -2,7 +2,7 @@
 import { expect, test } from "@playwright/test";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import type { ProfileId } from "../../src/shared/multiple-accounts.js";
+import type { ProfileId } from "../../app/shared/multiple-accounts.js";
 import { closeOffline, launchCachedClient } from "./fixtures.mjs";
 
 declare global {

@@ -4,10 +4,10 @@
  * still needs. Every count comes from the same entries the list shows.
  */
 import { computed, nextTick, onBeforeUnmount, ref, watch, type Ref } from "vue";
-import { HUB_SEARCH_GLYPH } from "../../../../src/shared/ui/hub-search";
-import { listIndexAfter, listKeyStep, listPage } from "../../../../src/shared/ui/list-keys";
-import { hubTier, normaliseHubQuery, type HubViewFooter } from "../../../../src/shared/hub";
-import { isHubBackKey } from "../../../../src/shared/keyboard-shortcuts";
+import { HUB_SEARCH_GLYPH } from "../../../../shared/ui/hub-search";
+import { listIndexAfter, listKeyStep, listPage } from "../../../../shared/ui/list-keys";
+import { hubTier, normaliseHubQuery, type HubViewFooter } from "../../../../shared/hub";
+import { isHubBackKey } from "../../../../shared/keyboard-shortcuts";
 import {
   PROGRESS_CAMPAIGNS,
   PROGRESS_GOAL_WORDS,
@@ -21,8 +21,8 @@ import {
   type ProgressGoal,
   type ProgressGoalId,
   type ProgressInputs,
-} from "../../../../src/shared/game-progress";
-import type { TravelGameState } from "../../../../src/shared/travel-command";
+} from "../../../../shared/game-progress";
+import type { TravelGameState } from "../../../../shared/travel-command";
 
 export type ProgressViewResume = Readonly<{
   campaign: ProgressCampaignId | null;

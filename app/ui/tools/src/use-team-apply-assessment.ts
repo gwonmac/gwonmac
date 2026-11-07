@@ -3,14 +3,14 @@
  * Planning and preflight authority remain in the shared Team Apply domain module.
  */
 import { computed } from "vue";
-import { PROFESSIONS } from "../../../src/shared/builds/heroes";
-import { buildById, type TeamSlot } from "../../../src/shared/builds/library";
+import { PROFESSIONS } from "../../../shared/builds/heroes";
+import { buildById, type TeamSlot } from "../../../shared/builds/library";
 import {
   preflightTeamApply,
   resolveTeamApplyPlan,
   type TeamApplyProblem,
   type TeamApplyRuntimeProblem,
-} from "../../../src/shared/builds/team-apply";
+} from "../../../shared/builds/team-apply";
 import type { LibraryController } from "./use-library";
 import type { Team } from "./model";
 import { teamApplyStoredProblemMessage, teamApplyStoredProblemGuidance, teamApplyRuntimePresentation } from "./team-apply-presentation";

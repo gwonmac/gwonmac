@@ -1,4 +1,4 @@
-import { COMPANION_ABI } from "../../src/shared/companion-abi.ts";
+import { COMPANION_ABI } from "../../app/shared/companion-abi.ts";
 import assert from "node:assert/strict";
 import {
   existsSync,
@@ -21,9 +21,9 @@ import {
   COMPANION_PARTY_BYTES,
   COMPANION_SNAPSHOT_BYTES,
   COMPANION_TOOLBOX_BYTES,
-} from "../../src/renderer/companion-snapshot.ts";
-import { COMPANION_PLAY_REGION_BYTES } from "../../src/renderer/companion-play-region-snapshot.ts";
-import { ENHANCEMENT_CONFIG_WORD_COUNT } from "../../src/shared/enhancement-contracts.ts";
+} from "../../app/renderer/companion-snapshot.ts";
+import { COMPANION_PLAY_REGION_BYTES } from "../../app/renderer/companion-play-region-snapshot.ts";
+import { ENHANCEMENT_CONFIG_WORD_COUNT } from "../../app/shared/enhancement-contracts.ts";
 import {
   COMPANION_KERNEL_HASH_BINDING,
   COMPANION_KERNEL_HASH_PLACEHOLDER,

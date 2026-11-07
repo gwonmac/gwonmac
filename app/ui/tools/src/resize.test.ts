@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { installResizeGrip } from "../../../src/shared/ui/resize";
+import { installResizeGrip } from "../../../shared/ui/resize";
 
 describe("shared window resize grip", () => {
   it("resizes by keyboard inside the owner-provided bounds", () => {

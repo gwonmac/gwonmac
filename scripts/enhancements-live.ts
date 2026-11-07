@@ -12,8 +12,8 @@ import type { Browser, BrowserContext, Page } from "playwright";
 import {
   defaultGuildWarsProfile,
   inspectEnhancementWorkspace,
-} from "../src/tools/enhancement-workspace.js";
-import type { AutomationCommand } from "../src/shared/automation.js";
+} from "../app/tools-cli/enhancement-workspace.js";
+import type { AutomationCommand } from "../app/shared/automation.js";
 import {
   SCENARIOS,
   liveRunPlan,

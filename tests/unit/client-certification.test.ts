@@ -2,14 +2,14 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   certificationFromLocalVerification,
-} from "../../src/main/certification/client-certification.js";
-import { ENHANCEMENT_BUILDS } from "../../src/main/certification/enhancement-builds.js";
+} from "../../app/client/certification/client-certification.js";
+import { ENHANCEMENT_BUILDS } from "../../app/client/certification/enhancement-builds.js";
 import {
   localFeatureVerdictsForBuild,
   type LocalClientVerification,
-} from "../../src/main/certification/local-client-verifier.js";
-import { SEMANTIC_VERIFIER_ABI } from "../../src/main/certification/semantic-proof.js";
-import { TEMPLATE_SAVE_BUILDS } from "../../src/main/certification/template-save-compat.js";
+} from "../../app/client/certification/local-client-verifier.js";
+import { SEMANTIC_VERIFIER_ABI } from "../../app/client/certification/semantic-proof.js";
+import { TEMPLATE_SAVE_BUILDS } from "../../app/client/certification/template-save-compat.js";
 
 const OFFICIAL = TEMPLATE_SAVE_BUILDS.find(
   (build) => build.outputSha256 === ENHANCEMENT_BUILDS[0]?.sha256,

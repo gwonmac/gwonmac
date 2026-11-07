@@ -12,9 +12,9 @@ import {
   loadMultiWorkspace,
   saveMultiWorkspace,
   type AccountWorkspaceBootstrapDependencies,
-} from "../../src/main/core/multiple-accounts.js";
-import { LEGACY_PRIMARY_PROFILE_ID } from "../../src/shared/multiple-accounts.js";
-import { AppError } from "../../src/shared/errors.js";
+} from "../../app/main/core/multiple-accounts.js";
+import { LEGACY_PRIMARY_PROFILE_ID } from "../../app/shared/multiple-accounts.js";
+import { AppError } from "../../app/shared/errors.js";
 
 const FRESH_ID = "00000000-0000-4000-8000-000000000001";
 

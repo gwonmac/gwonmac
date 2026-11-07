@@ -3,9 +3,9 @@ import { retainedClientFixture } from "../fixtures/retained-client.js";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { worldMapDisplayStateAddress } from "../../src/main/certification/world-map-visibility-proof.js";
-import { wasmEvidence } from "../../src/main/certification/wasm-evidence.js";
-import { concat, encodeCode, encodeSection, paddedIndex, parseCode, sectionById, splitSections, WASM_HEADER } from "../../src/main/core/wasm-binary.js";
+import { worldMapDisplayStateAddress } from "../../app/client/certification/world-map-visibility-proof.js";
+import { wasmEvidence } from "../../app/client/certification/wasm-evidence.js";
+import { concat, encodeCode, encodeSection, paddedIndex, parseCode, sectionById, splitSections, WASM_HEADER } from "../../app/main/core/wasm-binary.js";
 
 const artifact = process.env.GW_CLIENT_WASM;
 

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createSkillSlotGeometryInstallation } from "../../src/renderer/skill-slot-geometry-installation.js";
-import type { CompanionSkillSlotState } from "../../src/renderer/companion-skill-snapshot.js";
+import { createSkillSlotGeometryInstallation } from "../../app/renderer/skill-slot-geometry-installation.js";
+import type { CompanionSkillSlotState } from "../../app/renderer/companion-skill-snapshot.js";
 
 const geometry = (sequence: number, left = 0): CompanionSkillSlotState => ({
   status: "ready",

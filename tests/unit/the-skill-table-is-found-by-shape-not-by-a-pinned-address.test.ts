@@ -13,13 +13,13 @@ import {
   decodedIconToBmp,
   decodedShard,
   skillAvailability,
-} from "../../src/main/core/skill-catalogue.ts";
+} from "../../app/main/core/skill-catalogue.ts";
 import {
   decodeEnergyCost,
   findSkillTable,
   signatureRun,
   SKILL_RECORD_BYTES,
-} from "../../src/main/core/skill-table.ts";
+} from "../../app/main/core/skill-table.ts";
 
 /** A run of skill records with the shape the scanner looks for. */
 function skillRecords(count: number, from = 0): Uint8Array {

@@ -13,7 +13,7 @@ import {
   shortcutMatches,
   shortcutReserved,
   withShortcutOverride,
-} from "../../src/shared/keyboard-shortcuts.js";
+} from "../../app/shared/keyboard-shortcuts.js";
 
 describe("keyboard shortcuts", () => {
   it("uses defaults until a player replaces or clears one action", () => {

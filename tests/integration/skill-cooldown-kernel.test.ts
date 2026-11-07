@@ -3,7 +3,7 @@
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { ENHANCEMENT_LAYOUT_FIELDS } from "../../src/shared/enhancement-config.ts";
+import { ENHANCEMENT_LAYOUT_FIELDS } from "../../app/shared/enhancement-config.ts";
 import {
   ADDRESSES,
   createKernel,

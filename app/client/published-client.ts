@@ -15,14 +15,14 @@
  */
 import { createHash } from "node:crypto";
 import { open, readFile } from "node:fs/promises";
-import { isDigest } from "../../shared/digest.js";
-import { AppError } from "../../shared/errors.js";
-import { CLIENT_ARTIFACTS, HASH_ALGOS, SNAPSHOT } from "./access-key.js";
-import { writeAtomicJson } from "./atomic-file.js";
-import { fingerprintClientGeneration } from "./client-fingerprint.js";
-import { parseContentHash, verifyChunkHash } from "./chunk-format.js";
-import type { CompressionMode } from "./manifest.js";
-import { clientArtifactPath, clientManifestPath } from "./paths.js";
+import { isDigest } from "../shared/digest.js";
+import { AppError } from "../shared/errors.js";
+import { CLIENT_ARTIFACTS, HASH_ALGOS, SNAPSHOT } from "../main/core/access-key.js";
+import { writeAtomicJson } from "../main/core/atomic-file.js";
+import { fingerprintClientGeneration } from "../main/core/client-fingerprint.js";
+import { parseContentHash, verifyChunkHash } from "../main/core/chunk-format.js";
+import type { CompressionMode } from "../main/core/manifest.js";
+import { clientArtifactPath, clientManifestPath } from "../main/core/paths.js";
 
 const PUBLISHED_CLIENT_FORMAT = 1;
 

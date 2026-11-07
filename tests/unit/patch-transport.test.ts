@@ -4,14 +4,14 @@ import { describe, it } from "node:test";
 import {
   decodeChunk,
   encodedChunkLimit,
-} from "../../src/main/core/chunk-format.ts";
+} from "../../app/main/core/chunk-format.ts";
 import {
   createBoundedPatchFetch,
   fetchPatchBytes,
-} from "../../src/main/core/patch-transport.ts";
-import { readBoundedResponse } from "../../src/main/core/bounded-response.ts";
-import { PATCH_REQUEST_HEADERS } from "../../src/main/core/access-key.ts";
-import { AppError, HttpStatusError } from "../../src/shared/errors.ts";
+} from "../../app/main/core/patch-transport.ts";
+import { readBoundedResponse } from "../../app/main/core/bounded-response.ts";
+import { PATCH_REQUEST_HEADERS } from "../../app/main/core/access-key.ts";
+import { AppError, HttpStatusError } from "../../app/shared/errors.ts";
 
 const headers = { "X-Test": "1" };
 

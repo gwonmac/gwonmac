@@ -2,7 +2,7 @@ import { chromium, type Browser, type Page } from "playwright";
 import { spawn, type ChildProcess } from "node:child_process";
 import { readFile, rm } from "node:fs/promises";
 import path from "node:path";
-import type { ProfileId } from "../../src/shared/multiple-accounts.ts";
+import type { ProfileId } from "../../app/shared/multiple-accounts.ts";
 
 export interface RunningPackagedApp {
   readonly browser: Browser;

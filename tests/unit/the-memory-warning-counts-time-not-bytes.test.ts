@@ -19,7 +19,7 @@ import {
   type HeapPressurePolicy,
   type HeapPressureLevel,
   type HeapPressureReading,
-} from "../../src/renderer/heap-pressure.js";
+} from "../../app/renderer/heap-pressure.js";
 
 const MIB = 1_048_576;
 const CAP = 2048 * MIB;

@@ -1,10 +1,10 @@
 /** Verifies remaining-only painting, native map coordinates and copied input cleanup. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createCartographyGridLayer } from "../../src/renderer/cartography-spike/cartography-grid-layer.js";
-import { createNativeMapGraphicsLayer, nativeMapGraphicsCorners } from "../../src/renderer/cartography-spike/native-map-graphics-layer.js";
-import { CARTOGRAPHY_BUILTIN_PRESETS } from "../../src/shared/cartography-overlay.js";
-import type { CartographyGridProjection } from "../../src/renderer/cartography-spike/cartography-grid-projection.js";
+import { createCartographyGridLayer } from "../../app/renderer/cartography-spike/cartography-grid-layer.js";
+import { createNativeMapGraphicsLayer, nativeMapGraphicsCorners } from "../../app/renderer/cartography-spike/native-map-graphics-layer.js";
+import { CARTOGRAPHY_BUILTIN_PRESETS } from "../../app/shared/cartography-overlay.js";
+import type { CartographyGridProjection } from "../../app/renderer/cartography-spike/cartography-grid-projection.js";
 
 class CanvasPeer {
   width = 128; height = 128;
@@ -146,7 +146,7 @@ test("native maps cache textures and release copied input on success, refusal an
 });
 
 test("map tiles absorb small pans and zoom animation; hover uses only a small cell texture", async () => {
-  const {nativeMapTileProjection, nativeMapHoverProjection} = await import("../../src/renderer/cartography-spike/native-map-tile.js");
+  const {nativeMapTileProjection, nativeMapHoverProjection} = await import("../../app/renderer/cartography-spike/native-map-tile.js");
   const view = {...projection, box: {...projection.box, width: 900, height: 600}, transform: {...projection.transform, e: -2000, f: -3000}};
   const first = nativeMapTileProjection(view);
   const panned = nativeMapTileProjection({...view, transform: {...view.transform, e: -2010, f: -3010}});
@@ -162,7 +162,7 @@ test("map tiles absorb small pans and zoom animation; hover uses only a small ce
 
 
 test("large cached map tiles retain remaining guidance above the detailed-marker budget", async () => {
-  const {nativeMapTileProjection} = await import("../../src/renderer/cartography-spike/native-map-tile.js");
+  const {nativeMapTileProjection} = await import("../../app/renderer/cartography-spike/native-map-tile.js");
   for (const surface of ["mission-map", "world-map"] as const) {
     const {document, canvases} = documentPeer();
     const layer = createCartographyGridLayer(document);
@@ -211,7 +211,7 @@ test("map disposal drains every surface and canvas when one native withdrawal th
 
 
 test("native maps and Compass ranges upload and free copied pixels above 2 GiB", async () => {
-  const {createNativeCompassRangesLayer} = await import("../../src/renderer/cartography-spike/native-compass-ranges-layer.js");
+  const {createNativeCompassRangesLayer} = await import("../../app/renderer/cartography-spike/native-compass-ranges-layer.js");
   const {document} = documentPeer();
   const address = 0x8000_1000;
   // WebAssembly reserves virtual pages; this fixture touches only the small upload region.
@@ -250,7 +250,7 @@ test("native maps and Compass ranges upload and free copied pixels above 2 GiB",
 });
 
 test("Compass ranges keep their texture and retry while the native renderer holds it", async () => {
-  const {createNativeCompassRangesLayer} = await import("../../src/renderer/cartography-spike/native-compass-ranges-layer.js");
+  const {createNativeCompassRangesLayer} = await import("../../app/renderer/cartography-spike/native-compass-ranges-layer.js");
   const {document, canvases} = documentPeer();
   const memory = new WebAssembly.Memory({initial: 8});
   const serial = new WebAssembly.Global({value: "i32", mutable: true});

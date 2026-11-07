@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { createClientHealthConfirmation } from "../../src/renderer/client-health.js";
-import type { ClientHealthToken } from "../../src/shared/contracts.js";
+import { createClientHealthConfirmation } from "../../app/renderer/client-health.js";
+import type { ClientHealthToken } from "../../app/shared/contracts.js";
 
 const token: ClientHealthToken = {
   generation: 7,

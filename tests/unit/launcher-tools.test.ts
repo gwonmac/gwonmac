@@ -1,11 +1,11 @@
 /** Every public feature and keyboard action shares the canonical settings policy. */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { DEFAULT_SETTINGS } from "../../src/shared/contracts.ts";
-import { GLOBAL_TOOLS, GLOBAL_TOOL_FEATURES } from "../../src/shared/launcher-contracts.ts";
-import { FEATURE_SELECTION_POLICIES, featureActivationRequested } from "../../src/shared/feature-contracts.ts";
-import { DEFAULT_SHORTCUTS, resolveShortcuts } from "../../src/shared/keyboard-shortcuts.ts";
-import { allGlobalToolsPatch, globalToolPatch, launcherToolSettings, launcherShortcutPatch } from "../../src/main/core/launcher-tools.ts";
+import { DEFAULT_SETTINGS } from "../../app/shared/contracts.ts";
+import { GLOBAL_TOOLS, GLOBAL_TOOL_FEATURES } from "../../app/shared/launcher-contracts.ts";
+import { FEATURE_SELECTION_POLICIES, featureActivationRequested } from "../../app/shared/feature-contracts.ts";
+import { DEFAULT_SHORTCUTS, resolveShortcuts } from "../../app/shared/keyboard-shortcuts.ts";
+import { allGlobalToolsPatch, globalToolPatch, launcherToolSettings, launcherShortcutPatch } from "../../app/main/core/launcher-tools.ts";
 
 describe("global launcher Tools", () => {
   it("projects every independently configurable feature from its canonical setting", () => {

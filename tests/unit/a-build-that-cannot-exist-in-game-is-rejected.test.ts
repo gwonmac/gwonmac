@@ -1,4 +1,4 @@
-// `src/shared/builds/validate.ts` owns build validation, and its whole
+// `app/shared/builds/validate.ts` owns build validation, and its whole
 // value is in *what it says* rather than in whether it says yes or no. A player
 // who is told "this build is invalid" is stuck; a player told "slot 3 is a
 // second elite" is one click from fixed. So every case below drives one rule to
@@ -42,21 +42,21 @@ import type {
   Profession,
   SkillBar,
   SkillId,
-} from "../../src/shared/builds/library.ts";
-import { buildId, skillId } from "../../src/shared/builds/library.ts";
-import { ATTRIBUTES, PROFESSIONS } from "../../src/shared/builds/heroes.ts";
+} from "../../app/shared/builds/library.ts";
+import { buildId, skillId } from "../../app/shared/builds/library.ts";
+import { ATTRIBUTES, PROFESSIONS } from "../../app/shared/builds/heroes.ts";
 import type {
   BuildProblem,
   BuildValidation,
   CataloguedSkill,
   SkillCatalogue,
-} from "../../src/shared/builds/validate.ts";
+} from "../../app/shared/builds/validate.ts";
 import {
   LEVEL_20_ATTRIBUTE_BUDGET,
   PRIMARY_ATTRIBUTE,
   validateBuild,
   validateBuildFor,
-} from "../../src/shared/builds/validate.ts";
+} from "../../app/shared/builds/validate.ts";
 
 /**
  * Invented ids. The numbers mean nothing beyond keeping the professions

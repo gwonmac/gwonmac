@@ -20,8 +20,8 @@ import {
   COMMON_ARTIFACTS,
   JSPI_ARTIFACTS,
 } from "../main/core/access-key.js";
-import { verifyLocalClientBytes } from "../main/certification/local-client-verifier.js";
-import { inspectEnhancementCache } from "../main/certification/client-module.js";
+import { verifyLocalClientBytes } from "../client/certification/local-client-verifier.js";
+import { inspectEnhancementCache } from "../client/certification/client-module.js";
 import { parseSettings } from "../main/core/settings.js";
 import {
   ENHANCEMENT_PROGRAMS,
@@ -33,7 +33,7 @@ import {
   readPublishedClientManifest,
   verifyPublishedClientArtifacts,
   type PublishedClientManifest,
-} from "../main/core/published-client.js";
+} from "../client/published-client.js";
 
 export interface EnhancementDoctorReport {
   profile: "ready" | "missing";

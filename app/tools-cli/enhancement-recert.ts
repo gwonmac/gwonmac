@@ -23,25 +23,25 @@ import {
 import {
   inspectEnhancementCandidate,
   type EnhancementCandidateReport,
-} from "../main/certification/enhancement-candidate.js";
-import { transformEnhancementWasm } from "../main/certification/enhancement-transform.js";
+} from "../client/certification/enhancement-candidate.js";
+import { transformEnhancementWasm } from "../client/certification/enhancement-transform.js";
 import {
   ENHANCEMENT_BUILDS,
   enhancementProfilesForBuild,
   enhancementOutputSha256,
   findEnhancementBuild,
   type EnhancementOutputHashes,
-} from "../main/certification/enhancement-builds.js";
+} from "../client/certification/enhancement-builds.js";
 import {
   inspectEnhancementStructuralEvidence,
   type EnhancementStructuralEvidenceReport,
   type PlayerChatMessageAnchors,
-} from "../main/certification/enhancement-structural-evidence.js";
+} from "../client/certification/enhancement-structural-evidence.js";
 import {
   preparePostTemplateSaveModule,
   type PostTemplateSaveModule,
   type TemplateSaveResolution,
-} from "../main/certification/template-save-verifier.js";
+} from "../client/certification/template-save-verifier.js";
 
 interface EnhancementRecertificationFailure {
   readonly officialSha256: string;

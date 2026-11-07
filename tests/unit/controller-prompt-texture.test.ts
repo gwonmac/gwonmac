@@ -7,7 +7,7 @@ import {
   installControllerPromptTexture,
   texmodHash,
   type AtlasTransform,
-} from "../../src/renderer/controller-prompt-texture.js";
+} from "../../app/renderer/controller-prompt-texture.js";
 
 const WIDTH = 256;
 const HEIGHT = 512;

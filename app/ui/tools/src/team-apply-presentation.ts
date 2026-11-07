@@ -1,7 +1,7 @@
 /** Renderer-owned copy for canonical Team Apply runtime facts. */
-import { heroLabel, PROFESSIONS } from "../../../src/shared/builds/heroes.js";
-import type { SkillId } from "../../../src/shared/builds/library.js";
-import type { TeamApplyProblem, TeamApplyRuntimeProblem } from "../../../src/shared/builds/team-apply.js";
+import { heroLabel, PROFESSIONS } from "../../../shared/builds/heroes.js";
+import type { SkillId } from "../../../shared/builds/library.js";
+import type { TeamApplyProblem, TeamApplyRuntimeProblem } from "../../../shared/builds/team-apply.js";
 
 export const teamApplyStoredProblemMessage = (problem: TeamApplyProblem): string => {
   switch (problem.rule) {

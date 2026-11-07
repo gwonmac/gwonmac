@@ -15,7 +15,7 @@ import {
   ValidationError,
   errorCode,
   isErrorCode,
-} from "../../src/shared/errors.ts";
+} from "../../app/shared/errors.ts";
 
 describe("error catalogue", () => {
   it("has no duplicate codes", () => {

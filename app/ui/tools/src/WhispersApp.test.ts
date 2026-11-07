@@ -3,7 +3,7 @@ import { mount, flushPromises } from "@vue/test-utils";
 import { afterEach, expect, it, vi } from "vitest";
 import { nextTick } from "vue";
 import WhispersApp from "./WhispersApp.vue";
-import { createWhisperSession } from "../../../src/shared/whisper-session";
+import { createWhisperSession } from "../../../shared/whisper-session";
 
 afterEach(() => {
   vi.restoreAllMocks();

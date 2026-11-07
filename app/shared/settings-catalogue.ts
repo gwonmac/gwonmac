@@ -25,7 +25,7 @@ export type SettingsSection = typeof SETTINGS_SECTIONS[number]["id"];
 export const SETTINGS_GROUP_LABELS = { game: "In game", app: "GWonMac" } as const;
 /**
  * The sections the Hub draws in a game window (docs/settings.md). They change only what
- * src/shared/hub-settings.ts lets a game window change; the others open the launcher.
+ * app/shared/hub-settings.ts lets a game window change; the others open the launcher.
  */
 export const HUB_SECTIONS: ReadonlySet<SettingsSection> = new Set(["tools", "maps", "appearance", "game"]);
 

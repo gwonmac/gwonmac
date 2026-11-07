@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   skillBarOf,
   skillId,
-} from "../../../../src/shared/builds/library";
+} from "../../../../shared/builds/library";
 import { createSkillCatalogue } from "../skill-catalog";
 import SkillBar from "./SkillBar.vue";
 

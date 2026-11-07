@@ -1,6 +1,6 @@
 import { flushPromises, mount } from "@vue/test-utils";
-import { mapTeamSlots } from "../../../src/shared/builds/library";
-import { liveParty } from "../../../src/shared/builds/live-party";
+import { mapTeamSlots } from "../../../shared/builds/library";
+import { liveParty } from "../../../shared/builds/live-party";
 import ToolsApp from "./ToolsApp.vue";
 import { createDemoHost, type ToolsHost } from "./host";
 

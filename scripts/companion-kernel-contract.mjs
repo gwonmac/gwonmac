@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
-import { COMPANION_ABI } from "../src/shared/companion-abi.ts";
+import { COMPANION_ABI } from "../app/shared/companion-abi.ts";
 import {
   COMPANION_KERNEL_EXPORTS,
   COMPANION_KERNEL_IMPORTS,
   companionKernelSignatureBytes,
-} from "../src/shared/companion-kernel-contract.ts";
+} from "../app/shared/companion-kernel-contract.ts";
 export {
   COMPANION_KERNEL_IMPORTS,
   COMPANION_KERNEL_SIGNATURES,
-} from "../src/shared/companion-kernel-contract.ts";
+} from "../app/shared/companion-kernel-contract.ts";
 
 const companionKernelSignatureModule = new WebAssembly.Module(
   companionKernelSignatureBytes(),

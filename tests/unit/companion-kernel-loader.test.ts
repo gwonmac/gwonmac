@@ -1,20 +1,20 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { initializeCompanionKernelBytes } from "../../src/renderer/companion-kernel-loader.ts";
-import { ENHANCEMENT_CONFIG_WORD_COUNT } from "../../src/shared/enhancement-contracts.ts";
-import { COMPANION_PLAY_REGION_BYTES } from "../../src/renderer/companion-play-region-snapshot.ts";
+import { initializeCompanionKernelBytes } from "../../app/renderer/companion-kernel-loader.ts";
+import { ENHANCEMENT_CONFIG_WORD_COUNT } from "../../app/shared/enhancement-contracts.ts";
+import { COMPANION_PLAY_REGION_BYTES } from "../../app/renderer/companion-play-region-snapshot.ts";
 import {
   COMPANION_SKILL_COOLDOWN_BYTES,
   COMPANION_SKILL_SLOT_BYTES,
-} from "../../src/renderer/companion-skill-snapshot.ts";
+} from "../../app/renderer/companion-skill-snapshot.ts";
 import {
   COMPANION_CURSOR_BYTES,
   COMPANION_PARTY_BYTES,
   COMPANION_SNAPSHOT_BYTES,
   COMPANION_TOOLBOX_BYTES,
-} from "../../src/renderer/companion-snapshot.ts";
+} from "../../app/renderer/companion-snapshot.ts";
 import { COMPANION_KERNEL_EXPORT_VALUES } from "../../scripts/companion-kernel-contract.mjs";
-import { COMPANION_ABI } from "../../src/shared/companion-abi.ts";
+import { COMPANION_ABI } from "../../app/shared/companion-abi.ts";
 import { companionKernelFixture } from "../helpers/companion-kernel-fixture.ts";
 
 const CONFIG_BYTES = ENHANCEMENT_CONFIG_WORD_COUNT * 4;

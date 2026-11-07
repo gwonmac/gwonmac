@@ -11,7 +11,7 @@ import {
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, it } from "node:test";
-import { cleanupLegacySecretFiles } from "../../src/main/core/legacy-secret-cleanup.js";
+import { cleanupLegacySecretFiles } from "../../app/main/core/legacy-secret-cleanup.js";
 
 describe("legacy secret cleanup", () => {
   it("removes only the two retired files and is idempotent", async () => {

@@ -6,11 +6,11 @@ import { join } from "node:path";
 import {
   loadTravelPreferences,
   updateTravelPreferences,
-} from "../../src/main/core/travel-preferences.js";
+} from "../../app/main/core/travel-preferences.js";
 import {
   parseTravelPreferencesPatch,
-} from "../../src/shared/travel-preferences.js";
-import { parseTravelPreferencesV1 } from "../../src/main/core/travel-preferences-v1.js";
+} from "../../app/shared/travel-preferences.js";
+import { parseTravelPreferencesV1 } from "../../app/main/core/travel-preferences-v1.js";
 
 describe("Travel preferences", () => {
   it("preserves corrupt bytes before returning defaults and reports the backup", async () => {

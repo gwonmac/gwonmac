@@ -9,7 +9,7 @@ import { resolve } from "node:path";
 const SOURCE_COMMIT = "cbe940d3edcc0c47fc02a59079a8f6e08d11f4cf";
 const SOURCE_SHA256 = "a20298a47f32eac2b72256659240a7abd7ebe93c573af1bd7ce069ebf8c18453";
 const destination = resolve(
-  "src/renderer/cartography-spike/toolbox-cartography-data.ts",
+  "app/renderer/cartography-spike/toolbox-cartography-data.ts",
 );
 const sourceArgument = process.argv[2];
 if (!sourceArgument) {

@@ -7,7 +7,7 @@ import {
   encodeCustomUiTheme,
   normaliseCustomUiTheme,
   normaliseUiThemeColor,
-} from "../../src/shared/ui-theme.js";
+} from "../../app/shared/ui-theme.js";
 
 describe("custom UI theme contract", () => {
   it("has the durable v1 defaults", () => {

@@ -10,8 +10,8 @@ import {
 } from "vue";
 import type { SkillCatalogue, SkillPresentation } from "../skill-catalog";
 import type { BuildDraftController } from "../use-build-draft";
-import type { SkillUnlockObservation } from "../../../../src/shared/builds/live-party";
-import { ATTRIBUTES } from "../../../../src/shared/builds/heroes";
+import type { SkillUnlockObservation } from "../../../../shared/builds/live-party";
+import { ATTRIBUTES } from "../../../../shared/builds/heroes";
 import { presentSkillPlacement, type SkillPlacementPresentation } from "../skill-drop";
 import type { SkillDragSession } from "../use-skill-drag-session";
 import {

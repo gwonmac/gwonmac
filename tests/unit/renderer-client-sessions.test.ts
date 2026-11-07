@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { ClientSession } from "../../src/shared/contracts.ts";
-import { RendererClientSessions } from "../../src/main/renderer-client-sessions.ts";
+import type { ClientSession } from "../../app/shared/contracts.ts";
+import { RendererClientSessions } from "../../app/main/renderer-client-sessions.ts";
 
 const base: ClientSession = {
   appVersion: "test",

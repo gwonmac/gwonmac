@@ -9,7 +9,7 @@ import {
   removeTeam,
   teamId,
   usedBy,
-} from "../../../src/shared/builds/library";
+} from "../../../shared/builds/library";
 import {
   cloneLibrary,
   orderedBuilds,

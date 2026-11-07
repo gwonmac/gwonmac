@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { COMPANION_ABI } from "../../src/shared/companion-abi.ts";
+import { COMPANION_ABI } from "../../app/shared/companion-abi.ts";
 import {
   readCompanionCharacterList,
   sameCharacterListPresentation,
-} from "../../src/renderer/companion-character-list-snapshot.ts";
+} from "../../app/renderer/companion-character-list-snapshot.ts";
 
 const POINTER = 64;
 

@@ -7,20 +7,20 @@ import {
   DEFAULT_SETTINGS,
   LAST_UPDATE_CHECK_AT_MAX,
   type RendererSettingsPatch,
-} from "../../src/shared/contracts.js";
-import { DEFAULT_CUSTOM_UI_THEME } from "../../src/shared/ui-theme.js";
-import { AppError } from "../../src/shared/errors.js";
+} from "../../app/shared/contracts.js";
+import { DEFAULT_CUSTOM_UI_THEME } from "../../app/shared/ui-theme.js";
+import { AppError } from "../../app/shared/errors.js";
 import {
   CARTOGRAPHY_BUILTIN_PRESETS,
   type CartographyPresetRef,
-} from "../../src/shared/cartography-overlay.js";
+} from "../../app/shared/cartography-overlay.js";
 import {
   loadSettings,
   parseSettings,
   parseSettingsPatch,
   parseRendererSettingsPatch,
   saveSettings,
-} from "../../src/main/core/settings.js";
+} from "../../app/main/core/settings.js";
 
 describe("settings", () => {
   it("makes preset selection and library replacement exclusive for renderer callers", () => {

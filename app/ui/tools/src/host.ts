@@ -1,35 +1,35 @@
 import { ref, type Ref } from "vue";
 import {
   type GwNativeApi,
-} from "../../../src/shared/contracts";
+} from "../../../shared/contracts";
 import {
   unavailableParty,
   type LiveParty,
   type SkillUnlockObservation,
-} from "../../../src/shared/builds/live-party";
+} from "../../../shared/builds/live-party";
 import {
   skillId,
   type HeroId,
-} from "../../../src/shared/builds/library";
-import { parseBuildLibrary } from "../../../src/shared/builds/parse-library";
+} from "../../../shared/builds/library";
+import { parseBuildLibrary } from "../../../shared/builds/parse-library";
 import type {
   TeamApplyPlan,
   TeamApplyResult,
-} from "../../../src/shared/builds/team-apply";
-import type { StorageCommand } from "../../../src/shared/storage-command";
+} from "../../../shared/builds/team-apply";
+import type { StorageCommand } from "../../../shared/storage-command";
 import type {
   PublishedTemplate,
   PublishableTemplate,
   TemplateFiles,
-} from "../../../src/shared/tools-bundle-contracts";
-import { encodeSkillTemplate } from "../../../src/shared/builds/skill-template";
+} from "../../../shared/tools-bundle-contracts";
+import { encodeSkillTemplate } from "../../../shared/builds/skill-template";
 import {
   runTeamApply,
   runBuildApply,
   TeamApplyPreflightRefusal,
   type TeamApplyCommands,
   type TeamApplyEvent,
-} from "../../../src/shared/builds/team-apply-runner";
+} from "../../../shared/builds/team-apply-runner";
 import { demoLibrary, demoParty, demoSkillCatalogue } from "./fixtures";
 import { cloneLibrary, type Build, type BuildLibrary } from "./model";
 import { devTrace } from "./dev-trace";
@@ -238,7 +238,7 @@ export function createDemoHost(storage: Storage | null = null): ToolsHost {
 
 /**
  * A build already encoded as the text Guild Wars stores. The renderer writes
- * templates but does not own the codec: `src/shared/builds` is compiled into
+ * templates but does not own the codec: `app/shared/builds` is compiled into
  * this bundle and is deliberately not on the protocol's shared-module
  * allowlist, so the encoding happens here and the host receives a string.
  */

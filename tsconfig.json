@@ -5,7 +5,7 @@
     "moduleResolution": "NodeNext",
     "lib": ["ES2022"],
     "outDir": "build",
-    "rootDir": "src",
+    "rootDir": "app",
     // Every input this program reads crosses a boundary it does not control —
     // IPC, the settings file, ArenaNet's manifests — where absence is normal.
     "strict": true,
@@ -16,7 +16,7 @@
     // the program, so a miss is a normal case rather than a defect.
     "noUncheckedIndexedAccess": true,
     // An absent field and an explicit undefined are the same value after a JSON
-    // round trip and different values to every contract in src/shared.
+    // round trip and different values to every contract in app/shared.
     "exactOptionalPropertyTypes": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
@@ -27,11 +27,11 @@
     "sourceMap": true,
     "types": ["node"]
   },
-  "include": ["src"],
-  // src/renderer is tsconfig.renderer.json's program, not this one: it checks
+  "include": ["app"],
+  // app/renderer is tsconfig.renderer.json's program, not this one: it checks
   // for Chromium with the DOM libs while Rollup emits build/renderer. The overlap
   // was invisible while the renderer was JavaScript, because this project sets
   // no `allowJs` and so could not read it; the first renderer `.ts` made it a
   // second compilation of the same files under a lib that has no `Document`.
-  "exclude": ["node_modules", "out", "src/renderer", "src/shared/ui/resize.ts", "src/shared/ui/frame.ts", "src/shared/ui/elite-map-pointer.ts", "src/shared/ui/elite-marker-paint.ts"]
+  "exclude": ["node_modules", "out", "app/renderer", "app/ui", "app/shared/ui/resize.ts", "app/shared/ui/frame.ts", "app/shared/ui/elite-map-pointer.ts", "app/shared/ui/elite-marker-paint.ts"]
 }

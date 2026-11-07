@@ -1,7 +1,7 @@
 /** Live Maps toggles cannot leak an overlay during asynchronous installation. */
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { createCartographyLifecycle } from "../../src/renderer/cartography-lifecycle.ts";
+import { createCartographyLifecycle } from "../../app/renderer/cartography-lifecycle.ts";
 
 const tick = () => new Promise<void>(resolve => setImmediate(resolve));
 test("Maps loads once, disposes on disable, and reinstalls on enable", async () => {
@@ -54,10 +54,10 @@ test("a failed optional installation reports failure without retrying forever", 
 
 
 test("failed Maps constructors release earlier native surfaces and detached painters", async (t) => {
-  const {installCartographySpike} = await import("../../src/renderer/cartography-spike/index.js");
+  const {installCartographySpike} = await import("../../app/renderer/cartography-spike/index.js");
   const {CARTOGRAPHY_CONTEXT_GLOBALS, CARTOGRAPHY_CONTEXT_SCALARS,
     EXPLORATION_SPIKE_GLOBALS, EXPLORATION_SPIKE_SCALARS,
-    WORLD_MAP_ANCHOR_SPIKE_GLOBALS, WORLD_MAP_ANCHOR_SPIKE_SCALARS} = await import("../../src/shared/cartography-spike.js");
+    WORLD_MAP_ANCHOR_SPIKE_GLOBALS, WORLD_MAP_ANCHOR_SPIKE_SCALARS} = await import("../../app/shared/cartography-spike.js");
   t.mock.method(console, "error", () => {});
   for (const failAt of ["native", "overlay"]) {
     const view = new EventTarget();

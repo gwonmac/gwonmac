@@ -15,7 +15,7 @@ import {
   root,
   type OfflineFixture,
 } from "./fixtures.mts";
-import type { SteamOAuthConfig } from "../../src/main/core/steam-oauth.js";
+import type { SteamOAuthConfig } from "../../app/main/core/steam-oauth.js";
 
 const MODULE_PATH = path.join(root, "build/main/steam-acquire.js");
 

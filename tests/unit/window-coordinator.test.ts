@@ -1,9 +1,9 @@
 /** The companion coordinator owns presentation without duplicating registry state. */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { WindowCoordinator } from "../../src/main/window-coordinator.js";
-import { WindowRegistry } from "../../src/main/window-registry.js";
-import { parseProfileId } from "../../src/shared/multiple-accounts.js";
+import { WindowCoordinator } from "../../app/main/window-coordinator.js";
+import { WindowRegistry } from "../../app/main/window-registry.js";
+import { parseProfileId } from "../../app/shared/multiple-accounts.js";
 
 const FIRST = parseProfileId("2d31e565-9fc8-4dde-9fd4-9d644f8283ae");
 const SECOND = parseProfileId("b2521fbf-50a8-424c-823a-bd5be4b58ace");

@@ -1,7 +1,7 @@
 /** Arithmetic, currency direction and refusal tests for the offline calculator. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { calculate, decimal, convertCurrency, formatFraction, parseConversion } from '../../src/shared/hub-calculator.ts';
+import { calculate, decimal, convertCurrency, formatFraction, parseConversion } from '../../app/shared/hub-calculator.ts';
 test('decimal arithmetic is exact, bounded, and honours precedence', async () => {
   assert.equal(formatFraction(calculate('0.1 + 0.2')!), '0.3');
   assert.equal(formatFraction(calculate('(2 + 3) * 4')!), '20');
@@ -10,7 +10,7 @@ test('decimal arithmetic is exact, bounded, and honours precedence', async () =>
   assert.equal(calculate('fetch(1)'), null);
   assert.throws(() => calculate('1..2 + 3'));
   for (const amount of ['1234567890123', '1.1234567']) assert.throws(() => decimal(amount), { message: 'Use at most 12 whole digits and six decimal places.' });
-  const { createHubCalculator } = await import('../../src/renderer/hub-calculator.ts');
+  const { createHubCalculator } = await import('../../app/renderer/hub-calculator.ts');
   const source = createHubCalculator({ copy: async () => {}, marketEnabled: () => false, quotes: async () => ({ updatedAt: 0, quotes: [] }) });
   for (const [query, title] of [
     ['1 / 0', 'Cannot divide by zero.'], ['1 +', 'Complete the calculation.'], ['1..2 + 3', 'Complete the calculation.'], ['1 + * 2', 'Complete the calculation.'], ['(1 + 2', 'Close the parentheses.'],
@@ -31,9 +31,9 @@ test('fixed and observed rates retain direction and units', () => {
 });
 
 test('a late quote cannot replace a new query or revive a disabled market', async () => {
-  const { createHubCalculator } = await import('../../src/renderer/hub-calculator.ts');
+  const { createHubCalculator } = await import('../../app/renderer/hub-calculator.ts');
   let enabled = true;
-  let resolve!: (value: import('../../src/shared/trade-chat.ts').TraderQuoteSnapshot) => void;
+  let resolve!: (value: import('../../app/shared/trade-chat.ts').TraderQuoteSnapshot) => void;
   const source = createHubCalculator({ copy: async () => {}, marketEnabled: () => enabled,
     quotes: () => new Promise(done => { resolve = done; }) });
   source.setVisible(true);
@@ -48,7 +48,7 @@ test('a late quote cannot replace a new query or revive a disabled market', asyn
 });
 
 test('only a rate-dependent result offers the rates editor (HUB-100)', async () => {
-  const { createHubCalculator } = await import('../../src/renderer/hub-calculator.ts');
+  const { createHubCalculator } = await import('../../app/renderer/hub-calculator.ts');
   const views: string[] = [];
   const hub = { close() {}, notify() {}, attach: () => () => {}, showRows() {}, showView(title: string) { views.push(title); } };
   const source = createHubCalculator({ copy: async () => {}, marketEnabled: () => true, hub,
@@ -71,7 +71,7 @@ test('only a rate-dependent result offers the rates editor (HUB-100)', async () 
 });
 
 test('market rows distinguish buy, sell, and stale observation', async () => {
-  const { createHubCalculator } = await import('../../src/renderer/hub-calculator.ts');
+  const { createHubCalculator } = await import('../../app/renderer/hub-calculator.ts');
   const source = createHubCalculator({ copy: async () => {}, marketEnabled: () => true,
     quotes: async () => ({ updatedAt: Date.now(), quotes: [
       { modelId: '0b03a2', side: 'buy', price: 6000, timestamp: Date.now() },
@@ -87,7 +87,7 @@ test('market rows distinguish buy, sell, and stale observation', async () => {
 });
 
 test('sample trader quotes keep the sample marker that sample market rates carry', async () => {
-  const { createHubCalculator } = await import('../../src/renderer/hub-calculator.ts');
+  const { createHubCalculator } = await import('../../app/renderer/hub-calculator.ts');
   const quotes = [{ modelId: '0b03a2', side: 'buy' as const, price: 6000, timestamp: Date.now() }];
   for (const sample of [true, false]) {
     const source = createHubCalculator({ copy: async () => {}, marketEnabled: () => true,
@@ -101,9 +101,9 @@ test('sample trader quotes keep the sample marker that sample market rates carry
 });
 
 test('trading shorthand accepts compact quantities, stacks and mixed sums without guesses', async () => {
-  const { evaluateConversion, fraction } = await import('../../src/shared/hub-calculator.ts');
+  const { evaluateConversion, fraction } = await import('../../app/shared/hub-calculator.ts');
   for(const input of ['1p in a','1 p in armbraces','1 platinum to arms']) assert.equal(parseConversion(input)?.to,'armbrace');
-  const rates = (unit: import('../../src/shared/hub-calculator.ts').Currency) => fraction(unit==='gold'?1n:unit==='platinum'?1000n:unit==='ecto'?5000n:150000n);
+  const rates = (unit: import('../../app/shared/hub-calculator.ts').Currency) => fraction(unit==='gold'?1n:unit==='platinum'?1000n:unit==='ecto'?5000n:150000n);
   const value=(query:string)=>formatFraction(evaluateConversion(parseConversion(query)!,rates));
   assert.equal(value('100k + 10e in a'),'1');
   assert.equal(value('1 stack ecto in p'),'1250');
@@ -118,7 +118,7 @@ test('trading shorthand accepts compact quantities, stacks and mixed sums withou
 });
 
 test('common materials divide batch quotes before conversion', async () => {
-  const { createHubCalculator } = await import('../../src/renderer/hub-calculator.ts');
+  const { createHubCalculator } = await import('../../app/renderer/hub-calculator.ts');
   const source=createHubCalculator({copy:async()=>{},marketEnabled:()=>true,quotes:async()=>({updatedAt:Date.now(),quotes:[{modelId:'0b03a5',side:'buy',price:390,timestamp:Date.now()}]})});
   source.setVisible(true);source.search('10 feathers in g');await Promise.resolve();
   assert.equal(source.search('10 feathers in g')[0]?.title,'390 gold');
@@ -128,7 +128,7 @@ test('common materials divide batch quotes before conversion', async () => {
 // Wrong behavior: editing the amount or reopening the Hub starts redundant price demand,
 // and changing market basis replaces the selected card's identity.
 test('calculator price evidence survives quantity edits and reopening with a stable basis card', async () => {
-  const { createHubCalculator } = await import('../../src/renderer/hub-calculator.ts');
+  const { createHubCalculator } = await import('../../app/renderer/hub-calculator.ts');
   const now = Date.now();
   let traderRequests = 0, marketRequests = 0;
   const source = createHubCalculator({ copy: async () => {}, marketEnabled: () => true,
@@ -166,14 +166,14 @@ test('per-item questions retain the entered each qualifier', () => {
 });
 
 test('default currency targets preserve canonical aliases and refuse guesses for materials or explicit directions', async () => {
-  const { parseDefaultConversion } = await import('../../src/shared/hub-calculator.ts');
+  const { parseDefaultConversion } = await import('../../app/shared/hub-calculator.ts');
   for (const [query, target] of [['10 ecto', 'platinum'], ['1k', 'gold'], ['10 gold', 'platinum'], ['2p', 'gold'], ['1a', 'ecto'], ['1zkey', 'ecto']] as const)
     assert.equal(parseDefaultConversion(query)?.to, target, query);
   for (const query of ['10 iron', '10 ecto in', '10 ecto to', '10e + 1p']) assert.equal(parseDefaultConversion(query), null, query);
 });
 
 test('market age describes contributing ads and advances while the calculator stays visible', async t => {
-  const { createHubCalculator } = await import('../../src/renderer/hub-calculator.ts');
+  const { createHubCalculator } = await import('../../app/renderer/hub-calculator.ts');
   const now = Date.UTC(2026, 8, 30, 12);
   t.mock.timers.enable({ apis: ['Date', 'setTimeout'], now });
   const source = createHubCalculator({ copy: async () => {}, marketEnabled: () => true,
@@ -181,7 +181,7 @@ test('market age describes contributing ads and advances while the calculator st
     market: async () => ({ fetchedAt: now, quotes: [{ item: 'armbrace', denomination: 'ecto', side: 'wts', numerator: '30', denominator: '1', advertisers: 5, oldest: now - 23 * 3600000, newest: now - 23 * 3600000 }] }),
   });
   source.setVisible(true);
-  let latest: import('../../src/shared/hub.ts').HubRow | undefined;
+  let latest: import('../../app/shared/hub.ts').HubRow | undefined;
   const stop = source.subscribe(() => { latest = source.search('1a in e')[0]; });
   try {
     source.search('1a in e'); await Promise.resolve();
@@ -192,7 +192,7 @@ test('market age describes contributing ads and advances while the calculator st
   } finally { stop(); source.setVisible(false); }
 });
 test('unsupported material routes name the limitation without an impossible refresh request', async () => {
-  const { createHubCalculator } = await import('../../src/renderer/hub-calculator.ts');
+  const { createHubCalculator } = await import('../../app/renderer/hub-calculator.ts');
   let requests = 0;
   const source = createHubCalculator({ copy: async () => {}, marketEnabled: () => true,
     quotes: async () => ({ updatedAt: Date.now(), quotes: [] }),
@@ -207,7 +207,7 @@ test('unsupported material routes name the limitation without an impossible refr
   } finally { source.setVisible(false); }
 });
 test('saved manual rates never offer an absent material field', async () => {
-  const { createHubCalculator } = await import('../../src/renderer/hub-calculator.ts');
+  const { createHubCalculator } = await import('../../app/renderer/hub-calculator.ts');
   const source = createHubCalculator({ copy: async () => {}, marketEnabled: () => true,
     settings: () => ({ mode: 'manual', ecto: '5000', armbrace: '30', zkey: '.5' }),
     quotes: async () => ({ updatedAt: Date.now(), quotes: [] }),
@@ -223,13 +223,13 @@ test('saved manual rates never offer an absent material field', async () => {
 });
 
 test('manual rate quantities accept grouped numbers and k but refuse ambiguous or unbounded values', async () => {
-  const { parseManualRate } = await import('../../src/shared/hub-calculator.ts');
+  const { parseManualRate } = await import('../../app/shared/hub-calculator.ts');
   for (const [entered, expected] of [['5,000','5000'],['5k','5000'],['.5','0.5'],['','']] as const) assert.equal(parseManualRate(entered), expected);
   for (const entered of ['0','-1','5,00','5,000g','999999999999k','1.0000001']) assert.throws(()=>parseManualRate(entered), entered);
 });
 
 test('disabled automatic prices offer manual rates without demand', async () => {
-  const { createHubCalculator } = await import('../../src/renderer/hub-calculator.ts');
+  const { createHubCalculator } = await import('../../app/renderer/hub-calculator.ts');
   let requests=0;
   const source=createHubCalculator({copy:async()=>{},marketEnabled:()=>false,quotes:async()=>{requests++;return {updatedAt:Date.now(),quotes:[]};}});
   source.setVisible(true);
@@ -242,7 +242,7 @@ test('disabled automatic prices offer manual rates without demand', async () => 
   } finally {source.setVisible(false);}
 });
 test('item equivalents retain their limitation in the visible card and clipboard provenance', async () => {
-  const { createHubCalculator } = await import('../../src/renderer/hub-calculator.ts');
+  const { createHubCalculator } = await import('../../app/renderer/hub-calculator.ts');
   let copied='';const now=Date.now();
   const source=createHubCalculator({copy:async value=>{copied=value;},marketEnabled:()=>true,quotes:async()=>({updatedAt:now,quotes:[
     {modelId:'0b03b4',side:'buy',price:390,timestamp:now},{modelId:'0b03a5',side:'buy',price:390,timestamp:now},

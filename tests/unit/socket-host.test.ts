@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { createSocketHost } from "../../src/renderer/socket-host.js";
+import { createSocketHost } from "../../app/renderer/socket-host.js";
 import {
   MAX_QUEUED_BYTES_PER_OWNER,
   MAX_QUEUED_BYTES_PER_SOCKET,
@@ -9,8 +9,8 @@ import {
   type ManagedSocket,
   type SocketFactory,
   type SocketMetrics,
-} from "../../src/main/core/sockets.js";
-import type { SocketEvent } from "../../src/shared/contracts.js";
+} from "../../app/main/core/sockets.js";
+import type { SocketEvent } from "../../app/shared/contracts.js";
 
 const turn = () => new Promise<void>((resolve) => setImmediate(resolve));
 

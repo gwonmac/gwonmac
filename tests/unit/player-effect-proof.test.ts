@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { isEffectIconGeometryProof, isPlayerEffectObservationProof } from
-  "../../src/main/certification/enhancement-player-effect-proof.ts";
+  "../../app/client/certification/enhancement-player-effect-proof.ts";
 
 function proof() {
   return {

@@ -3,7 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { closeOffline, launchPlayableClient } from "./fixtures.mjs";
 import { startGameInput } from "./input-helpers.js";
 
-type WarningModule = typeof import("../../src/renderer/memory-warning.js");
+type WarningModule = typeof import("../../app/renderer/memory-warning.js");
 
 async function showWarning(page: Page) {
   await page.evaluate(async () => {

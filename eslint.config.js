@@ -5,44 +5,48 @@ import vueParser from "vue-eslint-parser";
 
 // Each boundary is one regular expression, so every spelling that
 // resolves across it is rejected rather than only the shortest one:
-// `../paths.js`, `../../main/paths.js` and `../../../src/main/paths.js` all
+// `../paths.js`, `../../main/paths.js` and `../../../app/main/paths.js` all
 // name the same file. `no-restricted-imports` sees static imports and
 // `export ... from`; `no-restricted-syntax` covers every other way to name a
 // module, and it keys on the specifier rather than on the call shape.
 
-// Leaving src/main/core: anything that climbs out of it, unless the leading
-// `../` run lands in src/shared — plus any spelling that names src/main from
+// Leaving app/main/core: anything that climbs out of it, unless the leading
+// `../` run lands in app/shared — plus any spelling that names app/main from
 // further away. Enumerating the shapes of an upward specifier (a bare file, two
 // levels up) missed `../services/registry.js`, which leaves core just as surely;
-// "climbs out and is not src/shared" is the property, and it is shorter.
-// The exemption is `../../shared/` and deeper: from anywhere in src/main/core
-// the real src/shared is at least two levels up, so a single-level `../shared/`
-// is src/main/shared — upward, and rejected. Two is the minimum true depth, not
+// "climbs out and is not app/shared" is the property, and it is shorter.
+// The exemption is `../../shared/` and deeper: from anywhere in app/main/core
+// the real app/shared is at least two levels up, so a single-level `../shared/`
+// is app/main/shared — upward, and rejected. Two is the minimum true depth, not
 // the exact one: a pattern sees the specifier and not the importing file, so
-// from a hypothetical src/main/core/sub/ the same `../../shared/` would name
-// src/main/shared and pass. src/main/core has no subdirectory today; expressing
+// from a hypothetical app/main/core/sub/ the same `../../shared/` would name
+// app/main/shared and pass. app/main/core has no subdirectory today; expressing
 // the exact depth needs a second config block per level, which is more
 // structure than the hole is worth until one exists.
-const OUT_OF_CORE = String.raw`^(?!(?:\.\./){2,}shared/)\.\./|(?:^|/)(?:\.\.|src)/main/`;
-// Leaving src/main/certification: the same property as OUT_OF_CORE with one
+// The five client lifecycle modules that left app/main/core for app/client keep the
+// one spelling each that core may use to reach them, as it could while they were siblings.
+const OUT_OF_CORE = String.raw`^(?!(?:\.\./){2,}shared/)(?!\.\./\.\./client/(?:chunk-store|patch-client|published-client|client-compatibility|derived-wasm)\.js$)\.\./|(?:^|/)(?:\.\.|app)/main/`;
+// Leaving app/client/certification: the same property as OUT_OF_CORE with one
 // more exemption, because the chain reads the WASM codec that stayed behind in
-// src/main/core. Both exemptions name one spelling — `../core/` and
+// app/main/core. Both exemptions name one spelling — `../../main/core/` and
 // `../../shared/` — and every other spelling of the same targets is rejected,
-// exactly as OUT_OF_CORE already rejects `../../../src/shared/`. One spelling
+// exactly as OUT_OF_CORE already rejects `../../../app/shared/`. One spelling
 // per allowed target is what keeps the boundary a single regular expression.
-const OUT_OF_CERTIFICATION = String.raw`^(?!(?:\.\./){2,}shared/)(?!\.\./core/)\.\./|(?:^|/)(?:\.\.|src)/main/`;
+// The client lifecycle modules that used to sit in core are reached as `../<name>.js`.
+const OUT_OF_CERTIFICATION = String.raw`^(?!(?:\.\./){2,}shared/)(?!\.\./\.\./main/core/)(?!\.\./(?:chunk-store|patch-client|published-client|client-compatibility|derived-wasm)\.js$)\.\./|^(?!\.\./\.\./main/core/).*(?:^|/)(?:\.\.|app)/main/`;
 // The two Electron callers, named as siblings. They are exempt from the
 // Electron ban because they are the outside of the chain; importing one from
 // the inside would put Electron back on the utilityProcess graph, and the
 // upward ban above cannot see a sibling.
 const CERTIFICATION_ELECTRON_CALLERS = String.raw`(?:^|/)(?:enhancement-policy|local-client-verifier-host)(?:\.js)?$`;
-const INTO_MAIN = String.raw`(?:^|/)(?:\.\.|src)/main/`;
-// Leaving apps/website: any escape into the host application's src/ other than
-// src/shared. Naming main/renderer/preload alone let src/tools/** through while
-// the message claimed only src/shared was reachable. The first alternative is
+// app/client was part of app/main before the move, so it stays out of the renderer's reach.
+const INTO_MAIN = String.raw`(?:^|/)(?:\.\.|app)/(?:main|client)/`;
+// Leaving website: any escape into the host application's app/ other than
+// app/shared. Naming main/renderer/preload alone let app/tools-cli/** through while
+// the message claimed only app/shared was reachable. The first alternative is
 // anchored to a `../` run so a package whose own path contains `/src/` is not
 // caught; the second keeps the original spellings rejected.
-const INTO_APP = String.raw`^(?:\.\./)+src/(?!shared/)|(?:^|/)(?:\.\.|src)/(?:main|renderer|preload)/`;
+const INTO_APP = String.raw`^(?:\.\./)+app/(?!shared/|ui/)|(?:^|/)(?:\.\.|app)/(?:main|client|renderer|preload|tools-cli)/`;
 const ELECTRON = String.raw`^electron(/|$)`;
 
 /**
@@ -73,18 +77,18 @@ const crossings = (pattern, message) => {
 };
 
 const NO_ELECTRON =
-  "src/main/core/** must stay Electron-free. Keep Electron behind src/main/*.ts.";
+  "app/main/core/** must stay Electron-free. Keep Electron behind app/main/*.ts.";
 const NO_ELECTRON_IN_CERTIFICATION =
-  "src/main/certification/** must stay Electron-free apart from enhancement-policy.ts and local-client-verifier-host.ts. The proof runs in a utilityProcess, which has no Electron module.";
+  "app/client/certification/** must stay Electron-free apart from enhancement-policy.ts and local-client-verifier-host.ts. The proof runs in a utilityProcess, which has no Electron module.";
 const NO_UPWARD_FROM_CERTIFICATION =
-  "src/main/certification/** must not import upward out of src/main/certification, other than `../core/` and `../../shared/`. Invert the dependency.";
+  "app/client/certification/** must not import upward out of app/client/certification, other than `../../main/core/`, the former core modules beside it and `../../shared/`. Invert the dependency.";
 const NO_CERTIFICATION_ELECTRON_CALLERS =
-  "src/main/certification/** must not import enhancement-policy.ts or local-client-verifier-host.ts; they are the chain's Electron callers, and the utilityProcess graph must not reach them.";
+  "app/client/certification/** must not import enhancement-policy.ts or local-client-verifier-host.ts; they are the chain's Electron callers, and the utilityProcess graph must not reach them.";
 const NO_UPWARD =
-  "src/main/core/** must not import upward out of src/main/core. Invert the dependency.";
+  "app/main/core/** must not import upward out of app/main/core. Invert the dependency.";
 const NO_MAIN_FROM_RENDERER =
-  "src/renderer/** must not import from src/main/**. Cross the boundary through the preload bridge or src/shared/**.";
-const APP_SHARED_ONLY = "apps/** may only reach into src/shared/**.";
+  "app/renderer/** must not import from app/main/** or app/client/**. Cross the boundary through the preload bridge or app/shared/**.";
+const APP_SHARED_ONLY = "website/** and app/ui/tools/** may only reach into app/shared/**.";
 
 export default tseslint.config(
   eslint.configs.recommended,
@@ -110,9 +114,9 @@ export default tseslint.config(
   },
   {
     // Architectural boundaries that already hold are pinned so they keep
-    // holding. src/main/core/** has no Electron dependency and no upward
-    // imports into src/main/*.ts.
-    files: ["src/main/core/**/*.ts"],
+    // holding. app/main/core/** has no Electron dependency and no upward
+    // imports into app/main/*.ts.
+    files: ["app/main/core/**/*.ts"],
     rules: {
       "no-restricted-imports": [
         "error",
@@ -131,7 +135,7 @@ export default tseslint.config(
     },
   },
   {
-    // The certification chain moved out of src/main/core/**, where being
+    // The certification chain moved out of app/main/core/**, where being
     // Electron-free was a property of the directory. The verifier is forked
     // with `utilityProcess`, which runs plain Node and resolves no `electron`
     // module, so the whole graph its entry point reaches has to stay free of
@@ -139,14 +143,14 @@ export default tseslint.config(
     // are the Electron callers the chain is driven from.
     //
     // Banning the `electron` specifier alone would only ban the shortest route:
-    // src/main/*.ts is full of Electron, so the upward ban core enforced by
+    // app/main/*.ts is full of Electron, so the upward ban core enforced by
     // being a directory has to be spelled out here, and the two exempt siblings
     // have to be unreachable from the inside. Those three together are what
     // makes "Electron-free" a property of the graph rather than of one line.
-    files: ["src/main/certification/**/*.ts"],
+    files: ["app/client/certification/**/*.ts"],
     ignores: [
-      "src/main/certification/enhancement-policy.ts",
-      "src/main/certification/local-client-verifier-host.ts",
+      "app/client/certification/enhancement-policy.ts",
+      "app/client/certification/local-client-verifier-host.ts",
     ],
     rules: {
       "no-restricted-imports": [
@@ -176,8 +180,8 @@ export default tseslint.config(
   {
     // The renderer owns presentation and the game host; it never reaches
     // into the main process. Every renderer source extension, not only .js:
-    // src/renderer/gw-native.d.ts is a real tracked file.
-    files: ["src/renderer/**/*.{js,mjs,cjs,ts}"],
+    // app/renderer/gw-native.d.ts is a real tracked file.
+    files: ["app/renderer/**/*.{js,mjs,cjs,ts}"],
     rules: {
       "no-restricted-imports": [
         "error",
@@ -213,7 +217,7 @@ export default tseslint.config(
   },
   {
     // The website may read canonical contracts, never main-process code.
-    files: ["apps/{website,tools}/**/*.{js,mjs,ts,vue}"],
+    files: ["website/**/*.{js,mjs,ts,vue}", "app/ui/tools/**/*.{js,mjs,ts,vue}"],
     rules: {
       "no-restricted-imports": [
         "error",
@@ -230,7 +234,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ["src/main/**/*.ts", "src/shared/**/*.ts", "src/tools/**/*.ts"],
+    files: ["app/main/**/*.ts", "app/client/**/*.ts", "app/shared/**/*.ts", "app/tools-cli/**/*.ts"],
     languageOptions: {
       parserOptions: {
         projectService: true,
@@ -246,14 +250,14 @@ export default tseslint.config(
     },
   },
   {
-    // The converted renderer, held to the same two rules as src/main,
-    // src/shared and src/tools — `consistent-type-imports` most of all, since a
+    // The converted renderer, held to the same two rules as app/main,
+    // app/shared and app/tools-cli — `consistent-type-imports` most of all, since a
     // renderer module that imports a contract for its type alone must emit no
     // runtime import: build/renderer is served over gw://app and nothing there
-    // resolves src/shared. No `projectService` here: the renderer's program is
+    // resolves app/shared. No `projectService` here: the renderer's program is
     // tsconfig.renderer.json, which the service does not reach from the root
     // tsconfig.json, and neither rule needs type information.
-    files: ["src/renderer/**/*.ts"],
+    files: ["app/renderer/**/*.ts"],
     rules: {
       "@typescript-eslint/no-unused-vars": [
         "error",
@@ -267,7 +271,7 @@ export default tseslint.config(
     // Settings surface and the Tools Vue app import it. The main-process
     // project excludes it because that program has no DOM library, and these
     // rules do not need type information.
-    files: ["src/shared/ui/resize.ts", "src/shared/ui/frame.ts", "src/shared/ui/elite-map-pointer.ts", "src/shared/ui/elite-marker-paint.ts"],
+    files: ["app/shared/ui/resize.ts", "app/shared/ui/frame.ts", "app/shared/ui/elite-map-pointer.ts", "app/shared/ui/elite-marker-paint.ts"],
     languageOptions: {
       parserOptions: { projectService: false },
     },
@@ -288,11 +292,11 @@ export default tseslint.config(
     //     stays on, so a *value* import is still required to be a type import
     //     where one belongs.
     files: [
-      "src/renderer/commands.ts",
-      "src/renderer/diagnostics.ts",
-      "src/renderer/harness.ts",
-      "src/renderer/loading.ts",
-      "src/renderer/settings.ts",
+      "app/renderer/commands.ts",
+      "app/renderer/diagnostics.ts",
+      "app/renderer/harness.ts",
+      "app/renderer/loading.ts",
+      "app/renderer/settings.ts",
     ],
     rules: {
       "no-var": "off",
@@ -303,7 +307,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ["src/preload/**/*.cjs"],
+    files: ["app/preload/**/*.cjs"],
     languageOptions: {
       globals: {
         require: "readonly",
@@ -317,7 +321,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ["tests/**/*.{js,mjs}", "scripts/**/*.mjs", "apps/website/scripts/**/*.mjs"],
+    files: ["tests/**/*.{js,mjs}", "scripts/**/*.mjs", "website/scripts/**/*.mjs"],
     languageOptions: {
       globals: {
         process: "readonly",

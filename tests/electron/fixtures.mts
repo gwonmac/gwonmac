@@ -13,8 +13,8 @@ import {
   type CachedClientOptions,
   seedCachedClient,
 } from "../helpers/cached-client.js";
-import { SETTINGS_SECTIONS } from "../../src/shared/settings-catalogue.js";
-import { PROJECT_NEWS_URL, WIKI_UPDATES_URL } from "../../src/main/core/launcher-news.js";
+import { SETTINGS_SECTIONS } from "../../app/shared/settings-catalogue.js";
+import { PROJECT_NEWS_URL, WIKI_UPDATES_URL } from "../../app/main/core/launcher-news.js";
 
 export const root = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),

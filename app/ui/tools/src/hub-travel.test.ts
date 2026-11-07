@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createHubTravel } from './hub-travel';
-import { TRAVEL_DESTINATIONS } from '../../../src/shared/travel';
-import { travelDestinationAvailability } from '../../../src/shared/travel-command';
-import { searchTravelDestinations } from '../../../src/shared/travel-search';
+import { TRAVEL_DESTINATIONS } from '../../../shared/travel';
+import { travelDestinationAvailability } from '../../../shared/travel-command';
+import { searchTravelDestinations } from '../../../shared/travel-search';
 import { createDemoTravelHost } from './travel-host';
 import { progressFixture } from './progress-fixture';
 import { nextTick } from 'vue';
-import type { HubViewAction } from '../../../src/shared/hub';
+import type { HubViewAction } from '../../../shared/hub';
 
 describe('Hub travel recents', () => {
   it('shows actionable recents and keeps unavailable places in explicit search', () => {

@@ -5,17 +5,17 @@ import {
   COMPANION_ABI,
   COMPANION_DISPATCH_KINDS,
   COMPANION_FEATURE_BITS,
-} from "../../src/shared/companion-abi.ts";
+} from "../../app/shared/companion-abi.ts";
 import {
   ENHANCEMENT_CONFIG_FIELDS,
-} from "../../src/shared/enhancement-config.ts";
+} from "../../app/shared/enhancement-config.ts";
 
 const rustSource = readFileSync(
-  new URL("../../src/companion-kernel/abi.rs", import.meta.url),
+  new URL("../../kernels/companion/abi.rs", import.meta.url),
   "utf8",
 );
 const rustKernelSource = readFileSync(
-  new URL("../../src/companion-kernel/lib.rs", import.meta.url),
+  new URL("../../kernels/companion/lib.rs", import.meta.url),
   "utf8",
 );
 

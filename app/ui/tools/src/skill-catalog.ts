@@ -1,7 +1,7 @@
 /** Owns the shared skill presentation and installed-client catalogue loader. */
-import { skillId, type SkillId } from "../../../src/shared/builds/library";
-import { SKILL_CATALOGUE_ROUTE, SKILL_ICON_ROUTE } from "../../../src/shared/contracts";
-import { parseSkillCatalogue, type SkillCatalogueRecord } from "../../../src/shared/skill-catalogue";
+import { skillId, type SkillId } from "../../../shared/builds/library";
+import { SKILL_CATALOGUE_ROUTE, SKILL_ICON_ROUTE } from "../../../shared/contracts";
+import { parseSkillCatalogue, type SkillCatalogueRecord } from "../../../shared/skill-catalogue";
 
 export interface SkillPresentation
   extends Omit<SkillCatalogueRecord, "id" | "hasIcon"> {

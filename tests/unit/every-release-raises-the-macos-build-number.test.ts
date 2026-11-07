@@ -16,7 +16,7 @@ import {
   compareReleaseVersions,
   formatReleaseVersion,
   parseReleaseVersion,
-} from "../../src/shared/release.ts";
+} from "../../app/shared/release.ts";
 
 /** How macOS reads a CFBundleVersion: three numbers, most significant first. */
 function compareBundleVersions(a: string, b: string): number {
@@ -139,7 +139,7 @@ describe("the macOS build number derived from a release version", () => {
       `${version} -> ${buildVersion} does not exceed the published alpha`,
     );
     // The same string has to reach the release check, which compares versions
-    // with src/shared/release.ts and reports "unknown" for anything it cannot
+    // with app/shared/release.ts and reports "unknown" for anything it cannot
     // read. A shipped version that fails here makes every install unable to
     // tell whether it is current.
     const parsedVersion = parseReleaseVersion(version);

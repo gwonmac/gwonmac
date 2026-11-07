@@ -2,10 +2,10 @@
 // repository's real ESLint config over source that crosses each boundary
 // eslint.config.js pins, and check the crossing is actually rejected. Every
 // probe spells the crossing a different way, because one file has more than one
-// name: `../paths.js`, `../../main/paths.js` and `../../../src/main/paths.js`
-// all resolve to src/main/paths.ts.
+// name: `../paths.js`, `../../main/paths.js` and `../../../app/main/paths.js`
+// all resolve to app/main/paths.ts.
 //
-// Every boundary is executed, including the nine apps/website `.vue` SFCs:
+// Every boundary is executed, including the nine website `.vue` SFCs:
 // vue-eslint-parser lets the rule run on them rather than a weaker
 // text scan standing in for it.
 //
@@ -13,7 +13,7 @@
 // otherwise refuses a path that has no file behind it. The boundary rules
 // (no-restricted-imports, no-restricted-syntax) are purely syntactic, so
 // nothing under test depends on type information — and this keeps the test from
-// writing throwaway files into src/.
+// writing throwaway files into app/.
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { test } from "node:test";
@@ -37,341 +37,341 @@ const BOUNDARY_RULES = new Set(["no-restricted-imports", "no-restricted-syntax"]
 
 const REJECTED = [
   {
-    what: "src/main/core imports electron",
-    file: "src/main/core/probe.ts",
+    what: "app/main/core imports electron",
+    file: "app/main/core/probe.ts",
     source: 'import { app } from "electron";\nexport const probe = app;\n',
   },
   {
-    what: "src/main/core type-imports electron",
-    file: "src/main/core/probe.ts",
+    what: "app/main/core type-imports electron",
+    file: "app/main/core/probe.ts",
     source: 'import type { App } from "electron";\nexport type Probe = App;\n',
   },
   {
-    what: "src/main/core dynamically imports electron",
-    file: "src/main/core/probe.ts",
+    what: "app/main/core dynamically imports electron",
+    file: "app/main/core/probe.ts",
     source: 'export const probe = async () => import("electron");\n',
   },
   {
-    what: "src/main/core imports a submodule of electron",
-    file: "src/main/core/probe.ts",
+    what: "app/main/core imports a submodule of electron",
+    file: "app/main/core/probe.ts",
     source: 'import { app } from "electron/main";\nexport const probe = app;\n',
   },
   {
-    what: "src/main/core requires electron through createRequire",
-    file: "src/main/core/probe.ts",
+    what: "app/main/core requires electron through createRequire",
+    file: "app/main/core/probe.ts",
     source:
       'import { createRequire } from "node:module";\nexport const probe = createRequire(import.meta.url)("electron");\n',
   },
   {
-    what: "src/main/core requires electron through an aliased createRequire binding",
+    what: "app/main/core requires electron through an aliased createRequire binding",
     // The rule used to key on the callee, so `createRequire(url)("electron")`
     // and the binding literally named `require` were rejected while any other
     // name for the same function was not.
-    file: "src/main/core/probe.ts",
+    file: "app/main/core/probe.ts",
     source:
       'import { createRequire } from "node:module";\nconst load = createRequire(import.meta.url);\nexport const probe = load("electron");\n',
   },
   {
-    what: "src/main/core dynamically imports electron, spelled with a template literal",
-    file: "src/main/core/probe.ts",
+    what: "app/main/core dynamically imports electron, spelled with a template literal",
+    file: "app/main/core/probe.ts",
     source: "export const probe = async () => import(`electron`);\n",
   },
   {
-    what: "src/main/core imports upward from src/main",
-    file: "src/main/core/probe.ts",
+    what: "app/main/core imports upward from app/main",
+    file: "app/main/core/probe.ts",
     source:
       'import { userDataDir } from "../paths.js";\nexport const probe = userDataDir;\n',
   },
   {
-    what: "src/main/core imports upward from src/main, spelled through src/main",
-    file: "src/main/core/probe.ts",
+    what: "app/main/core imports upward from app/main, spelled through app/main",
+    file: "app/main/core/probe.ts",
     source:
       'import { userDataDir } from "../../main/paths.js";\nexport const probe = userDataDir;\n',
   },
   {
-    what: "src/main/core imports upward from src/main, spelled from the repository root",
-    file: "src/main/core/probe.ts",
+    what: "app/main/core imports upward from app/main, spelled from the repository root",
+    file: "app/main/core/probe.ts",
     source:
-      'import { userDataDir } from "../../../src/main/paths.js";\nexport const probe = userDataDir;\n',
+      'import { userDataDir } from "../../../app/main/paths.js";\nexport const probe = userDataDir;\n',
   },
   {
-    what: "a subdirectory of src/main/core imports upward from src/main",
-    file: "src/main/core/sub/probe.ts",
+    what: "a subdirectory of app/main/core imports upward from app/main",
+    file: "app/main/core/sub/probe.ts",
     source:
       'import { userDataDir } from "../../paths.js";\nexport const probe = userDataDir;\n',
   },
   {
-    what: "src/main/core imports upward through a subdirectory of src/main",
-    // src/main has no subdirectory but core today. The rule pins "does not
+    what: "app/main/core imports upward through a subdirectory of app/main",
+    // app/main has no subdirectory but core today. The rule pins "does not
     // climb out of core", not "does not name one of today's files", so the day
-    // src/main/services/ appears this must already be rejected.
-    file: "src/main/core/probe.ts",
+    // app/main/services/ appears this must already be rejected.
+    file: "app/main/core/probe.ts",
     source:
       'import { registry } from "../services/registry.js";\nexport const probe = registry;\n',
   },
   {
-    what: "src/main/core dynamically imports upward from src/main",
-    file: "src/main/core/probe.ts",
+    what: "app/main/core dynamically imports upward from app/main",
+    file: "app/main/core/probe.ts",
     source: 'export const probe = async () => import("../paths.js");\n',
   },
   {
-    what: "src/main/core dynamically imports upward through a subdirectory of src/main",
-    file: "src/main/core/probe.ts",
+    what: "app/main/core dynamically imports upward through a subdirectory of app/main",
+    file: "app/main/core/probe.ts",
     source: 'export const probe = async () => import("../services/registry.js");\n',
   },
   {
-    what: "src/main/core dynamically imports upward, spelled through src/main",
-    file: "src/main/core/probe.ts",
+    what: "app/main/core dynamically imports upward, spelled through app/main",
+    file: "app/main/core/probe.ts",
     source: 'export const probe = async () => import("../../main/paths.js");\n',
   },
   {
-    what: "src/main/core dynamically imports upward, spelled with a template literal",
-    file: "src/main/core/probe.ts",
+    what: "app/main/core dynamically imports upward, spelled with a template literal",
+    file: "app/main/core/probe.ts",
     source: "export const probe = async () => import(`../paths.js`);\n",
   },
   {
-    what: "src/main/core requires upward through createRequire",
+    what: "app/main/core requires upward through createRequire",
     // The require-flavoured selectors were wired to the Electron pattern only,
     // so this crossing was reported by nothing but an unrelated stylistic rule.
-    file: "src/main/core/probe.ts",
+    file: "app/main/core/probe.ts",
     source:
       'import { createRequire } from "node:module";\nexport const probe = createRequire(import.meta.url)("../paths.js");\n',
   },
   {
-    what: "src/main/core imports one level up into a sibling of src/main/core named shared",
-    // src/shared is `../../shared/` from core and deeper from its
-    // subdirectories. A single `../shared/` is src/main/shared — upward.
-    file: "src/main/core/probe.ts",
+    what: "app/main/core imports one level up into a sibling of app/main/core named shared",
+    // app/shared is `../../shared/` from core and deeper from its
+    // subdirectories. A single `../shared/` is app/main/shared — upward.
+    file: "app/main/core/probe.ts",
     source: 'import { log } from "../shared/log.js";\nexport const probe = log;\n',
   },
   {
     // The proof runs in a utilityProcess, which resolves no `electron` module.
-    // While it lived in src/main/core/** the directory rule said so; here only
+    // While it lived in app/main/core/** the directory rule said so; here only
     // the two named Electron callers are exempt.
-    what: "src/main/certification imports electron",
-    file: "src/main/certification/probe.ts",
+    what: "app/client/certification imports electron",
+    file: "app/client/certification/probe.ts",
     source: 'import { app } from "electron";\nexport const probe = app;\n',
   },
   {
-    what: "src/main/certification dynamically imports electron",
-    file: "src/main/certification/probe.ts",
+    what: "app/client/certification dynamically imports electron",
+    file: "app/client/certification/probe.ts",
     source: 'export const probe = async () => import("electron");\n',
   },
   {
-    // Banning the `electron` specifier alone leaves every file in src/main that
+    // Banning the `electron` specifier alone leaves every file in app/main that
     // imports it one `../` away, and the utilityProcess graph would break at
     // runtime rather than at lint.
-    what: "src/main/certification imports upward from src/main",
-    file: "src/main/certification/probe.ts",
+    what: "app/client/certification imports upward from app/main",
+    file: "app/client/certification/probe.ts",
     source:
       'import { createWindow } from "../window.js";\nexport const probe = createWindow;\n',
   },
   {
-    what: "src/main/certification imports upward from src/main, spelled through src/main",
-    file: "src/main/certification/probe.ts",
+    what: "app/client/certification imports upward from app/main, spelled through app/main",
+    file: "app/client/certification/probe.ts",
     source:
       'import { createWindow } from "../../main/window.js";\nexport const probe = createWindow;\n',
   },
   {
-    what: "src/main/certification imports upward from src/main, spelled from the repository root",
-    file: "src/main/certification/probe.ts",
+    what: "app/client/certification imports upward from app/main, spelled from the repository root",
+    file: "app/client/certification/probe.ts",
     source:
-      'import { createWindow } from "../../../src/main/window.js";\nexport const probe = createWindow;\n',
+      'import { createWindow } from "../../../app/main/window.js";\nexport const probe = createWindow;\n',
   },
   {
-    what: "src/main/certification dynamically imports upward from src/main",
-    file: "src/main/certification/probe.ts",
+    what: "app/client/certification dynamically imports upward from app/main",
+    file: "app/client/certification/probe.ts",
     source: 'export const probe = async () => import("../ipc.js");\n',
   },
   {
-    what: "src/main/certification dynamically imports upward, spelled with a template literal",
-    file: "src/main/certification/probe.ts",
+    what: "app/client/certification dynamically imports upward, spelled with a template literal",
+    file: "app/client/certification/probe.ts",
     source: "export const probe = async () => import(`../ipc.js`);\n",
   },
   {
-    what: "src/main/certification imports one level up into a sibling of src/main/certification named shared",
-    file: "src/main/certification/probe.ts",
+    what: "app/client/certification imports one level up into a sibling of app/client/certification named shared",
+    file: "app/client/certification/probe.ts",
     source: 'import { log } from "../shared/log.js";\nexport const probe = log;\n',
   },
   {
     // The two exempt files are the chain's outside. A sibling specifier climbs
     // out of nothing, so only naming them keeps them off the proof's graph.
-    what: "src/main/certification imports the exempt verifier host",
-    file: "src/main/certification/probe.ts",
+    what: "app/client/certification imports the exempt verifier host",
+    file: "app/client/certification/probe.ts",
     source:
       'import { verifyLocally } from "./local-client-verifier-host.js";\nexport const probe = verifyLocally;\n',
   },
   {
-    what: "src/main/certification imports the exempt enhancement policy",
-    file: "src/main/certification/probe.ts",
+    what: "app/client/certification imports the exempt enhancement policy",
+    file: "app/client/certification/probe.ts",
     source:
       'import { enhancementPolicy } from "./enhancement-policy.js";\nexport const probe = enhancementPolicy;\n',
   },
   {
-    what: "src/main/certification dynamically imports the exempt enhancement policy",
-    file: "src/main/certification/probe.ts",
+    what: "app/client/certification dynamically imports the exempt enhancement policy",
+    file: "app/client/certification/probe.ts",
     source: 'export const probe = async () => import("./enhancement-policy.js");\n',
   },
   {
-    what: "src/renderer imports src/main",
-    file: "src/renderer/probe.js",
+    what: "app/renderer imports app/main",
+    file: "app/renderer/probe.js",
     source:
       'import { userDataDir } from "../main/paths.js";\nexport const probe = userDataDir;\n',
   },
   {
-    what: "a subdirectory of src/renderer imports src/main",
-    file: "src/renderer/sub/probe.js",
+    what: "a subdirectory of app/renderer imports app/main",
+    file: "app/renderer/sub/probe.js",
     source:
       'import { userDataDir } from "../../main/paths.js";\nexport const probe = userDataDir;\n',
   },
   {
-    what: "a src/renderer TypeScript declaration imports src/main",
-    file: "src/renderer/probe.d.ts",
+    what: "a app/renderer TypeScript declaration imports app/main",
+    file: "app/renderer/probe.d.ts",
     source: 'import type { UserDataDir } from "../main/paths.js";\nexport type Probe = UserDataDir;\n',
   },
   {
-    what: "a src/renderer module imports src/main",
-    file: "src/renderer/probe.mjs",
+    what: "a app/renderer module imports app/main",
+    file: "app/renderer/probe.mjs",
     source:
       'import { userDataDir } from "../main/paths.js";\nexport const probe = userDataDir;\n',
   },
   {
-    what: "src/renderer dynamically imports src/main",
-    file: "src/renderer/probe.js",
+    what: "app/renderer dynamically imports app/main",
+    file: "app/renderer/probe.js",
     source: 'export const probe = async () => import("../main/paths.js");\n',
   },
   {
-    what: "src/renderer dynamically imports src/main, spelled with a template literal",
-    file: "src/renderer/probe.js",
+    what: "app/renderer dynamically imports app/main, spelled with a template literal",
+    file: "app/renderer/probe.js",
     source: "export const probe = async () => import(`../main/paths.js`);\n",
   },
   {
-    what: "src/renderer requires src/main through createRequire",
-    file: "src/renderer/probe.js",
+    what: "app/renderer requires app/main through createRequire",
+    file: "app/renderer/probe.js",
     source:
       'import { createRequire } from "node:module";\nexport const probe = createRequire(import.meta.url)("../main/paths.js");\n',
   },
   {
-    what: "an apps/website .vue SFC imports src/main",
-    file: "apps/website/app/pages/probe.vue",
+    what: "an website .vue SFC imports app/main",
+    file: "website/app/pages/probe.vue",
     source:
-      '<script setup lang="ts">\nimport { userDataDir } from "../../../../src/main/paths";\nconst probe = userDataDir;\n</script>\n<template><div>{{ probe }}</div></template>\n',
+      '<script setup lang="ts">\nimport { userDataDir } from "../../../app/main/paths";\nconst probe = userDataDir;\n</script>\n<template><div>{{ probe }}</div></template>\n',
   },
   {
-    what: "an apps/website .vue SFC dynamically imports src/renderer",
-    file: "apps/website/app/pages/probe.vue",
+    what: "an website .vue SFC dynamically imports app/renderer",
+    file: "website/app/pages/probe.vue",
     source:
-      '<script setup lang="ts">\nconst probe = () => import("../../../../src/renderer/harness.js");\n</script>\n<template><div @click="probe" /></template>\n',
+      '<script setup lang="ts">\nconst probe = () => import("../../../app/renderer/harness.js");\n</script>\n<template><div @click="probe" /></template>\n',
   },
   {
-    what: "apps/website imports src/main",
-    file: "apps/website/app/probe.ts",
+    what: "website imports app/main",
+    file: "website/app/probe.ts",
     source:
-      'import { userDataDir } from "../../../../src/main/paths";\nexport const probe = userDataDir;\n',
+      'import { userDataDir } from "../../../app/main/paths";\nexport const probe = userDataDir;\n',
   },
   {
-    what: "apps/website dynamically imports src/main",
-    file: "apps/website/app/probe.ts",
-    source: 'export const probe = async () => import("../../../../src/main/paths");\n',
+    what: "website dynamically imports app/main",
+    file: "website/app/probe.ts",
+    source: 'export const probe = async () => import("../../../app/main/paths");\n',
   },
   {
-    what: "apps/website dynamically imports src/main, spelled with a template literal",
-    file: "apps/website/app/probe.ts",
-    source: "export const probe = async () => import(`../../../../src/main/paths`);\n",
+    what: "website dynamically imports app/main, spelled with a template literal",
+    file: "website/app/probe.ts",
+    source: "export const probe = async () => import(`../../../app/main/paths`);\n",
   },
   {
-    what: "apps/website requires src/main through createRequire",
-    file: "apps/website/app/probe.ts",
+    what: "website requires app/main through createRequire",
+    file: "website/app/probe.ts",
     source:
-      'import { createRequire } from "node:module";\nexport const probe = createRequire(import.meta.url)("../../../../src/main/paths");\n',
+      'import { createRequire } from "node:module";\nexport const probe = createRequire(import.meta.url)("../../../app/main/paths");\n',
   },
   {
-    what: "apps/website imports developer tooling under src/tools",
-    // "only src/shared" is the boundary; main, renderer and preload were the
-    // only names spelled out, so src/tools/** crossed it with lint green.
-    file: "apps/website/app/probe.ts",
+    what: "website imports developer tooling under app/tools-cli",
+    // "only app/shared" is the boundary; main, renderer and preload were the
+    // only names spelled out, so app/tools-cli/** crossed it with lint green.
+    file: "website/app/probe.ts",
     source:
-      'import { validate } from "../../../../src/tools/diagnostics/validate";\nexport const probe = validate;\n',
+      'import { validate } from "../../../app/tools-cli/diagnostics/validate";\nexport const probe = validate;\n',
   },
   {
-    what: "an apps/website .vue SFC imports developer tooling under src/tools",
-    file: "apps/website/app/pages/probe.vue",
+    what: "an website .vue SFC imports developer tooling under app/tools-cli",
+    file: "website/app/pages/probe.vue",
     source:
-      '<script setup lang="ts">\nimport { validate } from "../../../../src/tools/diagnostics/validate";\nconst probe = validate;\n</script>\n<template><div>{{ probe }}</div></template>\n',
+      '<script setup lang="ts">\nimport { validate } from "../../../app/tools-cli/diagnostics/validate";\nconst probe = validate;\n</script>\n<template><div>{{ probe }}</div></template>\n',
   },
 ];
 
 const ALLOWED = [
   {
-    what: "src/main/core imports src/shared",
-    file: "src/main/core/probe.ts",
+    what: "app/main/core imports app/shared",
+    file: "app/main/core/probe.ts",
     source: 'import { IPC } from "../../shared/contracts.js";\nexport const probe = IPC;\n',
   },
   {
-    what: "src/main/core imports a sibling",
-    file: "src/main/core/probe.ts",
+    what: "app/main/core imports a sibling",
+    file: "app/main/core/probe.ts",
     source: 'import { parseManifest } from "./manifest.js";\nexport const probe = parseManifest;\n',
   },
   {
-    what: "src/main/core dynamically imports a sibling",
-    file: "src/main/core/probe.ts",
+    what: "app/main/core dynamically imports a sibling",
+    file: "app/main/core/probe.ts",
     source: 'export const probe = async () => import("./manifest.js");\n',
   },
   {
-    what: "a subdirectory of src/main/core imports src/shared",
-    file: "src/main/core/sub/probe.ts",
+    what: "a subdirectory of app/main/core imports app/shared",
+    file: "app/main/core/sub/probe.ts",
     source: 'import { IPC } from "../../../shared/contracts.js";\nexport const probe = IPC;\n',
   },
   {
-    what: "src/main/core requires a node builtin through createRequire",
-    file: "src/main/core/probe.ts",
+    what: "app/main/core requires a node builtin through createRequire",
+    file: "app/main/core/probe.ts",
     source:
       'import { createRequire } from "node:module";\nexport const probe = createRequire(import.meta.url)("node:fs");\n',
   },
   {
-    what: "src/main imports electron",
-    file: "src/main/probe.ts",
+    what: "app/main imports electron",
+    file: "app/main/probe.ts",
     source: 'import { app } from "electron";\nexport const probe = app;\n',
   },
   {
     what: "the certification host imports electron",
-    file: "src/main/certification/local-client-verifier-host.ts",
+    file: "app/client/certification/local-client-verifier-host.ts",
     source:
       'import { utilityProcess } from "electron";\nexport const probe = utilityProcess;\n',
   },
   {
-    what: "src/main/certification imports the codec that stayed in src/main/core",
-    file: "src/main/certification/probe.ts",
+    what: "app/client/certification imports the codec that stayed in app/main/core",
+    file: "app/client/certification/probe.ts",
     source:
-      'import { splitSections } from "../core/wasm-binary.js";\nexport const probe = splitSections;\n',
+      'import { splitSections } from "../../main/core/wasm-binary.js";\nexport const probe = splitSections;\n',
   },
   {
-    what: "src/main/certification imports src/shared",
-    file: "src/main/certification/probe.ts",
+    what: "app/client/certification imports app/shared",
+    file: "app/client/certification/probe.ts",
     source: 'import { IPC } from "../../shared/contracts.js";\nexport const probe = IPC;\n',
   },
   {
-    what: "src/main/certification imports a sibling that is not an Electron caller",
-    file: "src/main/certification/probe.ts",
+    what: "app/client/certification imports a sibling that is not an Electron caller",
+    file: "app/client/certification/probe.ts",
     source:
       'import { findEnhancementBuild } from "./enhancement-builds.js";\nexport const probe = findEnhancementBuild;\n',
   },
   {
-    what: "src/renderer imports src/shared",
-    file: "src/renderer/probe.js",
+    what: "app/renderer imports app/shared",
+    file: "app/renderer/probe.js",
     source: 'import { IPC } from "../shared/contracts.js";\nexport const probe = IPC;\n',
   },
   {
-    what: "an apps/website .vue SFC imports src/shared",
-    file: "apps/website/app/pages/probe.vue",
+    what: "an website .vue SFC imports app/shared",
+    file: "website/app/pages/probe.vue",
     source:
-      '<script setup lang="ts">\nimport { EXTERNAL_URLS } from "../../../../src/shared/contracts";\nconst probe = EXTERNAL_URLS;\n</script>\n<template><div>{{ probe }}</div></template>\n',
+      '<script setup lang="ts">\nimport { EXTERNAL_URLS } from "../../../app/shared/contracts";\nconst probe = EXTERNAL_URLS;\n</script>\n<template><div>{{ probe }}</div></template>\n',
   },
   {
-    what: "apps/website imports src/shared",
-    file: "apps/website/app/probe.ts",
+    what: "website imports app/shared",
+    file: "website/app/probe.ts",
     source:
-      'import { EXTERNAL_URLS } from "../../../../src/shared/contracts";\nexport const probe = EXTERNAL_URLS;\n',
+      'import { EXTERNAL_URLS } from "../../../app/shared/contracts";\nexport const probe = EXTERNAL_URLS;\n',
   },
 ];
 
@@ -404,7 +404,7 @@ for (const probe of ALLOWED) {
 test("the .vue sources this boundary covers still exist", () => {
   // If the website ever stops using SFCs, the probes above would pass while
   // proving nothing about any real file.
-  const sfcs = execFileSync("git", ["ls-files", "--", "apps/website/**/*.vue"], {
+  const sfcs = execFileSync("git", ["ls-files", "--", "website/**/*.vue"], {
     cwd: root,
     encoding: "utf8",
   })

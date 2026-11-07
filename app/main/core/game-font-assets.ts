@@ -7,7 +7,7 @@
  * changed asset returns `null`, so the renderer keeps its normal serif fallback.
  */
 
-import type { ChunkStore } from "./chunk-store.js";
+import type { ChunkStore } from "../../client/chunk-store.js";
 import {
   fileIdIndex,
   findStream,

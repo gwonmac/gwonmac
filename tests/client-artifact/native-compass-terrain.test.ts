@@ -3,11 +3,11 @@ import { retainedClientFixture } from "../fixtures/retained-client.js";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { transformCartographySpikeWasm } from "../../src/main/certification/pathing-spike-transform.js";
-import { wasmEvidence } from "../../src/main/certification/wasm-evidence.js";
-import { concat, encodeCode, encodeSection, parseCode, parseExports, sectionById, splitSections, uleb, WASM_HEADER } from "../../src/main/core/wasm-binary.js";
-import { encodeName } from "../../src/main/certification/cartography-transform-internals.js";
-import { NATIVE_COMPASS_CLIP_RADIUS, NATIVE_COMPASS_TERRAIN_MAGIC, NATIVE_COMPASS_WORLD_SCALE } from "../../src/shared/native-compass-terrain.js";
+import { transformCartographySpikeWasm } from "../../app/client/certification/pathing-spike-transform.js";
+import { wasmEvidence } from "../../app/client/certification/wasm-evidence.js";
+import { concat, encodeCode, encodeSection, parseCode, parseExports, sectionById, splitSections, uleb, WASM_HEADER } from "../../app/main/core/wasm-binary.js";
+import { encodeName } from "../../app/client/certification/cartography-transform-internals.js";
+import { NATIVE_COMPASS_CLIP_RADIUS, NATIVE_COMPASS_TERRAIN_MAGIC, NATIVE_COMPASS_WORLD_SCALE } from "../../app/shared/native-compass-terrain.js";
 
 test("native terrain owns bounded resources, follows its Canvas and refuses invalid uploads", async () => {
   assert.ok(process.env.GW_CLIENT_WASM);

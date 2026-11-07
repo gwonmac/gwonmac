@@ -16,10 +16,10 @@ import {
   describePreview,
   describeSkips,
   describeStored,
-} from "../../src/renderer/template-files.js";
+} from "../../app/renderer/template-files.js";
 import { SKILLS_DIR, fakeFilesystem } from "./template-filesystem-fixture.js";
-import type { TemplateParse } from "../../src/renderer/template-format.js";
-import type { ImportPlan } from "../../src/renderer/template-store.js";
+import type { TemplateParse } from "../../app/renderer/template-format.js";
+import type { ImportPlan } from "../../app/renderer/template-store.js";
 
 const SKILLS = "OQCiUyo8AkVwR4KMMGAAAEAA";
 const OTHER_SKILLS = "OQCiUyo8AkVwR4KMMGAAAEAB";

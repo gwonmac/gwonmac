@@ -4,12 +4,12 @@ import { app, BrowserWindow } from "electron";
 // the compiled host at runtime so this fixture exercises the shipped entry
 // without making generated output a typecheck prerequisite.
 const hostUrl = new URL(
-  "../../../../build/main/certification/local-client-verifier-host.js",
+  "../../../../build/client/certification/local-client-verifier-host.js",
   import.meta.url,
 );
-/** @type {typeof import("../../../../src/main/certification/local-client-verifier-host.ts")} */
+/** @type {typeof import("../../../../app/client/certification/local-client-verifier-host.ts")} */
 const verifier = await import(hostUrl.href);
-/** @type {typeof import("../../../../src/shared/enhancement-contracts.ts")} */
+/** @type {typeof import("../../../../app/shared/enhancement-contracts.ts")} */
 const contracts = await import(new URL(
   "../../../../build/shared/enhancement-contracts.js", import.meta.url,
 ).href);

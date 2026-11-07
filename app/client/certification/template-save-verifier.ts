@@ -25,7 +25,7 @@ import {
   functionImportIndex,
   indexOfBytes,
   readSleb,
-} from "../core/wasm-binary.js";
+} from "../../main/core/wasm-binary.js";
 import {
   certifyTemplateSaveRewrite,
   rewriteTemplateSaveWasm,

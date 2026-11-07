@@ -1,8 +1,8 @@
 /** Owns character-plan loading and ordered saves without dropping rapid edits. */
 import { ref, shallowRef, watch, type Ref } from "vue";
-import { ELITE_LOCATIONS } from "../../../src/shared/elite-locations";
-import { EMPTY_ELITE_TRACKING, changeEliteTracking, type EliteChange, type EliteTracking, type EliteUpdate } from "../../../src/shared/elite-skills";
-import type { TravelCharacterKey } from "../../../src/shared/travel-history";
+import { ELITE_LOCATIONS } from "../../../shared/elite-locations";
+import { EMPTY_ELITE_TRACKING, changeEliteTracking, type EliteChange, type EliteTracking, type EliteUpdate } from "../../../shared/elite-skills";
+import type { TravelCharacterKey } from "../../../shared/travel-history";
 export interface EliteTrackingHost {
   get(value: { characterKey: string }): Promise<EliteTracking>;
   update(value: EliteUpdate): Promise<EliteTracking>;

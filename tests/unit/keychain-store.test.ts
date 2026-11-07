@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { KeychainJsonStore, type KeychainSecret } from "../../src/main/core/keychain-store.js";
-import type { NativeKeychain, SecretSlot } from "../../src/main/core/native-keychain.js";
-import { AppError } from "../../src/shared/errors.js";
+import { KeychainJsonStore, type KeychainSecret } from "../../app/main/core/keychain-store.js";
+import type { NativeKeychain, SecretSlot } from "../../app/main/core/native-keychain.js";
+import { AppError } from "../../app/shared/errors.js";
 
 interface Value { value: string }
 

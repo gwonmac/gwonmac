@@ -32,7 +32,7 @@ import {
   vectorPayload,
   WASM_HEADER,
   type Section,
-} from "../core/wasm-binary.js";
+} from "../../main/core/wasm-binary.js";
 import {
   activeTableEvidence,
   functionBody,

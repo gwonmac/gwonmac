@@ -1,7 +1,7 @@
 /** The reminder chime plays at most once per second. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createReminderChime } from "../../src/renderer/reminder-chime.js";
+import { createReminderChime } from "../../app/renderer/reminder-chime.js";
 
 test("many reminders within a second play one chime", () => {
   const tones: number[] = [];

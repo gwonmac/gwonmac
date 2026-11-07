@@ -23,7 +23,7 @@ import {
   readFileTable,
   SLOT_BYTES,
   type ReadAt,
-} from "../../src/main/core/gw-archive.ts";
+} from "../../app/main/core/gw-archive.ts";
 
 /** A reader over one flat buffer, standing in for the chunk store. */
 const readerOver = (bytes: Uint8Array): ReadAt =>

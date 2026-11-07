@@ -8,7 +8,7 @@ import path from "node:path";
 import test from "node:test";
 
 const ROOT = process.cwd();
-const RENDERER = path.join(ROOT, "src/renderer/cartography-spike");
+const RENDERER = path.join(ROOT, "app/renderer/cartography-spike");
 
 async function sourceFiles(directory: string): Promise<string[]> {
   const entries = await readdir(directory);
@@ -56,11 +56,11 @@ test("one missing map surface cannot disable the other Cartography surfaces", as
 
 test("both native owners agree on the exact finite layout roots", async () => {
   const transform = await readFile(
-    path.join(ROOT, "src/main/certification/cartography-transform-internals.ts"),
+    path.join(ROOT, "app/client/certification/cartography-transform-internals.ts"),
     "utf8",
   );
   const kernel = await readFile(
-    path.join(ROOT, "src/cartography-reachability-kernel/lib.rs"),
+    path.join(ROOT, "kernels/reachability/lib.rs"),
     "utf8",
   );
   for (const root of ["0x5a0e70", "0x5a29b0"]) {

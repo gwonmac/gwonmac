@@ -3,7 +3,7 @@ import test from "node:test";
 import {
   createStorageController,
   type StorageGameState,
-} from "../../src/renderer/enhancement-storage-controller.js";
+} from "../../app/renderer/enhancement-storage-controller.js";
 
 const accessible = {
   status: "ready",

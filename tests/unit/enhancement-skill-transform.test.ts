@@ -1,13 +1,13 @@
 import { createHash } from "node:crypto";
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { EnhancementCapabilities } from "../../src/shared/enhancement-contracts.js";
-import type { KnownEnhancementBuild } from "../../src/main/certification/enhancement-builds.js";
+import type { EnhancementCapabilities } from "../../app/shared/enhancement-contracts.js";
+import type { KnownEnhancementBuild } from "../../app/client/certification/enhancement-builds.js";
 import {
   resolveEnhancementSkillTransform,
   rewriteSkillBarConstructorCapture,
-} from "../../src/main/certification/enhancement-skill-transform.js";
-import { concat, paddedIndex, uleb } from "../../src/main/core/wasm-binary.js";
+} from "../../app/client/certification/enhancement-skill-transform.js";
+import { concat, paddedIndex, uleb } from "../../app/main/core/wasm-binary.js";
 
 const capabilities: EnhancementCapabilities = Object.freeze({
   nativeCursor: false,

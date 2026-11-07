@@ -16,11 +16,11 @@ import {
   releaseMetadataMatchesStage,
   type ReleaseVersion,
   type UpdateTrack,
-} from "../../../../src/shared/release.js";
+} from "../../../app/shared/release.js";
 import {
   RELEASE_REPO,
   releaseAssetUrl,
-} from "../../../../src/shared/project-identity.js";
+} from "../../../app/shared/project-identity.js";
 
 export { RELEASE_REPO };
 export const RELEASES_FALLBACK_URL = `https://github.com/${RELEASE_REPO}/releases/latest`;

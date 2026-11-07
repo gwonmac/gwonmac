@@ -3,11 +3,11 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 const rendererSources = [
-  "src/renderer/native-hud-layer.ts",
-  "src/renderer/skill-cooldown-overlay-consumer.ts",
-  "src/renderer/skill-cooldown-state-installation.ts",
-  "src/renderer/skill-overlays-installation.ts",
-  "src/renderer/skill-slot-projection.ts",
+  "app/renderer/native-hud-layer.ts",
+  "app/renderer/skill-cooldown-overlay-consumer.ts",
+  "app/renderer/skill-cooldown-state-installation.ts",
+  "app/renderer/skill-overlays-installation.ts",
+  "app/renderer/skill-slot-projection.ts",
 ] as const;
 
 test("cooldown presentation has no gameplay input or command dependency", async () => {

@@ -3,9 +3,9 @@ import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { compileTpf, TexturePackManager } from "../../src/main/core/texture-pack-manager.js";
-import { decodeDds } from "../../src/main/core/dds.js";
-import { readTpf, TpfError } from "../../src/main/core/tpf.js";
+import { compileTpf, TexturePackManager } from "../../app/main/core/texture-pack-manager.js";
+import { decodeDds } from "../../app/main/core/dds.js";
+import { readTpf, TpfError } from "../../app/main/core/tpf.js";
 import { tinyTpf, tinyTpfMappings } from "../helpers/tpf-fixture.js";
 
 test("reads and compiles a bounded legacy TPF", () => {

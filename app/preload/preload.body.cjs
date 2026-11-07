@@ -2,7 +2,7 @@
 // execute ESM preload graphs, and it whitelists `electron`, `events`, `timers`
 // and `url` only, so this file cannot require the canonical contracts. It is
 // the *body* of the preload: scripts/generate-preload.ts prepends the
-// constants below from src/shared/contracts.ts and writes the result to
+// constants below from app/shared/contracts.ts and writes the result to
 // the generated Core and Tools preload artifacts. Copying a channel name back into this file would
 // reintroduce the drift the generator exists to remove, so no string literal
 // here may start with the gw channel prefix — tests/policy asserts that.
@@ -151,7 +151,7 @@ ipcRenderer.on(IPC.rendererCommand, (_event, id, command) => {
 const api = {
   init: rendererInit(),
   // A constant, not a capability: the derived client's dirfd markers, which the
-  // sandboxed renderer cannot import from src/shared and must not re-type.
+  // sandboxed renderer cannot import from app/shared and must not re-type.
   wasmBridgeMarkers: WASM_BRIDGE_MARKERS,
   commands: {
     // One handler, registered once. The transport listener above exists before

@@ -1,5 +1,6 @@
 packages:
-  - "apps/*"
+  - "app/ui/*"
+  - "website"
 # Nuxt I18n resolves these declared dependencies from Nuxt Kit rather than from
 # its own package. Keep that compatibility surface exact; Forge also accepts
 # this narrow pattern as proof that pnpm packaging was configured intentionally.

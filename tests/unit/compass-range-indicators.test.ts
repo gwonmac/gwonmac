@@ -2,14 +2,14 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   projectCompassControlPosition,
-} from "../../src/renderer/cartography-spike/compass-control-placement.js";
+} from "../../app/renderer/cartography-spike/compass-control-placement.js";
 import {
   compassRangeAtPoint,
   projectCompassRangeIndicators,
-} from "../../src/renderer/cartography-spike/compass-range-layer.js";
-import { visibleCompassRanges } from "../../src/renderer/cartography-spike/compass-range-controls.js";
-import { COMPASS_RANGE_INDICATORS } from "../../src/shared/compass-ranges.js";
-import { DEFAULT_SETTINGS } from "../../src/shared/contracts.js";
+} from "../../app/renderer/cartography-spike/compass-range-layer.js";
+import { visibleCompassRanges } from "../../app/renderer/cartography-spike/compass-range-controls.js";
+import { COMPASS_RANGE_INDICATORS } from "../../app/shared/compass-ranges.js";
+import { DEFAULT_SETTINGS } from "../../app/shared/contracts.js";
 
 test("projects standard ranges from the native Compass edge", () => {
   const projection = projectCompassRangeIndicators({

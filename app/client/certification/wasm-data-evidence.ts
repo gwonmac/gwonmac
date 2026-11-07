@@ -2,7 +2,7 @@
  * Bounded queries over initialized and zero-initialized linear memory.
  * Consumers receive copies or immutable occurrence lists, never owned storage.
  */
-import { indexOfBytes, readUleb } from "../core/wasm-binary.js";
+import { indexOfBytes, readUleb } from "../../main/core/wasm-binary.js";
 import type { ModuleShape } from "./enhancement-evidence-types.js";
 import { EvidenceError } from "./wasm-evidence-error.js";
 

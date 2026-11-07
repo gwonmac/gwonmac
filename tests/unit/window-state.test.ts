@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtemp, readFile, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { AppError } from "../../src/shared/errors.js";
+import { AppError } from "../../app/shared/errors.js";
 import {
   defaultWindowState,
   cascadeWindowState,
@@ -11,7 +11,7 @@ import {
   loadWindowState,
   parseWindowState,
   saveWindowState,
-} from "../../src/main/core/window-state.js";
+} from "../../app/main/core/window-state.js";
 
 describe("window state", () => {
   it("validates and round-trips owner-only state", async () => {

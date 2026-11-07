@@ -4,11 +4,11 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { deriveCompassFrameSpikeProof } from
-  "../../src/main/certification/compass-frame-spike-proof.js";
+  "../../app/client/certification/compass-frame-spike-proof.js";
 import { verifyLocalClientBytes } from
-  "../../src/main/certification/local-client-verifier.js";
+  "../../app/client/certification/local-client-verifier.js";
 import { wasmEvidence } from
-  "../../src/main/certification/wasm-evidence.js";
+  "../../app/client/certification/wasm-evidence.js";
 import {
   concat,
   encodeCode,
@@ -19,7 +19,7 @@ import {
   sectionById,
   splitSections,
   WASM_HEADER,
-} from "../../src/main/core/wasm-binary.js";
+} from "../../app/main/core/wasm-binary.js";
 
 function rewriteCode(
   input: Uint8Array,

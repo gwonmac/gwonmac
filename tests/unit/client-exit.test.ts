@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import {
   installClientExit,
   type ClientExitImports,
-} from "../../src/renderer/client-exit.js";
+} from "../../app/renderer/client-exit.js";
 
 type Callback = (...args: number[]) => unknown;
 

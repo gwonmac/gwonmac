@@ -30,7 +30,7 @@ import {
   inspectDerivedWasmCache,
   prepareDerivedWasm,
   sha256File,
-} from "../core/derived-wasm.js";
+} from "../derived-wasm.js";
 import {
   rewriteTemplateSaveWasm,
   TEMPLATE_SAVE_TRANSFORM_ABI,

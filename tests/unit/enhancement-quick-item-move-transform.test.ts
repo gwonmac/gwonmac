@@ -19,8 +19,8 @@ import {
   quickItemMoveSlotWrapper,
   quickItemMoveStorageExecutor,
   type QuickItemMoveGlobals,
-} from "../../src/main/certification/enhancement-quick-item-move-transform.js";
-import { ENHANCEMENT_BUILDS } from "../../src/main/certification/enhancement-builds.js";
+} from "../../app/client/certification/enhancement-quick-item-move-transform.js";
+import { ENHANCEMENT_BUILDS } from "../../app/client/certification/enhancement-builds.js";
 import {
   concat,
   encodeCode,
@@ -28,7 +28,7 @@ import {
   sleb,
   uleb,
   WASM_HEADER,
-} from "../../src/main/core/wasm-binary.js";
+} from "../../app/main/core/wasm-binary.js";
 
 const globals: QuickItemMoveGlobals = Object.freeze({
   enabled: 0,

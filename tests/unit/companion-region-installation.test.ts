@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { createCompanionRegionInstallation } from "../../src/renderer/companion-region-installation.ts";
-import { createCompanionSequenceFeed } from "../../src/renderer/companion-sequence-feed.ts";
+import { createCompanionRegionInstallation } from "../../app/renderer/companion-region-installation.ts";
+import { createCompanionSequenceFeed } from "../../app/renderer/companion-sequence-feed.ts";
 
 type State =
   | Readonly<{ status: "waiting"; reason: "memory" | "stale" }>

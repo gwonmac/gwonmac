@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { projectSkillSlots } from "../../src/renderer/skill-slot-projection.ts";
+import { projectSkillSlots } from "../../app/renderer/skill-slot-projection.ts";
 
 test("projects a valid Guild Wars skill slot clipped by the viewport edge", () => {
   const state = Object.freeze({

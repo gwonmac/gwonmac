@@ -9,7 +9,7 @@ import {
   paddedIndex,
   uleb,
   type FunctionType,
-} from "../core/wasm-binary.js";
+} from "../../main/core/wasm-binary.js";
 import type { KnownEnhancementBuild } from "./enhancement-builds.js";
 
 export type ResolvedSkillFunction = Readonly<{

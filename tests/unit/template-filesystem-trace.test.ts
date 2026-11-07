@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { installTemplateFilesystemTrace } from "../../src/renderer/template-filesystem-trace.js";
+import { installTemplateFilesystemTrace } from "../../app/renderer/template-filesystem-trace.js";
 
 // The module is imported, not read and evaluated in a synthetic context. It
 // holds no state outside an install call; what it still reaches for ambiently

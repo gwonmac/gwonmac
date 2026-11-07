@@ -1,4 +1,4 @@
-import type { HubShortcut } from "../../../src/shared/hub-preferences";
+import type { HubShortcut } from "../../../shared/hub-preferences";
 import { computed, onMounted, ref, shallowRef } from "vue";
 import {
   LIBRARY_VERSION,
@@ -16,24 +16,24 @@ import {
   teamId,
   teamSlotsOf,
   usedBy,
-} from "../../../src/shared/builds/library";
+} from "../../../shared/builds/library";
 import {
   decodeSkillTemplate,
   type SkillTemplate,
-} from "../../../src/shared/builds/skill-template";
+} from "../../../shared/builds/skill-template";
 import {
   decodeTeamBundle,
   encodeTeamBundle,
   importTeamBundle,
-} from "../../../src/shared/builds/team-bundle";
-import { diffBuilds } from "../../../src/shared/builds/diff";
+} from "../../../shared/builds/team-bundle";
+import { diffBuilds } from "../../../shared/builds/diff";
 import {
   validateBuild,
   validateBuildFor,
-} from "../../../src/shared/builds/validate";
-import { resolveTeamApplyPlan } from "../../../src/shared/builds/team-apply";
-import type { TeamApplyEvent } from "../../../src/shared/builds/team-apply-runner";
-import { captureParty } from "../../../src/shared/builds/live-party";
+} from "../../../shared/builds/validate";
+import { resolveTeamApplyPlan } from "../../../shared/builds/team-apply";
+import type { TeamApplyEvent } from "../../../shared/builds/team-apply-runner";
+import { captureParty } from "../../../shared/builds/live-party";
 import type { ToolsHost } from "./host";
 import {
   searchLibrary,

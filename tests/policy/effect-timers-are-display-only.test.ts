@@ -4,9 +4,9 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 const rendererSources = [
-  "src/renderer/native-hud-layer.ts",
-  "src/renderer/effect-timer-overlay-consumer.ts",
-  "src/renderer/player-effect-state-installation.ts",
+  "app/renderer/native-hud-layer.ts",
+  "app/renderer/effect-timer-overlay-consumer.ts",
+  "app/renderer/player-effect-state-installation.ts",
 ] as const;
 
 test("effect timer presentation has no gameplay input or command dependency", async () => {

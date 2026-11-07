@@ -3,11 +3,11 @@ import { retainedClientFixture } from "../fixtures/retained-client.js";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { appendNativeHud } from "../../src/main/certification/native-hud-transform.js";
-import { wasmEvidence } from "../../src/main/certification/wasm-evidence.js";
-import { concat, encodeCode, encodeSection, parseCode, parseExports, sectionById, splitSections, uleb, vectorPayload, WASM_HEADER } from "../../src/main/core/wasm-binary.js";
-import { encodeName } from "../../src/main/certification/cartography-transform-internals.js";
-import { NATIVE_HUD_MAGIC, NATIVE_HUD_HEADER as HEADER, NATIVE_HUD_LABELS, NATIVE_HUD_KEYCAP } from "../../src/shared/native-hud.js";
+import { appendNativeHud } from "../../app/client/certification/native-hud-transform.js";
+import { wasmEvidence } from "../../app/client/certification/wasm-evidence.js";
+import { concat, encodeCode, encodeSection, parseCode, parseExports, sectionById, splitSections, uleb, vectorPayload, WASM_HEADER } from "../../app/main/core/wasm-binary.js";
+import { encodeName } from "../../app/client/certification/cartography-transform-internals.js";
+import { NATIVE_HUD_MAGIC, NATIVE_HUD_HEADER as HEADER, NATIVE_HUD_LABELS, NATIVE_HUD_KEYCAP } from "../../app/shared/native-hud.js";
 
 for (const channel of ["cooldowns", "keys", "effects"] as const) {
  test(`native ${channel} retains icon clipping, updates geometry without texture uploads, and frees every resource`, async () => {

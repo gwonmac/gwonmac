@@ -9,7 +9,7 @@
 import { createHash } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { migrateLegacyPublishedClientManifest } from "../../src/main/core/published-client.js";
+import { migrateLegacyPublishedClientManifest } from "../../app/client/published-client.js";
 
 export const TEST_CLIENT_WASM = Uint8Array.from([
   0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00,

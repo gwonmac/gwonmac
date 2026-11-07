@@ -7,7 +7,7 @@
  */
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { dailyDayAt, dailyDaysFrom } from "../../src/shared/daily-activities.js";
+import { dailyDayAt, dailyDaysFrom } from "../../app/shared/daily-activities.js";
 
 const titles = (at: string): string[] =>
   dailyDayAt(new Date(at)).activities.map((activity) => activity.title);

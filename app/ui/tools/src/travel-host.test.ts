@@ -1,10 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   type GwNativeApi,
-} from "../../../src/shared/contracts";
-import type { TravelCommand } from "../../../src/shared/travel-command";
-import { DEFAULT_TRAVEL_SHORTCUTS, replaceTravelShortcut } from "../../../src/shared/travel";
-import { travelCharacterKey } from "../../../src/shared/travel-history";
+} from "../../../shared/contracts";
+import type { TravelCommand } from "../../../shared/travel-command";
+import { DEFAULT_TRAVEL_SHORTCUTS, replaceTravelShortcut } from "../../../shared/travel";
+import { travelCharacterKey } from "../../../shared/travel-history";
 import {
   createNativeTravelHost,
   type TravelHost,

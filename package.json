@@ -37,7 +37,7 @@
     "release:test": "node --import ./scripts/ts-hook.mjs scripts/test-draft-release.ts",
     "verify:signed-app": "node --import ./scripts/ts-hook.mjs scripts/verify-signed-app.ts",
     "client:official": "node --import ./scripts/ts-hook.mjs scripts/official-client.ts",
-    "certification": "node --import ./scripts/ts-hook.mjs src/tools/certification.ts"
+    "certification": "node --import ./scripts/ts-hook.mjs app/tools-cli/certification.ts"
   },
   "devDependencies": {
     "@electron-forge/cli": "^7.11.2",

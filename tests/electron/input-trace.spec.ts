@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import {
   CLIPBOARD_TEXT_CEILING,
   IPC,
-} from '../../src/shared/contracts.js';
+} from '../../app/shared/contracts.js';
 import { closeOffline, launchPlayableClient } from "./fixtures.mjs";
 import { boxOf, startGameInput } from "./input-helpers.js";
 

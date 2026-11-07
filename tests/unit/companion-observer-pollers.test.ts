@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import * as readers from "../../src/renderer/companion-tools-observer-readers.js";
-import { COMPANION_TOOLBOX_ABI, COMPANION_TOOLBOX_BYTES, COMPANION_PARTY_ABI, COMPANION_PARTY_BYTES } from "../../src/renderer/companion-snapshot.js";
-import { observeCompanion } from "../../src/renderer/companion-observer.js";
+import * as readers from "../../app/renderer/companion-tools-observer-readers.js";
+import { COMPANION_TOOLBOX_ABI, COMPANION_TOOLBOX_BYTES, COMPANION_PARTY_ABI, COMPANION_PARTY_BYTES } from "../../app/renderer/companion-snapshot.js";
+import { observeCompanion } from "../../app/renderer/companion-observer.js";
 
 test("frame pollers run on every observer frame without an observation change", () => {
   const previousRequest = globalThis.requestAnimationFrame;

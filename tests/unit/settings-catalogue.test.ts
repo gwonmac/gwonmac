@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { parseSettingsTarget } from "../../src/shared/settings-catalogue.js";
+import { parseSettingsTarget } from "../../app/shared/settings-catalogue.js";
 
 describe("Settings deep-link targets", () => {
   it("accepts a section, or a control inside its own section", () => {

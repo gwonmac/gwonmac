@@ -7,7 +7,7 @@ import {
   APPLE_TEAM_ID,
   applicationIdentifier,
   DISTRIBUTION_CHANNELS,
-} from "../../src/shared/distribution-channel.ts";
+} from "../../app/shared/distribution-channel.ts";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 

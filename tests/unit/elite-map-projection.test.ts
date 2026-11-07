@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { eliteMapSurfaces } from "../../src/renderer/elite-map-projection.js";
-import { eliteWikiUrl } from "../../src/shared/elite-wiki.js";
-import { ELITE_LOCATIONS } from "../../src/shared/elite-locations.js";
+import { eliteMapSurfaces } from "../../app/renderer/elite-map-projection.js";
+import { eliteWikiUrl } from "../../app/shared/elite-wiki.js";
+import { ELITE_LOCATIONS } from "../../app/shared/elite-locations.js";
 const context = { status: 1, sequence: 2, areaEpoch: 7, mapId: 482, layoutId: 1 } as const;
 const native = { status: 1, generation: 7, frameId: 24, visible: true,
   viewportWidth: 1200, viewportHeight: 800, left: 100, bottom: 100, right: 740, top: 500 };

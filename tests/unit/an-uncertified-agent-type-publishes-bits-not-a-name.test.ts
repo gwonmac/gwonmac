@@ -11,7 +11,7 @@ import {
   COMPANION_SNAPSHOT_ABI,
   COMPANION_SNAPSHOT_BYTES,
   readCompanionSnapshot,
-} from "../../src/renderer/companion-snapshot.js";
+} from "../../app/renderer/companion-snapshot.js";
 
 const MAGIC = 0x42545747;
 const LIVING = 0xdb;

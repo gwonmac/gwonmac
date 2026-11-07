@@ -13,22 +13,22 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import http from "node:http";
 import { after, describe, it } from "node:test";
-import { PatchClient } from "../../src/main/core/patch-client.ts";
-import type { PatchFetch } from "../../src/main/core/patch-transport.ts";
-import { createBoundedPatchFetch } from "../../src/main/core/patch-transport.ts";
+import { PatchClient } from "../../app/client/patch-client.ts";
+import type { PatchFetch } from "../../app/main/core/patch-transport.ts";
+import { createBoundedPatchFetch } from "../../app/main/core/patch-transport.ts";
 import {
   confirmClientCandidate,
   readRejectedClient,
   rejectClientCandidate,
-} from "../../src/main/core/client-compatibility.ts";
+} from "../../app/client/client-compatibility.ts";
 import type {
   ManifestFileEntry,
   RawManifest,
-} from "../../src/main/core/manifest.ts";
-import { isProxyRoute, resolveProxyHost } from "../../src/main/core/proxy-routes.ts";
-import { parseRangeHeader } from "../../src/main/core/ranges.ts";
-import { HttpStatusError } from "../../src/shared/errors.ts";
-import type { DownloadProgress } from "../../src/shared/contracts.ts";
+} from "../../app/main/core/manifest.ts";
+import { isProxyRoute, resolveProxyHost } from "../../app/main/core/proxy-routes.ts";
+import { parseRangeHeader } from "../../app/main/core/ranges.ts";
+import { HttpStatusError } from "../../app/shared/errors.ts";
+import type { DownloadProgress } from "../../app/shared/contracts.ts";
 
 function md5(data: Uint8Array): string {
   return createHash("md5").update(data).digest("hex");

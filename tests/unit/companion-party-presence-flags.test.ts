@@ -4,7 +4,7 @@ import {
   COMPANION_PARTY_ABI,
   COMPANION_PARTY_BYTES,
   readCompanionParty,
-} from "../../src/renderer/companion-snapshot.ts";
+} from "../../app/renderer/companion-snapshot.ts";
 
 const PARTY_MAGIC = 0x50545747;
 const PARTY_FLAGS_ROSTER = 1 << 0;

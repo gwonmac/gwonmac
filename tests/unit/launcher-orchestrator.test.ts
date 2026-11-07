@@ -3,11 +3,11 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, it } from "node:test";
-import { DEFAULT_SETTINGS, type AccountsState, type DownloadProgress } from "../../src/shared/contracts.ts";
-import type { LauncherSnapshot } from "../../src/shared/launcher-contracts.ts";
-import { LauncherStateStore, loadOrCreateLauncherState } from "../../src/main/core/launcher-state.ts";
-import { LauncherOrchestrator } from "../../src/main/launcher-orchestrator.ts";
-import { parseProfileId, type ProfileId } from "../../src/shared/multiple-accounts.ts";
+import { DEFAULT_SETTINGS, type AccountsState, type DownloadProgress } from "../../app/shared/contracts.ts";
+import type { LauncherSnapshot } from "../../app/shared/launcher-contracts.ts";
+import { LauncherStateStore, loadOrCreateLauncherState } from "../../app/main/core/launcher-state.ts";
+import { LauncherOrchestrator } from "../../app/main/launcher-orchestrator.ts";
+import { parseProfileId, type ProfileId } from "../../app/shared/multiple-accounts.ts";
 
 const first = parseProfileId("ba46cb0e-55c2-4c05-9808-5c35ce83b0b0");
 const second = parseProfileId("68624f43-c228-4697-86c9-b17eb9a1de80");

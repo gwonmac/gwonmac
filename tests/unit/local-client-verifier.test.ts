@@ -3,16 +3,16 @@ import { describe, it } from "node:test";
 import {
   ENHANCEMENT_BUILDS,
   type KnownEnhancementBuild,
-} from "../../src/main/certification/enhancement-builds.js";
+} from "../../app/client/certification/enhancement-builds.js";
 import {
   isLocalClientVerification,
   localFeatureVerdictsForBuild,
   type LocalClientVerification,
-} from "../../src/main/certification/local-client-verifier.js";
-import { SEMANTIC_VERIFIER_ABI } from "../../src/main/certification/semantic-proof.js";
-import { TEMPLATE_SAVE_BUILDS } from "../../src/main/certification/template-save-compat.js";
-import type { EnhancementCapabilities } from "../../src/shared/enhancement-contracts.js";
-import { enhancementCapabilityProfile } from "../../src/shared/enhancement-contracts.js";
+} from "../../app/client/certification/local-client-verifier.js";
+import { SEMANTIC_VERIFIER_ABI } from "../../app/client/certification/semantic-proof.js";
+import { TEMPLATE_SAVE_BUILDS } from "../../app/client/certification/template-save-compat.js";
+import type { EnhancementCapabilities } from "../../app/shared/enhancement-contracts.js";
+import { enhancementCapabilityProfile } from "../../app/shared/enhancement-contracts.js";
 
 const ENHANCEMENT = ENHANCEMENT_BUILDS[0]!;
 const TEMPLATE = TEMPLATE_SAVE_BUILDS.find(

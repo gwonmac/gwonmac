@@ -8,7 +8,7 @@ import {
   teamSlotHasMember,
   type TeamSlot,
   type TeamSlotIndex,
-} from "../../../src/shared/builds/library";
+} from "../../../shared/builds/library";
 import { teamMemberLabel, type Team } from "./model";
 import type { LibraryController } from "./use-library";
 

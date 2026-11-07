@@ -144,15 +144,15 @@ export const WASM_HEAP_CAP_BYTES = 2_147_483_648;
  * The bounds a build template transfer is held to, in both directions.
  *
  * One declaration because two processes enforce them and must not disagree:
- * `src/renderer/template-format.ts` applies them while parsing what a player
- * picked, and `src/main/template-export.ts` re-applies them to the payload that
+ * `app/renderer/template-format.ts` applies them while parsing what a player
+ * picked, and `app/main/template-export.ts` re-applies them to the payload that
  * arrives over IPC, which is the only version of these numbers that is a trust
  * boundary rather than a format rule.
  *
  * `entries` sits well past the game's own 550-per-root ceiling, so a real
  * collection is never refused; it is here to bound one gesture. `nameLength`
  * is the client's `WCHAR name[260]` record minus `.txt` and its terminator —
- * `matchingEntries` in `src/renderer/template-save-compatibility.ts` drops
+ * `matchingEntries` in `app/renderer/template-save-compatibility.ts` drops
  * anything at or past that, so a longer name would import successfully and
  * then be invisible in game.
  */
@@ -165,7 +165,7 @@ export const TEMPLATE_CEILINGS = {
 /**
  * One build template on its way out to a folder the player chose. `path` is
  * relative to that folder, `/`-separated, and already sanitised by the renderer
- * that read it out of the mount; `src/main/template-export.ts` re-checks it
+ * that read it out of the mount; `app/main/template-export.ts` re-checks it
  * before writing, because a path is the one field that decides where a write
  * lands. `contents` is the code alone — the game writes no trailing newline and
  * a file that gains one stops being the same file.
@@ -173,7 +173,7 @@ export const TEMPLATE_CEILINGS = {
 /**
  * How an export ended. A value rather than a rejection for the same reason
  * `FullDownloadOutcome` is one: Electron flattens a rejection to its message,
- * and the sentence belongs to `src/renderer/failure-messages.ts`.
+ * and the sentence belongs to `app/renderer/failure-messages.ts`.
  */
 export type TemplateExportResult =
   | { status: "cancelled" }
@@ -184,7 +184,7 @@ export type TemplateExportResult =
  * Why a ready client is not simply "ready": the launch took a fallback the
  * player may want to know about. A closed union for the same reason failure
  * codes are one: the sentence the player reads belongs to the renderer
- * (`src/renderer/failure-messages.ts`), where it can be tested.
+ * (`app/renderer/failure-messages.ts`), where it can be tested.
  */
 export const NOTICE_CODES = [
   "cached-live-probe",
@@ -222,7 +222,7 @@ export interface DownloadActivity {
  * A client preparation that failed. The code is the entire payload: this used
  * to be a finished English sentence built in the main process, which put the
  * wording of a user-facing failure in the one place that cannot see the UI and
- * cannot be tested against it. `src/renderer/failure-messages.ts` is now the
+ * cannot be tested against it. `app/renderer/failure-messages.ts` is now the
  * only place that sentence is chosen, and a code is also the only thing the
  * diagnostics export is allowed to carry.
  *
@@ -674,7 +674,7 @@ export interface StoredCredentials {
  * Why an interactive Steam sign-in produced no token. A closed vocabulary that
  * crosses to the renderer so the player can be told what happened instead of
  * silently landing back on the login screen; the sentence itself lives in
- * `src/renderer/failure-messages.ts`. `cancelled` stays silent by design —
+ * `app/renderer/failure-messages.ts`. `cancelled` stays silent by design —
  * the player closed the window and needs no explanation of their own action.
  */
 export type SteamRefusalReason =
@@ -1018,9 +1018,9 @@ export const RENDERER_INIT_ARGUMENT = "--gw-renderer-init=";
 
 /**
  * dirfd markers by which ArenaNet's derived client reaches the renderer.
- * `src/main/certification/template-save-compat.ts` appends forwarders that hand the
+ * `app/client/certification/template-save-compat.ts` appends forwarders that hand the
  * stub's arguments to `__syscall_newfstatat` behind one of these, and
- * `src/renderer/template-save-compatibility.ts` answers them against the
+ * `app/renderer/template-save-compatibility.ts` answers them against the
  * mounted IDBFS. No real call can produce a negative dirfd.
  *
  * Canonical here rather than beside the transform because both halves need the
@@ -1107,8 +1107,8 @@ export interface VisualProblemManifest {
  *
  * Named here for the same reason `IPC` is: both sides of a process boundary
  * spell them, and a rename that only lands on one side compiles, lints, and
- * fails at runtime as an empty skill picker. `src/main/protocol.ts` serves
- * them and `apps/tools/src/host.ts` asks for them.
+ * fails at runtime as an empty skill picker. `app/main/protocol.ts` serves
+ * them and `app/ui/tools/src/host.ts` asks for them.
  */
 export const SKILL_CATALOGUE_ROUTE = "skill-catalog.json";
 export const SKILL_ICON_ROUTE = (skillId: number): string =>
@@ -1212,7 +1212,7 @@ export type IpcChannel = (typeof IPC)[keyof typeof IPC];
  * acknowledgement of it, which is an `ipcRenderer.send`.
  *
  * Named here so `InvokeChannel` below can be derived rather than listed. The
- * handler registry in `src/main/ipc.ts` is checked against it, which is what
+ * handler registry in `app/main/ipc.ts` is checked against it, which is what
  * makes a channel with no handler — and a handler with no channel — a build
  * failure instead of a runtime "no handler registered".
  */

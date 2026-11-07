@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { installGraphics } from "../../src/renderer/graphics.js";
+import { installGraphics } from "../../app/renderer/graphics.js";
 
 test("graphics diagnostics read immutable context facts only once", async () => {
   const animationFrames: FrameRequestCallback[] = [];

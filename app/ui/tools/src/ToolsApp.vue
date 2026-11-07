@@ -17,14 +17,14 @@ import {
   buildById,
   buildId,
   teamId,
-} from "../../../src/shared/builds/library";
+} from "../../../shared/builds/library";
 import type { AuthoringContext } from "./use-build-draft";
 import {
   buildDifference,
   countLabel,
   teamMemberLabel,
 } from "./model";
-import type { HubPresenter } from '../../../src/shared/hub';
+import type { HubPresenter } from '../../../shared/hub';
 import { createHubLibrary } from './hub-library';
 import { useLibrary } from "./use-library";
 import BuildDetail from "./components/BuildDetail.vue";

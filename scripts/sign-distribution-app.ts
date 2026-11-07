@@ -8,7 +8,7 @@ import {
 import {
   distributionMarker,
   isDistributionChannel,
-} from "../src/shared/distribution-channel.ts";
+} from "../app/shared/distribution-channel.ts";
 
 const app = process.env.GW_SIGN_APP_PATH;
 const channel = process.env.GW_SIGN_CHANNEL;

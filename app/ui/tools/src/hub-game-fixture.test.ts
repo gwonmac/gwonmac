@@ -1,9 +1,9 @@
 /** The browser party fixture must satisfy the real planner before it can prove UI flows. */
 import { expect, test } from 'vitest';
 import { createHubGameFixture } from './hub-game-fixture';
-import { resolveTeamApplyPlan } from '../../../src/shared/builds/team-apply';
-import { validateBuildFor } from '../../../src/shared/builds/validate';
-import type { HubTask } from '../../../src/shared/hub';
+import { resolveTeamApplyPlan } from '../../../shared/builds/team-apply';
+import { validateBuildFor } from '../../../shared/builds/validate';
+import type { HubTask } from '../../../shared/hub';
 
 /** A task on a page that still shows. */
 const task: HubTask = { live: () => true, progress() {}, done() {} };
@@ -12,14 +12,14 @@ test('Hub rereads a native template before applying and refuses a replaced file'
   const { createApp, h, nextTick } = await import('vue');
   const { useLibrary } = await import('./use-library');
   const { createHubLibrary } = await import('./hub-library');
-  const { encodeSkillTemplate } = await import('../../../src/shared/builds/skill-template');
+  const { encodeSkillTemplate } = await import('../../../shared/builds/skill-template');
   const { host } = createHubGameFixture(() => {});
   const { library } = await host.loadLibrary();
   const monk = library.builds.find(build => build.professions[0] === 'Mo')!;
   let contents = encodeSkillTemplate(monk)!;
   let calls = 0;
-  let source: import('../../../src/shared/hub').HubSource | undefined;
-  let rows: (() => readonly import('../../../src/shared/hub').HubRow[]) | undefined;
+  let source: import('../../../shared/hub').HubSource | undefined;
+  let rows: (() => readonly import('../../../shared/hub').HubRow[]) | undefined;
   let dispose: (() => void) | undefined;
   const app = createApp({ setup() {
     dispose = createHubLibrary(useLibrary(host), { ...host,
@@ -67,7 +67,7 @@ test('Hub exposes a ready exact team from the shared controller', async () => {
   const { useLibrary } = await import('./use-library');
   const { createHubLibrary } = await import('./hub-library');
   const { host } = createHubGameFixture(() => {});
-  let source: import('../../../src/shared/hub').HubSource | undefined;
+  let source: import('../../../shared/hub').HubSource | undefined;
   const app = createApp({ setup() {
     createHubLibrary(useLibrary(host), host, { attach(next) { source = next; return () => {}; }, close() {}, notify() {}, showRows() {}, showView() {} });
     return () => h('div');
@@ -87,13 +87,13 @@ test('profession search includes every saved primary-profession build without a 
   const { createApp, h, nextTick } = await import('vue');
   const { useLibrary } = await import('./use-library');
   const { createHubLibrary } = await import('./hub-library');
-  const { buildId } = await import('../../../src/shared/builds/library');
+  const { buildId } = await import('../../../shared/builds/library');
   const { host } = createHubGameFixture(() => {});
   const { library } = await host.loadLibrary();
   const monk = library.builds.find(build => build.professions[0] === 'Mo')!;
   const builds = Array.from({ length: 15 }, (_, index) => ({ ...monk, id: buildId(`monk-${index}`), name: `Support ${index}` }));
   const fixtureHost = { ...host, async loadLibrary() { return { library: { ...library, builds }, recovered: false }; } };
-  let source: import('../../../src/shared/hub').HubSource | undefined;
+  let source: import('../../../shared/hub').HubSource | undefined;
   let dispose: (() => void) | undefined;
   const app = createApp({ setup() {
     dispose = createHubLibrary(useLibrary(fixtureHost), fixtureHost, { attach(next) { source = next; return () => {}; }, close() {}, notify() {}, showRows() {}, showView() {} }).dispose;
@@ -113,9 +113,9 @@ test('Hub current-build comparison follows observations and never substitutes th
   const { useLibrary } = await import('./use-library');
   const { createHubLibrary } = await import('./hub-library');
   const { host } = createHubGameFixture(() => {});
-  let source: import('../../../src/shared/hub').HubSource | undefined;
-  let rows: (() => readonly import('../../../src/shared/hub').HubRow[]) | undefined;
-  let summary: import('../../../src/shared/hub').HubSummary | undefined;
+  let source: import('../../../shared/hub').HubSource | undefined;
+  let rows: (() => readonly import('../../../shared/hub').HubRow[]) | undefined;
+  let summary: import('../../../shared/hub').HubSummary | undefined;
   const app = createApp({ setup() {
     createHubLibrary(useLibrary(host), host, { attach(next) { source = next; return () => {}; }, close() {}, notify() {},
       showRows(_title, next, context) { rows = next; summary = context; }, showView() {} });
@@ -138,7 +138,7 @@ test('build folder search handles paths, words, quotes, prefixes and ambiguous n
   const { createApp, h, nextTick } = await import('vue');
   const { useLibrary } = await import('./use-library');
   const { createHubLibrary } = await import('./hub-library');
-  const { encodeSkillTemplate } = await import('../../../src/shared/builds/skill-template');
+  const { encodeSkillTemplate } = await import('../../../shared/builds/skill-template');
   const { host } = createHubGameFixture(() => { throw new Error('Search must not apply'); });
   const { library } = await host.loadLibrary();
   const monk = library.builds.find(build => build.professions[0] === 'Mo')!;
@@ -154,7 +154,7 @@ test('build folder search handles paths, words, quotes, prefixes and ambiguous n
     ['Skills/Prefixes/Air Protection Moon.txt', monk],
     ['Skills/Prefixes/Deep Healer.txt', monk],
   ] as const;
-  let source: import('../../../src/shared/hub').HubSource | undefined;
+  let source: import('../../../shared/hub').HubSource | undefined;
   let dispose: (() => void) | undefined;
   const fixtureHost = { ...host, async loadTemplates() { return entries.map(([path, build]) => ({ path, contents: encodeSkillTemplate(build)! })); } };
   const app = createApp({ setup() {
@@ -199,12 +199,12 @@ test('template source failures preserve valid results and retry distinguishes ma
   const { createApp, h, nextTick } = await import('vue');
   const { useLibrary } = await import('./use-library');
   const { createHubLibrary } = await import('./hub-library');
-  const { encodeSkillTemplate } = await import('../../../src/shared/builds/skill-template');
+  const { encodeSkillTemplate } = await import('../../../shared/builds/skill-template');
   const { host } = createHubGameFixture(() => {});
   const { library } = await host.loadLibrary();
   const template = encodeSkillTemplate(library.builds[0]!)!;
   let fail = false;
-  let source: import('../../../src/shared/hub').HubSource | undefined;
+  let source: import('../../../shared/hub').HubSource | undefined;
   let dispose: (() => void) | undefined;
   const app = createApp({ setup() {
     const fixture = { ...host, async loadTemplates() {
@@ -282,7 +282,7 @@ test('a team apply names counted progress and closes only the page that started 
   localStorage.removeItem('hub-fixture-library');
   const commands: string[] = [];
   const { host } = createHubGameFixture(command => commands.push(command));
-  let source: import('../../../src/shared/hub').HubSource | undefined;
+  let source: import('../../../shared/hub').HubSource | undefined;
   const app = createApp({ setup() {
     createHubLibrary(useLibrary(host), host, { attach(next) { source = next; return () => {}; }, close() {}, notify() {}, showRows() {}, showView() {} });
     return () => h('div');
@@ -318,9 +318,9 @@ test('a team apply that fails after the player moved on names the team and keeps
     if (refuse) fixture.host.party.value = { ...fixture.host.party.value, inOutpost: false };
     return fixture.host.applyTeam(...args);
   } };
-  let source: import('../../../src/shared/hub').HubSource | undefined;
+  let source: import('../../../shared/hub').HubSource | undefined;
   let controller: import('./use-library').LibraryController | undefined;
-  let review: import('../../../src/shared/hub').HubViewMount<HTMLElement> | undefined;
+  let review: import('../../../shared/hub').HubViewMount<HTMLElement> | undefined;
   const app = createApp({ setup() {
     controller = useLibrary(fixtureHost);
     createHubLibrary(controller, fixtureHost, { attach(next) { source = next; return () => {}; }, close() {}, notify() {}, showRows() {}, showView(_title, mount) { review = mount; } });
@@ -336,7 +336,7 @@ test('a team apply that fails after the player moved on names the team and keeps
   expect(source!.search('team gom afk')[0]!.action).toBe('Review GOM AFK');
   source!.search('team gom afk')[0]!.run(task);
   const target = document.createElement('div');
-  let primary: import('../../../src/shared/hub').HubViewAction | null = null;
+  let primary: import('../../../shared/hub').HubViewAction | null = null;
   review!(target, () => {}, { primary(next) { primary = next; }, secondary() {}, openActions() {} });
   expect(target.querySelector('[role=status]')?.textContent).toMatch(/^Team partly applied\. Synthetic interruption/);
   expect(target.textContent).toContain('Completed');
@@ -347,7 +347,7 @@ test('a team apply that fails after the player moved on names the team and keeps
   // The player can finish the same configuration outside Hub before retrying.
   fixture.setScenario('standard');
   const loaded = await fixture.host.loadLibrary();
-  const { resolveTeamApplyPlan } = await import('../../../src/shared/builds/team-apply');
+  const { resolveTeamApplyPlan } = await import('../../../shared/builds/team-apply');
   const resolved = resolveTeamApplyPlan(loaded.library.teams[0]!, loaded.library, controller!.validate);
   if (!resolved.valid) throw new Error('Expected valid saved fixture team');
   await fixture.host.applyTeam(resolved.plan);
@@ -378,8 +378,8 @@ test('Library browse includes saved teams and only an exact scoped team can appl
   const { useLibrary } = await import('./use-library');
   const { createHubLibrary } = await import('./hub-library');
   const { host } = createHubGameFixture(() => {});
-  let source: import('../../../src/shared/hub').HubSource | undefined;
-  let browse: (() => readonly import('../../../src/shared/hub').HubRow[]) | undefined;
+  let source: import('../../../shared/hub').HubSource | undefined;
+  let browse: (() => readonly import('../../../shared/hub').HubRow[]) | undefined;
   const app = createApp({ setup() {
     createHubLibrary(useLibrary(host), host, { attach(next) { source = next; return () => {}; }, close() {}, notify() {}, showRows(_title, rows) { browse = rows; }, showView() {} });
     return () => h('div');
@@ -415,7 +415,7 @@ test('scoped teams show Loading until the library settles and publish their read
   const { host } = createHubGameFixture(() => {});
   let release = () => {};
   const gate = new Promise<void>(resolve => { release = resolve; });
-  let source: import('../../../src/shared/hub').HubSource | undefined;
+  let source: import('../../../shared/hub').HubSource | undefined;
   const app = createApp({ setup() {
     createHubLibrary(useLibrary({ ...host, loadLibrary: async () => { await gate; return host.loadLibrary(); } }), host,
       { attach(next) { source = next; return () => {}; }, close() {}, notify() {}, showRows() {}, showView() {} });
@@ -423,7 +423,7 @@ test('scoped teams show Loading until the library settles and publish their read
   } });
   app.mount(document.createElement('div')); await nextTick();
   expect(source!.search('team gom').map(row => [row.title, row.unavailable])).toEqual([['Loading teams…', 'Build Library is loading.']]);
-  let latest: readonly import('../../../src/shared/hub').HubRow[] = [];
+  let latest: readonly import('../../../shared/hub').HubRow[] = [];
   const stop = source!.subscribe(() => { latest = source!.search('team gom'); });
   release(); await flushPromises();
   expect(latest.map(row => row.title)).toEqual(['GOM AFK']);
@@ -437,8 +437,8 @@ test('hero targets preserve observed party slots, name secondary changes and kee
   const { useLibrary } = await import('./use-library');
   const { createHubLibrary } = await import('./hub-library');
   const { host } = createHubGameFixture(() => {});
-  let source: import('../../../src/shared/hub').HubSource | undefined;
-  let rows: (() => readonly import('../../../src/shared/hub').HubRow[]) | undefined;
+  let source: import('../../../shared/hub').HubSource | undefined;
+  let rows: (() => readonly import('../../../shared/hub').HubRow[]) | undefined;
   const app = createApp({ setup() {
     createHubLibrary(useLibrary(host), host, { attach(next) { source = next; return () => {}; }, close() {}, notify() {}, showRows(_title, next) { rows = next; }, showView() {} });
     return () => h('div');
@@ -463,8 +463,8 @@ test('single-build refusals name the build operation, locked skills and primary 
   const { useLibrary } = await import('./use-library');
   const { createHubLibrary } = await import('./hub-library');
   const fixture = createHubGameFixture(() => {});
-  let source: import('../../../src/shared/hub').HubSource | undefined;
-  let rows: (() => readonly import('../../../src/shared/hub').HubRow[]) | undefined;
+  let source: import('../../../shared/hub').HubSource | undefined;
+  let rows: (() => readonly import('../../../shared/hub').HubRow[]) | undefined;
   const app = createApp({ setup() {
     createHubLibrary(useLibrary(fixture.host), fixture.host, { attach(next) { source = next; return () => {}; }, close() {}, notify() {}, showRows(_title, next) { rows = next; }, showView() {} });
     return () => h('div');
@@ -488,7 +488,7 @@ test('team previews name removals, a roster rebuild and the mode change before A
   const { createApp, h, nextTick } = await import('vue');
   const { useLibrary } = await import('./use-library');
   const { createHubLibrary } = await import('./hub-library');
-  const { mapTeamSlots, teamId } = await import('../../../src/shared/builds/library');
+  const { mapTeamSlots, teamId } = await import('../../../shared/builds/library');
   const { host } = createHubGameFixture(() => {});
   const loaded = await host.loadLibrary();
   const original = loaded.library.teams[0]!;
@@ -496,7 +496,7 @@ test('team previews name removals, a roster rebuild and the mode change before A
   const keep = { ...trio, id: teamId('keep'), name: original.name, mode: 'none' as const };
   const duplicate = { ...trio, id: teamId('duplicate'), name: original.name, mode: 'normal' as const };
   const reordered = { ...original, id: teamId('reordered'), name: 'GOM reordered', slots: mapTeamSlots(original.slots, (slot, index) => index === 1 ? original.slots[2] : index === 2 ? original.slots[1] : slot) };
-  let source: import('../../../src/shared/hub').HubSource | undefined;
+  let source: import('../../../shared/hub').HubSource | undefined;
   const app = createApp({ setup() {
     createHubLibrary(useLibrary({ ...host, loadLibrary: async () => ({ ...loaded, library: { ...loaded.library, teams: [trio, reordered, original, duplicate, keep] } }) }), host,
       { attach(next) { source = next; return () => {}; }, close() {}, notify() {}, showRows() {}, showView() {} });
@@ -517,13 +517,13 @@ test('invalid team reviews name the failing slot and open the same saved team in
   const { createHubLibrary } = await import('./hub-library');
   const { host } = createHubGameFixture(() => {});
   const loaded = await host.loadLibrary();
-  const { mapTeamSlots } = await import('../../../src/shared/builds/library');
+  const { mapTeamSlots } = await import('../../../shared/builds/library');
   const original = loaded.library.teams.find(team => team.name === 'Balanced vanquish')!;
   const invalid = { ...original, slots: mapTeamSlots(original.slots, (slot, index) => index === 1 ? { ...slot, behaviour: null } : slot) };
-  let source: import('../../../src/shared/hub').HubSource | undefined;
-  let review: import('../../../src/shared/hub').HubViewMount<HTMLElement> | undefined;
-  let edit: import('../../../src/shared/hub').HubViewAction | null = null;
-  let selected: import('../../../src/shared/builds/library').Build | import('../../../src/shared/builds/library').Team | undefined;
+  let source: import('../../../shared/hub').HubSource | undefined;
+  let review: import('../../../shared/hub').HubViewMount<HTMLElement> | undefined;
+  let edit: import('../../../shared/hub').HubViewAction | null = null;
+  let selected: import('../../../shared/builds/library').Build | import('../../../shared/builds/library').Team | undefined;
   const app = createApp({ setup() {
     createHubLibrary(useLibrary({ ...host, loadLibrary: async () => ({ ...loaded, library: { ...loaded.library, teams: [invalid] } }) }), host,
       { attach(next) { source = next; return () => {}; }, close() {}, notify() {}, showRows() {}, showView(_title, mount) { review = mount; } }, item => { selected = item; });
@@ -541,7 +541,7 @@ test('invalid team reviews name the failing slot and open the same saved team in
   expect(members[7]?.textContent).toContain('Slot 8 has an invalid build.');
   expect(edit).toMatchObject({ label: 'Open in Build Library' });
   if (!edit) throw new Error('Editor action missing');
-  const action: import('../../../src/shared/hub').HubViewAction = edit;
+  const action: import('../../../shared/hub').HubViewAction = edit;
   await action.run(task);
   expect(selected).toEqual(invalid);
   app.unmount();
@@ -560,8 +560,8 @@ test('single-build receipts distinguish changes from reapplication and use the s
     if (failSave) throw new Error('Synthetic save refusal');
     return host.saveLibrary(value);
   } };
-  let source: import('../../../src/shared/hub').HubSource | undefined;
-  let rows: (() => readonly import('../../../src/shared/hub').HubRow[]) | undefined;
+  let source: import('../../../shared/hub').HubSource | undefined;
+  let rows: (() => readonly import('../../../shared/hub').HubRow[]) | undefined;
   const app = createApp({ setup() {
     createHubLibrary(useLibrary(fixtureHost), fixtureHost, { attach(next) { source = next; return () => {}; }, close() {}, notify() {}, showRows(_title, next) { rows = next; }, showView() {} });
     return () => h('div');
@@ -600,11 +600,11 @@ test('bare team queries list every saved team for review and preserve loading ro
   const { host } = createHubGameFixture(command => commands.push(command));
   // More than eight teams catches accidental use of the unscoped result cap.
   const { library } = await host.loadLibrary();
-  const { teamId } = await import('../../../src/shared/builds/library');
+  const { teamId } = await import('../../../shared/builds/library');
   const teams = Array.from({ length: 10 }, (_, index) => ({ ...library.teams[0]!, id: teamId(`team-${index}`), name: `Saved team ${index}` }));
   let release = () => {};
   const gate = new Promise<void>(resolve => { release = resolve; });
-  let source: import('../../../src/shared/hub').HubSource | undefined;
+  let source: import('../../../shared/hub').HubSource | undefined;
   const reviews: string[] = [];
   const app = createApp({ setup() {
     createHubLibrary(useLibrary({ ...host, loadLibrary: async () => { await gate; return { library: { ...library, teams }, recovered: false }; } }), host,

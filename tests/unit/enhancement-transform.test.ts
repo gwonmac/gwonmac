@@ -8,21 +8,21 @@ import {
   ENHANCEMENT_LAYOUT_WORD_COUNT,
   enhancementConfigWordActive,
   type EnhancementCapabilities,
-} from "../../src/shared/enhancement-contracts.js";
+} from "../../app/shared/enhancement-contracts.js";
 import {
   enhancementConfigWords,
   ENHANCEMENT_LAYOUT_FIELDS,
   supportedEnhancementCapabilities,
   type KnownEnhancementBuild,
-} from "../../src/main/certification/enhancement-builds.js";
-import { ENHANCEMENT_CONFIG_FIELDS } from "../../src/shared/enhancement-config.js";
+} from "../../app/client/certification/enhancement-builds.js";
+import { ENHANCEMENT_CONFIG_FIELDS } from "../../app/shared/enhancement-config.js";
 import {
   ENHANCEMENT_HOOK_EXPORT,
   ENHANCEMENT_MANIFEST_SECTION,
   transformEnhancementWasm,
-} from "../../src/main/certification/enhancement-transform.js";
-import { inspectEnhancementCandidate } from "../../src/main/certification/enhancement-candidate.js";
-import { decodeEnhancementManifest } from "../../src/renderer/enhancement-manifest.js";
+} from "../../app/client/certification/enhancement-transform.js";
+import { inspectEnhancementCandidate } from "../../app/client/certification/enhancement-candidate.js";
+import { decodeEnhancementManifest } from "../../app/renderer/enhancement-manifest.js";
 import {
   callbackFixture,
   commandBody,

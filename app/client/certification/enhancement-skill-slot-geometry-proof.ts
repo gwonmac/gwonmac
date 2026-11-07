@@ -24,7 +24,7 @@ import {
 } from "./wasm-evidence.js";
 import type { EnhancementProofContext } from "./wasm-evidence.js";
 import type { KnownEnhancementBuild } from "./enhancement-builds.js";
-import { indexOfBytes } from "../core/wasm-binary.js";
+import { indexOfBytes } from "../../main/core/wasm-binary.js";
 import { isDeepStrictEqual } from "node:util";
 
 const SKILL_SLOT_CONSTRUCTOR_ROLE = semanticRole(137,

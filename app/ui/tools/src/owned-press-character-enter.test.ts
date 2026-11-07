@@ -8,9 +8,9 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 // The production owners, exercised with trusted-looking events.
 // eslint-disable-next-line no-restricted-imports
-import { installSurfaceController } from '../../../src/renderer/surface-controller';
+import { installSurfaceController } from '../../../renderer/surface-controller';
 // eslint-disable-next-line no-restricted-imports
-import { installGameInput } from '../../../src/renderer/input';
+import { installGameInput } from '../../../renderer/input';
 
 let canvas: HTMLCanvasElement;
 let button: HTMLButtonElement;

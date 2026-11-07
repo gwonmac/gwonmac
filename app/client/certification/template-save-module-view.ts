@@ -5,7 +5,7 @@
 import {
   paddedIndex,
   uleb,
-} from "../core/wasm-binary.js";
+} from "../../main/core/wasm-binary.js";
 import {
   signatureEvidence,
   wasmEvidence,

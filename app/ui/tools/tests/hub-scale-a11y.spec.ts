@@ -1,7 +1,7 @@
 import { writeFile } from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
 import { timeBudget } from './performance-budget.js';
-import type { HubSource } from '../../../src/shared/hub.js';
+import type { HubSource } from '../../../shared/hub.js';
 
 test('root caps matching builds and carries the complete query to Build Library (HUB-110)', async ({ page }) => {
   await page.goto('/?hub&library=1000');

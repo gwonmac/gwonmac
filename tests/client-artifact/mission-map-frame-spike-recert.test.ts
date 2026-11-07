@@ -3,11 +3,11 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { ENHANCEMENT_BUILDS } from
-  "../../src/main/certification/enhancement-builds.js";
+  "../../app/client/certification/enhancement-builds.js";
 import { deriveMissionMapFrameSpikeProof } from
-  "../../src/main/certification/mission-map-frame-spike-proof.js";
+  "../../app/client/certification/mission-map-frame-spike-proof.js";
 import { wasmEvidence } from
-  "../../src/main/certification/wasm-evidence.js";
+  "../../app/client/certification/wasm-evidence.js";
 
 test("certifies MapWindow geometry and refuses a changed retained layout", {
   timeout: 120_000,

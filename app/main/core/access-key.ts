@@ -11,8 +11,8 @@
  * than politeness.
  *
  * The ceiling on requests in flight is not here: the renderer's scheduler
- * spends the same budget and cannot import from src/main, so
- * `ARENANET_REQUEST_CEILING` in src/shared/contracts.ts owns it for both.
+ * spends the same budget and cannot import from app/main, so
+ * `ARENANET_REQUEST_CEILING` in app/shared/contracts.ts owns it for both.
  */
 export const ACCESS_KEY = "2043FE79-F32D-4FD7-8C27-0D47231C4F03";
 export const PATCH_ROOT = "https://patching.1.arenanetworks.com";

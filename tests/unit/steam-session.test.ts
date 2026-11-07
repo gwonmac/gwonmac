@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 import type {
   NativeKeychain,
   SecretSlot,
-} from "../../src/main/core/native-keychain.js";
-import type { SteamRefusalReason } from "../../src/shared/contracts.js";
+} from "../../app/main/core/native-keychain.js";
+import type { SteamRefusalReason } from "../../app/shared/contracts.js";
 import {
   parseSteamSession,
   refreshSteamExpiry,
@@ -16,8 +16,8 @@ import {
   type SteamSessionReader,
   type SteamTokenAcquisition,
   type StoredSteamSession,
-} from "../../src/main/core/steam-session.js";
-import { AppError } from "../../src/shared/errors.js";
+} from "../../app/main/core/steam-session.js";
+import { AppError } from "../../app/shared/errors.js";
 
 class FakeKeychain implements NativeKeychain {
   readonly values = new Map<SecretSlot, Buffer>();

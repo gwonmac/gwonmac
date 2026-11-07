@@ -4,9 +4,9 @@
 // work, and a refusal stops it where the work stopped.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { runTeamApply, type TeamApplyEvent } from "../../src/shared/builds/team-apply-runner.ts";
-import { heroId } from "../../src/shared/builds/library.ts";
-import { plannedTeamApplyChanges } from "../../src/shared/builds/team-apply.ts";
+import { runTeamApply, type TeamApplyEvent } from "../../app/shared/builds/team-apply-runner.ts";
+import { heroId } from "../../app/shared/builds/library.ts";
+import { plannedTeamApplyChanges } from "../../app/shared/builds/team-apply.ts";
 import {
   applyBuild as build,
   applyHarness as harness,

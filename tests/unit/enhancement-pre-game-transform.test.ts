@@ -1,18 +1,18 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { KnownEnhancementBuild } from "../../src/main/certification/enhancement-builds.js";
-import { ENHANCEMENT_TRANSFORM_ABI } from "../../src/shared/enhancement-contracts.js";
+import type { KnownEnhancementBuild } from "../../app/client/certification/enhancement-builds.js";
+import { ENHANCEMENT_TRANSFORM_ABI } from "../../app/shared/enhancement-contracts.js";
 import {
   preGameDiagnosticReader,
   preGameStateReader,
-} from "../../src/main/certification/enhancement-pre-game-transform.js";
+} from "../../app/client/certification/enhancement-pre-game-transform.js";
 import {
   concat,
   encodeCode,
   encodeSection,
   uleb,
   WASM_HEADER,
-} from "../../src/main/core/wasm-binary.js";
+} from "../../app/main/core/wasm-binary.js";
 
 const certificate = {
   labels: { play: 101, selector: 102, yes: 103, no: 104, reconnectDialog: 105 },

@@ -3,18 +3,18 @@ import test from "node:test";
 import {
   chatFilterConfigure,
   chatFilterDecision,
-} from "../../src/main/certification/enhancement-chat-filter-transform.js";
-import { ENHANCEMENT_CHAT_FILTER_MASKS } from "../../src/shared/enhancement-contracts.js";
-import type { KnownEnhancementBuild } from "../../src/main/certification/enhancement-build-model.js";
+} from "../../app/client/certification/enhancement-chat-filter-transform.js";
+import { ENHANCEMENT_CHAT_FILTER_MASKS } from "../../app/shared/enhancement-contracts.js";
+import type { KnownEnhancementBuild } from "../../app/client/certification/enhancement-build-model.js";
 import {
   concat,
   encodeCode,
   encodeSection,
   uleb,
   WASM_HEADER,
-} from "../../src/main/core/wasm-binary.js";
+} from "../../app/main/core/wasm-binary.js";
 import { configuredChatFilterMask } from
-  "../../src/renderer/certified-companion-tools-installation.js";
+  "../../app/renderer/certified-companion-tools-installation.js";
 
 const fact = Object.freeze({
   writeToChatLogMessage: 0x1000_007f,

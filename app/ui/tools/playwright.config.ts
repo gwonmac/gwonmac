@@ -5,7 +5,7 @@ const port = process.env.HUB_E2E_PORT ?? "4179";
 
 export default defineConfig({
   // A suite may clear only its own output, never other local evidence or profiles.
-  outputDir: "../../test-results/tools-e2e",
+  outputDir: "../../../test-results/tools-e2e",
   testDir: "./tests",
   timeout: 20_000,
   // Timing budgets need one browser worker without competing test workloads.

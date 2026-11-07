@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { parseMarkdown } from "../../src/shared/launcher-markdown.js";
+import { parseMarkdown } from "../../app/shared/launcher-markdown.js";
 
 const resolvers = {
   link: (href: string) => href.startsWith("https://") || href.startsWith("settings:") ? `link:${href}` : null,

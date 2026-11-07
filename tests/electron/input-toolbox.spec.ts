@@ -752,7 +752,7 @@ test.describe("renderer Tools input", () => {
               dispose(): void;
             }> },
           ): { dispose(): void };
-        }, typeof import("../../src/renderer/surface-controller.js")];
+        }, typeof import("../../app/renderer/surface-controller.js")];
         window.gwSurfaces = surfaces.installSurfaceController(document);
         let resolveMount!: (tool: {
           setVisible(visible: boolean): void;

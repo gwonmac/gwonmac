@@ -6,7 +6,7 @@
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { createHiddenCursorRetry } from "../../src/renderer/cursor-refresh.js";
+import { createHiddenCursorRetry } from "../../app/renderer/cursor-refresh.js";
 
 function harness(retestResult = true) {
   let clock = 0;

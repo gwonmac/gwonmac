@@ -7,7 +7,7 @@ import type {
   TradeEvent,
   TradeMessage,
   TradeSavedState,
-} from "../../../src/shared/trade-chat";
+} from "../../../shared/trade-chat";
 
 async function ledger(host: TradeHost = createDemoTradeHost()) {
   const wrapper = mount(TradeChatApp, {

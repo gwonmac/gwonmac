@@ -29,7 +29,7 @@ import {
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
 // Every artwork URL used by the unbundled calculator must survive static copying.
-const currencyImages = [...readFileSync(path.join(repoRoot, "src/shared/currency-assets.ts"), "utf8")
+const currencyImages = [...readFileSync(path.join(repoRoot, "app/shared/currency-assets.ts"), "utf8")
   .matchAll(/new URL\('\.\/(images\/[^']+)'/gu)].map(match => match[1]!);
 
 const roots: string[] = [];
@@ -45,34 +45,34 @@ function rendererCheckout(): string {
     mkdirSync(path.dirname(file), { recursive: true });
     writeFileSync(file, contents);
   };
-  write("src/renderer/index.html", "<!doctype html>\n");
-  write("src/renderer/loading.js", "export {};\n");
-  write("src/renderer/gw-native.d.ts", "export {};\n");
-  write("src/renderer/favicon.ico", "ico");
-  write("src/renderer/favicon.png", "png");
-  write("src/renderer/harness.css", "css");
-  write("src/renderer/cartography-overlay-controls.css", "controls-css");
-  write("src/renderer/character-switch.css", "character-css");
-  write("src/renderer/hub.css", "hub-css");
-  write("src/renderer/loading.css", "css");
-  write("src/renderer/fonts.css", "font-css");
-  write("src/renderer/fonts/COPYING-QUALITYPE", "licence");
-  write("src/renderer/fonts/QTFrizQuad.otf", "font");
-  write("src/renderer/images/logo.webp", "webp");
-  write("src/renderer/images/playstation-controller-prompts.png", "controller-png");
-  write("apps/website/public/bg-reforged.jpg", "landscape");
-  write("src/renderer/.DS_Store", "local metadata");
-  write("src/renderer/images/local-note.txt", "untracked");
-  // The design system is a package input that does not live under src/renderer:
-  // the Tools application reads it too, and apps/** may only reach src/shared.
-  write("src/shared/ui/tokens.css", "tokens");
-  write("src/shared/ui/components.css", "components");
-  write("src/shared/ui/frame/body.png", "frame-body");
-  write("src/shared/ui/frame/header.png", "frame-header");
+  write("app/renderer/index.html", "<!doctype html>\n");
+  write("app/renderer/loading.js", "export {};\n");
+  write("app/renderer/gw-native.d.ts", "export {};\n");
+  write("app/renderer/favicon.ico", "ico");
+  write("app/renderer/favicon.png", "png");
+  write("app/renderer/harness.css", "css");
+  write("app/renderer/cartography-overlay-controls.css", "controls-css");
+  write("app/renderer/character-switch.css", "character-css");
+  write("app/renderer/hub.css", "hub-css");
+  write("app/renderer/loading.css", "css");
+  write("app/renderer/fonts.css", "font-css");
+  write("app/renderer/fonts/COPYING-QUALITYPE", "licence");
+  write("app/renderer/fonts/QTFrizQuad.otf", "font");
+  write("app/renderer/images/logo.webp", "webp");
+  write("app/renderer/images/playstation-controller-prompts.png", "controller-png");
+  write("website/public/bg-reforged.jpg", "landscape");
+  write("app/renderer/.DS_Store", "local metadata");
+  write("app/renderer/images/local-note.txt", "untracked");
+  // The design system is a package input that does not live under app/renderer:
+  // the Tools application reads it too, and app/ui/tools/** may only reach app/shared.
+  write("app/shared/ui/tokens.css", "tokens");
+  write("app/shared/ui/components.css", "components");
+  write("app/shared/ui/frame/body.png", "frame-body");
+  write("app/shared/ui/frame/header.png", "frame-header");
   for (let profession = 1; profession <= 10; profession += 1) {
-    write(`src/shared/images/professions/${profession}.png`, `profession-${profession}`);
+    write(`app/shared/images/professions/${profession}.png`, `profession-${profession}`);
   }
-  for (const image of currencyImages) write(`src/shared/${image}`, image);
+  for (const image of currencyImages) write(`app/shared/${image}`, image);
   write("node_modules/@fontsource-variable/inter/wght.css", "inter-css");
   write("node_modules/@fontsource-variable/inter/LICENSE", "inter-licence");
   for (const subset of [
@@ -184,7 +184,7 @@ describe("scripts/copy-renderer.mjs only copies assets", () => {
       "shared/images/professions/7.png",
       "shared/images/professions/8.png",
       "shared/images/professions/9.png",
-      // Copied out of src/shared, and flattened to `ui/` so the renderer and
+      // Copied out of app/shared, and flattened to `ui/` so the renderer and
       // the Tools bundle load the one design system by the same href.
       "shared/ui/frame/body.png",
       "shared/ui/frame/header.png",
@@ -238,10 +238,10 @@ function stepPosition(needle: string): number {
 describe("scripts/build.mjs owns both sealed kernel builds", () => {
   const rustc = BUILD_STEPS.filter(([command]) => command === "rustc");
   const companion = rustc.filter((step) =>
-    stepArgs(step).includes("src/companion-kernel/lib.rs")
+    stepArgs(step).includes("kernels/companion/lib.rs")
   );
   const reachability = rustc.filter((step) =>
-    stepArgs(step).includes("src/cartography-reachability-kernel/lib.rs")
+    stepArgs(step).includes("kernels/reachability/lib.rs")
   );
 
   it("compiles each kernel exactly once per build", () => {
@@ -258,7 +258,7 @@ describe("scripts/build.mjs owns both sealed kernel builds", () => {
       "-o",
       "build/.companion-kernel.unsealed.wasm",
     ]);
-    assert.ok(args.includes("src/companion-kernel/lib.rs"));
+    assert.ok(args.includes("kernels/companion/lib.rs"));
     assert.deepEqual(
       args,
       companionKernelRustcArgs("build/.companion-kernel.unsealed.wasm"),
@@ -283,9 +283,9 @@ describe("scripts/build.mjs owns both sealed kernel builds", () => {
 
   it("publishes each through its immediate build-time sealing step", () => {
     for (const [source, sealer] of [
-      ["src/companion-kernel/lib.rs", "scripts/seal-companion-kernel.mjs"],
+      ["kernels/companion/lib.rs", "scripts/seal-companion-kernel.mjs"],
       [
-        "src/cartography-reachability-kernel/lib.rs",
+        "kernels/reachability/lib.rs",
         "scripts/seal-cartography-reachability-kernel.mjs",
       ],
     ] as const) {
@@ -298,7 +298,7 @@ describe("scripts/build.mjs owns both sealed kernel builds", () => {
 describe("scripts/build.mjs orders the producers of build/renderer", () => {
   const assets = stepPosition("scripts/copy-renderer.mjs");
   const renderer = stepPosition("scripts/build-renderer.mjs");
-  const kernel = stepPosition("src/companion-kernel/lib.rs");
+  const kernel = stepPosition("kernels/companion/lib.rs");
   const sealer = stepPosition("scripts/seal-companion-kernel.mjs");
 
   it("copies the assets before the renderer is compiled into the same directory", () => {

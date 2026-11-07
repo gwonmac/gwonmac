@@ -3,7 +3,7 @@
 import ProfessionIcon from "./ProfessionIcon.vue";
 import { computed } from "vue";
 import type { SkillPresentation } from "../skill-catalog";
-import { PROFESSIONS } from "../../../../src/shared/builds/heroes";
+import { PROFESSIONS } from "../../../../shared/builds/heroes";
 import energyIcon from "../assets/skill-stats/energy.png";
 import adrenalineIcon from "../assets/skill-stats/adrenaline.png";
 import activationIcon from "../assets/skill-stats/activation.png";

@@ -49,7 +49,7 @@ register(
 );
 
 const { onAppQuit, runQuitCleanup, QUIT_CLEANUP_DEADLINE_MS, isQuitting } =
-  await import("../../src/main/lifecycle.ts");
+  await import("../../app/main/lifecycle.ts");
 
 test("neither a stuck cleanup task nor a stuck final flush can hold the quit", async () => {
   const ran: string[] = [];

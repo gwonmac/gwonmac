@@ -3,7 +3,7 @@ import test from "node:test";
 import {
   installQuickItemMove,
   quickItemMoveExports,
-} from "../../src/renderer/quick-item-move-installation.js";
+} from "../../app/renderer/quick-item-move-installation.js";
 
 function keyboard(type: "keydown" | "keyup", ctrlKey: boolean, shiftKey: boolean): Event {
   return Object.assign(new Event(type), { ctrlKey, shiftKey });

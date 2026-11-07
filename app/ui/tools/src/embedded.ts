@@ -10,7 +10,7 @@ import { createNativeTradeHost } from "./trade-host";
 import { mountTradeChat as mountTrade } from "./trade-mount";
 import type {
   EmbeddedToolsBundle,
-} from "../../../src/shared/tools-bundle-contracts";
+} from "../../../shared/tools-bundle-contracts";
 
 const embedded: EmbeddedToolsBundle<HTMLElement> = Object.freeze({
   mountEliteSkills: (target, options) => mountElites(target, {

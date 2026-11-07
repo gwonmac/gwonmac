@@ -11,16 +11,16 @@ import path from "node:path";
 import test from "node:test";
 import vm from "node:vm";
 import { fileURLToPath } from "node:url";
-import * as contracts from "../../src/shared/contracts.ts";
-import * as enhancementContracts from "../../src/shared/enhancement-contracts.ts";
-import type { GwNativeApi } from "../../src/shared/contracts.ts";
+import * as contracts from "../../app/shared/contracts.ts";
+import * as enhancementContracts from "../../app/shared/enhancement-contracts.ts";
+import type { GwNativeApi } from "../../app/shared/contracts.ts";
 import {
   PRELOAD_CONSTANTS,
   launcherPreloadSource,
   preloadSource,
 } from "../../scripts/generate-preload.js";
-import type { LauncherNativeApi } from "../../src/shared/launcher-contracts.ts";
-import { LAUNCHER_IPC } from "../../src/shared/launcher-contracts.ts";
+import type { LauncherNativeApi } from "../../app/shared/launcher-contracts.ts";
+import { LAUNCHER_IPC } from "../../app/shared/launcher-contracts.ts";
 
 const allContracts = { ...contracts, ...enhancementContracts };
 

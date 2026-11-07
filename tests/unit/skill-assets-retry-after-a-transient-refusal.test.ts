@@ -4,8 +4,8 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
-import type { ChunkStore } from "../../src/main/core/chunk-store.js";
-import { SkillAssets } from "../../src/main/core/skill-catalogue.js";
+import type { ChunkStore } from "../../app/client/chunk-store.js";
+import { SkillAssets } from "../../app/main/core/skill-catalogue.js";
 
 test("catalogue and icon refusals are retryable without restarting", async (context) => {
   const root = await mkdtemp(path.join(tmpdir(), "gwonmac-skill-retry-"));

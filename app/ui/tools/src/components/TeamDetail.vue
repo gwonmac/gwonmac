@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import ProfessionIcon from "./ProfessionIcon.vue";
 import { computed, nextTick, ref, watch } from "vue";
-import { HEROES_IN_PANEL_ORDER } from "../../../../src/shared/builds/heroes";
+import { HEROES_IN_PANEL_ORDER } from "../../../../shared/builds/heroes";
 import {
   buildById,
   buildId,
@@ -9,7 +9,7 @@ import {
   heroId,
   mapTeamSlots,
   type TeamSlot,
-} from "../../../../src/shared/builds/library";
+} from "../../../../shared/builds/library";
 import type { LibraryController } from "../use-library";
 import { teamMemberLabel, type Team } from "../model";
 import SkillBar from "./SkillBar.vue";

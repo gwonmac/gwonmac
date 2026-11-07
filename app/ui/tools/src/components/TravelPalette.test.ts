@@ -5,20 +5,20 @@ import {
   DEFAULT_TRAVEL_SHORTCUTS,
   type TravelShortcuts,
   type TravelSynonyms,
-} from "../../../../src/shared/travel";
-import type { TravelFriends } from "../../../../src/shared/friends";
+} from "../../../../shared/travel";
+import type { TravelFriends } from "../../../../shared/friends";
 import type {
   TravelHost,
   TravelPreferencePatch,
   TravelPreferences,
 } from "../travel-host";
-import { DEFAULT_SETTINGS } from "../../../../src/shared/contracts";
+import { DEFAULT_SETTINGS } from "../../../../shared/contracts";
 import TravelDestinationPicker from "./TravelDestinationPicker.vue";
 import TravelPalette from "./TravelPalette.vue";
 import {
   EMPTY_TRAVEL_HISTORY,
   travelCharacterKey,
-} from "../../../../src/shared/travel-history";
+} from "../../../../shared/travel-history";
 
 function fixture(options: Readonly<{
   shortcuts?: TravelShortcuts;

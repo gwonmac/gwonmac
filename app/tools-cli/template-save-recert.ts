@@ -18,18 +18,18 @@
  */
 import {
   analyzeTemplateSaveCandidate,
-} from "../main/certification/template-save-verifier.js";
+} from "../client/certification/template-save-verifier.js";
 import {
   findTemplateSaveBuild,
   TEMPLATE_SAVE_BUILDS,
   type CallSite,
   type KnownTemplateSaveBuild,
-} from "../main/certification/template-save-compat.js";
+} from "../client/certification/template-save-compat.js";
 
 export {
   deriveTemplateSaveBuild,
   draftTemplateSaveBuild,
-} from "../main/certification/template-save-verifier.js";
+} from "../client/certification/template-save-verifier.js";
 
 function sortSites(sites: readonly CallSite[]): CallSite[] {
   return [...sites].sort(
@@ -116,7 +116,7 @@ export function inspectTemplateSaveCandidate(
 
 /** The authoring table, as `certification template --write` addresses it. */
 export const TEMPLATE_SAVE_TABLE =
-  "src/main/certification/template-save-compat.ts";
+  "app/client/certification/template-save-compat.ts";
 
 const TABLE_OPEN =
   "export const TEMPLATE_SAVE_BUILDS: readonly KnownTemplateSaveBuild[] =\n"

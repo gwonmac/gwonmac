@@ -4,7 +4,7 @@ import {
   type TraderPriceHistoryProblem,
   type TraderQuote,
   type TraderQuoteSnapshot,
-} from "../../../../src/shared/trade-chat";
+} from "../../../../shared/trade-chat";
 import type { TradeHost } from "../trade-host";
 import { traderProfessionIcon } from "../trader-assets";
 import {
@@ -14,8 +14,8 @@ import {
   type TraderPriceCategory,
   type TraderItem,
   type TraderProfession,
-} from "../../../../src/shared/trader-catalog";
-import { listIndexAfter, listKeyStep, listPage } from "../../../../src/shared/ui/list-keys";
+} from "../../../../shared/trader-catalog";
+import { listIndexAfter, listKeyStep, listPage } from "../../../../shared/ui/list-keys";
 import PriceHistoryChart from "./PriceHistoryChart.vue";
 import TraderItemIcon from "./TraderItemIcon.vue";
 

@@ -20,20 +20,20 @@ import path from "node:path";
 import test from "node:test";
 import vm from "node:vm";
 import { fileURLToPath } from "node:url";
-import type { CartographyEvidenceCapture } from "../../src/shared/cartography-evidence.ts";
+import type { CartographyEvidenceCapture } from "../../app/shared/cartography-evidence.ts";
 import type {
   GwNativeApi,
   RendererSettingsPatch,
   RendererCommand,
   RendererInit,
-} from "../../src/shared/contracts.ts";
+} from "../../app/shared/contracts.ts";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const TOOLS_ARTIFACT = "build/preload/preload-tools.cjs";
 const CORE_ARTIFACT = "build/preload/preload-core.cjs";
 
 // The canonical channels come out of `build/`, the same tree the artifact under
-// test comes from, and are typed from the `src/` module `build/` is emitted
+// test comes from, and are typed from the `app/` module `build/` is emitted
 // from. The annotation is on the declaration rather than an assertion on the
 // call: a dynamic `import()` whose specifier is not a literal resolves to
 // `any`, and an untyped `IPC` would let the tables below name a channel that
@@ -42,7 +42,7 @@ const {
   EVENT_CHANNELS,
   IPC,
   RENDERER_INIT_ARGUMENT,
-}: typeof import("../../src/shared/contracts.ts") = await import(
+}: typeof import("../../app/shared/contracts.ts") = await import(
   new URL("../../build/shared/contracts.js", import.meta.url).href
 );
 const toolsSource = await readFile(path.join(root, TOOLS_ARTIFACT), "utf8");

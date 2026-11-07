@@ -5,12 +5,12 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { GameFontAssets } from "../../src/main/core/game-font-assets.js";
+import { GameFontAssets } from "../../app/main/core/game-font-assets.js";
 import {
   buildGuildWarsTrueType,
   decodeGameFontRange,
   GUILD_WARS_DISPLAY_FONT,
-} from "../../src/main/core/gw-font.ts";
+} from "../../app/main/core/gw-font.ts";
 
 const root = new URL("../../", import.meta.url);
 const GLYPH_COUNT = 94;
@@ -258,8 +258,8 @@ test("a compact oversized strike is refused before outline tracing", () => {
 });
 
 test("the shared UI offers the local Guild Wars font independently of Inter", () => {
-  const css = readFileSync(new URL("src/shared/ui/tokens.css", root), "utf8");
-  const loading = readFileSync(new URL("src/renderer/loading.css", root), "utf8");
+  const css = readFileSync(new URL("app/shared/ui/tokens.css", root), "utf8");
+  const loading = readFileSync(new URL("app/renderer/loading.css", root), "utf8");
   assert.match(css, /data-ui-font="guild-wars"/);
   assert.match(css, /--ui-font: "Guild Wars Original"/);
   assert.match(css, /--ui-font-display: "Guild Wars Original Display"/);
@@ -271,7 +271,7 @@ test("the shared UI offers the local Guild Wars font independently of Inter", ()
   assert.match(css, /:where\(strong, b, h1, h2, h3, h4, h5, h6\)/);
   assert.doesNotMatch(css, /-1px 1px 0 #000/);
   assert.match(loading, /var\(--ui-font\)/u);
-  const appearance = readFileSync(new URL("src/renderer/appearance.ts", root), "utf8");
+  const appearance = readFileSync(new URL("app/renderer/appearance.ts", root), "utf8");
   assert.match(appearance, /new FontFace\("Guild Wars Original"/);
   assert.match(appearance, /"Guild Wars Original Display"/);
   assert.match(appearance, /generation=/);

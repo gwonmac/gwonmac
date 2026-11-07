@@ -1,16 +1,16 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { effectiveCapabilities } from
-  "../../src/renderer/effective-enhancement-capabilities.js";
+  "../../app/renderer/effective-enhancement-capabilities.js";
 import type {
   ClientCompatibility,
   ClientSession,
   OptionalFeatureStatus,
-} from "../../src/shared/contracts.js";
+} from "../../app/shared/contracts.js";
 import {
   enhancementCapabilitiesForProfile,
   type EnhancementCapabilities,
-} from "../../src/shared/enhancement-contracts.js";
+} from "../../app/shared/enhancement-contracts.js";
 
 const available = Object.freeze({ status: "available" } as const);
 const off = Object.freeze({ status: "off" } as const);

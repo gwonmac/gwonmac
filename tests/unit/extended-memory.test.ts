@@ -9,14 +9,14 @@ import {
   normalizeExtendedMemoryJsForProof,
   rewriteExtendedMemoryJs,
   rewriteExtendedMemoryWasm,
-} from "../../src/main/certification/extended-memory.js";
+} from "../../app/client/certification/extended-memory.js";
 import {
   concat,
   encodeSection,
   uleb,
   WASM_HEADER,
-} from "../../src/main/core/wasm-binary.js";
-import { diagnosticEventRecord } from "../../src/main/diagnostics/schema.js";
+} from "../../app/main/core/wasm-binary.js";
+import { diagnosticEventRecord } from "../../app/main/diagnostics/schema.js";
 
 function memoryModule(initial = 4_096, maximum = 32_768): Uint8Array {
   return concat(

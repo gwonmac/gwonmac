@@ -6,13 +6,13 @@
 // contain any part of the text the error carried.
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { SocketEvent } from "../../src/shared/contracts.ts";
+import type { SocketEvent } from "../../app/shared/contracts.ts";
 import {
   CONNECT_TIMEOUT_MS,
   SocketManager,
   socketFailureCode,
   type ManagedSocket,
-} from "../../src/main/core/sockets.ts";
+} from "../../app/main/core/sockets.ts";
 
 class FakeSocket implements ManagedSocket {
   destroyed = false;

@@ -39,7 +39,7 @@ import {
   isEnhancementCapabilityProfile,
 } from "../../shared/enhancement-contracts.js";
 import { LOCAL_FEATURE_INVARIANTS } from
-  "../../main/certification/local-client-verification-contract.js";
+  "../../client/certification/local-client-verification-contract.js";
 import {
   VISUAL_CAPTURE_FAILURES,
   VISUAL_CAPTURE_STAGES,

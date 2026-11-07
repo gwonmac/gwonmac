@@ -3,9 +3,9 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, it } from "node:test";
-import { LauncherNewsService, PROJECT_NEWS_URL, WIKI_UPDATES_URL, parseProjectNewsFeed } from "../../src/main/core/launcher-news.js";
-import { DEFAULT_LAUNCHER_PREFERENCES } from "../../src/main/core/launcher-state.js";
-import { RELEASE_REPO_URL } from "../../src/shared/project-identity.js";
+import { LauncherNewsService, PROJECT_NEWS_URL, WIKI_UPDATES_URL, parseProjectNewsFeed } from "../../app/main/core/launcher-news.js";
+import { DEFAULT_LAUNCHER_PREFERENCES } from "../../app/main/core/launcher-state.js";
+import { RELEASE_REPO_URL } from "../../app/shared/project-identity.js";
 
 const roots: string[] = [];
 afterEach(async () => Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))));

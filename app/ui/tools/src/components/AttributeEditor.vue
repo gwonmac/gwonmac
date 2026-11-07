@@ -6,21 +6,21 @@ import {
   attributePointsSpent,
   availableAttributes,
   canSetAttributeRank,
-} from "../../../../src/shared/builds/authoring";
+} from "../../../../shared/builds/authoring";
 import {
   ATTRIBUTE_POINT_COST,
   ATTRIBUTES,
   PROFESSIONS,
-} from "../../../../src/shared/builds/heroes";
+} from "../../../../shared/builds/heroes";
 import type {
   Attribute,
   AttributeRank,
   Profession,
-} from "../../../../src/shared/builds/library";
+} from "../../../../shared/builds/library";
 import {
   LEVEL_20_ATTRIBUTE_BUDGET,
   PRIMARY_ATTRIBUTE,
-} from "../../../../src/shared/builds/validate";
+} from "../../../../shared/builds/validate";
 import type { BuildDraftController } from "../use-build-draft";
 
 const props = defineProps<{ editor: BuildDraftController }>();

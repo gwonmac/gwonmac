@@ -1,17 +1,17 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from "vue";
-import { findPeople, whisperPersonKey, whisperUnread, type Person, type WhisperSession, type WhisperSound } from "../../../src/shared/whisper-session";
-import { TRAVEL_DESTINATIONS } from "../../../src/shared/travel-destinations";
-import { WHISPER_LINE_UNITS, WHISPER_MESSAGE_UNITS } from "../../../src/shared/whispers";
-import { presenceLabel, type TravelFriend } from "../../../src/shared/friends";
+import { findPeople, whisperPersonKey, whisperUnread, type Person, type WhisperSession, type WhisperSound } from "../../../shared/whisper-session";
+import { TRAVEL_DESTINATIONS } from "../../../shared/travel-destinations";
+import { WHISPER_LINE_UNITS, WHISPER_MESSAGE_UNITS } from "../../../shared/whispers";
+import { presenceLabel, type TravelFriend } from "../../../shared/friends";
 import { useClassicFrame } from "./ui/use-classic-frame";
-import { isHubBackKey } from "../../../src/shared/keyboard-shortcuts";
-import { listIndexAfter, listKeyStep, listPage } from "../../../src/shared/ui/list-keys";
+import { isHubBackKey } from "../../../shared/keyboard-shortcuts";
+import { listIndexAfter, listKeyStep, listPage } from "../../../shared/ui/list-keys";
 import { useFloatingWindow } from "./use-floating-window";
 import {
   restoreFloatingPosition,
   serializeFloatingPosition,
-} from "../../../src/shared/ui/window-placement";
+} from "../../../shared/ui/window-placement";
 
 const initials = (name: string) => name.trim().split(/\s+/u).slice(0, 2).map(word => word[0]).join("").toLocaleUpperCase();
 

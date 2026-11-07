@@ -5,13 +5,13 @@ import EliteSkillsApp from "./EliteSkillsApp.vue";
 import { ELITE_FIXTURE_SKILLS, eliteFixtureView } from "./elite-fixture";
 import { createSkillCatalogue } from "./skill-catalog";
 import { useEliteTracking, type EliteTrackingHost } from "./use-elite-tracking";
-import { ELITE_LOCATIONS } from "../../../src/shared/elite-locations";
-import { EMPTY_ELITE_TRACKING, changeEliteTracking, type EliteTracking } from "../../../src/shared/elite-skills";
-import { travelCharacterKey, type TravelCharacterKey } from "../../../src/shared/travel-history";
-import { eliteMarkerAt, eliteSpawnLinks, eliteZoomGrowth, placeEliteMarkers, type EliteMapHit, type EliteMarkerScene, type EliteSceneMarker } from "../../../src/shared/elite-map-scene";
-import type { EliteLocation } from "../../../src/shared/elite-skills";
-import { installEliteMapPointer } from "../../../src/shared/ui/elite-map-pointer";
-import { skillId } from "../../../src/shared/builds/library";
+import { ELITE_LOCATIONS } from "../../../shared/elite-locations";
+import { EMPTY_ELITE_TRACKING, changeEliteTracking, type EliteTracking } from "../../../shared/elite-skills";
+import { travelCharacterKey, type TravelCharacterKey } from "../../../shared/travel-history";
+import { eliteMarkerAt, eliteSpawnLinks, eliteZoomGrowth, placeEliteMarkers, type EliteMapHit, type EliteMarkerScene, type EliteSceneMarker } from "../../../shared/elite-map-scene";
+import type { EliteLocation } from "../../../shared/elite-skills";
+import { installEliteMapPointer } from "../../../shared/ui/elite-map-pointer";
+import { skillId } from "../../../shared/builds/library";
 function host(): EliteTrackingHost {
   const saved = new Map<string, EliteTracking>();
   return { get: vi.fn(async ({ characterKey }) => saved.get(characterKey) ?? EMPTY_ELITE_TRACKING), update: vi.fn(async ({ characterKey, change }) => {

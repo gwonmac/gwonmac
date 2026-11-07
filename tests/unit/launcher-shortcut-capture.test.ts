@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
 import { test } from "node:test";
 import type { BrowserWindow, Input } from "electron";
-import { DEFAULT_SETTINGS } from "../../src/shared/contracts.ts";
-import { cancelAppShortcutCapture, captureLauncherShortcut, isAppShortcutCaptureActive } from "../../src/main/launcher-shortcut-capture.ts";
+import { DEFAULT_SETTINGS } from "../../app/shared/contracts.ts";
+import { cancelAppShortcutCapture, captureLauncherShortcut, isAppShortcutCaptureActive } from "../../app/main/launcher-shortcut-capture.ts";
 
 function fixture() {
   const events = Object.assign(new EventEmitter(), { webContents: new EventEmitter() });
@@ -55,7 +55,7 @@ test("clears, rejects reserved shortcuts, and cancels on blur without leaking li
 
 
 test('captures Control-Option function keys and modified Escape without running existing game actions', async () => {
-  const { installWindowShortcuts, updateWindowShortcuts } = await import('../../src/main/window-shortcuts.js');
+  const { installWindowShortcuts, updateWindowShortcuts } = await import('../../app/main/window-shortcuts.js');
   const f = fixture(); const actions: string[] = [];
   installWindowShortcuts(f.win, { run: action => { actions.push(action); }, edit() {}, quitOrReload() {} });
   updateWindowShortcuts(f.win, { ...DEFAULT_SETTINGS, gwonmacTools: true });

@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { ADDRESSES, createKernel, DETAIL, installGameGraph, kernelExports, setConfigField } from "../fixtures/enhancements.ts";
-import { COMPANION_ABI, COMPANION_DISPATCH_KINDS, COMPANION_FEATURE_BITS } from "../../src/shared/companion-abi.ts";
-import { readCompanionWhispers } from "../../src/renderer/companion-whisper-snapshot.ts";
+import { COMPANION_ABI, COMPANION_DISPATCH_KINDS, COMPANION_FEATURE_BITS } from "../../app/shared/companion-abi.ts";
+import { readCompanionWhispers } from "../../app/renderer/companion-whisper-snapshot.ts";
 
-import { createWhisperInstallation } from "../../src/renderer/whisper-installation.ts";
-import { createWhisperSession } from "../../src/shared/whisper-session.ts";
-import { WHISPER_MAILBOX, type ObservedChatEvent } from "../../src/shared/whispers.ts";
+import { createWhisperInstallation } from "../../app/renderer/whisper-installation.ts";
+import { createWhisperSession } from "../../app/shared/whisper-session.ts";
+import { WHISPER_MAILBOX, type ObservedChatEvent } from "../../app/shared/whispers.ts";
 
 const flags = COMPANION_FEATURE_BITS.whisperObservation | COMPANION_FEATURE_BITS.playRegionObservation;
 const packet = 0x64000;

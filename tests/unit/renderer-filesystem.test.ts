@@ -3,7 +3,7 @@ import test from "node:test";
 import {
   installGameFilesystem,
   type EmscriptenModule,
-} from "../../src/renderer/filesystem.js";
+} from "../../app/renderer/filesystem.js";
 
 // The module is imported, not read and evaluated in a synthetic context. What
 // it still reaches for ambiently is the Emscripten runtime's `FS`/`IDBFS`,

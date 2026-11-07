@@ -4,7 +4,7 @@ import test from "node:test";
 import {
   observeAlcohol, observeConsumables, reminderLine, wantsReminder,
   type AlcoholObservation, type AlcoholWatch, type ConsumableWatch, type EffectObservation, type ReminderEvent,
-} from "../../src/shared/reminders.js";
+} from "../../app/shared/reminders.js";
 
 const CELERITY = 2522, GRAIL = 2521, CUPCAKE = 1945, LUCKY_AURA = 1927, MINUTE = 60_000, THIRTY = 30 * MINUTE;
 const at = (gameTimer: number, ...effects: [number, number, number?][]): EffectObservation => ({

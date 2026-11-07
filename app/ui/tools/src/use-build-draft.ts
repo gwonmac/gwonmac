@@ -12,13 +12,13 @@ import {
   type AttributeRank,
   type Profession,
   type SkillId,
-} from "../../../src/shared/builds/library";
+} from "../../../shared/builds/library";
 import {
   resolveSkillPlacement,
   withAttributeRank,
   type SkillPlacementResolution,
-} from "../../../src/shared/builds/authoring";
-import { decodeSkillTemplate } from "../../../src/shared/builds/skill-template";
+} from "../../../shared/builds/authoring";
+import { decodeSkillTemplate } from "../../../shared/builds/skill-template";
 import type { Build } from "./model";
 import type { SkillCatalogue } from "./skill-catalog";
 import type { LibraryController } from "./use-library";

@@ -27,7 +27,7 @@ import { seedCachedClient } from "./helpers/cached-client.ts";
 import {
   DISTRIBUTION_CHANNEL_CONFIG,
   distributionMarker,
-} from "../src/shared/distribution-channel.ts";
+} from "../app/shared/distribution-channel.ts";
 import { resolvePackageMode } from "../scripts/package-mode.ts";
 
 const root = path.resolve(import.meta.dirname, "..");
@@ -122,7 +122,7 @@ const packagedClosure = relativeEsmClosure({
   inventory: actualPackageFiles,
   readText: asarText,
 });
-assert.ok(packagedClosure.has("/build/main/certification/enhancement-builds.js"));
+assert.ok(packagedClosure.has("/build/client/certification/enhancement-builds.js"));
 assert.ok(packagedClosure.has("/build/renderer/enhancement-readout.js"));
 assert.ok(
   [...packagedClosure].some((file) =>
@@ -217,7 +217,7 @@ await seedCachedClient({
 
 // A parsed `events.jsonl` line, described by what this file reads out of it and
 // no wider. `JSON.parse` cannot prove membership of the closed union in
-// `src/main/diagnostics/schema.ts`; that is the recorder's and the detector's
+// `app/main/diagnostics/schema.ts`; that is the recorder's and the detector's
 // job, and claiming `DiagnosticEventRecord` here would assert a certification
 // this file does not perform.
 interface RecordedLine {

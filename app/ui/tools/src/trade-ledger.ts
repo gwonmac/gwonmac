@@ -7,7 +7,7 @@
 import {
   TRADE_LIMITS,
   type TradeMessage,
-} from "../../../src/shared/trade-chat";
+} from "../../../shared/trade-chat";
 
 export type TradeIntent = "all" | "selling" | "buying";
 

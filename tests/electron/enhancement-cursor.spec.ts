@@ -35,7 +35,7 @@ interface CursorCandidate {
 // The consumer's own state shape, named rather than restated, so a change to
 // what it reports fails here instead of being silently absent.
 type CursorConsumerState = ReturnType<
-  typeof import("../../src/renderer/enhancement-cursor.js").createCursorConsumer
+  typeof import("../../app/renderer/enhancement-cursor.js").createCursorConsumer
 >["state"];
 
 interface CursorObservation {
@@ -65,7 +65,7 @@ async function driveCursor(
     const importRenderer = async <T>(specifier: string): Promise<T> =>
       import(specifier);
     const { createCursorConsumer } = await importRenderer<
-      typeof import("../../src/renderer/enhancement-cursor.js")
+      typeof import("../../app/renderer/enhancement-cursor.js")
     >(new URL("enhancement-cursor.js", globalThis.location.href).href);
     const BYTES = 4160;
     // A real `WebAssembly.Memory`, which is what the consumer is declared to
@@ -191,7 +191,7 @@ test.describe("enhancement cursor presentation", () => {
       await page.evaluate(async () => {
         const { installCursorRefresh } = await import(
           new URL("cursor-refresh.js", globalThis.location.href).href
-        ) as typeof import("../../src/renderer/cursor-refresh.js");
+        ) as typeof import("../../app/renderer/cursor-refresh.js");
         const canvas = globalThis.document.createElement("canvas");
         canvas.id = "cursor-refresh-probe";
         canvas.style.cssText =

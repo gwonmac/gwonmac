@@ -3,14 +3,14 @@ import assert from "node:assert/strict";
 import { retainedClientFixture } from "../fixtures/retained-client.js";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { verifyLocalClientBytes, isLocalClientVerification } from "../../src/main/certification/local-client-verifier.js";
-import { rewriteTemplateSaveWasm } from "../../src/main/certification/template-save-compat.js";
-import { transformEnhancementWasm } from "../../src/main/certification/enhancement-transform.js";
-import { supportedEnhancementCapabilities } from "../../src/main/certification/enhancement-builds.js";
-import { appendNativeHud } from "../../src/main/certification/native-hud-transform.js";
-import { wasmEvidence } from "../../src/main/certification/wasm-evidence.js";
-import { concat, encodeCode, encodeSection, parseCode, sectionById, splitSections, WASM_HEADER } from "../../src/main/core/wasm-binary.js";
-import { ENHANCEMENT_CAPABILITY_PRESETS } from "../../src/shared/enhancement-contracts.js";
+import { verifyLocalClientBytes, isLocalClientVerification } from "../../app/client/certification/local-client-verifier.js";
+import { rewriteTemplateSaveWasm } from "../../app/client/certification/template-save-compat.js";
+import { transformEnhancementWasm } from "../../app/client/certification/enhancement-transform.js";
+import { supportedEnhancementCapabilities } from "../../app/client/certification/enhancement-builds.js";
+import { appendNativeHud } from "../../app/client/certification/native-hud-transform.js";
+import { wasmEvidence } from "../../app/client/certification/wasm-evidence.js";
+import { concat, encodeCode, encodeSection, parseCode, sectionById, splitSections, WASM_HEADER } from "../../app/main/core/wasm-binary.js";
+import { ENHANCEMENT_CAPABILITY_PRESETS } from "../../app/shared/enhancement-contracts.js";
 
 test("changed native HUD ownership refuses only rendering and preserves independent observers", () => {
   assert.ok(process.env.GW_CLIENT_WASM);

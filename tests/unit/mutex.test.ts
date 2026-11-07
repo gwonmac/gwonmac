@@ -4,9 +4,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { after, describe, it } from "node:test";
-import { Mutex } from "../../src/main/core/mutex.js";
-import { loadSettings, saveSettings } from "../../src/main/core/settings.js";
-import type { AppSettings, AppSettingsPatch } from "../../src/shared/contracts.js";
+import { Mutex } from "../../app/main/core/mutex.js";
+import { loadSettings, saveSettings } from "../../app/main/core/settings.js";
+import type { AppSettings, AppSettingsPatch } from "../../app/shared/contracts.js";
 
 const scratchDirs: string[] = [];
 

@@ -5,12 +5,12 @@ import test from "node:test";
 import {
   concat, encodeCode, encodeSection, paddedIndex, parseCode,
   sectionById, splitSections, WASM_HEADER,
-} from "../../src/main/core/wasm-binary.js";
+} from "../../app/main/core/wasm-binary.js";
 import {
   deriveEquivalentTemplateSaveBuild,
-} from "../../src/main/certification/template-save-verifier.js";
-import { rewriteTemplateSaveWasm } from "../../src/main/certification/template-save-compat.js";
-import { decodeFunctions, wasmEvidence } from "../../src/main/certification/wasm-evidence.js";
+} from "../../app/client/certification/template-save-verifier.js";
+import { rewriteTemplateSaveWasm } from "../../app/client/certification/template-save-compat.js";
+import { decodeFunctions, wasmEvidence } from "../../app/client/certification/wasm-evidence.js";
 
 const sha256 = (bytes: Uint8Array): string =>
   createHash("sha256").update(bytes).digest("hex");

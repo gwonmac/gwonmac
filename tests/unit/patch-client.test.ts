@@ -6,12 +6,12 @@ import type { FileHandle } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, describe, it } from "node:test";
-import { PatchClient, type FetchLike } from "../../src/main/core/patch-client.js";
+import { PatchClient, type FetchLike } from "../../app/client/patch-client.js";
 import {
   readPublishedClientManifest,
   verifyPublishedClientArtifacts,
-} from "../../src/main/core/published-client.js";
-import { AppError } from "../../src/shared/errors.js";
+} from "../../app/client/published-client.js";
+import { AppError } from "../../app/shared/errors.js";
 
 const CHUNK_SIZE = 64;
 const PATCH_ROOT = "https://patch.invalid";

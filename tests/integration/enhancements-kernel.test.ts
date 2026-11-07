@@ -32,8 +32,8 @@ import {
   sameCompanionToolboxState,
   setConfigField,
 } from "../fixtures/enhancements.ts";
-import { COMPANION_ABI, COMPANION_FEATURE_BITS } from "../../src/shared/companion-abi.ts";
-import { readCompanionCharacterList } from "../../src/renderer/companion-character-list-snapshot.ts";
+import { COMPANION_ABI, COMPANION_FEATURE_BITS } from "../../app/shared/companion-abi.ts";
+import { readCompanionCharacterList } from "../../app/renderer/companion-character-list-snapshot.ts";
 
 const GAME_SNAPSHOT_FEATURES =
   FEATURE_GAME_SNAPSHOT | FEATURE_PLAY_REGION_OBSERVATION;

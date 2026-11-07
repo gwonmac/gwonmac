@@ -7,8 +7,8 @@ import { describe, it } from "node:test";
 import {
   buildDiagnosticReport,
   previousAbnormalSession,
-} from "../../src/main/diagnostics/report.ts";
-import type { DiagnosticSummary } from "../../src/shared/diagnostics.ts";
+} from "../../app/main/diagnostics/report.ts";
+import type { DiagnosticSummary } from "../../app/shared/diagnostics.ts";
 
 function event(
   sequence: number,

@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { serializeTravelPreferencesV1 } from
-  "../../src/main/core/travel-preferences-v1.js";
+  "../../app/main/core/travel-preferences-v1.js";
 import { closeOffline, launchOffline } from "./fixtures.mjs";
 
 test("Tools reset promises and clears both Travel preference owners", async () => {

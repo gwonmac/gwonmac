@@ -1,6 +1,6 @@
 /** Fixed expectations for retained offline clients; these values grant no runtime authority. */
 import { createHash } from "node:crypto";
-import type { CartographyMemoryLayoutId } from "../../src/main/certification/pathing-spike-transform.js";
+import type { CartographyMemoryLayoutId } from "../../app/client/certification/pathing-spike-transform.js";
 
 type RetainedClient = Readonly<{
   memoryLayout: CartographyMemoryLayoutId;

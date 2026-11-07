@@ -5,7 +5,7 @@
 import { expect, test } from 'vitest';
 // The offline test parses the shipped document, not the fixture's English HTML shell.
 // eslint-disable-next-line no-restricted-imports
-import source from '../../../src/renderer/index.html?raw';
+import source from '../../../renderer/index.html?raw';
 
 test('the production game document declares English (HUB-168)', () => {
   expect(source.match(/<html\b[^>]*\blang=["']([^"']+)["']/iu)?.[1]).toBe('en');

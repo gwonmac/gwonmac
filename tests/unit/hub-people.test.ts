@@ -1,12 +1,12 @@
 /** Hub people search: every known name source, the typed exact name, and source switches. */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createHubPeople } from '../../src/renderer/hub-people.ts';
-import { createPartyInvite, type PartyInvite } from '../../src/renderer/party-invite.ts';
-import type { CompanionPlayRegionState } from '../../src/renderer/companion-play-region-snapshot.ts';
-import type { TravelFriend } from '../../src/shared/friends.ts';
-import { hubTier, type HubRow, type HubSource, type HubTask } from '../../src/shared/hub.ts';
-import { createWhisperSession } from '../../src/shared/whisper-session.ts';
+import { createHubPeople } from '../../app/renderer/hub-people.ts';
+import { createPartyInvite, type PartyInvite } from '../../app/renderer/party-invite.ts';
+import type { CompanionPlayRegionState } from '../../app/renderer/companion-play-region-snapshot.ts';
+import type { TravelFriend } from '../../app/shared/friends.ts';
+import { hubTier, type HubRow, type HubSource, type HubTask } from '../../app/shared/hub.ts';
+import { createWhisperSession } from '../../app/shared/whisper-session.ts';
 
 const KAISER = 'Kai Account|Mo Kaiser · Online · Kamadan, Jewel of Istan';
 

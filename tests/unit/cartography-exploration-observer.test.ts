@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createExplorationSpikeReader } from
-  "../../src/renderer/cartography-spike/exploration-observer.js";
+  "../../app/renderer/cartography-spike/exploration-observer.js";
 import { EXPLORATION_SPIKE_GLOBALS } from
-  "../../src/shared/cartography-spike.js";
+  "../../app/shared/cartography-spike.js";
 
 function scalar(value: number): WebAssembly.Global {
   return new WebAssembly.Global({ value: "i32", mutable: true }, value);

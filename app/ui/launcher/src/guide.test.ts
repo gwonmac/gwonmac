@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { parseMarkdown } from "@shared/launcher-markdown";
 import { GUIDE_PAGE_IDS, GUIDE_PAGES, guideLink, guideSource } from "./guide";
 
-const images = import.meta.glob<string>("../../website/public/docs/**/*.{webp,png,jpg}", { query: "?url", import: "default", eager: true });
+const images = import.meta.glob<string>("../../../../website/public/docs/**/*.{webp,png,jpg}", { query: "?url", import: "default", eager: true });
 
 describe("guide", () => {
   it("bundles every Guide page, and each of its links and images resolves", () => {

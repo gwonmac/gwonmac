@@ -4,17 +4,17 @@ import test from "node:test";
 import {
   CARTOGRAPHY_BUILTIN_PRESETS,
   type CartographyPresetLibrary,
-} from "../../src/shared/cartography-overlay.js";
+} from "../../app/shared/cartography-overlay.js";
 import {
   encodeCartographyPresetRef,
   parseCartographyPresetRef,
-} from "../../src/renderer/cartography-preset-select.js";
-import { describeCartographyQaStatus } from "../../src/renderer/cartography-spike/overlay-controls.js";
+} from "../../app/renderer/cartography-preset-select.js";
+import { describeCartographyQaStatus } from "../../app/renderer/cartography-spike/overlay-controls.js";
 import {
   cartographyOverlayDisposition,
-} from "../../src/renderer/cartography-spike/overlay.js";
+} from "../../app/renderer/cartography-spike/overlay.js";
 import type { CartographyState } from
-  "../../src/renderer/cartography-spike/cartography-model.js";
+  "../../app/renderer/cartography-spike/cartography-model.js";
 
 const library: CartographyPresetLibrary = {
   activePreset: { kind: "builtin", id: "cartographer" },
@@ -52,7 +52,7 @@ test("Cartography preset references round-trip only known presets", () => {
 
 test("compact Cartography controls avoid frame-loop layout reads and static inline paint", () => {
   const controls = readFileSync(
-    "src/renderer/cartography-spike/overlay-controls.ts",
+    "app/renderer/cartography-spike/overlay-controls.ts",
     "utf8",
   );
   assert.doesNotMatch(controls, /offsetHeight|style\.cssText/u);
@@ -62,7 +62,7 @@ test("compact Cartography controls avoid frame-loop layout reads and static inli
 
 test("Cartography controls open only by click and remain open after pointer movement", () => {
   const controls = readFileSync(
-    "src/renderer/cartography-spike/overlay-controls.ts",
+    "app/renderer/cartography-spike/overlay-controls.ts",
     "utf8",
   );
   assert.match(controls, /trigger\.addEventListener\("click", \(\) => setOpen\(!open\)\)/u);
@@ -72,7 +72,7 @@ test("Cartography controls open only by click and remain open after pointer move
 
 test("Compass range controls open only by click", () => {
   const controls = readFileSync(
-    "src/renderer/cartography-spike/compass-range-controls.ts",
+    "app/renderer/cartography-spike/compass-range-controls.ts",
     "utf8",
   );
   assert.match(
@@ -89,7 +89,7 @@ test("Compass range controls open only by click", () => {
 
 test("compact Cartography panel keeps guidance progressively disclosed", () => {
   const controls = readFileSync(
-    "src/renderer/cartography-spike/overlay-controls.ts",
+    "app/renderer/cartography-spike/overlay-controls.ts",
     "utf8",
   );
   assert.doesNotMatch(controls, /cartography-overlay-hint|Hold <kbd>|Numbers: solid/u);

@@ -14,8 +14,8 @@ import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 
-import { templatePath } from "../../src/renderer/template-store.js";
-import type { TemplateKind } from "../../src/renderer/template-format.js";
+import { templatePath } from "../../app/renderer/template-store.js";
+import type { TemplateKind } from "../../app/renderer/template-format.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -28,7 +28,7 @@ function directoryFor(kind: TemplateKind): string {
 
 test("the store writes to the directories the mount creates", async () => {
   const filesystem = await readFile(
-    path.join(root, "src/renderer/filesystem.ts"),
+    path.join(root, "app/renderer/filesystem.ts"),
     "utf8",
   );
 

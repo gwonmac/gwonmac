@@ -7,7 +7,7 @@ import { register } from "node:module";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { after, test } from "node:test";
-import type { GamePaths } from "../../src/main/paths.js";
+import type { GamePaths } from "../../app/main/paths.js";
 
 register(
   `data:text/javascript,${encodeURIComponent(
@@ -35,7 +35,7 @@ register(
 );
 
 const { applyPendingCacheClear, applyPendingGameStorageReset } =
-  await import("../../src/main/settings-actions.ts");
+  await import("../../app/main/settings-actions.ts");
 
 const root = await mkdtemp(path.join(tmpdir(), "gw-pending-markers-"));
 after(() => rm(root, { recursive: true, force: true }));

@@ -7,8 +7,8 @@ import { describe, it } from "node:test";
 import {
   companionFriendsSignature,
   readCompanionFriends,
-} from "../../src/renderer/companion-friend-snapshot.ts";
-import { COMPANION_ABI } from "../../src/shared/companion-abi.ts";
+} from "../../app/renderer/companion-friend-snapshot.ts";
+import { COMPANION_ABI } from "../../app/shared/companion-abi.ts";
 
 function snapshot(): ArrayBuffer {
   const buffer = new ArrayBuffer(COMPANION_ABI.friends.bytes);

@@ -6,13 +6,13 @@ import {
   PAINTED_SURFACES,
   appearanceVariables,
   applyAppearance,
-} from "../../src/renderer/appearance.js";
-import { accessibleForeground, compositeColor, contrastRatio, customThemeReadable, parseRgb, readableForeground, readableSharedForeground, renderedCustomTheme } from "../../src/shared/ui-color.js";
+} from "../../app/renderer/appearance.js";
+import { accessibleForeground, compositeColor, contrastRatio, customThemeReadable, parseRgb, readableForeground, readableSharedForeground, renderedCustomTheme } from "../../app/shared/ui-color.js";
 import {
   DEFAULT_SETTINGS,
   type AppSettings,
-} from "../../src/shared/contracts.js";
-import { defaultCustomUiTheme, type UiThemeColor } from "../../src/shared/ui-theme.js";
+} from "../../app/shared/contracts.js";
+import { defaultCustomUiTheme, type UiThemeColor } from "../../app/shared/ui-theme.js";
 
 /* Where text sits over the game: the panel over snow and over a black scene,
  * each with and without the accent hover layer. */
@@ -181,7 +181,7 @@ describe("appearance settings", () => {
 
 describe("panel text legibility over the game", () => {
   it("measures the inks tokens.css actually paints", () => {
-    const css = readFileSync(new URL("../../src/shared/ui/tokens.css", import.meta.url), "utf8");
+    const css = readFileSync(new URL("../../app/shared/ui/tokens.css", import.meta.url), "utf8");
     const block = (selector: string) => css.slice(css.indexOf(`${selector} {`), css.indexOf("\n}", css.indexOf(`${selector} {`)));
     const hex = (value: string): string => {
       const oklch = /oklch\(([\d.]+) ([\d.]+) ([\d.]+)/u.exec(value);

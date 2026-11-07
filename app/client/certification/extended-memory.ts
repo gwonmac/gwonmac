@@ -14,18 +14,18 @@ import {
   enhancementCapabilitiesForProfile,
   type EnhancementCapabilityProfile,
 } from "../../shared/enhancement-contracts.js";
-import { writeAtomic, writeAtomicJson } from "../core/atomic-file.js";
+import { writeAtomic, writeAtomicJson } from "../../main/core/atomic-file.js";
 import {
   readPublishedClientManifest,
   verifyPublishedClientArtifacts,
   type PublishedClientManifest,
-} from "../core/published-client.js";
-import { verifyChunkHash } from "../core/chunk-format.js";
-import { clientManifestPath } from "../core/paths.js";
+} from "../published-client.js";
+import { verifyChunkHash } from "../../main/core/chunk-format.js";
+import { clientManifestPath } from "../../main/core/paths.js";
 import {
   readUleb,
   uleb,
-} from "../core/wasm-binary.js";
+} from "../../main/core/wasm-binary.js";
 
 declare const WebAssembly: { validate(bytes: Uint8Array): boolean };
 

@@ -7,7 +7,7 @@
  * description text come from the archive's language shards via
  * `skill-strings.ts`. Icons come from the archive as DXTL textures. The
  * archive's own compression and texture codec are the vendored decoder in
- * `src/native/gw-dat/`, which is spawned per asset.
+ * `app/native/gw-dat/`, which is spawned per asset.
  *
  * ## Nothing is redistributed and nothing is extracted twice
  *
@@ -33,7 +33,7 @@ import { createHash } from "node:crypto";
 import path from "node:path";
 import { mapPool } from "./async-pool.js";
 import { sweepOrphans, writeAtomic } from "./atomic-file.js";
-import type { ChunkStore } from "./chunk-store.js";
+import type { ChunkStore } from "../../client/chunk-store.js";
 import {
   fileIdIndex,
   findStream,
@@ -233,7 +233,7 @@ interface Extracted {
  * the shape changes — is the mechanism that actually retires a stale file.
  *
  * The renderer validates every record it receives regardless
- * (`apps/tools/src/host.ts`), because that boundary does not trust this one.
+ * (`app/ui/tools/src/host.ts`), because that boundary does not trust this one.
  */
 function readExtracted(value: unknown): Extracted | null {
   if (typeof value !== "object" || value === null) return null;

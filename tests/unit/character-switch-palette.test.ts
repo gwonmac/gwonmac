@@ -5,8 +5,8 @@ import {
   numberedCharacterPosition,
   characterRows,
   searchCharacters,
-} from "../../src/renderer/character-switch-palette.js";
-import type { CharacterSummary } from "../../src/renderer/companion-character-list-snapshot.js";
+} from "../../app/renderer/character-switch-palette.js";
+import type { CharacterSummary } from "../../app/renderer/companion-character-list-snapshot.js";
 
 const character = (
   name: string,

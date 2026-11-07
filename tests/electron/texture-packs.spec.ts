@@ -2,8 +2,8 @@
 import { expect, test } from "@playwright/test";
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
-import { gamePaths } from "../../src/main/core/paths.js";
-import { TexturePackManager } from "../../src/main/core/texture-pack-manager.js";
+import { gamePaths } from "../../app/main/core/paths.js";
+import { TexturePackManager } from "../../app/main/core/texture-pack-manager.js";
 import { tinyTpf } from "../helpers/tpf-fixture.js";
 import { closeOffline, launchCachedClient, openSettings } from "./fixtures.mjs";
 

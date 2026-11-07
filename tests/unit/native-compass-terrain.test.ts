@@ -1,9 +1,9 @@
 /** Verifies tile stability, bounded uploads and renderer cleanup without a live client. */
 import assert from "node:assert/strict";
-import { CARTOGRAPHY_BUILTIN_PRESETS } from "../../src/shared/cartography-overlay.js";
+import { CARTOGRAPHY_BUILTIN_PRESETS } from "../../app/shared/cartography-overlay.js";
 import test from "node:test";
-import { createNativeCompassTerrainLayer, nativeCompassTerrainTile, type NativeCompassTerrainInput } from "../../src/renderer/cartography-spike/native-compass-terrain-layer.js";
-import { NATIVE_COMPASS_TERRAIN_HEADER_BYTES, NATIVE_COMPASS_TERRAIN_MAGIC } from "../../src/shared/native-compass-terrain.js";
+import { createNativeCompassTerrainLayer, nativeCompassTerrainTile, type NativeCompassTerrainInput } from "../../app/renderer/cartography-spike/native-compass-terrain-layer.js";
+import { NATIVE_COMPASS_TERRAIN_HEADER_BYTES, NATIVE_COMPASS_TERRAIN_MAGIC } from "../../app/shared/native-compass-terrain.js";
 
 test("nearby camera motion reuses a bounded terrain tile with a full Compass margin", () => {
   const input = {cameraX: 0, cameraY: 0, width: 245, height: 245, scaleX: 1, scaleY: 1, dpr: 2};

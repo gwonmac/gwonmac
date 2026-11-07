@@ -1,12 +1,12 @@
 /** Execute retained event delivery to distinguish queued login completion from processed updates. */
 import assert from "node:assert/strict";
-import type { FriendObserverCertificate } from "../../src/main/certification/friend-observer-certificate.js";
-import { wasmEvidence } from "../../src/main/certification/wasm-evidence.js";
+import type { FriendObserverCertificate } from "../../app/client/certification/friend-observer-certificate.js";
+import { wasmEvidence } from "../../app/client/certification/wasm-evidence.js";
 import { november3Index } from "./retained-client.js";
 import {
   concat, encodeCode, encodeIndexVector, encodeSection, parseExports,
   sectionById, sleb, splitSections, uleb, WASM_HEADER,
-} from "../../src/main/core/wasm-binary.js";
+} from "../../app/main/core/wasm-binary.js";
 
 const NOVEMBER_3_SHA256 = "b19f16fd415b2bdef6701921921ef3c7eaf40ca03b95385d4ac2ba8624dead98";
 const INPUT_SHA256 = "1eb07332632e2fca8aabf5baa14fa1a1e6a2a59ec7134dfb8f6231d924c9fd7b";
