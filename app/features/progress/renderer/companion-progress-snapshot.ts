@@ -6,10 +6,10 @@
  * malformed or non-PvE publication withdraws progress instead of showing
  * an empty record.
  */
-import { COMPANION_ABI } from "../shared/companion-abi.js";
-import type { AreaRow, GameProgressState, ProgressBits } from "../shared/game-progress.js";
-import { createCompanionRegionInstallation } from "./companion-region-installation.js";
-import { CONTINUOUS_COMPANION_FRESHNESS } from "./companion-sequence-feed.js";
+import { COMPANION_ABI } from "../../../shared/companion-abi.js";
+import type { AreaRow, GameProgressState, ProgressBits } from "../../../shared/game-progress.js";
+import { createCompanionRegionInstallation } from "../../../renderer/companion-region-installation.js";
+import { CONTINUOUS_COMPANION_FRESHNESS } from "../../../renderer/companion-sequence-feed.js";
 
 const ABI = COMPANION_ABI.progress;
 const MAGIC = 0x5047_5747;

@@ -7,7 +7,7 @@ import { COMPANION_FEATURE_BITS } from "../../shared/companion-abi.js";
 import {
   createCompanionProgressReader,
   createProgressObservationInstallation,
-} from "../../renderer/companion-progress-snapshot.js";
+} from "./renderer/companion-progress-snapshot.js";
 import { EMPTY_REGION, type ToolsCompanionPart } from "../../renderer/tools-companion-part.js";
 import travel from "../travel/companion.js";
 
