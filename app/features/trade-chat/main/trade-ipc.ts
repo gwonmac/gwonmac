@@ -4,22 +4,22 @@
  * Trade lifecycle cleanup remains beside subscription registration so a
  * destroyed renderer cannot retain a process-wide feed subscription.
  */
-import { IPC } from "../shared/contracts.js";
-import { AllowlistError, ValidationError } from "../shared/errors.js";
+import { IPC } from "../../../shared/contracts.js";
+import { AllowlistError, ValidationError } from "../../../shared/errors.js";
 import {
   parseTraderPriceHistoryRequest,
   parseTradeSavedState,
   parseTradeSearchRequest,
   parseTradeSource,
   type TradeSavedState,
-} from "../shared/trade-chat.js";
-import type { TradeChatService } from "./core/trade-chat-service.js";
+} from "../../../shared/trade-chat.js";
+import type { TradeChatService } from "./trade-chat-service.js";
 import {
   channel,
   sendIfLive,
   type AnyChannelDef,
   type Parser,
-} from "./ipc-channel-registry.js";
+} from "../../../main/ipc-channel-registry.js";
 
 export type TradeInvokeChannel =
   | "tradeSubscribe"

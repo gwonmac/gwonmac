@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { extractMarketObservations, estimateMarketRates, MARKET_MAX_AGE_MS, type MarketSnapshot } from '../../app/shared/market-rates.js';
 import { formatFraction } from '../../app/shared/hub-calculator.js';
-import { TradeChatService } from '../../app/main/core/trade-chat-service.js';
+import { TradeChatService } from '../../app/features/trade-chat/main/trade-chat-service.js';
 import { createHubCalculator } from '../../app/renderer/hub-calculator.js';
 /** Calculator rows copy without navigating, so any live task serves. */
 const task: import('../../app/shared/hub.js').HubTask = { live: () => true, progress() {}, done() {} };

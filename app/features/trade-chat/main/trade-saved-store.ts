@@ -7,10 +7,10 @@ import {
   EMPTY_TRADE_SAVED_STATE,
   parseTradeSavedState,
   type TradeSavedState,
-} from "../../shared/trade-chat.js";
-import { writeAtomicJson } from "./atomic-file.js";
-import { quarantineCorruptDocument } from "./corrupt-document.js";
-import { Mutex } from "./mutex.js";
+} from "../../../shared/trade-chat.js";
+import { writeAtomicJson } from "../../../main/core/atomic-file.js";
+import { quarantineCorruptDocument } from "../../../main/core/corrupt-document.js";
+import { Mutex } from "../../../main/core/mutex.js";
 
 export class TradeSavedStore {
   private readonly mutex = new Mutex();
