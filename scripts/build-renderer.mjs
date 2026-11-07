@@ -49,19 +49,44 @@ const typescript = {
   },
 };
 
+/**
+ * app/shared freezes its tables where it declares them. Rollup cannot tell
+ * that freezing a fresh value has no other effect, so it keeps every table a
+ * preload's modules declare. Marking only those declaration-time freezes pure
+ * lets an unused table leave the bundle; the Core preload must not contain the
+ * Tools channels at all. A freeze whose result is unused, like the bridge's
+ * own, is untouched: a pure call with an unused result would be dropped.
+ *
+ * @param {string} root repository root
+ * @returns {import("rollup").Plugin}
+ */
+function sharedTablesArePure(root) {
+  const shared = path.resolve(root, "app/shared") + path.sep;
+  return {
+    name: "shared-tables-are-pure",
+    transform(code, id) {
+      if (!id.startsWith(shared)) return null;
+      return {
+        code: code.replace(/(=\s*)Object\.freeze\(/gu, "$1/* @__PURE__ */ Object.freeze("),
+        map: null,
+      };
+    },
+  };
+}
+
 /** @param {string} entry @param {string} [root] repository root */
 function preloadBuild(entry, root = process.cwd()) {
   return rollup({
     input: path.resolve(root, entry),
-    plugins: [typescript],
+    plugins: [typescript, sharedTablesArePure(root)],
     // The one module the sandbox loader provides. Anything else unresolved is
     // a module the sandbox cannot load, so it fails the build here.
     external: ["electron"],
-    // A preload carries only what it uses. app/shared builds and freezes its
-    // tables at module level, which Rollup must otherwise assume has effects,
-    // and the Core preload must not contain the Tools channels at all. No
-    // app/shared module is imported for its side effects.
-    treeshake: { moduleSideEffects: false, manualPureFunctions: ["Object.freeze"] },
+    // A preload carries only what it uses: no app/shared module is imported
+    // for its side effects, so one whose exports a preload does not use leaves
+    // the bundle. Do not declare `Object.freeze` pure here: Rollup would then
+    // drop every freeze whose result is unused, the bridge's own included.
+    treeshake: { moduleSideEffects: false },
     onwarn(warning) {
       throw new Error(`preload bundle ${entry}: ${warning.message}`);
     },
