@@ -7,8 +7,8 @@ import {
   drawUnseenCellMarker,
   strokeCasedPath,
   type CellCorners,
-} from "../../app/renderer/cartography-spike/cartography-paint.js";
-import { cartographyCellPresentation } from "../../app/renderer/cartography-spike/cartography-grid-layer.js";
+} from "../../app/features/cartography/renderer/cartography-paint.js";
+import { cartographyCellPresentation } from "../../app/features/cartography/renderer/cartography-grid-layer.js";
 
 class RecordingContext {
   readonly strokes: Readonly<{ color: unknown; width: number; dash: readonly number[] }>[] = [];

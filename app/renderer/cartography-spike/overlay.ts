@@ -18,48 +18,48 @@ import {
   type CartographyModelSources,
   type CartographyPresentation,
   type CartographyState,
-} from "./cartography-model.js";
+} from "../../features/cartography/renderer/cartography-model.js";
 import {
   createCartographyGridLayer,
   type CartographyGridLayerSnapshot,
-} from "./cartography-grid-layer.js";
+} from "../../features/cartography/renderer/cartography-grid-layer.js";
 import {
   cartographyCellAtScreenPoint,
   projectCartographyGridToMissionMap,
   projectCartographyGridToWorldMap,
-} from "./cartography-grid-projection.js";
-import { cartographyHoverRevealRadius } from "./cartography-paint.js";
-import { projectMissionMapFrame, projectNativeFrame } from "./frame-placement.js";
-import { createInverseMaskLayer } from "./inverse-mask-layer.js";
-import { nativeMapTileProjection, nativeMapHoverProjection } from "./native-map-tile.js";
-import type { createNativeCompassRangesLayer } from "./native-compass-ranges-layer.js";
-import type { NativeMapGraphicsLayer } from "./native-map-graphics-layer.js";
-import type { NativeCompassTerrainLayer } from "./native-compass-terrain-layer.js";
+} from "../../features/cartography/renderer/cartography-grid-projection.js";
+import { cartographyHoverRevealRadius } from "../../features/cartography/renderer/cartography-paint.js";
+import { projectMissionMapFrame, projectNativeFrame } from "../../features/cartography/renderer/frame-placement.js";
+import { createInverseMaskLayer } from "../../features/cartography/renderer/inverse-mask-layer.js";
+import { nativeMapTileProjection, nativeMapHoverProjection } from "../../features/cartography/renderer/native-map-tile.js";
+import type { createNativeCompassRangesLayer } from "../../features/cartography/renderer/native-compass-ranges-layer.js";
+import type { NativeMapGraphicsLayer } from "../../features/cartography/renderer/native-map-graphics-layer.js";
+import type { NativeCompassTerrainLayer } from "../../features/cartography/renderer/native-compass-terrain-layer.js";
 import {
   projectMissionMapContentBox,
-} from "./map-projections.js";
-import { captureCartographyEvidence } from "./evidence-capture.js";
+} from "../../features/cartography/renderer/map-projections.js";
+import { captureCartographyEvidence } from "../../features/cartography/renderer/evidence-capture.js";
 import {
   createCartographyOverlayControls,
   type CartographyQaStatus,
-} from "./overlay-controls.js";
+} from "../../features/cartography/renderer/overlay-controls.js";
 import {
   createCompassRangeControls,
   visibleCompassRanges,
-} from "./compass-range-controls.js";
+} from "../../features/cartography/renderer/compass-range-controls.js";
 import type { CompassRangeId } from "../../shared/compass-ranges.js";
 import {
   createCompassRangeLayer,
   type CompassRangeLayerSnapshot,
-} from "./compass-range-layer.js";
+} from "../../features/cartography/renderer/compass-range-layer.js";
 import {
   createWalkableTerrainSurface,
   type WalkableTerrainSurface,
-} from "./walkable-terrain-surface.js";
+} from "../../features/cartography/renderer/walkable-terrain-surface.js";
 import {
   cartographyKnowledgeWordsFingerprint,
   mergeCartographyMapKnowledge,
-} from "./map-knowledge.js";
+} from "../../features/cartography/renderer/map-knowledge.js";
 
 const MODEL_POLL_MS = 200;
 

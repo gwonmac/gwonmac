@@ -2,7 +2,7 @@
  * Owns the confirmed, fixed Resign command for one active Tools generation.
  * The certified game mailbox performs submission without touching chat input.
  */
-import { createResignDialog, type ResignHandoff } from "./resign-dialog.js";
+import { createResignDialog, type ResignHandoff } from "../features/resign/renderer/resign-dialog.js";
 import { featureActivationRequested } from "../shared/feature-contracts.js";
 import { matchHubRows, type HubSource } from "../shared/hub.js";
 

@@ -63,7 +63,7 @@ export const KERNELS = Object.freeze({
     source: "kernels/reachability/lib.rs",
     candidate: `${CARGO_OUTPUT}/reachability_kernel.wasm`,
     artifact: "build/renderer/cartography-reachability-kernel.wasm",
-    loader: "build/renderer/cartography-spike/reachability-kernel.js",
+    loader: "build/renderer/features/cartography/renderer/reachability-kernel.js",
     binding: "CARTOGRAPHY_REACHABILITY_SEALED_SHA256",
     validate: validateCartographyReachabilityKernelContract,
   },

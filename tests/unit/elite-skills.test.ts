@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 import { ELITE_LOCATIONS } from "../../app/shared/elite-locations.js";
-import { EliteTrackingStore } from "../../app/main/core/elite-tracking.js";
+import { EliteTrackingStore } from "../../app/features/cartography/main/elite-tracking.js";
 import {
   DEFAULT_ELITE_VIEW, EMPTY_ELITE_TRACKING, changeEliteTracking, eliteContinent, eliteLearned, parseEliteTracking, parseEliteUpdate,
 } from "../../app/shared/elite-skills.js";

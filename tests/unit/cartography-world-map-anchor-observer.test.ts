@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createWorldMapAnchorSpikeReader } from
-  "../../app/renderer/cartography-spike/world-map-anchor-observer.js";
+  "../../app/features/cartography/renderer/world-map-anchor-observer.js";
 import { WORLD_MAP_ANCHOR_SPIKE_GLOBALS } from
   "../../app/shared/cartography-spike.js";
 

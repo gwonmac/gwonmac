@@ -14,16 +14,16 @@ import {
   isCartographyProgressSupported,
   type CartographyModelSources,
   type GridCell,
-} from "../../app/renderer/cartography-spike/cartography-model.js";
+} from "../../app/features/cartography/renderer/cartography-model.js";
 import type {
   CartographyReachabilityController,
   CartographyReachabilitySnapshot,
-} from "../../app/renderer/cartography-spike/reachability-kernel.js";
-import { captureCartographyEvidence } from "../../app/renderer/cartography-spike/evidence-capture.js";
+} from "../../app/features/cartography/renderer/reachability-kernel.js";
+import { captureCartographyEvidence } from "../../app/features/cartography/renderer/evidence-capture.js";
 import {
   TOOLBOX_CARTOGRAPHY_CONTINENTS,
   isToolboxCreditableCell,
-} from "../../app/renderer/cartography-spike/toolbox-cartography-data.js";
+} from "../../app/features/cartography/renderer/toolbox-cartography-data.js";
 
 const MAP_ID = 650;
 const AREA_EPOCH = 7;

@@ -2,12 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   projectCompassControlPosition,
-} from "../../app/renderer/cartography-spike/compass-control-placement.js";
+} from "../../app/features/cartography/renderer/compass-control-placement.js";
 import {
   compassRangeAtPoint,
   projectCompassRangeIndicators,
-} from "../../app/renderer/cartography-spike/compass-range-layer.js";
-import { visibleCompassRanges } from "../../app/renderer/cartography-spike/compass-range-controls.js";
+} from "../../app/features/cartography/renderer/compass-range-layer.js";
+import { visibleCompassRanges } from "../../app/features/cartography/renderer/compass-range-controls.js";
 import { COMPASS_RANGE_INDICATORS } from "../../app/shared/compass-ranges.js";
 import { DEFAULT_SETTINGS } from "../../app/shared/contracts.js";
 

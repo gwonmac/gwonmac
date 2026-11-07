@@ -3,7 +3,7 @@ import test from "node:test";
 import {
   TOOLBOX_CARTOGRAPHY_CONTINENTS,
   TOOLBOX_CARTOGRAPHY_SOURCE,
-} from "../../app/renderer/cartography-spike/toolbox-cartography-data.js";
+} from "../../app/features/cartography/renderer/toolbox-cartography-data.js";
 
 test("bundles the exact minimal GWToolbox++ reachable cartography masks", () => {
   assert.deepEqual(TOOLBOX_CARTOGRAPHY_SOURCE, {

@@ -5,8 +5,8 @@
 import {
   clearCartographyPlayerState,
   updateCartographyPlayerState,
-} from "../../renderer/cartography-player-state.js";
-import { createEliteMapInstallation } from "../../renderer/elite-map-installation.js";
+} from "./renderer/cartography-player-state.js";
+import { createEliteMapInstallation } from "./renderer/elite-map-installation.js";
 import type { ToolsCompanionPart } from "../../renderer/tools-companion-part.js";
 
 export default {
