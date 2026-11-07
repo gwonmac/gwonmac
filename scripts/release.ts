@@ -11,8 +11,8 @@
 //
 // `pnpm release:test` (scripts/test-draft-release.ts) is the consumer of the
 // draft made here and reads the same version rule and asset list. Every GitHub
-// call goes through an injected runner, so tests/unit/release.test.ts drives
-// each refusal offline and feeds the draft this module creates into the
+// call goes through an injected runner, so tests/unit/release-workflow.test.ts
+// drives each refusal offline and feeds the draft this module creates into the
 // consumer's own check.
 import { spawnSync } from "node:child_process";
 import {

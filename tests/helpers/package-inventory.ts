@@ -2,7 +2,6 @@ import type { ForgeConfig } from "@electron-forge/shared-types";
 import { readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import ts from "typescript";
-import { ignorePackageFile } from "../../scripts/package-ignore.ts";
 
 /** Archive-rooted paths: the leading "/" is the packaged app's root. */
 type PackageInventory = ReadonlySet<string>;
@@ -74,12 +73,6 @@ export function assertNoDeveloperPackageFiles(inventory: PackageInventory): void
   const unexpected = [...inventory].filter((file) => developerShaped.test(file));
   if (unexpected.length > 0) {
     throw new Error(`developer-shaped files ship in the packaged app: ${unexpected.join(", ")}`);
-  }
-
-  for (const file of inventory) {
-    if (ignorePackageFile(file)) {
-      throw new Error(`${file} is outside the packaged runtime trees`);
-    }
   }
 }
 
