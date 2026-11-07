@@ -186,8 +186,11 @@ locator already meets the final relocation-resistant bar. At verifier ABI 10:
   - the native render family (HUD draw ownership) binds function indices and
     static addresses;
   - pathing families bind function indices;
-  - Cartography memory layouts are compiled into the reachability kernel, so
-    a new layout changes the kernel;
+  - a Cartography layout's context root and agent array live in
+    `CARTOGRAPHY_LAYOUT_ROOTS` (`app/shared/cartography-spike.ts`), keyed by
+    the layout id the derived client publishes. The reachability kernel
+    receives them at install, so a new layout no longer changes the kernel,
+    but it still needs a new id and roots there, so a release;
   - friend lifecycle role families feed `FRIEND_OBSERVER_SEMANTIC_SHA256`,
     which the renderer pins;
   - template saving's `MOVED_CALLEES` (in `template-save-callee-proof.ts`)
