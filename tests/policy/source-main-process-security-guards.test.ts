@@ -39,7 +39,7 @@ test("IPC still refuses a sender that is not the main frame at the canonical URL
 });
 
 test("production resolves native windows only through the window registry", () => {
-  const sources = sourceFiles(path.join(root, "app/main"));
+  const sources = [...sourceFiles(path.join(root, "app/main")), ...sourceFiles(path.join(root, "app/features"))];
   for (const file of sources) {
     const source = readFileSync(file, "utf8");
     assert.doesNotMatch(source, /BrowserWindow\.(?:getAllWindows|getFocusedWindow|fromWebContents)\(/u, file);

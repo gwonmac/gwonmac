@@ -12,11 +12,15 @@ import ts from "typescript";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const sourceRoot = path.join(root, "app/main");
+const featureRoot = path.join(root, "app/features");
 
+// app/main plus the main-process half of every feature folder: everything in
+// app/features except companion.ts, companion-parts.ts and renderer/.
 function mainSources(at = sourceRoot): string[] {
   return readdirSync(at, { withFileTypes: true }).flatMap((entry) => {
     const full = path.join(at, entry.name);
-    if (entry.isDirectory()) return mainSources(full);
+    if (entry.isDirectory()) return entry.name === "renderer" && full.startsWith(featureRoot) ? [] : mainSources(full);
+    if (at.startsWith(featureRoot) && (entry.name === "companion.ts" || entry.name === "companion-parts.ts")) return [];
     return entry.name.endsWith(".ts") && !entry.name.endsWith(".d.ts")
       ? [full]
       : [];
@@ -78,12 +82,12 @@ function resolvedSource(importer: string, specifier: string): string | null {
     ? [target.replace(/\.js$/u, ".ts")]
     : [target, `${target}.ts`, path.join(target, "index.ts")];
   return candidates.find((candidate) =>
-    candidate.startsWith(`${sourceRoot}${path.sep}`)
+    (candidate.startsWith(`${sourceRoot}${path.sep}`) || candidate.startsWith(`${featureRoot}${path.sep}`))
     && existsSync(candidate)) ?? null;
 }
 
 function runtimeGraph(): ReadonlyMap<string, readonly string[]> {
-  const sources = mainSources();
+  const sources = [...mainSources(), ...mainSources(featureRoot)];
   const graph = new Map<string, readonly string[]>();
   for (const file of sources) {
     graph.set(file, runtimeSpecifiers(readFileSync(file, "utf8"), file)
