@@ -90,11 +90,13 @@ export function askLeaveArea(hub: LeaveAreaHub, copy: LeaveAreaCopy, leave: () =
       stayButton.type = "button";
       stayButton.className = "ui-button";
       stayButton.id = "leave-area-stay";
+      stayButton.dataset.focusKey = stayButton.id;
       stayButton.textContent = "Stay here";
       const leaveButton = doc.createElement("button");
       leaveButton.type = "button";
       leaveButton.className = "ui-button";
       leaveButton.id = "leave-area-leave";
+      leaveButton.dataset.focusKey = leaveButton.id;
       leaveButton.dataset.variant = "danger";
       leaveButton.textContent = copy.leave;
       actions.append(stayButton, leaveButton);

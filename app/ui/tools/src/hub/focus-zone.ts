@@ -39,16 +39,19 @@ export type FocusZoneHost = Readonly<{
 }>;
 export const FOCUS_ZONE_HOST: InjectionKey<FocusZoneHost> = Symbol('hub focus zones');
 
-const IDENTITY = ['id', 'data-character-key', 'data-section', 'data-setting-label', 'aria-label'] as const;
+/** How the launcher's Settings page names its controls: a section, a control's id or its label. */
+const SETTINGS_IDENTITY = ['id', 'data-section', 'aria-label'] as const;
 /**
- * A control's stable name across redraws and remounts. Hub controls name themselves with
- * `data-focus-key`; a view the kit does not draw yet is named by the identity it already
- * carries, and a settings control by the setting row it belongs to (docs/settings.md).
+ * A control's stable name across redraws and remounts: every Hub view names its controls with
+ * `data-focus-key`, and a control without one has no name. The launcher's Settings page, which
+ * the Hub hosts but does not draw, keeps its own names inside the Settings host: the identity a
+ * control already carries, else the setting row it belongs to (docs/settings.md).
  */
 export function focusKeyOf(element: Element): string | null {
   const own = element.getAttribute('data-focus-key');
   if (own) return own;
-  for (const attribute of IDENTITY) {
+  if (!element.closest('.hub-settings-host')) return null;
+  for (const attribute of SETTINGS_IDENTITY) {
     const value = element.getAttribute(attribute);
     if (value) return `${attribute}=${value}`;
   }

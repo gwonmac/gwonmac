@@ -33,7 +33,7 @@
       <span aria-hidden="true" class="hub-progress">
       <div aria-hidden="true" class="hub-search-glyphs" hidden="">
     <div class="hub-rate-controls" hidden="">
-    <div aria-busy="false" aria-label="Results" class="hub-results ui-scroll" hidden="" id="hub-results" role="listbox" tabindex="-1">
+    <div aria-busy="false" aria-label="Results" class="hub-results ui-scroll" data-focus-key="results" hidden="" id="hub-results" role="listbox" tabindex="-1">
       <div aria-labelledby="hub-group-0" role="group">
         <div class="hub-group" id="hub-group-0" role="presentation">
           "Commands"
@@ -127,7 +127,7 @@
         <kbd aria-hidden="true" class="ui-kbd">
           "J"
     <div aria-label="Actions" class="hub-menu" hidden="" role="menu">
-    <button aria-label="Resize Hub" class="ui-window-resize hub-resize" hidden="" title="Drag to resize, or use arrow keys">
+    <button aria-label="Resize Hub" class="ui-window-resize hub-resize" data-focus-key="resize" hidden="" title="Drag to resize, or use arrow keys">
 <div aria-hidden="true" class="hub-receipt ui-toast" hidden="" popover="manual">
 <p aria-atomic="true" class="hub-receipt-announcement ui-sr-only" role="status">
 
@@ -166,7 +166,7 @@
       <span aria-hidden="true" class="hub-progress">
       <div aria-hidden="true" class="hub-search-glyphs" hidden="">
     <div class="hub-rate-controls" hidden="">
-    <div aria-busy="false" aria-label="Results" class="hub-results ui-scroll" hidden="" id="hub-results" role="listbox" tabindex="-1">
+    <div aria-busy="false" aria-label="Results" class="hub-results ui-scroll" data-focus-key="results" hidden="" id="hub-results" role="listbox" tabindex="-1">
       <div aria-labelledby="hub-group-0" role="group">
         <div class="hub-group" id="hub-group-0" role="presentation">
           "Commands"
@@ -260,7 +260,7 @@
         <kbd aria-hidden="true" class="ui-kbd">
           "J"
     <div aria-label="Actions" class="hub-menu" hidden="" role="menu">
-    <button aria-label="Resize Hub" class="ui-window-resize hub-resize" hidden="" title="Drag to resize, or use arrow keys">
+    <button aria-label="Resize Hub" class="ui-window-resize hub-resize" data-focus-key="resize" hidden="" title="Drag to resize, or use arrow keys">
 <div aria-hidden="true" class="hub-receipt ui-toast" hidden="" popover="manual">
 <p aria-atomic="true" class="hub-receipt-announcement ui-sr-only" role="status">
 
@@ -299,7 +299,7 @@
       <span aria-hidden="true" class="hub-progress">
       <div aria-hidden="true" class="hub-search-glyphs" hidden="">
     <div class="hub-rate-controls" hidden="">
-    <div aria-busy="false" aria-label="Results" class="hub-results ui-scroll" hidden="" id="hub-results" role="listbox" tabindex="-1">
+    <div aria-busy="false" aria-label="Results" class="hub-results ui-scroll" data-focus-key="results" hidden="" id="hub-results" role="listbox" tabindex="-1">
       <div aria-labelledby="hub-group-0" role="group">
         <div class="hub-group" id="hub-group-0" role="presentation">
           "Commands"
@@ -393,7 +393,7 @@
         <kbd aria-hidden="true" class="ui-kbd">
           "J"
     <div aria-label="Actions" class="hub-menu" hidden="" role="menu">
-    <button aria-label="Resize Hub" class="ui-window-resize hub-resize" hidden="" title="Drag to resize, or use arrow keys">
+    <button aria-label="Resize Hub" class="ui-window-resize hub-resize" data-focus-key="resize" hidden="" title="Drag to resize, or use arrow keys">
 <div aria-hidden="true" class="hub-receipt ui-toast" hidden="" popover="manual">
 <p aria-atomic="true" class="hub-receipt-announcement ui-sr-only" role="status">
 
@@ -432,7 +432,7 @@
       <span aria-hidden="true" class="hub-progress">
       <div aria-hidden="true" class="hub-search-glyphs" hidden="">
     <div class="hub-rate-controls" hidden="">
-    <div aria-busy="false" aria-label="Results" class="hub-results ui-scroll" hidden="" id="hub-results" role="listbox" tabindex="-1">
+    <div aria-busy="false" aria-label="Results" class="hub-results ui-scroll" data-focus-key="results" hidden="" id="hub-results" role="listbox" tabindex="-1">
       <div aria-labelledby="hub-group-0" role="group">
         <div class="hub-group" id="hub-group-0" role="presentation">
           "Commands"
@@ -527,6 +527,6 @@
         <kbd aria-hidden="true" class="ui-kbd">
           "J"
     <div aria-label="Actions" class="hub-menu" hidden="" role="menu">
-    <button aria-label="Resize Hub" class="ui-window-resize hub-resize" hidden="" title="Drag to resize, or use arrow keys">
+    <button aria-label="Resize Hub" class="ui-window-resize hub-resize" data-focus-key="resize" hidden="" title="Drag to resize, or use arrow keys">
 <div aria-hidden="true" class="hub-receipt ui-toast" hidden="" popover="manual">
 <p aria-atomic="true" class="hub-receipt-announcement ui-sr-only" role="status">

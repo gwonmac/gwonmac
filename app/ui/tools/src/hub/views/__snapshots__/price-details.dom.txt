@@ -40,7 +40,7 @@
           "g"
         <img alt="" data-unit="armbrace" src="app/shared/images/currency/Armbrace_of_Truth.png" style="left: 10px;">
         <img alt="" data-unit="gold" src="app/shared/images/currency/Gold.png" style="left: 10px;">
-    <div aria-busy="false" aria-label="Results" class="hub-results ui-scroll" hidden="" id="hub-results" role="listbox" tabindex="-1">
+    <div aria-busy="false" aria-label="Results" class="hub-results ui-scroll" data-focus-key="results" hidden="" id="hub-results" role="listbox" tabindex="-1">
       <div aria-labelledby="hub-group-0" role="group">
         <div class="hub-group" id="hub-group-0" role="presentation">
           "Calculator"
@@ -142,6 +142,6 @@
         <kbd aria-hidden="true" class="ui-kbd">
           "J"
     <div aria-label="Actions" class="hub-menu" hidden="" role="menu" style="bottom: 8px;">
-    <button aria-label="Resize Hub" class="ui-window-resize hub-resize" hidden="" title="Drag to resize, or use arrow keys">
+    <button aria-label="Resize Hub" class="ui-window-resize hub-resize" data-focus-key="resize" hidden="" title="Drag to resize, or use arrow keys">
 <div aria-hidden="true" class="hub-receipt ui-toast" hidden="" popover="manual">
 <p aria-atomic="true" class="hub-receipt-announcement ui-sr-only" role="status">

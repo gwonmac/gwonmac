@@ -23,7 +23,7 @@ const sections = computed(() => {
 
 <template>
   <div
-    id="hub-results" class="hub-results ui-scroll" :class="{ 'hub-preview-list': results.previewList }" role="listbox" aria-label="Results" tabindex="-1"
+    id="hub-results" data-focus-key="results" class="hub-results ui-scroll" :class="{ 'hub-preview-list': results.previewList }" role="listbox" aria-label="Results" tabindex="-1"
     :hidden="results.hidden" :aria-busy="busy"
   >
     <div v-for="section in sections" :key="section.id" role="group" :aria-labelledby="section.id">

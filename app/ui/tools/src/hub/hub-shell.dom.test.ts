@@ -94,7 +94,7 @@ test('the Hub keeps its DOM structure, classes, ARIA and focus in every main vie
   capture('build details view');
 
   const form: HubViewMount<HTMLElement> = (target, _back, footer) => {
-    const element = document.createElement('form'); element.innerHTML = '<label>Name <input aria-label="Name"></label>'; target.append(element);
+    const element = document.createElement('form'); element.innerHTML = '<label>Name <input aria-label="Name" data-focus-key="name"></label>'; target.append(element);
     footer.primary({ label: 'Save', run() {} }); footer.secondary({ label: 'Reset', run() {}, destructive: true });
     return () => element.remove();
   };
