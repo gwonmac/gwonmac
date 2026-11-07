@@ -87,11 +87,6 @@ import type {
 import type { CartographyMapKnowledge } from "./cartography-map-knowledge.js";
 import type { EnhancementSelection } from "./enhancement-contracts.js";
 import { RELEASE_REPO } from "./project-identity.js";
-import {
-  DEFAULT_UPDATE_TRACK,
-  UPDATE_TRACKS,
-  type UpdateTrack,
-} from "./release.js";
 import type {
   TradeEvent,
   TradeSearchRequest,
@@ -105,8 +100,6 @@ import type {
 } from "./trade-chat.js";
 
 export { RELEASE_REPO } from "./project-identity.js";
-export { DEFAULT_UPDATE_TRACK, UPDATE_TRACKS };
-export type { UpdateTrack };
 export type { TemplateExportEntry } from "./template-contracts.js";
 export type {
   AccountLaunchIssue,
@@ -518,13 +511,6 @@ export interface AppSettings {
    */
   autoCheckUpdates: boolean;
   /**
-   * Which release stages the one release updater may discover. This is a
-   * preference inside the `release` distribution identity, not a package or
-   * Keychain identity. Stable is the safe default; Beta additionally admits
-   * beta and release-candidate builds, never alpha builds.
-   */
-  updateTrack: UpdateTrack;
-  /**
    * When the last release-check attempt completed, in epoch milliseconds, or
    * `null` if one has never run. This records a settled attempt, not a claim
    * that a network request reached its destination.
@@ -682,7 +668,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
   showDiagnostics: false,
   dataStrategy: "full",
   autoCheckUpdates: true,
-  updateTrack: DEFAULT_UPDATE_TRACK,
   lastUpdateCheckAt: null,
   compatibilityNoticeSeenFor: null,
 };

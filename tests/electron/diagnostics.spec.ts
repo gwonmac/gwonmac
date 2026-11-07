@@ -14,6 +14,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 import type { ElectronApplication } from "@playwright/test";
+import { RELEASE_REPO_URL } from "../../src/shared/project-identity.ts";
 import {
   closeOffline,
   launchOffline,
@@ -593,8 +594,8 @@ test.describe("diagnostics", () => {
       await expect.poll(() => app.evaluate(() =>
         (globalThis as { __openedExternalUrls?: string[] }).__openedExternalUrls,
       )).toEqual([
-        "https://github.com/Mat4m0/gwonmac/issues/new?template=bug-report.yml",
-        "https://github.com/Mat4m0/gwonmac/issues/new?template=feature-request.yml",
+        `${RELEASE_REPO_URL}/issues/new?template=bug-report.yml`,
+        `${RELEASE_REPO_URL}/issues/new?template=feature-request.yml`,
       ]);
     } finally {
       await closeOffline(fixture);

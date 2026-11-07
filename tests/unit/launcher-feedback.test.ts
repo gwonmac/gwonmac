@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import { FEEDBACK_URL, sendLauncherFeedback } from "../../src/main/core/launcher-feedback.ts";
 import { parseLauncherFeedback } from "../../src/shared/launcher-contracts.ts";
 
-const context = { appVersion: "2026.10.0", updateTrack: "beta", macosVersion: "27.0" } as const;
+const context = { appVersion: "1.0.0", macosVersion: "27.0" } as const;
 
 describe("launcher feedback", () => {
   it("refuses a report main must not forward", () => {
@@ -38,8 +38,7 @@ describe("launcher feedback", () => {
     assert.deepEqual(Object.fromEntries(calls[0]!.init.body as URLSearchParams), {
       kind: "problem",
       message: "The launcher opened behind my game.",
-      appVersion: "2026.10.0",
-      updateTrack: "beta",
+      appVersion: "1.0.0",
       macosVersion: "27.0",
     });
   });

@@ -1,7 +1,7 @@
 {
   "name": "guild-wars",
   "productName": "Guild Wars Reforged",
-  "version": "2026.8.10",
+  "version": "1.0.0",
   "private": true,
   "packageManager": "pnpm@11.13.1",
   "type": "module",
@@ -9,10 +9,10 @@
   "license": "GPL-3.0-only",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Mat4m0/gwonmac.git"
+    "url": "https://github.com/gwonmac/gwonmac.git"
   },
   "bugs": {
-    "url": "https://github.com/Mat4m0/gwonmac/issues"
+    "url": "https://github.com/gwonmac/gwonmac/issues"
   },
   "main": "build/main/main.js",
   "engines": {

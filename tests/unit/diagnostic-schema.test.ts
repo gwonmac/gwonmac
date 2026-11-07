@@ -229,13 +229,13 @@ describe("asDigest", () => {
 });
 
 describe("asAppVersion", () => {
-  it("accepts the CalVer surface and its release stages", () => {
+  it("accepts the SemVer surface and its release stages", () => {
     for (const version of [
-      "2026.7.0",
-      "2026.7.1",
-      "2026.8.0-alpha.1",
-      "2026.8.0-beta.2",
-      "2026.8.0-rc.3",
+      "1.0.0",
+      "1.0.1",
+      "1.1.0-alpha.1",
+      "1.1.0-beta.2",
+      "1.1.0-rc.3",
     ]) {
       assert.equal(asAppVersion(version), version);
     }
@@ -243,8 +243,7 @@ describe("asAppVersion", () => {
 
   it("rejects free text and invalid leading-zero variants", () => {
     for (const version of [
-      "2026.07.01",
-      "0.0.1",
+      "1.07.01",
       "latest",
       "/Users/x/secret.txt",
     ]) {

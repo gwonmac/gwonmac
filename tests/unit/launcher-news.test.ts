@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { afterEach, describe, it } from "node:test";
 import { LauncherNewsService, PROJECT_NEWS_URL, WIKI_UPDATES_URL, parseProjectNewsFeed } from "../../src/main/core/launcher-news.js";
 import { DEFAULT_LAUNCHER_PREFERENCES } from "../../src/main/core/launcher-state.js";
+import { RELEASE_REPO_URL } from "../../src/shared/project-identity.js";
 
 const roots: string[] = [];
 afterEach(async () => Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))));
@@ -21,7 +22,7 @@ function feed(channel: "stable" | "beta" = "stable") {
       publishedAt: "2026-09-01T12:00:00Z",
       featured: true,
       url: "https://www.gwonmac.com/blog/release",
-      body: "Intro with **important text** and a [technical record](https://github.com/Mat4m0/gwonmac/releases/tag/v1).\n\n## Changes\n\n- First change\n\n![Screenshot](/blog/image.png)",
+      body: `Intro with **important text** and a [technical record](${RELEASE_REPO_URL}/releases/tag/v1).\n\n## Changes\n\n- First change\n\n![Screenshot](/blog/image.png)`,
     }],
   };
 }
@@ -52,18 +53,23 @@ describe("launcher news", () => {
     assert.throws(() => parseProjectNewsFeed(input), /not trusted/u);
   });
 
-  it("filters Beta notes and projects Markdown into safe typed blocks", async () => {
-    const root = await mkdtemp(join(tmpdir(), "gwonmac-news-"));
-    roots.push(root);
-    const cachePath = join(root, "news.json");
-    await writeFile(cachePath, JSON.stringify(feed("beta")));
-    const service = new LauncherNewsService({ cachePath, fetch: async () => { throw new Error("offline"); }, openExternal: async () => undefined });
-    await service.loadCache();
-    assert.equal(service.snapshot("stable", DEFAULT_LAUNCHER_PREFERENCES).stories.length, 0);
-    const beta = service.snapshot("beta", DEFAULT_LAUNCHER_PREFERENCES);
-    assert.equal(beta.status, "offline");
-    assert.deepEqual(beta.stories[0]?.body.map((block) => block.type), ["paragraph", "heading", "list", "image"]);
-    assert.equal((beta.stories[0]?.body[0] as { content: readonly { emphasis?: string }[] }).content[1]?.emphasis, "strong");
+  it("hides Beta notes and projects Markdown into safe typed blocks", async () => {
+    for (const channel of ["beta", "stable"] as const) {
+      const root = await mkdtemp(join(tmpdir(), "gwonmac-news-"));
+      roots.push(root);
+      const cachePath = join(root, "news.json");
+      await writeFile(cachePath, JSON.stringify(feed(channel)));
+      const service = new LauncherNewsService({ cachePath, fetch: async () => { throw new Error("offline"); }, openExternal: async () => undefined });
+      await service.loadCache();
+      const snapshot = service.snapshot(DEFAULT_LAUNCHER_PREFERENCES);
+      assert.equal(snapshot.status, "offline");
+      if (channel === "beta") {
+        assert.equal(snapshot.stories.length, 0);
+        continue;
+      }
+      assert.deepEqual(snapshot.stories[0]?.body.map((block) => block.type), ["paragraph", "heading", "list", "image"]);
+      assert.equal((snapshot.stories[0]?.body[0] as { content: readonly { emphasis?: string }[] }).content[1]?.emphasis, "strong");
+    }
   });
 
   it("drops an event once it has ended", async () => {
@@ -77,7 +83,7 @@ describe("launcher news", () => {
     for (const [iso, ids] of [["2026-09-20T18:59:00Z", ["release-stable", "pirate-week"]], ["2026-11-03T09:00:00Z", ["release-stable"]]] as const) {
       const service = at(iso);
       await service.loadCache();
-      assert.deepEqual(service.snapshot("stable", DEFAULT_LAUNCHER_PREFERENCES).stories.map((story) => story.id), ids);
+      assert.deepEqual(service.snapshot(DEFAULT_LAUNCHER_PREFERENCES).stories.map((story) => story.id), ids);
     }
   });
 
@@ -93,7 +99,7 @@ describe("launcher news", () => {
       now: () => new Date("2026-09-02T10:00:00Z"),
     });
     await service.refresh();
-    const snapshot = service.snapshot("stable", DEFAULT_LAUNCHER_PREFERENCES);
+    const snapshot = service.snapshot(DEFAULT_LAUNCHER_PREFERENCES);
     assert.equal(snapshot.status, "ready");
     assert.deepEqual(snapshot.stories.map((story) => story.source), ["game", "launcher"]);
     assert.equal(
@@ -116,7 +122,7 @@ describe("launcher news", () => {
     assert.match(actionId ?? "", /^news-link-[a-f0-9]{8}$/u);
     await service.open("guild-wars-update-2026-09-01");
     await service.open(actionId!);
-    assert.deepEqual(opened, ["https://wiki.guildwars.com/wiki/Feedback:Game_updates/20260901", "https://github.com/Mat4m0/gwonmac/releases/tag/v1"]);
+    assert.deepEqual(opened, ["https://wiki.guildwars.com/wiki/Feedback:Game_updates/20260901", `${RELEASE_REPO_URL}/releases/tag/v1`]);
     await assert.rejects(service.open("unknown-story"), /unavailable/u);
     assert.equal(parseProjectNewsFeed(JSON.parse(await readFile(cachePath, "utf8")) as unknown).length, 1);
   });

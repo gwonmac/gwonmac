@@ -73,7 +73,6 @@ export const fixtureSnapshot: LauncherSnapshot = {
     reminderAtEnd: DEFAULT_SETTINGS.reminderAtEnd,
     reminderSound: DEFAULT_SETTINGS.reminderSound,
     autoCheckUpdates: true,
-    updateTrack: "stable",
     renderScale: 2,
     extendedMemoryEnabled: false,
     showDiagnostics: false,

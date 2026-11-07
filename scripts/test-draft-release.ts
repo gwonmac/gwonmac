@@ -10,10 +10,10 @@ import os from "node:os";
 import path from "node:path";
 import { createInterface } from "node:readline/promises";
 import { pathToFileURL } from "node:url";
+import { RELEASE_REPO } from "../src/shared/project-identity.ts";
 import { macOSBundleVersions } from "./macos-version.ts";
 import { verifySignedApplication } from "./verify-signed-app.ts";
 
-const REPOSITORY = "Mat4m0/gwonmac";
 const PRODUCT = "Guild Wars Reforged";
 const DEFAULT_INSTALLED_APP = `/Applications/${PRODUCT}.app`;
 
@@ -80,7 +80,7 @@ function productionDependencies(): ReleaseTestDependencies {
 }
 
 function gh(dependencies: ReleaseTestDependencies, args: readonly string[]): string {
-  return dependencies.run("gh", [...args, "--repo", REPOSITORY]);
+  return dependencies.run("gh", [...args, "--repo", RELEASE_REPO]);
 }
 
 function plist(
@@ -119,9 +119,9 @@ export function expectedAssets(version: string): string[] {
 }
 
 export function parseReleaseTestTag(tag: string): ReleaseTag {
-  const match = /^v(\d{4}\.\d{1,2}\.\d{1,2}(?:-(beta|rc)\.\d+)?)$/u.exec(tag);
+  const match = /^v((?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-(beta|rc)\.\d+)?)$/u.exec(tag);
   if (!match) {
-    throw new Error("tag must be a Stable, Beta, or RC release such as v2026.8.8");
+    throw new Error("tag must be a Stable, Beta, or RC release such as v1.0.0");
   }
   return { version: match[1]!, prerelease: match[2] !== undefined };
 }

@@ -1,8 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
-  DEFAULT_UPDATE_TRACK,
-  UPDATE_TRACKS,
   compareReleaseVersions,
   formatReleaseVersion,
   isPrerelease,
@@ -139,10 +137,8 @@ describe("release version ordering", () => {
   });
 });
 
-describe("public release tracks", () => {
-  it("keeps Stable as the default and never makes alpha public", () => {
-    assert.deepEqual(UPDATE_TRACKS, ["stable", "beta"]);
-    assert.equal(DEFAULT_UPDATE_TRACK, "stable");
+describe("public download channels", () => {
+  it("never makes alpha public", () => {
     const eligibility = (version: string, track: "stable" | "beta") =>
       isReleaseEligibleForTrack(parsed(version), track);
     assert.equal(eligibility("1.0.0-alpha.1", "beta"), false);

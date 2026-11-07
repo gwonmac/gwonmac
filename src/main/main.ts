@@ -29,8 +29,8 @@ import {
   type AppSettings,
   type DownloadProgress,
   type DiagnosticProfile,
-  type UpdateTrack,
 } from "../shared/contracts.js";
+import { RELEASE_REPO } from "../shared/project-identity.js";
 import {
   NO_ENHANCEMENT_CAPABILITIES,
   enhancementCapabilityProfile,
@@ -241,9 +241,8 @@ function revealMainWindow(): void {
 }
 
 /** The one application-update action; AppUpdater owns every outcome. */
-async function checkForAppUpdates(track?: UpdateTrack): Promise<void> {
-  const selected = track ?? (await preferences.getSettings()).updateTrack;
-  await appUpdaterController?.check(selected);
+async function checkForAppUpdates(): Promise<void> {
+  await appUpdaterController?.check();
 }
 
 function buildSocketManager(): SocketManager {
@@ -533,7 +532,7 @@ if (primaryInstance) void app.whenReady().then(async () => {
     copyright:
       "Independent GPL-3.0 project · Guild Wars © ArenaNet LLC.",
     credits:
-      "Mat4m0/gwonmac · App icon artwork © ArenaNet LLC · QT Friz Quad © 1992 QualiType (SIL OFL 1.1) · Not affiliated with ArenaNet or NCSOFT.",
+      `${RELEASE_REPO} · App icon artwork © ArenaNet LLC · QT Friz Quad © 1992 QualiType (SIL OFL 1.1) · Not affiliated with ArenaNet or NCSOFT.`,
     website: EXTERNAL_URLS.github,
   });
   const nativeHost = loadNativeHost({
@@ -812,7 +811,7 @@ if (primaryInstance) void app.whenReady().then(async () => {
     getProgress: () => clientRuntime.progress,
     getAppUpdate: () => appUpdaterController!.getState(),
     getSettings: () => currentSettings ?? settings,
-    getNews: (track, contentPreferences) => launcherNews.snapshot(track, contentPreferences),
+    getNews: (contentPreferences) => launcherNews.snapshot(contentPreferences),
     toolsLoaded: () => enhancementSelection.tools,
     getTexturePacks: () => texturePacks.snapshot(),
     getExtendedMemory: () => clientRuntime.extendedMemory,
@@ -978,7 +977,6 @@ if (primaryInstance) void app.whenReady().then(async () => {
       try {
         await sendLauncherFeedback((url, init) => net.fetch(url, init), feedback, {
           appVersion: HOST_VERSION,
-          updateTrack: (await preferences.getSettings()).updateTrack,
           macosVersion: process.getSystemVersion(),
         });
       } finally {
@@ -1115,7 +1113,7 @@ if (primaryInstance) void app.whenReady().then(async () => {
           now: Date.now(),
         })
       ) return;
-      await checkForAppUpdates(current.updateTrack);
+      await checkForAppUpdates();
     } finally {
       automaticUpdateCheckInFlight = false;
     }

@@ -22,7 +22,6 @@ import {
   LAST_UPDATE_CHECK_AT_MAX,
   RENDERER_WRITABLE_SETTINGS,
   RENDER_SCALES,
-  UPDATE_TRACKS,
   UI_PANEL_OPACITY_MAX,
   UI_PANEL_OPACITY_MIN,
   UI_TEXT_SIZE_MIN,
@@ -75,7 +74,6 @@ const UI_FONT_VALUES = new Set<AppSettings["uiFont"]>(UI_FONTS);
 const CONTROLLER_PROMPT_STYLE_VALUES = new Set<AppSettings["controllerPromptStyle"]>(
   CONTROLLER_PROMPT_STYLES,
 );
-const UPDATE_TRACK_VALUES = new Set<AppSettings["updateTrack"]>(UPDATE_TRACKS);
 
 /**
  * A whole number inside a closed range.
@@ -367,12 +365,6 @@ export function parseSettings(raw: unknown): AppSettings {
   out.dataStrategy = "full";
   if ("autoCheckUpdates" in src) {
     out.autoCheckUpdates = asBool(src.autoCheckUpdates, "autoCheckUpdates");
-  }
-  if ("updateTrack" in src) {
-    if (!UPDATE_TRACK_VALUES.has(src.updateTrack as AppSettings["updateTrack"])) {
-      throw new AppError("bad_settings", "settings.updateTrack has unknown value");
-    }
-    out.updateTrack = src.updateTrack as AppSettings["updateTrack"];
   }
   if ("lastUpdateCheckAt" in src) {
     const at = src.lastUpdateCheckAt;

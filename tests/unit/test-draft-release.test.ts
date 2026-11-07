@@ -19,8 +19,8 @@ import {
   type ReleaseTestDependencies,
 } from "../../scripts/test-draft-release.ts";
 
-const TAG = "v2026.8.8";
-const VERSION = "2026.8.8";
+const TAG = "v1.0.1";
+const VERSION = "1.0.1";
 const COMMIT = "a".repeat(40);
 const CHECKSUM_ROWS = [
   `${"1".repeat(64)}  Guild-Wars-Reforged-${VERSION}-macOS-arm64.zip`,
@@ -69,8 +69,8 @@ function fixture(): Fixture {
       const application = args[2] ?? "";
       if (key === "Print :CFBundleShortVersionString") return VERSION;
       return application === path.join(installedApp, "Contents/Info.plist")
-        ? "2608.7.99"
-        : "2608.8.99";
+        ? "100.0.99"
+        : "100.1.99";
     }
     if (command === "gh" && args[0] === "release" && args[1] === "view") {
       return JSON.stringify(draft);
@@ -132,32 +132,32 @@ function fixture(): Fixture {
 
 describe("temporary exact-draft testing", () => {
   it("compares macOS bundle versions numerically", () => {
-    assert.equal(compareBundleVersions("2608.8.99", "2608.7.99"), 1);
-    assert.equal(compareBundleVersions("2608.8.31", "2608.8.31"), 0);
-    assert.equal(compareBundleVersions("2608.8.1", "2608.8.31"), -1);
-    assert.throws(() => compareBundleVersions("bad", "2608.8.31"));
+    assert.equal(compareBundleVersions("100.1.99", "100.0.99"), 1);
+    assert.equal(compareBundleVersions("100.1.31", "100.1.31"), 0);
+    assert.equal(compareBundleVersions("100.1.1", "100.1.31"), -1);
+    assert.throws(() => compareBundleVersions("bad", "100.1.31"));
   });
 
   it("accepts Stable, Beta, and RC but refuses Alpha", () => {
-    assert.deepEqual(parseReleaseTestTag("v2026.8.8"), {
-      version: "2026.8.8",
+    assert.deepEqual(parseReleaseTestTag("v1.0.1"), {
+      version: "1.0.1",
       prerelease: false,
     });
-    assert.equal(parseReleaseTestTag("v2026.8.8-beta.1").prerelease, true);
-    assert.equal(parseReleaseTestTag("v2026.8.8-rc.1").prerelease, true);
-    assert.throws(() => parseReleaseTestTag("v2026.8.8-alpha.1"), /Stable, Beta, or RC/u);
+    assert.equal(parseReleaseTestTag("v1.0.1-beta.1").prerelease, true);
+    assert.equal(parseReleaseTestTag("v1.0.1-rc.1").prerelease, true);
+    assert.throws(() => parseReleaseTestTag("v1.0.1-alpha.1"), /Stable, Beta, or RC/u);
   });
 
   it("requires GitHub prerelease metadata to match the tag", () => {
-    const releaseTag = parseReleaseTestTag("v2026.8.8-beta.1");
+    const releaseTag = parseReleaseTestTag("v1.0.1-beta.1");
     assert.throws(
       () => assertDraftMetadata(
-        "v2026.8.8-beta.1",
+        "v1.0.1-beta.1",
         {
           isDraft: true,
           isPrerelease: false,
           targetCommitish: COMMIT,
-          assets: expectedAssets("2026.8.8-beta.1").map((name) => ({ name })),
+          assets: expectedAssets("1.0.1-beta.1").map((name) => ({ name })),
         },
         releaseTag,
       ),
@@ -184,7 +184,7 @@ describe("temporary exact-draft testing", () => {
     assert.throws(
       () => assertDraftMetadata(
         TAG,
-        { ...valid, targetCommitish: "release/2026.8.8" },
+        { ...valid, targetCommitish: "main" },
         releaseTag,
       ),
       /one exact commit/u,

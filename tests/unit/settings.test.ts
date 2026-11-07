@@ -111,7 +111,6 @@ describe("settings", () => {
       // Automatic app-update checks remain a separate preference from the
       // required ArenaNet game-data download.
       autoCheckUpdates: true,
-      updateTrack: "stable",
       lastUpdateCheckAt: null,
       // No client build has been warned about yet, so every build warns once.
       compatibilityNoticeSeenFor: null,
@@ -250,7 +249,6 @@ describe("settings", () => {
       showDiagnostics: true,
       dataStrategy: "full",
       autoCheckUpdates: true,
-      updateTrack: "stable",
       lastUpdateCheckAt: null,
       compatibilityNoticeSeenFor: null,
     });
@@ -414,9 +412,8 @@ describe("settings", () => {
   it("takes the update fields only in the shapes the renderer can produce", () => {
     assert.equal(parseSettings({ autoCheckUpdates: true }).autoCheckUpdates, true);
     assert.throws(() => parseSettings({ autoCheckUpdates: "yes" }), AppError);
-    assert.equal(parseSettings({ updateTrack: "stable" }).updateTrack, "stable");
-    assert.equal(parseSettings({ updateTrack: "beta" }).updateTrack, "beta");
-    assert.throws(() => parseSettings({ updateTrack: "alpha" }), AppError);
+    // Older apps wrote a Stable/Beta track. The app is Stable only and drops it.
+    assert.equal("updateTrack" in parseSettings({ updateTrack: "beta" }), false);
 
     assert.equal(parseSettings({ lastUpdateCheckAt: null }).lastUpdateCheckAt, null);
     assert.equal(parseSettings({ lastUpdateCheckAt: 0 }).lastUpdateCheckAt, 0);
@@ -530,9 +527,7 @@ describe("settings", () => {
     assert.deepEqual(parseSettingsPatch({ lastUpdateCheckAt: 1_000 }), {
       lastUpdateCheckAt: 1_000,
     });
-    assert.deepEqual(parseSettingsPatch({ updateTrack: "beta" }), {
-      updateTrack: "beta",
-    });
+    assert.throws(() => parseSettingsPatch({ updateTrack: "beta" }), AppError);
     assert.throws(() => parseSettingsPatch({ mystery: true }), AppError);
     assert.throws(() => parseSettingsPatch({ touchMode: "dbltap" }), AppError);
     // A renderer that still names a retired key is a bug, not a migration.
@@ -717,7 +712,6 @@ describe("settings", () => {
       "uiPanelOpacity",
       "uiStyle",
       "uiTextSize",
-      "updateTrack",
       "whispersEnabled",
       "xunlaiStorage",
     ]);
@@ -862,7 +856,6 @@ describe("settings", () => {
       // stored the setting inherits the current default; an explicit opt-out
       // remains false on the ordinary parse path.
       autoCheckUpdates: true,
-      updateTrack: "stable",
       lastUpdateCheckAt: null,
       compatibilityNoticeSeenFor: null,
     });

@@ -111,7 +111,6 @@ export const SETTINGS: readonly SettingEntry[] = [
   game("showDiagnostics"),
 
   { id: "autoCheckUpdates", section: "updates", label: "Automatically check for launcher updates", keywords: "automatic update" },
-  { id: "updateTrack", section: "updates", label: "Launcher update channel", keywords: "beta stable" },
 
   { id: "content.news", section: "home", label: "News", keywords: "home news" },
   { id: "content.dailies", section: "home", label: "Dailies", keywords: "daily weekly schedule" },

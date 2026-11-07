@@ -37,7 +37,7 @@ export interface LauncherOrchestratorOptions {
   readonly getProgress: () => DownloadProgress;
   readonly getAppUpdate: () => AppUpdateState;
   readonly getSettings: () => AppSettings;
-  readonly getNews: (track: AppSettings["updateTrack"], preferences: LauncherSnapshot["preferences"]) => LauncherSnapshot["news"];
+  readonly getNews: (preferences: LauncherSnapshot["preferences"]) => LauncherSnapshot["news"];
   readonly toolsLoaded: () => boolean;
   readonly getTexturePacks?: () => TexturePackSnapshot;
   readonly getExtendedMemory?: () => ExtendedMemoryRuntimeStatus | null;
@@ -109,7 +109,6 @@ export class LauncherOrchestrator {
         reminderAtEnd: settings.reminderAtEnd,
         reminderSound: settings.reminderSound,
         autoCheckUpdates: settings.autoCheckUpdates,
-        updateTrack: settings.updateTrack,
         renderScale: settings.renderScale,
         extendedMemoryEnabled: settings.extendedMemoryEnabled,
         showDiagnostics: settings.showDiagnostics,
@@ -150,7 +149,7 @@ export class LauncherOrchestrator {
       })),
       selectedProfileIds,
       preferences: document.preferences,
-      news: this.options.getNews(settings.updateTrack, document.preferences),
+      news: this.options.getNews(document.preferences),
     };
   }
 
