@@ -181,6 +181,53 @@ export function functionIdentity(module: ModuleShape, functionIndex: number): st
   return identity;
 }
 
+const functionsByIdentity = new WeakMap<Identities, ReadonlyMap<string, readonly number[]>>();
+
+/** The functions of `module` whose relocation identity is `identity`. */
+export function functionsWithIdentity(module: ModuleShape, identity: string): readonly number[] {
+  const known = identities(module);
+  let index = functionsByIdentity.get(known);
+  if (!index) {
+    const built = new Map<string, number[]>();
+    known.full.forEach((value, functionIndex) => {
+      if (functionIndex >= module.functionImportCount) {
+        built.set(value, [...built.get(value) ?? [], functionIndex]);
+      }
+    });
+    index = built;
+    functionsByIdentity.set(known, index);
+  }
+  return index.get(identity) ?? [];
+}
+
+/**
+ * The distinct functions `functionIndex` calls directly, in the order of their
+ * first call. Two functions with one identity call corresponding callees at
+ * the same position.
+ */
+export function orderedCallees(module: ModuleShape, functionIndex: number): readonly number[] {
+  const callees: number[] = [];
+  for (const site of identities(module).sites[functionIndex] ?? []) {
+    if (site.callee !== null && !callees.includes(site.callee)) callees.push(site.callee);
+  }
+  return callees;
+}
+
+/**
+ * The distinct relocatable static operands of a function, in the order of
+ * their first occurrence: the ordinals its identity names. Two functions with
+ * one identity hold their corresponding addresses at the same ordinal.
+ */
+export function staticOperands(module: ModuleShape, functionIndex: number): readonly number[] {
+  const values: number[] = [];
+  for (const site of identities(module).sites[functionIndex] ?? []) {
+    if (site.callee !== null) continue;
+    const value = Number(site.key.slice("static:".length));
+    if (!values.includes(value)) values.push(value);
+  }
+  return values;
+}
+
 /**
  * The relocation identity of a function seen through a semantic role: the
  * role's own spans are erased the way its fingerprint erases them, because the

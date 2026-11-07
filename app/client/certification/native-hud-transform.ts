@@ -6,8 +6,8 @@ import { concat, encodeCode, encodeIndexVector, encodeSection, parseCode, parseE
   parseIndexVector, sectionById, sleb, splitSections, uleb, vectorPayload, WASM_HEADER } from "../../main/core/wasm-binary.js";
 import { call, encodeName, f32Const, f32Load, f32Store, globalGet, globalSet, i32Const, i32Load, i32Store, localGet, localSet, op } from "./wasm-emit.js";
 import { NATIVE_RENDER_REFERENCE_FUNCTIONS, nativeGraphicsBusy, nativeModelBusy,
-  resolveNativeRenderBindings, reviewedNativeRenderFunctions, nativeRenderFamilyCount,
-  type NativeRenderFunctionBodies } from "./native-render-reference.js";
+  resolveNativeRenderBindings, type NativeRenderFunctionBodies } from "./native-render-reference.js";
+import { isDigest } from "../../shared/digest.js";
 import { isDeepStrictEqual } from "node:util";
 import { wasmEvidence } from "./wasm-evidence.js";
 import { NATIVE_PUBLISH_BUSY } from "../../shared/native-publish.js";
@@ -110,9 +110,19 @@ const CHECKED = [
 export const NATIVE_HUD_RENDERING_PROOF: Readonly<{ functionBodies: NativeRenderFunctionBodies }> =
   Object.freeze({ functionBodies: CHECKED });
 
+/**
+ * The process boundary has no client bytes, and a relinked client's owners are
+ * derived by relocation identity, so it checks the proof's shape: one distinct
+ * owner and digest per checked reference. `appendNativeHud` derives the owners
+ * again from the bytes it rewrites and refuses any other value.
+ */
 export function isNativeHudRenderingProof(value: unknown): boolean {
-  return Array.from({ length: nativeRenderFamilyCount() }).some((_, family) => isDeepStrictEqual(value,
-    { functionBodies: reviewedNativeRenderFunctions(CHECKED, family) }));
+  if (!value || typeof value !== "object" || !("functionBodies" in value)) return false;
+  const bodies = value.functionBodies;
+  return Array.isArray(bodies) && bodies.length === CHECKED.length
+    && bodies.every((entry) => Array.isArray(entry) && entry.length === 2
+      && Number.isSafeInteger(entry[0]) && entry[0] >= 0 && isDigest(entry[1]))
+    && new Set(bodies.map((entry: readonly unknown[]) => entry[0])).size === bodies.length;
 }
 
 export function deriveNativeHudRendering(evidence: NonNullable<ReturnType<typeof wasmEvidence>>) {
@@ -132,11 +142,15 @@ const unstack = (n: number, bytes: number) => concat(localGet(n), i32Const(bytes
 // Private records: owner, mesh, draw, parent ID, child ID, quad count, keycap flag, 8 quads.
 const STRIDE = 316;
 
-export function appendNativeHud(input: Uint8Array, skillBarGlobal: number): Uint8Array {
+export function appendNativeHud(input: Uint8Array, skillBarGlobal: number,
+  accepted?: Readonly<{ functionBodies: NativeRenderFunctionBodies }>): Uint8Array {
   const evidence = wasmEvidence(input); if (!evidence) throw new Error("invalid native HUD input");
   const module = evidence.moduleView();
   const bindings = resolveNativeRenderBindings(module, CHECKED);
-  if (!bindings || !deriveNativeHudRendering(evidence)) throw new Error("native HUD rendering proof changed");
+  const derived = deriveNativeHudRendering(evidence);
+  if (!bindings || !derived || (accepted !== undefined && !isDeepStrictEqual(derived, accepted))) {
+    throw new Error("native HUD rendering proof changed");
+  }
   const sections = splitSections(input);
   const globals = vectorPayload(sectionById(sections, 6));
   const signatures = vectorPayload(sectionById(sections, 1));

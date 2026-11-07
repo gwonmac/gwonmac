@@ -183,8 +183,14 @@ locator already meets the final relocation-resistant bar. At verifier ABI 10:
   - resign and whisper chat paths bind function indices, because the process
     boundary has no client bytes and rejects a substituted index only against
     reviewed (index, digest) pairs;
-  - the native render family (HUD draw ownership) binds function indices and
-    static addresses;
+  - native draw owners (HUD, map graphics, Compass terrain) match a reviewed
+    family exactly. On a relink they are derived instead: each owner is the
+    one function with a reviewed owner's relocation identity, an owner with
+    identical clones is the callee its reviewed caller calls at the same
+    position, and each address is read from the owners' corresponding static
+    operands. The process boundary checks the HUD proof's shape; the transform
+    derives it again from the bytes it rewrites and refuses any other value.
+    An owner whose body really changed still needs a new family;
   - pathing families bind function indices;
   - a Cartography layout's context root and agent array live in
     `CARTOGRAPHY_LAYOUT_ROOTS` (`app/shared/cartography-spike.ts`), keyed by
