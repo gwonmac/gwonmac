@@ -2,13 +2,24 @@
 
 The Hub presents commands over Guild Wars. Its navigation and keys belong to the
 pure engine in `app/renderer/hub-engine.ts`, tested in Node by
-`tests/unit/hub-engine.test.ts`. `app/renderer/hub.ts` owns sources, search,
-rows, receipts and the modal, and applies the engine's effects. Where the
-keyboard goes is a focus target in the view model (`app/shared/ui/hub-view.ts`);
-the Vue focus kit (`app/ui/tools/src/hub/hub-focus.ts`, `focus-zone.ts`) applies
-it after the paint and owns arrows inside each zone and the fallback when a
-focused control goes away. This document records intent and links to current
-owners. Code and tests own exact values and accepted states.
+`tests/unit/hub-engine.test.ts`. `app/renderer/hub.ts` owns search, rows,
+pins and phrases, receipts and the modal, and applies the engine's effects. It
+names no source: each source says what it adds through the optional
+`HubSource` fields in `app/shared/hub.ts`. The built-in sources (accounts, the
+calculator, commands, Hub preferences and Settings) attach from the one Core
+list in `app/renderer/hub-builtins.ts`, the way a feature attaches its own.
+Where the keyboard goes is a focus target in the view model
+(`app/shared/ui/hub-view.ts`); the Vue focus kit
+(`app/ui/tools/src/hub/hub-focus.ts`, `focus-zone.ts`) applies it after the
+paint and owns arrows inside each zone and the fallback when a focused control
+goes away. Every Hub view names its controls with `data-focus-key`, so the
+keyboard can return to the same control; only the launcher's Settings page,
+which the Hub hosts, keeps its own names. The Hub's own pages (preferences, the
+phrase form, rates, price details, confirmations, the Settings host) are Vue
+components in `app/ui/tools/src/hub/views`; their controllers in
+`app/renderer` keep state, validation and saves. This document records intent
+and links to current owners. Code and tests own exact values and accepted
+states.
 
 ## Keyboard and actions
 
@@ -30,7 +41,7 @@ Views use `HubViewFooter`; they do not add another footer or Actions menu.
 Team review opens with focus on the review surface at its top. Its refusal
 appears before the roster. The footer keeps the named Apply action.
 A running primary shows progress without an Enter keycap.
-Search uses the shared grammar and ranking in `app/shared/hub.ts`.
+Search uses the shared grammar and ranking (`rankHubRows`) in `app/shared/hub.ts`.
 An owned list refreshes from its own source. Other observations update navigation
 facts without rebuilding that list. Home searches all enabled sources.
 

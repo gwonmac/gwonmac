@@ -56,8 +56,8 @@ export function createTravelPalette(parent: HTMLElement, command: TravelCommand)
   function open() {
     /** This page's Travel content, created once so Back restores its state. */
     let page: HubViewMount<HTMLElement> | null = null;
-    hub.showView('Travel', (target, back, footer) => {
-      if (app) return (page ??= app.page())(target, back, footer);
+    hub.showView('Travel', (target, back, footer, pages) => {
+      if (app) return (page ??= app.page())(target, back, footer, pages);
       let active = true;
       let unmount = () => {};
       const doc = target.ownerDocument;
@@ -68,7 +68,7 @@ export function createTravelPalette(parent: HTMLElement, command: TravelCommand)
         message.textContent = 'Loading Travel…'; retry.hidden = true;
         load().then(loaded => {
           if (!active || !loaded || !enabled) return;
-          message.remove(); retry.remove(); unmount = (page ??= loaded.page())(target, back, footer);
+          message.remove(); retry.remove(); unmount = (page ??= loaded.page())(target, back, footer, pages);
           // The keyboard that waited on the loading page moves to Travel's search.
           if (!target.contains(doc.activeElement)) target.querySelector<HTMLElement>('input[role=combobox]')?.focus();
         }).catch(() => {

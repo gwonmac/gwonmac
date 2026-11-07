@@ -48,7 +48,8 @@ is briefly highlighted. Hub search does not change a setting in place.
 - The launcher builds the page a second time as a module for the game window:
   `vite build --mode hub` writes `build/renderer/settings/settings-app.js` and
   `.css` from `app/ui/launcher/src/hub-entry.ts`. `app/renderer/hub-settings-page.ts`
-  loads it when Settings first opens. It is not part of the optional Tools
+  loads it when Settings first opens, into a host the Hub's Vue kit draws, and
+  owns the Settings rows Hub search finds. It is not part of the optional Tools
   bundle: Settings must work in a Core launch, because that is where Tools are
   turned on.
 - A game window gets a bounded `hubSettings` API: `get`, `update`, `capture` and

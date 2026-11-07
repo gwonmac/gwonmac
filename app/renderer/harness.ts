@@ -1393,7 +1393,7 @@ function loadGlue(isProxyRouteLabel: (route: string) => boolean) {
     window.gwSurfaces = host.installSurfaceController(document, {
       doubleClickMs: window.gwNative.init.doubleClickMs,
     });
-    window.gwHub = await (await import('./hub.js')).loadHub(document.body);
+    window.gwHub = await (await import('./hub-builtins.js')).loadHub(document.body);
     window.dispatchEvent(new Event('gw:surfaces-ready'));
     installCharacterSwitchHost = characterSwitch.installCharacterSwitchHost;
     createClientHealthConfirmation =

@@ -340,7 +340,7 @@ export function createHubLibrary(controller: LibraryController, host: ToolsHost,
       // The review opens at its top and takes focus itself: its title, mode line and first
       // member stay in view, and Enter runs the footer's named Apply (HUB-084).
       const view = doc.createElement('section'); view.className = 'hub-detail hub-build-review'; view.tabIndex = 0;
-      view.setAttribute('aria-label', `Review ${item.value.name}`);
+      view.setAttribute('aria-label', `Review ${item.value.name}`); view.dataset.focusKey = `Review ${item.value.name}`;
       const title = doc.createElement('h2'); title.textContent = item.value.name;
       const description = doc.createElement('div'); description.className = 'hub-review-roster';
       const showBuild = (build: Build, label: string) => {
@@ -408,6 +408,7 @@ export function createHubLibrary(controller: LibraryController, host: ToolsHost,
   }
   const source: HubSource = {
     feature: 'buildLibrary',
+    searchNames: { 'Build Library': 'builds', Heroes: 'heroes' },
     shortcuts: { get: () => controller.library.value?.hubShortcuts ?? [], save: controller.saveHubShortcuts },
     lookup(id) {
       if (id === 'builds') return libraryRow();

@@ -93,14 +93,14 @@ function onKeydown(event: KeyboardEvent): void {
 
 <template>
   <details ref="details" name="travel-destination-picker" class="travel-destination-picker" :data-disabled="disabled || undefined" @toggle="onToggle">
-    <summary :aria-label="label" :aria-disabled="disabled || undefined" @click="disabled && $event.preventDefault()">
+    <summary :aria-label="label" :data-focus-key="label" :aria-disabled="disabled || undefined" @click="disabled && $event.preventDefault()">
       <strong>{{ selected?.name ?? "Choose a destination…" }}</strong>
       <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4" /></svg>
     </summary>
     <div class="travel-destination-chooser">
-      <label :for="`${id}-query`"><span class="ui-sr-only">{{ label }}</span><input :id="`${id}-query`" ref="input" v-model="query" class="ui-input" role="combobox" :aria-controls="`${id}-results`" :aria-expanded="results.length > 0" :aria-activedescendant="activeDestination ? `${id}-${activeDestination.mapId}` : undefined" aria-autocomplete="list" autocomplete="off" spellcheck="false" maxlength="80" placeholder="Find a destination…" @keydown="onKeydown"></label>
+      <label :for="`${id}-query`"><span class="ui-sr-only">{{ label }}</span><input :id="`${id}-query`" :data-focus-key="`${id}-query`" ref="input" v-model="query" class="ui-input" role="combobox" :aria-controls="`${id}-results`" :aria-expanded="results.length > 0" :aria-activedescendant="activeDestination ? `${id}-${activeDestination.mapId}` : undefined" aria-autocomplete="list" autocomplete="off" spellcheck="false" maxlength="80" placeholder="Find a destination…" @keydown="onKeydown"></label>
       <div v-if="results.length" :id="`${id}-results`" class="travel-destination-results" role="listbox">
-        <button v-for="(destination, index) in results" :id="`${id}-${destination.mapId}`" :key="destination.mapId" type="button" class="travel-destination-option ui-row" :data-map-id="destination.mapId" role="option" tabindex="-1" :aria-selected="index === active" @mouseenter="active = index" @click="choose(destination)"><span><strong>{{ destination.name }}</strong><small>{{ destination.campaign }}</small></span><span v-if="destination.mapId === modelValue">Selected</span></button>
+        <button v-for="(destination, index) in results" :id="`${id}-${destination.mapId}`" :data-focus-key="`${id}-${destination.mapId}`" :key="destination.mapId" type="button" class="travel-destination-option ui-row" :data-map-id="destination.mapId" role="option" tabindex="-1" :aria-selected="index === active" @mouseenter="active = index" @click="choose(destination)"><span><strong>{{ destination.name }}</strong><small>{{ destination.campaign }}</small></span><span v-if="destination.mapId === modelValue">Selected</span></button>
       </div>
       <p v-else class="travel-destination-help">{{ query.trim() ? "No matching destination." : "Start typing a destination or abbreviation." }}</p>
       <button v-if="allowClear && modelValue !== null" type="button" class="ui-button travel-destination-clear" @click="clear">Clear selection</button>

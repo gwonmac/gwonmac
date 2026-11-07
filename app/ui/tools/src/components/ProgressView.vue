@@ -261,7 +261,7 @@ void nextTick(() => input.value?.focus());
 <template>
   <section ref="root" class="progress-view" @keydown="onKeydown">
     <div class="travel-search">
-      <label for="progress-search-input" class="ui-hub-search"><svg class="travel-search-icon" viewBox="0 0 24 24" aria-hidden="true" v-html="HUB_SEARCH_GLYPH"></svg><input id="progress-search-input" ref="input" v-model="query" role="combobox" aria-label="Search missions, areas and outposts" aria-controls="progress-list" aria-autocomplete="list" aria-haspopup="listbox" :aria-expanded="rows.length > 0" :aria-activedescendant="activeRow ? `progress-row-${active}` : undefined" autocomplete="off" spellcheck="false" maxlength="60" placeholder="Search missions, areas and outposts…"></label>
+      <label for="progress-search-input" class="ui-hub-search"><svg class="travel-search-icon" viewBox="0 0 24 24" aria-hidden="true" v-html="HUB_SEARCH_GLYPH"></svg><input id="progress-search-input" data-focus-key="progress-search-input" ref="input" v-model="query" role="combobox" aria-label="Search missions, areas and outposts" aria-controls="progress-list" aria-autocomplete="list" aria-haspopup="listbox" :aria-expanded="rows.length > 0" :aria-activedescendant="activeRow ? `progress-row-${active}` : undefined" autocomplete="off" spellcheck="false" maxlength="60" placeholder="Search missions, areas and outposts…"></label>
     </div>
 
     <p v-if="waitingText" class="ui-empty progress-empty" role="status"><strong>Progress</strong><span>{{ waitingText }}</span></p>
@@ -298,7 +298,7 @@ void nextTick(() => input.value?.focus());
         <div v-if="rows.length" id="progress-list" class="progress-list ui-scroll" role="listbox" aria-label="Progress">
           <template v-for="(row, index) in rows" :key="row.key">
             <div v-if="headingBefore(index)" class="progress-region" role="presentation">{{ headingBefore(index) }}</div>
-            <button :id="`progress-row-${index}`" :data-row="index" type="button" class="ui-row progress-row" role="option" tabindex="-1" :aria-selected="index === active" @mousedown.prevent @click="active = index" @dblclick="runActive">
+            <button :id="`progress-row-${index}`" :data-focus-key="`progress-row-${index}`" :data-row="index" type="button" class="ui-row progress-row" role="option" tabindex="-1" :aria-selected="index === active" @mousedown.prevent @click="active = index" @dblclick="runActive">
               <template v-if="row.kind === 'suggestion'">
                 <span class="progress-row-name"><strong>Show goal: {{ row.goal.name }}</strong><small>{{ goalLeft(row.goal) || row.goal.rule }}</small></span>
                 <kbd class="ui-kbd" aria-hidden="true">↵</kbd>

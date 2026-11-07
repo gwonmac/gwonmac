@@ -1,5 +1,6 @@
 <script setup lang="ts">
 /** The Build details page: each build's skills with their descriptions and its invested attributes. */
+import { HUB_WORKSPACE_ACTION } from '../../../../shared/hub';
 import type { HubBuildDetails } from '../../../../shared/ui/hub-view';
 import HubBuildInfo from './HubBuildInfo.vue';
 
@@ -15,7 +16,7 @@ const attributes = (build: Build) => build.attributeStatus ?? build.attributes?.
     <template v-for="(build, index) in builds" :key="index">
       <template v-if="build.skills">
         <h2>{{ heading(build) }}</h2>
-        <button v-if="build.workspace" class="ui-button" @click="build.workspace">Open in Build Library</button>
+        <button v-if="build.workspace" class="ui-button" @click="build.workspace">{{ HUB_WORKSPACE_ACTION }}</button>
         <HubBuildInfo :build="build" />
         <ol>
           <li v-for="(skill, at) in build.skills" :key="at"><strong>{{ skill.name }}</strong><p>{{ skill.description ?? 'Description not available.' }}</p></li>

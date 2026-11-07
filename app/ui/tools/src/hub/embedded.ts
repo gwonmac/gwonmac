@@ -8,6 +8,7 @@ import { h, render, type Ref, type VNode } from 'vue';
 import type { EmbeddedHubView, HubFocusReader, HubViewElements } from '../../../../shared/ui/hub-view';
 import HubBuildDetails from './HubBuildDetails.vue';
 import HubShell from './HubShell.vue';
+import { HUB_PAGES } from './views';
 
 export const mountHubView: EmbeddedHubView['mountHubView'] = (parent, model) => {
   // A fresh props object per paint; the model's regions are replaced, never mutated, so only
@@ -37,6 +38,7 @@ export const mountHubView: EmbeddedHubView['mountHubView'] = (parent, model) => 
       render(vnode, target);
       return { element: vnode.el as HTMLElement, dispose: () => render(null, target) };
     },
+    pages: HUB_PAGES,
     dispose: () => render(null, parent),
   };
 };

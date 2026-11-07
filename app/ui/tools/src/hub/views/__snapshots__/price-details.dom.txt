@@ -1,0 +1,147 @@
+=== price details (focus: button.ui-button)
+<dialog aria-labelledby="hub-name hub-title-separator hub-caption" class="ui-modal ui-modal-layer" data-gwonmac-surface="" data-page="section" id="hub" open="">
+  <section class="hub-panel ui-frame ui-art-frame" data-busy="false" data-locked="true">
+    <canvas aria-hidden="true" class="ui-frame-artwork">
+    <header class="hub-heading ui-window-head">
+      <button aria-description="Return to Home" aria-keyshortcuts="Meta+Backspace" aria-label="Back" class="ui-button hub-back" data-focus-key="back" data-variant="quiet" title="Back (⌘⌫)">
+        "←"
+      <span class="hub-name" id="hub-name">
+        "Hub"
+      <span hidden="" id="hub-title-separator">
+        "—"
+      <nav aria-label="Hub breadcrumb" class="hub-breadcrumbs">
+        <button class="hub-crumb" type="button">
+          "Home"
+        <span aria-hidden="true">
+          "›"
+        <span aria-current="page" aria-level="1" class="hub-caption" id="hub-caption" role="heading">
+          "Price details"
+      <span class="hub-context">
+      <span class="hub-move-hint" hidden="" id="hub-move-hint">
+        "⌥ arrows move · ⇧ 48 px"
+      <button aria-label="Lock Hub position" aria-pressed="true" class="ui-window-lock hub-lock" data-focus-key="lock" title="Unlock to move and resize" type="button">
+        <svg aria-hidden="true" viewBox="0 0 24 24">
+          <path class="lock-shackle" d="M7 11V7a5 5 0 0 1 10 0v4"></path><rect x="5" y="11" width="14" height="10" rx="2"></rect>
+      <button aria-label="Close Hub" class="ui-window-close hub-close" data-focus-key="close" title="Close Hub">
+        "×"
+    <section aria-label="Build to apply" class="hub-summary" hidden="">
+    <div class="hub-search ui-hub-search" hidden="">
+      <svg aria-hidden="true" viewBox="0 0 24 24">
+        <path d="m12 2 8 10-8 10L4 12 12 2Zm0 5v10M8 12h8"></path>
+      <span class="hub-scope" hidden="">
+      <input aria-activedescendant="hub-result-0" aria-autocomplete="list" aria-controls="hub-results" aria-describedby="hub-hint" aria-description="Price details: search tools or use a command example" aria-expanded="true" aria-label="Search people, places, builds…" autocomplete="off" class="hub-calculation-input" maxlength="120" placeholder="Search people, places, builds…" role="combobox" spellcheck="false" type="text" .value="1 armbrace in g">
+      <span aria-hidden="true" class="hub-progress">
+      <div aria-hidden="true" class="hub-search-glyphs hub-calculation-input" style="left: 0px; top: 0px; width: 0px; height: 0px;">
+        "1 "
+        <span data-end="10" data-start="2" data-unit="armbrace">
+          "armbrace"
+        " in "
+        <span data-end="15" data-start="14" data-unit="gold">
+          "g"
+        <img alt="" data-unit="armbrace" src="app/shared/images/currency/Armbrace_of_Truth.png" style="left: 10px;">
+        <img alt="" data-unit="gold" src="app/shared/images/currency/Gold.png" style="left: 10px;">
+    <div aria-busy="false" aria-label="Results" class="hub-results ui-scroll" data-focus-key="results" hidden="" id="hub-results" role="listbox" tabindex="-1">
+      <div aria-labelledby="hub-group-0" role="group">
+        <div class="hub-group" id="hub-group-0" role="presentation">
+          "Calculator"
+        <div aria-disabled="false" aria-label="1 armbrace equals ~ 150,000 gold. Seller asking prices · Inferred median · Newest ad just now" aria-selected="true" class="hub-row hub-conversion" data-id="market:result" id="hub-result-0" role="option">
+          <span class="hub-title">
+            "~ 150,000 gold"
+          <span class="hub-detail">
+            "Seller asking prices · Inferred median · Newest ad just now"
+          <strong class="hub-conversion-input">
+            "1 armbrace"
+          <span class="hub-currency hub-currency-from">
+            "Armbrace of Truth"
+          <span class="hub-currency hub-currency-to">
+            "Gold"
+          <span aria-hidden="true" class="hub-row-arrow">
+            "→"
+          <img alt="" class="hub-conversion-art hub-conversion-art-from" src="app/shared/images/currency/Armbrace_of_Truth.png">
+          <img alt="" class="hub-conversion-art hub-conversion-art-to" src="app/shared/images/currency/Gold.png">
+          <div class="hub-rate-controls" hidden="">
+            <label>
+              "Price basis"
+              <select aria-label="Price basis" class="ui-select" data-choices="[{"value":"wts","label":"Seller asking prices"},{"value":"wtb","label":"Buyer offers"}]" data-focus-key="rate-basis" .value="wts">
+                <option value="wts">
+                  "Seller asking prices"
+                <option value="wtb">
+                  "Buyer offers"
+            <button class="ui-button" data-focus-key="rate-details">
+              "Details"
+    <p class="hub-empty" hidden="">
+      "No matches"
+    <pre class="hub-preview ui-scroll" hidden="">
+    <div aria-busy="false" class="hub-view">
+      <section class="hub-detail">
+        <dl>
+          <dt>
+            "Source"
+          <dd>
+            "Recent Kamadan trade ads"
+          <dt>
+            "Price basis"
+          <dd>
+            "Seller asking prices"
+          <dt>
+            "Median rate"
+          <dd>
+            "1 Armbrace of Truth = 30 ecto"
+          <dt>
+            "Advertisers"
+          <dd>
+            "6 advertisers (Armbrace of Truth)"
+          <dt>
+            "Median rate"
+          <dd>
+            "1 Glob of Ectoplasm = 5000 gold"
+          <dt>
+            "Advertisers"
+          <dd>
+            "6 advertisers (Glob of Ectoplasm)"
+          <dt>
+            "Ads since"
+          <dd>
+            "2026-11-07T11:55:00.000Z"
+          <dt>
+            "Newest ad"
+          <dd>
+            "2026-11-07T12:00:00.000Z"
+          <dt>
+            "Last fetched"
+          <dd>
+            "2026-11-07T12:00:01.000Z"
+        <button class="ui-button" data-focus-key="price-edit-rates">
+          "Edit rates"
+    <div class="hub-footer-status">
+      <p aria-busy="false" class="hub-status" role="status" title="">
+      <p class="hub-lifecycle" hidden="">
+      <p class="hub-hint" hidden="" id="hub-hint" title="">
+    <p aria-atomic="true" aria-live="polite" class="hub-announce ui-sr-only" role="status">
+      "1 result"
+    <footer class="hub-footer">
+      <span class="hub-legend" data-keys="[[["⎋"],"Back"],[["⌘","⌫"],"Back"]]">
+        <span>
+          <kbd class="ui-kbd">
+            "⎋"
+          " Back"
+        <span>
+          <kbd class="ui-kbd">
+            "⌘"
+          <kbd class="ui-kbd">
+            "⌫"
+          " Back"
+      <span class="hub-count">
+      <button class="hub-primary ui-button" data-focus-key="primary" data-variant="primary" title="Done">
+        <span class="hub-primary-label">
+          "Done"
+      <button aria-expanded="false" aria-haspopup="menu" aria-keyshortcuts="Meta+J" class="hub-actions ui-button" data-focus-key="actions" data-variant="quiet" disabled="">
+        "Actions"
+        <kbd aria-hidden="true" class="ui-kbd">
+          "⌘"
+        <kbd aria-hidden="true" class="ui-kbd">
+          "J"
+    <div aria-label="Actions" class="hub-menu" hidden="" role="menu" style="bottom: 8px;">
+    <button aria-label="Resize Hub" class="ui-window-resize hub-resize" data-focus-key="resize" hidden="" title="Drag to resize, or use arrow keys">
+<div aria-hidden="true" class="hub-receipt ui-toast" hidden="" popover="manual">
+<p aria-atomic="true" class="hub-receipt-announcement ui-sr-only" role="status">

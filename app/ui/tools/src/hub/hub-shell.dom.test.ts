@@ -12,35 +12,14 @@ import { DEFAULT_SETTINGS, type AppSettings } from '../../../../shared/contracts
 import type { HubRow, HubViewMount } from '../../../../shared/hub';
 // eslint-disable-next-line no-restricted-imports
 import { createHub } from '../../../../renderer/hub';
+// eslint-disable-next-line no-restricted-imports
+import { withHubBuiltins } from '../../../../renderer/hub-builtins';
+import { describeFocus, serializeDom } from './dom-snapshot';
 import { mountHubView } from './embedded';
 
-/** One line per node: sorted attributes, merged text, no comments or empty text. */
-function serialize(node: Node, depth = 0): string[] {
-  const pad = '  '.repeat(depth);
-  if (!(node instanceof Element)) return [];
-  // Vite serves imported images from the checkout's absolute path; keep the snapshot machine-independent.
-  const attributes = [...node.attributes].map(attribute => `${attribute.name}="${attribute.value.replace(/^.*\/@fs\/.*?\/app\//, 'app/')}"`).sort();
-  if ((node instanceof HTMLInputElement || node instanceof HTMLSelectElement) && node.value) attributes.push(`.value="${node.value}"`);
-  const lines = [`${pad}<${node.tagName.toLowerCase()}${attributes.length ? ` ${attributes.join(' ')}` : ''}>`];
-  let text = '';
-  const flush = () => { if (text.trim()) lines.push(`${pad}  ${JSON.stringify(text)}`); text = ''; };
-  // innerHTML-set SVG markup is compared as markup.
-  if (node instanceof SVGElement && node.tagName.toLowerCase() === 'svg') { lines.push(`${pad}  ${node.innerHTML}`); return lines; }
-  for (const child of node.childNodes) {
-    if (child.nodeType === Node.TEXT_NODE) text += child.textContent ?? '';
-    else if (child instanceof Element) { flush(); lines.push(...serialize(child, depth + 1)); }
-  }
-  flush();
-  return lines;
-}
-const dom = () => [...document.body.children].flatMap(child => serialize(child)).join('\n');
-const describeFocus = () => {
-  const active = document.activeElement;
-  if (!active || active === document.body) return 'body';
-  return `${active.tagName.toLowerCase()}${active.id ? `#${active.id}` : ''}${active.className && typeof active.className === 'string' ? `.${active.className.split(' ').join('.')}` : ''}${active.getAttribute('aria-label') ? `[aria-label="${active.getAttribute('aria-label')}"]` : ''}`;
-};
+const dom = () => [...document.body.children].flatMap(child => serializeDom(child)).join('\n');
 const views: string[] = [];
-const capture = (name: string) => { views.push(`=== ${name} (focus: ${describeFocus()})\n${dom()}`); };
+const capture = (name: string) => { views.push(`=== ${name} (focus: ${describeFocus(document)})\n${dom()}`); };
 const settle = () => vi.advanceTimersByTimeAsync(1_000);
 const key = (target: Element, init: KeyboardEventInit) => target.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ...init }));
 
@@ -85,7 +64,7 @@ const sectionRows = (): readonly HubRow[] => [
 const summary = { label: 'Current build', title: 'Healer', detail: 'Your build', skills, attributes, professions, folder: 'PvE' };
 
 test('the Hub keeps its DOM structure, classes, ARIA and focus in every main view', async () => {
-  const hub = createHub(document.body, { mountHubView });
+  const hub = withHubBuiltins(createHub(document.body, { mountHubView }));
   window.gwHub = hub;
   await settle();
   capture('closed');
@@ -115,7 +94,7 @@ test('the Hub keeps its DOM structure, classes, ARIA and focus in every main vie
   capture('build details view');
 
   const form: HubViewMount<HTMLElement> = (target, _back, footer) => {
-    const element = document.createElement('form'); element.innerHTML = '<label>Name <input aria-label="Name"></label>'; target.append(element);
+    const element = document.createElement('form'); element.innerHTML = '<label>Name <input aria-label="Name" data-focus-key="name"></label>'; target.append(element);
     footer.primary({ label: 'Save', run() {} }); footer.secondary({ label: 'Reset', run() {}, destructive: true });
     return () => element.remove();
   };

@@ -2,7 +2,7 @@
  * Bounded search phrases and pins. Entries reference canonical objects, never executable text.
  * Keeps presentation separate from canonical game and storage owners.
  */
-import { HUB_SCOPES, normaliseHubQuery } from './hub.js';
+import { HUB_SCOPES, normaliseHubQuery, type HubScope } from './hub.js';
 import { CURRENCY_ALIASES, calculate, parseConversion } from './hub-calculator.js';
 /** First words that Hub's query grammar owns. */
 export const HUB_RESERVED_WORDS: readonly string[] = [...HUB_SCOPES, 'settings', 'hub', 'commands', 'help', 'titles', 'rates', 'launcher'];
@@ -25,6 +25,10 @@ export type HubShortcut = Readonly<{ id: string; phrase: string; pinned: boolean
 export const HUB_SHORTCUT_LIMIT = 64;
 /** Build and team references stay with the account's library; other references stay in settings. */
 export const isLibraryHubShortcut = (id: string): boolean => /^(build|team):/u.test(id);
+/** Saving a library entry with no library to keep it. */
+export const LIBRARY_UNAVAILABLE = 'Build Library is unavailable.';
+/** Whether a stored entry answers a scoped search: a scope lists its own references, `travel` places. */
+export const hubShortcutInScope = (id: string, scope: HubScope): boolean => id.startsWith(`${scope === 'travel' ? 'place' : scope}:`);
 /**
  * Structural validation for stored pins and phrases: shape, id, length and uniqueness.
  * Grammar words are refused only when a phrase is edited, so a phrase saved before a

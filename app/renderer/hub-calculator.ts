@@ -1,6 +1,8 @@
 /**
- * Hub currency presentation with inferred market prices and optional manual rates.
- * Market demand stays bounded to a complete visible query through Trade's owner.
+ * Hub currency presentation with inferred market prices and optional manual rates, and the state
+ * and saves of its Conversion rates and Price details pages, which the Hub's Vue kit draws
+ * (app/ui/tools/src/hub/views/calculator). Market demand stays bounded to a complete visible
+ * query through Trade's owner.
  */
 import { calculate, currencyInfo, decimal, divide, evaluateConversion, formatFraction, formatDisplayFraction, formatCalculatorCopy, fraction, multiply, parseConversion, parseDefaultConversion, DEFAULT_CALCULATOR_RATES, parseCalculatorRates, parseManualRate, type CalculatorRates, type Currency, type Fraction } from '../shared/hub-calculator.js';
 import { hubTier, type HubPresenter, type HubRow, type HubSource } from '../shared/hub.js';
@@ -8,6 +10,7 @@ import type { TraderQuoteSnapshot } from '../shared/trade-chat.js';
 import { MARKET_CACHE_MS, MARKET_MAX_AGE_MS, type MarketSnapshot, type MarketQuote, type MarketSide } from '../shared/market-rates.js';
 import { calculateTitle } from '../shared/title-calculator.js';
 import { currencyIcon } from '../shared/currency-assets.js';
+import type { HubPageFocus, HubRatesProps } from '../shared/ui/hub-pages.js';
 export const HUB_QUOTE_FRESH_MS = 5 * 60_000;
 export function createHubCalculator(options: {
   copy(value:string,label?:string):Promise<void>; settings?():CalculatorRates; saveRates?(value:CalculatorRates):Promise<void>; marketEnabled():boolean; quotes():Promise<TraderQuoteSnapshot>; market?():Promise<MarketSnapshot>; hub?:HubPresenter<HTMLElement>;
@@ -23,34 +26,32 @@ export function createHubCalculator(options: {
   const listeners=new Set<()=>void>();
   const refresh=()=>{for(const listener of listeners) listener();};
   const clear=()=>{generation++;queryKey='';clearTimeout(timer);};
+  /**
+   * The Conversion rates page: the rate source and the player's own rates. Saving reads every
+   * field first and names the one it cannot read; a page that is gone reports its outcome as a receipt.
+   */
   function editRates(preferManual=false) {
     const saved=settings(),manual=saved.mode==='manual',rates={ecto:saved.ecto,armbrace:saved.armbrace,zkey:saved.zkey};
-    options.hub?.showView('Conversion rates',(target,_back,footer)=>{
-      const doc=target.ownerDocument,form=doc.createElement('form');form.className='hub-detail';
-      const heading=doc.createElement('h2');heading.textContent='Choose your rates';
-      const hint=doc.createElement('p');hint.textContent='Your rates are saved in gwonmac. They are estimates, not live market quotes. Leave unknown rates blank.';
-      const mode=doc.createElement('select');mode.className='ui-select';mode.setAttribute('aria-label','Rate source');
-      for(const [value,label] of [['trader','Automatic observed prices'],['manual','Your rates']] as const){const option=doc.createElement('option');option.value=value;option.textContent=label;mode.append(option);} mode.value=manual||preferManual?'manual':'trader';
-      form.append(heading,hint,mode);
-      const fields=new Map<keyof typeof rates,HTMLInputElement>();
-      for(const [key,label] of [['ecto','Gold per ectoplasm'],['armbrace','Ectoplasm per armbrace'],['zkey','Ectoplasm per Zaishen key']] as const){
-        const wrapper=doc.createElement('label');wrapper.textContent=label;const input=doc.createElement('input');input.className='ui-input';input.inputMode='decimal';input.setAttribute('aria-label',label);input.value=rates[key];wrapper.append(input);form.append(wrapper);fields.set(key,input);
-      }
-      const status=doc.createElement('p');status.setAttribute('role','status');form.append(status);target.append(form);
-      // The footer's "Use these rates" submits; Enter in a rate field runs it.
-      footer.primary({label:'Use these rates',run:()=>form.requestSubmit()});
-      let saving=false;
-      form.addEventListener('keydown',event=>{if(event.key==='Enter'&&event.metaKey&&!event.ctrlKey&&!event.altKey&&!event.shiftKey){event.preventDefault();event.stopPropagation();if(!event.repeat)form.requestSubmit();}});
-      form.onsubmit=event=>{event.preventDefault();if(saving)return;void (async()=>{try{
-        const values={...rates};for(const [key,input] of fields){try{values[key]=parseManualRate(input.value);}catch(error){input.focus();throw new Error(`${input.getAttribute('aria-label')}: ${error instanceof Error?error.message:'Enter a valid rate.'}`,{cause:error});}}
-        const choice=parseCalculatorRates({mode:mode.value==='manual'?'manual':'automatic',...values});
+    options.hub?.showView('Conversion rates',(target,_back,footer,pages)=>{
+      const fields=[['ecto','Gold per ectoplasm'],['armbrace','Ectoplasm per armbrace'],['zkey','Ectoplasm per Zaishen key']] as const;
+      const typed=new Map<string,string>(fields.map(([key])=>[key,rates[key]]));
+      let mode:HubRatesProps['mode']=manual||preferManual?'manual':'trader',status='',focus:HubPageFocus|undefined,shown=true,saving=false;
+      const props=():HubRatesProps=>({mode,fields:fields.map(([key,label])=>({key,label,value:rates[key]})),status,...(focus?{focus}:{}),
+        changeMode:next=>{mode=next;},input:(key,value)=>{typed.set(key,value);},submit});
+      const page=pages.rates(target,props());
+      const say=(message:string)=>{status=message;if(shown)page.update(props());};
+      // The footer's "Use these rates" submits; Enter in a rate field runs it, ⌘↵ too.
+      function submit(){if(saving)return;void (async()=>{try{
+        const values={...rates};for(const [key,label] of fields){try{values[key]=parseManualRate(typed.get(key)??'');}catch(error){focus={key:`rates-${key}`,seq:(focus?.seq??0)+1};throw new Error(`${label}: ${error instanceof Error?error.message:'Enter a valid rate.'}`,{cause:error});}}
+        const choice=parseCalculatorRates({mode:mode==='manual'?'manual':'automatic',...values});
         if(!options.saveRates)throw new Error('Saving conversion rates is unavailable. Try again.');
-        saving=true;status.textContent='Saving conversion rates…';await options.saveRates(choice);
-        clear();status.textContent=choice.mode==='manual'?'Your rates saved. Go back to your conversion.':'Automatic observed prices selected. Go back to your conversion.';
-        if(!form.isConnected)options.hub?.notify(choice.mode==='manual'?'Your rates saved.':'Automatic observed prices selected.');
+        saving=true;say('Saving conversion rates…');await options.saveRates(choice);
+        clear();say(choice.mode==='manual'?'Your rates saved. Go back to your conversion.':'Automatic observed prices selected. Go back to your conversion.');
+        if(!shown)options.hub?.notify(choice.mode==='manual'?'Your rates saved.':'Automatic observed prices selected.');
         refresh();
-      }catch(error){const message=saving?'Could not save conversion rates. Try again.':error instanceof Error?error.message:'Save conversion rates again.';status.textContent=message;if(!form.isConnected)options.hub?.notify(message,'failed');}finally{saving=false;}})();};
-      mode.focus();return()=>form.remove();
+      }catch(error){const message=saving?'Could not save conversion rates. Try again.':error instanceof Error?error.message:'Save conversion rates again.';say(message);if(!shown)options.hub?.notify(message,'failed');}finally{saving=false;}})();}
+      footer.primary({label:'Use these rates',run:submit});
+      return()=>{shown=false;page.dispose();};
     });
   }
   const result=(id:string,title:string,detail:string,value:string):HubRow=>({id,title,detail,group:'Calculator',action:'Copy result',run:()=>options.copy(value,title)});
@@ -81,6 +82,8 @@ export function createHubCalculator(options: {
     ].filter(row=>hubTier(row,term)!==null);
   }
   return {
+    // The card's rows: loading, a quote, a market estimate or the player's own rates.
+    card:{group:'Calculator',restores:['quote:result','market:result','manual-conversion','conversion'],settles:['quote-state','market-state'],is:row=>!!row.conversion},
     subscribe(listener){listeners.add(listener);return()=>listeners.delete(listener);},
     setVisible(next){visible=next;if(!next)clear();},
     search(query){
@@ -172,17 +175,11 @@ export function createHubCalculator(options: {
                 const row = card(`market:${side}`,rate,detail);
                 const age = Math.max(0, Math.floor((Date.now() - newest) / 60000));
                 const ageLabel=age<1?'just now':age<60?`${age} min ago`:`${Math.floor(age/60)} h${age%60?` ${age%60} min`:''} ago`;
-                rows.push({ ...row, detail: `${marketSnapshot.sample ? 'Sample prices · ' : ''}${side === 'wts' ? 'Seller asking prices' : 'Buyer offers'} · Inferred median · Newest ad ${ageLabel}${!explicit?' · Default target':''}`, actionsLabel: 'Show price details', actions: () => options.hub?.showView('Price details', target => {
-                  const doc=target.ownerDocument,section=doc.createElement('section');section.className='hub-detail';
-                  const metadata=doc.createElement('dl');
-                  const add=(label:string,value:string)=>{const name=doc.createElement('dt'),text=doc.createElement('dd');name.textContent=label;text.textContent=value;metadata.append(name,text);};
-                  add('Source',observed.sample?'Sample data — not live Kamadan prices':'Recent Kamadan trade ads');
-                  add('Price basis',side==='wts'?'Seller asking prices':'Buyer offers');
-                  for(const entry of evidence){add('Median rate',`1 ${currencyInfo(entry.item).name} = ${formatFraction(fraction(BigInt(entry.numerator),BigInt(entry.denominator)))} ${entry.denomination}`);add('Advertisers',`${entry.advertisers} advertisers (${currencyInfo(entry.item).name})`);}
-                  add('Ads since',new Date(oldest).toLocaleString());add('Newest ad',new Date(newest).toLocaleString());
-                  add('Last fetched',new Date(observed.fetchedAt).toLocaleString());
-                  const button=doc.createElement('button');button.className='ui-button';button.textContent='Edit rates';button.onclick=()=>editRates();
-                  section.append(metadata,button);target.append(section);button.focus();return()=>section.remove();
+                rows.push({ ...row, detail: `${marketSnapshot.sample ? 'Sample prices · ' : ''}${side === 'wts' ? 'Seller asking prices' : 'Buyer offers'} · Inferred median · Newest ad ${ageLabel}${!explicit?' · Default target':''}`, actionsLabel: 'Show price details', actions: () => options.hub?.showView('Price details', (target, _back, _footer, pages) => {
+                  const entries:[string,string][]=[['Source',observed.sample?'Sample data — not live Kamadan prices':'Recent Kamadan trade ads'],['Price basis',side==='wts'?'Seller asking prices':'Buyer offers']];
+                  for(const entry of evidence)entries.push(['Median rate',`1 ${currencyInfo(entry.item).name} = ${formatFraction(fraction(BigInt(entry.numerator),BigInt(entry.denominator)))} ${entry.denomination}`],['Advertisers',`${entry.advertisers} advertisers (${currencyInfo(entry.item).name})`]);
+                  entries.push(['Ads since',new Date(oldest).toLocaleString()],['Newest ad',new Date(newest).toLocaleString()],['Last fetched',new Date(observed.fetchedAt).toLocaleString()]);
+                  return pages.priceDetails(target,{entries,editRates:()=>editRates()}).dispose;
                 }) });
               }catch{/* Incomplete routes never mix in NPC or invented prices. */}
             }
