@@ -2,15 +2,15 @@
  * Owns lazy optional Travel presentation inside the Core Hub surface.
  * The existing Travel host remains the command and preference owner.
  */
-import { TOOL_PRESENTATION } from '../shared/tool-presentation.js';
-import { currentTravelFriend, type TravelFriend, type TravelFriends } from '../shared/friends.js';
-import type { GameProgressState } from '../shared/game-progress.js';
-import type { TravelCommand, TravelGameState } from '../shared/travel-command.js';
-import type { EmbeddedToolsBundle } from '../shared/tools-bundle-contracts.js';
-import { matchHubRows, type HubRow, type HubSource, type HubViewMount } from '../shared/hub.js';
-import { ensureToolsStylesheet } from './tools-stylesheet.js';
-import { askLeaveArea, leaveAreaCopy } from './leave-area.js';
-import { requireToolsApi } from './tools-native-api.js';
+import { TOOL_PRESENTATION } from '../../../shared/tool-presentation.js';
+import { currentTravelFriend, type TravelFriend, type TravelFriends } from '../../../shared/friends.js';
+import type { GameProgressState } from '../../../shared/game-progress.js';
+import type { TravelCommand, TravelGameState } from '../../../shared/travel-command.js';
+import type { EmbeddedToolsBundle } from '../../../shared/tools-bundle-contracts.js';
+import { matchHubRows, type HubRow, type HubSource, type HubViewMount } from '../../../shared/hub.js';
+import { ensureToolsStylesheet } from '../../../renderer/tools-stylesheet.js';
+import { askLeaveArea, leaveAreaCopy } from '../../../renderer/leave-area.js';
+import { requireToolsApi } from '../../../renderer/tools-native-api.js';
 
 /** The Travel tool is switched on; a map load, character select or PvP only makes it unavailable for now. */
 const toolOn = () => !!window.gwToolsSettings?.().gwonmacTools && !!window.gwToolsSettings?.().travelPalette;
@@ -36,7 +36,7 @@ export function createTravelPalette(parent: HTMLElement, command: TravelCommand)
     if (app) return app;
     if (!loading) loading = (async () => {
       ensureToolsStylesheet(parent.ownerDocument);
-      const specifier = './tools/tools-app.js';
+      const specifier = '../../../tools/tools-app.js';
       const bundle: EmbeddedToolsBundle<HTMLElement> = await import(specifier);
       if (disposed) return;
       app = bundle.createHubTravel({ nativeApi: native, command, development: window.gwNative.init.development, hub,

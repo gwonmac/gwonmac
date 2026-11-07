@@ -2,8 +2,8 @@
  * Renderer-side adapter for the certified map-only travel export.
  * The game-thread transform derives live region/language and uses district Any.
  */
-import type { TravelCommand } from "../shared/travel-command.js";
-import type { TravelRequest } from "../shared/travel.js";
+import type { TravelCommand } from "../../../shared/travel-command.js";
+import type { TravelRequest } from "../../../shared/travel.js";
 
 export const TRAVEL_PAYLOAD_BYTES = 4 * Uint32Array.BYTES_PER_ELEMENT;
 

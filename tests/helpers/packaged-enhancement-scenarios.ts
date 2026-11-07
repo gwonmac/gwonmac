@@ -10,7 +10,7 @@ import {
 } from "../../app/renderer/companion-snapshot.ts";
 import { TEAM_COMMAND_PAYLOAD_BYTES } from "../../app/features/team-apply/renderer/enhancement-team-commands.ts";
 import { STORAGE_DATA_WINDOW_BYTES } from "../../app/features/xunlai-storage/renderer/enhancement-storage-command.ts";
-import { TRAVEL_PAYLOAD_BYTES } from "../../app/renderer/enhancement-travel-command.ts";
+import { TRAVEL_PAYLOAD_BYTES } from "../../app/features/travel/renderer/enhancement-travel-command.ts";
 import { COMPANION_PLAY_REGION_BYTES } from "../../app/renderer/companion-play-region-snapshot.ts";
 import { COMPANION_ABI } from "../../app/shared/companion-abi.ts";
 import {

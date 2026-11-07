@@ -24,9 +24,9 @@ test.describe("renderer Travel input", () => {
       await page.evaluate(async () => {
         document.getElementById("loading")?.classList.add("gone");
         let toggle = 1;
-        const specifier = "./enhancement-travel-installation.js";
+        const specifier = "./features/travel/renderer/enhancement-travel-installation.js";
         const { createTravelInstallation }:
-          typeof import("../../app/renderer/enhancement-travel-installation.js") =
+          typeof import("../../app/features/travel/renderer/enhancement-travel-installation.js") =
             await import(specifier);
         const installation = createTravelInstallation({
           enhancement_travel: () => 1,
@@ -78,9 +78,9 @@ test.describe("renderer Travel input", () => {
       await startGameInput(page);
       await page.evaluate(async () => {
         document.getElementById("loading")?.classList.add("gone");
-        const specifier = "./travel-palette.js";
+        const specifier = "./features/travel/renderer/travel-palette.js";
         const module = await import(specifier) as
-          typeof import("../../app/renderer/travel-palette.js");
+          typeof import("../../app/features/travel/renderer/travel-palette.js");
         const palette = module.createTravelPalette(document.body, {
           travel: () => undefined,
           guildHall: () => undefined,

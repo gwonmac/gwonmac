@@ -94,7 +94,7 @@ test("the Core renderer graph cannot evaluate optional Tools implementation", ()
     "app/renderer/skill-overlays-installation.ts",
     "app/renderer/companion-policy-source.ts",
     "app/renderer/tools-host.ts",
-    "app/renderer/travel-palette.ts",
+    "app/features/travel/renderer/travel-palette.ts",
     "app/renderer/tools-stylesheet.ts",
   ]);
 });

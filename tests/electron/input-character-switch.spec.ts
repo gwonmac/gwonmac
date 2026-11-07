@@ -479,9 +479,9 @@ test("the modal confirms PvE departure, blocks click-through, and retains post-l
         __characterSwitchTestSet(phase: "idle" | "confirming" | "switching" | "failed", context: CharacterSwitchContext): void;
       };
       target.__characterSwitchTestSet("idle", "outpost");
-      const specifier = "./travel-palette.js";
+      const specifier = "./features/travel/renderer/travel-palette.js";
       const module = await import(specifier) as
-        typeof import("../../app/renderer/travel-palette.js");
+        typeof import("../../app/features/travel/renderer/travel-palette.js");
       const palette = module.createTravelPalette(document.body, {
         travel: () => undefined,
         guildHall: () => undefined,

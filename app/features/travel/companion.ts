@@ -10,7 +10,7 @@ export default {
   id: "travel",
   async prepare({ exports, capabilities, substrates: { friends } }) {
     const travel = capabilities.travelAction
-      ? (await import("../../renderer/enhancement-travel-installation.js")).createTravelInstallation(exports, true)
+      ? (await import("./renderer/enhancement-travel-installation.js")).createTravelInstallation(exports, true)
       : null;
     return {
       /** The palette Progress reports to and Hub people travels through. */
