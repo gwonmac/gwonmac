@@ -111,7 +111,7 @@
             "Last fetched"
           <dd>
             "2026-11-07T12:00:01.000Z"
-        <button class="ui-button">
+        <button class="ui-button" data-focus-key="price-edit-rates">
           "Edit rates"
     <div class="hub-footer-status">
       <p aria-busy="false" class="hub-status" role="status" title="">

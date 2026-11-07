@@ -39,9 +39,28 @@ export type HubPreferencesProps = Readonly<{
   resetPosition(): void;
 }>;
 
+/**
+ * The calculator's Conversion rates form: the rate source, then one field per rate. The fields
+ * start with `value`; every change reports back, and the page never rewrites a field afterwards.
+ */
+export type HubRatesProps = Readonly<{
+  mode: 'trader' | 'manual';
+  fields: readonly Readonly<{ key: string; label: string; value: string }>[];
+  status: string; focus?: HubPageFocus;
+  changeMode(mode: 'trader' | 'manual'): void;
+  input(key: string, value: string): void;
+  /** Save: ⌘↵ in any field, or the form's own submission. */
+  submit(): void;
+}>;
+
+/** The evidence behind a market estimate, as label and value pairs, with a way to the rates. */
+export type HubPriceDetailsProps = Readonly<{ entries: readonly (readonly [label: string, value: string])[]; editRates(): void }>;
+
 /** The Hub's own pages, drawn by the kit into a view's target. */
 export type HubPages<Target> = Readonly<{
   confirm: HubPageMount<HubConfirmProps, Target>;
   phraseForm: HubPageMount<HubPhraseFormProps, Target>;
   preferences: HubPageMount<HubPreferencesProps, Target>;
+  rates: HubPageMount<HubRatesProps, Target>;
+  priceDetails: HubPageMount<HubPriceDetailsProps, Target>;
 }>;
