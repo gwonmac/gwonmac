@@ -1,7 +1,7 @@
 /**
  * Owns the corrected Piken Square map ID and the read of its released value.
- * Releases up to 2026.11 stored 778; this app reads 778 as the official map
- * ID 779 and writes 779.
+ * Stable releases v2026.8.9 to v2026.8.12 stored 778; this app reads 778 as
+ * the official map ID 779 and writes 779.
  */
 
 export const PIKEN_SQUARE_PRE_SEARING_MAP_ID = 779;

@@ -88,8 +88,7 @@ function parseBounds(value: unknown, name: string): WindowBounds {
 /**
  * A file with no `formatVersion` is what the public alpha wrote. Early version
  * 1 files also contain only `{ bounds, mode }`. Both restore in absolute pixels
- * once and gain their display work area on the next save. The additive field
- * keeps the document readable by the supported Stable rollback baseline.
+ * once and gain their display work area on the next save.
  */
 export function parseWindowState(value: unknown): RestorableWindowState {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
