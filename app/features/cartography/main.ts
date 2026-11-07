@@ -9,7 +9,8 @@ import { parseCartographyEvidenceCapture } from "./main/cartography-evidence/cap
 import { CartographyMapKnowledgeStore } from "./main/cartography-map-knowledge.js";
 import { EliteTrackingStore } from "./main/elite-tracking.js";
 import { channel } from "../../main/ipc-channel-registry.js";
-import { one, type ToolsMainPart } from "../../main/tools-main-part.js";
+import { one } from "../../main/ipc-values.js";
+import type { ToolsMainPart } from "../../main/tools-main-part.js";
 import { parseCartographyMapKnowledge } from "../../shared/cartography-map-knowledge.js";
 import { isDigest } from "../../shared/digest.js";
 import { eliteWikiUrl } from "../../shared/elite-wiki.js";

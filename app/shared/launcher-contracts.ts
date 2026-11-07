@@ -68,6 +68,9 @@ export const LAUNCHER_IPC = Object.freeze({
   updatesRestartAndInstall: "gw:launcher:updates:restartAndInstall",
 } as const);
 
+/** Every launcher channel main answers; the two events go main→renderer only. */
+export type LauncherInvokeChannel = Exclude<keyof typeof LAUNCHER_IPC, "stateEvent" | "navigationEvent">;
+
 /** A launcher page another window can open: `settings` opens the last Settings section; a target opens that section or control. */
 export type LauncherDestination = "home" | "accounts" | "settings" | SettingsTarget;
 

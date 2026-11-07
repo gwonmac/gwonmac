@@ -1,6 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseHubSettingsChange, HUB_SETTINGS_FIELDS } from '../../app/shared/hub-settings.js';
+import { errorCode } from '../../app/shared/errors.js';
+import { one } from '../../app/main/ipc-values.js';
 
 test('Hub settings accepts in-game changes and rejects launcher administration', () => {
   assert.deepEqual(parseHubSettingsChange({ kind: 'settings', patch: { uiStyle: 'obsidian', uiPanelOpacity: 80, uiTextSize: 200 } }), { kind: 'settings', patch: { uiStyle: 'obsidian', uiPanelOpacity: 80, uiTextSize: 200 } });
@@ -14,4 +16,16 @@ test('Hub settings routes feature and shortcut intent without arbitrary settings
   assert.deepEqual(parseHubSettingsChange({kind:'tool',tool:'whispers',enabled:false}),{kind:'tool',tool:'whispers',enabled:false});
   assert.deepEqual(parseHubSettingsChange({kind:'master',enabled:true}),{kind:'master',enabled:true});
   assert.deepEqual(parseHubSettingsChange({kind:'shortcut',action:'character.switch',binding:null}),{kind:'shortcut',action:'character.switch',binding:null});
+});
+test('a refused Hub settings argument is logged as validation, not as a handler crash', () => {
+  const parse = one(parseHubSettingsChange);
+  const codeOf = (args: readonly unknown[]): string => {
+    try { parse(args); } catch (error) { return errorCode(error); }
+    return 'accepted';
+  };
+  assert.equal(codeOf([{ kind: 'settings', patch: { autoCheckUpdates: false } }]), 'validation');
+  assert.equal(codeOf([{ kind: 'master', enabled: 'true' }]), 'validation');
+  assert.equal(codeOf([]), 'validation');
+  assert.equal(codeOf([{ kind: 'master', enabled: true }, 'extra']), 'validation');
+  assert.equal(codeOf([{ kind: 'master', enabled: true }]), 'accepted');
 });

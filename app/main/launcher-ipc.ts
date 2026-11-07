@@ -12,11 +12,11 @@ import type {
   LauncherExternalLink,
   LauncherFeedback,
   LauncherProfileCreateInput,
+  LauncherInvokeChannel,
   LauncherProfileUpdate,
   ShortcutReplacement,
 } from "../shared/launcher-contracts.js";
 import {
-  LAUNCHER_IPC,
   parseGlobalTool,
   parseLauncherExternalLink,
   parseLauncherGuideUrl,
@@ -34,11 +34,8 @@ import {
   type ProfileId,
 } from "../shared/multiple-accounts.js";
 import { parseProfileIds } from "./accounts-ipc-values.js";
-import {
-  channel,
-  registerNamedChannelDefinitions,
-  type Parser,
-} from "./ipc-channel-registry.js";
+import { channel, register, type AnyChannelDef } from "./ipc-channel-registry.js";
+import { nothing, one } from "./ipc-values.js";
 import type { WindowRegistry } from "./window-registry.js";
 import { parseTexturePackId, type TexturePackImportResult } from "../shared/texture-packs.js";
 
@@ -83,14 +80,6 @@ export interface LauncherIpcContext {
   readonly restartAndInstall: (win: BrowserWindow) => Promise<void>;
 }
 
-const exact = (args: readonly unknown[], count: number): void => {
-  if (args.length !== count) throw new Error(`expected ${count} IPC argument(s)`);
-};
-const nothing: Parser<void> = (args) => exact(args, 0);
-const one = <Value>(parse: (value: unknown) => Value): Parser<Value> => (args) => {
-  exact(args, 1);
-  return parse(args[0]);
-};
 const profileIds = one(parseProfileIds);
 const profileId = one(parseProfileId);
 const profileCreate = one((value: unknown): LauncherProfileCreateInput => {
@@ -137,48 +126,48 @@ const shortcutReplacement = one((value: unknown): ShortcutReplacement => {
 
 export function registerLauncherIpc(ctx: LauncherIpcContext): void {
   const connected = new WeakSet<BrowserWindow>();
-  registerNamedChannelDefinitions(ctx.windows, LAUNCHER_IPC, {
+  register(ctx.windows, "launcher", {
     stateGet: channel(nothing, (win) => {
       if (!connected.has(win)) {
         connected.add(win);
         ctx.connected();
       }
       return ctx.snapshot();
-    }, "launcher"),
-    profilesCreate: channel(profileCreate, (_win, input) => ctx.create(input), "launcher"),
-    profilesUpdate: channel(profileUpdate, (_win, input) => ctx.updateProfile(input), "launcher"),
-    profilesSetSelection: channel(profileIds, (_win, ids) => ctx.setSelection(ids), "launcher"),
-    profilesPlay: channel(profileIds, (_win, ids) => ctx.play(ids), "launcher"),
-    profilesShow: channel(profileId, (_win, id) => ctx.show(id), "launcher"),
-    profilesCancelQueued: channel(profileIds, (_win, ids) => ctx.cancelQueued(ids), "launcher"),
-    profilesArchive: channel(profileId, (_win, id) => ctx.archive(id), "launcher"),
-    profilesRestore: channel(profileId, (_win, id) => ctx.restore(id), "launcher"),
-    profilesDelete: channel(profileId, (win, id) => ctx.delete(win, id), "launcher"),
-    experienceDismissMigration: channel(nothing, () => ctx.dismissMigrationNotice(), "launcher"),
-    experienceDismissPreferencesReset: channel(nothing, () => ctx.dismissPreferencesReset(), "launcher"),
-    experienceCompleteSetup: channel(setup, (_win, enableTools) => ctx.completeSetup(enableTools), "launcher"),
-    experienceUpdatePreferences: channel(one(parseLauncherPreferencesPatch), (_win, patch) => ctx.updatePreferences(patch), "launcher"),
-    settingsUpdate: channel(one(parseLauncherSettingsPatch), (_win, patch) => ctx.updateSettings(patch), "launcher"),
-    settingsReset: channel(nothing, (win) => ctx.resetSettings(win), "launcher"),
-    toolsSetMasterEnabled: channel(booleanValue, (_win, enabled) => ctx.setToolsMaster(enabled), "launcher"),
-    toolsSetFeature: channel(toolUpdate, (_win, input) => ctx.setToolFeature(input), "launcher"),
-    toolsCaptureShortcut: channel(one(parseShortcutAction), (win, action) => ctx.captureShortcut(win, action), "launcher"),
-    toolsReplaceShortcut: channel(shortcutReplacement, (_win, input) => ctx.replaceShortcut(input), "launcher"),
-    toolsRestartToApply: channel(nothing, (win) => ctx.restartToApplyTools(win), "launcher"),
-    gameFilesInfo: channel(nothing, () => ctx.cacheInfo(), "launcher"),
-    gameFilesRepair: channel(nothing, (win) => ctx.repairGameFiles(win), "launcher"),
-    gameFilesPauseDownload: channel(nothing, () => ctx.pauseDownload(), "launcher"),
-    gameFilesResumeDownload: channel(nothing, () => ctx.resumeDownload(), "launcher"),
-    gameFilesResetAndRestart: channel(nothing, (win) => ctx.resetGameFiles(win), "launcher"),
-    newsOpen: channel(one(parseLauncherNewsId), (_win, id) => ctx.openNews(id), "launcher"),
-    texturePacksImport: channel(nothing, (win) => ctx.importTexturePack(win), "launcher"),
-    texturePacksSelect: channel(nullableTexturePackId, (_win, id) => ctx.selectTexturePack(id), "launcher"),
-    texturePacksRemove: channel(one(parseTexturePackId), (win, id) => ctx.removeTexturePack(win, id), "launcher"),
-    feedbackSend: channel(one(parseLauncherFeedback), (_win, feedback) => ctx.sendFeedback(feedback), "launcher"),
-    externalOpen: channel(one(parseLauncherExternalLink), (_win, kind) => ctx.openExternal(kind), "launcher"),
-    externalOpenUrl: channel(one(parseLauncherGuideUrl), (_win, url) => ctx.openUrl(url), "launcher"),
-    externalRevealLogs: channel(nothing, () => ctx.revealLogs(), "launcher"),
-    updatesCheck: channel(nothing, () => ctx.checkUpdates(), "launcher"),
-    updatesRestartAndInstall: channel(nothing, (win) => ctx.restartAndInstall(win), "launcher"),
-  });
+    }),
+    profilesCreate: channel(profileCreate, (_win, input) => ctx.create(input)),
+    profilesUpdate: channel(profileUpdate, (_win, input) => ctx.updateProfile(input)),
+    profilesSetSelection: channel(profileIds, (_win, ids) => ctx.setSelection(ids)),
+    profilesPlay: channel(profileIds, (_win, ids) => ctx.play(ids)),
+    profilesShow: channel(profileId, (_win, id) => ctx.show(id)),
+    profilesCancelQueued: channel(profileIds, (_win, ids) => ctx.cancelQueued(ids)),
+    profilesArchive: channel(profileId, (_win, id) => ctx.archive(id)),
+    profilesRestore: channel(profileId, (_win, id) => ctx.restore(id)),
+    profilesDelete: channel(profileId, (win, id) => ctx.delete(win, id)),
+    experienceDismissMigration: channel(nothing, () => ctx.dismissMigrationNotice()),
+    experienceDismissPreferencesReset: channel(nothing, () => ctx.dismissPreferencesReset()),
+    experienceCompleteSetup: channel(setup, (_win, enableTools) => ctx.completeSetup(enableTools)),
+    experienceUpdatePreferences: channel(one(parseLauncherPreferencesPatch), (_win, patch) => ctx.updatePreferences(patch)),
+    settingsUpdate: channel(one(parseLauncherSettingsPatch), (_win, patch) => ctx.updateSettings(patch)),
+    settingsReset: channel(nothing, (win) => ctx.resetSettings(win)),
+    toolsSetMasterEnabled: channel(booleanValue, (_win, enabled) => ctx.setToolsMaster(enabled)),
+    toolsSetFeature: channel(toolUpdate, (_win, input) => ctx.setToolFeature(input)),
+    toolsCaptureShortcut: channel(one(parseShortcutAction), (win, action) => ctx.captureShortcut(win, action)),
+    toolsReplaceShortcut: channel(shortcutReplacement, (_win, input) => ctx.replaceShortcut(input)),
+    toolsRestartToApply: channel(nothing, (win) => ctx.restartToApplyTools(win)),
+    gameFilesInfo: channel(nothing, () => ctx.cacheInfo()),
+    gameFilesRepair: channel(nothing, (win) => ctx.repairGameFiles(win)),
+    gameFilesPauseDownload: channel(nothing, () => ctx.pauseDownload()),
+    gameFilesResumeDownload: channel(nothing, () => ctx.resumeDownload()),
+    gameFilesResetAndRestart: channel(nothing, (win) => ctx.resetGameFiles(win)),
+    newsOpen: channel(one(parseLauncherNewsId), (_win, id) => ctx.openNews(id)),
+    texturePacksImport: channel(nothing, (win) => ctx.importTexturePack(win)),
+    texturePacksSelect: channel(nullableTexturePackId, (_win, id) => ctx.selectTexturePack(id)),
+    texturePacksRemove: channel(one(parseTexturePackId), (win, id) => ctx.removeTexturePack(win, id)),
+    feedbackSend: channel(one(parseLauncherFeedback), (_win, feedback) => ctx.sendFeedback(feedback)),
+    externalOpen: channel(one(parseLauncherExternalLink), (_win, kind) => ctx.openExternal(kind)),
+    externalOpenUrl: channel(one(parseLauncherGuideUrl), (_win, url) => ctx.openUrl(url)),
+    externalRevealLogs: channel(nothing, () => ctx.revealLogs()),
+    updatesCheck: channel(nothing, () => ctx.checkUpdates()),
+    updatesRestartAndInstall: channel(nothing, (win) => ctx.restartAndInstall(win)),
+  } satisfies Record<LauncherInvokeChannel, AnyChannelDef>);
 }

@@ -1,6 +1,8 @@
 /**
- * Pure bounded-value validation and wire normalization for the IPC boundary.
- * No Electron capability or domain policy belongs in this module.
+ * Pure bounded-value validation and wire normalization for the IPC boundary,
+ * and the one parser kit (`args`, `nothing`, `one`) every boundary builds its
+ * argument parsers from. No Electron capability or domain policy belongs in
+ * this module.
  */
 import type { GraphicsDiagnostics, SocketEvent } from "../shared/contracts.js";
 import type {
@@ -20,8 +22,41 @@ import {
   WASM_GROWTH_OUTCOMES,
   WASM_MEMORY_PROBE_STATUSES,
 } from "../shared/diagnostics.js";
-import { ValidationError } from "../shared/errors.js";
+import { AppError, ValidationError } from "../shared/errors.js";
 import { isRendererFingerprint } from "./diagnostics/schema-fields.js";
+
+/** Turns one invoke's argument list into the handler's input, or throws. */
+export type Parser<In> = (args: readonly unknown[]) => In;
+
+/**
+ * Builds a parser over exactly `count` arguments. Every rejection leaves as a
+ * ValidationError, also from a shared value parser that throws a plain Error,
+ * so `ipc.rejected` reports `validation` and never looks like a handler crash.
+ */
+export const args = <In>(
+  count: number,
+  parse: (values: readonly unknown[]) => In,
+): Parser<In> => (values) => {
+  if (values.length !== count) {
+    throw new ValidationError(`expected ${count} IPC argument(s)`);
+  }
+  try {
+    return parse(values);
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    throw new ValidationError(
+      error instanceof Error ? error.message : "invalid IPC argument",
+      { cause: error },
+    );
+  }
+};
+
+/** For the channels that carry nothing. Still a parser, still explicit. */
+export const nothing: Parser<void> = args(0, () => undefined);
+
+/** Lifts a single-value validator into a parser over the argument list. */
+export const one = <In>(parse: (value: unknown) => In): Parser<In> =>
+  args(1, ([value]) => parse(value));
 
 export function toWireSocketEvent(event: SocketEvent): SocketEvent {
   if (event.type !== "data") return event;
@@ -79,9 +114,7 @@ const isByteCount = (value: unknown): value is number =>
   typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
 
 /** Validates the complete renderer milestone tuple before diagnostics sees it. */
-export function parseRendererMilestoneArgs(args: readonly unknown[]): ParsedMilestone {
-  if (args.length !== 3) throw new ValidationError("expected 3 IPC argument(s)");
-  const [name, rendererTimestampUs, fields] = args;
+export const parseRendererMilestoneArgs: Parser<ParsedMilestone> = args(3, ([name, rendererTimestampUs, fields]) => {
   if (
     typeof name !== "string"
     || !RENDERER_MILESTONES.includes(name as RendererMilestone)
@@ -292,4 +325,4 @@ export function parseRendererMilestoneArgs(args: readonly unknown[]): ParsedMile
     throw new ValidationError("invalid renderer milestone");
   }
   return { name: name as RendererMilestone, rendererTimestampUs, fields: milestoneFields };
-}
+});
