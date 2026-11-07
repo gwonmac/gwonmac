@@ -12,6 +12,7 @@ import {
 import { describeCartographyQaStatus } from "../../app/features/cartography/renderer/overlay-controls.js";
 import {
   cartographyOverlayDisposition,
+  createCartographyOverlayGate,
 } from "../../app/features/cartography/renderer/overlay.js";
 import type { CartographyState } from
   "../../app/features/cartography/renderer/cartography-model.js";
@@ -111,6 +112,18 @@ test("unsupported areas and transient failures leave controls available", () => 
 test("every Maps surface, its controls included, hides outside PvE as the Maps manifest says", () => {
   assert.equal(cartographyOverlayDisposition(unavailable("unsupported-area"), "pvp"), "hidden");
   assert.equal(cartographyOverlayDisposition(unavailable("loading"), "unknown"), "hidden");
+});
+
+test("the overlay withdraws its surfaces once when Maps becomes hidden, not every frame", () => {
+  let nativeRangeWithdrawals = 0;
+  const frame = createCartographyOverlayGate(() => { nativeRangeWithdrawals += 1; });
+  const state = unavailable("loading");
+  for (let index = 0; index < 3; index += 1) assert.equal(frame(state, "pvp"), "hidden");
+  assert.equal(nativeRangeWithdrawals, 1);
+  assert.equal(frame(state, "pve"), "controls-only");
+  assert.equal(frame(state, "unknown"), "hidden");
+  assert.equal(frame(state, "unknown"), "hidden");
+  assert.equal(nativeRangeWithdrawals, 2);
 });
 
 test("Cartography QA status distinguishes loading from exact kernel failures", () => {

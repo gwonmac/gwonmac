@@ -114,6 +114,24 @@ export function cartographyOverlayDisposition(
   return "controls-only";
 }
 
+/**
+ * The overlay's per-frame gate. It answers the disposition and withdraws every
+ * surface once, on the frame Maps becomes hidden; hidden frames after that do
+ * no work, and the next visible frame re-arms it.
+ */
+export function createCartographyOverlayGate(withdraw: () => void) {
+  let withdrawn = false;
+  return (state: CartographyState, playRegion: RuntimePlayRegion): CartographyOverlayDisposition => {
+    const disposition = cartographyOverlayDisposition(state, playRegion);
+    if (disposition !== "hidden") withdrawn = false;
+    else if (!withdrawn) {
+      withdrawn = true;
+      withdraw();
+    }
+    return disposition;
+  };
+}
+
 export function mountCartographyOverlay(options: Readonly<{
   compassTerrainLayer: NativeCompassTerrainLayer;
   nativeMapGraphics: NativeMapGraphicsLayer;
@@ -373,7 +391,7 @@ export function mountCartographyOverlay(options: Readonly<{
       });
     };
 
-    const withdraw = (): void => {
+    const gate = createCartographyOverlayGate((): void => {
       controls.hide();
       compassRangeControls.hide();
       compassRangeLayer.update(null, [], options.settings().compassRangeTheme);
@@ -381,11 +399,11 @@ export function mountCartographyOverlay(options: Readonly<{
       terrainKey = "";
       terrain = null;
       hideAllLayers();
-    };
+    });
 
     const render = (): void => {
       const playRegion = options.playRegion();
-      if (cartographyOverlayDisposition(state, playRegion) === "hidden") { withdraw(); return; }
+      if (gate(state, playRegion) === "hidden") return;
       const now = view.performance.now();
       if (now >= nextModelPoll) {
         const previous = state;
