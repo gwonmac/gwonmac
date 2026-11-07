@@ -1,0 +1,710 @@
+/**
+ * Reviewed facts for one ArenaNet client generation. An August 2026 client this store does not retain (official build ID 0x1eb07e32).
+ * Runtime certification never grants a capability from these facts alone:
+ * the isolated semantic verifier re-derives every fact from the bytes first.
+ */
+import type { ClientGeneration } from "./reviewed-facts.js";
+import type { KnownEnhancementBuild } from "./enhancement-build-model.js";
+
+const BUILD: KnownEnhancementBuild = Object.freeze({
+  sha256:
+    "484f7f20691c912c372b7e265a1cc4a4d26b37bfbd52c838b3137d5f29b67d3b",
+  // Recomputed from the exact current JSPI artifact when the independent
+  // play-region capability landed. The retained output is the complete
+  // product profiles proved by the current semantic verifier.
+  //
+  // `pnpm check` cannot catch a stale value here. The transform input is a
+  // derived game binary this repository does not contain, so nothing in the
+  // suite can run the transform; the first thing that notices is a launch
+  // that installs no enhancement at all. Recompute by running
+  // `transformEnhancementWasm` against the real derived module whenever
+  // ENHANCEMENT_TRANSFORM_ABI or any config word changes.
+  outputSha256: Object.freeze({
+    "features-601":
+      "01fbd2857f9df5456237f1182c898d2edc541e438018d08b6fd85edc1223da99",
+    "features-e01":
+      "134becd3f6dab64df1b7db6a19a008981fc8f1bf4d187e2a27571e892e8c302c",
+    "features-fff":
+      "8de1f98f1bab9478f757908a8f9139937555aa704a387a8f8a09d537cff5604d",
+    "features-1fff":
+      "ba0d15ac088c13ab97d1b8675e685bc87c5698e6461372c3933f72c710ed6ea3",
+    "features-2fff":
+      "24d891930002b81435c9faae86dc84ecc54c2b33036b1be1bb00065c71bab836",
+    "features-3fff":
+      "fd88cc4f63af870026e3e12399b602dc79a8a7ab97f399cdb1151f58c446a605",
+  }),
+  programId: 1,
+  // The verifier derives this bounded identity from the exact module; it is
+  // diagnostic metadata, never a nearest-build selector.
+  buildId: 514_880_306,
+  hookFunction: 446,
+  hookParams: Object.freeze(["i32"] as const),
+  hookResults: Object.freeze([] as const),
+  hookBodySha256:
+    "a4f73b08ad78397b86ff050bfc25a26ab5a8794ae8f914a4b16399253fbf4635",
+  // The input table is fixed at 4,683 entries. The transform extends both
+  // limits once and owns only this new terminal entry; statically empty input
+  // slot 0 is a game runtime sentinel and must remain untouched.
+  tableSlot: 4683,
+  observationBase: Object.freeze({
+    layout: Object.freeze({
+      contextRoot: 0x5a0e70,
+      agentArray: 0x5a4de8,
+      gameContextSlot: 6,
+      characterContext: 0x44,
+      characterUuid: 0x64,
+      mapId: 0x198,
+      isExplorable: 0x19c,
+      currentMapId: 0x234,
+      currentInstanceType: 0x23c,
+      playerNumber: 0x2ac,
+      agentId: 0x2c,
+      agentX: 0x74,
+      agentY: 0x78,
+      agentType: 0x9c,
+      agentPlayerNumber: 0xf4,
+      agentModelType: 0xf6,
+      worldContext: 0x2c,
+      // Exact-build initialised `AreaInfo[mapId]`. Cross-checked against
+      // GWToolbox++'s flags: Lion's Arch (55) is PvE, Random Arenas (188)
+      // carries the PvP bit, and Isle of Wurms (529) the guild-hall bit.
+      areaInfo: 0x1cc5c0,
+      areaInfoCount: 883,
+      areaInfoStride: 0x7c,
+      areaInfoFlags: 0x10,
+    }),
+  }),
+  playRegionObservation: Object.freeze({
+    layout: Object.freeze({
+      contextRoot: 0x5a0e70,
+      gameContextSlot: 6,
+      characterContext: 0x44,
+      characterUuid: 0x64,
+      mapId: 0x198,
+      isExplorable: 0x19c,
+      currentMapId: 0x234,
+      currentInstanceType: 0x23c,
+      playerNumber: 0x2ac,
+      areaInfo: 0x1cc5c0,
+      areaInfoCount: 883,
+      areaInfoStride: 0x7c,
+      areaInfoFlags: 0x10,
+    }),
+  }),
+  playerSkillbarObservation: Object.freeze({
+    worldLifecycle: Object.freeze({ functionIndex: 8812, params: ["i32"] as const, results: ["i32"] as const, bodySha256: "b0109c7c853a7d01586172aef66ab14f4d192fbe4f5ea7514553e0821d0dcb5a" }),
+    update: Object.freeze({ functionIndex: 8698, params: [] as const, results: [] as const, bodySha256: "c72cdcbdae22e520f42edbcf2fd56545bad7a014b078ed77ebd284181f523d61" }),
+    rowReader: Object.freeze({ functionIndex: 8701, params: ["i32", "i32", "i32"] as const, results: ["i32"] as const, bodySha256: "7b8b5c65a126fae2edfa517a4706244a0d2352c628fde208d049ecf82dfa4e72" }),
+    slotReader: Object.freeze({ functionIndex: 8702, params: ["i32", "i32", "i32"] as const, results: ["i32"] as const, bodySha256: "ee41be1f4dcaf8e5822fc024e41cbbad74cf293cdafb2b89a8691aeb680e68b5" }),
+    coreLayout: Object.freeze({ worldSkillbars: 0x6f0, skillbarStride: 0xbc, skillbarAgentId: 0, skillbarSkills: 4, skillSlotStride: 0x14 }),
+    partyLayout: Object.freeze({ skillSlotId: 0x0c, skillbarDisabled: 0xa4 }),
+  }),
+  cursorEvent: Object.freeze({
+    functionIndex: 2469,
+    params: Object.freeze(["i32", "i32", "i32", "i32", "i32"] as const),
+    results: Object.freeze([] as const),
+    tableSlot: 922,
+    producerFunctions: Object.freeze([2828, 2834] as const),
+    producerParams: Object.freeze([
+      Object.freeze(["i32", "i32"] as const),
+      Object.freeze(["i32", "i32"] as const),
+    ] as const),
+    producerResults: Object.freeze([
+      Object.freeze(["i32"] as const),
+      Object.freeze(["i32"] as const),
+    ] as const),
+    bodySha256:
+      "f09a7a12954169ae595d12d870e69a4c0092003157d72523d626d2a3990241e2",
+    producerBodySha256: Object.freeze([
+      "deada48f4c9ce0b2046f7ab9d416f530c87d24ca0e3fb905f5874abad3e92c41",
+      "2988a05e1a39c1f32f564f5afecf9a4b172a27120c9a9a791ca980804a285100",
+    ] as const),
+    tableNeighbourBodySha256: Object.freeze([
+      "f09a7a12954169ae595d12d870e69a4c0092003157d72523d626d2a3990241e2",
+      "cb751dd998dc5591fb1a8d05d08d194a8a7e4670b1a9685816b9a2af8fab7980",
+    ] as const),
+    layout: Object.freeze({
+      cursorActiveArt: 0x5a1670,
+      cursorSoftwareModel: 0x5a1674,
+      cursorShowCount: 0x5a1678,
+      cursorColorBuffer: 0x298de0,
+      cursorArtHotspot: 0x00,
+      cursorArtTexture: 0x0c,
+      cursorHandleKey: 0x08,
+      cursorHandleObject: 0x00,
+      cursorViewTexture: 0x08,
+      cursorTextureType: 0x0c,
+      cursorTextureWidth: 0x14,
+      cursorTextureHeight: 0x18,
+    }),
+  }),
+  // Everything a team apply needs, and nothing else. Kick was sent first,
+  // alone, against a live game; the rest joined it once that had worked.
+  //
+  // The sender, drain and every command builder below are byte-identical to
+  // build 38,797, including their signatures and active table relations.
+  // That build's live evidence established that opcode 31 with hero id 38
+  // removes Devona; the historical pre-Devona `0x26` clear-roster sentinel
+  // does not apply. Rebuilds therefore remove observed heroes individually
+  // and confirm each publication before adding the saved order.
+  //
+  targetObservation: Object.freeze({
+    layout: Object.freeze({
+      manualTargetAgentId: 0x5a38dc,
+      automaticTargetAgentId: 0x5a38d8,
+    }),
+  }),
+  uiDispatcher: Object.freeze({
+    functionIndex: 6842,
+    params: Object.freeze(["i32", "i32", "i32"] as const),
+    results: Object.freeze([] as const),
+    bodySha256:
+      "ba41a2237bc91373cdee67ad8cfff700b80a2e351b7e980f37d68690307de4c0",
+    playerChatMessage: 0x1000_0082,
+    hideHeroPanelMessage: 0x1000_01a3,
+    showHeroPanelMessage: 0x1000_01a4,
+  }),
+  xunlaiAction: Object.freeze({
+    openExport: "enhancement_open_storage",
+    configureExport: "enhancement_configure_storage",
+    // Originally measured on build 38,833 and re-verified against this
+    // exact current client. The readers below
+    // independently prove WorldContext::players at +0x80c, Array size at
+    // +8, 0x50-byte records, and the three fields used by the kernel.
+    accessProof: Object.freeze({
+      layout: Object.freeze({
+        worldPlayers: 0x80c,
+        playerRecordStride: 0x50,
+        playerRecordAgentId: 0x00,
+        playerRecordAccessFlags: 0x34,
+        playerRecordNumber: 0x38,
+        areaInfoType: 0x08,
+      }),
+      readers: Object.freeze({
+        "agent-id": Object.freeze({
+          functionIndex: 8939,
+          params: Object.freeze(["i32"] as const),
+          results: Object.freeze(["i32"] as const),
+          bodySha256:
+            "9232ecf44778323dd0d1f922fbd1d39b3f75d7425886a44019df79f2cf87f93a",
+        }),
+        "access-flags": Object.freeze({
+          functionIndex: 9196,
+          params: Object.freeze(["i32"] as const),
+          results: Object.freeze(["i32"] as const),
+          bodySha256:
+            "53fb1be960d2e79c441dd2c29276020cb9a834630fce5a3686035885ca508d29",
+        }),
+        "player-number": Object.freeze({
+          functionIndex: 9205,
+          params: Object.freeze(["i32"] as const),
+          results: Object.freeze(["i32"] as const),
+          bodySha256:
+            "b98af3eb50f4c2aa1bc09f0a88712e32a2a14fe0d013126e1e4c0e842008e01f",
+        }),
+      }),
+    }),
+    // ChCliStoc #8978 is the DataWindow handler. Its seven-way branch
+    // reads `type` at +4; branch zero reads `agent` at +0 and the two
+    // storage unlock bits from `data` at +8, then emits
+    // kShowXunlaiChest (0x10000040). The command supplies the same
+    // header-stripped { agent: 0, type: 0, data: 3 } payload as the
+    // normal server-to-client decoder.
+    handler: Object.freeze({
+      functionIndex: 8978,
+      params: Object.freeze(["i32"] as const),
+      results: Object.freeze([] as const),
+      bodySha256:
+        "0a46adca4dd597f9430c23457f6ce6ff7ccdfbdaf4a77b449a8158e2c595189a",
+    }),
+  }),
+  travelAction: Object.freeze({
+    enqueueExport: "enhancement_travel",
+    configureExport: "enhancement_configure_travel",
+    toggleExport: "enhancement_take_travel_toggle",
+    // Current GWCA names this kTravel (0x10000183). ChCliMap #16199
+    // writes its four scalar arguments to {map, region, language,
+    // district} and sends this message through the certified dispatcher.
+    messageId: 0x1000_0183,
+    guildHall: Object.freeze({
+      enqueueExport: "enhancement_guild_hall",
+      // The client's guild command chooses Leave while AreaInfo type is
+      // GuildHall (4); otherwise it sends the current guild's 16-byte key.
+      enterMessageId: 0x1000_0180,
+      leaveMessageId: 0x1000_0182,
+      layout: Object.freeze({ guildContextSlot: 15, guildHallKey: 0x64 }),
+      keyAccessor: Object.freeze({
+        functionIndex: 7960,
+        params: Object.freeze([] as const),
+        results: Object.freeze(["i32"] as const),
+        bodySha256: "f78d0067879c110a5269ab57eaab946525cbc0a7ba09ff02c150db94d5176598",
+      }),
+      areaTypeAccessor: Object.freeze({
+        functionIndex: 9531,
+        params: Object.freeze([] as const),
+        results: Object.freeze(["i32"] as const),
+        bodySha256: "6b1546fa7e04a8f3642c4d5a0daa0d9d58255a879d47965920615013f465172f",
+      }),
+      producer: Object.freeze({
+        functionIndex: 15462,
+        params: Object.freeze(["i32", "i32"] as const),
+        results: Object.freeze([] as const),
+        bodySha256: "ff6bcc8db69cbb7fddc17af6d4b7a4c052cb6cd17e335155db495c2e435290c9",
+      }),
+    }),
+    // WorldContext::unlocked_map is not accepted from GWCA's struct.
+    // Accessor #9184 returns the exact Array<u32> at +0x60c, while the
+    // official map consumer #15978 proves word=map/32 and bit=map%32.
+    unlockProof: Object.freeze({
+      layout: Object.freeze({ worldUnlockedMaps: 0x60c }),
+      accessor: Object.freeze({
+        functionIndex: 9184,
+        params: Object.freeze([] as const),
+        results: Object.freeze(["i32"] as const),
+        bodySha256: "24579d9f602bc21a37c0dc8ca88c362a38493c64d101d42081ccd6ed5314f975",
+      }),
+      consumer: Object.freeze({
+        functionIndex: 15978,
+        params: Object.freeze(["i32"] as const),
+        results: Object.freeze(["i32"] as const),
+        bodySha256: "c462fd76a759a90c48dc9298223cf6f571dec8ef11c732177faa14ac4b49fb9f",
+      }),
+    }),
+    producer: Object.freeze({
+      functionIndex: 16199,
+      params: Object.freeze([
+        "i32", "i32", "i32", "i32", "i32",
+      ] as const),
+      results: Object.freeze([] as const),
+      bodySha256:
+        "47c2f33dc98226fbb1596d60b2dfe76a9a19f645e94330a0582a6dc50d5be595",
+    }),
+    // Regression expectation only. Runtime authority re-derives this unique
+    // current-district role and all of its call/content relationships.
+    contextResolver: Object.freeze({
+      functionIndex: 11650,
+      params: Object.freeze(["i32", "i32", "i32"] as const),
+      results: Object.freeze([] as const),
+      bodySha256:
+        "309615106e62d04390ca11f88b28d15e04494d9e850c0f5ebff8548f098ba062",
+    }),
+  }),
+  chatAliases: Object.freeze({
+    // Parser #13703 receives the complete UTF-16 line and returns one
+    // only when an alias was handled; normal chat remains the fallback.
+    parser: Object.freeze({
+      functionIndex: 13703,
+      params: Object.freeze(["i32", "i32"] as const),
+      results: Object.freeze(["i32"] as const),
+      bodySha256:
+        "fcff05250c935e92337fee53cd9f086b22d1ba02a4ff051bd94165f61833a713",
+    }),
+  }),
+  chatFiltering: Object.freeze({
+    writeToChatLogMessage: 0x1000_007f,
+    packetChannelOffset: 0,
+    packetMessageOffset: 4,
+    allyDropTemplate: 0x07f1,
+    numericSegment: 0x010f,
+    encodedNumberBase: 0x0100,
+    // Encoded-name markers consumed by the native chat path.
+    playerNameToken: 0x0ba9,
+    encodedStringStart: 0x0107,
+    encodedStringEnd: 0x0001,
+    maxPlayerNameUnits: 20,
+    // Fixed UTF-16 CharContext::player_name[20]. The adjacent UUID and
+    // player-number fields are owned by the shared observation layout.
+    currentPlayerNameOffset: 0x74,
+    systemPrefix: 0x8102,
+    hallOfHeroesTemplate: 0x223b,
+    titleTemplates: Object.freeze([
+      0x1443, 0x23e2, 0x23e5, 0x23e6,
+    ] as const),
+    producer: Object.freeze({
+      functionIndex: 7880,
+      params: Object.freeze(["i32", "i32"] as const),
+      results: Object.freeze([] as const),
+      bodySha256:
+        "27de9130f902e343143030751962177d77853da9e841eb7afbfd3c6c494e556d",
+    }),
+  }),
+  gameThread: Object.freeze({
+    // GWCA's `GameThread::Enqueue` hooks this recurring frame callback. Its
+    // source anchor is FrApi.cpp's unique `renderElapsed >= 0` assertion;
+    // the active table relation below proves this is the registered callback,
+    // not the nearby one-time frame/message initializer (#6659).
+    drain: Object.freeze({
+      functionIndex: 6661,
+      params: Object.freeze(["i32", "i32"] as const),
+      results: Object.freeze([] as const),
+      tableSlot: 1721,
+      bodySha256:
+        "a3bf3e37cc469f8a0b220fcbb857078fbf427c304f0c07496694d506f5c396d0",
+    }),
+  }),
+  teamApply: Object.freeze({
+    thunkExport: "enhancement_command",
+    professionTrace: Object.freeze({
+      readerExport: "enhancement_profession_trace",
+      // The unique sender shared by all 147 packet builders. The trace
+      // wrapper records only fixed opcode-65 and opcode-93 payloads and then
+      // calls this exact body unchanged.
+      sender: Object.freeze({
+        functionIndex: 5951,
+        params: Object.freeze(["i32", "i32", "i32"] as const),
+        results: Object.freeze([] as const),
+        bodySha256:
+          "4746b06f47ce79df6a3879b0b55d6d6430b65544479f4109ca84a56a12738a36",
+      }),
+    }),
+    entries: Object.freeze([
+      Object.freeze({
+        opcode: 31,
+        functionIndex: 6887,
+        params: Object.freeze(["i32"] as const),
+        results: Object.freeze([] as const),
+        bodySha256:
+          "ad54846e78e293ba4c2a6cef392bb3f3cb62fdd5209d8aadf0e99c75a4914e59",
+        label: "CharMsgSendHeroDeactivate(heroId)",
+      }),
+      Object.freeze({
+        opcode: 30,
+        functionIndex: 6886,
+        params: Object.freeze(["i32"] as const),
+        results: Object.freeze([] as const),
+        bodySha256:
+          "709ce8b36ecd5bb269d211d38a7d504a7577e40312be7c74c125f02bbb3be697",
+        label: "CharMsgSendHeroActivate(heroId)",
+      }),
+      Object.freeze({
+        opcode: 21,
+        functionIndex: 6878,
+        params: Object.freeze(["i32", "i32"] as const),
+        results: Object.freeze([] as const),
+        bodySha256:
+          "e8c9b33da97ad99f4fabcca08fabf29ecb8a08fb400d8e161bba659775234157",
+        label: "CharMsgSendCommandAiMode(agentId, behavior)",
+      }),
+      // The two that carry a payload. Their third and fourth arguments are
+      // addresses of buffers the renderer owns and fills; the client copies
+      // out of them and sends. See `COMMAND_PAYLOAD_WORDS`.
+      Object.freeze({
+        opcode: 93,
+        functionIndex: 6943,
+        params: Object.freeze(["i32", "i32", "i32"] as const),
+        results: Object.freeze([] as const),
+        bodySha256:
+          "37f53da3c4edecbf9438f093b90e3aff5e65eeac018835da016c472c5fa15a23",
+        label: "skillbar set (agentId, count, skills[])",
+      }),
+      Object.freeze({
+        opcode: 65,
+        functionIndex: 6917,
+        params: Object.freeze(["i32", "i32"] as const),
+        results: Object.freeze([] as const),
+        bodySha256:
+          "7ea3e38a9cb5dd4bd6edc4d86a89f1e98c531d005b4f3e08a8142b50146f688c",
+        label:
+          "CharMsgSendOrderSetProfessionSecondary(agentId, profession)",
+      }),
+      Object.freeze({
+        opcode: 16,
+        functionIndex: 6873,
+        params: Object.freeze(["i32", "i32", "i32", "i32"] as const),
+        results: Object.freeze([] as const),
+        bodySha256:
+          "c2b8c55c9cddf538e61911cb6d542196a35700c1d6e5a5e693ab627ca4e53041",
+        label: "attributes set (agentId, count, ids[], ranks[])",
+      }),
+      Object.freeze({
+        opcode: 155,
+        functionIndex: 10650,
+        params: Object.freeze(["i32"] as const),
+        results: Object.freeze([] as const),
+        bodySha256:
+          "99cb42fb99f1503f80beb589f43c7f9bb841352bd95344a7d96f243f0f639287",
+        label: "CharMsgSendSetHardMode(enabled)",
+      }),
+    ] as const),
+  }),
+  partyObservation: Object.freeze({
+    // This is the smallest domain-complete dirty set: two hero-readiness
+    // notifications, four distinct map-context lifecycle boundaries, and
+    // the four party membership mutations that can replace playerParty or
+    // its hero vector. Everything else through #6842 remains a no-op for
+    // party traversal and the 120-tick reconciliation is the missed-event
+    // recovery path.
+    partyDirtyMessages: Object.freeze([
+      0x1000_0038, // kHeroAgentAdded
+      0x1000_0039, // kHeroDataAdded
+      0x1000_008c, // kMapLoaded
+      0x1000_0098, // kLoadMapContext
+      0x1000_00c2, // kStartMapLoad
+      0x1000_0111, // kMapChange
+      0x1000_011e, // kPartyAddHero
+      0x1000_011f, // kPartyRemoveHero
+      0x1000_0124, // kPartyAddPlayer
+      0x1000_0126, // kPartyRemovePlayer
+    ] as const),
+    // ChCliApi #8947 contains three independent kPlayerChatMessage sites;
+    // each directly calls #6842. Nearby ChCliApi producers #8942/#8945
+    // emit 0x1000007f/0x10000080 to that same dispatcher.
+    playerChatProducer: 8947,
+    playerChatSites: 3,
+    nearbyPlayerMessages: Object.freeze([
+      0x1000_007f, 0x1000_0080,
+    ] as const),
+    nearbyPlayerMessageProducers: Object.freeze([7880, 8945] as const),
+    layout: Object.freeze({
+      // GameContext -> PartyContext -> current PartyInfo -> heroes Array.
+      // Only owned HeroID/AgentID pairs cross the companion ABI.
+      partyContext: 0x4c,
+      playerParty: 0x54,
+      partyHeroes: 0x24,
+      heroMemberStride: 0x18,
+      heroAgentId: 0x00,
+      heroOwnerPlayerId: 0x04,
+      heroId: 0x08,
+      // Certified live against this build in an outpost, by cross-match
+      // against the eight offsets above rather than by plausibility.
+      heroLevel: 0x14,
+      partyPlayers: 0x04,
+      partyHenchmen: 0x14,
+      partyFlag: 0x14,
+      // GameContext::account and AccountContext::unlocked_account_skills.
+      // GWCA exposes this exact array through GetIsSkillUnlocked: one bit per
+      // skill id, account-wide and therefore usable by heroes.
+      // AccountContext is independently registered in context slot 10.
+      // Using that slot avoids trusting a copied GameContext pointer offset.
+      accountContextSlot: 10,
+      accountUnlockedSkills: 0x124,
+      // Its hero ids *and* agent ids matched the party array exactly.
+      worldHeroFlags: 0x584,
+      heroFlagStride: 0x24,
+      flagHeroId: 0x00,
+      flagAgentId: 0x04,
+      flagBehavior: 0x0c,
+      // The account's unlock table, not the party: its row count held at two
+      // across kicking both heroes and re-adding one. `infoAgentId` is zero
+      // while a hero is unlocked but out of the party and the live agent id
+      // while it is in, so one array answers ownership and membership both.
+      worldHeroInfo: 0x594,
+      heroInfoStride: 0x9c,
+      infoHeroId: 0x00,
+      infoAgentId: 0x04,
+      infoLevel: 0x08,
+      infoPrimary: 0x0c,
+      infoSecondary: 0x10,
+      // Zero for every non-mercenary observed, as the reference describes. The
+      // mercenary rule itself is untestable on an account that owns none, so
+      // the kernel publishes mercenaries as *unknown* rather than guessing.
+      infoAppearanceBitmap: 0x48,
+      // Certified live in the same outpost. The stride is proved outright: the
+      // words at +0x43c from each row are the next row's agent id. Every real
+      // entry satisfies `index == id`, and the set of entries present is each
+      // character's primary profession's attributes plus all but one of its
+      // secondary's — the one missing is always that secondary's own primary
+      // attribute, which no character may invest in. Three rows, three
+      // professions pairs, no exception.
+      worldAttributes: 0xac,
+      attributeStride: 0x43c,
+      attributeAgentId: 0x00,
+      attributeEntries: 0x04,
+      attributeEntryStride: 0x14,
+      attributeEntryId: 0x00,
+      // `level_base`. `level` at 0x08 adds runes, and a stored build holds the
+      // invested rank — Devona reads Strength 7 there and 8 with her rune.
+      attributeEntryRank: 0x04,
+      worldProfessionStates: 0x6bc,
+      professionStateStride: 0x14,
+      worldCharacterSkills: 0x710,
+    }),
+  }),
+  skillSlotGeometry: Object.freeze({
+    initializer: Object.freeze({
+      functionIndex: 15744,
+      params: Object.freeze(["i32", "i32"] as const),
+      results: Object.freeze([] as const),
+      bodySha256:
+        "e4b1af23a4efcbb7fd1c484c4168553c91df5df7e1e40a65ff31bb4ca10790e1",
+      constructorCallOperand: 2186,
+    }),
+    constructor: Object.freeze({
+      functionIndex: 6676,
+      params: Object.freeze([
+        "i32", "i32", "i32", "i32", "i32", "i32",
+      ] as const),
+      results: Object.freeze(["i32"] as const),
+      bodySha256:
+        "a29fca1d30e5fa7dea1ca30f6453acbb8a099e4423c1f05ee43b01cfc3045c41",
+    }),
+    labelAddress: 0x186e1a,
+    layout: Object.freeze({
+      frameArray: 0x5a1fdc,
+      frameCount: 0x5a1fe4,
+      frameBytes: 0x1c8,
+      frameChildOffsetId: 0xb8,
+      frameId: 0xbc,
+      framePositionFlags: 0xd8,
+      frameViewportWidth: 0x104,
+      frameViewportHeight: 0x108,
+      frameScreenLeft: 0x10c,
+      frameScreenBottom: 0x110,
+      frameScreenRight: 0x114,
+      frameScreenTop: 0x118,
+      frameRelation: 0x128,
+      frameState: 0x18c,
+    }),
+  }),
+  preGameControls: Object.freeze({
+    characterSwitchAction: Object.freeze({
+      enqueueExport: "enhancement_character_action",
+      configureExport: "enhancement_configure_character_action",
+      logoutMessageId: 0x1000_009d,
+      frameDispatchOffset: 0xa8,
+      frameChild: Object.freeze({
+        functionIndex: 6796,
+        params: Object.freeze(["i32", "i32"] as const),
+        results: Object.freeze(["i32"] as const),
+        bodySha256: "9f73f1018d0bf99fd0d16b6ede0921dbe29cf70a4da4a61c9b24c1e68dbb0bf0",
+      }),
+      frameParent: Object.freeze({
+        functionIndex: 6797,
+        params: Object.freeze(["i32"] as const),
+        results: Object.freeze(["i32"] as const),
+        bodySha256: "46c90817c6ab335d5b8d57fdc1e38abd146c2b123dd8dcf0f08aca8245b8a9f2",
+      }),
+      frameResolver: Object.freeze({
+        functionIndex: 6534,
+        params: Object.freeze(["i32"] as const),
+        results: Object.freeze(["i32"] as const),
+        bodySha256: "f0d5e7c4c71f920541037b1225613e334e2476723a427cab5c2688538265eb47",
+      }),
+      frameDispatch: Object.freeze({
+        functionIndex: 6508,
+        params: Object.freeze(["i32", "i32", "i32", "i32"] as const),
+        results: Object.freeze([] as const),
+        bodySha256: "ccf496f855fa579dac0d1ea86b95b6a6db21104d2a41b1d03c6bd213ee26ca7e",
+      }),
+      logoutProducer: Object.freeze({
+        functionIndex: 12434,
+        params: Object.freeze(["i32", "i32", "i32"] as const),
+        results: Object.freeze([] as const),
+        bodySha256: "b618abba3579ffe6f149a23e2550f6b86571b0f3beaa30acea059153f7cd6b06",
+      }),
+    }),
+    characterListLayout: Object.freeze({
+      characterArrayPointer: 0x5a75e8,
+      characterArrayCount: 0x5a75f0,
+      selectedCharacterName: 0x5a7760,
+    }),
+    hashFunction: Object.freeze({
+      functionIndex: 365,
+      params: Object.freeze(["i32", "i32"] as const),
+      results: Object.freeze(["i32"] as const),
+      bodySha256:
+        "90e009c029d1a6fb53f0e7b92d72583497455266a64841d34ac56905289ac95b",
+    }),
+    labels: Object.freeze({
+      play: 0x1765ea,
+      selector: 0x1766c8,
+      yes: 0x176972,
+      no: 0x176980,
+      reconnectDialog: 0x1769c4,
+    }),
+    labelHashes: Object.freeze({
+      play: 0x0b041d2a,
+      selector: 0x31616b12,
+      yes: 0x535d1967,
+      no: 0xd698c3c1,
+      reconnectDialog: 0xfa61451e,
+    }),
+    layout: Object.freeze({
+      frameArray: 0x5a1fdc,
+      frameCount: 0x5a1fe4,
+      frameBytes: 0x1c8,
+      frameChildOffsetId: 0xb8,
+      frameId: 0xbc,
+      frameHashId: 0x134,
+      frameRelation: 0x128,
+      frameState: 0x18c,
+      contextRoot: 0x5a0e70,
+      gameContextSlot: 6,
+      characterContext: 0x44,
+      characterUuid: 0x64,
+      currentInstanceType: 0x23c,
+    }),
+  }),
+  quickItemMove: Object.freeze({
+    moveItemMessageId: 0x1000_01af,
+    configureExport: "enhancement_configure_quick_item_move",
+    modifierExport: "enhancement_quick_item_move_modifiers",
+    inventorySlot: Object.freeze({
+      // GWCA's current Wasm scanner names this exact target
+      // InventoryBag_UICallback_Func.
+      functionIndex: 14956,
+      params: ["i32", "i32", "i32"] as const,
+      results: [] as const,
+      bodySha256: "eb94c3a6a02a1df3ee09724a20c1203fd3d973cd933b098ee4fd2b6a91403a4d",
+    }),
+    materialStorageSlot: Object.freeze({
+      functionIndex: 14994,
+      params: ["i32", "i32", "i32"] as const,
+      results: [] as const,
+      bodySha256: "7cf0967a3e5f3f785087f32415386eb424bb5ee54ade0cc70ba42c8d7fc799ea",
+    }),
+    numberPreference: Object.freeze({
+      functionIndex: 10807,
+      params: ["i32"] as const,
+      results: ["i32"] as const,
+      bodySha256: "6bbf1281e9b949a76d31595dddf1f95f6eae8de0f2129214e0ccb059cb46d1e9",
+    }),
+    timer: Object.freeze({
+      functionIndex: 249,
+      params: [] as const,
+      results: ["i32"] as const,
+      bodySha256: "c1f93ac7e783305bff7d976dbf55365b67fa6696243305685aa1fb0fb7901030",
+    }),
+    // GmItemHelpers.cpp: ItemCliValidate(sourceItemId), followed by
+    // quantity, bag-index and slot validation. GWCA MoveItem_Func.
+    moveItem: Object.freeze({
+      functionIndex: 13640,
+      params: ["i32", "i32", "i32", "i32"] as const,
+      results: [] as const,
+      bodySha256: "12b11795227c8ca7ea284798a22fa350234a6d0330fe222caab8b895ffde98e5",
+    }),
+    storageFrameHash: 0x8a02_f1b2,
+    tradeCartFrameHash: 0x72f7_171f,
+    tradeDialogFrameHash: 0xbea6_724c,
+  }),
+  skillCooldownObservation: Object.freeze({
+    // #8704 is the unique bounded Skillbar row/slot reader. It reads the
+    // recharge timestamp and subtracts the precise timer returned by #249.
+    reader: Object.freeze({
+      functionIndex: 8704,
+      params: Object.freeze(["i32", "i32", "i32"] as const),
+      results: Object.freeze(["i32"] as const),
+      bodySha256:
+        "de894c4032f9c9cf7a50a8f36ad1174446ead7246bf9ae830f43d8e45eb0d697",
+      timerCallOperand: 200,
+    }),
+    timer: Object.freeze({
+      functionIndex: 249,
+      params: Object.freeze([] as const),
+      results: Object.freeze(["i32"] as const),
+      bodySha256:
+        "f2b448b590efb575ca868617b0a41d544971b29ecec04a69247f3a2f7210e773",
+    }),
+    layout: Object.freeze({
+      // Skillbar::skills starts at +4. The reader's total row offset is
+      // +12, so the timestamp is +8 inside each 0x14-byte slot.
+      skillSlotRecharge: 0x08,
+    }),
+  }),
+});
+
+export const AUGUST_FACTS: ClientGeneration = Object.freeze({
+  id: "2026-08-build-1eb07e32",
+  builds: Object.freeze([BUILD]),
+  identities: Object.freeze({}),
+});

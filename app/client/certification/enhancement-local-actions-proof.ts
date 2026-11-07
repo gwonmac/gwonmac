@@ -9,6 +9,7 @@ import {
   deriveChatFiltering,
 } from "./enhancement-chat-filter-proof.js";
 import {
+  deriveAreaFieldDefault,
   deriveAreaLookupFunction,
   deriveObservationLayout,
 } from "./enhancement-target-proof.js";
@@ -21,7 +22,7 @@ import {
 } from "./enhancement-party-team-proof.js";
 import { playerChatUiEvidence } from "./enhancement-structural-report.js";
 import {
-  bodyMatchesRole,
+  functionMatchesRole,
   enhancementProofContext,
   decodeFunctions,
   functionBody,
@@ -32,6 +33,7 @@ import {
   mutableSpans,
   parseActiveTableRelations,
   paddedOperand,
+  reviewedBodyMatch,
   roleFunctions,
   semanticRole,
   signatureMatches,
@@ -47,6 +49,8 @@ import {
 } from "./wasm-evidence.js";
 import type { EnhancementProofContext } from "./wasm-evidence.js";
 import { tickEvidence } from "./enhancement-tick-evidence.js";
+import { memoryCodeSha256 } from "./relocation-identity.js";
+import { generationOf, reviewedEntries } from "./reviewed-facts.js";
 import { verifyLayout } from "./semantic-proof.js";
 import {
   ENHANCEMENT_BUILDS,
@@ -86,34 +90,33 @@ const GUILD_HALL_NATIVE_MESSAGES: readonly Readonly<{
     hashes: ["ff6bcc8db69cbb7fddc17af6d4b7a4c052cb6cd17e335155db495c2e435290c9"] },
   { enter: 0x1000_0183, leave: 0x1000_0185, hashes: [
     "fab247e15279c61c5783bc16f6c02cbf411b3056979f6a765b61763e52bc7d87",
-    // October 22: the same producer with renumbered callees.
-    "3adcc506569c2134909f4a1429062c579d9e28a9bcdecae5bafa55b9120b71c9",
-    // November 3: renumbered callees again.
-    "3563511b7223799d3cd47d4cc508f59fa540ba5752830c4133a76a26a33a70b0",
   ] },
 ]);
 
+export type GuildHallAreaTypeFamily = Readonly<{
+  context: string;
+  lookup: string;
+  accessor: string;
+}>;
+
 // Clients whose area-type accessor no longer matches the semantic role: the
 // reviewed accessor counts only beside its exact area context and lookup.
-const GUILD_HALL_AREA_TYPE_FAMILIES = Object.freeze([
-  { context: [228, "47c33ee2f7272a3a33d56b448bda7db8fcfe1e16c69048a3eff07ee0222a4c31"],
-    lookup: [17557, "aacd25153c9917d4e0323b9569a0bfd58bb241b7fc068e389477727154ef636b"],
+// Later clients add their families in their generation files.
+const BASE_GUILD_HALL_AREA_TYPE_FAMILIES: readonly GuildHallAreaTypeFamily[] = Object.freeze([
+  { context: "47c33ee2f7272a3a33d56b448bda7db8fcfe1e16c69048a3eff07ee0222a4c31",
+    lookup: "aacd25153c9917d4e0323b9569a0bfd58bb241b7fc068e389477727154ef636b",
     accessor: "f405d7b00e65454a318152154a1bf02744fdbdd61c4ec7da800650aab8d2e2aa" },
-  { context: [228, "4c7ccdfd23aa3144a9d44b439df0293493ac7b04c19475cbb224580610c0e29e"],
-    lookup: [17518, "081506484a3019e40c1a934f95f88ff3911d70640c0f446afc6c3a3fb4975e5e"],
-    accessor: "43acce2aef9325f192efa422dee707362fe3b16feaa891447c5256d6eae86099" },
-  // November 3: the October 22 family with moved callees and statics.
-  { context: [228, "37bf1fdca1fb8d89195b6c6249bcd24560776e2690f02e228e742b9b4720405d"],
-    lookup: [17523, "8a03004d07d4ee46451ba57d61dc246fa32aa1d54639c6aad6c36653f32c55be"],
-    accessor: "e648aa327d0a0e4e4667950191f2353c672cb2ce760e2e12f670fbcb52d0574b" },
-] as const);
+]);
+const generationGuildHallFamilies = reviewedEntries((facts) => facts.guildHallAreaTypeFamilies);
 
+// A relink can match two families; they must then name one accessor.
 function reviewedGuildHallAreaTypeAccessor(module: ModuleShape): number | null {
-  const matches = GUILD_HALL_AREA_TYPE_FAMILIES.flatMap(({ context, lookup, accessor }) =>
-    uniqueExactFunction(module, context[1], ["i32"], ["i32"]) === context[0]
-    && uniqueExactFunction(module, lookup[1], ["i32"], ["i32"]) === lookup[0]
-      ? [uniqueExactFunction(module, accessor, [], ["i32"])] : []);
-  return matches.length === 1 ? matches[0] ?? null : null;
+  const families = [...BASE_GUILD_HALL_AREA_TYPE_FAMILIES, ...generationGuildHallFamilies()];
+  const matches = new Set(families.flatMap(({ context, lookup, accessor }) =>
+    uniqueExactFunction(module, context, ["i32"], ["i32"]) !== null
+    && uniqueExactFunction(module, lookup, ["i32"], ["i32"]) !== null
+      ? [uniqueExactFunction(module, accessor, [], ["i32"])] : []));
+  return matches.size === 1 ? [...matches][0] ?? null : null;
 }
 
 function containsBytes(body: Uint8Array, bytes: readonly number[]): boolean {
@@ -149,8 +152,7 @@ function guildHallProducer(
       && containsBytes(body, enter) && containsBytes(body, leave) && containsBytes(body, area)
       && GUILD_HALL_NATIVE_MESSAGES.some(messages =>
         messages.enter === enterMessage && messages.leave === leaveMessage
-        && messages.hashes.includes(
-          functionBodySha256(module, module.functionImportCount + localIndex)))
+        && reviewedBodyMatch(module, module.functionImportCount + localIndex, messages.hashes) !== null)
       ? [module.functionImportCount + localIndex] : []);
   return matches.length === 1 ? matches[0]! : null;
 }
@@ -198,11 +200,6 @@ const GAME_THREAD_DRAIN_ROLE = semanticRole(
   ]),
   ["i32", "i32"],
   [],
-  // October 22 client: identical body; one reviewed callee index moved.
-  ["e97bf7c3b2f0e47b07f1cde77500e509a88ec364a94fec0980ea3862ce04b7ca",
-    // November 3 client: callee indices and static addresses moved.
-    "dcbbc19ace03aecb891cc35f0429fb54d3ad28f7a1ddb5b66e2167b595f45898",
-  ],
 );
 
 const CHAT_ALIASES_ROLE = semanticRole(
@@ -249,8 +246,6 @@ const XUNLAI_ACCESS_READER_ROLE = semanticRole(
   ]),
   ["i32"],
   ["i32"],
-  // November 3 client: callee indices and static addresses moved.
-  ["2786981f767b269a30df25ca8c86a4336f6fb3d5005dbf3c4dcea85ca1623ac5"],
 );
 
 const UI_DISPATCHER_ROLE = semanticRole(
@@ -264,8 +259,6 @@ const UI_DISPATCHER_ROLE = semanticRole(
   ]),
   ["i32", "i32", "i32"],
   [],
-  // October 22 client: same body; the assertion source line moved (3901 -> 3907).
-  ["bd1a37645f311cea53ba09df62c09c40a1c67aa3c7f61faf5694d5b5f1ca06ce"],
 );
 
 const TRAVEL_PRODUCER_ROLE = semanticRole(
@@ -342,8 +335,6 @@ const XUNLAI_PLAYER_READER_ROLE = semanticRole(
   ]),
   ["i32"],
   ["i32"],
-  // November 3 client: callee indices and static addresses moved.
-  ["714d29ef28419728d80053af6dd7172e8a5ea8447d8f6e20d5bfad6712f6fd80"],
 );
 
 const XUNLAI_AREA_TYPE_READER_ROLE = semanticRole(
@@ -374,27 +365,24 @@ const TRAVEL_UNLOCK_CONSUMER_ROLE = semanticRole(
 const XUNLAI_AGENT_READER_ROLES = [
   XUNLAI_AGENT_READER_ROLE,
   semanticRole(418, "eeeac28028981ae6f233b2c0e6ba4cbe5cdba999bd1063c2a703bd3f6cc1f6fb",
-    XUNLAI_AGENT_READER_ROLE.spans, ["i32"], ["i32"],
-    // November 3 client: callee indices and static addresses moved.
-    ["a37cb8efeae12c31daa65bca075f430b338300bd49669381344575a902e471d5"]),
+    XUNLAI_AGENT_READER_ROLE.spans, ["i32"], ["i32"]),
 ];
 const XUNLAI_AREA_TYPE_READER_ROLES = [
   XUNLAI_AREA_TYPE_READER_ROLE,
-  semanticRole(362, "0c2c573245b37ef4f38986a791bccd3f7700c82b3f6cfb5d9173748d8d63a599",
-    XUNLAI_AREA_TYPE_READER_ROLE.spans, ["i32"], ["i32"],
-    // October 22 client: one callee moved; the area-type bound follows the
-    // reviewed area table (1465 -> 1477).
-    // November 3 client: callees moved again; the bound follows the reviewed
-    // area table (1477 -> 1480).
-    ["031c32b077f941074c67c0c0d4215a1694e8ddf0ed51463c51a1093b768f44bb",
-      "b93c5a3ea73686bf4bff518a1ad18d445d7155d545db47928175209326ca74c3"]),
+  // October 1 onward: the reader compares area field 56 with the area table's
+  // default (`i32.load offset=56; i32.const <default>`). That constant follows
+  // the table (1465 on October 1, 1477 on October 22, 1480 on November 3), so
+  // it is a span checked against the default derived from the proved table.
+  // October 1 and October 22 share this fingerprint.
+  semanticRole(362, "d4eac5d760c62f0df7188b1b6153932c46b080343f0f37f439e495bf48227ab4",
+    [...XUNLAI_AREA_TYPE_READER_ROLE.spans,
+      { start: 290, end: 292, role: "xunlai.area-default", addressClass: "immutable-data" }],
+    ["i32"], ["i32"]),
 ];
 const TRAVEL_UNLOCK_CONSUMER_ROLES = [
   TRAVEL_UNLOCK_CONSUMER_ROLE,
   semanticRole(360, "257c03eaa91dc6baae2768b6829ada5e8cee32df0649482ca2f6950ecc766762",
-    TRAVEL_UNLOCK_CONSUMER_ROLE.spans, ["i32"], ["i32"],
-    // November 3 client: callee indices and static addresses moved.
-    ["662152b962e4a5c81e18dc9f406332ef12f94ac747005a29e1831213d77dbe55"]),
+    TRAVEL_UNLOCK_CONSUMER_ROLE.spans, ["i32"], ["i32"]),
 ];
 const TRAVEL_PRODUCER_ROLES = [
   TRAVEL_PRODUCER_ROLE,
@@ -404,25 +392,17 @@ const TRAVEL_PRODUCER_ROLES = [
 const CHAT_ALIASES_ROLES = [
   CHAT_ALIASES_ROLE,
   semanticRole(380, "fa6eabfec92de162981e0cd861736dbaf8b7b4f43db37224829947441f480a73",
-    CHAT_ALIASES_ROLE.spans, ["i32", "i32"], ["i32"],
-    // November 3 client: callee indices and static addresses moved.
-    ["a0ac2973eb03ea9dc64585611d720fabe9e61621a1040ea16748867b02ffed26"]),
+    CHAT_ALIASES_ROLE.spans, ["i32", "i32"], ["i32"]),
 ];
 
 // Bind Hero panel IDs to the complete native show/hide producer and its packer.
 const HERO_PANEL_ROLES = [
   semanticRole(181, "42027129007fdd8ffb7dd34e79a3ad8a5ed0126f857ab48dfa77224170c857fa", [{"start": 78, "end": 83, "role": "panel.pack", "addressClass": "function-index"}, {"start": 141, "end": 146, "role": "panel.ui", "addressClass": "function-index"}, {"start": 163, "end": 168, "role": "panel.ui", "addressClass": "function-index"}], ["i32", "i32"], []),
-  semanticRole(181, "920bdcddd2e428f6263519e2dfbb314dd7f73439e0f2b6defdfe10c0b29b7d7e", [{"start": 78, "end": 83, "role": "panel.pack", "addressClass": "function-index"}, {"start": 141, "end": 146, "role": "panel.ui", "addressClass": "function-index"}, {"start": 163, "end": 168, "role": "panel.ui", "addressClass": "function-index"}], ["i32", "i32"], [],
-    // November 3 client: callee indices and static addresses moved.
-    ["ed85b814d50a69119a30204bd7f4501311338e20d963c1a918a65d6a6fbb81e0"]),
+  semanticRole(181, "920bdcddd2e428f6263519e2dfbb314dd7f73439e0f2b6defdfe10c0b29b7d7e", [{"start": 78, "end": 83, "role": "panel.pack", "addressClass": "function-index"}, {"start": 141, "end": 146, "role": "panel.ui", "addressClass": "function-index"}, {"start": 163, "end": 168, "role": "panel.ui", "addressClass": "function-index"}], ["i32", "i32"], []),
 ];
 const HERO_PANEL_PACKER_HASHES = [
   "b107cbd1f2b0c9596df848b19cab8219285e6f4ff45bb5d3bd06cd3d643afe57",
   "10aaa2a03010eea192af9f03466665a3036ecd2dc6b94ebe8ff8bdbc9471ba9e",
-  // October 22 client: same packer; only assertion string pointers moved.
-  "46b73500a7f2d248c607d281f91c3fb6b9337297c1f6fd71dc831f10efdc865b",
-  // November 3 client: same packer; callee indices and string pointers moved.
-  "04aeae48a5e6dd724c95f312c65354b2f434cf1ed67d008bf2f667d57cb52fb1",
 ];
 
 function deriveHeroPanelMessages(module: ModuleShape, dispatcher: number) {
@@ -433,7 +413,7 @@ function deriveHeroPanelMessages(module: ModuleShape, dispatcher: number) {
   const packer = soleValue(values, "panel.pack");
   if (soleValue(values, "panel.ui") !== dispatcher
     || !signatureMatches(module, packer, ["i32", "i32"], ["i32"])
-    || !HERO_PANEL_PACKER_HASHES.includes(functionBodySha256(module, packer))) return null;
+    || reviewedBodyMatch(module, packer, HERO_PANEL_PACKER_HASHES) === null) return null;
   return Object.freeze({
     hideHeroPanelMessage: unsignedOperand(body, 150),
     showHeroPanelMessage: unsignedOperand(body, 128),
@@ -690,6 +670,8 @@ export function deriveXunlaiAccess(
     || agentLine - 4_822 !== accessLine - 4_850
     || soleValue(areaTypeValues, "area.lookup")
       !== deriveAreaLookupFunction(module)
+    || (areaTypeValues.has("xunlai.area-default")
+      && soleValue(areaTypeValues, "xunlai.area-default") !== deriveAreaFieldDefault(module))
   ) return null;
   const worldPlayers = unsignedOperand(agentBody, 49);
   const playerRecordStride = unsignedOperand(agentBody, 146);
@@ -826,10 +808,15 @@ function deriveQuickItemMove(
   uiDispatcher: KnownEnhancementBuild["uiDispatcher"] | null,
 ): KnownEnhancementBuild["quickItemMove"] | null {
   const certificate = baseline.quickItemMove;
-  // The item and trade structure fields are reviewed build facts. Until they
-  // gain independent witnesses, only the exact reviewed module may use them.
-  if (!certificate || baseline.sha256 !== inputSha256
-    || !uiDispatcher || !baseline.preGameControls) return null;
+  // The item and trade structure fields are reviewed structure offsets with no
+  // independent witness. They hold for the exact reviewed module and for a
+  // relink of it whose memory-accessing code is unchanged.
+  const reviewedMemoryCode = generationOf(baseline)?.memoryCodeSha256;
+  if (!certificate || !uiDispatcher || !baseline.preGameControls) return null;
+  if (
+    baseline.sha256 !== inputSha256
+    && (reviewedMemoryCode === undefined || reviewedMemoryCode !== memoryCodeSha256(module))
+  ) return null;
   const entries = [
     certificate.inventorySlot,
     certificate.materialStorageSlot,
@@ -843,19 +830,18 @@ function deriveQuickItemMove(
   const inventory = decodeFunctions(module, [certificate.moveItemMessageId]).find(
     candidate => candidate.functionIndex === resolved[0]);
   if (inventory?.messageSites[certificate.moveItemMessageId] !== 1) return null;
+  const located = <Entry extends { functionIndex: number; bodySha256: string }>(
+    entry: Entry, functionIndex: number,
+  ): Entry => Object.freeze({
+    ...entry, functionIndex, bodySha256: functionBodySha256(module, functionIndex),
+  });
   return Object.freeze({
     ...certificate,
-    timer: Object.freeze({ ...certificate.timer, functionIndex: resolved[4]! }),
-    moveItem: Object.freeze({ ...certificate.moveItem, functionIndex: resolved[3]! }),
-    inventorySlot: Object.freeze({ ...certificate.inventorySlot, functionIndex: resolved[0]! }),
-    materialStorageSlot: Object.freeze({
-      ...certificate.materialStorageSlot,
-      functionIndex: resolved[1]!,
-    }),
-    numberPreference: Object.freeze({
-      ...certificate.numberPreference,
-      functionIndex: resolved[2]!,
-    }),
+    timer: located(certificate.timer, resolved[4]!),
+    moveItem: located(certificate.moveItem, resolved[3]!),
+    inventorySlot: located(certificate.inventorySlot, resolved[0]!),
+    materialStorageSlot: located(certificate.materialStorageSlot, resolved[1]!),
+    numberPreference: located(certificate.numberPreference, resolved[2]!),
   });
 }
 
@@ -875,7 +861,7 @@ export function locateAutomaticLocalActions(
     const module = context.moduleView();
     const inputSha256 = createHash("sha256").update(input).digest("hex");
     const tick = tickEvidence(module).candidate;
-    if (!tick || !bodyMatchesRole(functionBody(module, tick.functionIndex), CLIENT_TICK_ROLE)) {
+    if (!tick || !functionMatchesRole(module, tick.functionIndex, CLIENT_TICK_ROLE)) {
       return null;
     }
     const locations: AutomaticLocalActionsLocation[] = [];

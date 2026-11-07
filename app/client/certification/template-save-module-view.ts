@@ -10,7 +10,7 @@ import {
   signatureEvidence,
   wasmEvidence,
 } from "./wasm-evidence.js";
-import type { DecodedFunction } from "./enhancement-evidence-types.js";
+import type { DecodedFunction, ModuleShape } from "./enhancement-evidence-types.js";
 import type { WasmDataEvidence } from "./wasm-data-evidence.js";
 
 function fail(message: string): never {
@@ -28,6 +28,8 @@ export function templateCallNeedle(functionIndex: number): Uint8Array {
 /** Parsed module facts shared by every template locator and semantic proof. */
 export class TemplateSaveModuleView {
   readonly input: Uint8Array;
+  /** The shared module view, for relocation identities of reviewed bodies. */
+  readonly module: ModuleShape;
   readonly importSection: Uint8Array;
   readonly importCount: number;
   readonly bodies: readonly Uint8Array[];
@@ -42,6 +44,7 @@ export class TemplateSaveModuleView {
     this.input = input;
     const evidence = wasmEvidence(input) ?? fail("invalid or unsupported module");
     const module = evidence.moduleView();
+    this.module = module;
     this.importSection = module.importSection ?? fail("missing import section");
     this.importCount = module.functionImportCount;
     this.bodies = module.bodies;

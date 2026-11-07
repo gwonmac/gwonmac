@@ -105,7 +105,8 @@ test("retains bounded generation evidence without paths or raw addresses", async
       profile: "features-3fffff",
       inputSha256: featureAllInput,
       outputSha256: sha256("cartography-fff"),
-      memoryLayout: "relocated",
+      // The current client's layout: the closed set is the transform's own.
+      memoryLayout: "november3",
     }],
     completeProof: true,
   };

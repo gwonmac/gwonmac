@@ -85,7 +85,14 @@ pnpm certification template "/absolute/path/Gw.jspi.wasm"
 pnpm certification template "/absolute/path/Gw.jspi.wasm" --emit-ts
 pnpm certification recertify "/absolute/path/Gw.jspi.wasm"
 pnpm certification double-click "/absolute/path/Gw.jspi.wasm"
+pnpm certification qualify "/absolute/path/Gw.jspi.wasm" "/absolute/path/Gw.jspi.js" "/absolute/path/out"
 ```
+
+`qualify` runs the release battery and writes one record per check into the
+output folder. It exits 1 when any check refuses, so it is also the local
+check before a certification pull request. On that pull request, dispatch the
+client watch workflow on its branch with `regression` set: it runs the same
+battery and the real-client regression suite, and fails when either refuses.
 
 Read the template report status first:
 
@@ -245,23 +252,45 @@ use a nested template as a success criterion for the bridge.
 
 Most ArenaNet rebuilds are the same code with renumbered functions and moved
 static data. The October 22 and November 3, 2026 clients refused almost every
-feature for that reason; only a few changes were real.
+feature for that reason; only a few changes were real. Reviewed facts now
+match such a relink by relocation identity (see
+[ArenaNet compatibility](arenanet-compatibility.md#current-implementation-limits)),
+so first check what still refuses.
 
-1. Map each refused role or exact body hash from the preceding retained client
+1. Run `tests/client-artifact/patch-day-replay.test.ts` with the new client in
+   the evidence store. Its diagnostics list each feature that refuses with only
+   the older generations. Trace each refusal to its first failing check before
+   you read code. Shared checks, such as the area table, can disable many
+   features.
+2. Map each refused role or exact body hash from the preceding retained client
    to the new client. Compare bodies with call indices, static operands, and
    constants erased. Require one unique match, and confirm it by its relations,
    not by its hash alone: a one-call wrapper and its neighbour can collide when
    both shift by one index.
-2. Diff each matched pair instruction by instruction. Accept call-index and
+3. Diff each matched pair instruction by instruction. Accept call-index and
    static-address changes. Read every changed constant: string pointers must
    reach the same text, small integers must be explained (assertion lines,
-   content counts). Read every control-flow change in full.
-3. Add the reviewed result as a variant next to the existing one
-   (`reviewedVariants` on a semantic role, a reviewed table digest, or a
-   reviewed static-content digest). Keep the previous client proving.
-4. Trace each remaining refusal to its first failing check before you read
-   code. Shared checks, such as the area table, can disable many features.
-5. Compare all members of one function family. A matching sender alone does not
+   content counts). Bind an explained constant to the value it derives from,
+   as the Xunlai area-type reader binds its default to the area table's.
+   Read every control-flow change in full.
+4. Add a reviewed result only where the code really changed, and only in the
+   new client's generation file: an entry in `facts.alternatives` keyed by the
+   reviewed reference literal (another body digest, or a role fingerprint with
+   its body length), or the per-proof slot for a pinned fact (see below).
+   Proof files keep only the August and October 1 references. Keep the
+   previous client proving.
+5. Write the generation file `reviewed-client-<bundle-reference>.ts` with the
+   Enhancement record and its `facts`, and add it to `REVIEWED_GENERATIONS` in
+   `reviewed-facts.ts` in client order. Run
+   `pnpm certification reviewed-identities PATH/Gw.jspi.wasm` on the new client
+   and copy its `memoryCodeSha256` and the identity entries that no older
+   generation already lists. Add `playerEffectBodies` when its effect bodies
+   moved.
+6. Run the replay test again. It must pass, and the new client's record must
+   prove every feature it supports with every generation. A client that is not
+   a relink of the previous generation needs its patch-day template verdict
+   in `TEMPLATE_ON_PATCH_DAY`.
+7. Compare all members of one function family. A matching sender alone does not
    prove its editor, history, packet, lifecycle, or dispatcher.
 
 Anchor only the bytes a feature owns. A screenshot anchor that also covered
@@ -277,16 +306,19 @@ callee bodies.
 A new client can need all of these:
 
 - the template-save record (`pnpm certification template --write`) and the
-  Tools record in `enhancement-builds.ts`;
-- the friend lifecycle family, which changes `FRIEND_OBSERVER_SEMANTIC_SHA256`;
+  Tools record in its generation file;
+- in its generation file's `facts`: alternatives, template-saving helper
+  bodies, resign and whisper chat paths, the native render family, pathing
+  families, the Guild Hall area-type family, the accepted Cartography layout,
+  and the friend lifecycle family (which changes
+  `FRIEND_OBSERVER_SEMANTIC_SHA256`);
 - a Cartography memory layout with its Compass, Mission Map, and World Map
-  certificates, and its context root and agent array in
+  certificates, the World Map display owner in
+  `cartography-transform-internals.ts`, and its context root and agent array in
   `CARTOGRAPHY_LAYOUT_ROOTS` (`app/shared/cartography-spike.ts`). The
   reachability kernel receives those roots at install, so a new layout does
   not change the kernel. Its integration test runs the compiled kernel for
   every layout in `CARTOGRAPHY_MEMORY_LAYOUTS`;
-- the World Map display owner, Compass owner, pathing hashes, Guild Hall
-  producer, area-type accessor, and the native render family;
 - `tests/fixtures/retained-client.ts`, which maps retained function indices and
   static addresses for the real-client tests; and
 - `tests/fixtures/native-friend-queue.ts`, which lists the friend queue roles
@@ -296,9 +328,11 @@ A new client can need all of these:
   on every new client until its roles are reinspected and added.
 
 Compose partial records per feature: a missing historical field must not make
-current actions disappear. After accepting facts, verify the complete shipped
-chain and the refusal cases. Enhancement verdicts alone do not prove Friends or
-Maps. No offline result establishes live gameplay acceptance.
+current actions disappear. The verifier accepts each feature against any one
+retained record that holds all its facts, so different features can recover
+from different records. After accepting facts, verify the complete shipped
+chain (`qualify`) and the refusal cases. Enhancement verdicts alone do not
+prove Friends or Maps. No offline result establishes live gameplay acceptance.
 
 ## Feature requirements during recovery
 

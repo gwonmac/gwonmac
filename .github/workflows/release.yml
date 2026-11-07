@@ -43,7 +43,7 @@ jobs:
   qualify:
     needs: prepare
     runs-on: macos-15
-    timeout-minutes: 60
+    timeout-minutes: 30
     # Shared with client-watch.yml: one ArenaNet client download at a time.
     # Each download stays under ARENANET_REQUEST_CEILING (app/shared/contracts.ts).
     concurrency:
@@ -60,15 +60,15 @@ jobs:
       - name: Download the current ArenaNet client
         id: client
         run: pnpm client:official --download "$RUNNER_TEMP/client"
+      # The shipped chain on today's client, once. The real-client regression
+      # suite runs in client-watch.yml, which a certification PR can dispatch.
       - name: Qualify the exact client
         env:
           GW_CLIENT_JS: ${{ steps.client.outputs.js }}
           GW_CLIENT_WASM: ${{ steps.client.outputs.wasm }}
         run: |
-          node build/tools-cli/certification.js verify "$GW_CLIENT_WASM"
-          node build/tools-cli/certification.js double-click "$GW_CLIENT_WASM"
-          pnpm test:client-artifact
-          node --import ./scripts/ts-hook.mjs scripts/qualify-extended-memory.ts "$GW_CLIENT_JS" "$GW_CLIENT_WASM"
+          node build/tools-cli/certification.js qualify \
+            "$GW_CLIENT_WASM" "$GW_CLIENT_JS" "$RUNNER_TEMP/qualification"
 
   build:
     needs: prepare

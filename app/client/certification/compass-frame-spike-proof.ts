@@ -6,6 +6,7 @@
 import {
   decodeFunctions,
   functionBodySha256,
+  reviewedBodyMatch,
   signatureMatches,
   type EnhancementProofContext,
 } from "./wasm-evidence.js";
@@ -18,9 +19,6 @@ import type { KnownEnhancementBuild } from "./enhancement-builds.js";
 const COMPASS_OWNER_BODY_HASHES = Object.freeze([
   "9df419f84c93ec674540ef60dc74cae03495e3308843ab3fcc594cad93e97043",
   "968c145474ccf26e7b2b8bd64ee11c06cecd0e9d0af011474560111c421cf209",
-  "914b7d302bc76177c3b75ba3372d795198eb9b132545638b69c56996770f2b14",
-  // November 3: callee indices and static addresses moved.
-  "403a318ba671af0d5d5624c6ba7dde998fb94621f701b9c54ac8b70d4810ef16",
 ]);
 
 type PreGameProof = NonNullable<KnownEnhancementBuild["preGameControls"]>;
@@ -69,7 +67,7 @@ export function deriveCompassFrameSpikeProof(
   if (
     currentGeometry === null
     || !signatureMatches(module, owner.functionIndex, ["i32", "i32"], [])
-    || !COMPASS_OWNER_BODY_HASHES.includes(ownerHash)
+    || reviewedBodyMatch(module, owner.functionIndex, COMPASS_OWNER_BODY_HASHES) === null
   ) return null;
   const shared = preGame.layout;
   const retainedGeometry = skillFrame.layout;

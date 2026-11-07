@@ -156,12 +156,43 @@ locator already meets the final relocation-resistant bar. At verifier ABI 10:
   roles still contain exact function-index and body bindings. Unrelated client
   changes recover locally; a reindex or equivalent body rewrite can still
   require a stronger semantic locator; and
-- Quick Item Move still requires reviewed item and trade fields for the exact
-  post-template input. Its native move-message identifier belongs to that
-  certificate, not to a shared constant; and
+- Quick Item Move accepts its reviewed item and trade fields on the exact
+  post-template input, or on a module whose memory-code digest equals that of
+  the input's reviewed generation. The digest covers the relocation identity
+  of every function that reads or writes memory, so equal digests mean the
+  structure offsets did not move. Its native move-message identifier belongs
+  to that certificate, not to a shared constant; and
 - friend observation accepts relocated functions and static addresses when all
   semantic relationships still reproduce, but its exact role shapes can refuse
-  after an equivalent compiler rewrite.
+  after an equivalent compiler rewrite; and
+- a reviewed body digest or role fingerprint matches a relocated body only
+  through a generation's identity table. The relocation identity names each
+  callee by its signature and each padded static operand by its class (text,
+  data, other); a role identity also erases the role's own spans. Generations
+  from October 22, 2026 on carry tables; older facts match exactly; and
+- the player-effect boundary accepts only reviewed body digests, and the
+  transform rechecks the timer digest. A relocated effect body needs a
+  `playerEffectBodies` entry in its generation file. Until then, player-effect
+  observation, effect-icon geometry, and alcohol observation refuse; and
+- every per-client fact lives in that client's generation file
+  (`reviewed-client-<id>.ts`): its records, its identity table, and its
+  `facts` (alternatives to reviewed literals and the per-proof slots). Proof
+  files hold only the August and October 1 references. Some facts stay pinned
+  to one client's layout, so a relink that moves them refuses until a release
+  adds them:
+  - resign and whisper chat paths bind function indices, because the process
+    boundary has no client bytes and rejects a substituted index only against
+    reviewed (index, digest) pairs;
+  - the native render family (HUD draw ownership) binds function indices and
+    static addresses;
+  - pathing families bind function indices;
+  - Cartography memory layouts are compiled into the reachability kernel, so
+    a new layout changes the kernel;
+  - friend lifecycle role families feed `FRIEND_OBSERVER_SEMANTIC_SHA256`,
+    which the renderer pins;
+  - template saving's `MOVED_CALLEES` (in `template-save-callee-proof.ts`)
+    names each helper call that has moved. A relink that moves another call
+    needs a new entry there.
 
 These checks fail closed. They can therefore disable a feature after an
 equivalent ArenaNet rebuild even when game behavior did not change. A refusal
@@ -173,6 +204,14 @@ automatically surviving every routine rebuild.
 Compiled feature records can be partial. Compose independently derived values
 per feature. An absent historic field must not erase a proved current feature.
 Conflicting non-null values refuse that feature and its declared dependants.
+The verifier and the process boundary share one acceptance rule: a feature is
+accepted when every fact it needs matches one retained record, and different
+features may match different records. The verifier withdraws a refused feature
+with invariant `enhancement.retained-acceptance` before it pins the output hash.
+Template saving is a separate verdict: when the boundary refuses the
+Enhancement part of a message, it withdraws the whole Enhancement build (its
+pinned output hash covers every feature it carries) with invariant
+`enhancement.process-boundary` and keeps a valid template verdict.
 Guild Hall has a separate proof inside Travel: a changed Guild Hall producer
 withdraws Guild Hall while ordinary Travel stays available.
 
@@ -182,18 +221,47 @@ Automation detects a changed ArenaNet code generation and runs the same
 non-authoritative evidence tools as a maintainer. It never uploads ArenaNet
 binaries and cannot grant runtime authority.
 
-- Equivalent rebuild: every feature proves locally. No source change, pull
-  request, or release is needed; players use the proved features at once.
+- Equivalent rebuild: every feature whose locator survives relocation proves
+  locally, and players use it at once without a source change, pull request,
+  or release. Until the limits above are removed, the other features refuse
+  like a semantic change.
+- Offline replay: `tests/client-artifact/patch-day-replay.test.ts` verifies
+  each retained client that a reviewed record names with only the generations
+  older than it, as on its patch day. The replayed client loses every fact of
+  its own generation file, pinned ones included. The test asserts that:
+  - with every generation, each client proves all features its own record
+    supports, with the record's outputs;
+  - a relink of the previous generation (equal memory-code digest) needs no
+    fact of its own: the same template verdict, every feature with the
+    record's outputs, and native double-click, Cartography, and friend
+    observation on its file-compatible module;
+  - any other client gets the patch-day template verdict the test states for
+    it. October 1 and October 22 refuse (`template-shape-changed`: each
+    changed a reviewed helper body); November 3 proves.
+
+  It prints each client's refused features and module stages, and skips
+  without the maintainer evidence store. Retained clients without a reviewed
+  record, which includes every client before October 2026, are out of scope.
 - Refusal: the official client stays playable and only the refusing feature
-  and its declared dependants turn off. Automation opens one issue that names
-  the failed invariant and, for ambiguity, the candidate count. A maintainer
-  then follows [Recover certification](recertify.md).
+  and its declared dependants turn off. Automation opens one issue with one
+  row per verdict: template saving, every Enhancement feature, native
+  double-click, Cartography, 4 GB mode, and the real-client regression suite,
+  each with its first failing invariant and, for ambiguity, the candidate
+  count. A maintainer then follows [Recover certification](recertify.md).
+
+`pnpm certification qualify WASM JS OUT` is the one release battery. It writes
+one record per check: runtime verdicts, native double-click, Cartography, 4 GB
+mode, and the shipped chain. The chain check prepares every release profile
+through template, Enhancement, Friends, Cartography, double-click, and memory
+selection, corrupts the cached output, and requires a rebuild to the same hash.
+The release `qualify` job runs this battery on the current client. Client watch
+runs the same battery and the real-client regression suite in
+`tests/client-artifact/`. A certification pull request dispatches client watch
+on its branch with `regression`; that run fails when either refuses.
 
 A verifier change needs positive equivalent-relocation tests and adversarial
 change, duplicate, ambiguity, timeout, malformed-boundary, and output-mismatch
-tests. The offline check must exercise every shipped profile through template,
-Enhancement, Friends, Cartography, double-click, memory selection, and cache
-reuse.
+tests.
 
 ## Lessons that shaped these rules
 

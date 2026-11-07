@@ -15,7 +15,6 @@ import {
   parseIndexVector,
   parseTypes,
   sectionById,
-  sleb,
   splitSections,
   uleb,
   WASM_HEADER,
@@ -26,6 +25,7 @@ import {
   isFriendObserverCertificate,
   type FriendObserverCertificate,
 } from "./friend-observer-certificate.js";
+import { call, encodeName, globalGet, i32Const, i32Load, localGet } from "./wasm-emit.js";
 
 declare const WebAssembly: {
   validate(bytes: Uint8Array): boolean;
@@ -64,17 +64,6 @@ function fail(message: string): never {
   throw new Error(`friend observer transform: ${message}`);
 }
 
-function encodeName(value: string): Uint8Array {
-  const bytes = new TextEncoder().encode(value);
-  return concat(uleb(bytes.byteLength), bytes);
-}
-
-const localGet = (index: number): Uint8Array => concat(Uint8Array.of(0x20), uleb(index));
-const globalGet = (index: number): Uint8Array => concat(Uint8Array.of(0x23), uleb(index));
-const call = (index: number): Uint8Array => concat(Uint8Array.of(0x10), uleb(index));
-const constant = (value: number): Uint8Array => concat(Uint8Array.of(0x41), sleb(value));
-const load32 = (offset: number): Uint8Array => concat(Uint8Array.of(0x28, 0x02), uleb(offset));
-
 function dispatch(
   hookGlobalIndex: number,
   dispatchTypeIndex: number,
@@ -85,12 +74,12 @@ function dispatch(
   return concat(
     globalGet(hookGlobalIndex),
     Uint8Array.of(0x04, 0x40),
-    constant(DISPATCH_KIND_FRIEND_LIFECYCLE),
-    constant(notification),
+    i32Const(DISPATCH_KIND_FRIEND_LIFECYCLE),
+    i32Const(notification),
     ...args,
-    ...Array.from({ length: 4 - args.length }, () => constant(0)),
+    ...Array.from({ length: 4 - args.length }, () => i32Const(0)),
     globalGet(hookGlobalIndex),
-    constant(1),
+    i32Const(1),
     Uint8Array.of(0x6b, 0x11),
     uleb(dispatchTypeIndex),
     uleb(0),
@@ -136,8 +125,8 @@ function requestSentWrapper(
       dispatchTypeIndex,
       FRIEND_LIFECYCLE_NOTIFICATIONS.requestSent,
       [
-        concat(localGet(0), load32(32)),
-        concat(localGet(0), load32(28)),
+        concat(localGet(0), i32Load(32)),
+        concat(localGet(0), i32Load(28)),
       ],
     ),
     Uint8Array.of(0x0b),
@@ -158,8 +147,8 @@ function completionQueuedWrapper(
     originalCall(6, originalIndex),
     Uint8Array.of(0x21), uleb(6),
     globalGet(hookGlobalIndex), Uint8Array.of(0x04, 0x40),
-    localGet(2), constant(LOGIN_EVENT), Uint8Array.of(0x46),
-    localGet(0), constant(0), load32(eventContextPointer), constant(592),
+    localGet(2), i32Const(LOGIN_EVENT), Uint8Array.of(0x46),
+    localGet(0), i32Const(0), i32Load(eventContextPointer), i32Const(592),
     Uint8Array.of(0x6a, 0x46, 0x71),
     localGet(6), Uint8Array.of(0x71, 0x04, 0x40),
     dispatch(
@@ -187,9 +176,9 @@ function loginCompletedWrapper(
       dispatchTypeIndex,
       FRIEND_LIFECYCLE_NOTIFICATIONS.completionStarted,
       [
-        concat(localGet(0), load32(32)),
-        concat(localGet(0), load32(28)),
-        concat(localGet(0), load32(24), Uint8Array.of(0x45)),
+        concat(localGet(0), i32Load(32)),
+        concat(localGet(0), i32Load(28)),
+        concat(localGet(0), i32Load(24), Uint8Array.of(0x45)),
       ],
     ),
     originalCall(1, originalIndex),
@@ -213,8 +202,8 @@ function completionProcessedWrapper(
     uleb(0),
     originalCall(2, originalIndex),
     globalGet(hookGlobalIndex), Uint8Array.of(0x04, 0x40),
-    localGet(0), load32(4), constant(USER_EVENT_CATEGORY), Uint8Array.of(0x46),
-    localGet(1), load32(0), constant(LOGIN_EVENT), Uint8Array.of(0x46, 0x71, 0x04, 0x40),
+    localGet(0), i32Load(4), i32Const(USER_EVENT_CATEGORY), Uint8Array.of(0x46),
+    localGet(1), i32Load(0), i32Const(LOGIN_EVENT), Uint8Array.of(0x46, 0x71, 0x04, 0x40),
     dispatch(
       hookGlobalIndex,
       dispatchTypeIndex,

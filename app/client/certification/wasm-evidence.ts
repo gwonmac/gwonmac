@@ -27,6 +27,14 @@ export { decodeFunctions } from "./wasm-instruction-evidence.js";
 import { EvidenceError } from "./wasm-evidence-error.js";
 import { dataEvidence, type WasmDataEvidence } from "./wasm-data-evidence.js";
 import { readonlyMapView } from "./readonly-map-view.js";
+import { functionIdentity, functionRoleIdentity } from "./relocation-identity.js";
+import {
+  recordExactMatch,
+  reviewedAlternatives,
+  reviewedGenerations,
+  reviewedIdentities,
+  type ClientGeneration,
+} from "./reviewed-facts.js";
 export { EvidenceError } from "./wasm-evidence-error.js";
 
 declare const WebAssembly: {
@@ -564,11 +572,73 @@ export function signatureMatches(
     );
 }
 
-export function bodyMatchesRole(body: Uint8Array, role: SemanticRole): boolean {
-  if (body.byteLength !== role.bodyLength) return false;
+/**
+ * A reviewed literal (a body digest or role fingerprint) names this function
+ * when it matches exactly, or when an active reviewed generation measured this
+ * function's relocation identity for the literal. A relink therefore keeps the
+ * match; any other change to the body or to a callee's body refuses it.
+ */
+function identityReviewedFor(literals: readonly string[], identity: () => string): boolean {
+  const reviewed = literals.map(reviewedIdentities).filter((identities) => identities.size > 0);
+  if (reviewed.length === 0) return false;
+  const measured = identity();
+  return reviewed.some((identities) => identities.has(measured));
+}
+
+/** The body of `functionIndex` is the reviewed body `bodySha256`. */
+export function functionMatchesReviewedBody(
+  module: ModuleShape,
+  functionIndex: number,
+  bodySha256: string,
+): boolean {
+  const accepted = [bodySha256, ...reviewedAlternatives(bodySha256).flatMap((alternative) =>
+    typeof alternative === "string" ? [alternative] : [])];
+  const measured = functionBodySha256(module, functionIndex);
+  if (accepted.includes(measured)) {
+    recordExactMatch(measured, () => functionIdentity(module, functionIndex));
+    return true;
+  }
+  return identityReviewedFor(accepted, () => functionIdentity(module, functionIndex));
+}
+
+/** The reviewed body digest among `bodySha256s` that names `functionIndex`. */
+export function reviewedBodyMatch(
+  module: ModuleShape,
+  functionIndex: number,
+  bodySha256s: readonly string[],
+): string | null {
+  return bodySha256s.find((bodySha256) =>
+    functionMatchesReviewedBody(module, functionIndex, bodySha256)) ?? null;
+}
+
+export function functionMatchesRole(
+  module: ModuleShape,
+  functionIndex: number,
+  role: SemanticRole,
+): boolean {
+  const body = functionBody(module, functionIndex);
+  const accepted = roleFingerprintsFor(role, body.byteLength);
+  if (accepted.length === 0) return false;
   const fingerprint = relocationAwareFingerprint(body, role.spans);
-  return fingerprint === role.fingerprint
-    || (role.reviewedVariants?.includes(fingerprint) ?? false);
+  const identity = () => functionRoleIdentity(module, functionIndex, role.spans);
+  if (accepted.includes(fingerprint)) {
+    recordExactMatch(fingerprint, identity);
+    return true;
+  }
+  return identityReviewedFor(accepted, identity);
+}
+
+/** The reviewed fingerprints of `role` for a body of `bodyLength` bytes. */
+function roleFingerprintsFor(role: SemanticRole, bodyLength: number): readonly string[] {
+  const alternatives = reviewedAlternatives(role.fingerprint);
+  return [
+    ...(bodyLength === role.bodyLength
+      ? [role.fingerprint, ...(role.reviewedVariants ?? [])]
+      : []),
+    ...alternatives.flatMap((alternative) => typeof alternative === "string"
+      ? (bodyLength === role.bodyLength ? [alternative] : [])
+      : (bodyLength === alternative.bodyLength ? [alternative.fingerprint] : [])),
+  ];
 }
 
 export function uniqueRoleFunction(module: ModuleShape, role: SemanticRole): number | null {
@@ -586,14 +656,18 @@ export function uniqueRoleVariant(
   return candidates.length === 1 ? candidates[0]! : null;
 }
 
+// Matches depend on the active reviewed generations, so the cache is per set.
 const roleFunctionCache = new WeakMap<
-  ModuleShape,
-  WeakMap<SemanticRole, readonly number[]>
+  readonly ClientGeneration[],
+  WeakMap<ModuleShape, WeakMap<SemanticRole, readonly number[]>>
 >();
 
 export function roleFunctions(module: ModuleShape, role: SemanticRole): readonly number[] {
-  const moduleCache = roleFunctionCache.get(module) ?? new WeakMap();
-  roleFunctionCache.set(module, moduleCache);
+  const generations = reviewedGenerations();
+  const generationCache = roleFunctionCache.get(generations) ?? new WeakMap();
+  roleFunctionCache.set(generations, generationCache);
+  const moduleCache = generationCache.get(module) ?? new WeakMap();
+  generationCache.set(module, moduleCache);
   const cached = moduleCache.get(role);
   if (cached) return cached;
   const matches: number[] = [];
@@ -602,11 +676,9 @@ export function roleFunctions(module: ModuleShape, role: SemanticRole): readonly
     functionIndex < module.functionTypeIndices.length;
     functionIndex += 1
   ) {
-    const body = functionBody(module, functionIndex);
     if (
-      body.byteLength === role.bodyLength
-      && signatureMatches(module, functionIndex, role.params, role.results)
-      && bodyMatchesRole(body, role)
+      signatureMatches(module, functionIndex, role.params, role.results)
+      && functionMatchesRole(module, functionIndex, role)
     ) matches.push(functionIndex);
   }
   const immutableMatches = Object.freeze(matches);
@@ -628,7 +700,7 @@ export function uniqueExactFunction(
   ) {
     if (
       signatureMatches(module, functionIndex, params, results)
-      && functionBodySha256(module, functionIndex) === bodySha256
+      && functionMatchesReviewedBody(module, functionIndex, bodySha256)
     ) matches.push(functionIndex);
     if (matches.length > 1) return null;
   }

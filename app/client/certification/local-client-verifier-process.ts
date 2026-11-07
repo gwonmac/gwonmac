@@ -14,7 +14,7 @@
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import {
-  isLocalClientVerification,
+  acceptLocalClientVerification,
   verifyLocalClientBytes,
 } from "./local-client-verifier.js";
 import {
@@ -104,12 +104,12 @@ async function main(): Promise<void> {
       process.exitCode = 2;
       return;
     }
-    const result = verifyLocalClientBytes(bytes, requestedCapabilities);
-    if (!isLocalClientVerification(
-      result,
+    const result = acceptLocalClientVerification(
+      verifyLocalClientBytes(bytes, requestedCapabilities),
       expectedSha256,
       requestedCapabilities,
-    )) {
+    );
+    if (result === null) {
       parentPort.postMessage(null);
       process.exitCode = 4;
       return;

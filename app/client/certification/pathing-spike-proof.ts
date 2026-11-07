@@ -10,6 +10,7 @@ import {
   type WasmEvidence,
 } from "./wasm-evidence.js";
 import type { DecodedFunction, MemoryOperandSite } from "./enhancement-evidence-types.js";
+import { perReviewedFacts } from "./reviewed-facts.js";
 
 const ANCHORS = Object.freeze({
   bound: "def->trapezoidCount < 1024",
@@ -38,39 +39,20 @@ const OCTOBER_HASHES = Object.freeze({
   boundWriter: "52a491a5a9e6eb96624f279ff8911612ae6dc7758c939b6abbf5e2c9d4762bec",
 });
 
-// October 22 moved only source-path and assertion string pointers.
-const OCTOBER_22_HASHES = Object.freeze({
-  ...EXPECTED_HASHES,
-  loader: "0c06d90dc7e34f23599e1bdee39e88834caaecd3af7a90d504189190cab7801e",
-  converter: "ee19b011e40f47e602a1bfb68b7cff9baca3a959b4bc6a2b8aba9830b321f193",
-  boundWriter: "8850a945edc4d36ed0032841c451d40844b6bdab864de79e8847c5a7cb4d975e",
-});
-
-// November 3 renumbered the five pathing functions (+1) and moved their callee
-// indices and string pointers; record shapes and relations are unchanged.
-const NOVEMBER_3_FUNCTIONS: Readonly<Record<keyof typeof EXPECTED_FUNCTIONS, number>> = Object.freeze({
-  loader: 3209,
-  converter: 3217,
-  boundWriter: 3274,
-  coordinateWriter: 3282,
-  builder: 3289,
-});
-const NOVEMBER_3_HASHES = Object.freeze({
-  loader: "3666716979fde05badb08fcb7be50a64e47bc8aeb80bc27bc8a82865442be3cb",
-  converter: "9ff3014e767f4925d635bdfc83c1e94079510145b56475ce01ea75c670fe1c05",
-  boundWriter: "7cfb9f1b504575c2dce539b38de6d741b1009ba5b0607de7c9161b03a5db06fd",
-  coordinateWriter: "7c38b28eb9782a324d24130841e2c109feb172a33f657522ced3278d9c7e7d25",
-  builder: "0f1dfd8047975dd5e605a27fef529729a4b2f1dde78153897a79ad4fa8fcad2a",
-});
-
-/** Each reviewed function set with the body hashes accepted at those indices. */
-const PATHING_FAMILIES: readonly Readonly<{
+/** One reviewed function set with the body hashes accepted at those indices. */
+export type PathingFamily = Readonly<{
   functions: Readonly<Record<keyof typeof EXPECTED_FUNCTIONS, number>>;
   hashes: readonly Readonly<Record<keyof typeof EXPECTED_FUNCTIONS, string>>[];
-}>[] = Object.freeze([
-  { functions: EXPECTED_FUNCTIONS, hashes: [EXPECTED_HASHES, OCTOBER_HASHES, OCTOBER_22_HASHES] },
-  { functions: NOVEMBER_3_FUNCTIONS, hashes: [NOVEMBER_3_HASHES] },
+}>;
+
+// The August and October 1 families; later clients add theirs in their
+// generation files.
+const BASE_FAMILIES: readonly PathingFamily[] = Object.freeze([
+  { functions: EXPECTED_FUNCTIONS, hashes: [EXPECTED_HASHES, OCTOBER_HASHES] },
 ]);
+const pathingFamilies = perReviewedFacts((generations): readonly PathingFamily[] =>
+  Object.freeze([...BASE_FAMILIES, ...generations.flatMap((generation) =>
+    generation.facts?.pathingFamilies ?? [])]));
 
 const I32_LOAD = 0x28;
 const I32_LOAD16_U = 0x2f;
@@ -129,7 +111,7 @@ function sameNumbers(actual: readonly number[], expected: readonly number[]): bo
 
 /** Mutation-test boundary for every shape value the spike is willing to claim. */
 export function validPathingShapeFacts(candidate: PathingShapeFacts): boolean {
-  return PATHING_FAMILIES.some(({ functions }) => candidate.converterCaller === functions.loader)
+  return pathingFamilies().some(({ functions }) => candidate.converterCaller === functions.loader)
     && candidate.converterCallSiteOffset === EXPECTED_FACTS.converterCallSiteOffset
     && candidate.pathMapHolderOffset === EXPECTED_FACTS.pathMapHolderOffset
     && candidate.pathMapTrapezoidCount === EXPECTED_FACTS.pathMapTrapezoidCount
@@ -207,7 +189,7 @@ export function certifyPathingShape(input: Uint8Array): PathingShapeProof | null
   const evidence = wasmEvidence(input);
   if (!evidence) return null;
   const decoded = evidence.decodeFunctions([0x30, 1024]);
-  const proofs = PATHING_FAMILIES.flatMap(({ functions, hashes }) =>
+  const proofs = pathingFamilies().flatMap(({ functions, hashes }) =>
     certifyPathingFamily(evidence, decoded, functions, hashes) ?? []);
   return proofs.length === 1 ? proofs[0]! : null;
 }

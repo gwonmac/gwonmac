@@ -43,6 +43,7 @@ import {
   locateNativeDoubleClickRoute,
   NATIVE_DOUBLE_CLICK_ROUTE_SHA256,
 } from "./native-double-click-route-proof.js";
+import { encodeName, globalGet, i32Store, localGet } from "./wasm-emit.js";
 
 declare const WebAssembly: {
   validate(bytes: Uint8Array): boolean;
@@ -106,11 +107,6 @@ function fail(message: string): never {
 
 const sha256 = (bytes: Uint8Array): string =>
   createHash("sha256").update(bytes).digest("hex");
-
-function encodeName(name: string): Uint8Array {
-  const bytes = new TextEncoder().encode(name);
-  return concat(uleb(bytes.length), bytes);
-}
 
 /** The module this stage produces from a certified predecessor. */
 export function nativeDoubleClickOutputSha256(
@@ -205,13 +201,7 @@ export function deriveNativeDoubleClickBuild(
  * as a double-click sets it and no state survives between presses.
  */
 function flagStore(globalIndex: number, frameOffset: number): Uint8Array {
-  return concat(
-    Uint8Array.of(0x20, 0x03),
-    Uint8Array.of(0x23),
-    uleb(globalIndex),
-    Uint8Array.of(0x36, 0x02),
-    uleb(frameOffset),
-  );
+  return concat(localGet(3), globalGet(globalIndex), i32Store(frameOffset));
 }
 
 /**
