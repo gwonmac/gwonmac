@@ -456,9 +456,14 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
   let painting: Painting | null = null;
   function stopPainting() { if (painting) cancelAnimationFrame(painting.frame); painting = null; }
   function startPainting(next: readonly HubRow[]) {
+    // A row already in the DOM that stays in the list paints now, so narrowing never unmounts it
+    // for a frame: its node, and a pointer action aimed at it, survive (HUB-170).
+    const mounted = new Set(model.results.rows.slice(0, model.results.painted).map(row => row.id));
     stopPainting(); patch('results', { rows: next, painted: 0 });
     painting = { rows: next, next: 0, frame: 0 };
-    paintThrough(PAINT_CHUNK - 1);
+    let through = PAINT_CHUNK - 1;
+    next.forEach((row, index) => { if (mounted.has(row.id)) through = Math.max(through, index); });
+    paintThrough(through);
   }
   /** Paints every row up to this index now and leaves the rest to the next frame. */
   function paintThrough(index: number) {
