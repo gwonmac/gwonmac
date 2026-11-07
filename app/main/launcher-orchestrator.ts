@@ -1,7 +1,8 @@
 /**
- * Builds the launcher's revisioned read model and owns waiting launch intents.
- * It coordinates existing domain owners without persisting their state or
- * moving launch decisions into the renderer.
+ * Builds the launcher's revisioned read model and decides when the accounts
+ * owner's launch queue may drain. The queue itself, its order, and every
+ * profile's launch state live in MultipleAccountsController; this module only
+ * projects them and never moves launch decisions into the renderer.
  */
 import type {
   AccountsState,
@@ -26,7 +27,8 @@ interface LauncherAccountsOwner {
   validateOpenable(ids: readonly ProfileId[]): void;
   queue(ids: readonly ProfileId[]): void;
   releaseQueued(ids: readonly ProfileId[]): void;
-  open(ids: readonly ProfileId[]): Promise<void>;
+  releaseAllQueued(): void;
+  drain(): Promise<void>;
   isOpen(id: ProfileId): boolean;
   show(id: ProfileId): boolean;
 }
@@ -45,14 +47,11 @@ export interface LauncherOrchestratorOptions {
   /** Unpackaged Electron tests only: lets renderer-focused suites bypass client preparation. */
   readonly allowUnreadyLaunch?: boolean;
   readonly publish: (snapshot: LauncherSnapshot) => void;
-  readonly reportLaunchFailure?: (error: unknown) => void;
 }
 
 export class LauncherOrchestrator {
   private readonly options: LauncherOrchestratorOptions;
   private revision = 0;
-  private pending: ProfileId[] = [];
-  private draining: Promise<void> | null = null;
 
   constructor(options: LauncherOrchestratorOptions) {
     this.options = options;
@@ -136,24 +135,17 @@ export class LauncherOrchestrator {
       this.publish();
       return;
     }
-    if (this.options.hasActiveClient() || this.options.allowUnreadyLaunch) {
-      await this.options.accounts.open(launchable);
-      this.publish();
-      return;
-    }
-    if (this.options.getProgress().phase === "error") {
+    const playable = this.options.hasActiveClient() || this.options.allowUnreadyLaunch === true;
+    if (!playable && this.options.getProgress().phase === "error") {
       // Repair is one global launcher state, not a profile launch failure.
       // Keep the command idempotent so a stale renderer action cannot turn
       // that already-presented state into an unhandled IPC rejection.
       this.publish();
       return;
     }
-    const pending = new Set(this.pending);
-    for (const id of launchable) {
-      if (!pending.has(id)) this.pending.push(id);
-      pending.add(id);
-    }
     this.options.accounts.queue(launchable);
+    // Without a playable client the queue waits until clientChanged drains it.
+    if (playable) await this.options.accounts.drain();
     this.publish();
   }
 
@@ -164,22 +156,22 @@ export class LauncherOrchestrator {
 
   cancel(ids: readonly ProfileId[]): void {
     this.options.accounts.validateOpenable(ids);
-    const cancelled = new Set(ids);
-    this.pending = this.pending.filter((id) => !cancelled.has(id));
     this.options.accounts.releaseQueued(ids);
     this.publish();
   }
 
   clientChanged(): void {
+    const waiting = this.options.accounts.state().profiles.some((profile) => profile.state === "queued");
     if (this.options.hasActiveClient()) {
-      this.startDrain();
+      if (waiting) {
+        // Per-profile failures are already on each row; the launcher shows them.
+        void this.options.accounts.drain().catch(() => undefined).finally(() => this.publish());
+      }
       this.publish();
       return;
     }
-    if (this.options.getProgress().phase === "error" && this.pending.length > 0) {
-      const released = this.pending;
-      this.pending = [];
-      this.options.accounts.releaseQueued(released);
+    if (this.options.getProgress().phase === "error" && waiting) {
+      this.options.accounts.releaseAllQueued();
       this.publish();
     }
   }
@@ -235,24 +227,5 @@ export class LauncherOrchestrator {
     }
     if (progress.phase === "error") return { state: "repair-required", reason: progress.errorCode };
     return { state: "preparing", progress };
-  }
-
-  private startDrain(): void {
-    if (this.draining || this.pending.length === 0) return;
-    this.draining = (async () => {
-      while (this.options.hasActiveClient() && this.pending.length > 0) {
-        const profileId = this.pending.shift()!;
-        try {
-          await this.options.accounts.open([profileId]);
-        } catch (error) {
-          this.options.accounts.releaseQueued([profileId]);
-          this.options.reportLaunchFailure?.(error);
-        }
-      }
-    })().finally(() => {
-      this.draining = null;
-      this.publish();
-      if (this.options.hasActiveClient() && this.pending.length > 0) this.startDrain();
-    });
   }
 }

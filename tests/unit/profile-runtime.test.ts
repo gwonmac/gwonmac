@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { Mutex } from "../../app/main/core/mutex.js";
 import {
+  drainLaunchQueue,
   launchIssueForStage,
   ProfileRuntimeStore,
 } from "../../app/main/core/profile-runtime.js";
@@ -40,6 +42,34 @@ describe("Multiple Accounts runtime state", () => {
       launchIssue: "client-validation",
     });
     assert.deepEqual(runtime.get(waiting), { state: "ready" });
+  });
+
+  it("never opens a waiting profile that was cancelled while an earlier one opens", async () => {
+    const runtime = new ProfileRuntimeStore();
+    const [first, second, third] = [id("first"), id("second"), id("third")];
+    let releaseFirst!: () => void;
+    const firstOpening = new Promise<void>((resolve) => { releaseFirst = resolve; });
+    const opened: string[] = [];
+    runtime.queue([first, second, third], () => false);
+
+    const drained = drainLaunchQueue(runtime, new Mutex(), {
+      open: async (profileId) => {
+        opened.push(profileId);
+        runtime.set(profileId, "opening");
+        if (profileId === first) await firstOpening;
+        runtime.set(profileId, "running");
+      },
+      settle: async () => undefined,
+    });
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.deepEqual(opened, [first]);
+    runtime.releaseQueued([third]);
+    releaseFirst();
+    await drained;
+
+    assert.deepEqual(opened, [first, second]);
+    assert.deepEqual(runtime.get(third), { state: "ready" });
+    assert.deepEqual(runtime.waiting(), []);
   });
 
   it("maps every failure stage to bounded player-safe vocabulary", () => {

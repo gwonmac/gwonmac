@@ -44,6 +44,7 @@ import { Mutex } from "./core/mutex.js";
 import type { NativeKeychain } from "./core/native-keychain.js";
 import { resolveProfileStorage } from "./core/profile-storage.js";
 import {
+  drainLaunchQueue,
   launchIssueForStage,
   ProfileRuntimeStore,
   type ProfileRuntime,
@@ -84,7 +85,6 @@ export interface MultipleAccountsControllerOptions {
 
 export class MultipleAccountsController {
   private readonly accountsLock = new Mutex();
-  private readonly launchLock = new Mutex();
   private readonly templatesLock = new Mutex();
   private readonly templateSessions = new AccountTemplateSessions<BrowserWindow>();
   private readonly credentialsStores = new Map<string, CredentialsStore>();
@@ -92,6 +92,7 @@ export class MultipleAccountsController {
   private readonly profileProtocolSessions = new Set<ProfileId>();
   private readonly diagnosticOwnerIds = new Map<ProfileId, number>();
   private readonly profileRuntime = new ProfileRuntimeStore();
+  private draining: Promise<void> | null = null;
   private nextDiagnosticOwnerId = 2;
   private workspace: AccountWorkspace;
 
@@ -214,10 +215,6 @@ export class MultipleAccountsController {
     this.publish();
   }
 
-  open(profileIds: readonly ProfileId[]): Promise<void> {
-    return this.launchLock.run(() => this.openBatch(profileIds));
-  }
-
   validateOpenable(profileIds: readonly ProfileId[]): void {
     if (profileIds.length === 0) throw new Error("Choose at least one account");
     const seen = new Set<ProfileId>();
@@ -245,17 +242,41 @@ export class MultipleAccountsController {
     }
   }
 
+  /**
+   * Appends profiles to the one ordered launch queue; `drain` opens them. A
+   * failed profile queues even while its failed window is still registered,
+   * so Try again replaces that window.
+   */
   queue(profileIds: readonly ProfileId[]): void {
     this.profileRuntime.queue(
       profileIds,
-      (profileId) => windowRegistry.profileWindow(profileId) !== null,
+      (profileId) => windowRegistry.profileWindow(profileId) !== null
+        && this.runtimeForProfile(profileId).state !== "failed",
     );
     this.publish();
   }
 
+  /** Cancel waiting: the drain never takes a released profile. */
   releaseQueued(profileIds: readonly ProfileId[]): void {
     this.profileRuntime.releaseQueued(profileIds);
     this.publish();
+  }
+
+  /** Returns every waiting profile to Ready, for a global client failure. */
+  releaseAllQueued(): void {
+    this.releaseQueued(this.profileRuntime.waiting());
+  }
+
+  /**
+   * Opens the queue in order and resolves once it is empty. One drain runs at
+   * a time: a call during a drain joins it, and the running drain also opens
+   * profiles queued after it started.
+   */
+  drain(): Promise<void> {
+    this.draining ??= this.drainQueue().finally(() => {
+      this.draining = null;
+    });
+    return this.draining;
   }
 
   isOpen(profileId: ProfileId): boolean {
@@ -272,70 +293,56 @@ export class MultipleAccountsController {
     return true;
   }
 
-  private async openBatch(profileIds: readonly ProfileId[]): Promise<void> {
-    this.validateOpenable(profileIds);
+  private async drainQueue(): Promise<void> {
     if (
       !this.options.clientRuntime.active
       && !this.options.allowUnreadyLaunch
     ) {
       throw new Error("Guild Wars must be repaired before opening an account");
     }
-    this.profileRuntime.queue(
-      profileIds,
-      (profileId) => windowRegistry.profileWindow(profileId) !== null,
-    );
-    this.publish();
     let canaryChecked = false;
-    let firstFailure: unknown = null;
-    let firstSelectedWindow: BrowserWindow | null = null;
-    for (let index = 0; index < profileIds.length; index += 1) {
-      const profileId = profileIds[index]!;
-      let result: { readonly win: BrowserWindow; readonly opened: boolean };
-      try {
-        result = await this.accountsLock.run(() => this.openProfile(profileId, index));
-        firstSelectedWindow ??= result.win;
-      } catch (error) {
-        firstFailure ??= error;
-        continue;
-      }
-      if (result.opened && !canaryChecked) {
-        if (this.options.clientRuntime.healthToken) {
-          this.profileRuntime.set(profileId, "checking");
-          this.publish();
-          try {
-            await this.waitForCandidateCanary();
-          } catch (error) {
-            if (windowRegistry.profileWindow(profileId) === result.win
-              && this.profileRuntime.get(profileId).state === "checking") {
-              this.profileRuntime.set(
-                profileId,
-                "failed",
-                launchIssueForStage("validating"),
-              );
-            }
-            this.profileRuntime.releaseQueued(profileIds.slice(index + 1));
+    let started: readonly { readonly win: BrowserWindow; readonly opened: boolean }[];
+    try {
+      started = await drainLaunchQueue(this.profileRuntime, this.accountsLock, {
+        open: (profileId, ordinal) => this.openProfile(profileId, ordinal),
+        settle: async (profileId, result) => {
+          if (!result.opened || canaryChecked) return;
+          if (this.options.clientRuntime.healthToken) {
+            this.profileRuntime.set(profileId, "checking");
             this.publish();
-            this.options.windows.revealLauncher({ activateApp: true });
-            throw error;
+            try {
+              await this.waitForCandidateCanary();
+            } catch (error) {
+              if (windowRegistry.profileWindow(profileId) === result.win
+                && this.profileRuntime.get(profileId).state === "checking") {
+                this.profileRuntime.set(
+                  profileId,
+                  "failed",
+                  launchIssueForStage("validating"),
+                );
+              }
+              // Nothing else opens on a client generation that did not confirm.
+              this.profileRuntime.releaseQueued(this.profileRuntime.waiting());
+              throw error;
+            }
           }
-        }
-        if (windowRegistry.profileWindow(profileId) !== result.win
-          || result.win.webContents.isDestroyed() || result.win.webContents.isCrashed()
-          || ["failed", "opening"].includes(this.profileRuntime.get(profileId).state)) {
-          firstFailure ??= new Error("The account window closed or stopped during startup");
-          continue;
-        }
-        this.profileRuntime.set(profileId, "running");
-        canaryChecked = true;
-      }
-    }
-    if (firstFailure) {
+          if (windowRegistry.profileWindow(profileId) !== result.win
+            || result.win.webContents.isDestroyed() || result.win.webContents.isCrashed()
+            || ["failed", "opening"].includes(this.profileRuntime.get(profileId).state)) {
+            throw new Error("The account window closed or stopped during startup");
+          }
+          this.profileRuntime.set(profileId, "running");
+          canaryChecked = true;
+        },
+      });
+    } catch (error) {
       this.publish();
       this.options.windows.revealLauncher({ activateApp: true });
-      throw firstFailure;
+      throw error;
     }
-    if (firstSelectedWindow && !firstSelectedWindow.isDestroyed()) {
-      this.options.windows.completeAsyncGameLaunch(firstSelectedWindow);
+    const firstWindow = started[0]?.win;
+    if (firstWindow && !firstWindow.isDestroyed()) {
+      this.options.windows.completeAsyncGameLaunch(firstWindow);
     }
     this.publish();
   }
@@ -566,7 +573,9 @@ export class MultipleAccountsController {
     const profile = storage.kind === "isolated" ? this.profileFor(profileId) : null;
     let existing = windowRegistry.profileWindow(profileId);
     const previous = this.runtimeForProfile(profileId);
-    if (previous.state === "failed") {
+    // `queue` passes over healthy open windows, so a queued profile that still
+    // has a window is a failed one being tried again.
+    if (previous.state === "queued" && existing) {
       resetRendererRecovery(storage.windowState);
       if (existing && !existing.isDestroyed()) existing.destroy();
       existing = null;

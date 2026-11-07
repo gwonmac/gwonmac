@@ -135,13 +135,18 @@ remain packaged macOS qualification boundaries.
 
 ## Launch queue and first frame
 
-The main process owns one queue of requested profile IDs. A healthy installed
-client opens immediately. During first preparation, Play records the requested
-profiles and preparation continues independently; Cancel waiting removes only
-profiles that have not started. Once the client is playable, the queue drains
-one profile at a time so the first candidate window can complete the existing
-client canary before another profile starts. A global client failure moves the
-launcher to one repair state without marking every profile as failed.
+The main process owns one ordered queue of requested profile IDs, kept by
+`MultipleAccountsController` with each profile's launch state: a profile is
+Waiting exactly while it is in the queue. Play always appends to the queue.
+With a playable client the queue drains at once; during first preparation the
+profiles wait and preparation continues independently. The drain opens one
+profile at a time and takes the next one from the queue each time, so Cancel
+waiting removes any profile that has not started, also while an earlier
+profile of the same Play is still opening. The first candidate window
+completes the existing client canary before another profile starts; if the
+canary fails, every waiting profile returns to Ready. A global client failure
+moves the launcher to one repair state without marking every profile as
+failed.
 
 A game window is created only after a playable client exists. Electron keeps it
 hidden after `ready-to-show`; the game renderer then submits the dedicated
