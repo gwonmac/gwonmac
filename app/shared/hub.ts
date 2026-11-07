@@ -2,6 +2,7 @@
  * Defines local search rows and presentation contracts for Hub.
  * These contracts expose no IPC or persisted state.
  */
+import type { HubFeatureSetting } from "../features/index.js";
 import type { HubShortcut } from "./hub-preferences.js";
 export type HubRow = Readonly<{
   id: string;
@@ -67,7 +68,8 @@ export type HubTask = Readonly<{
   done(receipt?: string): void;
 }>;
 export type HubSource = Readonly<{
-  feature?: 'characterSwitchEnabled' | 'buildLibrary' | 'travelPalette' | 'tradeChat' | 'whispersEnabled';
+  /** The setting of the feature that contributes this source's Hub command (app/features). */
+  feature?: HubFeatureSetting;
   search(query: string): readonly HubRow[];
   /** Read-only current context for Home; never an executable result. */
   context?(): string | null;

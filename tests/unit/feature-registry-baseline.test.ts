@@ -1,23 +1,36 @@
 // The settings and feature tables must not move while app/features becomes their
 // source. tests/fixtures/feature-registry/baseline.json holds them as the hand-written
 // code produced them (2026-11-07, written with WRITE_FEATURE_BASELINE=1 before any
-// table was derived); every table today must still deep-equal that copy.
+// table was derived); every table today must still deep-equal that copy. The one
+// intended change is DRIFT_FIX below: the renderer's Tools defaults now are DEFAULT_SETTINGS.
 // Delete this test and its fixtures once no hand-written table is left to compare.
 import assert from "node:assert/strict";
 import { readFileSync, writeFileSync } from "node:fs";
 import { test } from "node:test";
-import { parseLauncherSettingsPatch, GLOBAL_TOOLS, GLOBAL_TOOL_FEATURES } from "../../app/shared/launcher-contracts.ts";
+import { launcherSettings, parseLauncherSettingsPatch, GLOBAL_TOOLS, GLOBAL_TOOL_FEATURES } from "../../app/shared/launcher-contracts.ts";
 import { DEFAULT_SETTINGS, RENDERER_WRITABLE_SETTINGS, type AppSettings } from "../../app/shared/contracts.ts";
 import { parseRendererSettingsPatch, parseSettings, parseSettingsPatch } from "../../app/main/core/settings.ts";
 import { HUB_SETTINGS_FIELDS } from "../../app/shared/hub-settings.ts";
 import { FEATURE_SELECTION_POLICIES } from "../../app/shared/feature-contracts.ts";
 import { enhancementRuntimePolicy } from "../../app/renderer/enhancement-runtime-policy.ts";
 import { ENHANCEMENT_PROGRAMS } from "../../app/shared/enhancement-contracts.ts";
-import { TOOL_PRESENTATION } from "../../app/shared/tool-presentation.ts";
+import { HUB_COMMAND_SHORTCUTS, HUB_TOOL_KEYS, TOOL_PRESENTATION } from "../../app/shared/tool-presentation.ts";
 import { SETTINGS } from "../../app/shared/settings-catalogue.ts";
 import { allGlobalToolsPatch, globalToolPatch, launcherToolSettings } from "../../app/main/core/launcher-tools.ts";
-import { DEFAULT_SHORTCUTS, SHORTCUT_ACTIONS, SHORTCUT_LABELS, resolveShortcuts } from "../../app/shared/keyboard-shortcuts.ts";
+import { DEFAULT_SHORTCUTS, SHORTCUT_ACTIONS, SHORTCUT_FEATURES, SHORTCUT_LABELS, SHORTCUT_MENU_ITEMS, resolveShortcuts } from "../../app/shared/keyboard-shortcuts.ts";
+import { TOOLS_SETTINGS, toolsSettings } from "../../app/shared/settings/index.ts";
+import { DEFAULT_CALCULATOR_RATES } from "../../app/shared/hub-calculator.ts";
+import { FEATURES, type HubFeatureSetting } from "../../app/features/index.ts";
 import { PROBES, settingsFixtures } from "../fixtures/feature-registry/inputs.ts";
+import type { AppSettingsBefore } from "../fixtures/feature-registry/app-settings-before.ts";
+
+// Checked by `tsc -p tsconfig.tests.json`: the derived type is the hand-written one,
+// key for key and modifier for modifier.
+type Exact<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;
+const appSettingsTypeUnchanged: Exact<AppSettings, AppSettingsBefore> = true;
+// shared/hub.ts HubSource.feature, as the hand-written union named it.
+const hubSourceTypeUnchanged: Exact<HubFeatureSetting, "buildLibrary" | "characterSwitchEnabled" | "tradeChat" | "travelPalette" | "whispersEnabled"> = true;
+void appSettingsTypeUnchanged, hubSourceTypeUnchanged;
 
 const outcome = (run: () => unknown) => {
   try { return { ok: run() }; } catch (error) {
@@ -44,22 +57,9 @@ function currentTables() {
     },
     launcher: {
       keys: [...launcherKeys].sort(),
-      probes: Object.fromEntries(launcherKeys.map(key => [key, PROBES.map(value => outcome(() => parseLauncherSettingsPatch({ [key]: value })[key]))])),
-      // launcher-orchestrator.ts snapshot(): the hand-written settings projection.
-      projection: [
-        "uiStyle", "uiFont", "uiCustomTheme", "uiPanelOpacity", "uiTextSize", "controllerPromptStyle",
-        "autoRelogAfterReload", "characterSwitchProfession", "characterSwitchLevel", "characterSwitchLocation",
-        "skillKeyBindings", "skillCooldownColor", "alcoholTimerPosition", "chatFilterAllyDrops",
-        "chatFilterHallOfHeroes", "chatFilterTitleAchievements", "reminderCons", "reminderPcons", "reminderAlcohol",
-        "reminderBeforeEnd", "reminderAtEnd", "reminderSound", "autoCheckUpdates", "renderScale",
-        "extendedMemoryEnabled", "showDiagnostics", "cartographyOverlayEnabled", "cartographyGridEnabled",
-        "cartographyCompassGridEnabled", "compassRangeIndicatorsEnabled", "compassRangeEarshotEnabled",
-        "compassRangeCastEnabled", "compassRangeSpiritEnabled", "compassRangeSpiritExtendedEnabled",
-        "compassRangeEarshotOpacity", "compassRangeCastOpacity", "compassRangeSpiritOpacity",
-        "compassRangeSpiritExtendedOpacity", "compassRangeTheme", "cartographyRevealMode", "cartographyPresetLibrary",
-        "cartographyWalkabilityOpacity", "cartographyGridOpacity", "cartographyControlIdleOpacity",
-        "eliteSkillsEnabled", "eliteMissionMapMarkers",
-      ].sort(),
+      probes: Object.fromEntries(launcherKeys.map(key => [key, PROBES.map(value => outcome(() => (parseLauncherSettingsPatch({ [key]: value }) as Record<string, unknown>)[key]))])),
+      // launcher-orchestrator.ts snapshot(): the settings projection.
+      projection: Object.keys(launcherSettings(DEFAULT_SETTINGS)).sort(),
     },
     hubSettingsFields: [...HUB_SETTINGS_FIELDS].sort(),
     featurePolicies: FEATURE_SELECTION_POLICIES,
@@ -80,60 +80,18 @@ function currentTables() {
     defaultShortcuts: DEFAULT_SHORTCUTS,
     shortcutLabels: SHORTCUT_LABELS,
     resolvedDefaults: resolveShortcuts({}),
-    // window-shortcuts.ts SHORTCUT_FEATURES (not exported).
-    windowShortcutFeatures: {
-      "game.call-target": "callTarget", "game.resign": "resign", "character.switch": "characterSwitch",
-      "tools.toggle": "buildLibrary", "whispers.toggle": "whispers", "trade.toggle": "tradeChat",
-      "storage.open": "xunlaiStorage", "travel.open": "travel", "cartography.grid.toggle": "cartography",
-      "cartography.walkability.toggle": "cartography",
-    },
-    // window-menu.ts TOOL_MENU_FEATURES (not exported).
-    toolMenuFeatures: {
-      "toggle-tools": { feature: "buildLibrary", action: "tools.toggle" },
-      "open-whispers": { feature: "whispers", action: "whispers.toggle" },
-      "toggle-trade": { feature: "tradeChat", action: "trade.toggle" },
-      "open-xunlai-storage": { feature: "xunlaiStorage", action: "storage.open" },
-      "open-travel": { feature: "travel", action: "travel.open" },
-      "resign-game": { feature: "resign", action: "game.resign" },
-      "switch-character": { feature: "characterSwitch", action: "character.switch" },
-    },
-    // renderer/hub.ts commandExamples() KEY_TOOLS + toolKeys, in display order.
-    hubKeyTools: [
-      { command: "travel", tool: "quick-travel", action: "travel.open", label: TOOL_PRESENTATION["quick-travel"].label },
-      { command: "character", tool: "character-switch", action: "character.switch", label: TOOL_PRESENTATION["character-switch"].label },
-      { command: "builds", tool: "build-management", action: "tools.toggle", label: TOOL_PRESENTATION["build-management"].label },
-      { command: "trade", tool: "trade-chat", action: "trade.toggle", label: TOOL_PRESENTATION["trade-chat"].label },
-      { command: "whispers", tool: "whispers", action: "whispers.toggle", label: TOOL_PRESENTATION["whispers"].label },
-    ],
-    // shared/hub.ts HubSource.feature union.
-    hubSourceSettings: ["buildLibrary", "characterSwitchEnabled", "tradeChat", "travelPalette", "whispersEnabled"],
-    // renderer/harness.ts window.gwToolsSettings before any settings arrive; calculatorRates is absent then.
-    rendererToolsSettingsBeforeSettings: {
-      hubShortcuts: [], shortcutOverrides: {}, gwonmacTools: false, buildLibrary: true, tradeChat: true,
-      xunlaiStorage: false, travelPalette: false, targetReadout: false, characterSwitchEnabled: true,
-      resignEnabled: false, whispersEnabled: false, callTargetEnabled: false, cartographyEnabled: true,
-      cartographyOverlayEnabled: false, cartographyGridEnabled: false, compassRangeIndicatorsEnabled: false,
-      eliteSkillsEnabled: true, eliteMissionMapMarkers: "saved",
-      skillKeyBindings: [null, null, null, null, null, null, null, null], skillKeyLabelsEnabled: false,
-      skillCooldownOverlayEnabled: true, chatFiltersEnabled: false, chatFilterAllyDrops: false,
-      chatFilterHallOfHeroes: false, chatFilterTitleAchievements: false, quickItemMove: false,
-      effectTimersEnabled: false, alcoholTimerEnabled: false, remindersEnabled: false, reminderCons: true,
-      reminderPcons: true, reminderAlcohol: true, reminderBeforeEnd: true, reminderAtEnd: true, reminderSound: false,
-      alcoholTimerPosition: { corner: "top-left", x: 4, y: 58, locked: true },
-      skillCooldownColor: { kind: "preset", preset: "red" },
-    },
-    // With settings, the same keys plus calculatorRates, each read from the settings.
-    rendererToolsSettingKeys: [
-      "hubShortcuts", "calculatorRates", "shortcutOverrides", "gwonmacTools", "buildLibrary", "tradeChat",
-      "xunlaiStorage", "travelPalette", "targetReadout", "characterSwitchEnabled", "resignEnabled",
-      "whispersEnabled", "callTargetEnabled", "cartographyEnabled", "cartographyOverlayEnabled",
-      "cartographyGridEnabled", "compassRangeIndicatorsEnabled", "eliteSkillsEnabled", "eliteMissionMapMarkers",
-      "skillKeyBindings", "skillKeyLabelsEnabled", "skillCooldownOverlayEnabled", "chatFiltersEnabled",
-      "chatFilterAllyDrops", "chatFilterHallOfHeroes", "chatFilterTitleAchievements", "quickItemMove",
-      "effectTimersEnabled", "alcoholTimerEnabled", "remindersEnabled", "reminderCons", "reminderPcons",
-      "reminderAlcohol", "reminderBeforeEnd", "reminderAtEnd", "reminderSound", "alcoholTimerPosition",
-      "skillCooldownColor",
-    ].sort(),
+    // Were window-shortcuts.ts SHORTCUT_FEATURES and window-menu.ts TOOL_MENU_FEATURES.
+    windowShortcutFeatures: SHORTCUT_FEATURES,
+    toolMenuFeatures: SHORTCUT_MENU_ITEMS,
+    // Was renderer/hub.ts commandExamples() KEY_TOOLS + toolKeys, in display order.
+    hubKeyTools: HUB_TOOL_KEYS,
+    // shared/hub.ts HubSource.feature union, as the runtime list of Hub source settings.
+    hubSourceSettings: FEATURES.flatMap(feature => "tool" in feature && "hub" in feature.tool && "keyOrder" in feature.tool.hub
+      ? [feature.activation.setting] : []).sort(),
+    // renderer/harness.ts window.gwToolsSettings before any settings arrive.
+    rendererToolsSettingsBeforeSettings: toolsSettings(null),
+    // With settings, the same keys, each read from the settings.
+    rendererToolsSettingKeys: [...TOOLS_SETTINGS].sort(),
   };
 }
 
@@ -148,9 +106,34 @@ if (process.env.WRITE_FEATURE_BASELINE === "1") {
 }
 const baseline = JSON.parse(readFileSync(baselineFile, "utf8")) as Record<string, unknown>;
 
+// The renderer's defaults drifted from DEFAULT_SETTINGS in these keys; calculatorRates
+// was absent until settings arrived. Every other value, and every other table, is unchanged.
+const DRIFT_FIX = {
+  travelPalette: true,
+  chatFilterAllyDrops: true,
+  chatFilterHallOfHeroes: true,
+  chatFilterTitleAchievements: true,
+  calculatorRates: JSON.parse(JSON.stringify(DEFAULT_CALCULATOR_RATES)),
+};
+const expected: Record<string, unknown> = {
+  ...baseline,
+  rendererToolsSettingsBeforeSettings: { ...(baseline.rendererToolsSettingsBeforeSettings as object), ...DRIFT_FIX },
+};
+
 test("the baseline names every table this test projects", () => {
   assert.deepEqual(Object.keys(current).sort(), Object.keys(baseline).sort());
 });
-for (const [table, frozen] of Object.entries(baseline)) {
+for (const [table, frozen] of Object.entries(expected)) {
   test(`${table} equals its frozen copy`, () => assert.deepEqual(current[table], frozen));
 }
+
+test("the renderer's Tools settings default to DEFAULT_SETTINGS", () => {
+  assert.deepEqual(toolsSettings(null), Object.fromEntries(TOOLS_SETTINGS.map(key => [key, DEFAULT_SETTINGS[key]])));
+});
+
+test("each Hub command row shows the shortcut renderer/hub.ts named by hand", () => {
+  assert.deepEqual(HUB_COMMAND_SHORTCUTS, {
+    travel: "travel.open", character: "character.switch", builds: "tools.toggle",
+    trade: "trade.toggle", whispers: "whispers.toggle", storage: "storage.open",
+  });
+});

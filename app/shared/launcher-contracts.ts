@@ -3,10 +3,10 @@
  * Electron main. Domain owners remain in main; this file only names validated
  * commands and the rebuildable projection the Vue application renders.
  */
-import { isAlcoholTimerPosition } from "./alcohol-timer.js";
-import { isEliteMissionMapMarkers, type EliteMissionMapMarkers } from "./elite-map-settings.js";
+import { FEATURES, type GlobalTool } from "../features/index.js";
 import type {
   AppSettings,
+  AppSettingsPatch,
   AppUpdateState,
   CacheInfo,
   ExtendedMemoryRuntimeStatus,
@@ -14,28 +14,12 @@ import type {
   FullDownloadState,
   NoticeCode,
 } from "./contracts.js";
-import { RENDER_SCALES, UI_STYLES, UI_FONTS, CONTROLLER_PROMPT_STYLES, UI_PANEL_OPACITY_MIN, UI_PANEL_OPACITY_MAX, UI_TEXT_SIZE_MIN, UI_TEXT_SIZE_MAX } from "./contracts.js";
-import {
-  COMPASS_RANGE_OPACITY_MAX,
-  COMPASS_RANGE_OPACITY_MIN,
-  COMPASS_RANGE_THEMES,
-  type CompassRangeTheme,
-} from "./compass-ranges.js";
-import { normaliseCustomUiTheme } from "./ui-theme.js";
 import type { ErrorCode } from "./errors.js";
 import type { MarkdownBlock, MarkdownInline } from "./launcher-markdown.js";
-import {
-  CARTOGRAPHY_CONTROL_IDLE_OPACITY_MAX,
-  CARTOGRAPHY_CONTROL_IDLE_OPACITY_MIN,
-  CARTOGRAPHY_OPACITY_MAX,
-  CARTOGRAPHY_OPACITY_MIN,
-  normaliseCartographyPresetLibrary,
-  type CartographyPresetLibrary,
-} from "./cartography-overlay.js";
 import type { ShortcutAction, ShortcutBinding } from "./keyboard-shortcuts.js";
-import type { FeatureId } from "./feature-contracts.js";
-import { cloneSkillKeyBindings, isSkillKeyBindings } from "./skill-key-bindings.js";
-import { cloneSkillCooldownColor, isSkillCooldownColor } from "./skill-cooldowns.js";
+import { FEATURE_SELECTION_POLICIES, type FeatureId } from "./feature-contracts.js";
+import { LAUNCHER_SETTINGS, SETTING_TABLE, type LauncherSetting } from "./settings/index.js";
+import { launcherSettingError } from "./settings/define.js";
 import type { ProfileId } from "./multiple-accounts.js";
 import type { SettingsTarget } from "./settings-catalogue.js";
 import type {
@@ -154,34 +138,12 @@ export function parseLauncherProfileAppearance(value: unknown): LauncherProfileA
   return { icon: source.icon, color: source.color };
 }
 
-export const GLOBAL_TOOLS = [
-  "call-target", "whispers", "resign", "character-switch", "build-management", "quick-travel", "xunlai-storage", "quick-item-move",
-  "trade-chat", "maps", "target-readout", "skill-key-labels", "skill-cooldowns",
-  "chat-filters",
-  "effect-timers",
-  "alcohol-timer",
-  "reminders",
-] as const;
-export type GlobalTool = (typeof GLOBAL_TOOLS)[number];
-export const GLOBAL_TOOL_FEATURES = Object.freeze({
-  "whispers": "whispers",
-  "call-target": "callTarget",
-  "resign": "resign",
-  "character-switch": "characterSwitch",
-  "build-management": "buildLibrary",
-  "quick-travel": "travel",
-  "xunlai-storage": "xunlaiStorage",
-  "quick-item-move": "quickItemMove",
-  "trade-chat": "tradeChat",
-  maps: "cartography",
-  "target-readout": "targetReadout",
-  "skill-key-labels": "skillKeyLabels",
-  "skill-cooldowns": "skillCooldowns",
-  "chat-filters": "chatFilters",
-  "effect-timers": "effectTimers",
-  "alcohol-timer": "alcoholTimer",
-  reminders: "reminders",
-} satisfies Record<GlobalTool, FeatureId>);
+const toolFeatures = FEATURES.flatMap((feature) => "tool" in feature ? [[feature.tool.id, feature.id] as const] : []);
+
+/** Every feature's switch in Settings › Tools, in FEATURES order. */
+export const GLOBAL_TOOLS: readonly GlobalTool[] = Object.freeze(toolFeatures.map(([tool]) => tool));
+export type { GlobalTool };
+export const GLOBAL_TOOL_FEATURES: Readonly<Record<GlobalTool, FeatureId>> = Object.freeze(Object.fromEntries(toolFeatures) as Record<GlobalTool, FeatureId>);
 export const LAUNCHER_EXTERNAL_LINKS = ["github", "bugReport", "featureRequest", "discord", "arenaNetSupport", "donate", "releases"] as const;
 export type LauncherExternalLink = (typeof LAUNCHER_EXTERNAL_LINKS)[number];
 
@@ -191,54 +153,8 @@ export interface GlobalToolSetting {
 
 export type GlobalToolSettings = Readonly<Record<GlobalTool, GlobalToolSetting>>;
 
-export interface LauncherSettings {
-  readonly uiStyle: AppSettings["uiStyle"];
-  readonly uiFont: AppSettings["uiFont"];
-  readonly uiCustomTheme: AppSettings["uiCustomTheme"];
-  readonly uiTextSize: AppSettings["uiTextSize"];
-  readonly uiPanelOpacity: AppSettings["uiPanelOpacity"];
-  readonly controllerPromptStyle: AppSettings["controllerPromptStyle"];
-  readonly autoCheckUpdates: boolean;
-  readonly renderScale: AppSettings["renderScale"];
-  readonly extendedMemoryEnabled: boolean;
-  readonly showDiagnostics: boolean;
-  readonly autoRelogAfterReload: boolean;
-  readonly characterSwitchProfession: boolean;
-  readonly characterSwitchLevel: boolean;
-  readonly characterSwitchLocation: boolean;
-  readonly skillKeyBindings: AppSettings["skillKeyBindings"];
-  readonly alcoholTimerPosition: AppSettings["alcoholTimerPosition"];
-  readonly skillCooldownColor: AppSettings["skillCooldownColor"];
-  readonly chatFilterAllyDrops: boolean;
-  readonly chatFilterHallOfHeroes: boolean;
-  readonly chatFilterTitleAchievements: boolean;
-  readonly reminderCons: boolean;
-  readonly reminderPcons: boolean;
-  readonly reminderAlcohol: boolean;
-  readonly reminderBeforeEnd: boolean;
-  readonly reminderAtEnd: boolean;
-  readonly reminderSound: boolean;
-  readonly cartographyOverlayEnabled: boolean;
-  readonly cartographyGridEnabled: boolean;
-  readonly cartographyCompassGridEnabled: boolean;
-  readonly compassRangeIndicatorsEnabled: boolean;
-  readonly compassRangeEarshotEnabled: boolean;
-  readonly compassRangeCastEnabled: boolean;
-  readonly compassRangeSpiritEnabled: boolean;
-  readonly compassRangeSpiritExtendedEnabled: boolean;
-  readonly compassRangeEarshotOpacity: number;
-  readonly compassRangeCastOpacity: number;
-  readonly compassRangeSpiritOpacity: number;
-  readonly compassRangeSpiritExtendedOpacity: number;
-  readonly compassRangeTheme: CompassRangeTheme;
-  readonly cartographyRevealMode: AppSettings["cartographyRevealMode"];
-  readonly cartographyPresetLibrary: CartographyPresetLibrary;
-  readonly cartographyWalkabilityOpacity: number;
-  readonly cartographyGridOpacity: number;
-  readonly cartographyControlIdleOpacity: number;
-  readonly eliteSkillsEnabled: boolean;
-  readonly eliteMissionMapMarkers: EliteMissionMapMarkers;
-}
+/** The settings the launcher reads and changes, from the settings table. */
+export type LauncherSettings = Readonly<Pick<AppSettings, LauncherSetting>>;
 
 export type LauncherSettingsPatch = Partial<LauncherSettings>;
 export interface LauncherProfileUpdate extends LauncherProfileAppearance {
@@ -446,113 +362,34 @@ export function parseLauncherNewsId(value: unknown): string {
   throw new Error("news id is invalid");
 }
 
+/** Each field reads as its setting does in the settings file; only the refusal is worded for the launcher. */
 export function parseLauncherSettingsPatch(value: unknown): LauncherSettingsPatch {
-  const source = exactObject(value, [
-    "uiStyle", "uiFont", "uiCustomTheme", "uiPanelOpacity", "uiTextSize", "controllerPromptStyle",
-    "autoCheckUpdates", "renderScale", "extendedMemoryEnabled", "showDiagnostics",
-    "autoRelogAfterReload", "characterSwitchProfession", "characterSwitchLevel",
-    "characterSwitchLocation", "skillKeyBindings", "skillCooldownColor", "alcoholTimerPosition",
-    "chatFilterAllyDrops", "chatFilterHallOfHeroes", "chatFilterTitleAchievements",
-    "reminderCons", "reminderPcons", "reminderAlcohol", "reminderBeforeEnd", "reminderAtEnd", "reminderSound",
-    "cartographyOverlayEnabled", "cartographyGridEnabled", "cartographyCompassGridEnabled", "compassRangeIndicatorsEnabled",
-    "compassRangeEarshotEnabled", "compassRangeCastEnabled", "compassRangeSpiritEnabled", "compassRangeSpiritExtendedEnabled",
-    "compassRangeEarshotOpacity", "compassRangeCastOpacity", "compassRangeSpiritOpacity", "compassRangeSpiritExtendedOpacity",
-    "compassRangeTheme",
-    "cartographyRevealMode",
-    "cartographyPresetLibrary", "cartographyWalkabilityOpacity", "cartographyGridOpacity",
-    "cartographyControlIdleOpacity", "eliteSkillsEnabled", "eliteMissionMapMarkers",
-  ], "launcher settings patch");
-  const result: { -readonly [K in keyof LauncherSettings]?: LauncherSettings[K] } = {};
-  if (source.uiStyle !== undefined) {
-    if (!UI_STYLES.includes(source.uiStyle as AppSettings["uiStyle"])) throw new Error("Panel style is invalid");
-    result.uiStyle = source.uiStyle as AppSettings["uiStyle"];
-  }
-  if (source.uiFont !== undefined) {
-    if (!UI_FONTS.includes(source.uiFont as AppSettings["uiFont"])) throw new Error("Panel font is invalid");
-    result.uiFont = source.uiFont as AppSettings["uiFont"];
-  }
-  if (source.controllerPromptStyle !== undefined) {
-    if (!CONTROLLER_PROMPT_STYLES.includes(source.controllerPromptStyle as AppSettings["controllerPromptStyle"])) throw new Error("Controller symbols are invalid");
-    result.controllerPromptStyle = source.controllerPromptStyle as AppSettings["controllerPromptStyle"];
-  }
-  if (source.uiCustomTheme !== undefined) {
-    const theme = normaliseCustomUiTheme(source.uiCustomTheme);
-    if (!theme) throw new Error("Custom panel colors are invalid");
-    result.uiCustomTheme = theme;
-  }
-  if (source.uiTextSize !== undefined) {
-    if (typeof source.uiTextSize !== "number" || !Number.isInteger(source.uiTextSize) || source.uiTextSize < UI_TEXT_SIZE_MIN || source.uiTextSize > UI_TEXT_SIZE_MAX) throw new Error("Text size must be from 100% to 200%");
-    result.uiTextSize = source.uiTextSize;
-  }
-  if (source.uiPanelOpacity !== undefined) {
-    if (typeof source.uiPanelOpacity !== "number" || !Number.isInteger(source.uiPanelOpacity)
-      || source.uiPanelOpacity < UI_PANEL_OPACITY_MIN || source.uiPanelOpacity > UI_PANEL_OPACITY_MAX) throw new Error("Panel opacity is invalid");
-    result.uiPanelOpacity = source.uiPanelOpacity;
-  }
-  for (const key of [
-    "autoCheckUpdates", "extendedMemoryEnabled", "showDiagnostics",
-    "autoRelogAfterReload", "characterSwitchProfession", "characterSwitchLevel", "characterSwitchLocation",
-    "chatFilterAllyDrops", "chatFilterHallOfHeroes", "chatFilterTitleAchievements",
-    "reminderCons", "reminderPcons", "reminderAlcohol", "reminderBeforeEnd", "reminderAtEnd", "reminderSound",
-    "cartographyOverlayEnabled", "cartographyGridEnabled", "cartographyCompassGridEnabled", "compassRangeIndicatorsEnabled",
-    "compassRangeEarshotEnabled", "compassRangeCastEnabled", "compassRangeSpiritEnabled", "compassRangeSpiritExtendedEnabled",
-    "eliteSkillsEnabled",
-  ] as const) {
+  const source = exactObject(value, LAUNCHER_SETTINGS, "launcher settings patch");
+  const result: Record<string, unknown> = {};
+  for (const key of LAUNCHER_SETTINGS) {
     if (source[key] === undefined) continue;
-    if (typeof source[key] !== "boolean") throw new Error(`${key} must be a boolean`);
-    result[key] = source[key];
+    const spec = SETTING_TABLE.get(key)!;
+    const parsed = spec.read(source[key]);
+    if (parsed === undefined) throw new Error(launcherSettingError(key, spec));
+    result[key] = parsed;
   }
-  if (source.skillKeyBindings !== undefined) {
-    if (!isSkillKeyBindings(source.skillKeyBindings)) throw new Error("Skill key labels are invalid");
-    result.skillKeyBindings = cloneSkillKeyBindings(source.skillKeyBindings);
-  }
-  if (source.alcoholTimerPosition !== undefined) {
-    if (!isAlcoholTimerPosition(source.alcoholTimerPosition)) throw new Error("Alcohol timer position is invalid");
-    result.alcoholTimerPosition = { ...source.alcoholTimerPosition };
-  }
-  if (source.skillCooldownColor !== undefined) {
-    if (!isSkillCooldownColor(source.skillCooldownColor)) throw new Error("Cooldown color is invalid");
-    result.skillCooldownColor = cloneSkillCooldownColor(source.skillCooldownColor);
-  }
-  if (source.renderScale !== undefined) {
-    if (
-      typeof source.renderScale !== "number"
-      || !RENDER_SCALES.includes(source.renderScale as AppSettings["renderScale"])
-    ) throw new Error("render scale is invalid");
-    result.renderScale = source.renderScale as AppSettings["renderScale"];
-  }
-  if (source.cartographyRevealMode !== undefined) {
-    if (!["off", "normal", "birds-eye"].includes(source.cartographyRevealMode as string)) throw new Error("cartography reveal mode is invalid");
-    result.cartographyRevealMode = source.cartographyRevealMode as AppSettings["cartographyRevealMode"];
-  }
-  if (source.eliteMissionMapMarkers !== undefined) {
-    if (!isEliteMissionMapMarkers(source.eliteMissionMapMarkers)) throw new Error("Mission Map markers are invalid");
-    result.eliteMissionMapMarkers = source.eliteMissionMapMarkers;
-  }
-  if (source.compassRangeTheme !== undefined) {
-    if (!COMPASS_RANGE_THEMES.includes(source.compassRangeTheme as CompassRangeTheme)) throw new Error("Compass range theme is invalid");
-    result.compassRangeTheme = source.compassRangeTheme as CompassRangeTheme;
-  }
-  if (source.cartographyPresetLibrary !== undefined) {
-    const library = normaliseCartographyPresetLibrary(source.cartographyPresetLibrary);
-    if (library === null) throw new Error("cartography preset library is invalid");
-    result.cartographyPresetLibrary = library;
-  }
-  for (const [key, minimum, maximum] of [
-    ["cartographyWalkabilityOpacity", CARTOGRAPHY_OPACITY_MIN, CARTOGRAPHY_OPACITY_MAX],
-    ["cartographyGridOpacity", CARTOGRAPHY_OPACITY_MIN, CARTOGRAPHY_OPACITY_MAX],
-    ["cartographyControlIdleOpacity", CARTOGRAPHY_CONTROL_IDLE_OPACITY_MIN, CARTOGRAPHY_CONTROL_IDLE_OPACITY_MAX],
-    ["compassRangeEarshotOpacity", COMPASS_RANGE_OPACITY_MIN, COMPASS_RANGE_OPACITY_MAX],
-    ["compassRangeCastOpacity", COMPASS_RANGE_OPACITY_MIN, COMPASS_RANGE_OPACITY_MAX],
-    ["compassRangeSpiritOpacity", COMPASS_RANGE_OPACITY_MIN, COMPASS_RANGE_OPACITY_MAX],
-    ["compassRangeSpiritExtendedOpacity", COMPASS_RANGE_OPACITY_MIN, COMPASS_RANGE_OPACITY_MAX],
-  ] as const) {
-    const candidate = source[key];
-    if (candidate === undefined) continue;
-    if (typeof candidate !== "number" || !Number.isSafeInteger(candidate) || candidate < minimum || candidate > maximum) throw new Error(`${key} is invalid`);
-    result[key] = candidate;
-  }
-  return result;
+  return result as LauncherSettingsPatch;
+}
+
+/** The launcher's view of `settings`. */
+export function launcherSettings(settings: AppSettings): LauncherSettings {
+  return Object.fromEntries(LAUNCHER_SETTINGS.map((key) => [key, settings[key]])) as LauncherSettings;
+}
+
+/** Each tool's switch, read from the setting that activates its feature. */
+export function launcherToolSettings(settings: AppSettings): GlobalToolSettings {
+  return Object.freeze(Object.fromEntries(GLOBAL_TOOLS.map((tool) => [tool, Object.freeze({
+    enabled: settings[FEATURE_SELECTION_POLICIES[GLOBAL_TOOL_FEATURES[tool]].activation.setting],
+  })]))) as GlobalToolSettings;
+}
+
+export function globalToolPatch(tool: GlobalTool, enabled: boolean): AppSettingsPatch {
+  return { [FEATURE_SELECTION_POLICIES[GLOBAL_TOOL_FEATURES[tool]].activation.setting]: enabled };
 }
 
 function exactObject(value: unknown, allowed: readonly string[], label: string): Record<string, unknown> {

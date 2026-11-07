@@ -1,9 +1,12 @@
 /**
  * Computes the one fail-closed policy for optional observers, UI, and commands.
- * Saved product settings and explicit developer programs meet only here.
+ * Saved product settings and explicit developer programs meet only here; each
+ * feature names the developer programs that select it (app/features).
  */
+import type { FeatureDefinition } from "../features/define.js";
 import type { EnhancementProgram } from "../shared/enhancement-contracts.js";
 import {
+  FEATURES,
   featureActivationRequested,
   featureRegionAllowsRequest,
   type FeatureActivationSettings,
@@ -21,42 +24,9 @@ export function enhancementRuntimePolicy(
   settings: OptionalToolSettings,
   playRegion: RuntimePlayRegion,
 ): RuntimeFeaturePolicy {
-  const developerToolbox = program === "toolbox-foundation"
-    || program === "toolbox-commands"
-    || program === "xunlai-storage";
-  const developerTeam = program === "toolbox-commands";
-  const developerStorage = program === "toolbox-commands"
-    || program === "xunlai-storage";
-  const selected = (id: FeatureId, developerSelected = false) =>
-    featureRegionAllowsRequest(id, playRegion)
-      && (developerSelected || featureActivationRequested(id, settings));
-  return Object.freeze({
-    characterSwitch: selected("characterSwitch"),
-    resign: selected("resign"),
-    whispers: selected("whispers"),
-    callTarget: selected("callTarget"),
-    cartography: selected("cartography"),
-    // These values gate native consumers. The Library host separately keeps
-    // saved authoring selected without requiring live observation.
-    tools: selected("tools", developerToolbox),
-    buildLibrary: selected("buildLibrary", developerToolbox),
-    tradeChat: selected("tradeChat", developerToolbox),
-    targetReadout: selected(
-      "targetReadout",
-      program === "target-observer",
-    ),
-    teamApply: selected("teamApply", developerTeam),
-    // The storage controller owns live access refusal and its user-facing
-    // reason. This value means requested, not currently available.
-    xunlaiStorage: selected("xunlaiStorage", developerStorage),
-    travel: selected("travel", developerStorage),
-    skillKeyLabels: selected("skillKeyLabels"),
-    skillCooldowns: selected("skillCooldowns"),
-    chatFilters: selected("chatFilters"),
-    quickItemMove: selected("quickItemMove"),
-    alcoholTimer: selected("alcoholTimer"),
-    progress: selected("progress", developerStorage),
-    reminders: selected("reminders"),
-    effectTimers: selected("effectTimers", program === "effect-observer"),
-  } satisfies Record<FeatureId, boolean>);
+  return Object.freeze(Object.fromEntries(FEATURES.map((feature) => {
+    const programs: FeatureDefinition["programs"] = "programs" in feature ? feature.programs : undefined;
+    return [feature.id, featureRegionAllowsRequest(feature.id, playRegion)
+      && (programs?.includes(program) === true || featureActivationRequested(feature.id, settings))];
+  })) as RuntimeFeaturePolicy);
 }

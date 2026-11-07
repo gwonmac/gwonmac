@@ -3,28 +3,20 @@
  * Explicit shortcut replacement resolves conflicts across every app action.
  */
 import type { AppSettings, AppSettingsPatch } from "../../shared/contracts.js";
-import { GLOBAL_TOOLS, GLOBAL_TOOL_FEATURES, type GlobalTool, type GlobalToolSettings } from "../../shared/launcher-contracts.js";
-import { FEATURE_SELECTION_POLICIES } from "../../shared/feature-contracts.js";
+import { FEATURES, FEATURE_SELECTION_POLICIES } from "../../shared/feature-contracts.js";
 import { resolveShortcuts, shortcutConflict, shortcutReserved, shortcutUsedByHub, withShortcutOverride, type ShortcutAction, type ShortcutBinding } from "../../shared/keyboard-shortcuts.js";
 
-export function launcherToolSettings(settings: AppSettings): GlobalToolSettings {
-  return Object.freeze(Object.fromEntries(GLOBAL_TOOLS.map((tool) => [tool, Object.freeze({
-    enabled: settings[FEATURE_SELECTION_POLICIES[GLOBAL_TOOL_FEATURES[tool]].activation.setting],
-  })]))) as GlobalToolSettings;
-}
+export { globalToolPatch, launcherToolSettings } from "../../shared/launcher-contracts.js";
 
-export function globalToolPatch(tool: GlobalTool, enabled: boolean): AppSettingsPatch {
-  return { [FEATURE_SELECTION_POLICIES[GLOBAL_TOOL_FEATURES[tool]].activation.setting]: enabled };
-}
+/** The master switch, then each feature that opts in with it, in FEATURES order. */
+const FIRST_RUN_SETTINGS = [...new Set(FEATURES.flatMap((feature) =>
+  feature.activation.kind === "master" || "optInWithTools" in feature
+    ? [FEATURE_SELECTION_POLICIES[feature.id].activation.setting]
+    : []))];
 
 /** Keep the existing first-run opt-in; new controls do not change player defaults. */
 export function allGlobalToolsPatch(enabled: boolean): AppSettingsPatch {
-  return {
-    gwonmacTools: enabled,
-    buildLibrary: enabled,
-    travelPalette: enabled,
-    xunlaiStorage: enabled,
-  };
+  return Object.fromEntries(FIRST_RUN_SETTINGS.map((key) => [key, enabled]));
 }
 
 /** An explicit replacement clears the previous owner across all app actions. */

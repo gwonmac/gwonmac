@@ -2,7 +2,7 @@
  * Owns the Core command palette, its search focus and transient modal lifetime.
  * Optional Tools contributes local results and views without entering Core's imports.
  */
-import { TOOL_PRESENTATION } from '../shared/tool-presentation.js';
+import { HUB_COMMAND_SHORTCUTS, HUB_TOOL_KEYS, TOOL_PRESENTATION } from '../shared/tool-presentation.js';
 import { HUB_SEARCH_GLYPH } from '../shared/ui/hub-search.js';
 import { resumeSearchInput } from './search-input.js';
 import { installHubWindow } from './hub-window.js';
@@ -10,7 +10,6 @@ import { attachClassicFrame } from '../shared/ui/frame.js';
 import { isHubBackKey, resolveShortcuts, shortcutKeycaps, type ShortcutAction } from '../shared/keyboard-shortcuts.js';
 import { HUB_SECTIONS, SETTINGS, SETTINGS_SECTIONS, type SettingEntry, type SettingsTarget } from "../shared/settings-catalogue.js";
 import { focusHubSettings, LAUNCHER_UNAVAILABLE, showHubSettings } from "./hub-settings-page.js";
-import type { GlobalTool } from "../shared/launcher-contracts.js";
 import { createHubAccounts } from './hub-accounts.js';
 import { hubIcon } from "./hub-icons.js";
 import { editHubShortcut, manageHubShortcuts } from './hub-preferences.js';
@@ -382,9 +381,7 @@ export function createHub(parent: HTMLElement) {
     // Keys: a tool's shortcut can change in Settings; the Hub's own keys are fixed.
     const bindings = resolveShortcuts(window.gwToolsSettings?.().shortcutOverrides ?? {});
     const keys = (action: ShortcutAction) => shortcutKeycaps(bindings[action]).map(cap => cap.label).join('') || 'Not set';
-    const KEY_TOOLS: Record<string, GlobalTool> = { travel: 'quick-travel', character: 'character-switch', builds: 'build-management', trade: 'trade-chat', whispers: 'whispers' };
-    const toolKeys: [string, ShortcutAction, string][] = [['travel', 'travel.open', TOOL_PRESENTATION['quick-travel'].label], ['character', 'character.switch', TOOL_PRESENTATION['character-switch'].label], ['builds', 'tools.toggle', TOOL_PRESENTATION['build-management'].label], ['trade', 'trade.toggle', TOOL_PRESENTATION['trade-chat'].label], ['whispers', 'whispers.toggle', TOOL_PRESENTATION['whispers'].label]];
-    rows.push(...toolKeys.filter(([tool]) => enabled.has(tool)).map(([tool, action, name]) => ({ id: `key:${tool}`, title: name, detail: keys(action), group: 'Keys & shortcuts', action: 'Change shortcut', run: openSettings({ section: 'tools', control: `tool:${KEY_TOOLS[tool]}` }) })));
+    rows.push(...HUB_TOOL_KEYS.filter(({ command }) => enabled.has(command)).map(({ command, tool, action, label }) => ({ id: `key:${command}`, title: label, detail: keys(action), group: 'Keys & shortcuts', action: 'Change shortcut', run: openSettings({ section: 'tools', control: `tool:${tool}` }) })));
     for (const [id, name, detail] of [['actions', 'Actions for the selected row', '⌘J'], ['back', 'Back', '⌘⌫'], ['escape', 'Clear, back, then close', '⎋'], ['open', 'Open a row with a page', '→']] as const)
       rows.push({ id: `key:${id}`, title: name, detail, group: 'Keys & shortcuts', action: 'Fixed key', unavailable: 'The Hub’s own keys do not change.', run() {} });
     return rows;
@@ -850,9 +847,8 @@ export function createHub(parent: HTMLElement) {
         for (const [url,side] of [[row.conversion.iconFrom,'from'],[row.conversion.iconTo,'to']] as const) { if (!url) continue; const art=document.createElement('img'); art.onerror=() => art.remove(); art.src=url; art.alt=''; art.className=`hub-conversion-art hub-conversion-art-${side}`; option.append(art); }
       } else {
         const type = document.createElement('span'); type.className = 'hub-row-type';
-        const shortcutActions: Record<string, ShortcutAction> = { travel: 'travel.open', character: 'character.switch', builds: 'tools.toggle', trade: 'trade.toggle', whispers: 'whispers.toggle', storage: 'storage.open' };
         const keyRow = row.id.startsWith('key:');
-        const shortcut = shortcutActions[keyRow ? row.id.slice(4) : row.id];
+        const shortcut = HUB_COMMAND_SHORTCUTS[keyRow ? row.id.slice(4) : row.id];
         if (keyRow && !row.unavailable && row.detail !== 'Not set') detail.textContent = '';
         if (keyRow && !shortcut) for (const label of row.detail) {
           const cap = document.createElement('kbd'); cap.className = 'ui-kbd'; cap.textContent = label; type.append(cap);

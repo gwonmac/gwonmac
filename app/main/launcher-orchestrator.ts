@@ -10,14 +10,15 @@ import type {
   DownloadProgress,
   ExtendedMemoryRuntimeStatus,
 } from "../shared/contracts.js";
-import type {
-  LauncherPreferencesPatch,
-  LauncherSnapshot,
+import {
+  launcherSettings,
+  launcherToolSettings,
+  type LauncherPreferencesPatch,
+  type LauncherSnapshot,
 } from "../shared/launcher-contracts.js";
 import type { ProfileId } from "../shared/multiple-accounts.js";
 import type { TexturePackSnapshot } from "../shared/texture-packs.js";
 import type { LauncherStateStore } from "./core/launcher-state.js";
-import { launcherToolSettings } from "./core/launcher-tools.js";
 import { resolveShortcuts } from "../shared/keyboard-shortcuts.js";
 
 interface LauncherAccountsOwner {
@@ -85,54 +86,7 @@ export class LauncherOrchestrator {
         restartRequired: settings.gwonmacTools !== this.options.toolsLoaded(),
         features: launcherToolSettings(settings),
       },
-      settings: {
-        uiStyle: settings.uiStyle,
-        uiFont: settings.uiFont,
-        uiCustomTheme: settings.uiCustomTheme,
-        uiPanelOpacity: settings.uiPanelOpacity,
-        uiTextSize: settings.uiTextSize,
-        controllerPromptStyle: settings.controllerPromptStyle,
-        autoRelogAfterReload: settings.autoRelogAfterReload,
-        characterSwitchProfession: settings.characterSwitchProfession,
-        characterSwitchLevel: settings.characterSwitchLevel,
-        characterSwitchLocation: settings.characterSwitchLocation,
-        skillKeyBindings: settings.skillKeyBindings,
-        skillCooldownColor: settings.skillCooldownColor,
-        alcoholTimerPosition: settings.alcoholTimerPosition,
-        chatFilterAllyDrops: settings.chatFilterAllyDrops,
-        chatFilterHallOfHeroes: settings.chatFilterHallOfHeroes,
-        chatFilterTitleAchievements: settings.chatFilterTitleAchievements,
-        reminderCons: settings.reminderCons,
-        reminderPcons: settings.reminderPcons,
-        reminderAlcohol: settings.reminderAlcohol,
-        reminderBeforeEnd: settings.reminderBeforeEnd,
-        reminderAtEnd: settings.reminderAtEnd,
-        reminderSound: settings.reminderSound,
-        autoCheckUpdates: settings.autoCheckUpdates,
-        renderScale: settings.renderScale,
-        extendedMemoryEnabled: settings.extendedMemoryEnabled,
-        showDiagnostics: settings.showDiagnostics,
-        cartographyOverlayEnabled: settings.cartographyOverlayEnabled,
-        cartographyGridEnabled: settings.cartographyGridEnabled,
-        cartographyCompassGridEnabled: settings.cartographyCompassGridEnabled,
-        compassRangeIndicatorsEnabled: settings.compassRangeIndicatorsEnabled,
-        compassRangeEarshotEnabled: settings.compassRangeEarshotEnabled,
-        compassRangeCastEnabled: settings.compassRangeCastEnabled,
-        compassRangeSpiritEnabled: settings.compassRangeSpiritEnabled,
-        compassRangeSpiritExtendedEnabled: settings.compassRangeSpiritExtendedEnabled,
-        compassRangeEarshotOpacity: settings.compassRangeEarshotOpacity,
-        compassRangeCastOpacity: settings.compassRangeCastOpacity,
-        compassRangeSpiritOpacity: settings.compassRangeSpiritOpacity,
-        compassRangeSpiritExtendedOpacity: settings.compassRangeSpiritExtendedOpacity,
-        compassRangeTheme: settings.compassRangeTheme,
-        cartographyRevealMode: settings.cartographyRevealMode,
-        cartographyPresetLibrary: settings.cartographyPresetLibrary,
-        cartographyWalkabilityOpacity: settings.cartographyWalkabilityOpacity,
-        cartographyGridOpacity: settings.cartographyGridOpacity,
-        cartographyControlIdleOpacity: settings.cartographyControlIdleOpacity,
-        eliteSkillsEnabled: settings.eliteSkillsEnabled,
-        eliteMissionMapMarkers: settings.eliteMissionMapMarkers,
-      },
+      settings: launcherSettings(settings),
       shortcuts: resolveShortcuts(settings.shortcutOverrides),
       texturePacks: this.options.getTexturePacks?.() ?? {
         selectedPackId: null,

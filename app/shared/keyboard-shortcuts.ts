@@ -1,22 +1,22 @@
 /**
  * Canonical app-shortcut actions, defaults, persistence shapes, and pure operations.
  * Main and renderer consume this one model so interception and presentation agree.
+ * Each action, its default and its name come from the feature that runs it (app/features).
  */
-import { TOOL_PRESENTATION } from "./tool-presentation.js";
+import { FEATURES, type FeatureId, type FeatureShortcut, type ShortcutAction } from "../features/index.js";
 
-export const SHORTCUT_ACTIONS = [
-  "game.call-target",
-  "game.resign",
-  "character.switch",
-  "tools.toggle",
-  "trade.toggle",
-  "whispers.toggle",
-  "storage.open",
-  "travel.open",
-  "cartography.grid.toggle",
-  "cartography.walkability.toggle",
-] as const;
-export type ShortcutAction = (typeof SHORTCUT_ACTIONS)[number];
+export type { ShortcutAction };
+
+const featureShortcuts = FEATURES.flatMap((feature) => "shortcuts" in feature
+  ? feature.shortcuts.map((shortcut) => ({
+      ...shortcut,
+      feature: feature.id,
+      // A shortcut without its own label is the tool's own shortcut.
+      label: "label" in shortcut ? shortcut.label : "tool" in feature ? feature.tool.label : shortcut.action,
+    }))
+  : []);
+
+export const SHORTCUT_ACTIONS: readonly ShortcutAction[] = Object.freeze(featureShortcuts.map(({ action }) => action));
 
 export interface ShortcutBinding {
   /**
@@ -41,32 +41,28 @@ export type ShortcutCaptureResult =
   | Readonly<{ status: "cleared" }>
   | Readonly<{ status: "invalid" }>;
 
-export const DEFAULT_SHORTCUTS = Object.freeze({
-    "game.call-target": Object.freeze({ key: "g", shift: false, option: false }),
-    "game.resign": null,
-    "character.switch": Object.freeze({ key: "e", shift: false, option: false }),
-    "tools.toggle": Object.freeze({ key: "b", shift: false, option: false }),
-    "whispers.toggle": Object.freeze({ key: "d", shift: false, option: false }),
-    "trade.toggle": Object.freeze({ key: "k", shift: false, option: false }),
-    "storage.open": Object.freeze({ key: "s", shift: false, option: false }),
-    "travel.open": Object.freeze({ key: "t", shift: false, option: false }),
-    "cartography.grid.toggle": null,
-    "cartography.walkability.toggle": null,
-  } satisfies Record<ShortcutAction, ShortcutBinding | null>);
+/** Each action's default binding, typed per action as its feature declares it. */
+type DefaultShortcuts = { readonly [Shortcut in FeatureShortcut as Shortcut["action"]]: Shortcut["binding"] };
+export const DEFAULT_SHORTCUTS: DefaultShortcuts = Object.freeze(
+  Object.fromEntries(featureShortcuts.map(({ action, binding }) => [action, binding && Object.freeze({ ...binding })])) as
+    DefaultShortcuts,
+);
 
-export const SHORTCUT_LABELS: Readonly<Record<ShortcutAction, string>> =
-  Object.freeze({
-    "game.call-target": TOOL_PRESENTATION["call-target"].label,
-    "game.resign": TOOL_PRESENTATION["resign"].label,
-    "character.switch": TOOL_PRESENTATION["character-switch"].label,
-    "tools.toggle": TOOL_PRESENTATION["build-management"].label,
-    "trade.toggle": TOOL_PRESENTATION["trade-chat"].label,
-    "whispers.toggle": TOOL_PRESENTATION["whispers"].label,
-    "storage.open": TOOL_PRESENTATION["xunlai-storage"].label,
-    "travel.open": TOOL_PRESENTATION["quick-travel"].label,
-    "cartography.grid.toggle": "Exploration grid",
-    "cartography.walkability.toggle": "Walkable terrain",
-  });
+export const SHORTCUT_LABELS: Readonly<Record<ShortcutAction, string>> = Object.freeze(
+  Object.fromEntries(featureShortcuts.map(({ action, label }) => [action, label])) as Record<ShortcutAction, string>,
+);
+
+/** The feature whose activation lets each shortcut action run. */
+export const SHORTCUT_FEATURES: Readonly<Record<ShortcutAction, FeatureId>> = Object.freeze(
+  Object.fromEntries(featureShortcuts.map(({ action, feature }) => [action, feature])) as Record<ShortcutAction, FeatureId>,
+);
+
+/** The game menu items that run a feature's shortcut action, by menu item id. */
+export const SHORTCUT_MENU_ITEMS: Readonly<Record<string, Readonly<{ feature: FeatureId; action: ShortcutAction }>>> = Object.freeze(
+  Object.fromEntries(featureShortcuts.flatMap((shortcut) => "menuItem" in shortcut
+    ? [[shortcut.menuItem, Object.freeze({ feature: shortcut.feature, action: shortcut.action })]]
+    : [])),
+);
 
 export interface ShortcutInput {
   /** The physical key (`KeyboardEvent.code`, Electron `Input.code`). */
@@ -129,30 +125,10 @@ export function isShortcutOverrides(value: unknown): value is ShortcutOverrides 
 export function resolveShortcuts(
   overrides: ShortcutOverrides,
 ): Readonly<Record<ShortcutAction, ShortcutBinding | null>> {
-  const resolved = {
-    "game.call-target": overrides["game.call-target"] === undefined
-      ? DEFAULT_SHORTCUTS["game.call-target"] : overrides["game.call-target"],
-    "game.resign": overrides["game.resign"] === undefined
-      ? DEFAULT_SHORTCUTS["game.resign"] : overrides["game.resign"],
-    "character.switch": overrides["character.switch"] === undefined
-      ? DEFAULT_SHORTCUTS["character.switch"]
-      : overrides["character.switch"],
-    "tools.toggle": overrides["tools.toggle"] === undefined
-      ? DEFAULT_SHORTCUTS["tools.toggle"]
-      : overrides["tools.toggle"],
-    "whispers.toggle": overrides["whispers.toggle"] === undefined ? DEFAULT_SHORTCUTS["whispers.toggle"] : overrides["whispers.toggle"],
-    "trade.toggle": overrides["trade.toggle"] === undefined
-      ? DEFAULT_SHORTCUTS["trade.toggle"]
-      : overrides["trade.toggle"],
-    "storage.open": overrides["storage.open"] === undefined
-      ? DEFAULT_SHORTCUTS["storage.open"]
-      : overrides["storage.open"],
-    "travel.open": overrides["travel.open"] === undefined
-      ? DEFAULT_SHORTCUTS["travel.open"]
-      : overrides["travel.open"],
-    "cartography.grid.toggle": overrides["cartography.grid.toggle"] ?? null,
-    "cartography.walkability.toggle": overrides["cartography.walkability.toggle"] ?? null,
-  };
+  const resolved = Object.fromEntries(SHORTCUT_ACTIONS.map((action) => [
+    action,
+    overrides[action] === undefined ? DEFAULT_SHORTCUTS[action] : overrides[action],
+  ])) as Record<ShortcutAction, ShortcutBinding | null>;
   // A saved custom binding outranks a newly assigned default.
   for (const action of SHORTCUT_ACTIONS) {
     if (overrides[action] !== undefined || !resolved[action]) continue;
