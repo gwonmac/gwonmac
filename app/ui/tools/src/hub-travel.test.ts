@@ -6,7 +6,7 @@ import { searchTravelDestinations } from '../../../shared/travel-search';
 import { createDemoTravelHost } from './travel-host';
 import { progressFixture } from './progress-fixture';
 import { nextTick } from 'vue';
-import type { HubViewAction } from '../../../shared/hub';
+import type { HubPresenter, HubViewAction } from '../../../shared/hub';
 
 describe('Hub travel recents', () => {
   it('shows actionable recents and keeps unavailable places in explicit search', () => {
@@ -194,4 +194,18 @@ it('marks Progress goal rows unavailable with the reason Travel gives', () => {
     travel.update({status: 'waiting', reason: 'loading'});
     expect(travel.source.search('vq').find(row => row.id === 'progress:vanquisher')?.unavailable).toBe('Travel is unavailable while a map is loading');
   } finally {travel.dispose();}
+});
+
+it('offers the Travel view to the Hub only while the Travel tool is on', () => {
+  let on = false;
+  const hub = {showView: vi.fn<HubPresenter<HTMLElement>['showView']>(), showRows: vi.fn(), attach: vi.fn(), close: vi.fn(), notify: vi.fn()};
+  const travel = createHubTravel(createDemoTravelHost(), hub, async (_place, leave) => leave(), () => on);
+  try {
+    travel.open();
+    const available = hub.showView.mock.calls[0]?.[2];
+    expect(hub.showView.mock.calls[0]?.[0]).toBe('Travel');
+    expect(available?.()).toBe(false);
+    on = true;
+    expect(available?.()).toBe(true);
+  } finally { travel.dispose(); }
 });
