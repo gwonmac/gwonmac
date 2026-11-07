@@ -5,9 +5,9 @@
 import type {
   CompanionEffectIconState,
   CompanionPlayerEffectState,
-} from "./companion-effect-snapshot.js";
-import { formatEffectTimer, remainingEffectMs } from "./companion-effect-snapshot.js";
-import type { NativeHudLayer } from "./native-hud-layer.js";
+} from "../../../renderer/companion-effect-snapshot.js";
+import { formatEffectTimer, remainingEffectMs } from "../../../renderer/companion-effect-snapshot.js";
+import type { NativeHudLayer } from "../../../renderer/native-hud-layer.js";
 export type EffectTimerLabel = Readonly<{skillId: number; x: number; y: number; width: number; height: number; text: string; urgency: "normal" | "soon" | "urgent"}>;
 
 export function projectEffectTimerLabels(

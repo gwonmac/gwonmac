@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { COMPANION_ABI } from "../../app/shared/companion-abi.ts";
-import { createCompanionProgressReader, sameGameProgress } from "../../app/renderer/companion-progress-snapshot.ts";
+import { createCompanionProgressReader, sameGameProgress } from "../../app/features/progress/renderer/companion-progress-snapshot.ts";
 
 const ABI = COMPANION_ABI.progress;
 const POINTER = 64;

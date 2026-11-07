@@ -2,7 +2,7 @@
  * Feature-local ownership of the Xunlai command's exports, allocation,
  * initialization, live policy, and teardown.
  */
-import type { StorageCommand } from "../shared/storage-command.js";
+import type { StorageCommand } from "../../../shared/storage-command.js";
 import type {
   EnhancementStorageConfigure,
   EnhancementStorageOpen,

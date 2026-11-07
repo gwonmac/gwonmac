@@ -9,7 +9,7 @@ export default {
   id: "xunlaiStorage",
   async prepare({ exports, capabilities, substrates: { observation } }) {
     const storage = capabilities.xunlaiAction
-      ? (await import("../../renderer/enhancement-storage-installation.js"))
+      ? (await import("./renderer/enhancement-storage-installation.js"))
           .createStorageInstallation(exports, true, window.gwNative.init.development)
       : null;
     return {

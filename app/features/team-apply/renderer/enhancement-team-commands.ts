@@ -7,8 +7,8 @@
  * Keeping those concerns apart prevents the installer from becoming the place
  * every new operation adds another branch.
  */
-import type { ToolboxObservation } from "../shared/builds/live-party.js";
-import type { TeamApplyCommands } from "../shared/builds/team-apply-runner.js";
+import type { ToolboxObservation } from "../../../shared/builds/live-party.js";
+import type { TeamApplyCommands } from "../../../shared/builds/team-apply-runner.js";
 
 const SKILL_WORDS = 8;
 const ATTRIBUTE_WORDS = 16;

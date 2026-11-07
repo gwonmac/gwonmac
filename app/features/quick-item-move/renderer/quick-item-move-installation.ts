@@ -2,7 +2,7 @@
  * Owns the renderer half of certified Quick Item Move and publishes the
  * current Control/Shift state to its transformed WASM callbacks.
  */
-export { QUICK_ITEM_MOVE_SCRATCH_BYTES } from "../shared/quick-item-move-contract.js";
+export { QUICK_ITEM_MOVE_SCRATCH_BYTES } from "../../../shared/quick-item-move-contract.js";
 
 export type QuickItemMoveInstallation = Readonly<{
   update(enabled: boolean): void;

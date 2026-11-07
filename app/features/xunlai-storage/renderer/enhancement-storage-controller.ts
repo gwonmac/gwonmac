@@ -3,9 +3,9 @@
  * The installer forwards settings and the certified game snapshot here instead
  * of duplicating state.
  */
-import type { StorageCommand } from "../shared/storage-command.js";
-import type { CompanionSnapshot } from "./companion-snapshot.js";
-import type { RuntimePlayRegion } from "./enhancement-runtime-policy.js";
+import type { StorageCommand } from "../../../shared/storage-command.js";
+import type { CompanionSnapshot } from "../../../renderer/companion-snapshot.js";
+import type { RuntimePlayRegion } from "../../../renderer/enhancement-runtime-policy.js";
 import {
   createStorageCommand,
   initializeStorageDataWindow,

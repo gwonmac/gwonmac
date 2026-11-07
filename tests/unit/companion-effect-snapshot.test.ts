@@ -7,7 +7,7 @@ import {
   readCompanionPlayerEffects,
   remainingEffectMs,
 } from "../../app/renderer/companion-effect-snapshot.js";
-import { projectEffectTimerLabels } from "../../app/renderer/effect-timer-overlay-consumer.js";
+import { projectEffectTimerLabels } from "../../app/features/effect-timers/renderer/effect-timer-overlay-consumer.js";
 
 type EffectRecord = Readonly<{
   effectId: number;

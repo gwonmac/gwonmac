@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { COMPANION_FEATURE_BITS } from "../../app/shared/companion-abi.ts";
-import { createCompanionProgressReader } from "../../app/renderer/companion-progress-snapshot.ts";
+import { createCompanionProgressReader } from "../../app/features/progress/renderer/companion-progress-snapshot.ts";
 import { ADDRESSES, POLICY_CONFIG_START, createKernel, installGameGraph } from "../fixtures/enhancements.ts";
 
 const FEATURES = COMPANION_FEATURE_BITS.playRegionObservation | COMPANION_FEATURE_BITS.progressObservation;

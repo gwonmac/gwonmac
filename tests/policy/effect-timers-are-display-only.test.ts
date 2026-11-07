@@ -5,7 +5,7 @@ import test from "node:test";
 
 const rendererSources = [
   "app/renderer/native-hud-layer.ts",
-  "app/renderer/effect-timer-overlay-consumer.ts",
+  "app/features/effect-timers/renderer/effect-timer-overlay-consumer.ts",
   "app/renderer/player-effect-state-installation.ts",
 ] as const;
 

@@ -3,10 +3,10 @@
  * window. IPC supplies an owned window and path; this owner keeps persistence
  * and optimistic-concurrency state behind that transport boundary.
  */
-import type { BuildLibrary } from "../../shared/builds/library.js";
-import { ValidationError } from "../../shared/errors.js";
-import { loadBuildLibrary, saveBuildLibrary } from "./build-library.js";
-import { Mutex } from "./mutex.js";
+import type { BuildLibrary } from "../../../shared/builds/library.js";
+import { ValidationError } from "../../../shared/errors.js";
+import { loadBuildLibrary, saveBuildLibrary } from "../../../main/core/build-library.js";
+import { Mutex } from "../../../main/core/mutex.js";
 
 export class BuildLibraryCoordinator {
   private readonly baselines = new WeakMap<object, Map<string, string>>();

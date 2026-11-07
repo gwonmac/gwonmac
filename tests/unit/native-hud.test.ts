@@ -4,7 +4,7 @@ import test from "node:test";
 import { createNativeHudLayer, type NativeHudChannel, type NativeHudItem, type NativeHudLayer } from "../../app/renderer/native-hud-layer.js";
 import { createSkillKeyOverlayConsumer } from "../../app/renderer/skill-key-overlay-consumer.js";
 import { createSkillCooldownOverlayConsumer } from "../../app/renderer/skill-cooldown-overlay-consumer.js";
-import { createEffectTimerOverlayConsumer } from "../../app/renderer/effect-timer-overlay-consumer.js";
+import { createEffectTimerOverlayConsumer } from "../../app/features/effect-timers/renderer/effect-timer-overlay-consumer.js";
 import { EMPTY_SKILL_KEY_MODIFIERS } from "../../app/shared/skill-key-bindings.js";
 import { skillKeyPlateLayout } from "../../app/renderer/skill-key-artwork.js";
 import { NATIVE_HUD_MAGIC, NATIVE_HUD_HEADER as HEADER, NATIVE_HUD_KEYCAP } from "../../app/shared/native-hud.js";
