@@ -23,7 +23,7 @@
  * finding.
  */
 import { createHash } from "node:crypto";
-import { mkdir, readFile, open } from "node:fs/promises";
+import { readFile, open } from "node:fs/promises";
 import path from "node:path";
 import { writeAtomic } from "../main/core/atomic-file.js";
 import {
@@ -37,7 +37,6 @@ import {
 } from "../client/certification/native-double-click.js";
 import { deriveCartographySpikeBuild } from
   "../client/certification/cartography-spike-verifier.js";
-import { preparePostTemplateSaveModule } from "../client/certification/template-save-verifier.js";
 import {
   isLocalClientVerification,
   verifyLocalClientBytes,
@@ -65,10 +64,7 @@ import {
   inspectTemplateSaveCandidate,
   TEMPLATE_SAVE_TABLE,
 } from "./template-save-recert.js";
-import {
-  createCarryForwardReport,
-  formatCarryForwardMarkdown,
-} from "./carry-forward.js";
+import { formatWatchReport } from "./watch-report.js";
 
 import { inspectWasmBytes } from "./wasm-inspection.js";
 
@@ -78,7 +74,7 @@ const USAGE =
   + "  doctor [--profile PATH]              why Enhancement is or is not running here\n"
   + "  recertify [PATH/Gw.jspi.wasm]        draft an Enhancement build entry, with evidence\n"
   + "  verify [PATH/Gw.jspi.wasm]           run the exact runtime feature verifier\n"
-  + "  compare INPUT.wasm OUTPUT_DIR        write shared JSON and Markdown patch evidence\n"
+  + "  watch-report GENERATION.json         render the client-watch issue table\n"
   + "  template [PATH/Gw.jspi.wasm] [--emit-ts] [--write] [--expect-certified]\n"
   + "                                       re-derive the template-save build entry\n"
   + "  transform INPUT.wasm OUTPUT.wasm     write the derived Enhancement module\n"
@@ -227,51 +223,15 @@ async function verify(argv: readonly string[]): Promise<void> {
   }
 }
 
-async function compare(argv: readonly string[]): Promise<void> {
-  const [filename, outputDirectory, ...extra] = positionalArguments(argv);
-  if (!filename || !outputDirectory || extra.length > 0) {
+async function watchReport(argv: readonly string[]): Promise<void> {
+  const [filename, ...extra] = positionalArguments(argv);
+  if (!filename || extra.length > 0) {
     process.stderr.write(USAGE);
     process.exitCode = 2;
     return;
   }
-  const official = new Uint8Array(await readFile(filename));
-  const verification = verifyLocalClientBytes(official);
-  if (!isLocalClientVerification(verification, verification.officialSha256)) {
-    throw new Error("runtime feature verifier produced an invalid boundary result");
-  }
-  const templateSave = inspectTemplateSaveCandidate(official);
-  const enhancement = recertifyEnhancementBytes(
-    official,
-    currentMessageAnchors(),
-  );
-  const postTemplate = preparePostTemplateSaveModule(official);
-  const selectedInput = postTemplate?.bytes ?? official;
-  const doubleClick = deriveNativeDoubleClickBuild(selectedInput)
-    ? "exact" as const
-    : "not-located" as const;
-  const report = createCarryForwardReport(
-    verification,
-    templateSave,
-    enhancement,
-    doubleClick,
-  );
-  const directory = path.resolve(outputDirectory);
-  await mkdir(directory, { recursive: true });
-  await Promise.all([
-    writeAtomic(
-      path.join(directory, "carry-forward.json"),
-      `${JSON.stringify(report, null, 2)}\n`,
-    ),
-    writeAtomic(
-      path.join(directory, "carry-forward.md"),
-      formatCarryForwardMarkdown(report),
-    ),
-  ]);
-  process.stdout.write(`${JSON.stringify({
-    json: path.join(directory, "carry-forward.json"),
-    markdown: path.join(directory, "carry-forward.md"),
-    capabilities: report.capabilities,
-  })}\n`);
+  const generation: unknown = JSON.parse(await readFile(filename, "utf8"));
+  process.stdout.write(formatWatchReport(generation));
 }
 
 async function template(argv: readonly string[]): Promise<void> {
@@ -497,7 +457,7 @@ const COMMANDS = Object.freeze({
   doctor,
   recertify,
   verify,
-  compare,
+  "watch-report": watchReport,
   template,
   transform,
   "double-click": doubleClick,

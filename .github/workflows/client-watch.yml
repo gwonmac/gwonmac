@@ -133,9 +133,8 @@ jobs:
             > "$EVIDENCE/generation.json"
           echo "outcome=$(jq -er '.outcome.status' "$EVIDENCE/generation.json")" >> "$GITHUB_OUTPUT"
           echo "summary=$(jq -er '.outcome.reason' "$EVIDENCE/generation.json")" >> "$GITHUB_OUTPUT"
-          # Function fingerprints plug in here: once they exist, write only the
-          # changed functions to carry-forward.md instead of the full comparison.
-          node build/tools-cli/certification.js compare "$WASM" "$EVIDENCE" || true
+          node build/tools-cli/certification.js watch-report "$EVIDENCE/generation.json" \
+            > "$EVIDENCE/watch-report.md"
 
       # Client bytes and locator output stay in the runner temp directory. The
       # upload holds no client bytes, local paths, offsets, or raw addresses.
@@ -145,7 +144,7 @@ jobs:
           name: client-watch-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             ${{ runner.temp }}/evidence/generation.json
-            ${{ runner.temp }}/evidence/carry-forward.md
+            ${{ runner.temp }}/evidence/watch-report.md
           retention-days: 90
           if-no-files-found: warn
 
@@ -186,7 +185,7 @@ jobs:
               echo "- next: follow docs/recertify.md. The untouched official client stays playable."
             fi
             echo
-            cat evidence/carry-forward.md 2>/dev/null || echo "No comparison evidence was collected."
+            cat evidence/watch-report.md 2>/dev/null || echo "No verdict evidence was collected."
           } > body.md
           if [ -n "$ISSUE" ]; then
             gh issue edit "$ISSUE" --title "ArenaNet client changed: $MARKER" --body-file body.md
