@@ -43,7 +43,7 @@ import type {
   WorldMapAnchorSpikeController,
 } from "../shared/cartography-spike.js";
 import type { CompanionCharacterListState } from "./companion-character-list-snapshot.js";
-import type { Hub } from "./hub.js";
+import type { GameHub } from "./hub-builtins.js";
 import type { CharacterSwitchHost } from "./character-switch-host.js";
 import type {
   CharacterSwitchContext as SharedCharacterSwitchContext,
@@ -307,7 +307,7 @@ declare global {
     /** Pointer-free atomic epoch and classification diagnostics; development only. */
     gwCartographyModelStats?(): CartographyModelStats;
     gwSurfaces: GwonmacSurfaceController;
-    gwHub?: Hub;
+    gwHub?: GameHub;
     /**
      * The Tools settings (app/shared/settings); it throws until boot() has loaded them.
      * The Hub's own fields stay optional, as before, for page-side test doubles.

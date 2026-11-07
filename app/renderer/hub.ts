@@ -1,30 +1,27 @@
 /**
- * Owns the Core command palette: its sources, search and ranking, the rows' actions, receipts and
- * transient modal lifetime. Navigation, keys and where the keyboard goes belong to the engine
- * (hub-engine.ts): this adapter turns DOM events into engine events and applies its effects.
- * Optional Tools contributes local results and views without entering Core's imports.
- * The Hub's Vue view (app/ui/tools/src/hub, built as `tools/hub-app.js`) draws the model this
- * adapter keeps (app/shared/ui/hub-view.ts) and puts the keyboard on its focus target.
+ * Owns the Core command palette: the sources attached to it, search and its order, the rows'
+ * actions, pins and phrases, receipts and transient modal lifetime. It names no source: the
+ * built-in ones attach from hub-builtins.ts, the features' from their own owners, and each says
+ * what it adds through its HubSource fields (app/shared/hub.ts). Navigation, keys and where the
+ * keyboard goes belong to the engine (hub-engine.ts): this adapter turns DOM events into engine
+ * events and applies its effects. Optional Tools contributes local results and views without
+ * entering Core's imports. The Hub's Vue view (app/ui/tools/src/hub, built as `tools/hub-app.js`)
+ * draws the model this adapter keeps (app/shared/ui/hub-view.ts) and puts the keyboard on its
+ * focus target.
  */
-import { HUB_TOOL_KEYS, TOOL_PRESENTATION } from '../shared/tool-presentation.js';
 import { resumeSearchInput } from './search-input.js';
 import { installHubWindow } from './hub-window.js';
 import { attachClassicFrame } from '../shared/ui/frame.js';
-import { resolveShortcuts, shortcutKeycaps, type ShortcutAction } from '../shared/keyboard-shortcuts.js';
-import { HUB_SECTIONS, SETTINGS, SETTINGS_SECTIONS, type SettingEntry, type SettingsTarget } from "../shared/settings-catalogue.js";
-import { focusHubSettings, LAUNCHER_UNAVAILABLE, showHubSettings } from "./hub-settings-page.js";
-import { createHubAccounts } from './hub-accounts.js';
-import { editHubShortcut, manageHubShortcuts } from './hub-preferences.js';
-import { hubPhraseReserved, isHubShortcuts, isLibraryHubShortcut, type HubShortcut } from '../shared/hub-preferences.js';
-import { createHubCalculator } from './hub-calculator.js';
+import { resolveShortcuts } from '../shared/keyboard-shortcuts.js';
+import { hubPhraseReserved, hubShortcutInScope, isHubShortcuts, isLibraryHubShortcut, LIBRARY_UNAVAILABLE, type HubShortcut } from '../shared/hub-preferences.js';
 import { recogniseCurrencyTokens } from '../shared/hub-currency-tokens.js';
-import { DEFAULT_CALCULATOR_RATES } from '../shared/hub-calculator.js';
 import { currencyIcon } from '../shared/currency-assets.js';
 import { armConfirmation, closeDisclosure } from './surface-controller.js';
 import { HUB_FALLBACK, HUB_RESUME_MS, hubAtHome, hubInitialState, hubKey, hubReduce, hubSuspendedOn, hubTaskLive, type HubEffect, type HubEvent, type HubPage, type HubPlace, type HubStep } from './hub-engine.js';
 import { createHoverSelection } from '../shared/ui/hover-selection.js';
-import { hubMatch, matchHubRows, parseHubQuery, normaliseHubQuery, hubTier, type HubDestination, type HubRow, type HubSource, type HubSummary, type HubTask, type HubViewAction, type HubViewFooter, type HubViewMount } from '../shared/hub.js';
-import type { EmbeddedHubView, HubFocusTarget, HubLegendEntry, HubMenuItem, HubPrimary, HubViewModel } from '../shared/ui/hub-view.js';
+import { FEATURES, featureActivationRequested } from '../shared/feature-contracts.js';
+import { HUB_LOCATED_DESTINATIONS, HUB_WORKSPACE_ACTION, hubMatch, matchHubRows, parseHubQuery, normaliseHubQuery, hubTier, rankHubRows, type HubDestination, type HubRow, type HubSource, type HubSummary, type HubTask, type HubViewAction, type HubViewFooter, type HubViewMount } from '../shared/hub.js';
+import { hubPrimaryArt, hubRowPaintsSame, type EmbeddedHubView, type HubFocusTarget, type HubLegendEntry, type HubMenuItem, type HubPrimary, type HubViewModel } from '../shared/ui/hub-view.js';
 
 const NONE: readonly never[] = [];
 /** Shallow equality: a region with the same fields is the same region and does not redraw. */
@@ -131,7 +128,16 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
   /** The query found no results yet; results that arrive for it later, e.g. from a loading source, get its initial selection. */
   let awaitingResults = false;
   const sources = new Map<HubSource, () => void>();
-  const sourceEnabled = (source: HubSource) => !source.feature || ((source.feature === 'characterSwitchEnabled' || !!window.gwToolsSettings?.().gwonmacTools) && !!window.gwToolsSettings?.()[source.feature]);
+  /** A source counts while its feature is turned on, by the feature's own activation rule (app/features). */
+  const sourceEnabled = (source: HubSource) => {
+    if (!source.feature) return true;
+    const feature = FEATURES.find(candidate => candidate.activation.setting === source.feature);
+    return !!feature && featureActivationRequested(feature.id, window.gwToolsSettings?.() ?? {});
+  };
+  const enabledSources = () => [...sources.keys()].filter(sourceEnabled);
+  /** The cards of the sources turned on, and whether a row is one of theirs. */
+  const cards = () => enabledSources().flatMap(source => source.card ? [source.card] : []);
+  const answers = (row: HubRow) => cards().some(card => card.is(row) || row.group === card.group);
   type RowScope = Readonly<{ title: string; rows: () => readonly HubRow[]; summary?: HubSummary; destination?: HubDestination; owner?: HubSource }>;
   type MountedView = { title: string; mount: HubViewMount<HTMLElement>; available?: () => boolean; destination?: HubDestination; owner?: HubSource };
   type Place = HubPlace<RowScope, MountedView>;
@@ -146,7 +152,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
   let disposeView: (() => void) | null = null;
   /** The search names what it searches, as placeholder and accessible name alike (HUB-096). */
   const nameSearch = (page: string | null) => {
-    const content = page === 'Build Library' ? 'builds' : ['Heroes', 'Accounts', 'Commands'].includes(page ?? '') ? page?.toLowerCase() : null;
+    const content = page === null ? null : [...sources.keys()].map(source => source.searchNames?.[page]).find(Boolean);
     const name = content ? `Search ${content}…` : page ? `Search in ${page}…` : 'Search people, places, builds…';
     patch('search', { placeholder: name, label: name });
   };
@@ -237,7 +243,9 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     else {
       input.value = page.query; patch('caption', { text: page.scope?.title ?? 'Home' }); put('page', page.scope ? 'section' : 'home');
       nameSearch(page.scope?.title ?? null); report(''); refresh(true);
-      const restored=rows.find(row=>row.id===page.selected)??(['quote:result','market:result','manual-conversion','conversion'].includes(page.selected??'')?rows.find(row=>row.group==='Calculator'):undefined);
+      // A card that changed state while the page was away still stands for the row it showed.
+      const card = cards().find(candidate => candidate.restores.includes(page.selected ?? ''));
+      const restored = rows.find(row => row.id === page.selected) ?? (card ? rows.find(row => row.group === card.group) : undefined);
       select(restored?.id??null); paintToScroll(page.scroll); sync(); list.scrollTop = page.scroll;
       if (page.selected && state.selected === null) report('The previous selection is no longer available. Choose a result.');
     }
@@ -269,55 +277,17 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     receiptInStatus = receipt && !!message; progressInStatus = !message && !!text;
     put('status', { text, busy: progressInStatus }); paintBusy();
   }
-  const dispatch = (name: string, detail?: unknown) => {
-    if (window.dispatchEvent(new CustomEvent(name, { cancelable: true, detail }))) {
-      throw new Error('Unavailable in the current game state.');
-    }
-  };
-  /** The command rows; `every` includes those an empty Home leaves out, so pins and phrases still resolve. */
-  const commands = (every = false, query = input.value): HubRow[] => {
-    const settings = window.gwToolsSettings?.();
-    const tool = (id: string, title: string, detail: string, keywords: string, enabled: boolean | undefined, event: string): HubRow[] => enabled ? [{
-      id, title, keywords, detail, ...(id === 'storage' ? { aliases: ['Open Xunlai Storage'] } : {}), group: 'Tools', action: id === 'storage' ? 'Open Xunlai Storage' : `Open ${title}`,
-      run: () => { if (id === 'storage') { close(); window.dispatchEvent(new CustomEvent(event, { cancelable: true })); } else dispatch(event, 'show'); },
-    }] : [];
-    return [
-      // Travel's row comes from its owner, attached for its whole life with the command's refusal (HUB-135).
-      ...tool('trade', TOOL_PRESENTATION['trade-chat'].label, 'Find offers and contact sellers', 'kamadan prices trading market trader', settings?.gwonmacTools && settings.tradeChat, 'gw:trade-toggle'),
-      ...tool('whispers', TOOL_PRESENTATION['whispers'].label, 'Conversations, friends and drafts', 'friends people message chat', settings?.gwonmacTools && settings.whispersEnabled, 'gw:whispers-toggle'),
-      ...(settings?.characterSwitchEnabled ? [{ id: 'character', title: TOOL_PRESENTATION['character-switch'].label, detail: 'Choose another character', keywords: 'relog profession characters alts', group: 'Tools', action: 'Choose character', navigate: () => dispatch('gw:character-toggle'), run: () => dispatch('gw:character-toggle') }] : []),
-      ...tool('storage', TOOL_PRESENTATION['xunlai-storage'].label, 'Open your storage chest', 'chest bank', settings?.gwonmacTools && settings.xunlaiStorage, 'gw:storage-open'),
-      ...(settings?.gwonmacTools && settings.cartographyEnabled ? [{ id: 'maps', title: TOOL_PRESENTATION['maps'].label, detail: 'Exploration grid, walkable terrain and compass ranges', keywords: 'grid terrain compass opacity', group: 'Tools', action: 'Adjust maps', run: openSettings({ section: 'maps' }) }] : []),
-      { id: 'commands', title: 'Commands', detail: 'Search words, calculator examples and keys', aliases: ['?'], keywords: 'help guide examples cheatsheet shortcuts keys', group: 'Commands', action: 'Browse commands', run: () => presenter.showRows('Commands', commandExamples) },
-      { id: 'hub-preferences', title: 'Hub preferences', detail: 'Pins and exact search phrases', keywords: 'aliases vocabulary', group: 'Commands', action: 'Adjust Hub', run: () => manageHubShortcuts(presenter, shortcutStore, hubWindow.reset) },
-      { id: 'settings', title: 'Settings', detail: 'Tools, maps, appearance and game · ⌘,', keywords: 'preferences graphics appearance hotkeys shortcuts', group: 'Commands', action: 'Open Settings', run: openSettings() },
-      // Launcher and the website are for a typed search; the first screen stays on the game (HUB-185).
-      ...(!every && !query.trim() ? [] : [
-        { id: 'launcher', title: 'Show Launcher', detail: 'Accounts, updates and game files', keywords: 'launcher administration', group: 'Commands', action: 'Show Launcher', run: async (task: HubTask) => { await window.gwNative.app.showLauncher(); task.done(); } },
-        { id: 'help', title: 'Project website', detail: 'Documentation and latest changes', keywords: 'help documentation', group: 'Commands', action: 'Open website', run: async (task: HubTask) => { await window.gwNative.app.openExternal('github'); task.done(); } },
-      ]),
-      ...(!every && !query.trim() ? [] : [
-        // Call Target stays on its own shortcut: it acts only while the game has focus (HUB-133).
-        // Resign's row comes from its owner, with its refusal before Enter (resign.ts).
-        // Quit or Reload opens the account's confirmation sheet, never a direct quit (HUB-001).
-        // The sheet waits for the press that asked for it, so its repeat or trailing click never answers it.
-        // Cancel hands the task back with its search, as Resign's confirmation does (HUB-250).
-        { id: 'reload', title: 'Quit or Reload Game…', detail: 'Opens confirmation for this account', keywords: 'restart reconnect', group: 'Commands', action: 'Review options', run: async () => { suspend(); await window.gwSurfaces.afterPress(); if (await window.gwNative.app.showQuitOrReload() === 'stayed') show(); else close(); } },
-        // Settings are found by their own words (HUB-063). They follow the commands, so a command's own word keeps its row first.
-        ...(normaliseHubQuery(query).length < 3 ? [] : SETTINGS_SECTIONS).map(({ id, label, keywords }) => ({ id: `settings:${id}`, title: label, detail: HUB_SECTIONS.has(id) ? 'Settings section' : 'Settings section in the launcher', keywords, group: 'Settings', action: HUB_SECTIONS.has(id) ? `Open ${label} settings` : 'Open in Launcher', run: openSettings({ section: id }) })),
-        ...(normaliseHubQuery(query).length < 3 ? [] : SETTINGS).map(settingRow),
-      ]),
-    ];
-  };
-  const shortcuts = () => [...(window.gwToolsSettings?.().hubShortcuts ?? []), ...[...sources.keys()].filter(sourceEnabled).flatMap(source => source.shortcuts?.get() ?? [])];
-  const lookup = (id: string): HubRow | undefined => [...sources.keys()].filter(sourceEnabled).map(source => source.lookup?.(id)).find(Boolean)
-    ?? commands(true).find(row => row.id === id);
+  /** The rows sources leave the Hub to match: they follow every result (HubSource `commands`). */
+  const commandRows = (query = input.value) => enabledSources().flatMap(source => source.commands?.(query) ?? []);
+  const shortcuts = () => [...(window.gwToolsSettings?.().hubShortcuts ?? []), ...enabledSources().flatMap(source => source.shortcuts?.get() ?? [])];
+  const lookup = (id: string): HubRow | undefined => enabledSources().map(source => source.lookup?.(id)).find(Boolean)
+    ?? commandRows().find(row => row.id === id);
   /**
    * The other result a root search for this phrase already finds by its exact name or alias. A
    * search phrase equal to it would hide it or make both ambiguous, so the editor refuses it (HUB-062).
    */
   function exactlyNamed(phrase: string, id: string): HubRow | undefined {
-    const found = [...[...sources.keys()].filter(sourceEnabled).flatMap(source => source.search(phrase)), ...commands(true, phrase)];
+    const found = [...enabledSources().flatMap(source => source.search(phrase)), ...commandRows(phrase)];
     return found.find(row => row.id !== id && hubMatch(row.title, phrase, row.aliases) === 'exact');
   }
   const shortcutStore = { get: () => shortcuts(), lookup, save: saveShortcuts, exactlyNamed };
@@ -327,65 +297,9 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     if (!isHubShortcuts(privateEntries) || !isHubShortcuts(globalEntries)) throw new Error('Invalid Hub shortcuts');
     const owner = [...sources.keys()].find(source => sourceEnabled(source) && source.shortcuts);
     if (owner?.shortcuts && JSON.stringify(privateEntries) !== JSON.stringify(owner.shortcuts.get())) await owner.shortcuts.save(privateEntries);
-    else if (privateEntries.length && !owner) throw new Error('Build Library is unavailable.');
+    else if (privateEntries.length && !owner) throw new Error(LIBRARY_UNAVAILABLE);
     if (JSON.stringify(globalEntries) !== JSON.stringify(window.gwToolsSettings?.().hubShortcuts ?? [])) await window.gwNative.settings.set({ hubShortcuts: globalEntries });
     refresh();
-  }
-  /**
-   * The Commands page is the Hub's cheatsheet: search words with a place to type, calculator
-   * examples, and the keys (HUB-093, HUB-094). An example only fills the search; nothing runs.
-   */
-  function commandExamples(): HubRow[] {
-    const enabled = new Set(commands(true).map(row => row.id));
-    for (const owned of ['builds', 'travel']) if (lookup(owned)) enabled.add(owned);
-    const example = (group: string, tool: string, title: string, fill: string, detail: string) => ({ group, tool, title, fill, detail });
-    const examples = [
-      example('Places', 'travel', 'travel <place>', 'travel ', 'Find an outpost by name or alias'),
-      example('Characters', 'character', 'char <name>', 'char ', 'Find one of your characters'),
-      example('Builds', 'builds', 'build <name or profession>', 'build ', 'Browse saved builds; build mo lists Monk builds'),
-      example('Builds', 'builds', 'team <name>', 'team ', 'Find a saved team'),
-      example('Builds', 'builds', 'build folder:<folder> <name>', 'build folder:', 'Builds in a folder and its subfolders; quotes keep spaces'),
-      example('Builds', 'builds', 'build Mo/Me', 'build Mo/Me', 'An exact profession pair'),
-      example('People', 'whispers', 'whisper <name>', 'whisper ', 'Write to a person; nothing is sent until you send it'),
-      example('People', 'whispers', 'invite <name>', 'invite ', 'Invite a person to your party from an outpost'),
-      example('Trade', 'trade', 'trade <item>', 'trade ', 'Find offers or a seller in Trade Chat'),
-      example('Accounts', '', 'acc <name>', 'acc ', 'Choose how to open a saved account'),
-      example('Calculate', '', '1p in g', '1p in g', 'Platinum to gold'),
-      example('Calculate', 'trade', '10e in p', '10e in p', 'Ectos at recent Kamadan prices'),
-      example('Calculate', '', '2 * 250 + 75', '2 * 250 + 75', 'Plain arithmetic'),
-      example('Calculate', '', 'titles', 'titles', 'Plan title points'),
-    ];
-    const rows: HubRow[] = examples.filter(entry => !entry.tool || enabled.has(entry.tool)).map((entry, index) => ({ id: `example:${index}`, title: entry.title, detail: entry.detail, group: entry.group, action: `Fill search with ${entry.title}`, searchQuery: entry.fill, run() {} }));
-    // Keys: a tool's shortcut can change in Settings; the Hub's own keys are fixed.
-    const bindings = resolveShortcuts(window.gwToolsSettings?.().shortcutOverrides ?? {});
-    const keys = (action: ShortcutAction) => shortcutKeycaps(bindings[action]).map(cap => cap.label).join('') || 'Not set';
-    rows.push(...HUB_TOOL_KEYS.filter(({ command }) => enabled.has(command)).map(({ command, tool, action, label }) => ({ id: `key:${command}`, title: label, detail: keys(action), group: 'Keys & shortcuts', action: 'Change shortcut', run: openSettings({ section: 'tools', control: `tool:${tool}` }) })));
-    for (const [id, name, detail] of [['actions', 'Actions for the selected row', '⌘J'], ['back', 'Back', '⌘⌫'], ['escape', 'Clear, back, then close', '⎋'], ['open', 'Open a row with a page', '→']] as const)
-      rows.push({ id: `key:${id}`, title: name, detail, group: 'Keys & shortcuts', action: 'Fixed key', unavailable: 'The Hub’s own keys do not change.', run() {} });
-    return rows;
-  }
-  /** A setting row opens Settings at its control: in the Hub, or in the launcher for the launcher's sections. */
-  function settingRow(entry: SettingEntry): HubRow {
-    const section = SETTINGS_SECTIONS.find(candidate => candidate.id === entry.section)!.label;
-    const inHub = HUB_SECTIONS.has(entry.section);
-    return { id: `setting:${entry.id}`, title: entry.label, keywords: `setting ${entry.keywords ?? ''}`, group: 'Settings',
-      detail: inHub ? `Settings › ${section}` : `Settings › ${section} in the launcher`, action: inHub ? 'Open setting' : 'Open in Launcher',
-      run: openSettings({ section: entry.section, control: entry.id }) };
-  }
-  /** A row action that shows Settings, at a section or control when given (docs/settings.md). */
-  function openSettings(target?: SettingsTarget) {
-    return async (task: HubTask) => {
-      if (target && !HUB_SECTIONS.has(target.section)) {
-        await window.gwNative.app.openSettings(target).catch(() => { throw new Error(LAUNCHER_UNAVAILABLE); });
-        task.done(); return;
-      }
-      showSettings(target);
-    };
-  }
-  /** Settings as a Hub page; a Settings page that was already open, suspended or lower in the path moves to the target. */
-  function showSettings(target?: SettingsTarget) {
-    direct('settings', () => showHubSettings(presenter, target ?? null));
-    if (target) focusHubSettings(target);
   }
   function select(id: string | null, scroll = false) {
     const index = painting && id !== null ? painting.rows.findIndex(row => row.id === id) : -1;
@@ -412,7 +326,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     if (viewFooter) { paintViewFooter(); return; }
     // A running action keeps the footer: it names what runs, disabled, until it ends (HUB-083).
     const working = busy() ? running : null;
-    const art = !working ? row?.conversion?.iconTo : undefined;
+    const art = !working ? hubPrimaryArt(row) : undefined;
     setPrimary({ label: working ? working.label : row ? row.action : 'Select a result', ...(art ? { art } : {}), keycap: !!row && !working,
       disabled: !row || !!row.unavailable || !!working, variant: row?.destructive ? 'danger' : 'primary' });
     // Footer slots never hide, so nothing slides under a resting pointer; they disable instead.
@@ -503,10 +417,10 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
   // Source notifications change context and lifecycle facts, not the current page or search.
   function paintSourceFacts() {
     const view = state.place.view;
-    const located = view ? view.destination === 'travel' || view.destination === 'characters' : !state.place.scope && !input.value.trim();
-    const context = located ? [...sources.keys()].filter(sourceEnabled).flatMap(source => source.context?.() ?? []) : [];
+    const located = view ? !!view.destination && HUB_LOCATED_DESTINATIONS.includes(view.destination) : !state.place.scope && !input.value.trim();
+    const context = located ? enabledSources().flatMap(source => source.context?.() ?? []) : [];
     put('context', context.join(' · '));
-    const lifecycleText = disposeView ? '' : [...sources.keys()].filter(sourceEnabled).map(source => source.lifecycle?.()).find(Boolean) ?? '';
+    const lifecycleText = disposeView ? '' : enabledSources().map(source => source.lifecycle?.()).find(Boolean) ?? '';
     patch('lifecycle', { text: lifecycleText, hidden: !lifecycleText, ...((model.lifecycle.title ?? '') !== lifecycleText ? { title: lifecycleText } : {}) });
   }
   function paintNavigation() {
@@ -525,11 +439,10 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     const parent = state.history.at(-1);
     patch('back', { hidden: atHome(), destination: parent ? pageTitle(parent) : 'Home' });
     const query = parseHubQuery(input.value);
-    put('scope', { text: query.scope ?? '', hidden: !!state.place.scope || !query.scope || !!disposeView || commands(true).some(row => normaliseHubQuery(row.title) === normaliseHubQuery(input.value)) });
+    put('scope', { text: query.scope ?? '', hidden: !!state.place.scope || !query.scope || !!disposeView || commandRows().some(row => normaliseHubQuery(row.title) === normaliseHubQuery(input.value)) });
     // The page title leads, so a screen reader that lands in search after Back hears where it is.
     patch('search', { description: `${currentTitle}: ${state.place.scope ? 'search actions' : query.scope ? `search ${query.scope}` : 'search tools or use a command example'}` });
-    const example = commandExamples().find(row => normaliseHubQuery(row.title).startsWith(`${normaliseHubQuery(input.value)} `));
-    const hint = !state.place.scope && !query.scope && input.value.trim() && example ? `Try “${example.title}” · ${example.detail}` : '';
+    const hint = !state.place.scope && !query.scope && input.value.trim() ? enabledSources().map(source => source.hint?.(input.value)).find(Boolean) ?? '' : '';
     put('hint', { text: hint, title: hint, hidden: !hint || !!disposeView });
   }
   /**
@@ -576,43 +489,23 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     if (reset) hover.release();
     paintNavigation();
     const previousRows = rows;
-    const tradeQuery = parseHubQuery(input.value);
-    const tradeRows: HubRow[] = tradeQuery.scope === "trade" && tradeQuery.term && window.gwToolsSettings?.().gwonmacTools && window.gwToolsSettings?.().tradeChat
-      // The player's own words, in the market Trade has open; `trade:` gives the row Trade's icon (HUB-124).
-      ? [{ id: "trade:query", title: `Search Trade for ${tradeQuery.text}`, detail: "Offers and character names", group: "Tools", action: `Search Trade for ${tradeQuery.text}`, run: () => dispatch("gw:trade-toggle", { query: tradeQuery.text }) }] : [];
-    const extra = state.place.scope ? state.place.scope.rows() : [...sources.keys()].filter(sourceEnabled).flatMap(source => source.search(input.value)).concat(tradeRows);
+    const extra = state.place.scope ? state.place.scope.rows() : enabledSources().flatMap(source => source.search(input.value));
     const parsed = parseHubQuery(input.value);
     // A phrase saved before its words joined the grammar stays stored but no longer matches.
     const saved = shortcuts().filter(entry => !parsed.term ? entry.pinned : entry.phrase === parsed.term && !hubPhraseReserved(entry.phrase))
-      .filter(entry => !parsed.scope || entry.id.startsWith(`${parsed.scope === 'travel' ? 'place' : parsed.scope}:`));
+      .filter(entry => !parsed.scope || hubShortcutInScope(entry.id, parsed.scope));
     // A phrase answers with the row its owner gives this query (a scoped team applies), else the stored row.
     const savedRows = saved.flatMap(entry => { const row = extra.find(candidate => candidate.id === entry.id) ?? lookup(entry.id); return row ? [{ ...row, group: parsed.term ? row.group : 'Pinned' }] : []; });
     const ids = new Set([...extra, ...savedRows].map(row => row.id));
-    rows = state.place.scope ? matchHubRows(extra, input.value) : [...savedRows, ...extra.filter(row => !savedRows.some(saved => saved.id === row.id)), ...(parsed.term && parsed.scope ? commands().filter(row => !ids.has(row.id) && normaliseHubQuery(row.title) === normaliseHubQuery(input.value)) : matchHubRows(commands().filter(row => !ids.has(row.id)), input.value))];
+    rows = state.place.scope ? matchHubRows(extra, input.value) : [...savedRows, ...extra.filter(row => !savedRows.some(saved => saved.id === row.id)), ...(parsed.term && parsed.scope ? commandRows().filter(row => !ids.has(row.id) && normaliseHubQuery(row.title) === normaliseHubQuery(input.value)) : matchHubRows(commandRows().filter(row => !ids.has(row.id)), input.value))];
     // A tool or command row stands for its own setting (`Resign…`, Build Library); the setting row
     // stays findable while the tool is off.
     const actionName = (row: HubRow) => normaliseHubQuery(row.title.replace(/…$/, ''));
     const actions = new Set(rows.filter(row => row.group !== 'Settings').map(actionName));
     rows = rows.filter(row => row.group !== 'Settings' || !actions.has(actionName(row)));
-    // A typed root search orders sections by their best answer, then by the usual group order,
-    // and rows by the same tier (HUB-008, HUB-058). A saved phrase is the best answer of all;
-    // the calculator's card answers its own grammar. Scoped lists keep their source's order.
+    // A saved phrase is the best answer of all; scoped lists keep their source's order (rankHubRows).
     const phraseIds = new Set(parsed.term ? [...savedRows, ...extra.filter(row => row.exactPhrase)].map(row => row.id) : []);
-    const ranked = !state.place.scope && !parsed.scope && !!parsed.term;
-    const tierOf = (row: HubRow) => phraseIds.has(row.id) ? -1 : row.conversion || row.group === 'Calculator' ? 0 : hubTier(row, parsed.term) ?? 3;
-    const best = new Map<string, number>();
-    if (ranked) for (const row of rows) best.set(row.group, Math.min(best.get(row.group) ?? Infinity, tierOf(row)));
-    const groups = ["Pinned", "Calculator", "Teams", "Folders", "Characters", "Builds", "Targets", "Current build", "Accounts", "In your party", "Unlocked heroes", "Heroes", "People", "Places", "Friends", "Continue", "Tools", "Commands", "Settings", "Sources", "Trade", "Calculate", "Keys & shortcuts"];
-    // A typed query that names a tool or command as well as places answers with the tool: the Hub
-    // has a few of those and hundreds of places (`ma` is Maps before Maguuma Stade, HUB-058).
-    const typedFirst = ranked ? ['Tools', 'Commands'] : [];
-    const groupIndex = (group: string) => { const first = typedFirst.indexOf(group); if (first >= 0) return first - typedFirst.length; const index = groups.indexOf(group); return index < 0 ? groups.length : index; };
-    // Keep everyday game actions ahead of account management, independent of provider order,
-    // and Commands, the way into everything else, first among the commands (HUB-185).
-    const tools = ['travel', 'character', 'whispers', 'builds', 'trade', 'storage', 'maps', 'accounts'];
-    const priority = (row: HubRow) => { if (state.place.scope) return 0; if (row.group === 'Commands') return row.id === 'commands' ? -1 : 0; if (row.group !== 'Tools') return 0; const index = tools.indexOf(row.id); return index < 0 ? tools.length : index; };
-    rows = [...rows].sort((a, b) => (ranked ? best.get(a.group)! - best.get(b.group)! : 0) || groupIndex(a.group) - groupIndex(b.group)
-      || (ranked ? tierOf(a) - tierOf(b) : 0) || priority(a) - priority(b));
+    rows = rankHubRows(rows, input.value, { scoped: !!state.place.scope, phrases: phraseIds, answers });
     const resultCount = `${rows.length} result${rows.length === 1 ? '' : 's'}`;
     const message = !state.place.scope && !input.value.trim() ? '' : rows.length ? resultCount : 'No matches';
     put('count', message === 'No matches' ? '' : message);
@@ -631,13 +524,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     if (shortcutsChanged) bindings = nextBindings;
     // Keep mounted options steady when an observer only advances its sequence.
     // Actions still read the newly derived rows, so no stale closure can execute.
-    const samePaint = (row: HubRow, previous: HubRow | undefined) => previous && row.id === previous.id && row.title === previous.title
-      && row.detail === previous.detail && row.group === previous.group && row.icon === previous.icon
-      && row.action === previous.action && row.destructive === previous.destructive && row.unavailable === previous.unavailable
-      && row.readOnly === previous.readOnly && !!row.navigate === !!previous.navigate && row.preview === previous.preview
-      && row.folder === previous.folder && row.attributeStatus === previous.attributeStatus
-      && JSON.stringify([row.skills, row.attributes, row.professions, row.conversion]) === JSON.stringify([previous.skills, previous.attributes, previous.professions, previous.conversion]);
-    if (!reset && !shortcutsChanged && rows.length === previousRows.length && rows.every((row, index) => samePaint(row, previousRows[index]))) {
+    if (!reset && !shortcutsChanged && rows.length === previousRows.length && rows.every((row, index) => hubRowPaintsSame(row, previousRows[index]))) {
       if (painting) painting.rows = rows;
       patch('results', { rows }); select(state.selected); return;
     }
@@ -676,8 +563,10 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     const yielded = prior?.group === 'Settings' && actions.has(actionName(prior));
     const replacedPlaceholder = (!!prior?.unavailable || yielded) && !rows.some(row => row.id === prior.id);
     // Clear only this loading refusal when its answer settles; unrelated failures stay.
-    if (prior?.unavailable && statusText() === prior.unavailable && rows.some(row => row.conversion && !row.unavailable)) report('');
-    select((prior?.id === 'quote-state' || prior?.id === 'market-state') && !!rows[0]?.conversion ? rows[0].id : settling || replacedPlaceholder ? phraseMatches.length > 1 || (exactCount > 1 && !phraseHit) ? null : initial?.id ?? null : !revised && rows.some(row => row.id === state.selected) ? state.selected : null);
+    if (prior?.unavailable && statusText() === prior.unavailable && rows.some(row => cards().some(card => card.is(row)) && !row.unavailable)) report('');
+    // A loading card that settles hands its selection to the answer on top.
+    const settled = !!prior && cards().some(card => card.settles.includes(prior.id) && !!rows[0] && card.is(rows[0]));
+    select(settled ? rows[0]!.id : settling || replacedPlaceholder ? phraseMatches.length > 1 || (exactCount > 1 && !phraseHit) ? null : initial?.id ?? null : !revised && rows.some(row => row.id === state.selected) ? state.selected : null);
     if (!settling && prior && !replacedPlaceholder && !rows.some(row => row.id === prior.id) && !receiptInStatus) report('The previous selection is no longer available. Choose a result.');
 
   }
@@ -920,7 +809,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     });
     if (row.skills || state.place.scope?.summary?.skills) entries.push({ label: 'Show build details', section: 'Details', run: () => showBuildDetails(row) });
     else if (!row.menuActions && row.actions && row.actionsLabel) entries.push({ label: row.actionsLabel, section: 'Details', run: () => row.actions?.() });
-    if (row.workspace) entries.push({ label: 'Open in Build Library', section: 'Details', run: row.workspace });
+    if (row.workspace) entries.push({ label: HUB_WORKSPACE_ACTION, section: 'Details', run: row.workspace });
     if (isHubShortcuts([{ id: row.id, phrase: '', pinned: false }]) && lookup(row.id)) {
       const pinned = shortcuts().some(entry => entry.id === row.id && entry.pinned);
       entries.push({ label: pinned ? 'Unpin from Hub' : 'Pin to Hub', section: 'Personalize', run: async () => {
@@ -930,7 +819,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
         try { await saveShortcuts(old ? entries.map(entry => entry.id === row.id ? edited : entry) : [...entries, edited]); const receipt = pinned ? `Unpinned ${row.title}.` : `Pinned ${row.title}.`; if (task.live()) report(receipt); else task.done(receipt); }
         catch { task.fail(new Error('Could not update the pin. Try again.')); }
       } });
-      entries.push({ label: 'Set search phrase…', section: 'Personalize', run: () => editHubShortcut(presenter, row, shortcutStore, () => !!lookup(row.id)) });
+      for (const source of enabledSources()) for (const entry of source.personalize?.(row) ?? []) entries.push({ label: entry.label, section: 'Personalize', run: entry.run });
     }
     return entries;
   }
@@ -1018,7 +907,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
   /** A presenter call leaves the DOM drawn, so its caller can measure and focus right after. */
   const synced = <A extends unknown[], R>(action: (...args: A) => R) => (...args: A): R => { try { return action(...args); } finally { sync(); } };
   const presenter = {
-    show: synced(show), close: synced(() => close()), suspend: synced(suspend), openSettings: synced(showSettings), direct: synced(direct),
+    show: synced(show), close: synced(() => close()), suspend: synced(suspend), direct: synced(direct),
     suspendedOn: (destination: HubDestination) => hubSuspendedOn(state, destination, env()),
     /** A mounted view replaced its own page (a confirmation): a click run from before it is cancelled. */
     pageChanged: () => modal.pageChanged(),
@@ -1049,31 +938,14 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
       mountView(view);
     }),
     notify: synced(notify),
-    browseBuilds: synced(() => { direct('builds', () => { const row = lookup('builds'); if (row && !row.unavailable) void row.run(startTask()); else report('Build Library is unavailable.'); }); }),
+    /** A direct shortcut to a row's page (`direct`): it runs the row, or says why it cannot. */
+    openRow: synced((destination: HubDestination, id: string, unavailable: string) => { direct(destination, () => { const row = lookup(id); if (row && !row.unavailable) void row.run(startTask()); else report(unavailable); }); }),
+    /** The pins and phrases, for the sources that edit them. */
+    shortcuts: shortcutStore,
     resetPosition: hubWindow.reset,
     dispose() { close(); glyphResize.disconnect(); cancelAnimationFrame(glyphFrame); clearTimeout(receiptTimer); receipt.hidePopover(); hubWindow.dispose(); disposeFrame(); for (const unsubscribe of sources.values()) unsubscribe(); sources.clear(); modal.dispose(); disposed = true; ui.dispose(); window.removeEventListener('blur', onBlur); window.removeEventListener('gw:tools-settings', onSettings); },
   };
-  presenter.attach(createHubAccounts(presenter, { get: () => window.gwNative.accounts.get(), open: request => window.gwNative.accounts.open(request), manage: () => window.gwNative.app.showLauncher() }));
-  presenter.attach(createHubCalculator({
-    hub: presenter,
-    settings: () => window.gwToolsSettings?.().calculatorRates ?? DEFAULT_CALCULATOR_RATES,
-    saveRates: async calculatorRates => { await window.gwNative.settings.set({ calculatorRates }); },
-    // A copy names what it put on the clipboard in the status line (D-8); it is never silent.
-    copy: async (value,label=value) => { await window.gwNative.clipboard.writeText(value); notify(`Copied “${label}”`); },
-    marketEnabled: () => !!window.gwToolsSettings?.().gwonmacTools && !!window.gwToolsSettings?.().tradeChat,
-    market: () => 'trade' in window.gwNative ? window.gwNative.trade.getMarketRates() : Promise.reject(new Error('Rate unavailable')),
-    quotes: () => 'trade' in window.gwNative ? window.gwNative.trade.getTraderQuotes() : Promise.reject(new Error('Rate unavailable')),
-  }));
   return presenter;
 }
+/** The Hub without its built-in sources (hub-builtins.ts adds them). */
 export type Hub = ReturnType<typeof createHub>;
-
-/**
- * Loads the Hub's Vue view and creates the Hub. The view module is a build artifact beside the
- * Tools bundle, `tools/hub-app.js`, but holds no Tools code, so every launch loads it, Core included.
- */
-export async function loadHub(parent: HTMLElement): Promise<Hub> {
-  // A build artifact: the specifier goes through a variable so the compiler does not resolve it.
-  const specifier = './tools/hub-app.js';
-  return createHub(parent, await import(specifier) as EmbeddedHubView);
-}

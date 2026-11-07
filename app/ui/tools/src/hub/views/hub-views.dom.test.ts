@@ -11,7 +11,9 @@ import type {} from '../../../../../renderer/gw-native';
 // eslint-disable-next-line no-restricted-imports
 import { installSurfaceController } from '../../../../../renderer/surface-controller';
 // eslint-disable-next-line no-restricted-imports
-import { createHub, type Hub } from '../../../../../renderer/hub';
+import { createHub } from '../../../../../renderer/hub';
+// eslint-disable-next-line no-restricted-imports
+import { withHubBuiltins, type GameHub } from '../../../../../renderer/hub-builtins';
 import { DEFAULT_SETTINGS, type AppSettings } from '../../../../../shared/contracts';
 import type { HubRow, HubSource } from '../../../../../shared/hub';
 import type { HubShortcut } from '../../../../../shared/hub-preferences';
@@ -37,7 +39,7 @@ const menuItem = (text: string) => [...document.querySelectorAll<HTMLButtonEleme
 const primary = () => field<HTMLButtonElement>('.hub-primary');
 
 let settings: AppSettings;
-let hub: Hub;
+let hub: GameHub;
 beforeEach(() => {
   vi.useFakeTimers({ now: new Date('2026-11-07T12:00:00Z'), toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date', 'requestAnimationFrame', 'cancelAnimationFrame'] });
   // Price details print local dates; the snapshot must not depend on the machine's time zone or locale.
@@ -67,7 +69,7 @@ beforeEach(() => {
       trade: { getMarketRates: async () => estimateMarketRates(market), getTraderQuotes: async () => ({ updatedAt: Date.now(), quotes: [] }) },
     },
   });
-  hub = createHub(document.body, { mountHubView });
+  hub = withHubBuiltins(createHub(document.body, { mountHubView }));
   window.gwHub = hub;
 });
 afterEach(() => { hub.dispose(); vi.useRealTimers(); vi.restoreAllMocks(); });

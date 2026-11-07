@@ -1,11 +1,12 @@
 /**
  * Explicit editing of the selected Hub object's search phrase and pin: the state, validation and
  * saves of Hub preferences, the search-phrase form and their confirmations. The Hub's Vue kit
- * draws the pages (app/ui/tools/src/hub/views/preferences). Keeps presentation separate from
- * canonical game and storage owners.
+ * draws the pages (app/ui/tools/src/hub/views/preferences). Also the Hub's built-in preferences
+ * source, which offers both (hub-builtins.ts). Keeps presentation separate from canonical game
+ * and storage owners.
  */
 import { HUB_SHORTCUT_LIMIT, isHubShortcuts, hubPhraseReserved, isLibraryHubShortcut, type HubShortcut } from '../shared/hub-preferences.js';
-import { normaliseHubQuery, type HubPresenter, type HubRow, type HubTask } from '../shared/hub.js';
+import { normaliseHubQuery, type HubPresenter, type HubRow, type HubSource, type HubTask } from '../shared/hub.js';
 import type { HubPage, HubPageFocus, HubPreferenceEntry, HubPreferencesProps } from '../shared/ui/hub-pages.js';
 
 /** The Hub's pins and phrases: read, resolve, save, and the result a phrase would already find by name. */
@@ -175,4 +176,15 @@ export function manageHubShortcuts(hub: HubPresenter<HTMLElement>, store: HubSho
     paint();
     return () => { window.removeEventListener('gw:tools-settings', changed); page?.dispose(); };
   });
+}
+
+/** The preferences source: the Hub preferences command, and a search phrase for a row the Hub can keep. */
+export function createHubPreferences(hub: HubPresenter<HTMLElement> & Readonly<{ shortcuts: HubShortcutStore; resetPosition(): void }>): HubSource {
+  return {
+    search: () => [],
+    commands: () => [{ id: 'hub-preferences', title: 'Hub preferences', detail: 'Pins and exact search phrases', keywords: 'aliases vocabulary', group: 'Commands', action: 'Adjust Hub', run: () => manageHubShortcuts(hub, hub.shortcuts, hub.resetPosition) }],
+    personalize: row => [{ label: 'Set search phrase…', run: () => editHubShortcut(hub, row, hub.shortcuts, () => !!hub.shortcuts.lookup(row.id)) }],
+    setVisible() {},
+    subscribe: () => () => {},
+  };
 }

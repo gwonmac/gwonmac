@@ -12,6 +12,8 @@ import { DEFAULT_SETTINGS, type AppSettings } from '../../../../shared/contracts
 import type { HubRow, HubViewMount } from '../../../../shared/hub';
 // eslint-disable-next-line no-restricted-imports
 import { createHub } from '../../../../renderer/hub';
+// eslint-disable-next-line no-restricted-imports
+import { withHubBuiltins } from '../../../../renderer/hub-builtins';
 import { describeFocus, serializeDom } from './dom-snapshot';
 import { mountHubView } from './embedded';
 
@@ -62,7 +64,7 @@ const sectionRows = (): readonly HubRow[] => [
 const summary = { label: 'Current build', title: 'Healer', detail: 'Your build', skills, attributes, professions, folder: 'PvE' };
 
 test('the Hub keeps its DOM structure, classes, ARIA and focus in every main view', async () => {
-  const hub = createHub(document.body, { mountHubView });
+  const hub = withHubBuiltins(createHub(document.body, { mountHubView }));
   window.gwHub = hub;
   await settle();
   capture('closed');

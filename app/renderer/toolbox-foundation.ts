@@ -6,6 +6,7 @@
  * Tab. There is intentionally no registry or general layout system.
  */
 import { createNonActivatingSurface } from "./non-activating-surface.js";
+import { LIBRARY_UNAVAILABLE } from "../shared/hub-preferences.js";
 import type { ToolboxObservation } from "../shared/builds/live-party.js";
 
 type ToolboxState = ToolboxObservation;
@@ -218,7 +219,7 @@ export function createToolboxFoundation(
     event.preventDefault();
     if (event instanceof CustomEvent && event.detail === 'workspace') openFloating(builds);
     // An open Hub, or one suspended on the Build Library's pages, takes ⌘B as a direct shortcut.
-    else if (window.gwHub?.visible || window.gwHub?.suspendedOn('builds')) window.gwHub.browseBuilds();
+    else if (window.gwHub?.visible || window.gwHub?.suspendedOn('builds')) window.gwHub.openRow('builds', 'builds', LIBRARY_UNAVAILABLE);
     else if (event instanceof CustomEvent && event.detail === "show") openFloating(builds);
     else toggle(builds);
   };
