@@ -1,7 +1,7 @@
 /**
  * The certified Resign command and its Hub row.
  */
-import { installResignCommand } from "../../renderer/resign.js";
+import { installResignCommand } from "./renderer/resign-command.js";
 import type { ToolsCompanionPart } from "../../renderer/tools-companion-part.js";
 
 export default {

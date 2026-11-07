@@ -23,6 +23,7 @@ import {
   type CompassRangeSelection,
 } from "./compass-range-layer.js";
 import type { ScreenBox } from "./frame-placement.js";
+import { isolateFromGame } from "../../../renderer/non-activating-surface.js";
 
 const PANEL_WIDTH = 220;
 const PANEL_HEIGHT_ESTIMATE = 290;
@@ -256,9 +257,7 @@ export function createCompassRangeControls(options: Readonly<{
       compassRangeIndicatorsEnabled: !canonical.compassRangeIndicatorsEnabled,
     });
   };
-  for (const type of ["pointerdown", "pointerup", "click", "wheel", "keydown", "keyup"]) {
-    root.addEventListener(type, (event) => event.stopPropagation());
-  }
+  isolateFromGame(root);
   trigger.addEventListener("click", () => setOpen(!open));
   const outsidePointerDown = (event: Event): void => {
     if (open && event.target instanceof Node && !root.contains(event.target)) {

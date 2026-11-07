@@ -9,7 +9,9 @@ import type {
   ClientCompatibility,
   ClientSession,
   EnhancementRuntimeFeature,
+  OptionalFeatureStatus,
 } from "../shared/contracts.js";
+import { capabilityRecord } from "../shared/enhancement-contracts.js";
 
 interface ProjectionState {
   readonly documentId: number;
@@ -27,39 +29,14 @@ function projectCompatibility(
   compatibility: ClientCompatibility,
   failed: ReadonlySet<EnhancementRuntimeFeature>,
 ): ClientCompatibility {
-  const status = <Feature extends EnhancementRuntimeFeature>(
-    feature: Feature,
-  ): ClientCompatibility["features"][Feature] =>
-    failed.has(feature)
-      ? { status: "unavailable", reason: "preparation-failed" }
-      : compatibility.features[feature];
   return Object.freeze({
     ...compatibility,
     features: Object.freeze({
       gameFileSaving: compatibility.features.gameFileSaving,
       nativeDoubleClick: compatibility.features.nativeDoubleClick,
-      nativeCursor: status("nativeCursor"),
-      targetObservation: status("targetObservation"),
-      partyObservation: status("partyObservation"),
-      teamApply: status("teamApply"),
-      travelAction: status("travelAction"),
-      xunlaiAction: status("xunlaiAction"),
-      chatAliases: status("chatAliases"),
-      skillSlotGeometry: status("skillSlotGeometry"),
-      skillCooldownObservation: status("skillCooldownObservation"),
-      playerEffectObservation: status("playerEffectObservation"),
-      effectIconGeometry: status("effectIconGeometry"),
-      alcoholObservation: status("alcoholObservation"),
-      nativeHudRendering: status("nativeHudRendering"),
-      resignAction: status("resignAction"),
-      whisperChat: status("whisperChat"),
-      playRegionObservation: status("playRegionObservation"),
-      preGameControls: status("preGameControls"),
-      characterSwitchAction: status("characterSwitchAction"),
-      chatFiltering: status("chatFiltering"),
-      quickItemMove: status("quickItemMove"),
-      chatPrint: status("chatPrint"),
-      progressObservation: status("progressObservation"),
+      ...capabilityRecord((feature): OptionalFeatureStatus => failed.has(feature)
+        ? { status: "unavailable", reason: "preparation-failed" }
+        : compatibility.features[feature]),
     }),
   });
 }

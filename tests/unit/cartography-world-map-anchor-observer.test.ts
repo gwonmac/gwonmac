@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createWorldMapAnchorSpikeReader } from
+import { createWorldMapAnchorReader } from
   "../../app/features/cartography/renderer/world-map-anchor-observer.js";
 import { WORLD_MAP_ANCHOR_SPIKE_GLOBALS } from
   "../../app/shared/cartography-spike.js";
@@ -25,7 +25,7 @@ function exportsFor(): WebAssembly.Exports {
 }
 
 test("reads a bounded pointer-free world-map anchor", () => {
-  const reader = createWorldMapAnchorSpikeReader(exportsFor());
+  const reader = createWorldMapAnchorReader(exportsFor());
   assert.ok(reader);
   assert.deepEqual(reader.snapshot(), {
     status: 1,
@@ -42,7 +42,7 @@ test("reads a bounded pointer-free world-map anchor", () => {
 
 test("refuses an unavailable or implausible world-map anchor", () => {
   const exports = exportsFor();
-  const reader = createWorldMapAnchorSpikeReader(exports);
+  const reader = createWorldMapAnchorReader(exports);
   assert.ok(reader);
   (exports[WORLD_MAP_ANCHOR_SPIKE_GLOBALS.status] as WebAssembly.Global).value = 4;
   assert.deepEqual(reader.snapshot(), {

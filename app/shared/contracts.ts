@@ -554,29 +554,7 @@ export interface ClientCompatibility {
   features: Readonly<{
     gameFileSaving: RequiredFeatureStatus;
     nativeDoubleClick: OptionalFeatureStatus;
-    nativeCursor: OptionalFeatureStatus;
-    targetObservation: OptionalFeatureStatus;
-    partyObservation: OptionalFeatureStatus;
-    teamApply: OptionalFeatureStatus;
-    travelAction: OptionalFeatureStatus;
-    xunlaiAction: OptionalFeatureStatus;
-    chatAliases: OptionalFeatureStatus;
-    skillSlotGeometry: OptionalFeatureStatus;
-    skillCooldownObservation: OptionalFeatureStatus;
-    playerEffectObservation: OptionalFeatureStatus;
-    effectIconGeometry: OptionalFeatureStatus;
-    alcoholObservation: OptionalFeatureStatus;
-    nativeHudRendering: OptionalFeatureStatus;
-    resignAction: OptionalFeatureStatus;
-    whisperChat: OptionalFeatureStatus;
-    playRegionObservation: OptionalFeatureStatus;
-    preGameControls: OptionalFeatureStatus;
-    characterSwitchAction: OptionalFeatureStatus;
-    chatFiltering: OptionalFeatureStatus;
-    quickItemMove: OptionalFeatureStatus;
-    chatPrint: OptionalFeatureStatus;
-    progressObservation: OptionalFeatureStatus;
-  }>;
+  } & Record<EnhancementCapability, OptionalFeatureStatus>>;
 }
 
 export const ENHANCEMENT_RUNTIME_FEATURES = ENHANCEMENT_CAPABILITY_FIELDS;

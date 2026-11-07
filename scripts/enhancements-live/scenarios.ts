@@ -22,7 +22,7 @@ import path from "node:path";
 import type { CDPSession, Page } from "playwright";
 import type { AutomationCommand } from "../../app/shared/automation.js";
 import type { EnhancementProgram } from "../../app/shared/enhancement-contracts.js";
-import type { CharacterSwitchDiagnostics } from "../../app/renderer/character-switch-model.js";
+import type { CharacterSwitchDiagnostics } from "../../app/features/character-switch/renderer/character-switch-model.js";
 import type { EnhancementDoctorReport } from "../../app/tools-cli/enhancement-workspace.js";
 import { BENCHMARK_ARMS, isBalancedOrder } from "./benchmark.js";
 import { runToolboxFoundation, runToolboxHeroPanel } from "./toolbox-scenarios.js";

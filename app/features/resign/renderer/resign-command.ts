@@ -1,10 +1,11 @@
 /**
  * Owns the confirmed, fixed Resign command for one active Tools generation.
  * The certified game mailbox performs submission without touching chat input.
+ * The shortcut reaches it as `gw:resign-show`, the Hub through its own row.
  */
-import { createResignDialog, type ResignHandoff } from "../features/resign/renderer/resign-dialog.js";
-import { featureActivationRequested } from "../shared/feature-contracts.js";
-import { matchHubRows, type HubSource } from "../shared/hub.js";
+import { createResignDialog, type ResignHandoff } from "./resign-dialog.js";
+import { featureActivationRequested } from "../../../shared/feature-contracts.js";
+import { matchHubRows, type HubSource } from "../../../shared/hub.js";
 
 let active: { enabled: boolean; enqueue(): number; dialog: ReturnType<typeof createResignDialog> | null } | null = null;
 
@@ -82,7 +83,7 @@ function unavailable(): string | null {
 }
 
 /** Shows the confirmation; a Hub row passes the handoff that returns to it on Cancel. */
-export function showResignConfirmation(handoff?: ResignHandoff): void {
+function showResignConfirmation(handoff?: ResignHandoff): void {
   const command = active;
   if (!command?.enabled || !featureActivationRequested("resign", window.gwToolsSettings())) return;
   command.dialog ??= createResignDialog(document.body, unavailable, () => {

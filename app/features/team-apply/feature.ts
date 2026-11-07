@@ -6,5 +6,4 @@ export default defineFeature({
   activation: { kind: "setting", setting: "buildLibrary", master: "gwonmacTools" },
   region: "pve",
   programs: ["toolbox-commands"],
-  capabilities: ["partyObservation", "teamApply"],
 });

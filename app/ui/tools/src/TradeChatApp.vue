@@ -12,7 +12,6 @@ import {
 import type { TradeHost } from "./trade-host";
 import {
   TRADE_LIMITS,
-  type TradeConnectionState,
   type TradeEvent,
   type TradeMessage,
   type TradeSavedOffer,
@@ -20,16 +19,23 @@ import {
   type TradeSource,
 } from "../../../shared/trade-chat";
 import {
-  insertTradeMessage,
+  applyTradeMessage,
+  commitPendingTrade,
+  emptyTradeSource,
+  keepOrSelectFirst,
+  tradeAge,
   tradeLedgerRows,
   tradeMatchSegments,
   tradeMessageIntents,
   tradeTextMatches,
+  type TradeFollow,
   type TradeIntent,
+  type TradeSourceState,
 } from "./trade-ledger";
 import { useClassicFrame } from "./ui/use-classic-frame";
 import { listIndexAfter, listKeyStep, listPage } from "../../../shared/ui/list-keys";
 import { isHubBackKey } from "../../../shared/keyboard-shortcuts";
+import { characterKey } from "../../../shared/player-text";
 import { useFloatingWindow } from "./use-floating-window";
 import TradeIcon from "./TradeIcon.vue";
 import TraderPrices from "./components/TraderPrices.vue";
@@ -41,15 +47,6 @@ const props = defineProps<{
   visible: boolean;
 }>();
 const emit = defineEmits<{ close: []; ready: [] }>();
-
-type SourceState = {
-  status: TradeConnectionState;
-  live: TradeMessage[];
-  pending: TradeMessage[];
-  search: TradeMessage[];
-  selection: number | null;
-  savedSelection: number | null;
-};
 
 type PlayerReturnState = {
   scrollTop: number;
@@ -93,9 +90,9 @@ const searchInput = ref<HTMLInputElement | null>(null);
 const list = ref<HTMLElement | null>(null);
 /** A ledger row holds the keyboard, so ↵ and ⌘↵ act on the selected offer. */
 const rowFocused = ref(false);
-const states = reactive<Record<TradeSource, SourceState>>({
-  kamadan: state(),
-  "pre-searing": state(),
+const states = reactive<Record<TradeSource, TradeSourceState>>({
+  kamadan: emptyTradeSource(),
+  "pre-searing": emptyTradeSource(),
 });
 const { panel, resizeGrip, panelStyle, startDrag } = useFloatingWindow({
   mode: props.mode,
@@ -107,8 +104,8 @@ const { panel, resizeGrip, panelStyle, startDrag } = useFloatingWindow({
   placementStorageKey: "gwonmac.trade-window-placement",
 });
 
-const whispersEnabled = ref(false);
-const updateWhispersEnabled = () => { whispersEnabled.value = !!window.gwToolsSettings?.().gwonmacTools && !!window.gwToolsSettings?.().whispersEnabled; };
+const whispersEnabled = ref(props.host.whispers.available());
+let stopWhispers: (() => void) | null = null;
 
 const current = computed(() => states[source.value]);
 const sourceLabel = computed(() => source.value === "kamadan" ? "Kamadan" : "Pre-Searing");
@@ -312,21 +309,13 @@ function clearSearch(): void {
   keepOrSelectFirst(current.value, filtered.value);
 }
 
-function sameSender(left: TradeMessage | undefined, right: TradeMessage): boolean {
-  return left?.sender.toLocaleLowerCase() === right.sender.toLocaleLowerCase();
-}
-
-/**
- * A re-post replaces the seller's older message. The selection follows it only to the
- * same seller and only once the new row is shown; other arrivals never move the
- * selection or the keyboard (HUB-013).
- */
-function followReplacement(target: SourceState, message: TradeMessage, replaced: TradeMessage | undefined): void {
-  if (target.selection !== message.replacementTimestamp || !sameSender(replaced, message)) return;
-  const focused = document.activeElement instanceof HTMLElement
-    && document.activeElement.dataset.timestamp === String(message.replacementTimestamp);
-  target.selection = message.timestamp;
-  if (focused) focusRow(message.timestamp);
+/** The keyboard follows a re-post only from the row it replaced; other arrivals never move it (HUB-013). */
+function followFocus(follows: readonly TradeFollow[]): void {
+  for (const { from, to } of follows) {
+    if (document.activeElement instanceof HTMLElement && document.activeElement.dataset.timestamp === String(from)) {
+      focusRow(to);
+    }
+  }
 }
 
 function onTradeEvent(event: TradeEvent): void {
@@ -336,49 +325,19 @@ function onTradeEvent(event: TradeEvent): void {
     if (event.source === source.value) void sendQueuedSearch();
     return;
   }
-  const message = event.message;
-  const replacedAt = message.replacementTimestamp;
-  const replaced = replacedAt === undefined ? undefined
-    : [...target.live, ...target.pending, ...target.search, ...playerMessages.value]
-      .find((candidate) => candidate.timestamp === replacedAt);
-  if (replacedAt !== undefined) {
-    // Search results and a player's listings are snapshots: a re-post updates its row in place.
-    const inPlace = (messages: readonly TradeMessage[]) =>
-      messages.map((candidate) => candidate.timestamp === replacedAt ? message : candidate);
-    target.search = inPlace(target.search);
-    if (event.source === source.value) playerMessages.value = inPlace(playerMessages.value);
-  }
-  if ([...target.live, ...target.pending].some((candidate) => candidate.timestamp === message.timestamp)) {
-    followReplacement(target, message, replaced);
-    return;
-  }
-  const readingLive = event.source === source.value && !submittedQuery.value && !playerName.value;
-  if (readingLive && list.value && list.value.scrollTop >= 36) {
-    // Away from the top the reader's rows hold still: the replaced row stays until the queue merges.
-    target.pending = insertTradeMessage(target.pending, message);
-  } else {
-    target.live = insertTradeMessage(target.live, message);
-    target.pending = target.pending.filter((candidate) => candidate.timestamp !== replacedAt);
-    followReplacement(target, message, replaced);
-  }
-}
-
-function commitPending(): void {
-  const target = current.value;
-  if (!target.pending.length) return;
-  const arrivals = target.pending;
-  target.pending = [];
-  for (const message of arrivals) {
-    const replaced = target.live.find((candidate) => candidate.timestamp === message.replacementTimestamp);
-    target.live = insertTradeMessage(target.live, message);
-    followReplacement(target, message, replaced);
-  }
+  const shown = event.source === source.value;
+  // Away from the top of the live rows, the reader's rows hold still until they scroll back.
+  const holdArrivals = shown && !submittedQuery.value && !playerName.value
+    && !!list.value && list.value.scrollTop >= 36;
+  const arrival = applyTradeMessage(target, event.message, { holdArrivals, player: playerMessages.value });
+  if (shown) playerMessages.value = arrival.player;
+  if (arrival.followed) followFocus([arrival.followed]);
 }
 
 function onListScroll(event: Event): void {
   const target = event.currentTarget;
   if (!(target instanceof HTMLElement)) return;
-  if (target.scrollTop <= 2) commitPending();
+  if (target.scrollTop <= 2) followFocus(commitPendingTrade(current.value));
   const remaining = target.scrollHeight - target.clientHeight - target.scrollTop;
   if (remaining <= 96 && visibleLimit.value < filtered.value.length) {
     visibleLimit.value = Math.min(visibleLimit.value + 25, TRADE_LIMITS.searchResults);
@@ -425,8 +384,7 @@ function whisper(message: TradeMessage, event?: MouseEvent): void {
     showNotice(`Turn on Whispers in Settings to write to ${message.sender}.`, "warning");
     return;
   }
-  const request = new CustomEvent("gw:whisper-person", { detail: message.sender, cancelable: true });
-  if (window.dispatchEvent(request)) showNotice("Whispers is unavailable. Wait for Guild Wars chat, then try again.", "warning");
+  if (props.host.whispers.open(message.sender) === "unavailable") showNotice("Whispers is unavailable. Wait for Guild Wars chat, then try again.", "warning");
 }
 
 async function openPlayer(sender: string, origin: number | null, restoreFocus = ownsFocus()): Promise<void> {
@@ -460,10 +418,8 @@ async function openPlayer(sender: string, origin: number | null, restoreFocus = 
       scope: "player",
     });
     if (revision !== requestRevision || source.value !== requestedSource) return;
-    const key = sender.toLocaleLowerCase();
-    playerMessages.value = result.messages.filter(
-      (message) => message.sender.toLocaleLowerCase() === key,
-    );
+    const key = characterKey(sender);
+    playerMessages.value = result.messages.filter((message) => characterKey(message.sender) === key);
     current.value.selection = filtered.value[0]?.timestamp ?? null;
   } catch {
     if (revision === requestRevision) {
@@ -534,8 +490,8 @@ function offerSaved(message: TradeMessage): boolean {
 }
 
 function playerSaved(sender: string): boolean {
-  const key = sender.toLocaleLowerCase();
-  return saved.value.players.some((player) => player.sender.toLocaleLowerCase() === key);
+  const key = characterKey(sender);
+  return saved.value.players.some((player) => characterKey(player.sender) === key);
 }
 
 /** The star and Saved count show the result; only a failed write speaks (HUB-122). */
@@ -571,10 +527,10 @@ function toggleOffer(message: TradeMessage, event?: MouseEvent): void {
 function togglePlayer(sender: string, event?: MouseEvent): void {
   if (event && event.detail > 1) return;
   if (!savedReady.value) return;
-  const key = sender.toLocaleLowerCase();
+  const key = characterKey(sender);
   const exists = playerSaved(sender);
   const players = exists
-    ? saved.value.players.filter((player) => player.sender.toLocaleLowerCase() !== key)
+    ? saved.value.players.filter((player) => characterKey(player.sender) !== key)
     : [{ sender, savedAt: Date.now() }, ...saved.value.players]
       .slice(0, TRADE_LIMITS.savedPlayers);
   save({ ...saved.value, players });
@@ -608,8 +564,8 @@ async function inspectSavedOffer(offer: TradeSavedOffer): Promise<void> {
 }
 
 function currentOffersFor(sender: string): number {
-  const key = sender.toLocaleLowerCase();
-  return current.value.live.filter((message) => message.sender.toLocaleLowerCase() === key).length;
+  const key = characterKey(sender);
+  return current.value.live.filter((message) => characterKey(message.sender) === key).length;
 }
 
 /** ↓ ⌃N and PgDn in the search enter the ledger at the selected row; the other keys edit the text. */
@@ -844,8 +800,7 @@ watch(() => props.visible, (visible) => {
 });
 
 onMounted(() => {
-  updateWhispersEnabled();
-  window.addEventListener("gw:tools-settings", updateWhispersEnabled);
+  stopWhispers = props.host.whispers.onChange(() => { whispersEnabled.value = props.host.whispers.available(); });
   stopEvents = props.host.onEvent(onTradeEvent);
   clock = setInterval(() => { now.value = Date.now(); }, 30_000);
   if (props.visible) void subscribe(source.value);
@@ -861,36 +816,14 @@ onBeforeUnmount(() => {
   subscriptionRevision += 1;
   requestRevision += 1;
   stopEvents?.();
-  window.removeEventListener("gw:tools-settings", updateWhispersEnabled);
+  stopWhispers?.();
   if (clock) clearInterval(clock);
   if (noticeTimer) clearTimeout(noticeTimer);
   void props.host.unsubscribe();
 });
 
-function state(): SourceState {
-  return {
-    status: "unavailable",
-    live: [],
-    pending: [],
-    search: [],
-    selection: null,
-    savedSelection: null,
-  };
-}
-/** Loading or returning to a list keeps a shown selection and otherwise starts on the first row. */
-function keepOrSelectFirst(target: SourceState, messages: readonly TradeMessage[]): void {
-  if (target.savedSelection !== null) return;
-  if (!messages.some((message) => message.timestamp === target.selection)) {
-    target.selection = messages[0]?.timestamp ?? null;
-  }
-}
 function age(timestamp: number): string {
-  const seconds = Math.max(0, Math.floor((now.value - timestamp) / 1000));
-  if (seconds < 60) return "now";
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m`;
-  const hours = Math.floor(minutes / 60);
-  return hours < 24 ? `${hours}h` : `${Math.floor(hours / 24)}d`;
+  return tradeAge(timestamp, now.value);
 }
 function relativeAge(timestamp: number): string {
   const short = age(timestamp);
@@ -1254,7 +1187,7 @@ useClassicFrame(panel);
                 <strong>No followed players</strong>
                 <p>Follow a player to highlight every offer they post.</p>
               </div>
-              <article v-for="player in saved.players" :key="player.sender.toLocaleLowerCase()" class="saved-card saved-player-card">
+              <article v-for="player in saved.players" :key="characterKey(player.sender)" class="saved-card saved-player-card">
                 <button class="saved-card-main" @click="$event.detail <= 1 && openPlayer(player.sender, null)">
                   <span><bdi><TradeIcon name="player" filled />{{ player.sender }}</bdi><small>{{ currentOffersFor(player.sender) }} current {{ currentOffersFor(player.sender) === 1 ? "offer" : "offers" }} in {{ sourceLabel }}</small></span>
                 </button>

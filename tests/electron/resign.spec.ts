@@ -22,7 +22,7 @@ test("Resign uses the shared modal and submits only on Enter or its button", asy
       win.webContents.sendInputEvent({ type: "keyUp", keyCode: key, modifiers: ["meta", "shift"] });
     }, key);
     await page.evaluate(async () => {
-      const modulePath = "gw://app/resign.js";
+      const modulePath = "gw://app/features/resign/renderer/resign-command.js";
       const { installResignCommand } = await import(modulePath);
       let count = 0;
       const resign = installResignCommand({

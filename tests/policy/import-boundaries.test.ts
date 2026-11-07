@@ -277,6 +277,50 @@ const REJECTED = [
       'import { createRequire } from "node:module";\nexport const probe = createRequire(import.meta.url)("../main/paths.js");\n',
   },
   {
+    what: "app/renderer imports a feature's renderer module",
+    file: "app/renderer/probe.ts",
+    source:
+      'import { mountCartographyOverlay } from "../features/cartography/renderer/overlay.js";\nexport const probe = mountCartographyOverlay;\n',
+  },
+  {
+    what: "app/renderer dynamically imports a feature's companion part",
+    file: "app/renderer/probe.ts",
+    source: 'export const probe = async () => import("../features/resign/companion.js");\n',
+  },
+  {
+    what: "a subdirectory of app/renderer imports a module beside a feature's host",
+    file: "app/renderer/sub/probe.ts",
+    source:
+      'import { createCharacterSwitchController } from "../../features/character-switch/renderer/character-switch-controller.js";\nexport const probe = createCharacterSwitchController;\n',
+  },
+  {
+    what: "app/renderer imports a feature module named host in a subfolder",
+    file: "app/renderer/probe.ts",
+    source: 'export const probe = async () => import(`../features/cartography/renderer/sub/host.js`);\n',
+  },
+  {
+    what: "app/renderer imports a feature's main-process part",
+    file: "app/renderer/probe.ts",
+    source: 'import tradeChat from "../features/trade-chat/main.js";\nexport const probe = tradeChat;\n',
+  },
+  {
+    what: "app/renderer dynamically imports a module in a feature's main folder",
+    file: "app/renderer/probe.ts",
+    source:
+      'export const probe = async () => import("../features/cartography/main/elite-tracking.js");\n',
+  },
+  {
+    what: "app/renderer escapes a feature's shared folder with ..",
+    file: "app/renderer/probe.ts",
+    source: 'import maps from "../features/cartography/shared/../main.js";\nexport const probe = maps;\n',
+  },
+  {
+    what: "app/ui/tools imports a feature's renderer half",
+    file: "app/ui/tools/src/probe.ts",
+    source:
+      'import { installResignCommand } from "../../../features/resign/renderer/resign-command";\nexport const probe = installResignCommand;\n',
+  },
+  {
     what: "an website .vue SFC imports app/main",
     file: "website/app/pages/probe.vue",
     source:
@@ -390,6 +434,33 @@ const ALLOWED = [
     what: "app/renderer imports app/shared",
     file: "app/renderer/probe.js",
     source: 'import { IPC } from "../shared/contracts.js";\nexport const probe = IPC;\n',
+  },
+  {
+    what: "app/renderer imports a feature's host entry",
+    file: "app/renderer/probe.ts",
+    source:
+      'import { installCartographyHost } from "../features/cartography/renderer/host.js";\nexport const probe = installCartographyHost;\n',
+  },
+  {
+    what: "app/renderer imports a feature's manifest",
+    file: "app/renderer/probe.ts",
+    source: 'import resign from "../features/resign/feature.js";\nexport const probe = resign;\n',
+  },
+  {
+    what: "app/renderer imports a feature's shared contract",
+    file: "app/renderer/probe.ts",
+    source: 'import { probe as contract } from "../features/trade-chat/shared/contract.js";\nexport const probe = contract;\n',
+  },
+  {
+    what: "app/renderer dynamically imports the companion parts registry",
+    file: "app/renderer/probe.ts",
+    source: 'export const probe = async () => import("../features/companion-parts.js");\n',
+  },
+  {
+    what: "a feature's renderer half imports app/renderer",
+    file: "app/features/resign/renderer/probe.ts",
+    source:
+      'import { matchHubRows } from "../../../shared/hub.js";\nimport { isolateFromGame } from "../../../renderer/non-activating-surface.js";\nexport const probe = [matchHubRows, isolateFromGame];\n',
   },
   {
     what: "an website .vue SFC imports app/shared",

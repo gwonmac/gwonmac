@@ -40,6 +40,8 @@ import { sanitiseTemplateName } from "./template-format.js";
 import { createTemplateFiles } from "./template-files.js";
 import { ensureToolsStylesheet } from "./tools-stylesheet.js";
 import { requireToolsApi } from "./tools-native-api.js";
+import { createTradeWhispers } from "./trade-whispers.js";
+import { featureActivationRequested } from "../shared/feature-contracts.js";
 
 /**
  * Writes one build where the game's own template dialog will find it.
@@ -191,6 +193,7 @@ export function mountTradeInto(
     .then((bundle: EmbeddedToolsBundle<HTMLElement>) => {
       const app = bundle.mountTradeChat(host, {
         nativeApi: native,
+        whispers: createTradeWhispers(),
         initiallyVisible: false,
         onVisibilityChange,
         mode: "embedded",
@@ -237,8 +240,8 @@ export function mountHostOnlyTools(
     const settings = window.gwToolsSettings();
     lifecycle.setEnabled(settings.gwonmacTools);
     lifecycle.setAvailable({
-      builds: settings.gwonmacTools && settings.buildLibrary,
-      trade: settings.gwonmacTools && settings.tradeChat,
+      builds: featureActivationRequested("buildLibrary", settings),
+      trade: featureActivationRequested("tradeChat", settings),
     });
   };
   window.addEventListener("gw:tools-settings", syncEnabled);

@@ -10,12 +10,13 @@ import type {
   CharacterSummary,
 } from "../../../renderer/companion-character-list-snapshot.js";
 import { professionPresentation } from "../../../shared/profession-assets.js";
+import { featureActivationRequested } from "../../../shared/feature-contracts.js";
 import { travelDestination } from "../../../shared/travel-destinations.js";
 import type {
   CharacterSwitchFailureCode,
   CharacterSwitchSource,
-} from "../../../renderer/character-switch-model.js";
-import { currentCharacterIndex } from "../../../renderer/character-switch-model.js";
+} from "./character-switch-model.js";
+import { currentCharacterIndex } from "./character-switch-model.js";
 import { closeDisclosure } from "../../../renderer/surface-controller.js";
 import { bindLeaveAreaChoice, leaveAreaCopy } from "../../../renderer/leave-area.js";
 import { listIndexAfter, listKeyStep } from "../../../shared/ui/list-keys.js";
@@ -227,7 +228,7 @@ export function createCharacterSwitchPalette(
       if (view.kind === "closed") { view = Object.freeze({ kind: "characters" }); render(); }
       focusSelected();
       return () => { hubBack = undefined; hubFooter = undefined; root.removeAttribute("open"); root.hidden = true; parent.append(root); if (view.kind === 'confirming') source.cancelConfirmation(); view = { kind: 'closed' }; };
-    }, () => !!window.gwToolsSettings?.().characterSwitchEnabled, "characters"); },
+    }, () => featureActivationRequested("characterSwitch", window.gwToolsSettings?.() ?? {}), "characters"); },
     close() { hub.close(); },
     pageChanged() { hub.pageChanged(); },
     dispose() { if (root.hasAttribute("open")) hub.close(); },

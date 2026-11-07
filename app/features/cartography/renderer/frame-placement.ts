@@ -3,8 +3,8 @@
  * Rejects stale generations, hidden frames, and invalid screen geometry.
  */
 import type {
-  CompassFrameSpikeSnapshot,
-  NativeFrameSpikeSnapshot,
+  CompassFrameSnapshot,
+  NativeFrameSnapshot,
 } from "../../../shared/cartography-spike.js";
 
 const MAX_VIEWPORT_EDGE = 32_768;
@@ -26,7 +26,7 @@ export type ViewportSize = Readonly<{
 
 /** Project one ready native frame through the game canvas' current CSS box. */
 export function projectNativeFrame(
-  frame: NativeFrameSpikeSnapshot,
+  frame: NativeFrameSnapshot,
   canvas: ScreenBox,
   viewport: ViewportSize = {
     width: frame.viewportWidth,
@@ -73,8 +73,8 @@ export function projectNativeFrame(
 
 /** Mission Map coordinates use the global Compass viewport, not its local viewport. */
 export function projectMissionMapFrame(
-  missionMap: NativeFrameSpikeSnapshot,
-  compass: CompassFrameSpikeSnapshot,
+  missionMap: NativeFrameSnapshot,
+  compass: CompassFrameSnapshot,
   canvas: ScreenBox,
 ): ScreenBox | null {
   if (missionMap.generation !== compass.generation) return null;

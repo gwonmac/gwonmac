@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { setTimeout as delay } from "node:timers/promises";
 import { describe, it, type TestContext } from "node:test";
-import { createCharacterSwitchController } from "../../app/renderer/character-switch-controller.js";
+import { createCharacterSwitchController } from "../../app/features/character-switch/renderer/character-switch-controller.js";
 import type { CharacterSummary, CompanionCharacterListState } from "../../app/renderer/companion-character-list-snapshot.js";
 import { CHARACTER_SWITCH_ACTION_ABI as ABI } from "../../app/shared/character-switch-action-abi.js";
 

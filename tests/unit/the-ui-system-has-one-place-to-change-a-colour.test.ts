@@ -47,7 +47,7 @@ const NOT_YET_TOKENISED: Record<string, { rules: Rule[]; reason: string }> = {
     rules: ["colour", "radius", "z-index"],
     reason: "the renderer's game overlays predate the token system",
   },
-  "app/renderer/character-switch.css": {
+  "app/features/character-switch/renderer/character-switch.css": {
     rules: ["colour", "z-index"],
     reason: "the renderer's game overlays predate the token system",
   },
@@ -102,6 +102,7 @@ const files: StyleFile[] = globSync([
   "app/ui/*/src/**/*.{css,vue}",
   "app/shared/ui/**/*.css",
   "app/renderer/**/*.css",
+  "app/features/*/renderer/**/*.css",
 ])
   .sort()
   .map((path) => {

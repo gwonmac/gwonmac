@@ -11,11 +11,11 @@ import {
   MISSION_MAP_PROJECTION_SPIKE_SCALARS,
   WORLD_MAP_FRAME_SPIKE_GLOBALS,
   WORLD_MAP_FRAME_SPIKE_SCALARS,
-  type CompassFrameSpikeController,
-  type MissionMapFrameSpikeController,
-  type NativeFrameSpikeSnapshot,
-  type WorldMapFrameSpikeController,
-  type WorldMapFrameSpikeDiagnostic,
+  type CompassFrameController,
+  type MissionMapFrameController,
+  type NativeFrameSnapshot,
+  type WorldMapFrameController,
+  type WorldMapFrameDiagnostic,
 } from "../../../shared/cartography-spike.js";
 
 type FrameGlobals = typeof MISSION_MAP_FRAME_SPIKE_GLOBALS;
@@ -40,7 +40,7 @@ function hasFrameSurface(
 function readFrame(
   exports: WebAssembly.Exports,
   globals: FrameGlobals,
-): NativeFrameSpikeSnapshot | null {
+): NativeFrameSnapshot | null {
   const observe = exports[globals.observe];
   if (typeof observe !== "function") return null;
   try {
@@ -79,9 +79,9 @@ function readFrame(
   });
 }
 
-export function createMissionMapFrameSpikeReader(
+export function createMissionMapFrameReader(
   exports: WebAssembly.Exports,
-): MissionMapFrameSpikeController | null {
+): MissionMapFrameController | null {
   if (!hasFrameSurface(
     exports,
     MISSION_MAP_FRAME_SPIKE_GLOBALS,
@@ -160,9 +160,9 @@ export function createMissionMapFrameSpikeReader(
   });
 }
 
-export function createCompassFrameSpikeReader(
+export function createCompassFrameReader(
   exports: WebAssembly.Exports,
-): CompassFrameSpikeController | null {
+): CompassFrameController | null {
   if (
     !hasFrameSurface(exports, COMPASS_FRAME_SPIKE_GLOBALS, COMPASS_FRAME_SPIKE_SCALARS)
   ) return null;
@@ -186,15 +186,15 @@ export function createCompassFrameSpikeReader(
   });
 }
 
-export function createWorldMapFrameSpikeReader(
+export function createWorldMapFrameReader(
   exports: WebAssembly.Exports,
-): WorldMapFrameSpikeController | null {
+): WorldMapFrameController | null {
   const observe = exports[WORLD_MAP_FRAME_SPIKE_GLOBALS.observe];
   if (typeof observe !== "function") return null;
   if (!WORLD_MAP_FRAME_SPIKE_SCALARS.every(
     (name) => exports[name] instanceof WebAssembly.Global,
   )) return null;
-  const diagnostics = (): WorldMapFrameSpikeDiagnostic => {
+  const diagnostics = (): WorldMapFrameDiagnostic => {
     observe();
     return Object.freeze({
     status: numberGlobal(exports, WORLD_MAP_FRAME_SPIKE_GLOBALS.status),

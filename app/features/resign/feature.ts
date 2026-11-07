@@ -15,5 +15,4 @@ export default defineFeature({
     description: "Ask before sending /resign in PvE. Enter confirms; Escape cancels.",
   },
   shortcuts: [{ action: "game.resign", binding: null, menuItem: "resign-game" }],
-  capabilities: ["resignAction"],
 });

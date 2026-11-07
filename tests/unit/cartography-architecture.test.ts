@@ -44,7 +44,7 @@ test("legacy lifecycle and generic visual-mask paths stay deleted", async () => 
 });
 
 test("one missing map surface cannot disable the other Cartography surfaces", async () => {
-  const installer = await readFile(path.join(RENDERER, "index.ts"), "utf8");
+  const installer = await readFile(path.join(RENDERER, "cartography-installation.ts"), "utf8");
   assert.doesNotMatch(
     installer,
     /compass\s*===\s*null[^;]+missionMap\s*===\s*null[^;]+worldMap\s*===\s*null/s,
