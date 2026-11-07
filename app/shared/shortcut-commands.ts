@@ -1,9 +1,10 @@
 /**
  * What each app shortcut does, as data that main (app/main/window.ts) and the Hub fixture
  * (app/ui/tools/src/hub-fixture-main.ts) share: the renderer commands main sends, in order, or
- * the map layer setting it flips. A shortcut runs only while its feature is selected
- * (SHORTCUT_FEATURES). The renderer (app/renderer/commands.ts) turns each tool command into
- * its tool's event (TOOL_COMMAND_EVENTS, app/shared/hub-tools.ts) and refuses what no listener claims.
+ * the map layer setting it flips. Main sends a shortcut only while its feature is turned on in
+ * the live settings (SHORTCUT_FEATURES). The renderer (app/renderer/commands.ts) acts on a tool
+ * command only in a launch that selected Tools, turns it into its tool's event
+ * (TOOL_COMMAND_EVENTS, app/shared/hub-tools.ts) and refuses what no listener claims.
  */
 import type { AppSettings, RendererCommand } from "./contracts.js";
 import type { ShortcutAction } from "../features/index.js";

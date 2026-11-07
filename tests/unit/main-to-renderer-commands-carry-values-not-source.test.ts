@@ -202,6 +202,8 @@ const INIT: RendererInit = {
       doubleClickMs: null,
 };
 const ARGV = ["electron", `${RENDERER_INIT_ARGUMENT}${JSON.stringify(INIT)}`];
+// A launch that selected Tools: only there does a tool command act.
+const TOOLS_ARGV = ["electron", `${RENDERER_INIT_ARGUMENT}${JSON.stringify({ ...INIT, enhancementSelection: { ...INIT.enhancementSelection, tools: true } })}`];
 const plainInit = (value: RendererInit): RendererInit => ({
   ...value,
   enhancementSelection: { ...value.enhancementSelection },
@@ -245,7 +247,7 @@ test("a renderer with no readable init argument gets the production posture", ()
 });
 
 test("menu commands reach the game renderer as events", async () => {
-  const fixture = harness(ARGV);
+  const fixture = harness(TOOLS_ARGV);
   fixture.deliver(1, { type: "input.reset" });
   fixture.deliver(2, { type: "diagnostics.toggle" });
   fixture.listen("gw:tools-toggle");
@@ -315,7 +317,7 @@ test("a tool command is unhandled when no listener claims its event, and fails w
   // and refuses sets the reason on the detail, and the command fails.
   for (const [type, event] of TOOL_COMMANDS) {
     for (const [listener, outcome] of [["absent", "unhandled"], ["claims", "completed"], ["refuses", "failed"]] as const) {
-      const fixture = harness(ARGV);
+      const fixture = harness(TOOLS_ARGV);
       if (listener !== "absent") fixture.listen(event, listener === "refuses" ? new Error("refused") : undefined);
       fixture.deliver(1, { type });
       await fixture.settled(1);
@@ -325,6 +327,22 @@ test("a tool command is unhandled when no listener claims its event, and fails w
         `${type} with its listener ${listener}`,
       );
     }
+  }
+});
+
+test("no tool command acts in a launch that did not select Tools, even with its listener present", async () => {
+  // Main gates on the live settings; the launch's selection is the renderer's to hold. Call
+  // target's listener presses keys in the client, so it must never be reached here.
+  for (const [type, event] of [["game.call-target", "gw:call-target"], ["travel.toggle", "gw:travel-toggle"]] as const) {
+    const fixture = harness(ARGV);
+    fixture.listen(event);
+    fixture.deliver(1, { type });
+    await fixture.settled(1);
+    assert.deepEqual(
+      { dispatched: fixture.dispatched.filter((name) => name !== "gw:input-reset"), acknowledged: fixture.acknowledgements() },
+      { dispatched: [], acknowledged: [[1, "unhandled"]] },
+      type,
+    );
   }
 });
 

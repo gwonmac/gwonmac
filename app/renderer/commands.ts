@@ -129,11 +129,15 @@
         await capture(command);
         break;
       default: {
-        // A tool command fires its tool's event (TOOL_COMMAND_EVENTS). Main sends one
-        // only while its feature is selected, and the listener checks again, so an
-        // unclaimed event is the ordinary answer of a launch without that tool.
+        // A tool command fires its tool's event (TOOL_COMMAND_EVENTS), and only in a launch
+        // that selected Tools. Main gates on the live settings, not on this launch, and a
+        // listener such as Call target's (input.ts) checks only its setting: without this
+        // gate, a launch whose profile forced Tools off, or one where Tools was switched on
+        // mid-session, would press keys in the untouched official client. An unclaimed
+        // event is the ordinary answer of a launch without that tool.
         const event = (await toolEvents).get(command.type);
         if (event === undefined) break;
+        if (!window.gwNative.init.enhancementSelection.tools) return 'unhandled';
         const result: { error?: unknown } = {};
         if (!dispatch(event, result)) return 'unhandled';
         if (result.error !== undefined) throw result.error;
