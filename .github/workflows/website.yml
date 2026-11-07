@@ -1,0 +1,45 @@
+# Deploys website/ to www.gwonmac.com with the Vercel CLI (Vercel Hobby cannot
+# link an organization repository, so this workflow is the deploy path).
+#
+# OFF until the cut-over: the live site still deploys from the old repository.
+# Nothing here deploys until the repository variable WEBSITE_DEPLOY is "true".
+name: Website
+
+on:
+  push:
+    branches: [main]
+    paths: ["website/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: website
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: vars.WEBSITE_DEPLOY == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: website
+      url: https://www.gwonmac.com
+    env:
+      VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL: npx --yes vercel@65.2.0
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          electron: "false"
+      # Build on the runner and upload the output, so the project settings and
+      # website/vercel.json (including the update-feed redirect) come from here.
+      - run: $VERCEL pull --yes --environment=production --token="$VERCEL_TOKEN"
+      - run: $VERCEL build --prod --token="$VERCEL_TOKEN"
+      - run: $VERCEL deploy --prebuilt --prod --token="$VERCEL_TOKEN"
