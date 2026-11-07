@@ -5,7 +5,8 @@
 import { resolveCartographyPreset } from "../../../shared/cartography-presets.js";
 import type { CartographyEvidenceExportResult } from "../../../shared/cartography-evidence.js";
 import type { AppSettings, RendererSettingsPatch } from "../../../shared/contracts.js";
-import { REVEAL_MODE_OPTIONS } from "../../../shared/setting-copy.js";
+import { CARTOGRAPHY_REVEAL_MODES } from "../../../shared/cartography-overlay.js";
+import { optionFor, REVEAL_MODE_OPTIONS } from "../../../shared/setting-copy.js";
 import type { WorldMapFrameDiagnostic } from "../../../shared/cartography-spike.js";
 import {
   encodeCartographyPresetRef,
@@ -459,7 +460,7 @@ export function createCartographyOverlayControls(options: Readonly<{
   bindSlider("grid", gridOpacity, "cartographyGridOpacity");
   bindSlider("walkability", walkabilityOpacity, "cartographyWalkabilityOpacity");
   reach.addEventListener("change", () => {
-    const value = REVEAL_MODE_OPTIONS.find((option) => option.value === reach.value)?.value;
+    const value = optionFor(CARTOGRAPHY_REVEAL_MODES, reach.value);
     if (value) apply({ cartographyRevealMode: value });
   });
   preset.addEventListener("change", () => {

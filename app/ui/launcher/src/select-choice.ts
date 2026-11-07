@@ -1,10 +1,12 @@
 /**
- * Owns how a Settings select's value becomes a setting value: it is looked up in
- * the values the select offers, so no select casts its value, and a value none of
- * them matches is not saved.
+ * Owns the change handler of every Settings select: the shown value goes through
+ * optionFor, so no select casts its value, and a value none of the offered values
+ * matches is not saved.
  */
+import { optionFor } from "@shared/setting-copy";
+
 export function saveChoice<T extends string | number>(event: Event, values: readonly T[], save: (value: T) => unknown): void {
   const select = event.currentTarget;
-  const value = select instanceof HTMLSelectElement ? values.find((each) => String(each) === select.value) : undefined;
+  const value = select instanceof HTMLSelectElement ? optionFor(values, select.value) : undefined;
   if (value !== undefined) void save(value);
 }
