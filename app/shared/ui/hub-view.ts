@@ -127,12 +127,19 @@ export type HubLayoutReader = Readonly<{
   /** How many rows PageUp and PageDown move: one page of the list, less one row. */
   pageRows(): number;
 }>;
+/** A mounted page's form fields by focus key, for the session drafts the controller keeps. */
+export type HubDraftFields = Readonly<{
+  read(): readonly (readonly [key: string, value: string])[];
+  /** Puts a kept value back into its field as an edit the page hears. */
+  write(key: string, value: string): void;
+}>;
 export type HubViewHandle = Readonly<{
   elements: HubViewElements;
   /** Redraws the model now and applies its focus request; the controller calls it once per entry point. */
   paint(model: HubViewModel): void;
   focus: HubFocusReader;
   layout: HubLayoutReader;
+  drafts: HubDraftFields;
   /** Mounts Build details into a view host; returns its section and its disposal. */
   mountBuildDetails(target: HTMLElement, builds: HubBuildDetails): Readonly<{ element: HTMLElement; dispose(): void }>;
   /** The Hub's own pages, which the controller hands to every view it mounts. */

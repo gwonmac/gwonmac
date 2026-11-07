@@ -8,6 +8,7 @@ import { h, render, type Ref, type VNode } from 'vue';
 import type { EmbeddedHubView, HubFocusReader, HubLayoutReader, HubViewElements } from '../../../../shared/ui/hub-view';
 import HubBuildDetails from './HubBuildDetails.vue';
 import HubShell from './HubShell.vue';
+import { hubDraftFields } from './drafts';
 import { HUB_PAGES } from './views';
 
 export const mountHubView: EmbeddedHubView['mountHubView'] = (parent, model) => {
@@ -38,6 +39,7 @@ export const mountHubView: EmbeddedHubView['mountHubView'] = (parent, model) => 
     paint,
     focus: exposed.focus,
     layout,
+    drafts: hubDraftFields(elements.view),
     mountBuildDetails(target, builds) {
       const vnode = h(HubBuildDetails, { builds });
       render(vnode, target);

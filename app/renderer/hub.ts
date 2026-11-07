@@ -184,29 +184,27 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
   /** Withdraw only pages whose actual source is unavailable; other drafts and searches stay. */
   const withdrawPages = () => send({ type: 'withdraw' });
   /**
-   * Form drafts last the session, keyed by page path and field name: leaving a form keeps what
-   * was typed and returning restores it, unless the stored value the field started from changed.
+   * Form drafts last the session, keyed by page path and the field's focus key: leaving a form
+   * keeps what was typed and returning restores it, unless the stored value the field started
+   * from changed. The view reads and writes the fields (HubDraftFields).
    */
   const drafts = new Map<string, { initial: string; value: string }>();
   const draftInitials = new Map<string, string>();
   let draftPage: string | null = null;
-  const draftFields = () => [...content.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(
-    'form input:not([type]), form input[type=text], form input[type=search], form textarea, form select')]
-    .flatMap(field => { const name = field.getAttribute('aria-label') || field.name || field.id; return name ? [[`${draftPage} › ${name}`, field] as const] : []; });
   function restoreDrafts(path: string) {
     draftPage = path; draftInitials.clear();
-    for (const [key, field] of draftFields()) {
-      draftInitials.set(key, field.value);
-      const draft = drafts.get(key);
-      if (draft && draft.initial !== field.value) drafts.delete(key);
-      else if (draft) { field.value = draft.value; field.dispatchEvent(new Event(field instanceof HTMLSelectElement ? 'change' : 'input', { bubbles: true })); }
+    for (const [field, value] of ui.drafts.read()) {
+      const key = `${path} › ${field}`, draft = drafts.get(key);
+      draftInitials.set(key, value);
+      if (draft && draft.initial !== value) drafts.delete(key);
+      else if (draft) ui.drafts.write(field, draft.value);
     }
   }
   function keepDrafts() {
     if (draftPage === null) return;
-    for (const [key, field] of draftFields()) {
-      const initial = draftInitials.get(key) ?? field.value;
-      if (field.value === initial) drafts.delete(key); else drafts.set(key, { initial, value: field.value });
+    for (const [field, value] of ui.drafts.read()) {
+      const key = `${draftPage} › ${field}`, initial = draftInitials.get(key) ?? value;
+      if (value === initial) drafts.delete(key); else drafts.set(key, { initial, value });
     }
     draftPage = null;
   }

@@ -18,7 +18,8 @@ records. Where the keyboard goes is a focus target in the view model
 (`app/ui/tools/src/hub/hub-focus.ts`, `focus-zone.ts`) applies it after the
 paint and owns arrows inside each zone and the fallback when a focused control
 goes away. Every Hub view names its controls with `data-focus-key`, so the
-keyboard can return to the same control; only the launcher's Settings page,
+keyboard can return to the same control and a form's session draft returns to
+the same field (`app/ui/tools/src/hub/drafts.ts`); only the launcher's Settings page,
 which the Hub hosts, keeps its own names. The Hub's own pages (preferences, the
 phrase form, rates, price details, confirmations, the Settings host) are Vue
 components in `app/ui/tools/src/hub/views`; their controllers in

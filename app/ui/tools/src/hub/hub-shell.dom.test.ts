@@ -2,6 +2,7 @@
  * The Hub shell's DOM contract: element types, classes, ids, ARIA and text of every main view,
  * and where the keyboard is. The snapshot was taken from the hand-built Hub before it moved to
  * Vue, so this test holds the Vue Hub to the same structure the CSS and the e2e suites expect.
+ * The real controller and view also hold what only their DOM shows, such as session drafts.
  */
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 // eslint-disable-next-line no-restricted-imports
@@ -121,4 +122,23 @@ test('the Hub keeps its DOM structure, classes, ARIA and focus in every main vie
   capture('closed with receipt');
 
   await expect(views.join('\n\n')).toMatchFileSnapshot('./__snapshots__/hub-shell.dom.txt');
+});
+
+test('a form keeps its session draft when a field\'s label changes, since drafts follow the focus key', async () => {
+  const hub = withHubBuiltins(createHub(document.body, { mountHubView }));
+  window.gwHub = hub;
+  const form = (label: string): HubViewMount<HTMLElement> => target => {
+    const element = document.createElement('form');
+    element.innerHTML = `<label>${label} <input aria-label="${label}" data-focus-key="name"></label>`;
+    target.append(element);
+    return () => element.remove();
+  };
+  const field = () => document.querySelector<HTMLInputElement>('.hub-view input')!;
+  hub.show(); await settle();
+  hub.showView('Form', form('Name')); await settle();
+  field().value = 'keep me'; field().dispatchEvent(new Event('input', { bubbles: true }));
+  key(field(), { key: 'Backspace', metaKey: true }); await settle();
+  expect(document.querySelector('.hub-view input')).toBeNull();
+  hub.showView('Form', form('Full name')); await settle();
+  expect(field().value).toBe('keep me');
 });
