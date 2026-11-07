@@ -56,12 +56,24 @@ const familiesOf = (generations: readonly ClientGeneration[]): readonly FriendLi
   [...BASE_FAMILIES, ...generations.flatMap((generation) => generation.facts?.friendLifecycleRoles ?? [])];
 const activeFamilies = perReviewedFacts(familiesOf);
 
-// The observer's semantic digest covers every reviewed family the release
-// carries, whichever are active, because the renderer pins it.
-export const FRIEND_LIFECYCLE_SEMANTIC_SHA256 = createHash("sha256").update(JSON.stringify({
-  roles: familiesOf(REVIEWED_GENERATIONS),
-  contract: "request-roster-completion-user-event-envelope-dispatch-five-connection-stores-bounded-context-v3",
-})).digest("hex");
+/**
+ * The digest of what the lifecycle candidate means, which the renderer pins:
+ * each role's name and signature in every reviewed family, plus the relations
+ * that `inspectFriendLifecycle` checks (named by the contract). Body lengths
+ * and shapes are matching data, so a family that only moves callees, static
+ * state or source lines keeps the pin, and a family that changes a role's
+ * signature changes it.
+ */
+export function friendLifecycleMeaningSha256(families: readonly FriendLifecycleRoleFamily[]): string {
+  const meanings = new Set(families.map((family) => JSON.stringify(
+    (Object.keys(ROLE_SPECS) as FriendLifecycleRole[]).map((role) => [role, family[role][1], family[role][2]]))));
+  return createHash("sha256").update(JSON.stringify({
+    roles: [...meanings].sort(),
+    contract: "request-roster-completion-user-event-envelope-dispatch-five-connection-stores-bounded-context-v3",
+  })).digest("hex");
+}
+
+export const FRIEND_LIFECYCLE_SEMANTIC_SHA256 = friendLifecycleMeaningSha256(familiesOf(REVIEWED_GENERATIONS));
 
 type FriendLifecycleRole = keyof typeof ROLE_SPECS;
 

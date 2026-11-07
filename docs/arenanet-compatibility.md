@@ -197,8 +197,10 @@ locator already meets the final relocation-resistant bar. At verifier ABI 10:
     the layout id the derived client publishes. The reachability kernel
     receives them at install, so a new layout no longer changes the kernel,
     but it still needs a new id and roots there, so a release;
-  - friend lifecycle role families feed `FRIEND_OBSERVER_SEMANTIC_SHA256`,
-    which the renderer pins;
+  - a friend lifecycle family whose role bodies changed needs a review. The
+    renderer pins `FRIEND_OBSERVER_SEMANTIC_SHA256`, which covers only what
+    the certificate means (role names, signatures and the checked relations),
+    so a new family changes the pin only when a role's meaning changes;
   - template saving's `MOVED_CALLEES` (in `template-save-callee-proof.ts`)
     names each helper call that has moved. A relink that moves another call
     needs a new entry there.

@@ -310,8 +310,8 @@ A new client can need all of these:
 - in its generation file's `facts`: alternatives, template-saving helper
   bodies, resign and whisper chat paths, the native render family, pathing
   families, the Guild Hall area-type family, the accepted Cartography layout,
-  and the friend lifecycle family (which changes
-  `FRIEND_OBSERVER_SEMANTIC_SHA256`);
+  and the friend lifecycle family (it changes
+  `FRIEND_OBSERVER_SEMANTIC_SHA256` only when a role's signature changes);
 - a Cartography memory layout with its Compass, Mission Map, and World Map
   certificates, the World Map display owner in
   `cartography-transform-internals.ts`, and its context root and agent array in
