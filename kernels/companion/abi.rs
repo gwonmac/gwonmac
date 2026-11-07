@@ -2,7 +2,7 @@
 //! snapshot the kernel publishes, and the constants both sides compare
 //! against. Declarations only — no logic and no unsafe code.
 //!
-//! Every snapshot starts with `SnapshotHeader`; `publish.rs` owns the
+//! Every snapshot starts with `SnapshotHeader`; `sequence_lock.rs` owns the
 //! sequence lock that writes it.
 //!
 //! Every published type is `repr(C)` and none of them contains a pointer, so a
