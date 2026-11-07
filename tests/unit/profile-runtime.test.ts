@@ -7,6 +7,7 @@ import {
   launchIssueForStage,
   playDecision,
   ProfileRuntimeStore,
+  type ProfileRuntime,
 } from "../../app/main/core/profile-runtime.js";
 import type { MultiProfileRuntimeState } from "../../app/shared/contracts.js";
 import type { ProfileId } from "../../app/shared/multiple-accounts.js";
@@ -90,6 +91,23 @@ describe("Multiple Accounts runtime state", () => {
     for (const [state, hasWindow, decision] of cases) {
       assert.equal(playDecision({ state }, hasWindow), decision, `${state}, window ${hasWindow}`);
     }
+
+    // Cancel waiting returns the row Play started from, so Play again still
+    // retries a failed account whose failed window is registered.
+    const beforePlay: readonly [ProfileRuntime, boolean][] = [
+      [{ state: "ready" }, false],
+      [{ state: "failed", launchIssue: "renderer-crash" }, true],
+      [{ state: "failed", launchIssue: "window-startup" }, false],
+    ];
+    for (const [row, hasWindow] of beforePlay) {
+      const runtime = new ProfileRuntimeStore();
+      const profile = id("profile");
+      if (row.state === "failed") runtime.set(profile, "failed", row.launchIssue);
+      runtime.queue([profile], (p) => runtime.get(p), () => hasWindow);
+      runtime.releaseQueued([profile]);
+      assert.deepEqual(runtime.get(profile), row);
+      assert.equal(playDecision(runtime.get(profile), hasWindow), row.state === "failed" ? "retry" : "queue");
+    }
   });
 
   it("numbers each Play's profiles from zero and marks a retry from Failed", () => {
@@ -138,6 +156,38 @@ describe("Multiple Accounts runtime state", () => {
     await assert.rejects(launcher, /failing did not open/u);
     await hub;
     assert.equal(runtime.get(joining).state, "running");
+  });
+
+  it("clears a canary-released profile's failure when another Play opens it in the same drain", async () => {
+    const runtime = new ProfileRuntimeStore();
+    const [canary, released] = [id("canary"), id("released")];
+    let failCanary!: () => void;
+    const canaryFails = new Promise<void>((resolve) => { failCanary = resolve; });
+    const drain = new LaunchDrain(runtime, async () => (await drainLaunchQueue(runtime, new Mutex(), {
+      open: async ({ profileId }) => {
+        runtime.set(profileId, "running");
+      },
+      settle: async (profileId, _opened, releaseWaiting) => {
+        if (profileId !== canary) return;
+        const error = new Error("canary did not confirm");
+        runtime.set(canary, "failed", "client-validation");
+        releaseWaiting(error);
+        await canaryFails;
+        throw error;
+      },
+    })).failures);
+
+    runtime.queue([canary, released], (p) => runtime.get(p), noWindow);
+    const launcher = drain.drain([canary, released]);
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.deepEqual(runtime.get(released), { state: "ready" });
+    runtime.queue([released], (p) => runtime.get(p), noWindow);
+    const hub = drain.drain([released]);
+    failCanary();
+
+    await assert.rejects(launcher, /canary did not confirm/u);
+    await hub;
+    assert.equal(runtime.get(released).state, "running");
   });
 
   it("maps every failure stage to bounded player-safe vocabulary", () => {

@@ -44,6 +44,8 @@ export interface QueuedLaunch {
  */
 export class ProfileRuntimeStore {
   readonly #profiles = new Map<ProfileId, ProfileRuntime>();
+  /** The Failed row a waiting retry came from, restored if it never starts. */
+  readonly #failedBeforeRetry = new Map<ProfileId, ProfileRuntime>();
   #waiting: QueuedLaunch[] = [];
 
   get(profileId: ProfileId): ProfileRuntime {
@@ -57,6 +59,7 @@ export class ProfileRuntimeStore {
     launchIssue?: AccountLaunchIssue,
   ): void {
     this.#waiting = this.#waiting.filter((launch) => launch.profileId !== profileId);
+    this.#failedBeforeRetry.delete(profileId);
     this.#profiles.set(profileId, launchIssue ? { state, launchIssue } : { state });
   }
 
@@ -72,9 +75,11 @@ export class ProfileRuntimeStore {
   ): readonly ProfileId[] {
     const queued: ProfileId[] = [];
     for (const profileId of profileIds) {
-      const decision = playDecision(current(profileId), hasWindow(profileId));
+      const runtime = current(profileId);
+      const decision = playDecision(runtime, hasWindow(profileId));
       if (decision === "skip") continue;
       this.#waiting.push({ profileId, ordinal: queued.length, retry: decision === "retry" });
+      if (decision === "retry") this.#failedBeforeRetry.set(profileId, runtime);
       this.#profiles.set(profileId, { state: "queued" });
       queued.push(profileId);
     }
@@ -95,10 +100,17 @@ export class ProfileRuntimeStore {
     return this.#waiting.shift();
   }
 
-  /** Cancel waiting: returns queued profiles to Ready and out of the queue. */
+  /**
+   * Cancel waiting: takes queued profiles out of the queue and back to the row
+   * they had before Play. A retry returns to Failed, so its failed window
+   * still offers Try again; every other profile returns to Ready.
+   */
   releaseQueued(profileIds: readonly ProfileId[]): void {
     for (const profileId of profileIds) {
-      if (this.get(profileId).state === "queued") this.set(profileId, "ready");
+      if (this.get(profileId).state !== "queued") continue;
+      const failed = this.#failedBeforeRetry.get(profileId);
+      if (failed) this.set(profileId, "failed", failed.launchIssue);
+      else this.set(profileId, "ready");
     }
   }
 }
@@ -106,8 +118,16 @@ export class ProfileRuntimeStore {
 export interface LaunchSteps<Opened> {
   /** Starts one profile. Runs under the drain's lock, in the step that took it from the queue. */
   readonly open: (launch: QueuedLaunch) => Promise<Opened>;
-  /** Finishes one started profile outside the lock, for example the client canary. */
-  readonly settle: (profileId: ProfileId, opened: Opened) => Promise<void>;
+  /**
+   * Finishes one started profile outside the lock, for example the client
+   * canary. `releaseWaiting` stops every profile still waiting and fails each
+   * one with `error`, unless it is queued again and opens in this drain.
+   */
+  readonly settle: (
+    profileId: ProfileId,
+    opened: Opened,
+    releaseWaiting: (error: unknown) => void,
+  ) => Promise<void>;
 }
 
 export interface DrainOutcome<Opened> {
@@ -131,6 +151,11 @@ export async function drainLaunchQueue<Opened>(
 ): Promise<DrainOutcome<Opened>> {
   const started: Opened[] = [];
   const failures = new Map<ProfileId, unknown>();
+  const releaseWaiting = (error: unknown): void => {
+    const waiting = runtime.waiting();
+    for (const profileId of waiting) failures.set(profileId, error);
+    runtime.releaseQueued(waiting);
+  };
   for (;;) {
     const taken: { profileId?: ProfileId } = {};
     try {
@@ -142,7 +167,7 @@ export async function drainLaunchQueue<Opened>(
       });
       if (step === null) break;
       started.push(step.opened);
-      await steps.settle(step.profileId, step.opened);
+      await steps.settle(step.profileId, step.opened, releaseWaiting);
       failures.delete(step.profileId);
     } catch (error) {
       if (taken.profileId === undefined) throw error;

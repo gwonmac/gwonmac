@@ -306,14 +306,12 @@ export class MultipleAccountsController {
       throw new Error("Guild Wars must be repaired before opening an account");
     }
     let canaryChecked = false;
-    // Profiles that never started because the canary failed share its error.
-    const unstarted = new Map<ProfileId, unknown>();
     const { started, failures } = await drainLaunchQueue(
       this.profileRuntime,
       this.accountsLock,
       {
         open: (launch) => this.openProfile(launch),
-        settle: async (profileId, result) => {
+        settle: async (profileId, result, releaseWaiting) => {
           if (!result.opened || canaryChecked) return;
           if (this.options.clientRuntime.healthToken) {
             this.profileRuntime.set(profileId, "checking");
@@ -330,9 +328,7 @@ export class MultipleAccountsController {
                 );
               }
               // Nothing else opens on a client generation that did not confirm.
-              const waiting = this.profileRuntime.waiting();
-              for (const waitingId of waiting) unstarted.set(waitingId, error);
-              this.profileRuntime.releaseQueued(waiting);
+              releaseWaiting(error);
               throw error;
             }
           }
@@ -346,18 +342,17 @@ export class MultipleAccountsController {
         },
       },
     );
-    const failed = new Map([...failures, ...unstarted]);
-    if (failed.size > 0) {
+    if (failures.size > 0) {
       this.publish();
       this.options.windows.revealLauncher({ activateApp: true });
-      return failed;
+      return failures;
     }
     const firstWindow = started[0]?.win;
     if (firstWindow && !firstWindow.isDestroyed()) {
       this.options.windows.completeAsyncGameLaunch(firstWindow);
     }
     this.publish();
-    return failed;
+    return failures;
   }
 
   create(request: AccountProfileCreateRequest): Promise<AccountsState> {

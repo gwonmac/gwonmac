@@ -149,7 +149,9 @@ playable client the queue drains at once; during first preparation the
 profiles wait and preparation continues independently. The drain opens one
 profile at a time and takes the next one from the queue each time, so Cancel
 waiting removes any profile that has not started, also while an earlier
-profile of the same Play is still opening. A Play that joins a running drain
+profile of the same Play is still opening. Cancel returns a profile to the
+row it had before Play: Ready, or Failed for a retry, so its failed window
+still offers Try again. A Play that joins a running drain
 waits for its own profiles and fails only if one of them failed; new windows
 cascade from the first profile of each Play. The first candidate window
 completes the existing client canary before another profile starts; if the
