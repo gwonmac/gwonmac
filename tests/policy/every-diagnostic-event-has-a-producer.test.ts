@@ -1,16 +1,27 @@
 /**
- * A diagnostic event the schema declares but no code names is dead contract:
+ * A diagnostic event the schema declares but nothing writes is dead contract:
  * the export would accept it, docs and readers may expect it, and nothing
- * ever writes it. Every producer names its event as a string literal, either
- * directly (`k: "settings.reset"`) or in a closed list such as
- * `RENDERER_MILESTONES`, so an event no source outside the schema names has
- * no producer.
+ * ever produces it. An event counts as produced only in a producer form:
+ *
+ * - main writes it as the `k` of a `logEvent` record, directly
+ *   (`k: "settings.reset"`) or as one branch of a conditional `k`;
+ * - the renderer sends it from one of the closed vocabularies below, which
+ *   main records under the same name.
+ *
+ * A name that only appears in a type, a comment or another list does not count.
  */
 import assert from "node:assert/strict";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 import { DIAGNOSTIC_EVENT_SCHEMA } from "../../app/main/diagnostics/schema.ts";
+import { RENDERER_EVENT_NAMES, RENDERER_MILESTONES } from "../../app/shared/diagnostics.ts";
+
+/** Event names the renderer produces and main records verbatim. */
+const RENDERER_VOCABULARIES: ReadonlySet<string> = new Set([
+  ...RENDERER_EVENT_NAMES,
+  ...RENDERER_MILESTONES,
+]);
 
 const SCHEMA_SOURCES = /^app\/main\/diagnostics\/schema(?:-[a-z-]+)?\.ts$/u;
 
@@ -23,10 +34,16 @@ async function sourcesOutsideTheSchema(): Promise<string> {
   return (await Promise.all(files.map((file) => readFile(file, "utf8")))).join("\n");
 }
 
-test("every diagnostic event in the schema is named by code outside the schema", async () => {
+/** `k:` up to the end of its value, with `name` as one of the value's literals. */
+function writtenAsK(source: string, name: string): boolean {
+  const literal = name.replaceAll(".", "\\.");
+  return new RegExp(`\\bk:[^,;{}]*?["']${literal}["']`, "u").test(source);
+}
+
+test("every diagnostic event in the schema has a producer", async () => {
   const source = await sourcesOutsideTheSchema();
-  const unnamed = Object.keys(DIAGNOSTIC_EVENT_SCHEMA).filter(
-    (name) => !source.includes(`"${name}"`) && !source.includes(`'${name}'`),
+  const unproduced = Object.keys(DIAGNOSTIC_EVENT_SCHEMA).filter(
+    (name) => !RENDERER_VOCABULARIES.has(name) && !writtenAsK(source, name),
   );
-  assert.deepEqual(unnamed, []);
+  assert.deepEqual(unproduced, []);
 });
