@@ -5,8 +5,8 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, it } from "node:test";
 import WebSocket from "ws";
-import { TradeChatService } from "../../app/main/core/trade-chat-service.js";
-import { TradeSavedStore } from "../../app/main/core/trade-saved-store.js";
+import { TradeChatService } from "../../app/features/trade-chat/main/trade-chat-service.js";
+import { TradeSavedStore } from "../../app/features/trade-chat/main/trade-saved-store.js";
 import {
   TRADE_LIMITS,
   parseTradePayload,

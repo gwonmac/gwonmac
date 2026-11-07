@@ -7,7 +7,7 @@ import { COMPANION_FEATURE_BITS } from "../../shared/companion-abi.js";
 import { createWhisperSession } from "../../shared/whisper-session.js";
 import type { ToolsCompanionPart } from "../../renderer/tools-companion-part.js";
 import { createWhisperInstallation } from "../../renderer/whisper-installation.js";
-import { createWhisperSurface } from "../../renderer/whisper-surface.js";
+import { createWhisperSurface } from "./renderer/whisper-surface.js";
 
 export default {
   id: "whispers",

@@ -1,11 +1,11 @@
 /**
  * Trade Chat's main-process part: the live feed service and the saved searches.
- * The channels and their own gate stay in app/main/trade-ipc.ts.
+ * The channels and their own gate stay in app/features/trade-chat/main/trade-ipc.ts.
  */
-import { TradeChatService } from "../../main/core/trade-chat-service.js";
-import { TradeSavedStore } from "../../main/core/trade-saved-store.js";
+import { TradeChatService } from "./main/trade-chat-service.js";
+import { TradeSavedStore } from "./main/trade-saved-store.js";
 import type { ToolsMainPart } from "../../main/tools-main-part.js";
-import { tradeChannelDefinitions } from "../../main/trade-ipc.js";
+import { tradeChannelDefinitions } from "./main/trade-ipc.js";
 import { featureActivationRequested } from "../../shared/feature-contracts.js";
 
 export default {

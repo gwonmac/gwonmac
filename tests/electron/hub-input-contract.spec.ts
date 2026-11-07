@@ -207,9 +207,9 @@ test('Command-D hands the open Hub to Whispers, and its closing release stays ou
     const { page } = fixture;
     await page.evaluate(async () => {
       const modelPath = './shared/whisper-session.js';
-      const surfacePath = './whisper-surface.js';
+      const surfacePath = './features/whispers/renderer/whisper-surface.js';
       const model = await import(modelPath) as typeof import('../../app/shared/whisper-session.js');
-      const surface = await import(surfacePath) as typeof import('../../app/renderer/whisper-surface.js');
+      const surface = await import(surfacePath) as typeof import('../../app/features/whispers/renderer/whisper-surface.js');
       const session = model.createWhisperSession(async () => {});
       session.setAvailable(true);
       surface.createWhisperSurface(document.body, session);

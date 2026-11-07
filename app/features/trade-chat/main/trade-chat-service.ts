@@ -5,9 +5,9 @@
  * URLs and reconnect mechanics stop here; subscribers receive only the bounded
  * shared contract and no message text is ever written to diagnostics.
  */
-import { estimateMarketRates, MARKET_CACHE_MS, MARKET_MAX_AGE_MS, MARKET_SEARCHES, type MarketSnapshot } from "../../shared/market-rates.js";
+import { estimateMarketRates, MARKET_CACHE_MS, MARKET_MAX_AGE_MS, MARKET_SEARCHES, type MarketSnapshot } from "../../../shared/market-rates.js";
 import WebSocket, { type ClientOptions, type RawData } from "ws";
-import { AppError } from "../../shared/errors.js";
+import { AppError } from "../../../shared/errors.js";
 import {
   TRADE_LIMITS,
   TRADE_SOURCES,
@@ -25,8 +25,8 @@ import {
   type TraderPriceHistoryProblem,
   type TraderPriceHistoryResult,
   type TraderQuoteSnapshot,
-} from "../../shared/trade-chat.js";
-import { readBoundedResponse } from "./bounded-response.js";
+} from "../../../shared/trade-chat.js";
+import { readBoundedResponse } from "../../../main/core/bounded-response.js";
 
 const CONNECT_TIMEOUT_MS = 10_000;
 const PRICE_TIMEOUT_MS = 10_000;

@@ -107,10 +107,10 @@ test("the Core main graph cannot evaluate optional stores, IPC, or network code"
     "app/main/tools-runtime.ts",
     "app/main/tools-ipc.ts",
     "app/features/main-parts.ts",
-    "app/main/trade-ipc.ts",
-    "app/main/core/trade-chat-service.ts",
-    "app/main/core/trade-saved-store.ts",
-    "app/main/core/travel-history.ts",
+    "app/features/trade-chat/main/trade-ipc.ts",
+    "app/features/trade-chat/main/trade-chat-service.ts",
+    "app/features/trade-chat/main/trade-saved-store.ts",
+    "app/features/travel/main/travel-history.ts",
     "app/features/build-library/main/build-library-coordinator.ts",
   ]);
 });
