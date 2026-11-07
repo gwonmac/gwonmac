@@ -3625,9 +3625,9 @@
         <div class="hub-group" id="hub-group-9" role="presentation">
           "Keys & shortcuts"
         <div aria-disabled="false" aria-selected="false" class="hub-row" data-id="key:character" id="hub-result-9" role="option">
-          <span aria-hidden="true" class="hub-icon" data-kind="command">
+          <span aria-hidden="true" class="hub-icon" data-kind="character">
             <svg fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" stroke="currentColor" viewBox="0 0 24 24">
-              <path d="m9 5-6 7 6 7M13 19h8"></path>
+              <circle cx="8" cy="7" r="3"></circle><path d="M2 20v-2a6 6 0 0 1 12 0M16 7h6m-3-3 3 3-3 3"></path>
           <span class="hub-title">
             "Switch Character"
           <span class="hub-detail" hidden="">
@@ -3637,9 +3637,9 @@
             <kbd aria-label="E" class="ui-kbd">
               "E"
         <div aria-disabled="false" aria-selected="false" class="hub-row" data-id="key:trade" id="hub-result-10" role="option">
-          <span aria-hidden="true" class="hub-icon" data-kind="command">
+          <span aria-hidden="true" class="hub-icon" data-kind="trade">
             <svg fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" stroke="currentColor" viewBox="0 0 24 24">
-              <path d="m9 5-6 7 6 7M13 19h8"></path>
+              <path d="M12 3v17M7 6h10M5 8l-3 7h6L5 8Zm14 0-3 7h6l-3-7ZM7 21h10"></path>
           <span class="hub-title">
             "Trade Chat"
           <span class="hub-detail" hidden="">
@@ -3649,9 +3649,9 @@
             <kbd aria-label="K" class="ui-kbd">
               "K"
         <div aria-disabled="false" aria-selected="false" class="hub-row" data-id="key:whispers" id="hub-result-11" role="option">
-          <span aria-hidden="true" class="hub-icon" data-kind="command">
+          <span aria-hidden="true" class="hub-icon" data-kind="whispers">
             <svg fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" stroke="currentColor" viewBox="0 0 24 24">
-              <path d="m9 5-6 7 6 7M13 19h8"></path>
+              <path d="M20 4H4v12h4l4 4v-4h8V4ZM8 8h8M8 12h5"></path>
           <span class="hub-title">
             "Whispers"
           <span class="hub-detail" hidden="">

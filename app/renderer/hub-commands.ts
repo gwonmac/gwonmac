@@ -61,32 +61,36 @@ export function createHubCommands(hub: CommandsHub, openSettings: (target?: Sett
    * examples, and the keys (HUB-093, HUB-094). An example only fills the search; nothing runs.
    */
   function examples(): HubRow[] {
-    const enabled = new Set(commands('').map(row => row.id));
-    for (const owned of ['builds', 'travel']) if (hub.shortcuts.lookup(owned)) enabled.add(owned);
-    const example = (group: string, tool: string, title: string, fill: string, detail: string) => ({ group, tool, title, fill, detail });
+    // The tools turned on, by their row: Core's from the manifests, Travel's and Build Library's from their sources.
+    const toolRows = new Map(commands('').map(row => [row.id, row]));
+    for (const owned of ['builds', 'travel']) { const row = hub.shortcuts.lookup(owned); if (row) toolRows.set(owned, row); }
+    // An example draws the icon of the rows it finds.
+    const example = (group: string, tool: string, title: string, fill: string, detail: string, iconKind?: HubIconKind) => ({ group, tool, title, fill, detail, iconKind });
     const entries = [
-      example('Places', 'travel', 'travel <place>', 'travel ', 'Find an outpost by name or alias'),
-      example('Characters', 'character', 'char <name>', 'char ', 'Find one of your characters'),
-      example('Builds', 'builds', 'build <name or profession>', 'build ', 'Browse saved builds; build mo lists Monk builds'),
-      example('Builds', 'builds', 'team <name>', 'team ', 'Find a saved team'),
-      example('Builds', 'builds', 'build folder:<folder> <name>', 'build folder:', 'Builds in a folder and its subfolders; quotes keep spaces'),
-      example('Builds', 'builds', 'build Mo/Me', 'build Mo/Me', 'An exact profession pair'),
-      example('People', 'whispers', 'whisper <name>', 'whisper ', 'Write to a person; nothing is sent until you send it'),
-      example('People', 'whispers', 'invite <name>', 'invite ', 'Invite a person to your party from an outpost'),
+      example('Places', 'travel', 'travel <place>', 'travel ', 'Find an outpost by name or alias', 'travel'),
+      example('Characters', 'character', 'char <name>', 'char ', 'Find one of your characters', 'person'),
+      example('Builds', 'builds', 'build <name or profession>', 'build ', 'Browse saved builds; build mo lists Monk builds', 'builds'),
+      example('Builds', 'builds', 'team <name>', 'team ', 'Find a saved team', 'builds'),
+      example('Builds', 'builds', 'build folder:<folder> <name>', 'build folder:', 'Builds in a folder and its subfolders; quotes keep spaces', 'builds'),
+      example('Builds', 'builds', 'build Mo/Me', 'build Mo/Me', 'An exact profession pair', 'builds'),
+      example('People', 'whispers', 'whisper <name>', 'whisper ', 'Write to a person; nothing is sent until you send it', 'person'),
+      example('People', 'whispers', 'invite <name>', 'invite ', 'Invite a person to your party from an outpost', 'person'),
       example('Trade', 'trade', 'trade <item>', 'trade ', 'Find offers or a seller in Trade Chat'),
-      example('Accounts', '', 'acc <name>', 'acc ', 'Choose how to open a saved account'),
+      example('Accounts', '', 'acc <name>', 'acc ', 'Choose how to open a saved account', 'person'),
       example('Calculate', '', '1p in g', '1p in g', 'Platinum to gold'),
       example('Calculate', 'trade', '10e in p', '10e in p', 'Ectos at recent Kamadan prices'),
       example('Calculate', '', '2 * 250 + 75', '2 * 250 + 75', 'Plain arithmetic'),
       example('Calculate', '', 'titles', 'titles', 'Plan title points'),
     ];
-    // An example draws the icon of the rows it finds.
-    const icons: Readonly<Record<string, HubIconKind>> = { Places: 'travel', Characters: 'person', Builds: 'builds', People: 'person', Accounts: 'person' };
-    const rows: HubRow[] = entries.filter(entry => !entry.tool || enabled.has(entry.tool)).map((entry, index) => ({ id: `example:${index}`, title: entry.title, detail: entry.detail, group: entry.group, ...(icons[entry.group] ? { iconKind: icons[entry.group] } : {}), action: `Fill search with ${entry.title}`, searchQuery: entry.fill, run() {} }));
+    const rows: HubRow[] = entries.filter(entry => !entry.tool || toolRows.has(entry.tool)).map((entry, index) => ({ id: `example:${index}`, title: entry.title, detail: entry.detail, group: entry.group, ...(entry.iconKind ? { iconKind: entry.iconKind } : {}), action: `Fill search with ${entry.title}`, searchQuery: entry.fill, run() {} }));
     // Keys: a tool's shortcut can change in Settings; the Hub's own keys are fixed.
     const bindings = resolveShortcuts(window.gwToolsSettings?.().shortcutOverrides ?? {});
     const keys = (action: ShortcutAction) => shortcutKeycaps(bindings[action]).map(cap => cap.label).join('') || 'Not set';
-    rows.push(...HUB_TOOL_KEYS.filter(({ command }) => enabled.has(command)).map(({ command, tool, action, label }) => ({ id: `key:${command}`, title: label, detail: keys(action), group: 'Keys & shortcuts', ...(command === 'travel' ? { iconKind: 'travel' as const } : {}), action: 'Change shortcut', run: openSettings({ section: 'tools', control: `tool:${tool}` }) })));
+    // A tool's key row draws its tool row's icon.
+    rows.push(...HUB_TOOL_KEYS.flatMap(({ command, tool, action, label }) => {
+      const iconKind = toolRows.get(command)?.iconKind;
+      return toolRows.has(command) ? [{ id: `key:${command}`, title: label, detail: keys(action), group: 'Keys & shortcuts', ...(iconKind ? { iconKind } : {}), action: 'Change shortcut', run: openSettings({ section: 'tools', control: `tool:${tool}` }) }] : [];
+    }));
     for (const [id, name, detail] of [['actions', 'Actions for the selected row', '⌘J'], ['back', 'Back', '⌘⌫'], ['escape', 'Clear, back, then close', '⎋'], ['open', 'Open a row with a page', '→']] as const)
       rows.push({ id: `key:${id}`, title: name, detail, group: 'Keys & shortcuts', action: 'Fixed key', unavailable: 'The Hub’s own keys do not change.', run() {} });
     return rows;

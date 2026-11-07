@@ -78,7 +78,8 @@ facts without rebuilding that list. Home searches all enabled sources.
 
 Conflicting stored exact phrases require a choice. Both stores remain intact.
 A row without its own art draws the icon its source names (`iconKind`, from the
-family in `app/shared/ui/hub-icon.ts`); a Core Tools row's comes from its manifest.
+family in `app/shared/ui/hub-icon.ts`); a Core Tools row's comes from its manifest,
+and a tool's shortcut row on the Commands page draws its Tools row's icon.
 Tool labels come from `app/shared/tool-presentation.ts`. Settings copy comes from
 `app/shared/setting-copy.ts`. Neither surface owns another copy of those labels.
 
