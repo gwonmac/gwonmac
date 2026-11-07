@@ -238,7 +238,7 @@ export function mountHostOnlyTools(
   });
   const syncEnabled = () => {
     const settings = window.gwToolsSettings();
-    lifecycle.setEnabled(settings.gwonmacTools);
+    lifecycle.setEnabled(featureActivationRequested("tools", settings));
     lifecycle.setAvailable({
       builds: featureActivationRequested("buildLibrary", settings),
       trade: featureActivationRequested("tradeChat", settings),
