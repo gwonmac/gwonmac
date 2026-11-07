@@ -1,0 +1,81 @@
+# The required check. Everything here runs on Linux, so a PR gets an answer in
+# minutes without waiting for a Mac. macOS-only work is in macos.yml.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# A new push to a PR replaces its run; every commit on main keeps its result.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - run: pnpm check
+
+  # The Hub suite drives Chromium against a Vite fixture and never starts
+  # Electron. Specs tagged @macos need macOS text-editing shortcuts and Mac
+  # timing budgets; they run in macos.yml.
+  hub-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          electron: "false"
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm --filter @gwonmac/tools-ui test:e2e --shard=${{ matrix.shard }}/4 --grep-invert @macos
+      - name: Upload failure evidence
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: hub-e2e-${{ github.run_attempt }}-${{ matrix.shard }}
+          path: test-results
+          if-no-files-found: ignore
+          retention-days: 7
+
+  website:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          electron: "false"
+      - run: pnpm test:website
+
+  # Branch protection requires only this job, so the job list above can change
+  # without touching the repository settings.
+  verify:
+    if: always()
+    needs: [check, hub-e2e, website]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every job to pass
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "$RESULTS"
+          for result in $RESULTS; do test "$result" = success; done
