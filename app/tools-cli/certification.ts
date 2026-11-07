@@ -363,7 +363,7 @@ async function cartography(argv: readonly string[]): Promise<void> {
 /**
  * Prints the identity table for a reviewed client's `reviewed-client-<id>.ts`:
  * every reviewed literal that matched one of its bodies exactly in the runtime,
- * double-click and Cartography proofs, with that body's relocation identity.
+ * double-click, Cartography and Template-saving proofs, with that body's relocation identity.
  * Review the client first; the table only lets its exact facts survive a relink.
  */
 async function reviewedIdentities(argv: readonly string[]): Promise<void> {
@@ -381,6 +381,7 @@ async function reviewedIdentities(argv: readonly string[]): Promise<void> {
     const { officialSha256, predecessors } = runtimePredecessors(official);
     doubleClickReport(officialSha256, predecessors);
     cartographyReport(officialSha256, predecessors);
+    preparePostTemplateSaveModule(official);
   });
   const entries = [...table].sort(([left], [right]) => left.localeCompare(right))
     .map(([literal, identities]) => [literal, [...identities].sort()] as const);
