@@ -558,12 +558,12 @@ export function createCharacterSwitchPalette(
   };
   window.addEventListener("gw:character-toggle", onToggle);
   const unsubscribeSettings = window.gwNative.settings.onChange((settings) => {
-    enabled = settings.characterSwitchEnabled;
+    enabled = featureActivationRequested("characterSwitch", settings);
     displayPreferences = displayPreferencesFrom(settings);
     render();
   });
   void window.gwNative.settings.get().then((settings) => {
-    enabled = settings.characterSwitchEnabled;
+    enabled = featureActivationRequested("characterSwitch", settings);
     displayPreferences = displayPreferencesFrom(settings);
     render();
   }).catch(() => { /* Keep the surface closed until its enable setting is known. */ });
