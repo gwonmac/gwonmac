@@ -211,16 +211,19 @@ const local = (source: string) => new Set([...source.matchAll(/['"](--[a-z0-9-]+
 const tokens = readFileSync(TOKENS, "utf8");
 const inGameTokens = declared(tokens, "--ui-");
 const inGameNames = declared(tokens);
-/** Names an in-game file may read without declaring them, each with the reason. */
-const IN_GAME_PROVIDED: Record<string, string> = {
-  "--ui-profession": "set per element from TypeScript to the profession's colour",
-  "--cartography-control-size": "overlay-controls.ts sets it from COMPASS_CONTROL_SIZE",
-  "--cartography-panel-width": "overlay-controls.ts sets it from PANEL_WIDTH",
-  "--cartography-trigger-border": "overlay-controls.ts sets it from the active map style's boundary colour",
-  "--compass-range-control-size": "compass-range-controls.ts sets it from COMPASS_CONTROL_SIZE",
-  "--compass-range-panel-width": "compass-range-controls.ts sets it from PANEL_WIDTH",
-  "--compass-range-color": "compass-range-controls.ts sets it per range from compass-ranges.ts",
-  "--character-cards": "character-switch-palette.ts sets the carousel's card count",
+/**
+ * Names an in-game stylesheet reads but does not declare, because TypeScript sets
+ * them on the element: each with the file that sets it and why. The staleness
+ * test below keeps each entry true.
+ */
+const IN_GAME_PROVIDED: Record<string, { setBy: string; reason: string }> = {
+  "--cartography-control-size": { setBy: "app/features/cartography/renderer/overlay-controls.ts", reason: "the trigger's size, from COMPASS_CONTROL_SIZE" },
+  "--cartography-panel-width": { setBy: "app/features/cartography/renderer/overlay-controls.ts", reason: "the panel's width, from PANEL_WIDTH" },
+  "--cartography-trigger-border": { setBy: "app/features/cartography/renderer/overlay-controls.ts", reason: "the active map style's boundary colour" },
+  "--compass-range-control-size": { setBy: "app/features/cartography/renderer/compass-range-controls.ts", reason: "the trigger's size, from COMPASS_CONTROL_SIZE" },
+  "--compass-range-panel-width": { setBy: "app/features/cartography/renderer/compass-range-controls.ts", reason: "the panel's width, from PANEL_WIDTH" },
+  "--compass-range-color": { setBy: "app/features/cartography/renderer/compass-range-controls.ts", reason: "each range's colour, from compass-ranges.ts" },
+  "--character-cards": { setBy: "app/features/character-switch/renderer/character-switch-palette.ts", reason: "the carousel's card count" },
 };
 const launcherTokens = declared(readFileSync(LAUNCHER_TOKENS, "utf8"));
 const settingsTokens = declared(readFileSync(SETTINGS, "utf8"), "--settings-");
@@ -430,5 +433,16 @@ test("a not-yet-tokenised surface still needs each rule it is excused from", () 
     for (const rule of rules) {
       assert.ok(offences(rule, file(path)).length > 0, `${path} meets the ${rule} rule now — take it off NOT_YET_TOKENISED`);
     }
+  }
+});
+
+test("each name TypeScript provides is still read and still set there", () => {
+  // Like NOT_YET_TOKENISED: an entry no stylesheet needs, or that its file no
+  // longer sets, is a hole in the undeclared-token check above.
+  for (const [name, { setBy }] of Object.entries(IN_GAME_PROVIDED)) {
+    const readers = files.filter(({ system, css, source }) =>
+      system === "in-game" && referenced(css).has(name) && !declared(css).has(name) && !local(source).has(name));
+    assert.ok(readers.length > 0, `no in-game stylesheet reads ${name} without declaring it — take it off IN_GAME_PROVIDED`);
+    assert.ok(readFileSync(setBy, "utf8").includes(`"${name}"`), `${setBy} no longer sets ${name}`);
   }
 });
