@@ -2,10 +2,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { DEFAULT_SETTINGS } from "../../app/shared/contracts.ts";
-import { GLOBAL_TOOLS, GLOBAL_TOOL_FEATURES } from "../../app/shared/launcher-contracts.ts";
+import { GLOBAL_TOOLS, GLOBAL_TOOL_FEATURES, globalToolPatch, launcherToolSettings } from "../../app/shared/launcher-contracts.ts";
 import { FEATURE_SELECTION_POLICIES, featureActivationRequested } from "../../app/shared/feature-contracts.ts";
 import { DEFAULT_SHORTCUTS, resolveShortcuts } from "../../app/shared/keyboard-shortcuts.ts";
-import { allGlobalToolsPatch, globalToolPatch, launcherToolSettings, launcherShortcutPatch } from "../../app/main/core/launcher-tools.ts";
+import { allGlobalToolsPatch, launcherShortcutPatch } from "../../app/main/core/launcher-tools.ts";
 
 describe("global launcher Tools", () => {
   it("projects every independently configurable feature from its canonical setting", () => {

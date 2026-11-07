@@ -13,6 +13,7 @@ import {
 } from "../../app/shared/travel.js";
 import { CARTOGRAPHY_BUILTIN_PRESETS } from "../../app/shared/cartography-overlay.js";
 import { resolveShortcuts } from "../../app/shared/keyboard-shortcuts.js";
+import { launcherToolSettings, type SettingsWrite } from "../../app/shared/launcher-contracts.js";
 
 type ResetOutcome = Awaited<ReturnType<PreferencesCoordinator["resetSettings"]>>;
 
@@ -89,6 +90,22 @@ it("serializes shortcut replacement so concurrent actions keep one owner per bin
   assert.equal(shortcuts["character.switch"], null);
   assert.deepEqual(shortcuts["travel.open"], grid);
   assert.deepEqual(shortcuts["cartography.walkability.toggle"], terrain);
+});
+
+it("applies each settings write kind the launcher and the Hub send", async () => {
+  const binding = { key: "g", shift: false, option: false };
+  const whispers = !launcherToolSettings(DEFAULT_SETTINGS).whispers.enabled;
+  const cases: readonly [SettingsWrite, (settings: AppSettings) => unknown, unknown][] = [
+    [{ kind: "settings", patch: { uiPanelOpacity: 80 } }, (settings) => settings.uiPanelOpacity, 80],
+    [{ kind: "master", enabled: !DEFAULT_SETTINGS.gwonmacTools }, (settings) => settings.gwonmacTools, !DEFAULT_SETTINGS.gwonmacTools],
+    [{ kind: "tool", tool: "whispers", enabled: whispers }, (settings) => launcherToolSettings(settings).whispers.enabled, whispers],
+    [{ kind: "shortcut", action: "travel.open", binding }, (settings) => resolveShortcuts(settings.shortcutOverrides)["travel.open"], binding],
+  ];
+  for (const [change, read, expected] of cases) {
+    const { coordinator } = await fixture();
+    await coordinator.write(change);
+    assert.deepEqual(read(await coordinator.getSettings()), expected, change.kind);
+  }
 });
 
 async function seedNonDefaultPreferences(

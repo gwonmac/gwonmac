@@ -6,8 +6,6 @@ import type { AppSettings, AppSettingsPatch } from "../../shared/contracts.js";
 import { FEATURES, FEATURE_SELECTION_POLICIES } from "../../shared/feature-contracts.js";
 import { resolveShortcuts, shortcutConflict, shortcutReserved, shortcutUsedByHub, withShortcutOverride, type ShortcutAction, type ShortcutBinding } from "../../shared/keyboard-shortcuts.js";
 
-export { globalToolPatch, launcherToolSettings } from "../../shared/launcher-contracts.js";
-
 /** The master switch, then each feature that opts in with it, in FEATURES order. */
 const FIRST_RUN_SETTINGS = [...new Set(FEATURES.flatMap((feature) =>
   feature.activation.kind === "master" || "optInWithTools" in feature

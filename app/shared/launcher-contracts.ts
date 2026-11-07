@@ -16,7 +16,7 @@ import type {
 } from "./contracts.js";
 import type { ErrorCode } from "./errors.js";
 import type { MarkdownBlock, MarkdownInline } from "./launcher-markdown.js";
-import type { ShortcutAction, ShortcutBinding } from "./keyboard-shortcuts.js";
+import { isShortcutBinding, parseShortcutAction, type ShortcutAction, type ShortcutBinding } from "./keyboard-shortcuts.js";
 import { FEATURE_SELECTION_POLICIES, type FeatureId } from "./feature-contracts.js";
 import { LAUNCHER_SETTINGS, SETTING_TABLE, type LauncherSetting } from "./settings/index.js";
 import { launcherSettingError } from "./settings/define.js";
@@ -176,6 +176,15 @@ export interface ShortcutReplacement {
   readonly action: ShortcutAction;
   readonly binding: ShortcutBinding | null;
 }
+/**
+ * One player settings write. The launcher's Settings and the Hub send the same
+ * four kinds, and main applies every one through the same dispatch.
+ */
+export type SettingsWrite =
+  | Readonly<{ kind: "settings"; patch: LauncherSettingsPatch }>
+  | Readonly<{ kind: "master"; enabled: boolean }>
+  | Readonly<{ kind: "tool" }> & GlobalToolUpdate
+  | Readonly<{ kind: "shortcut" }> & ShortcutReplacement;
 export type LauncherShortcutCaptureResult =
   | Readonly<{ status: "captured"; binding: ShortcutBinding }>
   /** `owner: "hub"` is Command-R while the Hub uses it (HUB-095). */
@@ -393,6 +402,18 @@ export function launcherToolSettings(settings: AppSettings): GlobalToolSettings 
 
 export function globalToolPatch(tool: GlobalTool, enabled: boolean): AppSettingsPatch {
   return { [FEATURE_SELECTION_POLICIES[GLOBAL_TOOL_FEATURES[tool]].activation.setting]: enabled };
+}
+
+export function parseGlobalToolUpdate(value: unknown): GlobalToolUpdate {
+  const source = exactObject(value, ["tool", "enabled"], "Tool update");
+  if (typeof source.enabled !== "boolean") throw new Error("Tool update is invalid");
+  return { tool: parseGlobalTool(source.tool), enabled: source.enabled };
+}
+
+export function parseShortcutReplacement(value: unknown): ShortcutReplacement {
+  const source = exactObject(value, ["action", "binding"], "shortcut replacement");
+  if (source.binding !== null && !isShortcutBinding(source.binding)) throw new Error("shortcut replacement is invalid");
+  return { action: parseShortcutAction(source.action), binding: source.binding };
 }
 
 function exactObject(value: unknown, allowed: readonly string[], label: string): Record<string, unknown> {

@@ -56,7 +56,10 @@ is briefly highlighted. Hub search does not change a setting in place.
   `cancelCapture`. The main process checks each change with
   `parseHubSettingsChange` against `HUB_SETTINGS_FIELDS` in
   `app/shared/hub-settings.ts`. It refuses unknown or launcher-only controls, a
-  value of the wrong kind, and extra fields. The Hub sections come from
+  value of the wrong kind, and extra fields. A checked change is a
+  `SettingsWrite` (`app/shared/launcher-contracts.ts`), the same vocabulary as
+  the launcher's settings, Tools and shortcut channels, and
+  `PreferencesCoordinator.write` applies both. The Hub sections come from
   `HUB_SECTIONS` in `app/shared/settings-catalogue.ts`.
 
 ## The tree

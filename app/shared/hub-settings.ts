@@ -2,17 +2,18 @@
  * Defines the bounded in-game settings capability and validates its requests.
  * The existing preferences owner persists changes; launcher administration is excluded.
  */
-import { parseGlobalTool, parseLauncherSettingsPatch, type GlobalToolUpdate, type LauncherSettings, type LauncherSnapshot, type ShortcutReplacement, type LauncherShortcutCaptureResult } from './launcher-contracts.js';
+import { parseGlobalToolUpdate, parseLauncherSettingsPatch, parseShortcutReplacement, type LauncherSettings, type LauncherSnapshot, type LauncherShortcutCaptureResult, type SettingsWrite } from './launcher-contracts.js';
 import type { ExtendedMemoryRuntimeStatus } from './contracts.js';
 import type { SettingsTarget } from './settings-catalogue.js';
 import { HUB_SETTINGS } from './settings/index.js';
-import { isShortcutBinding, parseShortcutAction, type ShortcutAction } from './keyboard-shortcuts.js';
+import type { ShortcutAction } from './keyboard-shortcuts.js';
 export const HUB_SETTINGS_FIELDS = HUB_SETTINGS;
 /** The settings the game window reads and changes: those of the Settings page's in-game sections. */
 export type HubSettings = Pick<LauncherSettings, typeof HUB_SETTINGS_FIELDS[number]>;
 export type HubSettingsPatch = Partial<HubSettings>;
 export type HubSettingsSnapshot = Pick<LauncherSnapshot, 'tools' | 'shortcuts'> & { settings: HubSettings };
-export type HubSettingsChange = { kind: 'settings'; patch: HubSettingsPatch } | { kind: 'tool'; tool: GlobalToolUpdate['tool']; enabled: boolean } | { kind: 'master'; enabled: boolean } | { kind: 'shortcut'; action: ShortcutReplacement['action']; binding: ShortcutReplacement['binding'] };
+/** A settings write limited to the in-game fields; main applies it like the launcher's. */
+export type HubSettingsChange = Exclude<SettingsWrite, { kind: 'settings' }> | { kind: 'settings'; patch: HubSettingsPatch };
 export interface HubSettingsApi {
   get(): Promise<HubSettingsSnapshot>;
   update(change: HubSettingsChange): Promise<void>;
@@ -34,8 +35,9 @@ export function parseHubSettingsChange(value: unknown): HubSettingsChange {
       return { kind: 'settings', patch: parseLauncherSettingsPatch(value.patch) };
     }
     if (value.kind === 'master' && only('kind', 'enabled') && 'enabled' in value && typeof value.enabled === 'boolean') return { kind: 'master', enabled: value.enabled };
-    if (value.kind === 'tool' && only('kind', 'tool', 'enabled') && 'tool' in value && 'enabled' in value && typeof value.enabled === 'boolean') return { kind: 'tool', tool: parseGlobalTool(value.tool), enabled: value.enabled };
-    if (value.kind === 'shortcut' && only('kind', 'action', 'binding') && 'action' in value && 'binding' in value && (value.binding === null || isShortcutBinding(value.binding))) return { kind: 'shortcut', action: parseShortcutAction(value.action), binding: value.binding };
+    const { kind, ...rest } = value;
+    if (kind === 'tool') return { kind, ...parseGlobalToolUpdate(rest) };
+    if (kind === 'shortcut') return { kind, ...parseShortcutReplacement(rest) };
   }
   throw new Error('Invalid Hub settings change');
 }

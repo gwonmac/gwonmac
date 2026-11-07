@@ -4,8 +4,6 @@
  */
 import type { BrowserWindow } from "electron";
 import type {
-  GlobalToolUpdate,
-  LauncherSettingsPatch,
   LauncherShortcutCaptureResult,
   LauncherSnapshot,
   LauncherPreferencesPatch,
@@ -14,10 +12,10 @@ import type {
   LauncherProfileCreateInput,
   LauncherInvokeChannel,
   LauncherProfileUpdate,
-  ShortcutReplacement,
+  SettingsWrite,
 } from "../shared/launcher-contracts.js";
 import {
-  parseGlobalTool,
+  parseGlobalToolUpdate,
   parseLauncherExternalLink,
   parseLauncherGuideUrl,
   parseLauncherFeedback,
@@ -25,9 +23,10 @@ import {
   parseLauncherProfileAppearance,
   parseLauncherPreferencesPatch,
   parseLauncherSettingsPatch,
+  parseShortcutReplacement,
 } from "../shared/launcher-contracts.js";
 import type { CacheInfo } from "../shared/contracts.js";
-import { isShortcutBinding, parseShortcutAction, type ShortcutAction } from "../shared/keyboard-shortcuts.js";
+import { parseShortcutAction, type ShortcutAction } from "../shared/keyboard-shortcuts.js";
 import {
   parseProfileId,
   parseProfileName,
@@ -56,12 +55,9 @@ export interface LauncherIpcContext {
   readonly dismissPreferencesReset: () => Promise<void>;
   readonly completeSetup: (enableTools: boolean) => Promise<void>;
   readonly updatePreferences: (patch: LauncherPreferencesPatch) => Promise<void>;
-  readonly updateSettings: (patch: LauncherSettingsPatch) => Promise<void>;
+  readonly writeSettings: (change: SettingsWrite) => Promise<void>;
   readonly resetSettings: (win: BrowserWindow) => Promise<void>;
-  readonly setToolsMaster: (enabled: boolean) => Promise<void>;
-  readonly setToolFeature: (input: GlobalToolUpdate) => Promise<void>;
   readonly captureShortcut: (win: BrowserWindow, action: ShortcutAction) => Promise<LauncherShortcutCaptureResult>;
-  readonly replaceShortcut: (input: ShortcutReplacement) => Promise<void>;
   readonly restartToApplyTools: (win: BrowserWindow) => Promise<void>;
   readonly cacheInfo: () => Promise<CacheInfo>;
   readonly repairGameFiles: (win: BrowserWindow) => Promise<void>;
@@ -111,19 +107,6 @@ const profileUpdate = one((value: unknown): LauncherProfileUpdate => {
   const appearance = parseLauncherProfileAppearance({ icon: source.icon, color: source.color });
   return { id, name, ...appearance };
 });
-const toolUpdate = one((value: unknown): GlobalToolUpdate => {
-  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Tool update must be an object");
-  const source = value as Record<string, unknown>;
-  if (Object.keys(source).some((key) => !["tool", "enabled"].includes(key)) || typeof source.enabled !== "boolean") throw new Error("Tool update is invalid");
-  return { tool: parseGlobalTool(source.tool), enabled: source.enabled };
-});
-const shortcutReplacement = one((value: unknown): ShortcutReplacement => {
-  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("shortcut replacement must be an object");
-  const source = value as Record<string, unknown>;
-  if (Object.keys(source).some((key) => !["action", "binding"].includes(key)) || (source.binding !== null && !isShortcutBinding(source.binding))) throw new Error("shortcut replacement is invalid");
-  return { action: parseShortcutAction(source.action), binding: source.binding };
-});
-
 export function registerLauncherIpc(ctx: LauncherIpcContext): void {
   const connected = new WeakSet<BrowserWindow>();
   register(ctx.windows, "launcher", {
@@ -147,12 +130,12 @@ export function registerLauncherIpc(ctx: LauncherIpcContext): void {
     experienceDismissPreferencesReset: channel(nothing, () => ctx.dismissPreferencesReset()),
     experienceCompleteSetup: channel(setup, (_win, enableTools) => ctx.completeSetup(enableTools)),
     experienceUpdatePreferences: channel(one(parseLauncherPreferencesPatch), (_win, patch) => ctx.updatePreferences(patch)),
-    settingsUpdate: channel(one(parseLauncherSettingsPatch), (_win, patch) => ctx.updateSettings(patch)),
+    settingsUpdate: channel(one(parseLauncherSettingsPatch), (_win, patch) => ctx.writeSettings({ kind: "settings", patch })),
     settingsReset: channel(nothing, (win) => ctx.resetSettings(win)),
-    toolsSetMasterEnabled: channel(booleanValue, (_win, enabled) => ctx.setToolsMaster(enabled)),
-    toolsSetFeature: channel(toolUpdate, (_win, input) => ctx.setToolFeature(input)),
+    toolsSetMasterEnabled: channel(booleanValue, (_win, enabled) => ctx.writeSettings({ kind: "master", enabled })),
+    toolsSetFeature: channel(one(parseGlobalToolUpdate), (_win, input) => ctx.writeSettings({ kind: "tool", ...input })),
     toolsCaptureShortcut: channel(one(parseShortcutAction), (win, action) => ctx.captureShortcut(win, action)),
-    toolsReplaceShortcut: channel(shortcutReplacement, (_win, input) => ctx.replaceShortcut(input)),
+    toolsReplaceShortcut: channel(one(parseShortcutReplacement), (_win, input) => ctx.writeSettings({ kind: "shortcut", ...input })),
     toolsRestartToApply: channel(nothing, (win) => ctx.restartToApplyTools(win)),
     gameFilesInfo: channel(nothing, () => ctx.cacheInfo()),
     gameFilesRepair: channel(nothing, (win) => ctx.repairGameFiles(win)),

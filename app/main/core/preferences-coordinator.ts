@@ -22,6 +22,7 @@ import { Mutex } from "./mutex.js";
 import { DEFAULT_SETTINGS } from "../../shared/contracts.js";
 import { loadSettings, saveSettings } from "./settings.js";
 import { launcherShortcutPatch } from "./launcher-tools.js";
+import { globalToolPatch, type SettingsWrite } from "../../shared/launcher-contracts.js";
 import type { ShortcutAction, ShortcutBinding } from "../../shared/keyboard-shortcuts.js";
 
 async function travelDomain() {
@@ -125,6 +126,16 @@ export class PreferencesCoordinator {
 
   updateSettings(patch: AppSettingsPatch): Promise<AppSettings> {
     return this.#commitSettings((current) => ({ ...current, ...patch }));
+  }
+
+  /** The one dispatch for a player settings write from the launcher, the Hub or a menu. */
+  write(change: SettingsWrite): Promise<AppSettings> {
+    switch (change.kind) {
+      case "settings": return this.updateSettings(change.patch);
+      case "master": return this.updateSettings({ gwonmacTools: change.enabled });
+      case "tool": return this.updateSettings(globalToolPatch(change.tool, change.enabled));
+      case "shortcut": return this.replaceShortcut(change.action, change.binding);
+    }
   }
 
   replaceShortcut(action: ShortcutAction, binding: ShortcutBinding | null): Promise<AppSettings> {
