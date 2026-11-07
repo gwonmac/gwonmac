@@ -4,12 +4,12 @@ import {
   createTeamApplyCommands,
   TEAM_COMMAND_PAYLOAD_BYTES,
   type EnhancementCommandEnqueue,
-} from "../../app/renderer/enhancement-team-commands.ts";
+} from "../../app/features/team-apply/renderer/enhancement-team-commands.ts";
 import {
   createStorageCommand,
   initializeStorageDataWindow,
   STORAGE_DATA_WINDOW_BYTES,
-} from "../../app/renderer/enhancement-storage-command.ts";
+} from "../../app/features/xunlai-storage/renderer/enhancement-storage-command.ts";
 import type { ToolboxObservation } from "../../app/shared/builds/live-party.ts";
 import { heroId } from "../../app/shared/builds/library.ts";
 

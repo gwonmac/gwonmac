@@ -6,7 +6,7 @@
 import { PROFESSION_COMMAND_TRACE_BYTES, createProfessionCommandTrace, type ProfessionCommandTraceReader } from
   "../../renderer/profession-command-trace.js";
 import type { TeamApplyCommands } from "../../shared/builds/team-apply-runner.js";
-import type { EnhancementCommandEnqueue } from "../../renderer/enhancement-team-commands.js";
+import type { EnhancementCommandEnqueue } from "./renderer/enhancement-team-commands.js";
 import type { ToolsCompanionPart } from "../../renderer/tools-companion-part.js";
 
 export default {
@@ -24,7 +24,7 @@ export default {
       throw new Error("the commands profile derived a module with no profession trace");
     }
     const teamCommands = capabilities.teamApply
-      ? await import("../../renderer/enhancement-team-commands.js") : null;
+      ? await import("./renderer/enhancement-team-commands.js") : null;
     let commands: TeamApplyCommands | null = null;
     return {
       /** Set on activation; null without a Team Apply profile. */

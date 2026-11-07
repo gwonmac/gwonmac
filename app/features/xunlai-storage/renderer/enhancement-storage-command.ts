@@ -2,7 +2,7 @@
  * Renderer-side owner of the one certified local Xunlai action.
  * It initializes the fixed DataWindow payload and exposes one guarded command.
  */
-import type { StorageCommand } from "../shared/storage-command.js";
+import type { StorageCommand } from "../../../shared/storage-command.js";
 
 const DATA_WINDOW_WORDS = 3;
 
