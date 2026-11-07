@@ -2,12 +2,12 @@
  * Owns where every setting lives and how a player finds it: its section, a stable control
  * ID, its label and the words players search with. Settings search and deep links (Hub search,
  * the memory warning) use these IDs; each rendered control carries `data-setting="<id>"`.
- * Labels and descriptions come from their owners (setting-copy, tool-presentation), so a
+ * Labels, descriptions and tool keywords come from their owners (setting-copy, tool-presentation), so a
  * setting has one name everywhere (docs/settings.md).
  */
 import { CHARACTER_DETAILS, CHAT_FILTERS, GAME_SETTINGS, REMINDER_GROUPS, REMINDER_SOUND, REMINDER_TIMING, type SettingApplies } from "./setting-copy.js";
 import { GLOBAL_TOOLS, type GlobalTool } from "./launcher-contracts.js";
-import { TOOL_PRESENTATION } from "./tool-presentation.js";
+import { TOOL_KEYWORDS, TOOL_PRESENTATION } from "./tool-presentation.js";
 
 /** Settings sections in sidebar order: game settings first, by how often players change them. */
 export const SETTINGS_SECTIONS = [
@@ -48,23 +48,6 @@ export type SettingEntry = Readonly<{
 }>;
 
 const KEYS = "keys shortcut hotkey keyboard";
-const TOOL_KEYWORDS: Partial<Record<GlobalTool, string>> = {
-  "call-target": "call target attack",
-  whispers: "chat friends messages pm",
-  "character-switch": "characters relog alts profession",
-  "build-management": "builds templates skills",
-  "quick-travel": "travel outposts map progress vanquish cartographer",
-  "xunlai-storage": "chest bank storage",
-  "quick-item-move": "items inventory stacks",
-  "trade-chat": "kamadan prices trading market",
-  maps: "grid terrain compass",
-  "target-readout": "distance range",
-  "skill-cooldowns": "recharge timer skill bar",
-  "chat-filters": "chat filter spam",
-  "alcohol-timer": "drunk alcohol timer",
-  reminders: "cons pcons alcohol reminder chime",
-  "effect-timers": "effects buffs timers",
-};
 
 const toolEntry = (tool: GlobalTool): SettingEntry => {
   const { label, description, action } = TOOL_PRESENTATION[tool];

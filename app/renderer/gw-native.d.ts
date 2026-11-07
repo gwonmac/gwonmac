@@ -8,8 +8,7 @@
  * checked against one description of that surface rather than against each
  * other's assumptions.
  */
-import type { AlcoholTimerPosition } from "../shared/alcohol-timer.js";
-import type { ShortcutOverrides } from "../shared/keyboard-shortcuts.js";
+import type { ToolsSettings } from "../shared/settings/index.js";
 import type {
   AppSettings,
   RendererGwNativeApi,
@@ -309,46 +308,12 @@ declare global {
     gwCartographyModelStats?(): CartographyModelStats;
     gwSurfaces: GwonmacSurfaceController;
     gwHub?: Hub;
-    gwToolsSettings(): Readonly<{
-      shortcutOverrides?: ShortcutOverrides;
-      hubShortcuts?: AppSettings['hubShortcuts'];
-      calculatorRates?: AppSettings['calculatorRates'];
-      gwonmacTools: boolean;
-      buildLibrary: boolean;
-      tradeChat: boolean;
-      xunlaiStorage: boolean;
-      travelPalette: boolean;
-      targetReadout: boolean;
-      characterSwitchEnabled: boolean;
-      resignEnabled: boolean;
-      whispersEnabled: boolean;
-      callTargetEnabled: boolean;
-      cartographyEnabled: boolean;
-      cartographyOverlayEnabled: boolean;
-      cartographyGridEnabled: boolean;
-      compassRangeIndicatorsEnabled: boolean;
-      eliteSkillsEnabled: boolean;
-      eliteMissionMapMarkers: AppSettings['eliteMissionMapMarkers'];
-      skillKeyBindings: AppSettings['skillKeyBindings'];
-      skillKeyLabelsEnabled: boolean;
-      skillCooldownOverlayEnabled: boolean;
-      chatFiltersEnabled: boolean;
-      chatFilterAllyDrops: boolean;
-      chatFilterHallOfHeroes: boolean;
-      chatFilterTitleAchievements: boolean;
-      quickItemMove: boolean;
-      effectTimersEnabled: boolean;
-      alcoholTimerEnabled: boolean;
-      remindersEnabled: boolean;
-      reminderCons: boolean;
-      reminderPcons: boolean;
-      reminderAlcohol: boolean;
-      reminderBeforeEnd: boolean;
-      reminderAtEnd: boolean;
-      reminderSound: boolean;
-      alcoholTimerPosition: AlcoholTimerPosition;
-      skillCooldownColor: AppSettings['skillCooldownColor'];
-    }>;
+    /**
+     * The Tools settings (app/shared/settings); it throws until boot() has loaded them.
+     * The Hub's own fields stay optional, as before, for page-side test doubles.
+     */
+    gwToolsSettings(): Omit<ToolsSettings, "hubShortcuts" | "shortcutOverrides" | "calculatorRates">
+      & Partial<Pick<ToolsSettings, "hubShortcuts" | "shortcutOverrides" | "calculatorRates">>;
     gwLoading: LoadingController;
     gwDiagnostics: RendererDiagnostics;
     gwVisualCapture?: VisualCaptureController;

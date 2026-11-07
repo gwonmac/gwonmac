@@ -1,25 +1,50 @@
 /**
- * Shared tool names and descriptions for launcher and in-game preferences.
- * Tool availability and persistence remain owned by their existing policies.
+ * Shared tool names and descriptions for launcher and in-game preferences, from
+ * each feature's manifest (app/features). Tool availability and persistence
+ * remain owned by their existing policies.
  */
-import type { GlobalTool } from "./launcher-contracts.js";
-import type { ShortcutAction } from "./keyboard-shortcuts.js";
-export const TOOL_PRESENTATION: Record<GlobalTool, { label: string; description: string; action?: ShortcutAction }> = {
-  whispers: { label: "Whispers", description: "A movable whisper panel alongside original chat. Conversations last for this session only.", action: "whispers.toggle" },
-  "call-target": { label: "Call target", description: "Call the selected target without attacking. Sends Control-Shift-Space and requires Guild Wars’ default controls. Inactive while typing.", action: "game.call-target" },
-  resign: { label: "Resign", description: "Ask before sending /resign in PvE. Enter confirms; Escape cancels.", action: "game.resign" },
-  "character-switch": { label: "Switch Character", description: "Search and browse every character. Available without optional Tools.", action: "character.switch" },
-  "build-management": { label: "Build Library", description: "Save and load skill builds.", action: "tools.toggle" },
-  "quick-travel": { label: "Travel", description: "Search destinations and travel between outposts.", action: "travel.open" },
-  "xunlai-storage": { label: "Xunlai Storage", description: "Open storage in supported outposts.", action: "storage.open" },
-  "quick-item-move": { label: "Quick Item Move", description: "Control-click items to move whole stacks through open storage or trade windows. Add Shift to choose an amount." },
-  "trade-chat": { label: "Trade Chat", description: "Browse the trade feed.", action: "trade.toggle" },
-  maps: { label: "Maps", description: "Exploration grid and walkable terrain on supported PvE maps." },
-  "target-readout": { label: "Target Distance", description: "Show distance to the selected target in PvE." },
-  "skill-key-labels": { label: "Skill Key Labels", description: "Show your own control labels on the eight skill slots." },
-  "skill-cooldowns": { label: "Skill Cooldowns", description: "Show numeric recharge timers on the skill bar." },
-  "chat-filters": { label: "Chat Filters", description: "Hide selected system notices before they enter chat." },
-  "alcohol-timer": { label: "Alcohol Timer", description: "A quiet, movable alcohol countdown. Hidden when sober; amber in the last 15 seconds." },
-  reminders: { label: "Reminders", description: "Remind you in chat before cons, pcons or alcohol run out. Only you see these lines." },
-  "effect-timers": { label: "Effect Timers", description: "Show exact remaining time on your native Effects icons." },
-};
+import { FEATURES, type GlobalTool, type ShortcutAction } from "../features/index.js";
+
+type ToolPresentation = Readonly<{ label: string; description: string; action?: ShortcutAction }>;
+
+const toolFeatures = FEATURES.flatMap((feature) => "tool" in feature ? [feature] : []);
+
+/** A tool's own shortcut is its feature's shortcut without a label of its own. */
+const toolAction = (feature: (typeof toolFeatures)[number]): ShortcutAction | undefined =>
+  "shortcuts" in feature
+    ? feature.shortcuts.find((shortcut): boolean => !("label" in shortcut))?.action
+    : undefined;
+
+export const TOOL_PRESENTATION: Readonly<Record<GlobalTool, ToolPresentation>> = Object.freeze(Object.fromEntries(
+  toolFeatures.map((feature) => {
+    const { id, label, description } = feature.tool;
+    const action = toolAction(feature);
+    return [id, Object.freeze(action ? { label, description, action } : { label, description })];
+  }),
+) as Record<GlobalTool, ToolPresentation>);
+
+/** The extra words Settings search matches for each tool that names some. */
+export const TOOL_KEYWORDS: Readonly<Partial<Record<GlobalTool, string>>> = Object.freeze(Object.fromEntries(
+  toolFeatures.flatMap((feature) => "keywords" in feature.tool ? [[feature.tool.id, feature.tool.keywords]] : []),
+));
+
+type HubToolKey = Readonly<{ command: string; tool: GlobalTool; action: ShortcutAction; label: string }>;
+const hubTools = toolFeatures.flatMap((feature) => {
+  const action = toolAction(feature);
+  if (!("hub" in feature.tool) || !action) return [];
+  const { hub, id, label } = feature.tool;
+  const keyOrder: number | undefined = "keyOrder" in hub ? hub.keyOrder : undefined;
+  const key: HubToolKey = Object.freeze({ command: hub.command, tool: id, action, label });
+  return [{ keyOrder, key }];
+});
+
+/** The shortcut each Hub command row shows, by row id. */
+export const HUB_COMMAND_SHORTCUTS: Readonly<Record<string, ShortcutAction>> = Object.freeze(
+  Object.fromEntries(hubTools.map(({ key }) => [key.command, key.action])),
+);
+
+/** The Hub Commands page's shortcut rows, in `keyOrder`. */
+export const HUB_TOOL_KEYS: readonly HubToolKey[] = Object.freeze(hubTools
+  .flatMap(({ keyOrder, key }) => keyOrder === undefined ? [] : [{ keyOrder, key }])
+  .sort((left, right) => left.keyOrder - right.keyOrder)
+  .map(({ key }) => key));

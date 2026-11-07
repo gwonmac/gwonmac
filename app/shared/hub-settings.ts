@@ -5,8 +5,9 @@
 import { parseGlobalTool, parseLauncherSettingsPatch, type GlobalToolUpdate, type LauncherSettings, type LauncherSnapshot, type ShortcutReplacement, type LauncherShortcutCaptureResult } from './launcher-contracts.js';
 import type { ExtendedMemoryRuntimeStatus } from './contracts.js';
 import type { SettingsTarget } from './settings-catalogue.js';
+import { HUB_SETTINGS } from './settings/index.js';
 import { isShortcutBinding, parseShortcutAction, type ShortcutAction } from './keyboard-shortcuts.js';
-export const HUB_SETTINGS_FIELDS = ['extendedMemoryEnabled', 'showDiagnostics', 'uiStyle', 'uiFont', 'uiCustomTheme', 'uiPanelOpacity', 'uiTextSize', 'controllerPromptStyle', 'renderScale', 'autoRelogAfterReload', 'characterSwitchProfession', 'characterSwitchLevel', 'characterSwitchLocation', 'skillKeyBindings', 'skillCooldownColor', 'chatFilterAllyDrops', 'chatFilterHallOfHeroes', 'chatFilterTitleAchievements', 'reminderCons', 'reminderPcons', 'reminderAlcohol', 'reminderBeforeEnd', 'reminderAtEnd', 'reminderSound', 'cartographyOverlayEnabled', 'cartographyGridEnabled', 'cartographyCompassGridEnabled', 'compassRangeIndicatorsEnabled', 'compassRangeEarshotEnabled', 'compassRangeCastEnabled', 'compassRangeSpiritEnabled', 'compassRangeSpiritExtendedEnabled', 'compassRangeEarshotOpacity', 'compassRangeCastOpacity', 'compassRangeSpiritOpacity', 'compassRangeSpiritExtendedOpacity', 'compassRangeTheme', 'cartographyRevealMode', 'cartographyPresetLibrary', 'cartographyWalkabilityOpacity', 'cartographyGridOpacity', 'cartographyControlIdleOpacity', 'eliteSkillsEnabled', 'eliteMissionMapMarkers', 'alcoholTimerPosition'] as const satisfies readonly (keyof LauncherSettings)[];
+export const HUB_SETTINGS_FIELDS = HUB_SETTINGS;
 /** The settings the game window reads and changes: those of the Settings page's in-game sections. */
 export type HubSettings = Pick<LauncherSettings, typeof HUB_SETTINGS_FIELDS[number]>;
 export type HubSettingsPatch = Partial<HubSettings>;

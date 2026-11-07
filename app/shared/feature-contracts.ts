@@ -1,183 +1,40 @@
 /**
- * Static product-feature selection policy.
- *
- * This registry centralizes only policy that it actively enforces. Native
- * capabilities and lifecycle behavior stay in their owning modules until a
- * coordinator can consume those contracts directly.
+ * Static product-feature selection policy, derived from the feature manifests
+ * (app/features). Native capabilities and lifecycle behavior stay in their
+ * owning modules until a coordinator can consume those contracts directly.
  */
+import type { FeatureDefinition } from "../features/define.js";
+import { FEATURES, type Feature, type FeatureId } from "../features/index.js";
 import type { AppSettings } from "./contracts.js";
+
+// app/main/core may import only app/shared, so it reaches the manifests here.
+export { FEATURES };
+export type { FeatureId };
 
 type BooleanSetting = {
   [Key in keyof AppSettings]: AppSettings[Key] extends boolean ? Key : never
 }[keyof AppSettings];
-type FeatureBooleanSetting = BooleanSetting & (
-  | "gwonmacTools"
-  | "buildLibrary"
-  | "tradeChat"
-  | "targetReadout"
-  | "xunlaiStorage"
-  | "quickItemMove"
-  | "travelPalette"
-  | "skillKeyLabelsEnabled"
-  | "skillCooldownOverlayEnabled"
-  | "chatFiltersEnabled"
-  | "effectTimersEnabled"
-  | "alcoholTimerEnabled"
-  | "remindersEnabled"
-  | "cartographyEnabled"
-  | "characterSwitchEnabled"
-  | "resignEnabled"
-  | "whispersEnabled"
-  | "callTargetEnabled"
-);
+type ActivationSetting = Feature["activation"]["setting"] | Extract<Feature["activation"], { master: string }>["master"];
+/** Every setting that selects a feature must be a stored boolean. */
+const activationSettingsAreBooleans: [ActivationSetting] extends [BooleanSetting] ? true : never = true;
+void activationSettingsAreBooleans;
+type FeatureBooleanSetting = ActivationSetting & BooleanSetting;
+
 type FeatureActivation =
-  | Readonly<{ kind: "master"; setting: FeatureBooleanSetting }>
-  | Readonly<{ kind: "independent"; setting: FeatureBooleanSetting }>
-  | Readonly<{
-      kind: "setting";
-      setting: FeatureBooleanSetting;
-      master: FeatureBooleanSetting;
-    }>;
+  | Readonly<{ kind: "master" | "independent"; setting: FeatureBooleanSetting }>
+  | Readonly<{ kind: "setting"; setting: FeatureBooleanSetting; master: FeatureBooleanSetting }>;
 
 type FeatureSelectionPolicy = Readonly<{
   activation: FeatureActivation;
-  region: "any" | "non-pvp" | "pve";
+  region: FeatureDefinition["region"];
 }>;
 
-function defineFeatureSelectionPolicies<
-  const Registry extends Record<string, FeatureSelectionPolicy>,
->(registry: Registry): Readonly<{
-  readonly [Id in keyof Registry]: FeatureSelectionPolicy;
-}> {
-  for (const policy of Object.values(registry)) {
-    Object.freeze(policy.activation);
-    Object.freeze(policy);
-  }
-  return Object.freeze(registry);
-}
+const definitions: readonly FeatureDefinition[] = FEATURES;
+export const FEATURE_SELECTION_POLICIES = Object.freeze(Object.fromEntries(definitions.map((feature) => [
+  feature.id,
+  Object.freeze({ activation: Object.freeze({ ...feature.activation }), region: feature.region }),
+]))) as Readonly<Record<FeatureId, FeatureSelectionPolicy>>;
 
-export const FEATURE_SELECTION_POLICIES = defineFeatureSelectionPolicies({
-  characterSwitch: {
-    activation: { kind: "independent", setting: "characterSwitchEnabled" },
-    region: "any",
-  },
-  whispers: {
-    activation: { kind: "setting", setting: "whispersEnabled", master: "gwonmacTools" },
-    region: "pve",
-  },
-  callTarget: {
-    activation: { kind: "setting", setting: "callTargetEnabled", master: "gwonmacTools" },
-    region: "any",
-  },
-  resign: {
-    activation: { kind: "setting", setting: "resignEnabled", master: "gwonmacTools" },
-    region: "pve",
-  },
-  cartography: {
-    activation: { kind: "setting", setting: "cartographyEnabled", master: "gwonmacTools" },
-    region: "pve",
-  },
-  tools: {
-    activation: { kind: "master", setting: "gwonmacTools" },
-    region: "non-pvp",
-  },
-  buildLibrary: {
-    activation: {
-      kind: "setting",
-      setting: "buildLibrary",
-      master: "gwonmacTools",
-    },
-    region: "non-pvp",
-  },
-  tradeChat: {
-    activation: {
-      kind: "setting",
-      setting: "tradeChat",
-      master: "gwonmacTools",
-    },
-    region: "non-pvp",
-  },
-  targetReadout: {
-    activation: {
-      kind: "setting",
-      setting: "targetReadout",
-      master: "gwonmacTools",
-    },
-    region: "pve",
-  },
-  teamApply: {
-    activation: {
-      kind: "setting",
-      setting: "buildLibrary",
-      master: "gwonmacTools",
-    },
-    region: "pve",
-  },
-  xunlaiStorage: {
-    activation: {
-      kind: "setting",
-      setting: "xunlaiStorage",
-      master: "gwonmacTools",
-    },
-    // The storage controller still owns the stronger, fresh access gate.
-    // This coarse rule withdraws on a certified PvP map outside a Guild Hall.
-    region: "non-pvp",
-  },
-  quickItemMove: {
-    activation: {
-      kind: "setting",
-      setting: "quickItemMove",
-      master: "gwonmacTools",
-    },
-    region: "non-pvp",
-  },
-  travel: {
-    activation: {
-      kind: "setting",
-      setting: "travelPalette",
-      master: "gwonmacTools",
-    },
-    region: "pve",
-  },
-  skillKeyLabels: {
-    activation: {
-      kind: "setting",
-      setting: "skillKeyLabelsEnabled",
-      master: "gwonmacTools",
-    },
-    region: "pve",
-  },
-  skillCooldowns: {
-    activation: {
-      kind: "setting",
-      setting: "skillCooldownOverlayEnabled",
-      master: "gwonmacTools",
-    },
-    region: "pve",
-  },
-  chatFilters: {
-    activation: {
-      kind: "setting",
-      setting: "chatFiltersEnabled",
-      master: "gwonmacTools",
-    },
-    region: "non-pvp",
-  },
-  alcoholTimer: { activation: { kind: "setting", setting: "alcoholTimerEnabled", master: "gwonmacTools" }, region: "pve" },
-  // Progress is a page of the Travel app, so it follows the Travel setting.
-  progress: { activation: { kind: "setting", setting: "travelPalette", master: "gwonmacTools" }, region: "pve" },
-  reminders: { activation: { kind: "setting", setting: "remindersEnabled", master: "gwonmacTools" }, region: "pve" },
-  effectTimers: {
-    activation: {
-      kind: "setting",
-      setting: "effectTimersEnabled",
-      master: "gwonmacTools",
-    },
-    region: "pve",
-  },
-});
-
-export type FeatureId = keyof typeof FEATURE_SELECTION_POLICIES;
 export type FeatureActivationSettings = Pick<
   AppSettings,
   FeatureBooleanSetting

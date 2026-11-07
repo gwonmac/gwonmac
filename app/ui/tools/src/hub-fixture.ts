@@ -2,8 +2,7 @@
 import { installFixtureMain, quitFixtureGame } from './hub-fixture-main';
 // eslint-disable-next-line no-restricted-imports
 import '../../../renderer/commands';
-import { GLOBAL_TOOLS, GLOBAL_TOOL_FEATURES, type GlobalToolSettings } from '../../../shared/launcher-contracts';
-import { FEATURE_SELECTION_POLICIES } from '../../../shared/feature-contracts';
+import { globalToolPatch, launcherToolSettings } from '../../../shared/launcher-contracts';
 import { parseCalculatorRates } from '../../../shared/hub-calculator';
 import type { SettingsTarget } from '../../../shared/settings-catalogue';
 import { parseHubSettingsChange, type HubSettingsApi } from '../../../shared/hub-settings';
@@ -84,14 +83,14 @@ export function mountHubFixture(target: HTMLElement) {
   const settingsListeners = new Set<(value: AppSettings) => void>();
   let capturingShortcut = false; let cancelShortcutCapture = () => {};
   const hubSettings: HubSettingsApi = {
-    get: async () => ({ settings, tools: { configured: settings.gwonmacTools, loaded: true, restartRequired: !settings.gwonmacTools, features: Object.fromEntries(GLOBAL_TOOLS.map(tool => [tool, { enabled: settings[FEATURE_SELECTION_POLICIES[GLOBAL_TOOL_FEATURES[tool]].activation.setting] }])) as GlobalToolSettings }, shortcuts: resolveShortcuts(settings.shortcutOverrides) }),
+    get: async () => ({ settings, tools: { configured: settings.gwonmacTools, loaded: true, restartRequired: !settings.gwonmacTools, features: launcherToolSettings(settings) }, shortcuts: resolveShortcuts(settings.shortcutOverrides) }),
     // `?settings-ms=` answers every settings write late, as a busy main process does.
     update: async raw => {
       await delay('settings-ms');
       const change = parseHubSettingsChange(raw);
       if (change.kind === 'settings') settings = { ...settings, ...change.patch };
       else if (change.kind === 'master') settings = { ...settings, gwonmacTools: change.enabled };
-      else if (change.kind === 'tool') settings = { ...settings, [FEATURE_SELECTION_POLICIES[GLOBAL_TOOL_FEATURES[change.tool]].activation.setting]: change.enabled };
+      else if (change.kind === 'tool') settings = { ...settings, ...globalToolPatch(change.tool, change.enabled) };
       else {
         if (change.binding && shortcutReserved(change.binding)) throw new Error('Reserved shortcut');
         const conflict = change.binding && shortcutConflict(change.action, change.binding, resolveShortcuts(settings.shortcutOverrides));

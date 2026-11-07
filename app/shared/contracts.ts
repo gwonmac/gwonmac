@@ -15,15 +15,11 @@
  * these boundaries; the sentence a player reads is written in the renderer,
  * where it can be tested against what is actually shown.
  */
-import { DEFAULT_ALCOHOL_TIMER_POSITION, type AlcoholTimerPosition } from "./alcohol-timer.js";
 import type { EliteWikiRequest } from "./elite-wiki.js";
-import type { EliteMissionMapMarkers } from "./elite-map-settings.js";
 import type { EliteTracking, EliteUpdate } from "./elite-skills.js";
 import type { SettingsTarget } from "./settings-catalogue.js";
 import type { HubSettingsApi } from "./hub-settings.js";
 import type { MarketSnapshot } from "./market-rates.js";
-import { DEFAULT_CALCULATOR_RATES, type CalculatorRates } from './hub-calculator.js';
-import type { HubShortcut } from './hub-preferences.js';
 import type {
   DiagnosticSummary,
   RendererFrameBatch,
@@ -52,34 +48,9 @@ import type {
   HubAccountRequest,
   HubAccountsSnapshot,
 } from "./accounts-contracts.js";
-import type { ShortcutOverrides } from "./keyboard-shortcuts.js";
-import {
-  EMPTY_SKILL_KEY_BINDINGS,
-  type SkillKeyBindings,
-} from "./skill-key-bindings.js";
-import {
-  DEFAULT_SKILL_COOLDOWN_COLOR,
-  type SkillCooldownColor,
-} from "./skill-cooldowns.js";
-import {
-  DEFAULT_STORED_TRAVEL_SHORTCUTS,
-  type StoredTravelShortcuts,
-  type TravelUserPreferences,
-  type TravelUserPreferencesUpdate,
-} from "./travel.js";
-import {
-  DEFAULT_CUSTOM_UI_THEME,
-  type CustomUiTheme,
-} from "./ui-theme.js";
-import {
-  DEFAULT_CARTOGRAPHY_PRESET_LIBRARY,
-  type CartographyPresetLibrary,
-  type CartographyPresetRef,
-} from "./cartography-overlay.js";
-import {
-  DEFAULT_COMPASS_RANGE_OPACITY,
-  type CompassRangeTheme,
-} from "./compass-ranges.js";
+import type { TravelUserPreferences, TravelUserPreferencesUpdate } from "./travel.js";
+import type { CartographyPresetRef } from "./cartography-overlay.js";
+import type { AppSettings, RendererWritableSetting } from "./settings/index.js";
 import type {
   CartographyEvidenceCapture,
   CartographyEvidenceExportResult,
@@ -356,14 +327,21 @@ export interface ClockSyncResponse {
   mainSendUs: number;
 }
 
-export const UI_STYLES = ["guild-wars", "obsidian", "custom"] as const;
-export type UiStyle = (typeof UI_STYLES)[number];
-export const UI_FONTS = ["guild-wars", "inter", "system", "avenir", "georgia", "palatino"] as const;
-export type UiFont = (typeof UI_FONTS)[number];
-export const CONTROLLER_PROMPT_STYLES = ["game-default", "playstation"] as const;
-export type ControllerPromptStyle = (typeof CONTROLLER_PROMPT_STYLES)[number];
-export const RENDER_SCALES = [1, 1.5, 2] as const;
-export type RenderScale = (typeof RENDER_SCALES)[number];
+export {
+  CONTROLLER_PROMPT_STYLES,
+  LAST_UPDATE_CHECK_AT_MAX,
+  RENDER_SCALES,
+  UI_FONTS,
+  UI_PANEL_OPACITY_MAX,
+  UI_PANEL_OPACITY_MIN,
+  UI_STYLES,
+  UI_TEXT_SIZE_MAX,
+  UI_TEXT_SIZE_MIN,
+  type ControllerPromptStyle,
+  type RenderScale,
+  type UiFont,
+  type UiStyle,
+} from "./settings/core.js";
 export const DIAGNOSTIC_PROFILES = [
   "standard",
   "no-gl-overrides",
@@ -371,190 +349,11 @@ export const DIAGNOSTIC_PROFILES = [
   "direct-canvas",
 ] as const;
 export type DiagnosticProfile = (typeof DIAGNOSTIC_PROFILES)[number];
-export const UI_PANEL_OPACITY_MIN = 65;
-export const UI_PANEL_OPACITY_MAX = 100;
-export const UI_TEXT_SIZE_MIN = 100;
-export const UI_TEXT_SIZE_MAX = 200;
-export const LAST_UPDATE_CHECK_AT_MAX = 8_640_000_000_000_000;
 
-export interface AppSettings {
-  renderScale: RenderScale;
-  /** The visual treatment applied to every GWonMac panel. */
-  uiStyle: UiStyle;
-  /** The one saved player palette, retained even while a built-in style is active. */
-  uiCustomTheme: CustomUiTheme;
-  /** The typeface applied to every GWonMac panel. */
-  uiFont: UiFont;
-  /** Visual style for Guild Wars' controller-button texture atlas. */
-  controllerPromptStyle: ControllerPromptStyle;
-  /**
-   * The application's Guild Wars panels stay translucent enough to see the
-   * game behind them. This is presentation only and never reaches the game.
-   */
-  uiPanelOpacity: number;
-  /** Interface text size in percent; never scales Guild Wars. */
-  uiTextSize: number;
-  /** Enable map guidance and its controls without changing saved layer visibility. */
-  cartographyEnabled: boolean;
-  /** Show certified walkability on the native Compass and Mission Map. */
-  cartographyOverlayEnabled: boolean;
-  /** Draw the game's fixed cartography cells over both native map surfaces. */
-  cartographyGridEnabled: boolean;
-  /** Include the Compass in exploration-grid presentation; off by default. */
-  cartographyCompassGridEnabled: boolean;
-  /** Draw standard Guild Wars ranges around the player on the Compass. */
-  compassRangeIndicatorsEnabled: boolean;
-  compassRangeEarshotEnabled: boolean;
-  compassRangeCastEnabled: boolean;
-  compassRangeSpiritEnabled: boolean;
-  compassRangeSpiritExtendedEnabled: boolean;
-  compassRangeEarshotOpacity: number;
-  compassRangeCastOpacity: number;
-  compassRangeSpiritOpacity: number;
-  compassRangeSpiritExtendedOpacity: number;
-  /** Shared color treatment for all standard Compass range rings. */
-  compassRangeTheme: CompassRangeTheme;
-  /** Persistent Compass footprint; Mission Map hover uses Shift or Option+Shift. */
-  cartographyRevealMode: "off" | "normal" | "birds-eye";
-  /** Active built-in or player-owned appearance and all custom presets. */
-  cartographyPresetLibrary: CartographyPresetLibrary;
-  /** Walkability veil and boundary strength, as a whole percentage. */
-  cartographyWalkabilityOpacity: number;
-  /** Grid, reveal ranges, and unseen-cell strength, as a whole percentage. */
-  cartographyGridOpacity: number;
-  /** Visibility of the collapsed Compass control, as a whole percentage. */
-  cartographyControlIdleOpacity: number;
-  /** Show the Elite Skills planner and its map markers while Maps are on. */
-  eliteSkillsEnabled: boolean;
-  /** Capture locations that the Mission Map shows during play. */
-  eliteMissionMapMarkers: EliteMissionMapMarkers;
-  /** Master opt-in for the optional executable Tools Beta capability. */
-  gwonmacTools: boolean;
-  /** Show the saved Build Library and allow its app shortcut. */
-  buildLibrary: boolean;
-  /** Show the read-only Trade Chat surface and allow its app shortcut. */
-  tradeChat: boolean;
-  /** Allow the explicit local Xunlai window command in supported outposts. */
-  xunlaiStorage: boolean;
-  /** Move clicked item stacks through the open storage or trade window. */
-  quickItemMove: boolean;
-  /** Allow the focused Travel palette and its explicit map command. */
-  travelPalette: boolean;
-  /** Allow the Core Character Switch surface independently of optional Tools. */
-  characterSwitchEnabled: boolean;
-  /** Allow the confirmed PvE resign shortcut when Tools are enabled. */
-  resignEnabled: boolean;
-  whispersEnabled: boolean;
-  /** Opt-in Command shortcut for the default target-call chord. */
-  callTargetEnabled: boolean;
-  /** Show the canonical profession icon and profession names in Character Switch. */
-  characterSwitchProfession: boolean;
-  /** Show the character's certified level in Character Switch. */
-  characterSwitchLevel: boolean;
-  /** Show a location only when Travel's reviewed catalogue names its map. */
-  characterSwitchLocation: boolean;
-  /** Ordered destinations for the palette's direct 1–9 shortcuts. */
-  travelShortcuts: StoredTravelShortcuts;
-  /** Experimental live target distance/range readout. */
-  targetReadout: boolean;
-  /** Player changes to the app-owned shortcuts; missing entries use defaults. */
-  shortcutOverrides: ShortcutOverrides;
-  hubShortcuts: readonly HubShortcut[];
-  /** Optional estimates and selected source, shared across game windows. */
-  calculatorRates: CalculatorRates;
-  /** Display-only labels that mirror the player's eight Guild Wars bindings. */
-  skillKeyBindings: SkillKeyBindings;
-  /** Show the configured skill-key labels over the eight player skill slots. */
-  skillKeyLabelsEnabled: boolean;
-  /** Enable the certified in-client filter for selected system chat notices. */
-  chatFiltersEnabled: boolean;
-  /** Hide item-drop notices assigned to another party member. */
-  chatFilterAllyDrops: boolean;
-  /** Hide global Hall of Heroes winner announcements. */
-  chatFilterHallOfHeroes: boolean;
-  /** Hide player title-achievement announcements. */
-  chatFilterTitleAchievements: boolean;
-  /** Show Guild Wars' observed recharge state as display-only countdowns. */
-  skillCooldownOverlayEnabled: boolean;
-  /** Show exact remaining durations over the controlled player's native Effects icons. */
-  effectTimersEnabled: boolean;
-  alcoholTimerEnabled: boolean;
-  remindersEnabled: boolean;
-  reminderCons: boolean;
-  reminderPcons: boolean;
-  reminderAlcohol: boolean;
-  reminderBeforeEnd: boolean;
-  reminderAtEnd: boolean;
-  reminderSound: boolean;
-  alcoholTimerPosition: AlcoholTimerPosition;
-  /** One curated or exact RGB color shared by all eight cooldown labels. */
-  skillCooldownColor: SkillCooldownColor;
-  /** Request the certified 4 GB client module on the next Guild Wars launch. */
-  extendedMemoryEnabled: boolean;
-  /** Return toward the current character after an explicit game reload. */
-  autoRelogAfterReload: boolean;
-  /** Warning position within the available viewport space; null keeps the default. */
-  memoryWarningPosition: Readonly<{ x: number; y: number }> | null;
-  showDiagnostics: boolean;
-  /**
-   * Automatic release checks: one static channel request when no settled
-   * attempt was recorded in the previous six hours, including across app
-   * restarts. It is on by default so players stay current and declared plainly
-   * wherever the checkbox appears. `false` means no automatic update request;
-   * opting out is one checkbox, honored forever.
-   */
-  autoCheckUpdates: boolean;
-  /**
-   * When the last release-check attempt completed, in epoch milliseconds, or
-   * `null` if one has never run. This records a settled attempt, not a claim
-   * that a network request reached its destination.
-   */
-  lastUpdateCheckAt: number | null;
-  /**
-   * The ArenaNet client build (its official module's sha256) whose
-   * compatibility notice the player has already seen, or `null` for none.
-   *
-   * Keyed by build rather than by a boolean on purpose: a new ArenaNet build
-   * has to warn again, and the same one must not nag every launch. It is not
-   * nested with the two update fields above because it is not about updating
-   * this app — it records what the player was told about *their game client*.
-   */
-  compatibilityNoticeSeenFor: string | null;
-}
-
+// The settings table (app/shared/settings) derives these from core and feature settings.
+export { DEFAULT_SETTINGS, RENDERER_WRITABLE_SETTINGS } from "./settings/index.js";
+export type { AppSettings };
 export type AppSettingsPatch = Partial<AppSettings>;
-/**
- * The only settings a game renderer may write. Global launcher, update, Tools,
- * appearance, and diagnostics policy never crosses the game preload.
- */
-export const RENDERER_WRITABLE_SETTINGS = [
-  "autoRelogAfterReload",
-  "memoryWarningPosition",
-  "alcoholTimerPosition",
-  "cartographyOverlayEnabled",
-  "cartographyGridEnabled",
-  "compassRangeIndicatorsEnabled",
-  "compassRangeEarshotEnabled",
-  "compassRangeCastEnabled",
-  "compassRangeSpiritEnabled",
-  "compassRangeSpiritExtendedEnabled",
-  "compassRangeEarshotOpacity",
-  "compassRangeCastOpacity",
-  "compassRangeSpiritOpacity",
-  "compassRangeSpiritExtendedOpacity",
-  "compassRangeTheme",
-  "cartographyGridOpacity",
-  "cartographyWalkabilityOpacity",
-  "cartographyRevealMode",
-  "eliteSkillsEnabled",
-  "eliteMissionMapMarkers",
-  "characterSwitchProfession",
-  "characterSwitchLevel",
-  "characterSwitchLocation",
-  "hubShortcuts",
-  "calculatorRates",
-] as const satisfies readonly (keyof AppSettings)[];
-type RendererWritableSetting = (typeof RENDERER_WRITABLE_SETTINGS)[number];
 
 /**
  * Settings fields the sandboxed game renderer may write through generic IPC.
@@ -591,79 +390,6 @@ export type SettingsResetOutcome =
       pending: "travel";
     }>;
 
-export const DEFAULT_SETTINGS: AppSettings = {
-  renderScale: 2,
-  uiStyle: "guild-wars",
-  uiCustomTheme: DEFAULT_CUSTOM_UI_THEME,
-  uiFont: "guild-wars",
-  controllerPromptStyle: "game-default",
-  uiPanelOpacity: 94,
-  uiTextSize: 100,
-  cartographyEnabled: true,
-  cartographyOverlayEnabled: false,
-  cartographyGridEnabled: false,
-  cartographyCompassGridEnabled: false,
-  compassRangeIndicatorsEnabled: false,
-  compassRangeEarshotEnabled: true,
-  compassRangeCastEnabled: true,
-  compassRangeSpiritEnabled: true,
-  compassRangeSpiritExtendedEnabled: true,
-  compassRangeEarshotOpacity: DEFAULT_COMPASS_RANGE_OPACITY,
-  compassRangeCastOpacity: DEFAULT_COMPASS_RANGE_OPACITY,
-  compassRangeSpiritOpacity: DEFAULT_COMPASS_RANGE_OPACITY,
-  compassRangeSpiritExtendedOpacity: DEFAULT_COMPASS_RANGE_OPACITY,
-  compassRangeTheme: "color",
-  cartographyRevealMode: "off",
-  cartographyPresetLibrary: DEFAULT_CARTOGRAPHY_PRESET_LIBRARY,
-  cartographyWalkabilityOpacity: 55,
-  cartographyGridOpacity: 65,
-  cartographyControlIdleOpacity: 35,
-  eliteSkillsEnabled: true,
-  eliteMissionMapMarkers: "saved",
-  gwonmacTools: false,
-  buildLibrary: true,
-  tradeChat: true,
-  xunlaiStorage: false,
-  quickItemMove: false,
-  travelPalette: true,
-  characterSwitchEnabled: true,
-  resignEnabled: false,
-  whispersEnabled: false,
-  callTargetEnabled: false,
-  characterSwitchProfession: true,
-  characterSwitchLevel: true,
-  characterSwitchLocation: true,
-  travelShortcuts: DEFAULT_STORED_TRAVEL_SHORTCUTS,
-  targetReadout: false,
-  shortcutOverrides: {},
-  hubShortcuts: [],
-  calculatorRates: DEFAULT_CALCULATOR_RATES,
-  skillKeyBindings: EMPTY_SKILL_KEY_BINDINGS,
-  skillKeyLabelsEnabled: false,
-  chatFiltersEnabled: false,
-  chatFilterAllyDrops: true,
-  chatFilterHallOfHeroes: true,
-  chatFilterTitleAchievements: true,
-  skillCooldownOverlayEnabled: true,
-  effectTimersEnabled: false,
-  alcoholTimerEnabled: false,
-  remindersEnabled: false,
-  reminderCons: true,
-  reminderPcons: true,
-  reminderAlcohol: true,
-  reminderBeforeEnd: true,
-  reminderAtEnd: true,
-  reminderSound: false,
-  alcoholTimerPosition: DEFAULT_ALCOHOL_TIMER_POSITION,
-  skillCooldownColor: DEFAULT_SKILL_COOLDOWN_COLOR,
-  extendedMemoryEnabled: false,
-  autoRelogAfterReload: false,
-  memoryWarningPosition: null,
-  showDiagnostics: false,
-  autoCheckUpdates: true,
-  lastUpdateCheckAt: null,
-  compatibilityNoticeSeenFor: null,
-};
 
 export interface StoredCredentials {
   username: string;

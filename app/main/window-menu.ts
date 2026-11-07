@@ -25,7 +25,7 @@ import {
   type TextEditCommand,
 } from "../shared/contracts.js";
 import { errorCode } from "../shared/errors.js";
-import { featureActivationRequested, type FeatureId } from "../shared/feature-contracts.js";
+import { featureActivationRequested, type FeatureActivationSettings } from "../shared/feature-contracts.js";
 import { logEvent, reloadTranscriptForWindow } from "./diagnostics.js";
 import { exportDiagnosticsReport } from "./diagnostics-export.js";
 import {
@@ -45,7 +45,7 @@ import {
   setInputTraceVisibility,
 } from './input-trace.js';
 import type { WindowHost } from "./window.js";
-import { resolveShortcuts, shortcutAccelerator, type ShortcutAction } from "../shared/keyboard-shortcuts.js";
+import { SHORTCUT_MENU_ITEMS, resolveShortcuts, shortcutAccelerator } from "../shared/keyboard-shortcuts.js";
 import { windowRegistry } from "./window-registry.js";
 import type { ProfileId } from "../shared/multiple-accounts.js";
 
@@ -121,18 +121,7 @@ export function installNativeApplicationMenu(
   Menu.setApplicationMenu(menu);
 }
 
-type ToolMenuSettings = Pick<AppSettings,
-  "gwonmacTools" | "buildLibrary" | "tradeChat" | "xunlaiStorage"
-  | "whispersEnabled" | "travelPalette" | "characterSwitchEnabled" | "resignEnabled" | "shortcutOverrides">;
-const TOOL_MENU_FEATURES: Readonly<Record<string, { feature: FeatureId; action: ShortcutAction }>> = {
-  "toggle-tools": { feature: "buildLibrary", action: "tools.toggle" },
-  "open-whispers": { feature: "whispers", action: "whispers.toggle" },
-  "toggle-trade": { feature: "tradeChat", action: "trade.toggle" },
-  "open-xunlai-storage": { feature: "xunlaiStorage", action: "storage.open" },
-  "open-travel": { feature: "travel", action: "travel.open" },
-  "resign-game": { feature: "resign", action: "game.resign" },
-  "switch-character": { feature: "characterSwitch", action: "character.switch" },
-};
+type ToolMenuSettings = FeatureActivationSettings & Pick<AppSettings, "shortcutOverrides">;
 // Electron makes accelerators immutable. Retain the existing menu builder,
 // not a second mutable copy of either menu items or settings.
 let rebuildGameMenu: ((settings: ToolMenuSettings) => void) | undefined;
@@ -141,7 +130,7 @@ let rebuildGameMenu: ((settings: ToolMenuSettings) => void) | undefined;
 export function updateToolsMenuItems(settings: ToolMenuSettings): void {
   const menu = Menu.getApplicationMenu();
   const shortcuts = resolveShortcuts(settings.shortcutOverrides);
-  for (const [id, { feature, action }] of Object.entries(TOOL_MENU_FEATURES)) {
+  for (const [id, { feature, action }] of Object.entries(SHORTCUT_MENU_ITEMS)) {
     const item = menu?.getMenuItemById(id);
     if (!item) continue;
     if (action === "character.switch" &&
@@ -681,7 +670,7 @@ export function installApplicationMenu(actions: ApplicationMenuActions, settings
     const shortcuts = resolveShortcuts(settings.shortcutOverrides);
     const view = template.find(section => section.label === "View");
     if (Array.isArray(view?.submenu)) for (const item of view.submenu) {
-      const selection = TOOL_MENU_FEATURES[item.id ?? ""];
+      const selection = SHORTCUT_MENU_ITEMS[item.id ?? ""];
       if (!selection) continue;
       item.enabled = featureActivationRequested(selection.feature, settings);
       // Tools shortcuts belong only to before-input-event, not AppKit's menu

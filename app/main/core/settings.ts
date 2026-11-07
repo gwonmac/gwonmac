@@ -14,106 +14,26 @@
  * because a silently ignored key is indistinguishable to the renderer from a
  * setting that did not stick.
  */
-import { isAlcoholTimerPosition } from "../../shared/alcohol-timer.js";
 import { readFile } from "node:fs/promises";
 import {
   DEFAULT_SETTINGS,
-  CONTROLLER_PROMPT_STYLES,
-  LAST_UPDATE_CHECK_AT_MAX,
   RENDERER_WRITABLE_SETTINGS,
-  RENDER_SCALES,
-  UI_PANEL_OPACITY_MAX,
-  UI_PANEL_OPACITY_MIN,
-  UI_TEXT_SIZE_MIN,
-  UI_TEXT_SIZE_MAX,
-  UI_FONTS,
-  UI_STYLES,
   type AppSettings,
   type AppSettingsPatch,
   type RendererSettingsPatch,
 } from "../../shared/contracts.js";
-import { isDigest } from "../../shared/digest.js";
-import { isEliteMissionMapMarkers } from "../../shared/elite-map-settings.js";
 import { AppError } from "../../shared/errors.js";
-import { parseCalculatorRates } from '../../shared/hub-calculator.js';
-import { isHubShortcuts } from '../../shared/hub-preferences.js';
-import { isShortcutOverrides } from "../../shared/keyboard-shortcuts.js";
-import {
-  cloneSkillKeyBindings,
-  isSkillKeyBindings,
-} from "../../shared/skill-key-bindings.js";
-import {
-  cloneSkillCooldownColor,
-  isSkillCooldownColor,
-} from "../../shared/skill-cooldowns.js";
-import { isStoredTravelShortcuts } from "../../shared/travel.js";
-import {
-  DEFAULT_CUSTOM_UI_THEME,
-  normaliseCustomUiTheme,
-} from "../../shared/ui-theme.js";
-import {
-  CARTOGRAPHY_CONTROL_IDLE_OPACITY_MAX,
-  CARTOGRAPHY_CONTROL_IDLE_OPACITY_MIN,
-  CARTOGRAPHY_OPACITY_MAX,
-  CARTOGRAPHY_OPACITY_MIN,
-  normaliseCartographyPresetLibrary,
-  normaliseCartographyPresetRef,
-} from "../../shared/cartography-overlay.js";
-import {
-  COMPASS_RANGE_OPACITY_MAX,
-  COMPASS_RANGE_OPACITY_MIN,
-  COMPASS_RANGE_THEMES,
-  type CompassRangeTheme,
-} from "../../shared/compass-ranges.js";
+import { normaliseCartographyPresetRef } from "../../shared/cartography-overlay.js";
+import { SETTING_KEYS, readSettings } from "../../shared/settings/index.js";
 import { writeAtomicJson } from "./atomic-file.js";
 import { quarantineCorruptDocument } from "./corrupt-document.js";
 
-const RENDER_SCALE_VALUES = new Set<AppSettings["renderScale"]>(RENDER_SCALES);
-const UI_STYLE_VALUES = new Set<AppSettings["uiStyle"]>(UI_STYLES);
-const UI_FONT_VALUES = new Set<AppSettings["uiFont"]>(UI_FONTS);
-const CONTROLLER_PROMPT_STYLE_VALUES = new Set<AppSettings["controllerPromptStyle"]>(
-  CONTROLLER_PROMPT_STYLES,
-);
-
-/**
- * A whole number inside a closed range.
- *
- * The bounds are the setting's meaning, not a guard: a panel below 65% opacity
- * stops being readable over moving art, and a border above 4px stops being a
- * border. Refusing out-of-range here keeps the renderer from having to decide
- * what a nonsense value should look like.
- */
-function asBoundedInteger(
-  value: unknown,
-  field: string,
-  minimum: number,
-  maximum: number,
-): number {
-  if (
-    typeof value !== "number"
-    || !Number.isSafeInteger(value)
-    || value < minimum
-    || value > maximum
-  ) {
-    throw new AppError(
-      "bad_settings",
-      `settings.${field} must be an integer from ${minimum} to ${maximum}`,
-    );
-  }
-  return value;
-}
-const SETTINGS_KEYS = new Set(Object.keys(DEFAULT_SETTINGS));
+const SETTINGS_KEYS = new Set<string>(SETTING_KEYS);
 const SETTINGS_FORMAT = 1;
-
-function asBool(v: unknown, field: string): boolean {
-  if (typeof v !== "boolean") {
-    throw new AppError("bad_settings", `settings.${field} must be a boolean`);
-  }
-  return v;
-}
 
 /**
  * Reject unknown types; ignore unknown fields; fill missing from defaults.
+ * Each field's shape is its setting's (app/shared/settings).
  *
  * A file with no `formatVersion` is what the public alpha wrote. v0 and v1
  * are the same shape — only the marker is new — so the legacy read is the
@@ -132,254 +52,7 @@ export function parseSettings(raw: unknown): AppSettings {
       `settings.formatVersion ${JSON.stringify(src.formatVersion)} is not readable`,
     );
   }
-  const out: AppSettings = {
-    ...DEFAULT_SETTINGS,
-    uiCustomTheme: { ...DEFAULT_CUSTOM_UI_THEME },
-  };
-
-  if ("renderScale" in src) {
-    if (!RENDER_SCALE_VALUES.has(src.renderScale as AppSettings["renderScale"])) {
-      throw new AppError("bad_settings", `settings.renderScale has unknown type/value`);
-    }
-    out.renderScale = src.renderScale as AppSettings["renderScale"];
-  }
-  if ("uiStyle" in src) {
-    if (!UI_STYLE_VALUES.has(src.uiStyle as AppSettings["uiStyle"])) {
-      throw new AppError("bad_settings", "settings.uiStyle has unknown value");
-    }
-    out.uiStyle = src.uiStyle as AppSettings["uiStyle"];
-  }
-  if ("uiCustomTheme" in src) {
-    const theme = normaliseCustomUiTheme(src.uiCustomTheme);
-    if (!theme) {
-      throw new AppError("bad_settings", "settings.uiCustomTheme is invalid");
-    }
-    out.uiCustomTheme = theme;
-  }
-  if ("uiFont" in src) {
-    if (!UI_FONT_VALUES.has(src.uiFont as AppSettings["uiFont"])) {
-      throw new AppError("bad_settings", "settings.uiFont has unknown value");
-    }
-    out.uiFont = src.uiFont as AppSettings["uiFont"];
-  }
-  if ("controllerPromptStyle" in src) {
-    if (!CONTROLLER_PROMPT_STYLE_VALUES.has(
-      src.controllerPromptStyle as AppSettings["controllerPromptStyle"],
-    )) {
-      throw new AppError("bad_settings", "settings.controllerPromptStyle has unknown value");
-    }
-    out.controllerPromptStyle = src.controllerPromptStyle as AppSettings["controllerPromptStyle"];
-  }
-  if ("uiTextSize" in src) out.uiTextSize = asBoundedInteger(src.uiTextSize, "uiTextSize", UI_TEXT_SIZE_MIN, UI_TEXT_SIZE_MAX);
-  if ("uiPanelOpacity" in src) {
-    out.uiPanelOpacity = asBoundedInteger(
-      src.uiPanelOpacity,
-      "uiPanelOpacity",
-      UI_PANEL_OPACITY_MIN,
-      UI_PANEL_OPACITY_MAX,
-    );
-  }
-  if ("cartographyPresetLibrary" in src) {
-    const library = normaliseCartographyPresetLibrary(src.cartographyPresetLibrary);
-    if (library === null) {
-      throw new AppError("bad_settings", "settings.cartographyPresetLibrary is invalid");
-    }
-    out.cartographyPresetLibrary = library;
-  }
-  for (const setting of [
-    "cartographyWalkabilityOpacity",
-    "cartographyGridOpacity",
-  ] as const) {
-    if (setting in src) {
-      out[setting] = asBoundedInteger(
-        src[setting],
-        setting,
-        CARTOGRAPHY_OPACITY_MIN,
-        CARTOGRAPHY_OPACITY_MAX,
-      );
-    }
-  }
-  for (const setting of [
-    "compassRangeEarshotOpacity",
-    "compassRangeCastOpacity",
-    "compassRangeSpiritOpacity",
-    "compassRangeSpiritExtendedOpacity",
-  ] as const) {
-    if (setting in src) {
-      out[setting] = asBoundedInteger(
-        src[setting],
-        setting,
-        COMPASS_RANGE_OPACITY_MIN,
-        COMPASS_RANGE_OPACITY_MAX,
-      );
-    }
-  }
-  if ("compassRangeTheme" in src) {
-    if (!COMPASS_RANGE_THEMES.includes(src.compassRangeTheme as CompassRangeTheme)) {
-      throw new AppError("bad_settings", "settings.compassRangeTheme is invalid");
-    }
-    out.compassRangeTheme = src.compassRangeTheme as CompassRangeTheme;
-  }
-  if ("cartographyControlIdleOpacity" in src) {
-    out.cartographyControlIdleOpacity = asBoundedInteger(
-      src.cartographyControlIdleOpacity,
-      "cartographyControlIdleOpacity",
-      CARTOGRAPHY_CONTROL_IDLE_OPACITY_MIN,
-      CARTOGRAPHY_CONTROL_IDLE_OPACITY_MAX,
-    );
-  }
-  if ("cartographyRevealMode" in src) {
-    const mode = src.cartographyRevealMode;
-    if (mode !== "off" && mode !== "normal" && mode !== "birds-eye") {
-      throw new AppError("bad_settings", "settings.cartographyRevealMode is invalid");
-    }
-    out.cartographyRevealMode = mode;
-  }
-  if ("eliteMissionMapMarkers" in src) {
-    if (!isEliteMissionMapMarkers(src.eliteMissionMapMarkers)) {
-      throw new AppError("bad_settings", "settings.eliteMissionMapMarkers is invalid");
-    }
-    out.eliteMissionMapMarkers = src.eliteMissionMapMarkers;
-  }
-  if ("calculatorRates" in src) {
-    try { out.calculatorRates = parseCalculatorRates(src.calculatorRates); }
-    catch { throw new AppError("bad_settings", "settings.calculatorRates is invalid"); }
-  }
-  if ("hubShortcuts" in src) {
-    if (!isHubShortcuts(src.hubShortcuts) || src.hubShortcuts.some(entry => /^(build|team):/u.test(entry.id))) throw new AppError("bad_settings", "Invalid Hub shortcuts");
-    out.hubShortcuts = src.hubShortcuts.map(entry => ({ ...entry }));
-  }
-  if ("shortcutOverrides" in src) {
-    if (!isShortcutOverrides(src.shortcutOverrides)) {
-      throw new AppError("bad_settings", "settings.shortcutOverrides has invalid bindings");
-    }
-    out.shortcutOverrides = { ...src.shortcutOverrides };
-  }
-  if ("skillKeyBindings" in src) {
-    if (!isSkillKeyBindings(src.skillKeyBindings)) {
-      throw new AppError("bad_settings", "settings.skillKeyBindings has invalid bindings");
-    }
-    out.skillKeyBindings = cloneSkillKeyBindings(src.skillKeyBindings);
-  }
-  if ("skillCooldownColor" in src) {
-    if (!isSkillCooldownColor(src.skillCooldownColor)) {
-      throw new AppError("bad_settings", "settings.skillCooldownColor has an invalid color");
-    }
-    out.skillCooldownColor = cloneSkillCooldownColor(src.skillCooldownColor);
-  }
-  if ("travelShortcuts" in src) {
-    if (!isStoredTravelShortcuts(src.travelShortcuts)) {
-      throw new AppError("bad_settings", "settings.travelShortcuts has invalid destinations");
-    }
-    out.travelShortcuts = src.travelShortcuts.map((shortcut) =>
-      shortcut === null ? null : { ...shortcut }
-    );
-  }
-  // Stable releases before Build Library became the owner of Apply Team used
-  // `teamManagement` for the same player opt-out. Dormant profiles can retain
-  // that released shape indefinitely, so this read alias is permanent.
-  if (!("buildLibrary" in src) && "teamManagement" in src) {
-    out.buildLibrary = asBool(src.teamManagement, "teamManagement");
-  }
-  for (const setting of [
-    "gwonmacTools",
-    "cartographyEnabled",
-    "cartographyOverlayEnabled",
-    "cartographyGridEnabled",
-    "cartographyCompassGridEnabled",
-    "compassRangeIndicatorsEnabled",
-    "compassRangeEarshotEnabled",
-    "compassRangeCastEnabled",
-    "compassRangeSpiritEnabled",
-    "compassRangeSpiritExtendedEnabled",
-    "eliteSkillsEnabled",
-    "buildLibrary",
-    "tradeChat",
-    "xunlaiStorage",
-    "quickItemMove",
-    "travelPalette",
-    "chatFiltersEnabled",
-    "chatFilterAllyDrops",
-    "chatFilterHallOfHeroes",
-    "chatFilterTitleAchievements",
-    "characterSwitchEnabled",
-    "resignEnabled",
-    "whispersEnabled",
-    "callTargetEnabled",
-    "characterSwitchProfession",
-    "characterSwitchLevel",
-    "characterSwitchLocation",
-    "targetReadout",
-    "skillKeyLabelsEnabled",
-    "skillCooldownOverlayEnabled",
-    "effectTimersEnabled",
-    "alcoholTimerEnabled",
-    "remindersEnabled",
-    "reminderCons",
-    "reminderPcons",
-    "reminderAlcohol",
-    "reminderBeforeEnd",
-    "reminderAtEnd",
-    "reminderSound",
-    "extendedMemoryEnabled",
-    "autoRelogAfterReload",
-  ] as const) {
-    if (setting in src) out[setting] = asBool(src[setting], setting);
-  }
-  if ("alcoholTimerPosition" in src) {
-    if (!isAlcoholTimerPosition(src.alcoholTimerPosition)) throw new AppError("bad_settings", "Alcohol timer position is invalid");
-    out.alcoholTimerPosition = { ...src.alcoholTimerPosition };
-  }
-  if ("memoryWarningPosition" in src) {
-    const position = src.memoryWarningPosition;
-    if (position === null) out.memoryWarningPosition = null;
-    else {
-      if (typeof position !== "object" || Array.isArray(position)
-        || !("x" in position) || !("y" in position)
-        || Object.keys(position).length !== 2
-        || typeof position.x !== "number" || !Number.isFinite(position.x)
-        || typeof position.y !== "number" || !Number.isFinite(position.y)
-        || position.x < 0 || position.x > 1 || position.y < 0 || position.y > 1) {
-        throw new AppError("bad_settings", "settings.memoryWarningPosition must contain x and y between 0 and 1");
-      }
-      out.memoryWarningPosition = { x: position.x, y: position.y };
-    }
-  }
-  if ("showDiagnostics" in src) {
-    out.showDiagnostics = asBool(src.showDiagnostics, "showDiagnostics");
-  }
-  if ("autoCheckUpdates" in src) {
-    out.autoCheckUpdates = asBool(src.autoCheckUpdates, "autoCheckUpdates");
-  }
-  if ("lastUpdateCheckAt" in src) {
-    const at = src.lastUpdateCheckAt;
-    if (
-      at !== null &&
-      !(
-        typeof at === "number"
-        && Number.isSafeInteger(at)
-        && at >= 0
-        && at <= LAST_UPDATE_CHECK_AT_MAX
-      )
-    ) {
-      throw new AppError(
-        "bad_settings",
-        "settings.lastUpdateCheckAt must be null or epoch milliseconds",
-      );
-    }
-    out.lastUpdateCheckAt = at;
-  }
-  if ("compatibilityNoticeSeenFor" in src) {
-    const seen = src.compatibilityNoticeSeenFor;
-    if (seen !== null && !isDigest(seen)) {
-      throw new AppError(
-        "bad_settings",
-        "settings.compatibilityNoticeSeenFor must be null or a client sha256",
-      );
-    }
-    out.compatibilityNoticeSeenFor = seen;
-  }
-  return out;
+  return readSettings(src);
 }
 
 export function parseSettingsPatch(raw: unknown): AppSettingsPatch {
@@ -396,7 +69,7 @@ export function parseSettingsPatch(raw: unknown): AppSettingsPatch {
   }
   const parsed = parseSettings(src);
   const patch: AppSettingsPatch = {};
-  for (const key of Object.keys(DEFAULT_SETTINGS) as (keyof AppSettings)[]) {
+  for (const key of SETTING_KEYS) {
     if (Object.hasOwn(src, key)) {
       Object.assign(patch, { [key]: parsed[key] });
     }

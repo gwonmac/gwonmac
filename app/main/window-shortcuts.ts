@@ -5,10 +5,12 @@
 import { isAppShortcutCaptureActive } from "./launcher-shortcut-capture.js";
 import type { BrowserWindow } from "electron";
 import type { AppSettings, GameTextEditCommand, TextEditCommand } from "../shared/contracts.js";
-import { featureActivationRequested, type FeatureId } from "../shared/feature-contracts.js";
+import { featureActivationRequested, type FeatureActivationSettings } from "../shared/feature-contracts.js";
 import {
   resolveShortcuts,
   HUB_SHORTCUT,
+  SHORTCUT_ACTIONS,
+  SHORTCUT_FEATURES,
   hubShortcutAvailable,
   shortcutFromInput,
   shortcutMatches,
@@ -77,19 +79,6 @@ const textEditCommand = (input: Electron.Input): TextEditCommand | null =>
 const isGameTextEditCommand = (command: TextEditCommand): command is GameTextEditCommand =>
   command !== "undo" && command !== "redo";
 
-/** The feature whose activation lets each shortcut action run. */
-const SHORTCUT_FEATURES = [
-  ["game.call-target", "callTarget"],
-  ["game.resign", "resign"],
-  ["character.switch", "characterSwitch"],
-  ["tools.toggle", "buildLibrary"],
-  ["whispers.toggle", "whispers"],
-  ["trade.toggle", "tradeChat"],
-  ["storage.open", "xunlaiStorage"],
-  ["travel.open", "travel"],
-  ["cartography.grid.toggle", "cartography"],
-  ["cartography.walkability.toggle", "cartography"],
-] as const satisfies readonly (readonly [ShortcutAction, FeatureId])[];
 
 class WindowShortcuts {
   #hubAvailable = true;
@@ -300,24 +289,10 @@ class WindowShortcuts {
     win.on("closed", () => this.cancelCapture());
   }
 
-  update(settings: Pick<
-    AppSettings,
-    | "gwonmacTools"
-    | "buildLibrary"
-    | "tradeChat"
-    | "xunlaiStorage"
-    | "travelPalette"
-    | "shortcutOverrides"
-    | "characterSwitchEnabled"
-    | "resignEnabled"
-    | "whispersEnabled"
-    | "callTargetEnabled"
-    | "cartographyEnabled"
-  >): void {
+  update(settings: FeatureActivationSettings & Pick<AppSettings, "shortcutOverrides">): void {
     this.#hubAvailable = hubShortcutAvailable(settings.shortcutOverrides);
     this.#shortcuts = resolveShortcuts(settings.shortcutOverrides);
-    this.#enabled = new Set(SHORTCUT_FEATURES.filter(([, feature]) => featureActivationRequested(feature, settings))
-      .map(([action]) => action));
+    this.#enabled = new Set(SHORTCUT_ACTIONS.filter((action) => featureActivationRequested(SHORTCUT_FEATURES[action], settings)));
   }
 
   capture(): Promise<ShortcutCaptureResult> {
