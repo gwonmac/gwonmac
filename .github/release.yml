@@ -1,0 +1,8 @@
+# Configures GitHub's generated release notes. GitHub groups notes by label
+# only, so the release workflow groups them by the Conventional Commit type of
+# each squash-merged PR title (feat, fix, others). This file hides Dependabot.
+changelog:
+  exclude:
+    authors:
+      - dependabot
+      - dependabot[bot]
