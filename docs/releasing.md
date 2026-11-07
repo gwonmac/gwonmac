@@ -8,6 +8,9 @@ versions may ship (Stable `1.4.0`, Beta `1.4.0-beta.1`, or RC `1.4.0-rc.1`;
 Alpha is never published), the asset names, the tag check, and the draft on the
 exact commit. `pnpm release:test` reads the same rules, and `pnpm test` checks
 that it accepts the draft `scripts/release.ts` creates.
+`scripts/release-notary.ts` notarizes and staples the app and the DMG and
+validates their tickets; it retries only a lost connection to Apple's ticket
+service.
 
 An **ArenaNet game update** changes the official client or game data. A
 **gwonmac application update** is a release of this repository. They are

@@ -138,7 +138,8 @@ jobs:
           # itself (scripts/apple-signing.ts); this only proves the identity.
           security find-identity -v -p codesigning "$keychain" | grep -q "$PINNED_IDENTITY"
 
-      # Forge signs, notarizes, and staples the app (forge.config.ts).
+      # Forge signs the app; its postPackage hook notarizes and staples it
+      # through scripts/release-notary.ts before the ZIP and DMG are made.
       - name: Build, sign, notarize, and staple
         env:
           GW_PACKAGE_INTENT: release
@@ -150,16 +151,7 @@ jobs:
         run: |
           test "$(find out/make -type f -name '*.dmg' | wc -l | tr -d ' ')" = 1
           dmg="$(find out/make -type f -name '*.dmg')"
-          xcrun notarytool submit "$dmg" --wait \
-            --key "$APPLE_API_KEY_PATH" --key-id "$APPLE_API_KEY_ID" --issuer "$APPLE_API_ISSUER_ID"
-          # Hosted runners sometimes lose the connection to Apple's ticket
-          # service. Retry only that transport error.
-          for attempt in 1 2 3 4 5; do
-            if output="$(xcrun stapler staple -v "$dmg" 2>&1)"; then echo "$output"; break; fi
-            echo "$output"
-            if [ "$attempt" = 5 ] || ! grep -q NSURLErrorDomain <<<"$output"; then exit 1; fi
-            sleep 30
-          done
+          node --import ./scripts/ts-hook.mjs scripts/release-notary.ts "$dmg"
 
       # Canonical asset names and RELEASES.json, which names the absolute,
       # immutable ZIP URL of this tag.

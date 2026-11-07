@@ -27,6 +27,7 @@ import {
   distributionOptionsForFile,
   matchesExactEntitlements,
 } from "./apple-signing.ts";
+import { validateTicket } from "./release-notary.ts";
 import {
   APPLE_TEAM_ID,
   DISTRIBUTION_CHANNEL_CONFIG,
@@ -56,19 +57,10 @@ function capture(command: string, args: readonly string[]): string {
   return output;
 }
 
-// stapler looks the ticket up in Apple's CloudKit service. Hosted runners
-// sometimes drop that connection; retry only that transport error, so a
-// missing or invalid ticket still fails on the first answer.
 function validateStapledTicket(target: string): void {
-  for (let attempt = 1; ; attempt += 1) {
-    const result = spawnSync("xcrun", ["stapler", "validate", "-v", target], { encoding: "utf8" });
-    if (result.error) throw result.error;
-    if (result.status === 0) return;
-    const output = `${result.stdout}${result.stderr}`;
-    if (attempt === 5 || !output.includes("NSURLErrorDomain")) {
-      fail(`xcrun stapler validate -v ${target} exited ${result.status}\n${output}`);
-    }
-    spawnSync("sleep", ["30"]);
+  const result = validateTicket(target);
+  if (result.status !== 0) {
+    fail(`xcrun stapler validate -v ${target} exited ${result.status}\n${result.stdout}${result.stderr}`);
   }
 }
 

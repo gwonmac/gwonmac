@@ -6,6 +6,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { macOSBundleVersions } from "./scripts/macos-version.js";
 import { ignorePackageFile } from "./scripts/package-ignore.js";
+import { notarizeAndStaple, notaryCredentials } from "./scripts/release-notary.js";
 import { resolvePackageMode } from "./scripts/package-mode.js";
 import {
   distributionEntitlementsPath,
@@ -50,12 +51,10 @@ const distributionSigning = packageMode.kind === "signed"
     })()
   : undefined;
 
+// Read before packaging starts, so a release without credentials fails before
+// it signs anything. postPackage notarizes and staples the app with them.
 const releaseNotarization = packageMode.intent === "release"
-  ? {
-      appleApiKey: requiredSigningEnvironment("APPLE_API_KEY_PATH"),
-      appleApiKeyId: requiredSigningEnvironment("APPLE_API_KEY_ID"),
-      appleApiIssuer: requiredSigningEnvironment("APPLE_API_ISSUER_ID"),
-    }
+  ? notaryCredentials()
   : undefined;
 
 const config: ForgeConfig = {
@@ -82,7 +81,6 @@ const config: ForgeConfig = {
       "app/native/gw-dat/vendor/COPYING-GUILDWARSMAPBROWSER",
     ],
     ...(distributionSigning ? { osxSign: distributionSigning } : {}),
-    ...(releaseNotarization ? { osxNotarize: releaseNotarization } : {}),
     extendInfo: {
       NSAppTransportSecurity: { NSAllowsArbitraryLoads: false },
     },
@@ -187,7 +185,18 @@ const config: ForgeConfig = {
       );
     },
     postPackage: async (_config, result) => {
-      if (result.platform !== "darwin" || packageMode.kind === "signed") return;
+      if (result.platform !== "darwin") return;
+      if (packageMode.kind === "signed") {
+        // Before the makers, so the ZIP and the DMG carry the stapled app.
+        if (!releaseNotarization) return;
+        for (const outputPath of result.outputPaths) {
+          notarizeAndStaple(
+            path.join(outputPath, `${channelConfig.productName}.app`),
+            releaseNotarization,
+          );
+        }
+        return;
+      }
       const { spawnSync } = await import("node:child_process");
       for (const outputPath of result.outputPaths) {
         const appPath = path.join(outputPath, `${channelConfig.productName}.app`);
