@@ -213,6 +213,31 @@ const REJECTED = [
     source: 'export const probe = async () => import("./enhancement-policy.js");\n',
   },
   {
+    what: "app/client imports app/renderer",
+    file: "app/client/probe.ts",
+    source:
+      'import { probe as renderer } from "../renderer/harness.js";\nexport const probe = renderer;\n',
+  },
+  {
+    what: "app/client dynamically imports the launcher UI",
+    file: "app/client/probe.ts",
+    source: 'export const probe = async () => import("../ui/launcher/src/main.js");\n',
+  },
+  {
+    what: "app/client imports a feature's renderer half",
+    file: "app/client/probe.ts",
+    source:
+      'import { probe as part } from "../features/cartography/renderer/overlay.js";\nexport const probe = part;\n',
+  },
+  {
+    // The certification block ignores its two Electron callers, so only the
+    // app/client block guards them.
+    what: "a certification Electron caller imports app/preload",
+    file: "app/client/certification/enhancement-policy.ts",
+    source:
+      'import { probe as bridge } from "../../preload/game-bridge.js";\nexport const probe = bridge;\n',
+  },
+  {
     what: "app/renderer imports app/main",
     file: "app/renderer/probe.js",
     source:
@@ -355,6 +380,11 @@ const ALLOWED = [
     file: "app/client/certification/probe.ts",
     source:
       'import { findEnhancementBuild } from "./enhancement-builds.js";\nexport const probe = findEnhancementBuild;\n',
+  },
+  {
+    what: "app/client imports app/shared/ui, which is not app/ui",
+    file: "app/client/probe.ts",
+    source: 'import { probe as frame } from "../shared/ui/frame.js";\nexport const probe = frame;\n',
   },
   {
     what: "app/renderer imports app/shared",
