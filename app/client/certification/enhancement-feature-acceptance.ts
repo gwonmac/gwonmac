@@ -18,10 +18,10 @@ import {
 } from "../../shared/enhancement-contracts.js";
 import { isAlcoholObservationProof } from "./enhancement-alcohol-proof.js";
 import {
-  ENHANCEMENT_BUILDS,
   supportedEnhancementCapabilities,
   type KnownEnhancementBuild,
 } from "./enhancement-builds.js";
+import { reviewedBuilds } from "./reviewed-facts.js";
 import { isEffectIconGeometryProof, isPlayerEffectObservationProof } from
   "./enhancement-player-effect-proof.js";
 import { isResignNativeSender } from "./enhancement-resign-proof.js";
@@ -183,7 +183,7 @@ function matchesTravelAction(
     && candidate.configureExport === expected.configureExport
     && candidate.toggleExport === expected.toggleExport
     && candidate.messageId === expected.messageId
-    && (candidate.guildHall === undefined || ENHANCEMENT_BUILDS.some(known =>
+    && (candidate.guildHall === undefined || reviewedBuilds().some(known =>
       isDeepStrictEqual(candidate.guildHall, known.travelAction?.guildHall)))
     && isIndex(candidate.producer.functionIndex)
     && isDigest(candidate.producer.bodySha256)
@@ -496,7 +496,7 @@ const FACT_RULES: Readonly<Record<EnhancementFact, FactRule>> = Object.freeze({
   // The validator may move between builds; its exact body and signature may not.
   chatPrint: {
     independent: (build) => isIndex(build.chatPrint?.validator.functionIndex)
-      && ENHANCEMENT_BUILDS.some((baseline) => baseline.chatPrint !== undefined
+      && reviewedBuilds().some((baseline) => baseline.chatPrint !== undefined
         && isDeepStrictEqual(
           { ...build.chatPrint?.validator, functionIndex: 0 },
           { ...baseline.chatPrint.validator, functionIndex: 0 },
@@ -504,7 +504,7 @@ const FACT_RULES: Readonly<Record<EnhancementFact, FactRule>> = Object.freeze({
   },
   // Accessors may move between builds; their exact bodies and layout may not.
   progressObservation: {
-    independent: (build) => ENHANCEMENT_BUILDS.some((baseline) =>
+    independent: (build) => reviewedBuilds().some((baseline) =>
       baseline.progressObservation !== undefined
       && build.progressObservation !== undefined
       && isDeepStrictEqual(build.progressObservation.layout, baseline.progressObservation.layout)
@@ -515,7 +515,7 @@ const FACT_RULES: Readonly<Record<EnhancementFact, FactRule>> = Object.freeze({
   },
   // Item and trade fields are reviewed for one exact post-template input.
   quickItemMove: {
-    independent: (build) => ENHANCEMENT_BUILDS.some((baseline) =>
+    independent: (build) => reviewedBuilds().some((baseline) =>
       baseline.sha256 === build.sha256
       && isDeepStrictEqual(build.quickItemMove, baseline.quickItemMove)),
   },
@@ -552,7 +552,7 @@ function acceptsFacts(
     if ("retained" in rule) retained.push(rule.retained);
     else if (!rule.independent(build)) return false;
   }
-  return ENHANCEMENT_BUILDS.some((baseline) =>
+  return reviewedBuilds().some((baseline) =>
     matchesCoreProof(build, baseline)
     && retained.every((matches) => matches(build, baseline)));
 }

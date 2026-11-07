@@ -35,10 +35,15 @@ import {
   type EnhancementCapabilities,
 } from "../../shared/enhancement-contracts.js";
 import {
-  ENHANCEMENT_BUILDS,
   supportedEnhancementCapabilities,
   type KnownEnhancementBuild,
 } from "./enhancement-builds.js";
+import {
+  REVIEWED_GENERATIONS,
+  reviewedBuilds,
+  withReviewedFacts,
+  type ClientGeneration,
+} from "./reviewed-facts.js";
 import { withdrawRefusedFeatures } from "./enhancement-feature-acceptance.js";
 import {
   inspectEnhancementStructuralEvidence,
@@ -220,7 +225,7 @@ function failuresForRequested(
 }
 
 function messageAnchors(): Parameters<typeof inspectEnhancementStructuralEvidence>[1] | null {
-  const baseline = ENHANCEMENT_BUILDS.at(-1);
+  const baseline = reviewedBuilds().at(-1);
   const dispatcher = baseline?.uiDispatcher;
   const party = baseline?.partyObservation;
   return dispatcher && party
@@ -385,7 +390,7 @@ function diagnoseFeatureFailures(
     || skillbar.needsStructuralEvidence;
   const evidence = needsEvidence ? structuralEvidence(input, context) : null;
   const roles = needsLocalEvidence
-    ? inspectLocalActionRoleCandidates(input, ENHANCEMENT_BUILDS, context)
+    ? inspectLocalActionRoleCandidates(input, reviewedBuilds(), context)
     : null;
   const targetRoles = requested.targetObservation && !locatedTarget
     ? inspectTargetRoleCandidates(input, context)
@@ -625,14 +630,14 @@ function deriveEnhancementBuild(
     });
   }
   const locatedCursor = requestedCapabilities.nativeCursor
-    ? locateAutomaticCursor(templateOutput, ENHANCEMENT_BUILDS, context)
+    ? locateAutomaticCursor(templateOutput, reviewedBuilds(), context)
     : null;
   const locatedPlayRegion = requestedCapabilities.playRegionObservation
       || requestedCapabilities.preGameControls
-    ? locateAutomaticPlayRegion(templateOutput, ENHANCEMENT_BUILDS, context)
+    ? locateAutomaticPlayRegion(templateOutput, reviewedBuilds(), context)
     : null;
   const locatedTarget = requestedCapabilities.targetObservation
-    ? locateAutomaticTarget(templateOutput, ENHANCEMENT_BUILDS, context)
+    ? locateAutomaticTarget(templateOutput, reviewedBuilds(), context)
     : null;
   const includePlayRegion = requestedCapabilities.playRegionObservation
     && locatedPlayRegion !== null;
@@ -672,7 +677,7 @@ function deriveEnhancementBuild(
   const locatedLocal = wantsLocal
     ? locateAutomaticLocalActions(
         templateOutput,
-        ENHANCEMENT_BUILDS,
+        reviewedBuilds(),
         context,
         locatedTarget?.observationLayout,
         skillbar.playerSkillbar,
@@ -728,7 +733,7 @@ function deriveEnhancementBuild(
   // every reviewed chatPrint record must agree on one validator.
   const chatPrintCandidates = requestedCapabilities.chatPrint && includeChatFiltering
       && locatedLocal?.gameThread != null && locatedLocal.chatFiltering != null
-    ? ENHANCEMENT_BUILDS.filter((baseline) => baseline.chatPrint).flatMap((baseline) =>
+    ? reviewedBuilds().filter((baseline) => baseline.chatPrint).flatMap((baseline) =>
       isolatedProof(() => deriveChatPrint(
         context.moduleView(), baseline, locatedLocal.chatFiltering!,
       )) ?? [])
@@ -740,7 +745,7 @@ function deriveEnhancementBuild(
   const includeChatPrint = chatPrint != null && includePlayRegion;
   // Display-only: a moved or changed accessor withdraws only progressObservation.
   const progressObservation = requestedCapabilities.progressObservation
-    ? deriveProgressObservation(context.moduleView(), ENHANCEMENT_BUILDS) : null;
+    ? deriveProgressObservation(context.moduleView(), reviewedBuilds()) : null;
   // WorldContext comes from the observation layout another feature located.
   const includeProgress = progressObservation !== null && includePlayRegion
     && (includeTarget || includeParty || includeTravel || includeXunlai || includeChatFiltering
@@ -1052,11 +1057,21 @@ const retainedAcceptanceFailure = Object.freeze({
 
 /**
  * Pure verifier entry point. It reads no profile state and performs no writes;
- * the utility-process host supplies the exact official bytes.
+ * the utility-process host supplies the exact official bytes. It judges them
+ * with the reviewed facts of `generations`; only the offline replay passes
+ * fewer than every reviewed generation.
  */
 export function verifyLocalClientBytes(
   official: Uint8Array,
   requestedCapabilities: EnhancementCapabilities = ENHANCEMENT_CAPABILITY_PRESETS.all,
+  generations: readonly ClientGeneration[] = REVIEWED_GENERATIONS,
+): LocalClientVerification {
+  return withReviewedFacts(generations, () => verifyWithActiveFacts(official, requestedCapabilities));
+}
+
+function verifyWithActiveFacts(
+  official: Uint8Array,
+  requestedCapabilities: EnhancementCapabilities,
 ): LocalClientVerification {
   const officialSha256 = sha256(official);
   const base = Object.freeze({
