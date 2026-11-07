@@ -1,8 +1,8 @@
-name: Feature request
+name: Feature idea
 description: Suggest an improvement or a new capability.
-title: "[Feature]: "
+title: "[Idea]: "
 labels:
-  - enhancement
+  - feature
 body:
   - type: markdown
     attributes:
@@ -15,7 +15,7 @@ body:
     attributes:
       label: What would you like?
       description: Describe the feature or improvement in your own words.
-      placeholder: I would like GWonMac to…
+      placeholder: I would like gwonmac to…
     validations:
       required: true
   - type: textarea

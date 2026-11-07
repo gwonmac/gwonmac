@@ -1,24 +1,10 @@
-## What changed
+## What and why
 
-<!-- Describe one user-visible or maintainer outcome. -->
+<!-- One outcome, the problem it solves, and what it deletes or simplifies. -->
 
-## Why
+## Proof
 
-<!-- State the concrete problem. State what this change deletes or simplifies. -->
+<!-- The invariant that proves it and the checks you ran (`pnpm check`, tests, live checks). -->
 
-## Invariant
-
-<!-- Name the executable behavior or trust boundary that proves the result. -->
-
-## Delivery
-
-<!-- State the target branch and recommend: no app release, Developer Build, Beta, or Stable. Explain any rollout risk. -->
-
-## Verification
-
-<!-- List the commands or manual checks you ran. -->
-
-- [ ] I kept this pull request focused.
-- [ ] I ran the relevant checks.
-- [ ] I did not add game binaries, credentials, diagnostics, or private traffic.
-- [ ] I updated documentation when behavior or an invariant changed.
+- [ ] No game binaries, credentials, diagnostics, or private traffic.
+- [ ] The doc that owns the changed behavior is updated.

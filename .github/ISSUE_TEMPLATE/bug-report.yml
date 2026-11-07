@@ -7,9 +7,17 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for reporting a problem. A short description is enough; diagnostics and technical details are optional.
+        Thanks for reporting a problem. A short description is enough.
 
-        GitHub issues are public. If you attach diagnostics, the app excludes credentials, account identifiers, packet contents, HTTP bodies, headers, cookies, filesystem paths, and crash dumps.
+        GitHub issues are public. The diagnostics ZIP excludes credentials, account identifiers, packet contents, HTTP bodies, headers, cookies, filesystem paths, and crash dumps. Review it before you attach it.
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      description: "Choose Guild Wars Reforged → About Guild Wars Reforged in the menu bar."
+      placeholder: "1.0.0"
+    validations:
+      required: true
   - type: textarea
     id: behavior
     attributes:
@@ -29,6 +37,6 @@ body:
   - type: textarea
     id: diagnostics
     attributes:
-      label: Diagnostics (optional)
-      description: If you have diagnostics, drag the `.zip` exported by GWonmac here.
-      placeholder: Drag the .zip file here, or leave this blank.
+      label: Diagnostics ZIP
+      description: In a game window, choose Help → Diagnostics → Export Recent Diagnostics…, then drag the `.zip` here. Leave blank if you cannot export it.
+      placeholder: Drag the .zip file here.
