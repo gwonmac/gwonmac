@@ -110,7 +110,7 @@ test("the Core main graph cannot evaluate optional stores, IPC, or network code"
     "app/main/trade-ipc.ts",
     "app/main/core/trade-chat-service.ts",
     "app/main/core/trade-saved-store.ts",
-    "app/main/core/travel-history.ts",
+    "app/features/travel/main/travel-history.ts",
     "app/main/core/build-library-coordinator.ts",
   ]);
 });

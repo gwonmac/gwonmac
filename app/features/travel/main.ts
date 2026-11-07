@@ -2,7 +2,7 @@
  * Travel's main-process channels: the saved preferences and each character's history.
  */
 import { channel } from "../../main/ipc-channel-registry.js";
-import { TravelHistoryStore } from "../../main/core/travel-history.js";
+import { TravelHistoryStore } from "./main/travel-history.js";
 import { nothing, one, type ToolsMainPart } from "../../main/tools-main-part.js";
 import { parseTravelUserPreferencesUpdate } from "../../shared/travel.js";
 import { parseTravelHistoryCharacter, parseTravelHistoryRecord } from "../../shared/travel-history.js";

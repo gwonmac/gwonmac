@@ -13,10 +13,10 @@ import {
   type TravelCharacterKey,
   type TravelHistory,
   type TravelHistoryDocument,
-} from "../../shared/travel-history.js";
-import { travelMapIdFromReleasedStorage } from "../../shared/travel-map-id.js";
-import { writeAtomicJson } from "./atomic-file.js";
-import { quarantineCorruptDocument } from "./corrupt-document.js";
+} from "../../../shared/travel-history.js";
+import { travelMapIdFromReleasedStorage } from "../../../shared/travel-map-id.js";
+import { writeAtomicJson } from "../../../main/core/atomic-file.js";
+import { quarantineCorruptDocument } from "../../../main/core/corrupt-document.js";
 
 async function readDocument(path: string): Promise<TravelHistoryDocument> {
   let text: string;
