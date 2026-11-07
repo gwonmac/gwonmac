@@ -1,0 +1,198 @@
+# Watches for a new official ArenaNet client build. When the published code
+# generation differs from certificates/certified-client.json and has not been
+# reported yet, it runs the verifier on macOS and writes the result into ONE
+# open issue labelled `arenanet`. It cannot grant a capability, edit a
+# certificate, or push: the isolated runtime verifier is the only launch
+# authority. docs/recertify.md owns the investigation.
+name: ArenaNet client watch
+
+on:
+  schedule:
+    - cron: "17 */4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Shared with the release qualification: one ArenaNet client download at a
+# time. Each download stays under ARENANET_REQUEST_CEILING
+# (app/shared/contracts.ts), which every scheduler in the app shares.
+concurrency:
+  group: arenanet-client
+  cancel-in-progress: false
+
+env:
+  GH_REPO: ${{ github.repository }}
+
+jobs:
+  # Reads one manifest and installs nothing.
+  detect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: read
+    outputs:
+      needed: ${{ steps.reported.outputs.needed }}
+      issue: ${{ steps.reported.outputs.issue }}
+      marker: ${{ steps.reported.outputs.marker }}
+      fingerprint: ${{ steps.published.outputs.fingerprint }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version-file: .nvmrc
+      - name: Read the published client generation
+        id: published
+        run: node --import ./scripts/ts-hook.mjs scripts/official-client.ts
+      - name: Skip a generation that is certified or already reported
+        id: reported
+        env:
+          CHANGED: ${{ steps.published.outputs.changed }}
+          FINGERPRINT: ${{ steps.published.outputs.fingerprint }}
+          GH_TOKEN: ${{ github.token }}
+          VERIFIER_ABI: ${{ steps.published.outputs.verifier_abi }}
+        run: |
+          marker="client-watch: ${FINGERPRINT:0:12} v$VERIFIER_ABI"
+          watch='[.[] | select(.body | contains("<!-- client-watch:"))][0]'
+          issues="$(gh issue list --state open --label arenanet --json number,body)"
+          issue="$(jq -r "$watch.number // empty" <<<"$issues")"
+          body="$(jq -r "$watch.body // empty" <<<"$issues")"
+          needed=true
+          if [ "$CHANGED" != true ]; then
+            echo "The published client is the certified one."; needed=false
+          elif grep -qF "$marker" <<<"$body"; then
+            echo "Issue #$issue already reports $marker."; needed=false
+          fi
+          { echo "needed=$needed"; echo "issue=$issue"; echo "marker=$marker"; } >> "$GITHUB_OUTPUT"
+
+  derive:
+    needs: detect
+    if: needs.detect.outputs.needed == 'true'
+    runs-on: macos-15
+    timeout-minutes: 45
+    outputs:
+      outcome: ${{ steps.record.outputs.outcome }}
+      summary: ${{ steps.record.outputs.summary }}
+    steps:
+      - run: echo "EVIDENCE=$RUNNER_TEMP/evidence" >> "$GITHUB_ENV"
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          rust: "true"
+      - run: pnpm build
+      - name: Download the published client code
+        id: official
+        run: pnpm client:official --download "$RUNNER_TEMP/official"
+
+      # Each check writes {status, exitCode} for scripts/client-recertification-evidence.ts.
+      # A refusal is a result, not a workflow failure. Logs stay in the runner
+      # temp directory: this repository's run logs are public.
+      - name: Run the qualification and the verifier
+        env:
+          GW_CLIENT_JS: ${{ steps.official.outputs.js }}
+          GW_CLIENT_WASM: ${{ steps.official.outputs.wasm }}
+        run: |
+          mkdir -p "$EVIDENCE"
+          cli=build/tools-cli/certification.js
+          logs="$RUNNER_TEMP/logs"; mkdir -p "$logs"
+          record() { # name exit-code raw-json
+            if [ "$2" -eq 0 ]; then jq '. + {status: "proved", exitCode: 0}' "$3"
+            else jq -n --argjson exitCode "$2" '{status: "refused", exitCode: $exitCode}'; fi > "$EVIDENCE/$1.json"
+          }
+          set +e
+          pnpm test:client-artifact > "$logs/client-artifact.txt" 2>&1; code=$?
+          jq -n --arg sha "$(shasum -a 256 "$GW_CLIENT_WASM" | awk '{print $1}')" --argjson exitCode "$code" \
+            --arg status "$([ "$code" -eq 0 ] && echo proved || echo refused)" \
+            '{status: $status, exitCode: $exitCode, officialSha256: $sha}' > "$EVIDENCE/client-artifact.json"
+          for check in double-click cartography; do
+            node "$cli" "$check" "$GW_CLIENT_WASM" > "$logs/$check.json" 2> "$logs/$check.txt"
+            record "$check" $? "$logs/$check.json"
+          done
+          node --import ./scripts/ts-hook.mjs scripts/qualify-extended-memory.ts "$GW_CLIENT_JS" "$GW_CLIENT_WASM" \
+            > "$logs/extended-memory.json" 2> "$logs/extended-memory.txt"
+          record extended-memory $? "$logs/extended-memory.json"
+          node "$cli" template "$GW_CLIENT_WASM" --emit-ts > "$EVIDENCE/template-save.json" 2> "$logs/template.txt"
+          node "$cli" recertify "$GW_CLIENT_WASM" > "$EVIDENCE/enhancement.json" 2> "$logs/enhancement.txt"
+          node "$cli" verify "$GW_CLIENT_WASM" > "$EVIDENCE/runtime-verdicts.json" 2> "$logs/verify.txt"
+          exit 0
+
+      - name: Build the generation record
+        id: record
+        env:
+          GENERATION: ${{ steps.official.outputs.fingerprint }}
+          JS: ${{ steps.official.outputs.js }}
+          WASM: ${{ steps.official.outputs.wasm }}
+        run: |
+          node --import ./scripts/ts-hook.mjs scripts/client-recertification-evidence.ts \
+            "$GENERATION" "$WASM" "$JS" "$EVIDENCE"/{runtime-verdicts,client-artifact,double-click,cartography,extended-memory}.json \
+            > "$EVIDENCE/generation.json"
+          echo "outcome=$(jq -er '.outcome.status' "$EVIDENCE/generation.json")" >> "$GITHUB_OUTPUT"
+          echo "summary=$(jq -er '.outcome.reason' "$EVIDENCE/generation.json")" >> "$GITHUB_OUTPUT"
+          # Function fingerprints plug in here: once they exist, write only the
+          # changed functions to carry-forward.md instead of the full comparison.
+          node build/tools-cli/certification.js compare "$WASM" "$EVIDENCE" || true
+
+      # Client bytes and locator output stay in the runner temp directory. The
+      # upload holds no client bytes, local paths, offsets, or raw addresses.
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: client-watch-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/evidence/generation.json
+            ${{ runner.temp }}/evidence/carry-forward.md
+          retention-days: 90
+          if-no-files-found: warn
+
+  # Reporting has no source-writing permission. The issue is a work item for a
+  # maintainer, never launch authority.
+  report:
+    needs: [detect, derive]
+    if: always() && needs.detect.outputs.needed == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        continue-on-error: true
+        with:
+          name: client-watch-${{ github.run_id }}-${{ github.run_attempt }}
+          path: evidence
+      - name: Open or update the client watch issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE: ${{ needs.detect.outputs.issue }}
+          MARKER: ${{ needs.detect.outputs.marker }}
+          FINGERPRINT: ${{ needs.detect.outputs.fingerprint }}
+          OUTCOME: ${{ needs.derive.outputs.outcome || needs.derive.result }}
+          SUMMARY: ${{ needs.derive.outputs.summary || 'evidence collection did not complete; review the run' }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          {
+            echo "<!-- $MARKER -->"
+            echo "A new ArenaNet client build is published: \`$MARKER\`."
+            echo
+            echo "- outcome: **$OUTCOME**: $SUMMARY"
+            echo "- run: $RUN_URL"
+            if [ "$OUTCOME" = ready ]; then
+              echo "- next: every protected feature proved. Record it with \`pnpm client:official --record $FINGERPRINT\` in a PR."
+            else
+              echo "- next: follow docs/recertify.md. The untouched official client stays playable."
+            fi
+            echo
+            cat evidence/carry-forward.md 2>/dev/null || echo "No comparison evidence was collected."
+          } > body.md
+          if [ -n "$ISSUE" ]; then
+            gh issue edit "$ISSUE" --title "ArenaNet client changed: $MARKER" --body-file body.md
+            gh issue comment "$ISSUE" --body "Updated for \`$MARKER\` ($OUTCOME): $RUN_URL"
+          else
+            gh label create arenanet --color 1d76db --description "Upstream ArenaNet client issue" 2>/dev/null || true
+            gh issue create --label arenanet --assignee mat4m0 \
+              --title "ArenaNet client changed: $MARKER" --body-file body.md
+          fi
