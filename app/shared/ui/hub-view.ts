@@ -85,6 +85,8 @@ export type HubViewModel = {
     scroll?: Readonly<{ top: number; seq: number }>;
     /** Paints the next chunk of a long list now, for a scroll position the painted rows do not reach. */
     more(): void;
+    /** Enter on the selected row's Price basis picker: run the row's primary, as Enter in the search does (HUB-022). */
+    run(): void;
   }>;
   empty: Readonly<{ hidden: boolean }>;
   preview: Readonly<{ text: string; hidden: boolean }>;

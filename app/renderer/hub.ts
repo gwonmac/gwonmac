@@ -42,7 +42,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     scope: { text: '', hidden: true },
     search: { hidden: false, placeholder: 'Search people, places, builds…', label: 'Search people, places, builds', expanded: true },
     glyphs: { calculation: false, text: '', art: currencyIcon },
-    results: { hidden: false, previewList: false, rows: NONE, painted: 0, selected: null, compact: false, bindings: resolveShortcuts({}), more: () => { if (painting) paintThrough(painting.next + PAINT_CHUNK - 1); } },
+    results: { hidden: false, previewList: false, rows: NONE, painted: 0, selected: null, compact: false, bindings: resolveShortcuts({}), more: () => { if (painting) paintThrough(painting.next + PAINT_CHUNK - 1); }, run: () => activateFromRow() },
     empty: { hidden: true }, preview: { text: '', hidden: true }, view: { hidden: true },
     lifecycle: { text: '', hidden: true }, hint: { text: '', hidden: true }, announce: '', count: '',
     actions: { keys: false, disabled: false, expanded: false },
@@ -370,28 +370,19 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     const node = event.target instanceof Element ? event.target.closest<HTMLElement>('.hub-row') : null;
     return node && list.contains(node) ? rows.find(row => row.id === node.dataset.id) : undefined;
   };
-  /** A press or key on the Price basis picker belongs to the picker, not to its row. */
-  const onRates = (event: Event) => event.target instanceof Element && !!event.target.closest('.hub-rate-controls');
   // Delegated events always resolve the current row, including after its DOM was retained.
   list.addEventListener('pointermove', entry((event: PointerEvent) => {
     const row = pointerRow(event); if (row && !busy() && hover.selects(event) && row.id !== state.selected) select(row.id);
   }));
   // A click selects; a game-changing row runs only from the footer or a double-click on itself (D-24).
   list.addEventListener('click', entry((event: MouseEvent) => {
-    if (onRates(event)) return;
     const row = pointerRow(event); if (!row) return;
     send({ type: 'press', id: row.id, count: event.detail, consequential: !!row.consequential });
   }));
   list.addEventListener('contextmenu', entry((event: MouseEvent) => {
-    if (onRates(event)) return;
     const row = pointerRow(event); if (!row) return;
     event.preventDefault();
     send({ type: 'context', id: row.id });
-  }));
-  // Enter on the picker copies the card it prices, as Enter on the search does (HUB-022).
-  list.addEventListener('keydown', entry((event: KeyboardEvent) => {
-    if (!onRates(event) || !(event.target instanceof HTMLSelectElement)) return;
-    if (event.key === 'Enter' && !event.repeat && !event.isComposing && !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey) { event.preventDefault(); send({ type: 'activate' }); }
   }));
   // Source notifications change context and lifecycle facts, not the current page or search.
   function paintSourceFacts() {
@@ -693,11 +684,11 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     const caretAtEnd = input.selectionStart === input.value.length && input.selectionEnd === input.value.length;
     send({ type: 'key', key: hubKey(event), where: { at: 'search', rows: rows.map(row => ({ id: row.id, navigate: !!row.navigate })), page, caretAtEnd } }, { event });
   }));
-  // A press on a result keeps the keyboard in search.
-  list.addEventListener('mousedown', event => {
-    if (!onRates(event)) event.preventDefault();
-  });
+  // A press on a result keeps the keyboard in search; the Price basis picker keeps its own presses.
+  list.addEventListener('mousedown', event => event.preventDefault());
   list.addEventListener('pointerleave', entry(() => hover.release()));
+  /** Enter on the selected row's Price basis picker copies the card it prices, as Enter on the search does (HUB-022). */
+  const activateFromRow = entry(() => send({ type: 'activate' }));
   // ⌘⌫ is Back from any focus inside the Hub, text fields included, once a view stepped out of
   // its own inner level, the menu closed and a disclosure closed; ⌘J opens and closes Actions
   // from anywhere in the Hub (D-1). The Hub owns both presses either way.

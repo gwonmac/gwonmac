@@ -144,3 +144,20 @@ test('a form keeps its session draft when a field\'s label changes, since drafts
   hub.showView('Form', form('Full name')); await settle();
   expect(field().value).toBe('keep me');
 });
+
+test('the Price basis picker keeps its presses, and Enter on it runs the row it prices once (HUB-022)', async () => {
+  const hub = withHubBuiltins(createHub(document.body, { mountHubView }));
+  window.gwHub = hub;
+  const runs: string[] = [];
+  const quote = sectionBase.find(row => row.id === 'quote:result')!;
+  hub.show(); await settle();
+  hub.showRows('Prices', () => [{ ...quote, run: () => { runs.push('copy'); } }]); await settle();
+  const basis = document.querySelector<HTMLSelectElement>('.hub-rate-controls select')!;
+  basis.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 }));
+  basis.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+  await settle();
+  expect([runs, document.querySelector('.hub-menu')?.hasAttribute('hidden') ?? true]).toEqual([[], true]);
+  key(basis, { key: 'Enter' }); await settle();
+  key(basis, { key: 'Enter', repeat: true }); await settle();
+  expect(runs).toEqual(['copy']);
+});

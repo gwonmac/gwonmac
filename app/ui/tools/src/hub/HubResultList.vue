@@ -52,7 +52,7 @@ watch(() => props.results.reveal?.seq, () => {
       <div :id="section.id" class="hub-group" role="presentation">{{ section.group }}</div>
       <HubResultRow
         v-for="entry in section.rows" :key="entry.row.id" :row="entry.row" :index="entry.index"
-        :selected="entry.row.id === results.selected" :compact="results.compact" :bindings="results.bindings" :list-hidden="results.hidden"
+        :selected="entry.row.id === results.selected" :compact="results.compact" :bindings="results.bindings" :list-hidden="results.hidden" @run="results.run()"
       />
     </div>
   </div>

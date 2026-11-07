@@ -24,6 +24,7 @@ const props = defineProps<{
   /** The list is hidden under a view; the picker it holds hides with it. */
   listHidden: boolean;
 }>();
+const emit = defineEmits<{ run: [] }>();
 
 const classes = computed(() => props.row.conversion ? ['hub-row', 'hub-conversion']
   : props.row.skills ? ['hub-row', 'hub-build-row', ...(props.compact ? ['hub-build-compact'] : [])] : ['hub-row']);
@@ -68,6 +69,6 @@ const keycaps = computed((): readonly { label: string; name?: string }[] => keyR
       </span>
       <HubBuildInfo v-if="row.skills" :build="row" />
     </template>
-    <HubRateControls v-if="selected && row.quoteBasis" :basis="row.quoteBasis" :hidden="listHidden" />
+    <HubRateControls v-if="selected && row.quoteBasis" :basis="row.quoteBasis" :hidden="listHidden" @run="emit('run')" />
   </div>
 </template>
