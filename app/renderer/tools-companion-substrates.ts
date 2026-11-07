@@ -39,7 +39,6 @@ import {
 } from "./player-effect-state-installation.js";
 import { createSkillOverlaysInstallation } from "./skill-overlays-installation.js";
 import {
-  EMPTY_REGION,
   type FriendTravel,
   type PreparedToolsPart,
   type ToolsCompanionPart,
@@ -202,7 +201,7 @@ function createFriends(module: WebAssembly.Module, capabilities: EnhancementCapa
     },
     ownedRegions: () => pointer === 0 ? [] : [{ name: "friend snapshot", pointer, size: bytes, align: 4 as const }],
     kernelRegions: () => ({
-      friends: pointer === 0 ? EMPTY_REGION : { pointer, bytes },
+      ...(pointer === 0 ? {} : { friends: { pointer, bytes } }),
       friendRoot: manifest?.root ?? 0,
     }),
     rollback: [(free) => { if (pointer !== 0) free(pointer); pointer = 0; }],
@@ -305,7 +304,8 @@ function createAlcohol(capabilities: EnhancementCapabilities) {
     allocated: () => installation.allocated,
     ownedRegions: () => installation.region == null ? [] : [installation.region],
     kernelRegions: () => ({
-      alcohol: installation.region === null ? EMPTY_REGION : { pointer: installation.pointer, bytes: installation.bytes },
+      ...(installation.region === null
+        ? {} : { alcohol: { pointer: installation.pointer, bytes: installation.bytes } }),
     }),
     rollback: [(free) => installation.release(free)],
     activate: ({ memory }) => ({
@@ -357,10 +357,10 @@ function createEffects(capabilities: EnhancementCapabilities, program: Enhanceme
       ...(effectIcons.region == null ? [] : [effectIcons.region]),
     ],
     kernelRegions: () => ({
-      playerEffects: playerEffects.region === null
-        ? EMPTY_REGION : { pointer: playerEffects.pointer, bytes: playerEffects.bytes },
-      effectIcons: effectIcons.region === null
-        ? EMPTY_REGION : { pointer: effectIcons.pointer, bytes: effectIcons.bytes },
+      ...(playerEffects.region === null
+        ? {} : { playerEffects: { pointer: playerEffects.pointer, bytes: playerEffects.bytes } }),
+      ...(effectIcons.region === null
+        ? {} : { effectIcons: { pointer: effectIcons.pointer, bytes: effectIcons.bytes } }),
     }),
     rollback: [(free) => playerEffects.release(free), (free) => effectIcons.release(free)],
     activate: () => ({
@@ -481,9 +481,9 @@ export const skillHudPart = {
         ...(cooldowns?.region == null ? [] : [cooldowns.region]),
       ],
       kernelRegions: () => ({
-        skillSlots: slots === null ? EMPTY_REGION : { pointer: slots.pointer, bytes: slots.bytes },
-        skillCooldowns: cooldowns === null
-          ? EMPTY_REGION : { pointer: cooldowns.pointer, bytes: cooldowns.bytes },
+        ...(slots === null ? {} : { skillSlots: { pointer: slots.pointer, bytes: slots.bytes } }),
+        ...(cooldowns === null
+          ? {} : { skillCooldowns: { pointer: cooldowns.pointer, bytes: cooldowns.bytes } }),
       }),
       rollback: [(free) => slots?.release(free), (free) => cooldowns?.release(free)],
       activate(context) {

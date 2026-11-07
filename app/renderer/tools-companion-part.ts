@@ -10,7 +10,6 @@
  * It also names the narrow surfaces that shared Tools code borrows from a
  * feature, so shared code imports this contract and never a feature file.
  */
-import type { CompanionKernelRegion } from "../shared/companion-abi.js";
 import type { EnhancementCapabilities, EnhancementProgram } from "../shared/enhancement-contracts.js";
 import type { TravelFriend } from "../shared/friends.js";
 import type { TravelCommand } from "../shared/travel-command.js";
@@ -38,8 +37,6 @@ export type WhisperInvites = Readonly<{
   enabled: boolean;
   invite(name: string): Promise<void>;
 }>;
-
-export const EMPTY_REGION: CompanionKernelRegion = Object.freeze({ pointer: 0, bytes: 0 });
 
 export type ToolsPrepareInput = Readonly<{
   exports: WebAssembly.Exports;
