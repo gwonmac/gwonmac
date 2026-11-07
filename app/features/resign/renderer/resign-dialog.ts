@@ -3,7 +3,7 @@
  * Dismissal never submits; only an explicit Enter or confirmation click does,
  * once the shared arming window has passed (HUB-245 arming, HUB-242).
  */
-import { armConfirmation } from "./surface-controller.js";
+import { armConfirmation } from "../../../renderer/surface-controller.js";
 
 /** The Hub task that opened the confirmation: it ends when Resign is sent and resumes on Cancel (HUB-250). */
 export type ResignHandoff = Readonly<{ confirmed(): void; cancelled(): void }>;
