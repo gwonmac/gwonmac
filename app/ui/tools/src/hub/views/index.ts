@@ -17,6 +17,9 @@ for (const [path, folder] of Object.entries(folders)) for (const [name, componen
   components.set(name, component);
 }
 
+/** The page names the folders give, for the registry's completeness test (registry.test.ts). */
+export const HUB_PAGE_NAMES: ReadonlySet<string> = new Set(components.keys());
+
 export const HUB_PAGES: HubPages<HTMLElement> = {
   mount(name, target, props) {
     const component = components.get(name);

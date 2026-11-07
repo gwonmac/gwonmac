@@ -39,6 +39,8 @@ name in `HubPageProps` (`app/shared/ui/hub-pages.ts`). Each page folder names
 its pages in an `index.ts`, and the kit's registry collects those folders and
 every feature's `app/features/<id>/hub-views/`, so a feature adds a page from
 its own folder; Characters (`app/features/character-switch/hub-views/`) is one.
+`app/ui/tools/src/hub/views/registry.test.ts` holds the registry total: its
+page list must name every `HubPageProps` key, and every name must resolve.
 A feature page imports its props contract into its controller, so the
 renderer program checks the controller and the Tools program checks the page. This document records intent
 and links to current owners. Code and tests own exact values and accepted
