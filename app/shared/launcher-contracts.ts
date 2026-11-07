@@ -189,6 +189,13 @@ export type SettingsWrite =
   | Readonly<{ kind: "master"; enabled: boolean }>
   | Readonly<{ kind: "tool" }> & GlobalToolUpdate
   | Readonly<{ kind: "shortcut" }> & ShortcutReplacement;
+/**
+ * What the launcher's settings channels may write: launcher settings only, so
+ * no launcher channel can reach a bookkeeping field such as `lastUpdateCheckAt`.
+ */
+export type LauncherSettingsWrite =
+  | Exclude<SettingsWrite, { kind: "settings" | "renderer" }>
+  | Readonly<{ kind: "settings"; patch: LauncherSettingsPatch }>;
 export type LauncherShortcutCaptureResult =
   | Readonly<{ status: "captured"; binding: ShortcutBinding }>
   /** `owner: "hub"` is Command-R while the Hub uses it (HUB-095). */

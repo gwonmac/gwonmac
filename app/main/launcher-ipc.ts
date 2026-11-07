@@ -12,7 +12,7 @@ import type {
   LauncherProfileCreateInput,
   LauncherInvokeChannel,
   LauncherProfileUpdate,
-  SettingsWrite,
+  LauncherSettingsWrite,
 } from "../shared/launcher-contracts.js";
 import {
   parseGlobalToolUpdate,
@@ -55,7 +55,7 @@ export interface LauncherIpcContext {
   readonly dismissPreferencesReset: () => Promise<void>;
   readonly completeSetup: (enableTools: boolean) => Promise<void>;
   readonly updatePreferences: (patch: LauncherPreferencesPatch) => Promise<void>;
-  readonly writeSettings: (change: SettingsWrite) => Promise<void>;
+  readonly writeSettings: (change: LauncherSettingsWrite) => Promise<void>;
   readonly resetSettings: (win: BrowserWindow) => Promise<void>;
   readonly captureShortcut: (win: BrowserWindow, action: ShortcutAction) => Promise<LauncherShortcutCaptureResult>;
   readonly restartToApplyTools: (win: BrowserWindow) => Promise<void>;
