@@ -2,6 +2,9 @@
  * Owns one generation's private chat-print mailbox and a short line queue.
  * Lines go one at a time to the game thread, which prints them in this
  * player's own chat log only. No IPC, storage or network path is involved.
+ *
+ * Chat print lives in Reminders because Reminders is its only user. It becomes
+ * a shared substrate when a second feature needs to print to chat.
  */
 import { CHAT_PRINT_MAILBOX as M, CHAT_PRINT_STATUS, isChatPrintText } from "../../../shared/chat-print.js";
 
