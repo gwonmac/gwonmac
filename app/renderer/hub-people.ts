@@ -6,8 +6,8 @@ import { currentTravelFriend, presenceLabel, type TravelFriend, type TravelFrien
 import { featureActivationRequested } from '../shared/feature-contracts.js';
 import { travelDestination } from '../shared/travel.js';
 import { hubTier, parseHubQuery, type HubRow, type HubSource, type HubTask } from '../shared/hub.js';
-import { normaliseCharacterName } from '../shared/player-text.js';
-import { findPeople, whisperPersonKey, whisperUnread, type Person, type WhisperSession } from '../shared/whisper-session.js';
+import { characterKey, normaliseCharacterName } from '../shared/player-text.js';
+import { findPeople, whisperUnread, type Person, type WhisperSession } from '../shared/whisper-session.js';
 import { isCharacterName, isFullCharacterName } from '../shared/whispers.js';
 import type { Hub } from './hub.js';
 import type { PartyInvite } from './party-invite.js';
@@ -144,7 +144,7 @@ export function createHubPeople(hub: Pick<Hub, 'attach' | 'showRows' | 'notify'>
         // No name was typed, so Hub preselects none of them; a chosen row invites by character name.
         const online = friends.status === 'ready' && session.state.suggest.friends
           ? friends.friends.filter(friend => friend.character && friend.status !== 'offline' && friend.status !== 'unknown') : [];
-        return online.map(friend => inviteRow(party, row({ key: whisperPersonKey(friend.character), name: friend.character, source: 'friend', activity: 0, exact: false, friend }), friend))
+        return online.map(friend => inviteRow(party, row({ key: characterKey(friend.character), name: friend.character, source: 'friend', activity: 0, exact: false, friend }), friend))
           .sort((a, b) => Number(!!a.unavailable) - Number(!!b.unavailable) || a.action.localeCompare(b.action) || a.id.localeCompare(b.id)).slice(0, MAX_PEOPLE);
       }
       if (!parsed.term) {
@@ -164,7 +164,7 @@ export function createHubPeople(hub: Pick<Hub, 'attach' | 'showRows' | 'notify'>
       // offers only known people: any phrase could otherwise pose as a name.
       const typed = normaliseCharacterName(parsed.text);
       const typedRow: HubRow | null = addressed && isCharacterName(typed) && !people.some(person => person.exact)
-        ? { id: `person:typed:${whisperPersonKey(typed)}`, title: typed, detail: 'Character name', group: 'People',
+        ? { id: `person:typed:${characterKey(typed)}`, title: typed, detail: 'Character name', group: 'People',
           action: 'View actions', menuActions: personRows(typed), actions: () => person(typed), run: () => person(typed) } : null;
       if (parsed.scope === 'invite' && party) {
         // Only an exact name invites, and it comes first. A prefix or chat match
@@ -205,7 +205,7 @@ export function createHubPeople(hub: Pick<Hub, 'attach' | 'showRows' | 'notify'>
   }
   function row(entry: Person): HubRow {
     const conversation = entry.conversation;
-    const friend = entry.friend ?? (friends.status === 'ready' ? friends.friends.find(friend => whisperPersonKey(friend.character || friend.alias) === entry.key) : undefined);
+    const friend = entry.friend ?? (friends.status === 'ready' ? friends.friends.find(friend => characterKey(friend.character || friend.alias) === entry.key) : undefined);
     const unread = conversation ? whisperUnread(conversation) : 0;
     const continuation = unread ? `${unread} unread · Whisper` : conversation?.draft ? 'Continue draft' : '';
     if (friend) {

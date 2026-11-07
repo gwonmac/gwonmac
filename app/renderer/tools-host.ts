@@ -40,6 +40,7 @@ import { sanitiseTemplateName } from "./template-format.js";
 import { createTemplateFiles } from "./template-files.js";
 import { ensureToolsStylesheet } from "./tools-stylesheet.js";
 import { requireToolsApi } from "./tools-native-api.js";
+import { createTradeWhispers } from "./trade-whispers.js";
 import { featureActivationRequested } from "../shared/feature-contracts.js";
 
 /**
@@ -192,6 +193,7 @@ export function mountTradeInto(
     .then((bundle: EmbeddedToolsBundle<HTMLElement>) => {
       const app = bundle.mountTradeChat(host, {
         nativeApi: native,
+        whispers: createTradeWhispers(),
         initiallyVisible: false,
         onVisibilityChange,
         mode: "embedded",

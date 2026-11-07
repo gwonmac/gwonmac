@@ -23,6 +23,40 @@ async function ledger(host: TradeHost = createDemoTradeHost()) {
 }
 
 describe("TradeChatApp", () => {
+  it("offers no Whisper while the host says Whispers is off", async () => {
+    const wrapper = await ledger();
+    expect(wrapper.get(".inspector-whisper").attributes("disabled")).toBeDefined();
+    expect(wrapper.get("#trade-whisper-reason").text()).toBe("Whispers is off");
+    wrapper.unmount();
+  });
+
+  it("asks the host's Whispers for the seller and follows its switch", async () => {
+    let available = true;
+    let changed = () => {};
+    let answer: "opened" | "unavailable" = "opened";
+    const open = vi.fn(() => answer);
+    const wrapper = await ledger(createDemoTradeHost({
+      available: () => available,
+      onChange(listener) { changed = listener; return () => { changed = () => {}; }; },
+      open,
+    }));
+    const whisper = wrapper.get(".inspector-whisper");
+    const seller = whisper.text().replace(/^Whisper /u, "").replace(/↵$/u, "");
+    await whisper.trigger("click");
+    expect(open).toHaveBeenLastCalledWith(seller);
+    expect(wrapper.find(".trade-notice").exists()).toBe(false);
+
+    answer = "unavailable";
+    await whisper.trigger("click");
+    expect(wrapper.get(".trade-notice").text()).toBe("Whispers is unavailable. Wait for Guild Wars chat, then try again.");
+
+    available = false;
+    changed();
+    await nextTick();
+    expect(wrapper.get(".inspector-whisper").attributes("disabled")).toBeDefined();
+    wrapper.unmount();
+  });
+
   it("keeps clipboard refusals on the copy action in the error tone", async () => {
     const demo = createDemoTradeHost();
     const copy = vi.fn().mockRejectedValue(new Error("clipboard refused"));

@@ -35,6 +35,7 @@ import {
 import { useClassicFrame } from "./ui/use-classic-frame";
 import { listIndexAfter, listKeyStep, listPage } from "../../../shared/ui/list-keys";
 import { isHubBackKey } from "../../../shared/keyboard-shortcuts";
+import { characterKey } from "../../../shared/player-text";
 import { useFloatingWindow } from "./use-floating-window";
 import TradeIcon from "./TradeIcon.vue";
 import TraderPrices from "./components/TraderPrices.vue";
@@ -103,8 +104,8 @@ const { panel, resizeGrip, panelStyle, startDrag } = useFloatingWindow({
   placementStorageKey: "gwonmac.trade-window-placement",
 });
 
-const whispersEnabled = ref(false);
-const updateWhispersEnabled = () => { whispersEnabled.value = !!window.gwToolsSettings?.().gwonmacTools && !!window.gwToolsSettings?.().whispersEnabled; };
+const whispersEnabled = ref(props.host.whispers.available());
+let stopWhispers: (() => void) | null = null;
 
 const current = computed(() => states[source.value]);
 const sourceLabel = computed(() => source.value === "kamadan" ? "Kamadan" : "Pre-Searing");
@@ -383,8 +384,7 @@ function whisper(message: TradeMessage, event?: MouseEvent): void {
     showNotice(`Turn on Whispers in Settings to write to ${message.sender}.`, "warning");
     return;
   }
-  const request = new CustomEvent("gw:whisper-person", { detail: message.sender, cancelable: true });
-  if (window.dispatchEvent(request)) showNotice("Whispers is unavailable. Wait for Guild Wars chat, then try again.", "warning");
+  if (props.host.whispers.open(message.sender) === "unavailable") showNotice("Whispers is unavailable. Wait for Guild Wars chat, then try again.", "warning");
 }
 
 async function openPlayer(sender: string, origin: number | null, restoreFocus = ownsFocus()): Promise<void> {
@@ -418,10 +418,8 @@ async function openPlayer(sender: string, origin: number | null, restoreFocus = 
       scope: "player",
     });
     if (revision !== requestRevision || source.value !== requestedSource) return;
-    const key = sender.toLocaleLowerCase();
-    playerMessages.value = result.messages.filter(
-      (message) => message.sender.toLocaleLowerCase() === key,
-    );
+    const key = characterKey(sender);
+    playerMessages.value = result.messages.filter((message) => characterKey(message.sender) === key);
     current.value.selection = filtered.value[0]?.timestamp ?? null;
   } catch {
     if (revision === requestRevision) {
@@ -492,8 +490,8 @@ function offerSaved(message: TradeMessage): boolean {
 }
 
 function playerSaved(sender: string): boolean {
-  const key = sender.toLocaleLowerCase();
-  return saved.value.players.some((player) => player.sender.toLocaleLowerCase() === key);
+  const key = characterKey(sender);
+  return saved.value.players.some((player) => characterKey(player.sender) === key);
 }
 
 /** The star and Saved count show the result; only a failed write speaks (HUB-122). */
@@ -529,10 +527,10 @@ function toggleOffer(message: TradeMessage, event?: MouseEvent): void {
 function togglePlayer(sender: string, event?: MouseEvent): void {
   if (event && event.detail > 1) return;
   if (!savedReady.value) return;
-  const key = sender.toLocaleLowerCase();
+  const key = characterKey(sender);
   const exists = playerSaved(sender);
   const players = exists
-    ? saved.value.players.filter((player) => player.sender.toLocaleLowerCase() !== key)
+    ? saved.value.players.filter((player) => characterKey(player.sender) !== key)
     : [{ sender, savedAt: Date.now() }, ...saved.value.players]
       .slice(0, TRADE_LIMITS.savedPlayers);
   save({ ...saved.value, players });
@@ -566,8 +564,8 @@ async function inspectSavedOffer(offer: TradeSavedOffer): Promise<void> {
 }
 
 function currentOffersFor(sender: string): number {
-  const key = sender.toLocaleLowerCase();
-  return current.value.live.filter((message) => message.sender.toLocaleLowerCase() === key).length;
+  const key = characterKey(sender);
+  return current.value.live.filter((message) => characterKey(message.sender) === key).length;
 }
 
 /** ↓ ⌃N and PgDn in the search enter the ledger at the selected row; the other keys edit the text. */
@@ -802,8 +800,7 @@ watch(() => props.visible, (visible) => {
 });
 
 onMounted(() => {
-  updateWhispersEnabled();
-  window.addEventListener("gw:tools-settings", updateWhispersEnabled);
+  stopWhispers = props.host.whispers.onChange(() => { whispersEnabled.value = props.host.whispers.available(); });
   stopEvents = props.host.onEvent(onTradeEvent);
   clock = setInterval(() => { now.value = Date.now(); }, 30_000);
   if (props.visible) void subscribe(source.value);
@@ -819,7 +816,7 @@ onBeforeUnmount(() => {
   subscriptionRevision += 1;
   requestRevision += 1;
   stopEvents?.();
-  window.removeEventListener("gw:tools-settings", updateWhispersEnabled);
+  stopWhispers?.();
   if (clock) clearInterval(clock);
   if (noticeTimer) clearTimeout(noticeTimer);
   void props.host.unsubscribe();
@@ -1190,7 +1187,7 @@ useClassicFrame(panel);
                 <strong>No followed players</strong>
                 <p>Follow a player to highlight every offer they post.</p>
               </div>
-              <article v-for="player in saved.players" :key="player.sender.toLocaleLowerCase()" class="saved-card saved-player-card">
+              <article v-for="player in saved.players" :key="characterKey(player.sender)" class="saved-card saved-player-card">
                 <button class="saved-card-main" @click="$event.detail <= 1 && openPlayer(player.sender, null)">
                   <span><bdi><TradeIcon name="player" filled />{{ player.sender }}</bdi><small>{{ currentOffersFor(player.sender) }} current {{ currentOffersFor(player.sender) === 1 ? "offer" : "offers" }} in {{ sourceLabel }}</small></span>
                 </button>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from "vue";
-import { findPeople, whisperPersonKey, whisperUnread, type Person, type WhisperSession, type WhisperSound } from "../../../shared/whisper-session";
+import { findPeople, whisperUnread, type Person, type WhisperSession, type WhisperSound } from "../../../shared/whisper-session";
+import { characterKey } from "../../../shared/player-text";
 import { TRAVEL_DESTINATIONS } from "../../../shared/travel-destinations";
 import { WHISPER_LINE_UNITS, WHISPER_MESSAGE_UNITS } from "../../../shared/whispers";
 import { presenceLabel, type TravelFriend } from "../../../shared/friends";
@@ -105,8 +106,8 @@ const continuedConversations = computed(() => state.value.conversations.filter(c
 const openKeys = computed(() => new Set(continuedConversations.value.map(c => c.key)));
 const observedFriends = computed(() => state.value.friends.status === "ready" ? state.value.friends.friends : []);
 function friendFor(name: string): TravelFriend | undefined {
-  const key = whisperPersonKey(name);
-  return observedFriends.value.find(friend => whisperPersonKey(friend.character) === key || whisperPersonKey(friend.alias) === key);
+  const key = characterKey(name);
+  return observedFriends.value.find(friend => characterKey(friend.character) === key || characterKey(friend.alias) === key);
 }
 const selectedFriend = computed(() => selected.value ? friendFor(selected.value.name) : undefined);
 const selectedLocation = computed(() => selectedFriend.value && selectedFriend.value.status !== "offline"
@@ -120,7 +121,7 @@ watch(() => state.value.conversations.map(conversation => conversation.key), key
   }
 });
 const friends = computed(() => state.value.friends.status === "ready"
-  ? state.value.friends.friends.filter(f => (f.status === "online" || f.status === "away" || f.status === "do-not-disturb") && !openKeys.value.has(whisperPersonKey(f.character || f.alias))
+  ? state.value.friends.friends.filter(f => (f.status === "online" || f.status === "away" || f.status === "do-not-disturb") && !openKeys.value.has(characterKey(f.character || f.alias))
     && `${f.character} ${f.alias}`.toLocaleLowerCase().includes(search.value.toLocaleLowerCase())) : []);
 const recent = computed(() => state.value.recent.filter(p => p.name.toLocaleLowerCase().includes(search.value.toLocaleLowerCase())));
 const suggestionDetail = (person: Person) => person.friend ? `Friend · ${presenceLabel(person.friend.status)}`
@@ -136,11 +137,11 @@ const pickerPeople = computed(() => [...continuedConversations.value.map(c => c.
 const pickerOptions = computed(() => search.value.trim() ? suggestions.value.map(person => person.name) : pickerPeople.value);
 /** Feed updates may reorder people; the chosen name keeps its identity, never its position. */
 const suggestionIndex = computed({
-  get: () => selectedPerson.value === null ? -1 : pickerOptions.value.findIndex(name => whisperPersonKey(name) === selectedPerson.value),
-  set: index => {selectedPerson.value = pickerOptions.value[index] === undefined ? null : whisperPersonKey(pickerOptions.value[index]);},
+  get: () => selectedPerson.value === null ? -1 : pickerOptions.value.findIndex(name => characterKey(name) === selectedPerson.value),
+  set: index => {selectedPerson.value = pickerOptions.value[index] === undefined ? null : characterKey(pickerOptions.value[index]);},
 });
 watch(pickerOptions, options => {
-  if (selectedPerson.value !== null && !options.some(name => whisperPersonKey(name) === selectedPerson.value)) selectedPerson.value = null;
+  if (selectedPerson.value !== null && !options.some(name => characterKey(name) === selectedPerson.value)) selectedPerson.value = null;
 });
 const pickerOptionId = (index: number) => search.value.trim() ? `whisper-suggestion-${index}` : `whisper-pick-${index}`;
 const maxLength = computed(() => Math.min(WHISPER_MESSAGE_UNITS, WHISPER_LINE_UNITS - (selected.value?.name.length ?? 0) - 2));

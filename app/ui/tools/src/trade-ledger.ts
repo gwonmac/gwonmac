@@ -10,6 +10,7 @@ import {
   type TradeConnectionState,
   type TradeMessage,
 } from "../../../shared/trade-chat";
+import { characterKey } from "../../../shared/player-text";
 
 /** One market's feed in the Trade window. */
 export type TradeSourceState = {
@@ -40,7 +41,7 @@ export function emptyTradeSource(): TradeSourceState {
 export type TradeFollow = Readonly<{ from: number; to: number }>;
 
 function sameSender(left: TradeMessage | undefined, right: TradeMessage): boolean {
-  return left?.sender.toLocaleLowerCase() === right.sender.toLocaleLowerCase();
+  return left !== undefined && characterKey(left.sender) === characterKey(right.sender);
 }
 
 /**

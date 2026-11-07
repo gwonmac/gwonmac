@@ -18,6 +18,8 @@ import type {} from '../../../renderer/gw-native';
 import { createHub } from '../../../renderer/hub';
 // eslint-disable-next-line no-restricted-imports
 import { withHubBuiltins } from '../../../renderer/hub-builtins';
+// eslint-disable-next-line no-restricted-imports
+import { createTradeWhispers } from '../../../renderer/trade-whispers';
 import { mountHubView } from './hub/embedded';
 // eslint-disable-next-line no-restricted-imports
 import { installSurfaceController } from '../../../renderer/surface-controller';
@@ -217,7 +219,7 @@ export function mountHubFixture(target: HTMLElement) {
     async mountTrade(element, onVisibilityChange) {
       const loadMs = Number(params.get("trade-load-ms")) || 0;
       if (loadMs) await new Promise(resolve => setTimeout(resolve, loadMs));
-      const demo = createDemoTradeHost();
+      const demo = createDemoTradeHost(createTradeWhispers());
       const offerCount = Number(params.get('trade-offers'));
       const host = offerCount > 0 ? { ...demo, subscribe: async (source: import('../../../shared/trade-chat').TradeSource) => ({
         source, status: 'live' as const, messages: Array.from({ length: offerCount }, (_, index) => ({
