@@ -1,9 +1,9 @@
 # Recover certification after an ArenaNet client update
 
-> **Status: maintainer recovery guide.** Use this file only when the bounded
-> certification tools refuse. Current commands and runtime rules are owned by
-> [Enhancement development](../../docs/enhancement-development.md) and the code
-> under `src/main/certification/`.
+Maintainer runbook. Use it when the bounded certification tools refuse a new
+ArenaNet client. Runtime rules live in [ArenaNet compatibility](arenanet-compatibility.md)
+and the code under `src/main/certification/`. Exact values live in code and
+tests.
 
 ## Safe result
 
@@ -60,9 +60,8 @@ gate.
 
 Put the opaque private bundle reference on the canonical open refusal issue.
 The signed `generation.json` contains hashes, sizes, and closed outcomes. The
-[client generation ledger](client-generation-ledger.md) defines the schema and
-keeps bootstrap observations only. The private bundle and automated ledger are
-evidence; neither grants runtime authority.
+private bundle and the signed record are evidence; neither grants runtime
+authority.
 
 ## Step 1: try to delete the workaround
 
@@ -191,7 +190,7 @@ Certify transforms in this order:
 Later stages certify the bytes produced by earlier stages. They are not
 alternative transforms.
 
-Run the repository verification defined in `AGENTS.md`. Then use one live
+Run the fast check defined in [AGENTS.md](../AGENTS.md). Then use one live
 check for the behavior that offline proof cannot establish.
 
 ## Offline bridge check
@@ -234,131 +233,129 @@ use a nested template as a success criterion for the bridge.
 - Do not weaken a locator until it returns one result.
 - Do not make optional Tools a requirement for the official client.
 
+- Do not treat broad operand normalization as proof. It is a research lead.
+- Do not identify a generic getter by its raw body. Equal bodies can belong to
+  unrelated cloned functions; use callers and field roles.
+- Do not extrapolate an index or address shift across features. Derive each
+  device, frame, message, and table value from its own owner.
+- Do not remap a record by literal substitution. An unchanged field can share
+  a value with a moved index.
 
-## October 2026 recovery findings
+## Recover a relocation rebuild
 
-Stable recovery [PR #492](https://github.com/Mat4m0/gwonmac/pull/492) restored the
-retained Stable capabilities. Its canonical release commit is
-`f6f5884c93f7bdeae981bd68e7f9180899c20e5b`. Forward-port that commit with
-`cherry-pick -x`; qualify newer `main` features separately.
-
-The newer feature review found changed native item-move, Guild Hall and effect
-messages, character-control bodies, friend notification paths, map dispatchers,
-and renderer guard operands. The official client remained unchanged. Complete
-reviewed function families restore these integrations without suppressing a
-failed gate. A shared helper change can affect several declared dependants.
-
-Retain these investigation lessons:
-
-- Treat broad operand normalization as a research lead only. It is not proof.
-- Identify generic getters through their callers and field roles. Equal raw
-  bodies can belong to unrelated cloned functions.
-- Derive each device, frame, message and table value from its own owner. Do not
-  extrapolate an index or address shift across features.
-- Compare all members of one family. A matching sender alone does not prove
-  its editor, history, packet, lifecycle or dispatcher relationship.
-- Compose partial records per feature. A missing historical field must not
-  make every current action disappear.
-- Execute emitted native code with the current fixture globals and external
-  dependencies. Old fixture coordinates can hide or invent a failure.
-- Exercise the compiled reachability kernel for each accepted layout. Adding
-  a layout exposed a Rust linker failure: division could retain static panic
-  formatting. Checked arithmetic keeps invalid input explicit and the kernel
-  reproducible with the existing compiler.
-- Verify the complete shipped chain and refusal cases after accepting facts.
-  Enhancement verdicts alone do not prove Friends or Maps.
-
-Current requirements and remaining locator limits belong to
-[ArenaNet compatibility](../../docs/arenanet-compatibility.md),
-[feature development](../../docs/enhancement-development.md), and
-[Cartography](../../docs/cartography.md). Exact values remain in code and tests.
-No offline result establishes live gameplay acceptance or signing readiness.
-
-## October 22 recovery findings
-
-Generation `ce3192033b14` refused template saving and every Tools feature
-except the cursor on both Stable and Beta. About 90% of the client was the same
-code with renumbered functions and moved static data. Only a few changes were
-real:
-
-- one 4-byte neighbour of the screenshot-directory record disappeared;
-- a count-style area-table sentinel grew (1465 to 1477) and one map row changed
-  two text identifiers;
-- one sequential identifier in skill-bar static data moved by one; and
-- Party attribute commit now also resets the stored value for lookup result
-  11. The written states are unchanged.
-
-Efficient procedure:
+Most ArenaNet rebuilds are the same code with renumbered functions and moved
+static data. The October 22 and November 3, 2026 clients refused almost every
+feature for that reason; only a few changes were real.
 
 1. Map each refused role or exact body hash from the preceding retained client
-   to the new client by comparing bodies with call indices, static operands,
-   and constants erased. Require one unique match.
+   to the new client. Compare bodies with call indices, static operands, and
+   constants erased. Require one unique match, and confirm it by its relations,
+   not by its hash alone: a one-call wrapper and its neighbour can collide when
+   both shift by one index.
 2. Diff each matched pair instruction by instruction. Accept call-index and
-   static-address changes; read every changed constant: string pointers must
+   static-address changes. Read every changed constant: string pointers must
    reach the same text, small integers must be explained (assertion lines,
    content counts). Read every control-flow change in full.
 3. Add the reviewed result as a variant next to the existing one
    (`reviewedVariants` on a semantic role, a reviewed table digest, or a
    reviewed static-content digest). Keep the previous client proving.
-4. Trace the remaining refusal to its first failing check before reading
+4. Trace each remaining refusal to its first failing check before you read
    code. Shared checks, such as the area table, can disable many features.
+5. Compare all members of one function family. A matching sender alone does not
+   prove its editor, history, packet, lifecycle, or dispatcher.
 
-Anchor only the bytes a feature owns. The screenshot anchor also covered
-neighbouring storage, so an unrelated neighbour change refused template saving.
+Anchor only the bytes a feature owns. A screenshot anchor that also covered
+neighbouring storage once refused template saving after an unrelated change.
 
-Beta has more per-client tables than Stable. For this client they needed:
+A relocation can reach code that never moved before. Template saving then needs
+a source change, not only a variant: `MOVED_CALLEES` in
+`template-save-callee-proof.ts` binds each moved helper call to its reviewed
+callee bodies.
 
-- a template-save record (`pnpm certification template --write`) and the
+## Per-client records to update
+
+A new client can need all of these:
+
+- the template-save record (`pnpm certification template --write`) and the
   Tools record in `enhancement-builds.ts`;
-- a friend lifecycle family (moved state, source lines and message IDs +1),
-  which changes `FRIEND_OBSERVER_SEMANTIC_SHA256`;
-- a Cartography memory layout (`october22`, kernel layout 4) with its Compass,
-  Mission Map and World Map certificates. The reachability kernel in
-  `src/cartography-reachability-kernel/lib.rs` holds the same context root and
-  agent array per layout, so every new layout also changes the kernel;
+- the friend lifecycle family, which changes `FRIEND_OBSERVER_SEMANTIC_SHA256`;
+- a Cartography memory layout with its Compass, Mission Map, and World Map
+  certificates. The reachability kernel in
+  `src/cartography-reachability-kernel/lib.rs` holds the context root and agent
+  array per layout, so a new layout also changes the kernel. Run the compiled
+  kernel for each accepted layout: checked arithmetic keeps it free of static
+  panic formatting;
 - the World Map display owner, Compass owner, pathing hashes, Guild Hall
-  producer and area-type accessor, and the native render family; and
-- `tests/fixtures/retained-client.ts`, which maps the August function indices
-  and static addresses the real-client tests use.
+  producer, area-type accessor, and the native render family; and
+- `tests/fixtures/retained-client.ts`, which maps retained function indices and
+  static addresses for the real-client tests.
 
-## November 3 recovery findings
+Compose partial records per feature: a missing historical field must not make
+current actions disappear. After accepting facts, verify the complete shipped
+chain and the refusal cases. Enhancement verdicts alone do not prove Friends or
+Maps. No offline result establishes live gameplay acceptance.
 
-Generation `f2a2b07c9c56` refused template saving, so every Tools feature
-withdrew. Against the October 22 client the reviewed code was unchanged apart
-from relocation, but the relocation reached code the earlier recoveries never
-saw move:
+## Feature requirements during recovery
 
-- one function was inserted at local 60, so every index above 279 moved by
-  one; five more were inserted, three removed and a few replaced between
-  locals 10836 and 11761, ending at +5;
-- static data moved by +384, +400 or +416 per region and read-only data by
-  +224, including the pointers stored inside it;
-- the area-table count sentinel grew again (1477 to 1480);
-- the logout producer passes two function-table slots that dropped by one
-  (2801/2802 to 2800/2801): each names the same callback, moved down one
-  slot; and
-- the friend connection-event and logout handlers assert with `GcAuthCmd.cpp`
-  source lines that moved by seven.
+`recertify` must report per-feature ABI/input-hash-bound verdicts, and
+`double-click` must prove one unique callback and the complete enqueue, pump,
+translator, mouse-dispatch, click-consumer, and flag-lift route before it
+checks the insertion and output. It derives one exact input/output transaction;
+there is no capability-profile predecessor table.
 
-Template saving needed a source change, not only reviewed variants. Its
-caller fingerprint left helper calls un-normalized because they had never
-moved. `MOVED_CALLEES` in `template-save-callee-proof.ts` now binds each such
-call to its reviewed October 22 and November 3 callee body, including the
-delete and `File::Open` bodies, and the semantic baseline fingerprint changed
-with it. Older clients refuse template saving; ArenaNet serves only the
-current client, so they never run again.
+Each recovered fact needs an independent semantic anchor. A common movement is
+not enough. Automated candidates are review evidence and cannot create runtime
+authority.
 
-Two cheap checks caught mistakes during this recovery:
+Do not make the IPC boundary compare a candidate-derived raw body digest with a
+preceding generation. Call immediates and data operands legitimately change
+when ArenaNet relinks an equivalent client. The locator proves their typed
+relationships; the boundary accepts the resulting digest as an input-bound
+fact; the production transform verifies that digest against the same candidate
+bytes. Add a positive coherent-relocation fixture as well as refusal mutations.
 
-- Raw body hashes can collide across clients when a one-call wrapper and its
-  neighbour both shift by one index. Map each role by its relations, not by
-  its hash alone.
-- Remapping a record by literal substitution can rewrite an unchanged field
-  that shares a value with a moved index. The October 22 record's title
-  templates (9186, 9189, 9190) equal function indices that moved. Check every
-  literal that is both changed and unchanged before substituting.
+Recertification requires semantic identities, signatures, caller relationships,
+original-call preservation, complete address occurrence ledgers, table and
+allocation invariants, positive and negative layout evidence, lifecycle
+clearing, offline tests, clean teardown, and one bounded live semantic check per
+changed domain.
 
-`tests/fixtures/retained-client.ts` now renumbers October 22 indices with
-`NOVEMBER_3_SEGMENTS` instead of listing single moves, because almost every
-index moved. Real-client tests that used August literals now pass them
-through the fixture.
+For Xunlai storage, independently recover the player-record array, record
+stride, agent identifier, player number, access flags, and area type. External
+projects such as GWCA can explain semantics, but they are never runtime
+authority. Prove reader and handler roles, signatures, field offsets, and the
+game-thread drain from the current bytes. Do not copy them from a preceding
+build.
+The three player-record readers form one optional, all-or-nothing access proof.
+If that proof cannot be certified, omit it: the generated configuration then
+contains zero access words, Xunlai stays disabled, and the independently
+certified Travel action remains available. Never substitute party state or a
+guessed offset.
+
+Run `pnpm enhancements:live xunlai-storage` from a supported PvE outpost. The
+scenario records only the tri-state access result and two complete action
+cycles from the same named action used by the button and shortcut. Each cycle
+opens storage, closes it with Escape, and proves that bounded two-button
+movement changes the certified player position. A queued command is not a
+semantic success. Also enter `/chest`,
+`/xunlai`, and one near miss such as `/storage`; the first two must be consumed
+locally only after access is confirmed and the near miss must remain a normal
+Guild Wars command. Check one eligible character and the known restricted
+character, then switch accounts or characters without restarting and confirm
+that access is revoked and restored. A one-gold deposit and withdrawal requires
+explicit confirmation from the person operating the client.
+
+STOP if closing storage does not immediately restore click-to-walk, two-button
+movement, and merchant interaction. The DataWindow handler consumes two account
+pane flags in addition to the character/outpost access proof. Do not infer
+those flags from access, hard-code a different payload, or call the action safe
+because the mailbox drained. A release claim needs independent proof of those
+flags and the native storage open/close lifecycle, plus the recovery cycle
+above on accounts with and without each pane.
+
+Party certification must prove the complete owned roster, player and hero
+professions, hero unlocks, behaviour, skill bars, and attributes. Proving only
+the hero count or first hero is not enough for Apply team. Each optional party
+detail table is an independent observation: a rejected detail table must erase
+only its own facts and must never erase the verified roster or another valid
+detail group.
