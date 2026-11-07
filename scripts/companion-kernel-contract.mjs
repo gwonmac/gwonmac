@@ -17,8 +17,8 @@ const companionKernelSignatureModule = new WebAssembly.Module(
 /**
  * What each nullary export must answer, restated where a human changes it.
  *
- * These lived inline in `verify-companion-kernel.mjs` and went stale: the party
- * work moved the ABI to 7 and the config block to 296 bytes while that script
+ * These lived inline in the kernel verifier (now `kernels.mjs verify`) and
+ * went stale: the party work moved the ABI to 7 and the config block to 296 bytes while that script
  * still asserted 6 and 196, because it needs a built artifact and so is not
  * part of `pnpm check`. Here they are inside a module the unit suite already
  * imports, and the seal test ties every byte count back to the decoder that

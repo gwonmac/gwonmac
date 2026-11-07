@@ -1,0 +1,13 @@
+[package]
+name = "companion-kernel"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[lib]
+# The crate name orders the codegen units, so it shapes the kernel's bytes.
+# `lib` is the name the raw `rustc kernels/companion/lib.rs` build gave it,
+# which keeps the sealed kernel byte for byte what that build produced.
+name = "lib"
+path = "lib.rs"
+crate-type = ["cdylib"]

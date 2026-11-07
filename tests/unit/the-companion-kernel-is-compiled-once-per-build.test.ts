@@ -1,7 +1,7 @@
 // scripts/build.mjs is the single build producer. copy-renderer.mjs runs
-// to completion without rustc, copies assets and no code, and emits no kernel;
-// the canonical build step list holds exactly one rustc invocation, and orders
-// the producers that write into build/renderer so none erases another.
+// to completion without a Rust toolchain, copies assets and no code, and emits
+// no kernel; the build step list compiles both kernels in exactly one cargo
+// step and seals them only after the renderer bundle that holds their loaders.
 // Rollup is the only renderer runtime producer; the main compiler is the only
 // producer of build/shared.
 import assert from "node:assert/strict";
@@ -20,11 +20,7 @@ import path from "node:path";
 import { after, describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 import ts from "typescript";
-import {
-  BUILD_STEPS,
-  cartographyReachabilityKernelRustcArgs,
-  companionKernelRustcArgs,
-} from "../../scripts/build.mjs";
+import { BUILD_STEPS, CARGO_ARGS } from "../../scripts/build.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -229,81 +225,19 @@ function stepPosition(needle: string): number {
   return found[0]!.index;
 }
 
-/**
- * Where the main program is compiled. It is the `tsc` step that names no
- * project file, so it is found by what it lacks rather than by an index.
- */
 describe("scripts/build.mjs owns both sealed kernel builds", () => {
-  const rustc = BUILD_STEPS.filter(([command]) => command === "rustc");
-  const companion = rustc.filter((step) =>
-    stepArgs(step).includes("kernels/companion/lib.rs")
-  );
-  const reachability = rustc.filter((step) =>
-    stepArgs(step).includes("kernels/reachability/lib.rs")
-  );
-
-  it("compiles each kernel exactly once per build", () => {
-    assert.equal(rustc.length, 2);
-    assert.equal(companion.length, 1);
-    assert.equal(reachability.length, 1);
-  });
-
-  it("writes the companion kernel only as an unserved candidate", () => {
-    const kernel = companion[0];
-    assert.ok(kernel, "no rustc step to inspect");
-    const args = stepArgs(kernel);
-    assert.deepEqual(args.slice(-2), [
-      "-o",
-      "build/.companion-kernel.unsealed.wasm",
-    ]);
-    assert.ok(args.includes("kernels/companion/lib.rs"));
+  it("compiles both kernels in exactly one cargo step and never with raw rustc", () => {
     assert.deepEqual(
-      args,
-      companionKernelRustcArgs("build/.companion-kernel.unsealed.wasm"),
+      BUILD_STEPS.filter(([command]) => command === "cargo").map(stepArgs),
+      [[...CARGO_ARGS]],
     );
+    assert.equal(BUILD_STEPS.some(([command]) => command === "rustc"), false);
   });
 
-  it("writes the reachability kernel only as an unserved candidate", () => {
-    const kernel = reachability[0];
-    assert.ok(kernel, "no reachability rustc step to inspect");
-    const args = stepArgs(kernel);
-    assert.deepEqual(args.slice(-2), [
-      "-o",
-      "build/.cartography-reachability-kernel.unsealed.wasm",
-    ]);
-    assert.deepEqual(
-      args,
-      cartographyReachabilityKernelRustcArgs(
-        "build/.cartography-reachability-kernel.unsealed.wasm",
-      ),
-    );
-  });
-
-  it("publishes each through its immediate build-time sealing step", () => {
-    for (const [source, sealer] of [
-      ["kernels/companion/lib.rs", "scripts/seal-companion-kernel.mjs"],
-      [
-        "kernels/reachability/lib.rs",
-        "scripts/seal-cartography-reachability-kernel.mjs",
-      ],
-    ] as const) {
-      const kernel = stepPosition(source);
-      assert.equal(stepPosition(sealer), kernel + 1);
-    }
-  });
-});
-
-describe("scripts/build.mjs orders the producers of build/renderer", () => {
-  const renderer = stepPosition("scripts/build-renderer.mjs");
-  const kernel = stepPosition("kernels/companion/lib.rs");
-  const sealer = stepPosition("scripts/seal-companion-kernel.mjs");
-
-  it("compiles and seals the kernel after the renderer bundle holding its loader", () => {
-    assert.ok(kernel >= 0, "no rustc step to inspect");
-    assert.ok(
-      renderer < kernel && kernel < sealer,
-      `kernel written at ${kernel}, before renderer ${renderer}`,
-    );
+  it("seals only after the kernels and the renderer bundle holding their loaders", () => {
+    const sealer = stepPosition("scripts/kernels.mjs");
+    const kernels = BUILD_STEPS.findIndex(([command]) => command === "cargo");
+    assert.ok(sealer > kernels && sealer > stepPosition("scripts/build-renderer.mjs"));
   });
 });
 

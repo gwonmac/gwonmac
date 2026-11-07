@@ -37,60 +37,12 @@ if (nativeArchitecture === null) {
   throw new Error(`unsupported native build architecture: ${process.arch}`);
 }
 
-/**
- * The one reproducible freestanding-kernel compile recipe.
- * @param {string} output
- */
-export function companionKernelRustcArgs(output) {
-  return [
-    "kernels/companion/lib.rs",
-    "--edition=2021",
-    "--target",
-    "wasm32-unknown-unknown",
-    "--crate-type",
-    "cdylib",
-    "-C",
-    "opt-level=s",
-    "-C",
-    "panic=abort",
-    "-C",
-    "relocation-model=pic",
-    "-C",
-    "link-arg=--import-memory",
-    "-C",
-    "link-arg=--experimental-pic",
-    "-C",
-    "link-arg=--shared",
-    "-C",
-    "link-arg=--strip-all",
-    "-o",
-    output,
-  ];
-}
-
-/** The private Cartography classifier uses the same relocatable Wasm policy.
- * @param {string} output
- */
-export function cartographyReachabilityKernelRustcArgs(output) {
-  return [
-    "kernels/reachability/lib.rs",
-    "--edition=2021",
-    "--target", "wasm32-unknown-unknown",
-    "--crate-type", "cdylib",
-    "-C", "opt-level=s",
-    "-C", "panic=abort",
-    "-C", "relocation-model=pic",
-    "-C", "link-arg=--import-memory",
-    "-C", "link-arg=--experimental-pic",
-    "-C", "link-arg=--shared",
-    "-C", "link-arg=--strip-all",
-    "-o", output,
-  ];
-}
+/** What `cargo` runs for both kernels; .cargo/config.toml holds the flags. */
+export const CARGO_ARGS = ["build", "--release", "--locked"];
 
 /**
  * Every command that produces a package input, in order. Exported so the step
- * list itself is assertable: the kernel is compiled by exactly one of them.
+ * list itself is assertable: each kernel is compiled by exactly one of them.
  *
  * Written as pairs rather than left to inference: an array literal of arrays
  * widens to `(string | string[])[][]`, which loses the fact that the first
@@ -188,21 +140,13 @@ export const BUILD_STEPS = [
       "build/native/gw-dat-decode",
     ],
   ],
-  // No Cargo.toml: no dependencies, and rust-toolchain.toml pins the toolchain.
-  // rustc writes an unserved candidate. The next step validates its fixed ABI,
-  // seals its digest into the emitted renderer, and only then publishes it.
-  [
-    "rustc",
-    companionKernelRustcArgs("build/.companion-kernel.unsealed.wasm"),
-  ],
-  [process.execPath, ["scripts/seal-companion-kernel.mjs"]],
-  [
-    "rustc",
-    cartographyReachabilityKernelRustcArgs(
-      "build/.cartography-reachability-kernel.unsealed.wasm",
-    ),
-  ],
-  [process.execPath, ["scripts/seal-cartography-reachability-kernel.mjs"]],
+  // Both Rust kernels, from the Cargo workspace at the repository root;
+  // rust-toolchain.toml pins the compiler. Cargo writes only target/, so an
+  // unchanged kernel is not recompiled, and nothing is served until sealed.
+  ["cargo", CARGO_ARGS],
+  // Validates each kernel's fixed ABI, seals its digest into the loader the
+  // renderer step emitted, and only then publishes it beside that loader.
+  [process.execPath, ["scripts/kernels.mjs", "seal"]],
 ];
 
 function build() {

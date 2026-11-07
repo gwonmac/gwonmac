@@ -25,12 +25,11 @@ import {
 import { COMPANION_PLAY_REGION_BYTES } from "../../app/renderer/companion-play-region-snapshot.ts";
 import { ENHANCEMENT_CONFIG_WORD_COUNT } from "../../app/shared/enhancement-contracts.ts";
 import {
-  COMPANION_KERNEL_HASH_BINDING,
-  COMPANION_KERNEL_HASH_PLACEHOLDER,
-  companionKernelSha256,
-  sealCompanionKernelBuild,
-  verifySealedCompanionLoader,
-} from "../../scripts/seal-companion-kernel.mjs";
+  KERNELS,
+  kernelSha256,
+  sealKernel,
+  verifySealedLoader,
+} from "../../scripts/kernels.mjs";
 import { companionKernelFixture } from "../helpers/companion-kernel-fixture.ts";
 
 const roots: string[] = [];
@@ -139,7 +138,7 @@ describe("companion kernel build contract", () => {
     );
   });
 
-  // `verify-companion-kernel.mjs` asks the built kernel what its regions are
+  // `kernels.mjs verify` asks the built kernel what its regions are
   // and compares the answers to these constants. It needs a built artifact, so
   // it is not part of `pnpm check` and nothing ran it for two ABI moves — it
   // was still asserting ABI 6 and a 196-byte config against a kernel that had
@@ -194,24 +193,20 @@ describe("companion kernel build seal", () => {
     writeFileSync(files.candidate, bytes);
     writeFileSync(files.renderer, rendererSource);
 
-    const sha256 = sealCompanionKernelBuild({
+    const sha256 = sealKernel(KERNELS.companion, {
       candidatePath: files.candidate,
       artifactPath: files.artifact,
       loaderPath: files.renderer,
     });
 
-    assert.equal(existsSync(files.candidate), false);
     assert.deepEqual(new Uint8Array(readFileSync(files.artifact)), bytes);
-    assert.equal(sha256, companionKernelSha256(bytes));
+    assert.equal(sha256, kernelSha256(bytes));
     const renderer = readFileSync(files.renderer, "utf8");
-    verifySealedCompanionLoader(renderer, sha256);
-    assert.match(
-      renderer,
-      new RegExp(`const ${COMPANION_KERNEL_HASH_BINDING} = "${sha256}";`),
-    );
-    assert.equal(renderer.includes(COMPANION_KERNEL_HASH_PLACEHOLDER), false);
+    verifySealedLoader(KERNELS.companion, renderer, sha256);
+    const binding = KERNELS.companion.binding;
+    assert.match(renderer, new RegExp(`const ${binding} = "${sha256}";`));
     assert.ok(
-      renderer.indexOf(`kernelSha256 !== ${COMPANION_KERNEL_HASH_BINDING}`)
+      renderer.indexOf(`kernelSha256 !== ${binding}`)
       < renderer.indexOf("WebAssembly.compile(kernelBytes)"),
     );
   });
@@ -223,7 +218,7 @@ describe("companion kernel build seal", () => {
     writeFileSync(files.renderer, rendererSource);
 
     assert.throws(
-      () => sealCompanionKernelBuild({
+      () => sealKernel(KERNELS.companion, {
         candidatePath: files.candidate,
         artifactPath: files.artifact,
         loaderPath: files.renderer,
@@ -246,7 +241,7 @@ describe("companion kernel build seal", () => {
     writeFileSync(files.renderer, rendererSource);
 
     assert.throws(
-      () => sealCompanionKernelBuild({
+      () => sealKernel(KERNELS.companion, {
         candidatePath: files.candidate,
         artifactPath: unavailableArtifact,
         loaderPath: files.renderer,
