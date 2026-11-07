@@ -17,7 +17,7 @@ const electronPath = path.resolve(
   "node_modules/electron/dist/Electron.app/Contents/MacOS/Electron",
 );
 
-test("re-verifies an unknown exact hash in an isolated process", async () => {
+test("re-verifies an unknown exact hash in an isolated process", { tag: "@journey" }, async () => {
   const root = await mkdtemp(path.join(tmpdir(), "gw-local-verifier-"));
   const wasmPath = path.join(root, "unknown.wasm");
   // The smallest valid module has none of the certified shapes. That is useful:
@@ -74,7 +74,7 @@ test("re-verifies an unknown exact hash in an isolated process", async () => {
   }
 });
 
-test("refuses an unknown native callback inside the isolated process", async () => {
+test("refuses an unknown native callback inside the isolated process", { tag: "@journey" }, async () => {
   const root = await mkdtemp(path.join(tmpdir(), "gw-double-click-verifier-"));
   const wasmPath = path.join(root, "unknown.wasm");
   const wasm = Uint8Array.of(0, 97, 115, 109, 1, 0, 0, 0);
@@ -101,7 +101,7 @@ test("refuses an unknown native callback inside the isolated process", async () 
   }
 });
 
-test("refuses changed Cartography input inside the isolated process", async () => {
+test("refuses changed Cartography input inside the isolated process", { tag: "@journey" }, async () => {
   const root = await mkdtemp(path.join(tmpdir(), "gw-cartography-verifier-"));
   const wasmPath = path.join(root, "unknown.wasm");
   const wasm = Uint8Array.of(0, 97, 115, 109, 1, 0, 0, 0);
@@ -137,7 +137,7 @@ test("refuses changed Cartography input inside the isolated process", async () =
   }
 });
 
-test("refuses changed 4 GB glue inside the isolated process", async () => {
+test("refuses changed 4 GB glue inside the isolated process", { tag: "@journey" }, async () => {
   const root = await mkdtemp(path.join(tmpdir(), "gw-extended-memory-verifier-"));
   const jsPath = path.join(root, "Gw.jspi.js");
   const wasmPath = path.join(root, "Gw.jspi.wasm");

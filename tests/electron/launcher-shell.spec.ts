@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { closeOffline, launchOffline } from "./fixtures.mjs";
 
-test("the Vue launcher owns a narrow frozen bridge and offline subtree", async () => {
+test("the Vue launcher owns a narrow frozen bridge and offline subtree", { tag: "@journey" }, async () => {
   const fixture = await launchOffline("gw-vue-launcher-security-", {
     GW_TEST_RETURN_LAUNCHER: "1",
   });

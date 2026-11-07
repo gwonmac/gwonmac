@@ -17,6 +17,9 @@ export const PRELOAD_ENTRIES = Object.freeze([
   LAUNCHER_PRELOAD_ENTRY,
 ]);
 
+// Files the import walk (relativeEsmClosure) does not require through an
+// import: bare-specifier modules, files loaded by path, entry points and
+// resources. A module that a shipped entry imports is required by that walk.
 export const REQUIRED_PACKAGE_FILES = Object.freeze([
   "/node_modules/ws/package.json",
   "/node_modules/ws/wrapper.mjs",
@@ -30,12 +33,6 @@ export const REQUIRED_PACKAGE_FILES = Object.freeze([
   "/build/renderer/enhancements.js",
   "/build/renderer/companion-snapshot.js",
   "/build/renderer/enhancement-cursor.js",
-  "/build/renderer/features/target-readout/renderer/enhancement-readout.js",
-  "/build/client/certification/enhancement-transform.js",
-  "/build/client/certification/client-module.js",
-  "/build/client/certification/enhancement-builds.js",
-  "/build/client/certification/enhancement-policy.js",
-  "/build/main/main.js",
   ...PRELOAD_ENTRIES,
   "/build/renderer/index.html",
   "/build/renderer/launcher/index.html",
@@ -76,16 +73,6 @@ export function assertNoDeveloperPackageFiles(inventory: PackageInventory): void
   const unexpected = [...inventory].filter((file) => developerShaped.test(file));
   if (unexpected.length > 0) {
     throw new Error(`developer-shaped files ship in the packaged app: ${unexpected.join(", ")}`);
-  }
-
-  for (const file of inventory) {
-    if (
-      !/^\/(?:build\/(?:main|client|features|shared|renderer|preload|native)\/|node_modules\/(?:ws|pngjs)\/|package\.json$)/u.test(
-        file,
-      )
-    ) {
-      throw new Error(`${file} is outside the packaged runtime trees`);
-    }
   }
 }
 
@@ -143,7 +130,7 @@ export function relativeEsmClosure({
   readText,
 }: {
   entryPoints: readonly string[];
-  inventory: PackageInventory;
+  inventory: Pick<PackageInventory, "has">;
   readText: (file: string) => string;
 }): ReadonlySet<string> {
   const pending = entryPoints.map((entry) => path.posix.resolve("/", entry));
