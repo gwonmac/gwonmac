@@ -84,12 +84,6 @@ then reports busy and changes nothing; labels keep the current atlas until a
 later render repacks again. [Cartography](cartography.md) describes the shared
 guard.
 
-[`skill-cooldown-visual.ts`](../scripts/skill-cooldown-visual.ts) replays the actual
-native atlas and ordered quads for its duration/color/size/key-coexistence matrix
-at 1x, 1.5x, and 2x. It can place the drawing over a real native skill crop and
-writes reference, rendered, and difference images. It verifies artwork and
-geometry; native GPU ordering and live acceptance remain separate checks.
-
 Live acceptance requires both closed diagnostics and visual confirmation. The
 session must record first observations for skill geometry and cooldowns;
 Settings must show both live states as working; and a recharging skill must show
