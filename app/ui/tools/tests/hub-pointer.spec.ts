@@ -24,11 +24,11 @@ async function open(page: Page, query = '') {
         if (value) ledger.push(value);
       });
     }).observe(app, { attributes: true, attributeFilter: ['data-action'], attributeOldValue: true });
-    window.gwFixtureCanvas?.clear();
+    window.gwFixtureCanvas.clear();
   });
 }
 const ledger = (page: Page) => page.evaluate(() => (window as unknown as { ledger: string[] }).ledger);
-const canvas = (page: Page) => page.evaluate(() => window.gwFixtureCanvas?.events.filter(event => event.type !== 'keyup' || event.code).map(event => `${event.type}:${event.code ?? event.detail}`) ?? []);
+const canvas = (page: Page) => page.evaluate(() => window.gwFixtureCanvas.events.filter(event => event.type !== 'keyup' || event.code).map(event => `${event.type}:${event.code ?? event.detail}`));
 const search = (page: Page) => page.locator('.hub-search input');
 const row = (page: Page, text: string | RegExp) => page.locator('#hub .hub-row', { hasText: text }).first();
 const primary = (page: Page) => page.locator('.hub-primary');
@@ -300,7 +300,7 @@ test.describe('trailing clicks never reach the game', () => {
       await open(page);
       await page.keyboard.press('Meta+t');
       await expect(caption(page)).toHaveText('Travel');
-      await page.evaluate(() => window.gwFixtureCanvas?.clear());
+      await page.evaluate(() => window.gwFixtureCanvas.clear());
       await clicks(page, kamadan(page), 2, gap);
       await expect(page.locator('#hub')).toBeHidden();
       expect(await ledger(page)).toEqual(['TRAVEL Kamadan, Jewel of Istan']);
@@ -857,7 +857,7 @@ test('Hub preferences keeps the Actions slot and opens its named actions with Co
     else await page.locator('.hub-row[data-id="place:449"]').click();
     // Hub lists use virtual row focus: DOM focus stays in search (D-2).
     await expect(search(page)).toBeFocused();
-    await expect(search(page)).toHaveAttribute('aria-activedescendant', await page.locator('.hub-row[data-id="place:449"]').getAttribute('id')!);
+    await expect(search(page)).toHaveAttribute('aria-activedescendant', String(await page.locator('.hub-row[data-id="place:449"]').getAttribute('id')));
     await page.keyboard.press('Meta+j');
     await expect(page.getByRole('menu')).toBeVisible();
     await expect(page.getByRole('menuitem', { name: /Travel to Kamadan/ })).toBeVisible();

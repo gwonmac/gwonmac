@@ -80,7 +80,7 @@ const observe = (page: Page) => page.evaluate(() => {
   // An open disclosure is the innermost level Escape and ⌘⌫ close first.
   const disclosure = [...document.querySelectorAll('#hub details[open]')].some(element => element.getClientRects().length > 0) ? ' | disclosure open' : '';
   const action = document.getElementById('app')?.dataset.action ?? '-';
-  const events = window.gwFixtureCanvas?.events ?? [];
+  const events = window.gwFixtureCanvas.events;
   const reached = (types: readonly string[]) => events.filter(event => types.includes(event.type)).length;
   const canvas = `down ${reached(['keydown'])} up ${reached(['keyup'])} pointer ${reached(['pointerdown', 'mousedown', 'mouseup', 'click', 'dblclick', 'auxclick', 'contextmenu'])}`;
   const life = document.querySelector<HTMLSelectElement>('select[aria-label="Lifecycle state"]')?.value ?? '-';
@@ -106,7 +106,7 @@ test.describe('keyboard contract', () => {
         await expect(page.locator('#app')).toHaveAttribute('data-ready', 'true');
         await setup.open(page);
         await settle(page);
-        await page.evaluate(() => window.gwFixtureCanvas?.clear());
+        await page.evaluate(() => window.gwFixtureCanvas.clear());
         await page.keyboard.press(key);
         await settle(page);
         const cell = await observe(page);
@@ -118,10 +118,10 @@ test.describe('keyboard contract', () => {
 });
 
 test.describe('owned press (HUB-003)', () => {
-  const canvasKeys = (page: Page) => page.evaluate(() => (window.gwFixtureCanvas?.events ?? []).map(event => `${event.type}:${event.code}${event.repeat ? ':repeat' : ''}`));
+  const canvasKeys = (page: Page) => page.evaluate(() => window.gwFixtureCanvas.events.map(event => `${event.type}:${event.code}${event.repeat ? ':repeat' : ''}`));
   /** Holds a key long enough for three repeats after the press that closes the Hub. */
   const hold = async (page: Page, key: string, repeats = 3) => {
-    await page.evaluate(() => window.gwFixtureCanvas?.clear());
+    await page.evaluate(() => window.gwFixtureCanvas.clear());
     for (let press = 0; press <= repeats; press++) await page.keyboard.down(key);
     await page.keyboard.up(key);
     await settle(page);
@@ -140,7 +140,7 @@ test.describe('owned press (HUB-003)', () => {
     await expect(page.locator('#hub')).toBeHidden();
   });
 
-  const actions = (page: Page, pattern: RegExp) => page.evaluate(source => (window.gwFixtureActions ?? []).filter(action => new RegExp(source, 'u').test(action)), pattern.source);
+  const actions = (page: Page, pattern: RegExp) => page.evaluate(source => window.gwFixtureActions.filter(action => new RegExp(source, 'u').test(action)), pattern.source);
 
   // PPL-15: one physical press sends one invite, tapped or held with auto-repeat.
   for (const repeats of [0, 3]) {
@@ -152,7 +152,7 @@ test.describe('owned press (HUB-003)', () => {
       await expect(page.locator('#app')).toHaveAttribute('data-invites', 'Romi Ranger');
       expect(await actions(page, /^PARTY\./u)).toEqual(['PARTY.INVITE Romi Ranger']);
       await expect(page.locator('#canvas')).toBeFocused();
-      await page.evaluate(() => window.gwFixtureCanvas?.clear());
+      await page.evaluate(() => window.gwFixtureCanvas.clear());
       await page.keyboard.press('w');
       expect(await canvasKeys(page)).toEqual(['keydown:KeyW', 'keyup:KeyW']);
     });
@@ -164,7 +164,7 @@ test.describe('owned press (HUB-003)', () => {
     await open(page);
     await search(page).fill('team gom afk');
     await expect(page.getByRole('button', { name: 'Apply team GOM AFK ↵' })).toBeEnabled();
-    await page.evaluate(() => window.gwFixtureCanvas?.clear());
+    await page.evaluate(() => window.gwFixtureCanvas.clear());
     await page.keyboard.down('Enter');
     for (let repeat = 0; repeat < 30 && await page.locator('#hub').isVisible(); repeat++) {
       await page.waitForTimeout(50);
@@ -178,7 +178,7 @@ test.describe('owned press (HUB-003)', () => {
     expect(await actions(page, /^apply-/u)).toEqual(['apply-team']);
     await expect(page.locator('#app')).toHaveAttribute('data-action', /^command:/u);
     await expect(page.locator('#canvas')).toBeFocused();
-    await page.evaluate(() => window.gwFixtureCanvas?.clear());
+    await page.evaluate(() => window.gwFixtureCanvas.clear());
     await page.keyboard.press('w');
     expect(await canvasKeys(page)).toEqual(['keydown:KeyW', 'keyup:KeyW']);
   });
@@ -201,7 +201,7 @@ test.describe('owned press (HUB-003)', () => {
     await page.keyboard.press('6');
     expect(await hold(page, 'Enter')).toEqual([]);
     await expect(action).toHaveAttribute('data-action', 'Character toefte');
-    await page.evaluate(() => window.gwFixtureCanvas?.clear());
+    await page.evaluate(() => window.gwFixtureCanvas.clear());
     await page.keyboard.press('w');
     expect(await canvasKeys(page)).toEqual(['keydown:KeyW', 'keyup:KeyW']);
   });

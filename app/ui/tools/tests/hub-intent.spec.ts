@@ -67,7 +67,7 @@ test('a changed account list returns to one refreshed Accounts page (HUB-174)', 
   await search.fill('switch account'); await search.press('Enter');
   await page.keyboard.press('Enter');
   await expect(page.locator('.hub-breadcrumbs')).toHaveText('Home›Accounts›Second');
-  await page.evaluate(() => window.gwFixtureAccounts?.renameSecond('Alt'));
+  await page.evaluate(() => window.gwFixtureAccounts.renameSecond('Alt'));
   await page.keyboard.press('Enter');
   // The Accounts page it came from, not a second copy over the stale Second actions.
   await expect(page.locator('.hub-breadcrumbs')).toHaveText('Home›Accounts');
@@ -432,7 +432,7 @@ test('Resign says what it does before Enter, reads as destructive, and Cancel re
   const dialog = page.locator('#resign-dialog');
   const confirm = dialog.getByRole('button', { name: 'Resign', exact: true });
   for (const cancel of ['Escape', 'Cancel'] as const) {
-    await page.evaluate(() => window.gwFixtureCanvas?.clear());
+    await page.evaluate(() => window.gwFixtureCanvas.clear());
     await search.press('Enter');
     await expect(dialog).toBeVisible();
     await expect(confirm).toHaveAttribute('data-variant', 'danger');
@@ -443,7 +443,7 @@ test('Resign says what it does before Enter, reads as destructive, and Cancel re
     await expect(search).toBeFocused();
     await expect(search).toHaveValue('resign');
     await expect(row).toHaveAttribute('aria-selected', 'true');
-    expect(await page.evaluate(() => window.gwFixtureCanvas?.events.filter(event => event.code === 'Escape').length)).toBe(0);
+    expect(await page.evaluate(() => window.gwFixtureCanvas.events.filter(event => event.code === 'Escape').length)).toBe(0);
   }
   await expect(page.locator('#app')).not.toHaveAttribute('data-action', 'RESIGN');
 });
@@ -925,9 +925,9 @@ test.describe('Characters: typing never switches', () => {
     const veil = page.locator('.character-switch-veil');
     await expect(veil).toHaveText('Switching to Toefte…');
     await expect(veil.locator('button, a, input, [tabindex]')).toHaveCount(0);
-    await page.evaluate(() => window.gwFixtureCanvas?.clear());
+    await page.evaluate(() => window.gwFixtureCanvas.clear());
     await page.mouse.click(300, 300);
-    expect(await page.evaluate(() => window.gwFixtureCanvas?.events.filter(event => event.type !== 'keydown' && event.type !== 'keyup').length)).toBe(0);
+    expect(await page.evaluate(() => window.gwFixtureCanvas.events.filter(event => event.type !== 'keydown' && event.type !== 'keyup').length)).toBe(0);
     for (const route of ['shortcut', 'sw'] as const) {
       if (route === 'shortcut') await page.keyboard.press('Meta+e');
       else { await page.keyboard.press('Meta+r'); await search.fill('sw'); await search.press('Enter'); }

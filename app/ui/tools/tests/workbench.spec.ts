@@ -658,7 +658,7 @@ test("projects a custom palette through the shared system without layout drift",
   const probe = await field.evaluate(el => { const box = el.getBoundingClientRect(); return { x: Math.floor(box.x + box.width / 2), y: Math.floor(box.y + box.height / 2), color: getComputedStyle(el).color }; });
   const hide = await page.addStyleTag({ content: '#build-name { color:transparent !important; text-shadow:none !important; caret-color:transparent !important; }' });
   const pixels = PNG.sync.read(await page.screenshot());
-  await hide.evaluate(el => el.remove());
+  await hide.evaluate(el => el.parentNode?.removeChild(el));
   const offset = (probe.y * pixels.width + probe.x) * 4;
   const paint = [...pixels.data.subarray(offset, offset + 3)];
   expect(paint).not.toEqual([212, 212, 212]);

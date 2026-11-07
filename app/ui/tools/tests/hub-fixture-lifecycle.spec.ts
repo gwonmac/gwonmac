@@ -7,7 +7,7 @@ const open = async (page: Page, query = '') => {
   await page.goto(`/?hub${query}`);
   await expect(page.locator('#app')).toHaveAttribute('data-ready', 'true');
 };
-const canvasEvents = (page: Page) => page.evaluate(() => window.gwFixtureCanvas?.events.map(event => `${event.type}:${event.code ?? event.detail}`) ?? []);
+const canvasEvents = (page: Page) => page.evaluate(() => window.gwFixtureCanvas.events.map(event => `${event.type}:${event.code ?? event.detail}`));
 
 test.describe('game lifecycle', () => {
   test('one lifecycle state names the place and gates character switching', async ({ page }) => {
@@ -108,7 +108,7 @@ test.describe('shortcuts through commands.ts', () => {
     const hub = page.getByRole('dialog', { name: /^Hub(?: — .+)?$/u });
     await page.keyboard.press('Escape');
     await expect(hub).toBeHidden();
-    await page.evaluate(() => window.gwFixtureCanvas?.clear());
+    await page.evaluate(() => window.gwFixtureCanvas.clear());
     await page.keyboard.down('Meta');
     for (let press = 0; press < 4; press++) await page.keyboard.down('r');
     await page.keyboard.up('r'); await page.keyboard.up('Meta');
@@ -166,7 +166,7 @@ test.describe('shortcuts through commands.ts', () => {
       const sheet = page.getByRole('dialog', { name: 'Quit or reload Guild Wars?' });
       await search.fill('reload');
       await expect(page.locator('#hub .hub-primary')).toContainText('Review options');
-      await page.evaluate(() => window.gwFixtureCanvas?.clear());
+      await page.evaluate(() => window.gwFixtureCanvas.clear());
       await locate(page).click({ clickCount: clicks });
       await expect(sheet).toBeVisible();
       // Past the double-click interval, so a second request would have arrived.
@@ -176,7 +176,7 @@ test.describe('shortcuts through commands.ts', () => {
       await expect(page.locator('.hub-fixture-quit')).toHaveCount(0);
       await page.keyboard.press('Escape');
       await expect(page.locator('#app')).toHaveAttribute('data-action', 'Quit or reload cancelled');
-      expect(await page.evaluate(() => window.gwFixtureActions?.filter(action => /^(Game|Quit)/u.test(action)))).toEqual(['Quit or reload cancelled']);
+      expect(await page.evaluate(() => window.gwFixtureActions.filter(action => /^(Game|Quit)/u.test(action)))).toEqual(['Quit or reload cancelled']);
     });
   }
 
@@ -206,7 +206,7 @@ test('the canvas ledger records only input that reaches the game', async ({ page
   expect(await canvasEvents(page)).toEqual([]);
   await search.fill(''); await search.press('Escape');
   await expect(page.locator('#canvas')).toBeFocused();
-  await page.evaluate(() => window.gwFixtureCanvas?.clear());
+  await page.evaluate(() => window.gwFixtureCanvas.clear());
   await page.keyboard.press('w');
   expect(await canvasEvents(page)).toEqual(['keydown:KeyW', 'keyup:KeyW']);
   await expect(page.locator('.hub-fixture-canvas-count')).toHaveText('Canvas input: 2');

@@ -40,7 +40,7 @@ test('rates accept trading shorthand, command-Enter saves once, and the choice s
     ['Gold per ectoplasm', '0', 'Enter a rate greater than zero.'],
     ['Ectoplasm per armbrace', '5,00', 'Enter a positive number, such as 5,000 or 5k.'],
     ['Ectoplasm per Zaishen key', '1.0000001', 'Enter a positive number, such as 5,000 or 5k.'],
-  ]) {
+  ] as const) {
     const field = page.getByRole('textbox', { name: label });
     await field.fill(value);
     await field.press('Meta+Enter');
@@ -68,7 +68,7 @@ test('rates accept trading shorthand, command-Enter saves once, and the choice s
 test('a missing quote names its item and Enter retries the selected result', async ({ page }) => {
   await page.goto('/?hub');
   await expect(page.locator('.hub-search input')).toBeVisible();
-  await page.evaluate(()=>{let count=0;const get=window.gwNative.trade.getTraderQuotes;window.gwNative.trade.getTraderQuotes=async()=>{document.documentElement.dataset.quoteReads=String(++count);return get();};});
+  await page.evaluate(()=>{const native=window.gwNative;if(!('trade' in native))throw new Error('The Hub fixture runs with Tools.');let count=0;const get=native.trade.getTraderQuotes;native.trade.getTraderQuotes=async()=>{document.documentElement.dataset.quoteReads=String(++count);return get();};});
   const search=page.locator('.hub-search input');await search.fill('1 iron in g');
   const row=page.locator('.hub-row[aria-selected=true]');await expect(row).toContainText('Iron Ingot');
   await expect(row.locator('.hub-detail')).toHaveCSS('white-space','normal');
@@ -79,7 +79,7 @@ test('a missing quote names its item and Enter retries the selected result', asy
 test('a loading refusal clears when evidence arrives and copy retains its question and time', async ({ page }) => {
   await page.goto('/?hub');
   await expect(page.locator('.hub-search input')).toBeVisible();
-  await page.evaluate(()=>{const get=window.gwNative.trade.getTraderQuotes;window.gwNative.trade.getTraderQuotes=async()=>{await new Promise(resolve=>setTimeout(resolve,200));return get();};});
+  await page.evaluate(()=>{const native=window.gwNative;if(!('trade' in native))throw new Error('The Hub fixture runs with Tools.');const get=native.trade.getTraderQuotes;native.trade.getTraderQuotes=async()=>{await new Promise(resolve=>setTimeout(resolve,200));return get();};});
   const search=page.locator('.hub-search input');await search.fill('10e in p');await search.press('Enter');
   await expect(page.locator('.hub-status')).toHaveText('Loading trader quotes…');
   await expect(page.locator('.hub-conversion')).toContainText('60 platinum');await expect(page.locator('.hub-status')).toBeEmpty();
@@ -89,7 +89,7 @@ test('a loading refusal clears when evidence arrives and copy retains its questi
     ['2+2', 'Copied 2+2 = 4 · Exact arithmetic'],
     ['250 cupcakes in sweet points', 'Copied 250 items Birthday Cupcake = 500 Sweet Tooth points · 250 items × 2 base points · Normal use restrictions apply; no bonus event assumed'],
     ['1a in e', 'Copied 1 a = ~ 30 ecto (sample) · Sample data — not live Kamadan prices · Median of simulated ads · Seller asking prices · 6 advertisers (Armbrace of Truth) · Ads since 9/30/2026, 11:55:00 AM'],
-  ]) {
+  ] as const) {
     await search.fill(query);
     await expect(page.locator('.hub-conversion')).toHaveCount(1);
     if (query === '2+2') await expect(page.locator('.hub-conversion .hub-title')).toHaveText('4');
@@ -103,8 +103,8 @@ test('a loading refusal clears when evidence arrives and copy retains its questi
 test('stale observed quotes expose Refresh and price details label their median evidence', async ({ page }) => {
   await page.goto('/?hub');
   await expect(page.locator('.hub-search input')).toBeVisible();
-  await page.evaluate(()=>{let count = 0; const get=window.gwNative.trade.getTraderQuotes;
-    window.gwNative.trade.getTraderQuotes=async()=>{
+  await page.evaluate(()=>{const native=window.gwNative;if(!('trade' in native))throw new Error('The Hub fixture runs with Tools.');let count = 0; const get=native.trade.getTraderQuotes;
+    native.trade.getTraderQuotes=async()=>{
       const result=await get(); document.documentElement.dataset.quoteReads=String(++count);
       return {...result,quotes:result.quotes.map(quote=>({...quote,price:count===1?6000:7000,timestamp:Date.now()-(count===1?3600000:0)}))};
     };});
@@ -176,8 +176,9 @@ test('resumed and rates-saved quotes retain selection, empty status and Enter co
   const search = page.locator('.hub-search input');
   await expect(search).toBeVisible();
   await page.evaluate(() => {
-    let reads=0; const get=window.gwNative.trade.getTraderQuotes;
-    window.gwNative.trade.getTraderQuotes=async()=>{document.documentElement.dataset.quoteReads=String(++reads);return get();};
+    const native=window.gwNative;if(!('trade' in native))throw new Error('The Hub fixture runs with Tools.');
+    let reads=0; const get=native.trade.getTraderQuotes;
+    native.trade.getTraderQuotes=async()=>{document.documentElement.dataset.quoteReads=String(++reads);return get();};
   });
   await search.fill('10e in p');
   await expect(page.locator('.hub-row[aria-selected=true]')).toHaveAttribute('data-id','quote:result');

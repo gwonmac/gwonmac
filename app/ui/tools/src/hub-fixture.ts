@@ -100,7 +100,7 @@ export function mountHubFixture(target: HTMLElement) {
         if (conflict) settings = { ...settings, shortcutOverrides: withShortcutOverride(settings.shortcutOverrides, conflict, null) };
         settings = { ...settings, shortcutOverrides: withShortcutOverride(settings.shortcutOverrides, change.action, change.binding) };
       }
-      window.gwApplyFixtureAppearance?.({ uiStyle: settings.uiStyle, uiPanelOpacity: settings.uiPanelOpacity, uiFont: settings.uiFont, uiTextSize: settings.uiTextSize, uiCustomTheme: settings.uiCustomTheme });
+      window.gwApplyFixtureAppearance({ uiStyle: settings.uiStyle, uiPanelOpacity: settings.uiPanelOpacity, uiFont: settings.uiFont, uiTextSize: settings.uiTextSize, uiCustomTheme: settings.uiCustomTheme });
       window.dispatchEvent(new CustomEvent('hub-fixture-settings', { detail: settings }));
     },
     capture: () => new Promise(resolve => {
@@ -322,7 +322,7 @@ export function mountHubFixture(target: HTMLElement) {
   const open = document.createElement('button'); open.textContent = 'Open Hub'; open.className = 'ui-button'; open.onclick = () => hub.show();
   const theme = document.createElement('button'); theme.textContent = 'Change theme'; theme.className = 'ui-button';
   let modern = false;
-  theme.onclick = () => { modern = !modern; window.gwApplyFixtureAppearance?.({ uiStyle: modern ? 'obsidian' : 'guild-wars', uiPanelOpacity: 100 }); };
+  theme.onclick = () => { modern = !modern; window.gwApplyFixtureAppearance({ uiStyle: modern ? 'obsidian' : 'guild-wars', uiPanelOpacity: 100 }); };
   const select = (label: string, options: readonly (readonly [string, string])[], value: string, change: (value: string) => void) => {
     const element = document.createElement('select'); element.className = 'ui-select'; element.setAttribute('aria-label', label);
     for (const [id, text] of options) { const option = document.createElement('option'); option.value = id; option.textContent = text; element.append(option); }
