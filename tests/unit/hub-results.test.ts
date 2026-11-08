@@ -1,7 +1,7 @@
 /**
  * What a Hub list shows and which row it selects, held by the pure functions in
- * app/renderer/hub-results.ts. Each case names the rule (and the Playwright spec in
- * app/ui/tools/tests) whose behaviour it ports.
+ * app/renderer/hub-results.ts. Each case names the rule and the test that guards it now: a Playwright spec in
+ * app/ui/tools/tests, or a vitest DOM test in app/ui/tools/src.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -25,7 +25,7 @@ type Case = Readonly<{
 }>;
 
 const cases: readonly Case[] = [
-  { name: 'HUB-008: a saved phrase wins over a name and answers with its stored row (hub-search.spec)', query: 'ranger',
+  { name: 'HUB-008: a saved phrase wins over a name and answers with its stored row (hub-search.dom.test.ts)', query: 'ranger',
     found: [row('character:ranger', 'Ranger', { group: 'Characters' })], shortcuts: [{ id: 'place:194', phrase: 'ranger', pinned: false }],
     stored: [row('place:194', 'Kaineng Center')], ids: ['place:194', 'character:ranger'], selected: 'place:194', count: '2 results' },
   { name: 'HUB-008: two rows with the typed name are a tie, so nothing is chosen', query: 'kamadan',
@@ -70,7 +70,7 @@ for (const entry of cases) {
   });
 }
 
-test('HUB-003: results that arrive after the query found none get its selection (hub-session.spec)', () => {
+test('HUB-003: results that arrive after the query found none get its selection (hub-session.dom.test.ts)', () => {
   const empty = choose({ query: 'kam', rows: [], reset: true });
   assert.deepEqual(empty, { selected: null, awaiting: true, report: null });
   const arrived = choose({ query: 'kam', rows: [row('place:449', 'Kamadan')], awaiting: empty.awaiting });
@@ -80,7 +80,7 @@ test('HUB-003: results that arrive after the query found none get its selection 
   assert.equal(later.selected, null);
 });
 
-test('HUB-232: a loading row that goes away hands its selection on and clears only its own refusal (hub-intent.spec)', () => {
+test('HUB-232: a loading row that goes away hands its selection on and clears only its own refusal (hub-intent.dom.test.ts)', () => {
   const loading = row('accounts:loading', 'Loading accounts', { group: 'Accounts', unavailable: 'Accounts are still loading.' });
   const account = row('account:1', 'Main account', { group: 'Accounts' });
   for (const [status, report] of [['Accounts are still loading.', ''], ['Travel failed.', null]] as const) {

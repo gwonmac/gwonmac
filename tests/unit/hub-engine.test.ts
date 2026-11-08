@@ -119,8 +119,8 @@ test('Back at Home does nothing and never closes; a page opened on a closed Hub 
   assert.deepEqual(back.effects[0], { type: 'home', focus: { zone: 'search' } });
 });
 
-// hub-intent.spec.ts 'a modified Enter never runs the primary; only a plain Enter does'
-// hub-session.spec.ts 'a long team apply names counted progress, and a repeated Enter never starts another (BLD-02)'
+// hub-intent.dom.test.ts 'a modified Enter never runs the primary; only a plain Enter does'
+// hub-session.dom.test.ts 'a long team apply names counted progress, and a repeated Enter never starts another'
 test('Enter runs the named primary only unmodified and not on a repeat', () => {
   const state = opened().state;
   const cases: [string, HubKey, string[], boolean][] = [
@@ -139,7 +139,7 @@ test('Enter runs the named primary only unmodified and not on a repeat', () => {
   }
 });
 
-// hub-calculator-polish.spec.ts 'rates accept trading shorthand, command-Enter saves once, and the choice survives reload'
+// hub-calculator-polish.dom.test.ts 'trading shorthand rates save once on a double command-Enter and price the next conversion'
 test('Enter in a view runs its primary except on a control Enter activates; ⌘↵ submits a form', () => {
   const state = opened().state;
   const cases: [string, HubKey, HubKeyPlace, string[]][] = [
@@ -154,8 +154,8 @@ test('Enter in a view runs its primary except on a control Enter activates; ⌘�
   for (const [name, pressed, where, effects] of cases) assert.deepEqual(types(reduce(state, press(pressed, where))), effects, name);
 });
 
-// hub-build-library.spec.ts 'Right Arrow compares current builds without applying, and Back restores the comparison'
-// hub-scale-a11y.spec.ts 'a child cue describes the Right Arrow action (HUB-167)'
+// hub-build-library.dom.test.ts 'Right Arrow compares the current build without applying, and Back restores the comparison'
+// hub-scale-a11y.dom.test.ts 'a build option has a concise name and describes its skills separately (HUB-161), and its cue says Right Arrow (HUB-167)'
 test('Right Arrow at the end of the query opens a result page, and nothing else', () => {
   const state = reduce(opened().state, { type: 'select', id: 'nav-build' }).state;
   const plainRow = reduce(state, { type: 'select', id: 'a' }).state;
@@ -198,9 +198,9 @@ test('list movement holds at both ends and never wraps', () => {
   }
 });
 
-// hub-pointer.spec.ts 'Travel: a click selects a destination and the footer travels once'
-// hub-pointer.spec.ts 'a person page\'s world actions only select on a click'
-// hub-session.spec.ts 'a click never moves the selection off a running apply (BLD-03)'
+// hub-pointer.dom.test.ts 'Travel: a click selects a destination and the footer travels once'
+// hub-pointer.dom.test.ts 'a person page's world actions only select on a click'
+// hub-session.dom.test.ts 'a click never moves the selection off a running apply'
 test('a consequential row runs only on an explicit activation: a click selects, a double-click that began on it runs', () => {
   const state = opened().state;
   const click = (from: State, id: string, count: number, consequential = true) =>
@@ -222,7 +222,7 @@ test('a consequential row runs only on an explicit activation: a click selects, 
 });
 
 // app/ui/tools/src/hub-navigation-window.dom.test.ts 'the mouse back button goes back one level, restores the parent exactly and never runs a row (PTR-33, KEY-26)'
-// hub-intent.spec.ts 'temporary blur resumes the stage and focus while explicit close starts fresh'
+// hub-intent.dom.test.ts 'temporary blur resumes the stage and focus while explicit close starts fresh'
 test('back restores the page with its query, selection, scroll and focus; close starts fresh at Home', () => {
   const left = opened(enter({ scope: travel, view: null }, 'lion'), { type: 'select', id: 'lions-arch' }, enter({ scope: builds, view: null }));
   const back = reduce(left.state, { type: 'back' });
@@ -235,7 +235,7 @@ test('back restores the page with its query, selection, scroll and focus; close 
   assert.deepEqual(reduce(closed.state, { type: 'show' }).effects, [{ type: 'home', focus: { zone: 'search' } }]);
 });
 
-// hub-build-library.spec.ts 'a suspended build page cannot resume its withdrawn source or execute stale Apply'
+// (the Playwright test 'a suspended build page cannot resume its withdrawn source or execute stale Apply' was deleted; no vitest test guards this resume rule yet)
 test('Back passes over pages whose source went away, to Home when none is left', () => {
   const deep = opened(enter({ scope: travel, view: null }), enter({ scope: builds, view: null }), enter({ scope: builds, view: settings }));
   gone.add('Builds');
@@ -251,8 +251,8 @@ test('Back passes over pages whose source went away, to Home when none is left',
   } finally { gone.clear(); }
 });
 
-// hub-intent.spec.ts 'temporary blur resumes the stage and focus while explicit close starts fresh'
-// hub-session.spec.ts 'a carried failure expires with the existing 90-second Hub resume window'
+// hub-intent.dom.test.ts 'temporary blur resumes the stage and focus while explicit close starts fresh'
+// hub-session.dom.test.ts 'a carried failure expires with the existing 90-second Hub resume window'
 test('a suspended page resumes inside the 90-second window, and later the Hub opens fresh at Home', () => {
   const page = opened(enter({ scope: travel, view: null }, 'lion'), { type: 'select', id: 'lions-arch' });
   const suspended = run([{ type: 'suspend', scroll: 12, focus: { zone: 'results', range: [4, 4] } }], page.state, 1_000);
@@ -277,10 +277,10 @@ test('a suspended page resumes inside the 90-second window, and later the Hub op
   assert.equal(hubSuspendedOn(suspended.state, 'travel', env(1_001 + HUB_RESUME_MS)), false);
 });
 
-// hub-session.spec.ts 'a late invite completion never closes or wipes the reopened Hub (PPL-16)'
-// hub-session.spec.ts 'delayed Launcher and website completions cannot close a newer Hub session (HUB-004)'
-// hub-session.spec.ts 'leaving the page of a running apply is never navigated back (BLD-06)'
-// hub-intent.spec.ts 'editing a phrase preserves pin order and a delayed save cannot navigate a later page'
+// hub-session.dom.test.ts 'a late invite completion never closes or wipes the reopened Hub'
+// hub-session.dom.test.ts 'a delayed %s completion cannot close a newer Hub session'
+// hub-session.dom.test.ts 'leaving the page of a running apply is never navigated back'
+// hub-intent.dom.test.ts 'editing a phrase preserves pin order and a delayed save cannot navigate a later page'
 test('a late outcome cannot close or navigate a newer session; it notifies instead', () => {
   const started = opened(enter({ scope: travel, view: null }));
   const session = started.state.session;
@@ -315,7 +315,7 @@ test('Command-J toggles Actions from anywhere in the Hub and owns its repeats', 
   assert.equal(reduce(state, press(key('j', { meta: true, shift: true }), hub())).claim, undefined);
 });
 
-// hub-session.spec.ts 'a long team apply names counted progress, and a repeated Enter never starts another (BLD-02)'
+// hub-session.dom.test.ts 'a long team apply names counted progress, and a repeated Enter never starts another'
 test('a repeated Enter names the running action; the action ends only its own run, and a new page frees Enter', () => {
   const enterKey = press(key('Enter'), search());
   const started = reduce(opened().state, { type: 'start', label: 'Applying GOM AFK…', again: 'GOM AFK is still applying.' });
@@ -330,7 +330,8 @@ test('a repeated Enter names the running action; the action ends only its own ru
   assert.equal(reduce(started.state, { type: 'end', session }).state.running, null);
 });
 
-// hub-keyboard-model.spec.ts 'a view's primary runs once per Enter' and HUB-083 for a view's footer action
+// (the Playwright test 'a view's primary runs once per Enter' was deleted; this test is its guard)
+// hub/hub-shell.dom.test.ts 'a view action still running after a blur and resume is named, never started again (HUB-083)' guards the view footer action
 test('a view action runs as the page\'s running action: Enter, ⌘↵ and the footer name it until it ends, across a blur', () => {
   const page = opened(enter({ scope: travel, view: settings })).state;
   const where = { zone: 'view', key: 'settings-save' } as const;
@@ -358,7 +359,7 @@ test('a view action runs as the page\'s running action: Enter, ⌘↵ and the fo
   assert.equal(hubRunning(reduce(started, enter({ scope: builds, view: null })).state), null);
 });
 
-// hub-session.spec.ts 'a carried failure expires with the existing 90-second Hub resume window'
+// hub-session.dom.test.ts 'a carried failure expires with the existing 90-second Hub resume window'
 test('a failure while the Hub is closed is named on the next opening, within the resume window only', () => {
   const closed = reduce(opened().state, { type: 'close' }).state;
   const carried = reduce(closed, { type: 'carry', message: 'Invite failed' }).state;
