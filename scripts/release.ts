@@ -479,7 +479,7 @@ export function facts(
 
   // The player post the app bundles as this version's "What's new".
   const launcherId = `gwonmac-${version.replaceAll(".", "-")}`;
-  const [post, ...others] = git("grep", "-l", "-e", `^launcherId: ${launcherId}$`, "HEAD", "--", "website/content")
+  const [post, ...others] = git("grep", "-l", "-e", `^launcherId: ${launcherId}$`, "HEAD", "--", "website/content/posts")
     .stdout.split("\n").filter(Boolean);
   const frontmatter = post && others.length === 0 ? read("show", post).split(/^---$/mu)[1]?.split("\n") ?? [] : [];
   if (!frontmatter.includes("draft: true") || !frontmatter.includes(`title: GWonMac ${version}`)) {
