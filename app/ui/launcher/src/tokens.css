@@ -50,13 +50,12 @@
   --scrim: rgba(0, 0, 0, .56);
   --shadow-pop: 0 18px 56px rgba(0, 0, 0, .5);
   --inset-highlight: inset 0 1px rgba(255, 255, 255, .7);
-  /* Roles only the Settings page draws, each too far from a token above to share it. */
+  /* Roles only the Settings page draws, with no token above for the same job. */
   --selection-text: #17120b;
   --nav-active-text: #f4d394;
   --search-ring: rgba(232, 183, 92, .22);
   --switch-track: rgba(255, 255, 255, .18);
   --switch-knob-shadow: 0 1px 2px rgba(0, 0, 0, .4);
-  --picked-fill: #25231d;
   --pack-accent: #d99b42;
   /* Shape and type scales. */
   --radius-sm: 8px;

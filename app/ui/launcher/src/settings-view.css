@@ -173,7 +173,7 @@
 .settings-view .texture-pack-note { max-width: 760px; padding: 0; color: var(--muted); font-size: 13px; }
 .settings-view .texture-pack-list { max-width: 760px; display: grid; gap: 0; margin: 18px 0 0; padding: 0; border: 0; }
 .settings-view .texture-pack-card { min-height: 64px; display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 14px; padding: 12px; border-bottom: 1px solid var(--line); cursor: default; }
-.settings-view .texture-pack-card.selected { background: var(--picked-fill); box-shadow: none; }
+.settings-view .texture-pack-card.selected { background: var(--surface-selected); box-shadow: none; }
 .settings-view .texture-pack-card.unavailable { opacity: .7; }
 .settings-view .texture-pack-card:focus-visible { outline: 2px solid var(--pack-accent); outline-offset: 2px; }
 .settings-view .texture-pack-card > label { min-width: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 14px; cursor: pointer; }

@@ -17,7 +17,7 @@
   --surface-solid: var(--ui-well);
   --surface-raised: var(--ui-panel-fill);
   --surface-hover: var(--ui-row-hover);
-  --picked-fill: var(--ui-selection-fill);
+  --surface-selected: var(--ui-selection-fill);
   --line: var(--ui-line-soft);
   --line-strong: var(--ui-edge);
   --switch-track: var(--ui-line);
