@@ -64,19 +64,23 @@ export type EnhancementProofContext = WasmEvidence;
 
 /** One validated parse of one exact client, shared by every context for those bytes. */
 interface ParsedClient {
+  readonly sha256: string;
   /** A private copy of the parsed bytes; nothing outside this module holds it. */
   readonly bytes: Uint8Array;
   readonly views: ReturnType<typeof moduleViews>;
   readonly tableRelations: ReadonlyMap<number, readonly number[]>;
 }
 
-const proofContexts = new WeakMap<Uint8Array, WasmEvidence>();
-// The bytes each context was parsed from. A context answers for an input
-// only while the input still holds exactly these bytes.
-const evidenceBytes = new WeakMap<WasmEvidence, Uint8Array>();
-// Parses by sha256, so equal bytes in another array share one parse and every
-// cache keyed by its module. Weak: an entry lives only while a context uses it.
-const parsedClients = new Map<string, WeakRef<ParsedClient>>();
+// The RECENT_CONTEXTS most recently used contexts, newest last. A context
+// holds its parse and every decode cached on it, and is found again by its
+// input or, for equal bytes in another array, by its digest. Older contexts
+// live only while a caller holds them, whether or not their input is alive.
+// Held strongly on purpose: a WeakRef keeps its target alive until the
+// current job ends, and one synchronous run over dozens of mutated clients
+// once kept every analysis that way and ran out of memory.
+const RECENT_CONTEXTS = 4;
+const recentContexts: WasmEvidence[] = [];
+const contextClients = new WeakMap<WasmEvidence, ParsedClient>();
 
 const I32 = 0x7f;
 
@@ -293,11 +297,13 @@ function parseModule(input: Uint8Array): ModuleShape {
 export function wasmEvidence(
   input: Uint8Array,
 ): WasmEvidence | null {
-  const cached = proofContexts.get(input);
-  if (matchesEvidenceInput(cached, input)) return cached;
+  const cached = [...recentContexts].reverse().find((context) => context.inputIdentity === input);
+  if (matchesEvidenceInput(cached, input)) return recentlyUsed(cached);
   if (input.byteLength > MAX_INPUT_BYTES) return null;
   const inputSha256 = createHash("sha256").update(input).digest("hex");
-  const client = parsedClients.get(inputSha256)?.deref() ?? parseClient(input.slice(), inputSha256);
+  const client = recentContexts.map((context) => contextClients.get(context))
+    .find((parsed) => parsed?.sha256 === inputSha256)
+    ?? parseClient(input.slice(), inputSha256);
   if (!client) return null;
   const module = client.views.module;
   const context: WasmEvidence = Object.freeze({
@@ -314,8 +320,15 @@ export function wasmEvidence(
       return decodeFunctions(module, trackedConstants);
     },
   });
-  evidenceBytes.set(context, client.bytes);
-  proofContexts.set(input, context);
+  contextClients.set(context, client);
+  return recentlyUsed(context);
+}
+
+function recentlyUsed(context: WasmEvidence): WasmEvidence {
+  const index = recentContexts.indexOf(context);
+  if (index >= 0) recentContexts.splice(index, 1);
+  recentContexts.push(context);
+  if (recentContexts.length > RECENT_CONTEXTS) recentContexts.shift();
   return context;
 }
 
@@ -328,18 +341,14 @@ function parseClient(bytes: Uint8Array, sha256: string): ParsedClient | null {
     return null;
   }
   let tableRelations: ReadonlyMap<number, readonly number[]> | undefined;
-  const client: ParsedClient = Object.freeze({
+  return Object.freeze({
+    sha256,
     bytes,
     views,
     get tableRelations() {
       return tableRelations ??= parseActiveTableRelations(views.module.elementSection);
     },
   });
-  for (const [digest, entry] of parsedClients) {
-    if (!entry.deref()) parsedClients.delete(digest);
-  }
-  parsedClients.set(sha256, new WeakRef(client));
-  return client;
 }
 
 export const enhancementProofContext = wasmEvidence;
@@ -348,7 +357,7 @@ export function matchesEvidenceInput(
   evidence: WasmEvidence | null | undefined,
   input: Uint8Array,
 ): evidence is WasmEvidence {
-  const bytes = evidence && evidenceBytes.get(evidence);
+  const bytes = evidence && contextClients.get(evidence)?.bytes;
   return evidence?.inputIdentity === input && !!bytes && Buffer.compare(bytes, input) === 0;
 }
 

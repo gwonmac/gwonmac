@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
+import { setFlagsFromString } from "node:v8";
+import { runInNewContext } from "node:vm";
 import { describe, it } from "node:test";
 import {
   inspectEnhancementStructuralEvidence as inspectStructuralEvidence,
@@ -705,5 +707,32 @@ describe("review-only Enhancement structural evidence", () => {
 
     assert.notEqual(functionBodySha256(changed, functionIndex), expectedHash);
     assert.equal(functionBodySha256(evidence.moduleView(), functionIndex), expectedHash);
+  });
+
+  // A caller holding many clients in one synchronous run (a test of
+  // mutations, a replay over every retained client) must not keep every
+  // client's parse and decode alive: at about 250 MB per real client that
+  // once exhausted an 8 GB heap.
+  it("lets an older client's analysis go during one run while its input is still held", async () => {
+    setFlagsFromString("--expose-gc");
+    const collect: unknown = runInNewContext("gc");
+    assert.ok(typeof collect === "function");
+    const released: number[] = [];
+    const registry = new FinalizationRegistry<number>((index) => released.push(index));
+    const inputs = Array.from({ length: 8 }, (_, index) =>
+      concat(fixture().bytes, encodeSection({ id: 0, body: concat(uleb(1), Uint8Array.of(0x61 + index)) })));
+    inputs.forEach((input, index) => {
+      const evidence = wasmEvidence(input);
+      assert.ok(evidence);
+      evidence.decodeFunctions([PLAYER_CHAT]);
+      registry.register(evidence, index);
+    });
+    collect();
+    for (let turn = 0; turn < 3 && released.length === 0; turn += 1) {
+      await new Promise((resolve) => setImmediate(resolve));
+    }
+    assert.ok(released.includes(0), `released ${released.join(",") || "nothing"}`);
+    assert.ok(!released.includes(7));
+    assert.equal(inputs.length, 8);
   });
 });
