@@ -25,6 +25,7 @@
  * finding.
  */
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { mkdir, readFile, open } from "node:fs/promises";
 import path from "node:path";
 import { writeAtomic } from "../main/core/atomic-file.js";
@@ -67,16 +68,7 @@ import { enhancementProofContext } from "../client/certification/wasm-evidence.j
 
 import { inspectWasmBytes } from "./wasm-inspection.js";
 import { formatReviewPacket, reviewClient, type ReviewPacket } from "./fact-review.js";
-import {
-  generationFile,
-  isDraftedAlternatives,
-  isDraftedEffectBodies,
-  newGenerationSource,
-  registerGeneration,
-  REVIEWED_FACTS_FILE,
-  withDraftedAlternatives,
-  withDraftedEffectBodies,
-} from "./generation-file.js";
+import { reviewDraftWrites, type SourceWrite } from "./generation-file.js";
 import { REVIEWED_GENERATIONS } from "../client/certification/reviewed-facts.js";
 
 const USAGE =
@@ -445,39 +437,24 @@ function draftFeatures(packet: ReviewPacket): Record<string, string[]> {
 async function review(argv: readonly string[]): Promise<void> {
   const apply = argumentValue(argv, "--apply");
   if (apply !== null) {
-    const draft: unknown = JSON.parse(await readFile(path.join(apply, "draft.json"), "utf8"));
-    if (!draft || typeof draft !== "object" || !("id" in draft) || typeof draft.id !== "string"
-      || !("alternatives" in draft) || !isDraftedAlternatives(draft.alternatives)
-      || !("playerEffectBodies" in draft)
-      || (draft.playerEffectBodies !== null && !isDraftedEffectBodies(draft.playerEffectBodies))) {
-      process.stderr.write(`certification review: ${apply}/draft.json is not a review draft\n`);
+    let writes: SourceWrite[];
+    try {
+      const draft: unknown = JSON.parse(await readFile(path.join(apply, "draft.json"), "utf8"));
+      writes = reviewDraftWrites(draft, REVIEWED_GENERATIONS, (file) => {
+        try {
+          return readFileSync(file, "utf8");
+        } catch {
+          return null;
+        }
+      });
+    } catch (error) {
+      process.stderr.write(`certification ${error instanceof Error ? error.message : String(error)}\n`);
       process.exitCode = 2;
       return;
     }
-    const file = path.resolve(generationFile(draft.id));
-    const features = "features" in draft && draft.features && typeof draft.features === "object"
-      ? [...new Set(Object.values(draft.features).flat().filter((feature) => typeof feature === "string"))].sort()
-      : [];
-    const note = `Review ${draft.id}${features.length > 0 ? ` (${features.join(", ")})` : ""}: the same function in the same role.`;
-    let source: string | null;
-    try {
-      source = await readFile(file, "utf8");
-    } catch {
-      source = null;
-    }
-    const effectBodies = draft.playerEffectBodies;
-    if (source === null) {
-      await writeAtomic(file, newGenerationSource(draft.id, draft.alternatives, note, effectBodies));
-      const facts = path.resolve(REVIEWED_FACTS_FILE);
-      await writeAtomic(facts, registerGeneration(await readFile(facts, "utf8"), draft.id));
-    } else {
-      let edited = source;
-      if (Object.keys(draft.alternatives).length > 0) edited = withDraftedAlternatives(edited, draft.alternatives, note);
-      if (effectBodies) edited = withDraftedEffectBodies(edited, effectBodies, note);
-      await writeAtomic(file, edited);
-    }
-    process.stderr.write(`certification review: wrote ${Object.keys(draft.alternatives).length} alternatives${
-      effectBodies ? " and playerEffectBodies" : ""} to ${generationFile(draft.id)}; run the replay and \`pnpm check\` before committing\n`);
+    for (const write of writes) await writeAtomic(write.file, write.source);
+    process.stderr.write(`certification review: wrote ${writes.map((write) =>
+      path.relative(process.cwd(), write.file)).join(" and ")}; run the replay and \`pnpm check\` before committing\n`);
     return;
   }
   const [bundle, ...extra] = argv.filter((argument, index) =>

@@ -53,6 +53,8 @@ import {
 /** Template saving is reviewed like a feature: every feature runs on its output. */
 export const TEMPLATE_SAVING = "templateSaving";
 export type ReviewedFeature = EnhancementCapability | typeof TEMPLATE_SAVING;
+/** Every feature a review packet judges, in packet order. */
+export const REVIEWED_FEATURES: readonly ReviewedFeature[] = Object.freeze([TEMPLATE_SAVING, ...ENHANCEMENT_CAPABILITY_FIELDS]);
 
 export type FunctionListing = Readonly<{
   functionIndex: number;
@@ -320,7 +322,7 @@ export function reviewClient(input: Readonly<{
   const { candidate, previous, generations } = input;
   const candidateResult = verifyLocalClientBytes(candidate, ALL, generations);
   const previousResult = verifyLocalClientBytes(previous, ALL, generations);
-  const refused = ([TEMPLATE_SAVING, ...ENHANCEMENT_CAPABILITY_FIELDS] as const).filter((feature) =>
+  const refused = REVIEWED_FEATURES.filter((feature) =>
     featureProves(previousResult, feature) && !featureProves(candidateResult, feature));
   const previousModule = wasmEvidence(previous)?.moduleView();
   const candidateModule = wasmEvidence(candidate)?.moduleView();
