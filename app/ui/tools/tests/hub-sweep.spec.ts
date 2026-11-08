@@ -1,8 +1,9 @@
 import { expect, test } from '@playwright/test';
+import { openHub } from './hub-page.js';
 
 test('reduced motion keeps every Hub transition and running progress static (VIS-33)', async ({page}) => {
   await page.emulateMedia({reducedMotion: 'reduce'});
-  await page.goto('/?hub&slow-apply'); await expect(page.locator('#app')).toHaveAttribute('data-ready','true');
+  await openHub(page, '&slow-apply');
   const assertStatic = async () => {
     expect(await page.evaluate(() => document.getAnimations().length)).toBe(0);
     expect(await page.locator('#hub, #hub *').evaluateAll(els => els.every(el => getComputedStyle(el).transitionDuration.split(',').every(value => parseFloat(value) === 0)))).toBe(true);

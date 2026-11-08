@@ -127,7 +127,8 @@ export async function loadFixture() {
 }
 
 /**
- * Mounts a fresh Hub fixture for `?hub<query>` and waits until it is ready, as the specs' `goto`.
+ * Mounts a fresh Hub fixture for `?hub<query>` and waits until it is ready, as the specs'
+ * `openHub` (tests/hub-page.ts): both read the fixture's own `#app[data-ready]` mark.
  * `stored` is what the page finds in localStorage when it loads (a spec's `addInitScript`).
  */
 export async function mountFixture(query = '', stored: Readonly<Record<string, string>> = {}) {

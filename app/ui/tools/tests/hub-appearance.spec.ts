@@ -2,6 +2,7 @@ import { test, expect, type Locator, type Page } from '@playwright/test';
 import { PNG } from 'pngjs';
 import type { CustomUiTheme } from '../../../shared/ui-theme';
 import type { HubFixtureWindow } from './fixture-window.js';
+import { openHub } from './hub-page.js';
 // The workbench page this spec drives sets the fixture hooks; they are required here.
 declare const window: HubFixtureWindow;
 
@@ -13,7 +14,7 @@ for (const ratio of [1, 2]) {
       // modes explicitly instead of inheriting the machine's accessibility setting.
       const media = await page.context().newCDPSession(page);
       await media.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-transparency', value: 'no-preference' }] });
-      await page.goto('/?hub');
+      await openHub(page);
       const frame = page.locator('#hub .ui-frame-artwork');
       await expect(page.locator('.hub-panel')).toHaveClass(/ui-art-frame/);
       await expect.poll(() => frame.evaluate(element => element instanceof HTMLCanvasElement ? element.width : 0)).toBe(780 * ratio);
@@ -60,7 +61,7 @@ for (const ratio of [1, 2]) {
 
 
 test('saved font and custom title material apply to the real Hub and keep its scroll and caret', async ({ page }, info) => {
-  await page.goto('/?hub');
+  await openHub(page);
   const search = page.locator('.hub-search input');
   await search.fill('k');
   for (let i = 0; i < 5; i++) await search.press('ArrowDown');
@@ -93,7 +94,7 @@ test('saved font and custom title material apply to the real Hub and keep its sc
 test('compact Hub keeps navigation reachable with reduced motion over a bright backdrop', async ({ page }, info) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.setViewportSize({ width: 390, height: 800 });
-  await page.goto('/?hub');
+  await openHub(page);
   await page.addStyleTag({ content: 'body { background: repeating-conic-gradient(#fff 0% 25%, #ddd 0% 50%) 0 / 32px 32px !important; }' });
   await page.evaluate(() => window.gwApplyFixtureAppearance({ uiStyle: 'guild-wars', uiPanelOpacity: 65 }));
   const search = page.locator('.hub-search input');
@@ -126,8 +127,7 @@ test('compact Hub keeps navigation reachable with reduced motion over a bright b
 });
 
 test('Modern hover stays clearly weaker than the selection it is not', async ({ page }, info) => {
-  await page.goto('/?hub');
-  await expect(page.locator('#app')).toHaveAttribute('data-ready', 'true');
+  await openHub(page);
   await page.evaluate(() => window.gwApplyFixtureAppearance({ uiStyle: 'obsidian', uiPanelOpacity: 100 }));
   const rows = page.locator('#hub .hub-row');
   // The pointer rests on row 2 while the keyboard selects row 1: row 2 shows hover, not selection.
@@ -222,7 +222,7 @@ for (const [name, appearance, scene] of [
     const media = await page.context().newCDPSession(page);
     await media.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-transparency', value: 'no-preference' }] });
     await page.setViewportSize({ width: 1280, height: 800 });
-    await page.goto('/?hub');
+    await openHub(page);
     await page.addStyleTag({ content: scene });
     const search = page.locator('.hub-search input');
     await expect(search).toBeFocused();
@@ -258,7 +258,7 @@ test('Reduce Transparency makes the Hub opaque without hiding the game or re-ink
   const media = await page.context().newCDPSession(page);
   const reduce = (value: 'reduce' | 'no-preference') => media.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-transparency', value }] });
   await reduce('no-preference');
-  await page.goto('/?hub');
+  await openHub(page);
   await page.addStyleTag({ content: CHECKERBOARD });
   await expect(page.locator('.hub-search input')).toBeFocused();
   const look = async () => {
@@ -297,7 +297,7 @@ const PANEL_FONTS = ['guild-wars', 'inter', 'system', 'georgia', 'avenir', 'pala
 for (const [name, viewport, hub] of [['a narrow window', { width: 390, height: 800 }, null], ['the smallest Hub', { width: 1280, height: 800 }, { width: 340, height: 380 }]] as const) {
   test(`the footer stays one line while arrowing in ${name}`, async ({ page }) => {
     await page.setViewportSize(viewport);
-    await page.goto('/?hub');
+    await openHub(page);
     const search = page.locator('.hub-search input');
     await expect(search).toBeFocused();
     if (hub) await page.locator('.hub-panel').evaluate((panel, size) => { panel.style.width = `${size.width}px`; panel.style.height = `${size.height}px`; }, hub);
@@ -320,7 +320,7 @@ for (const [name, viewport, hub] of [['a narrow window', { width: 390, height: 8
 
 test('every Settings section fits one line in all six panel fonts (HUB-253)', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
-  await page.goto('/?hub');
+  await openHub(page);
   const search = page.locator('.hub-search input');
   for (const uiStyle of ['guild-wars', 'obsidian'] as const) for (const uiPanelOpacity of [94, 65]) for (const uiFont of PANEL_FONTS) {
     await page.keyboard.press('Meta+r');
@@ -384,7 +384,7 @@ test.describe('custom theme with the Modern flat finish', () => {
   test.use({ viewport: { width: 1280, height: 720 } });
 
   test('Hub rows stay visible for every border and opacity', async ({ page }, info) => {
-    await page.goto('/?hub');
+    await openHub(page);
     const search = page.locator('.hub-search input');
     await search.fill('kam');
     const panel = page.locator('.hub-panel');
@@ -402,7 +402,7 @@ test.describe('custom theme with the Modern flat finish', () => {
   });
 
   test('Trade and the Build Library window render their lists', async ({ page }, info) => {
-    await page.goto('/?hub');
+    await openHub(page);
     await expect(page.locator('.hub-search input')).toBeFocused();
     await page.evaluate(theme => window.gwApplyFixtureAppearance({ uiStyle: 'custom', uiPanelOpacity: 94, uiCustomTheme: theme }), customModern('#D8D2BF'));
     await page.keyboard.press('Meta+k');
@@ -432,7 +432,7 @@ test.describe('custom theme with the Modern flat finish', () => {
   });
 
   test('choosing the saved theme in Hub Settings keeps focus on the select and paints the rows', async ({ page }, info) => {
-    await page.goto('/?hub');
+    await openHub(page);
     const search = page.locator('.hub-search input');
     await expect(search).toBeFocused();
     await page.evaluate(theme => window.dispatchEvent(new CustomEvent('hub-fixture-settings', { detail: { uiStyle: 'guild-wars', uiCustomTheme: theme } })), customModern('#D8D2BF'));

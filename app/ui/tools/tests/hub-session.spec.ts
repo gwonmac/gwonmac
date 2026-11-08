@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { timeBudget } from './performance-budget.js';
 import type { HubFixtureWindow } from './fixture-window.js';
+import { openHub } from './hub-page.js';
 // The workbench page this spec drives sets the fixture hooks; they are required here.
 declare const window: HubFixtureWindow;
 
@@ -19,8 +20,7 @@ const status = (page: Page) => page.locator('.hub-status');
 const primary = (page: Page) => page.locator('.hub-primary');
 
 async function open(page: Page, query: string) {
-  await page.goto(`/?hub${query}`);
-  await expect(page.locator('#app')).toHaveAttribute('data-ready', 'true');
+  await openHub(page, query);
   await page.evaluate(() => { localStorage.removeItem('hub-fixture-library'); window.gwFixtureCanvas.clear(); });
 }
 async function enter(page: Page, query: string) { await search(page).fill(query); await search(page).press('Enter'); }

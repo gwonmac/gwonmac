@@ -373,7 +373,8 @@ When the recovery changed only facts (the generation file, its entry in
 `reviewed-facts.ts`, the detector record, tests, and docs), ship it with a
 [fact-only release](releasing.md#fact-only-release): `pnpm release:facts`
 checks that scope, opens the certification pull request, and starts the
-regression run and the release run. Anything else, such as a new Cartography
+regression run and the release run, whose draft waits until the regression
+run passed. Anything else, such as a new Cartography
 layout or a proof change, goes through `main` and a normal release.
 
 ## Feature requirements during recovery

@@ -54,8 +54,8 @@ the only human step before the `release` approval.
 | --- | --- | --- |
 | 1 | agent or maintainer | `git switch -c hotfix/1.4.1 v1.4.0`. Commit the facts, their tests, the release post for `1.4.1` with `draft: true`, and the player files `v1.4.0` writes (step 8 above) if `main` has them and the tag does not. |
 | 2 | agent or maintainer | `pnpm release:facts 1.4.1 --dry-run`, then `pnpm release:facts 1.4.1`. |
-| 3 | machines | Client watch runs the release battery and the real-client regression suite on the branch (`regression`). The release workflow runs `qualify` and waits at the `release` approval. |
-| 4 | maintainer | Review the facts in the pull request. Approve the `release` environment when the regression run passed. |
+| 3 | machines | Client watch runs the release battery and the real-client regression suite on the branch (`regression`). The release workflow runs `qualify`, waits at the `release` approval, and its `regression` job waits for that client watch run. |
+| 4 | maintainer | Review the facts in the pull request and approve the `release` environment. The draft waits for a passed regression run; a failed one turns the `regression` job red and no draft is created. |
 | 5 | maintainer | Steps 5 to 8 above. Then merge the pull request, so `main` keeps the facts. |
 
 `pnpm release:facts` (`scripts/release.ts facts`) refuses unless:
@@ -82,6 +82,20 @@ release workflow on it, and opens the pull request with a review checklist.
 `--dry-run` runs every check and prints those commands instead. It never
 tags or publishes: the draft job tags after the approval. A recovery that also
 needs code, such as a new Cartography layout, is a normal release.
+
+On every `hotfix/*` branch, the release workflow's `draft` job needs its
+`regression` job (`scripts/release.ts regression`), which refuses unless:
+
+- the newest client watch run dispatched with `regression` (its title is
+  "Real-client regression") ran on this branch at exactly this commit;
+- that run concluded `success`. A run that is still going is waited for once,
+  for at most 120 minutes; after that the job fails. Once the release run has
+  finished, **Re-run failed jobs** checks again and drafts without a new build.
+
+A release from `main` skips this gate and keeps the procedure above: its code
+arrives through reviewed pull requests and CI, and `qualify` proves the shipped
+chain on today's client. A code fix on `hotfix/*` needs the same regression run:
+start it with `gh workflow run client-watch.yml --ref hotfix/<version> -f regression=true`.
 
 ## Testers and rollback
 

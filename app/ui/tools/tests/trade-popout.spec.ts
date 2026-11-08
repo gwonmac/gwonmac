@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import type { HubFixtureWindow } from './fixture-window.js';
+import { openHub } from './hub-page.js';
 // The workbench page this spec drives sets the fixture hooks; they are required here.
 declare const window: HubFixtureWindow;
 
@@ -16,8 +17,7 @@ const offer = (trade: Locator, sender: string) => trade.getByRole('option', { na
 
 /** Trade opened with ⌘K from the game, its search holding the keyboard. */
 async function openTrade(page: Page, offers?: number) {
-  await page.goto(offers ? `/?hub&trade-offers=${offers}` : '/?hub');
-  await expect(page.locator('#app')).toHaveAttribute('data-ready', 'true');
+  await openHub(page, offers ? `&trade-offers=${offers}` : '');
   await page.keyboard.press('Escape');
   await page.keyboard.press('Meta+k');
   const trade = tradeWindow(page);
@@ -29,8 +29,7 @@ async function openTrade(page: Page, offers?: number) {
 
 /** Trade opened from the Hub with `trade <query>`, as a player types it. */
 async function searchFromHub(page: Page, query: string) {
-  await page.goto('/?hub');
-  await expect(page.locator('#app')).toHaveAttribute('data-ready', 'true');
+  await openHub(page);
   await hubSearch(page).fill(`trade ${query}`);
   await hubSearch(page).press('Enter');
   const trade = tradeWindow(page);
@@ -540,8 +539,7 @@ test('Tab into Trade from nowhere lands in its search (HUB-225)', async ({ page 
   await expect(tradeSearch(trade)).toBeFocused();
   // The production bundle mounts late. Only the still-current shortcut may take focus.
   for (const destination of ['trade', 'game', 'hub'] as const) {
-    await page.goto('/?hub&trade-load-ms=1000');
-    await expect(page.locator('#app')).toHaveAttribute('data-ready', 'true');
+    await openHub(page, '&trade-load-ms=1000');
     await page.keyboard.press('Escape');
     await page.keyboard.press('Meta+k');
     if (destination === 'game') await page.keyboard.press('w');
@@ -554,8 +552,7 @@ test('Tab into Trade from nowhere lands in its search (HUB-225)', async ({ page 
 });
 
 test('the popout the player used last is on top, Trade or Whispers (HUB-108)', async ({ page }) => {
-  await page.goto('/?hub');
-  await expect(page.locator('#app')).toHaveAttribute('data-ready', 'true');
+  await openHub(page);
   await page.keyboard.press('Escape');
   await page.keyboard.press('Meta+d');
   const whispers = page.locator('#whisper-window');
@@ -579,8 +576,7 @@ test('the popout the player used last is on top, Trade or Whispers (HUB-108)', a
 
 test('Whispers opens beside an open Trade until the player places it (HUB-108)', async ({ page }) => {
   await page.setViewportSize({ width: 1600, height: 900 });
-  await page.goto('/?hub');
-  await expect(page.locator('#app')).toHaveAttribute('data-ready', 'true');
+  await openHub(page);
   await page.keyboard.press('Escape');
   await page.keyboard.press('Meta+k');
   await expect(tradeWindow(page)).toBeVisible();

@@ -12,6 +12,8 @@ import {
   facts,
   groupReleaseNotes,
   prepare,
+  REGRESSION_RUN_TITLE,
+  regressionGate,
   releaseAssets,
   releaseOf,
   releaseOfTag,
@@ -53,6 +55,35 @@ function github(state: GitHub = {}) {
         return OK("## What's Changed\n* fix: one by @a\n");
       }
       return OK();
+    },
+  };
+  return { calls, dependencies };
+}
+
+const HOTFIX = "refs/heads/hotfix/1.0.1";
+const RUN_URL = `https://github.com/${REPOSITORY}/actions/runs/7`;
+
+/** One run as `gh run list --json` prints it: a passed regression run on HOTFIX at SHA unless overridden. */
+function clientWatchRun(fields: Readonly<Record<string, string | number>> = {}) {
+  return {
+    databaseId: 7, url: RUN_URL, headSha: SHA, headBranch: "hotfix/1.0.1",
+    displayTitle: REGRESSION_RUN_TITLE, status: "completed", conclusion: "success", ...fields,
+  };
+}
+
+/** GitHub answering each `gh run list` with the next listing (the last one repeats). */
+function clientWatch(listings: readonly (readonly object[])[], watch: CommandResult = OK()) {
+  const calls: { readonly call: readonly string[]; readonly timeoutMs: number | undefined }[] = [];
+  const dependencies: ReleaseDependencies = {
+    repository: REPOSITORY,
+    sha: SHA,
+    run(command, args, _cwd, timeoutMs) {
+      calls.push({ call: [command, ...args], timeoutMs });
+      if (args[0] === "run" && args[1] === "list") {
+        return OK(JSON.stringify(listings[Math.min(calls.filter(({ call }) => call[2] === "list").length, listings.length) - 1]));
+      }
+      if (args[0] === "run" && args[1] === "watch") return watch;
+      throw new Error(`unexpected ${command} ${args.join(" ")}`);
     },
   };
   return { calls, dependencies };
@@ -149,6 +180,36 @@ describe("release workflow", () => {
     } finally {
       assets.close();
     }
+  });
+
+  it("a hotfix release gets a draft only after the regression run passed on its exact commit", () => {
+    const unfinished = clientWatchRun({ status: "in_progress", conclusion: "" });
+    const timedOut: CommandResult = { status: null, stdout: "", stderr: "" };
+    const refusals: [string, readonly (readonly object[])[], CommandResult, RegExp][] = [
+      ["no run", [[]], OK(), /No real-client regression run on hotfix\/1\.0\.1/u],
+      ["a run on another commit", [[clientWatchRun({ headSha: "b".repeat(40) })]], OK(), /No real-client regression run/u],
+      ["a run on another branch", [[clientWatchRun({ headBranch: "main" })]], OK(), /No real-client regression run/u],
+      ["a run without the regression input", [[clientWatchRun({ displayTitle: "ArenaNet client watch" })]], OK(),
+        /No real-client regression run/u],
+      ["a failed run", [[clientWatchRun({ conclusion: "failure" })]], OK(), /concluded failure: a{40} gets no draft/u],
+      ["a failed run newer than a passed one", [[clientWatchRun({ databaseId: 8, conclusion: "failure" }), clientWatchRun()]],
+        OK(), /concluded failure/u],
+      ["a run still in progress when the wait ends", [[unfinished]], timedOut, /did not finish within 120 minutes/u],
+    ];
+    for (const [label, listings, watch, refusal] of refusals) {
+      assert.throws(() => regressionGate(HOTFIX, clientWatch(listings, watch).dependencies), refusal, label);
+    }
+
+    // An unfinished run is waited for once, bounded, then read again.
+    const waiting = clientWatch([[unfinished], [clientWatchRun()]]);
+    assert.equal(regressionGate(HOTFIX, waiting.dependencies), RUN_URL);
+    assert.deepEqual(waiting.calls.map(({ call, timeoutMs }) => [call[2], timeoutMs]), [
+      ["list", undefined], ["watch", 120 * 60_000], ["list", undefined],
+    ]);
+    // A release from main keeps its procedure: no gate, no GitHub call.
+    const main = clientWatch([[]]);
+    assert.equal(regressionGate(MAIN, main.dependencies), null);
+    assert.deepEqual(main.calls, []);
   });
 
   it("groups generated notes by Conventional Commit type and keeps the rest", () => {
@@ -275,7 +336,7 @@ describe("release workflow", () => {
       assert.deepEqual(live.writes[2]!.slice(-4), ["--ref", "hotfix/1.0.1", "-f", "version=1.0.1"]);
       const body = live.writes[3]!.at(-1)!;
       assert.match(body, /regression on this branch: https:\/\/github\.com\/gwonmac\/gwonmac\/actions\/runs\/client-watch\.yml/u);
-      assert.match(body, /environment in https:\/\/github\.com\/gwonmac\/gwonmac\/actions\/runs\/release\.yml/u);
+      assert.match(body, /environment in https:\/\/github\.com\/gwonmac\/gwonmac\/actions\/runs\/release\.yml\. Its draft job waits/u);
       assert.deepEqual(release.actions.map((action) => action.slice(0, 3)), planned.actions.map((action) => action.slice(0, 3)));
     } finally {
       repository.close();

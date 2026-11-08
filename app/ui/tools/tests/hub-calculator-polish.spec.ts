@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { timeBudget } from './performance-budget.js';
+import { openHub, reloadHub } from './hub-page.js';
 
 test.use({ locale: 'en-US', timezoneId: 'UTC' });
 test.beforeEach(async ({ page }) => {
@@ -7,7 +8,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('the price-basis picker keeps keyboard focus through changes and Enter', async ({ page }) => {
-  await page.goto('/?hub');
+  await openHub(page);
   await page.locator('.hub-search input').fill('1zkey in a');
   const picker=page.getByRole('combobox',{name:'Price basis'});
   await picker.focus();
@@ -20,7 +21,7 @@ test('the price-basis picker keeps keyboard focus through changes and Enter', as
 });
 
 test('the rates a player saves survive a reload', async ({ page }) => {
-  await page.goto('/?hub&settings-ms=1000');
+  await openHub(page, '&settings-ms=1000');
   const search=page.locator('.hub-search input');
   await search.fill('rates'); await search.press('Enter');
   await page.getByRole('combobox',{name:'Rate source'}).selectOption('manual');
@@ -29,18 +30,18 @@ test('the rates a player saves survive a reload', async ({ page }) => {
   const key=page.getByRole('textbox',{name:'Ectoplasm per Zaishen key'});await key.fill('.5');
   await key.press('Meta+Enter');
   await expect(page.locator('.hub-view [role=status]')).toHaveText('Your rates saved. Go back to your conversion.');
-  await page.reload();await search.fill('10e in p');await expect(page.locator('.hub-conversion')).toContainText('50 platinum');
+  await reloadHub(page);await search.fill('10e in p');await expect(page.locator('.hub-conversion')).toContainText('50 platinum');
 });
 
 test('a missing quote wraps its detail', async ({ page }) => {
-  await page.goto('/?hub');
+  await openHub(page);
   const search=page.locator('.hub-search input');await search.fill('1 iron in g');
   const row=page.locator('.hub-row[aria-selected=true]');await expect(row).toContainText('Iron Ingot');
   await expect(row.locator('.hub-detail')).toHaveCSS('white-space','normal');
 });
 
 test('a per-item question stays legible at narrow widths', async ({ page }) => {
-  await page.setViewportSize({width:500,height:650});await page.goto('/?hub');
+  await page.setViewportSize({width:500,height:650});await openHub(page);
   const search=page.locator('.hub-search input');await search.fill('14a per stack in e each');
   await expect(page.locator('.hub-conversion-input')).toHaveCSS('white-space','normal');
   const originalFont = await page.locator('.hub-conversion-input').evaluate(node => parseFloat(getComputedStyle(node).fontSize));
@@ -60,7 +61,7 @@ test('a per-item question stays legible at narrow widths', async ({ page }) => {
 });
 
 test('a quote and Enter copy within the time budget, reading quotes once (HUB-104, HUB-098)', { tag: '@macos' }, async ({ page }) => {
-  await page.goto('/?hub');
+  await openHub(page);
   const search = page.locator('.hub-search input');
   await expect(search).toBeVisible();
   await page.evaluate(() => {

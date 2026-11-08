@@ -14,8 +14,11 @@
 //                                 the version never shipped
 //   assets <version> <make> <out> in the signed build: the canonical asset
 //                                 names and RELEASES.json
-//   draft <version> <assets>      after qualify and build: tag the commit and
-//                                 create the draft on exactly that commit
+//   regression                    beside qualify and build: on hotfix/*, the
+//                                 real-client regression run on this exact
+//                                 commit passed (one bounded wait)
+//   draft <version> <assets>      after qualify, build and regression: tag the
+//                                 commit and create the draft on exactly it
 //
 // `pnpm release:test` (scripts/test-draft-release.ts) is the consumer of the
 // draft made here and reads the same version rule and asset list. Every GitHub
@@ -148,7 +151,8 @@ export interface ReleaseDependencies {
   readonly repository: string;
   /** GITHUB_SHA: the commit the workflow was dispatched on. */
   readonly sha: string;
-  run(command: string, args: readonly string[], cwd?: string): CommandResult;
+  /** A command that outlives `timeoutMs` is stopped and returns status null. */
+  run(command: string, args: readonly string[], cwd?: string, timeoutMs?: number): CommandResult;
 }
 
 function exactCommit(sha: string): string {
@@ -256,6 +260,79 @@ export function draft(version: string, assets: string, dependencies: ReleaseDepe
     rmSync(notesDirectory, { recursive: true });
   }
   return release;
+}
+
+/**
+ * The title client-watch.yml's `run-name` gives a run dispatched with
+ * `regression`. GitHub's run API does not show dispatch inputs, so the title is
+ * how the gate tells a regression run from a scheduled or plain one.
+ */
+export const REGRESSION_RUN_TITLE = "Real-client regression";
+/** The one bounded wait for an unfinished regression run; release.yml's job timeout sits above it. */
+export const REGRESSION_WAIT_MINUTES = 120;
+
+interface RegressionRun {
+  readonly id: number;
+  readonly url: string;
+  readonly status: string;
+  readonly conclusion: string;
+}
+
+/** Client watch's regression runs on exactly `branch` at `sha`, newest first. */
+function regressionRuns(dependencies: ReleaseDependencies, branch: string, sha: string): RegressionRun[] {
+  const listed: unknown = JSON.parse(succeed(dependencies, "gh", [
+    "run", "list", "--repo", dependencies.repository, "--workflow", "client-watch.yml",
+    "--commit", sha, "--event", "workflow_dispatch", "--limit", "20",
+    "--json", "databaseId,url,headSha,headBranch,displayTitle,status,conclusion",
+  ]));
+  if (!Array.isArray(listed)) throw new Error("gh run list did not return a list of runs.");
+  return listed.flatMap((run: unknown) => typeof run === "object" && run !== null
+    && "headSha" in run && run.headSha === sha && "headBranch" in run && run.headBranch === branch
+    && "displayTitle" in run && run.displayTitle === REGRESSION_RUN_TITLE
+    && "databaseId" in run && typeof run.databaseId === "number" && "url" in run && typeof run.url === "string"
+    && "status" in run && typeof run.status === "string" && "conclusion" in run && typeof run.conclusion === "string"
+    ? [{ id: run.databaseId, url: run.url, status: run.status, conclusion: run.conclusion }]
+    : []);
+}
+
+/**
+ * A hotfix/* release, the branch every fact-only release ships from, gets no
+ * draft until client watch's real-client regression passed on this exact
+ * commit; the draft job needs this one. The workflow cannot tell a fact patch
+ * from a code hotfix, so the branch decides. A release from main is not gated
+ * (returns null): its code arrives through reviewed PRs and CI, and `qualify`
+ * proves the shipped chain on today's client. Returns the run's URL.
+ */
+export function regressionGate(
+  ref: string,
+  dependencies: ReleaseDependencies,
+  waitMinutes = REGRESSION_WAIT_MINUTES,
+): string | null {
+  if (!ref.startsWith("refs/heads/hotfix/")) return null;
+  const sha = exactCommit(dependencies.sha);
+  const branch = ref.slice("refs/heads/".length);
+  const start = `gh workflow run client-watch.yml --ref ${branch} -f regression=true`;
+  let [run] = regressionRuns(dependencies, branch, sha);
+  if (!run) {
+    throw new Error(`No real-client regression run on ${branch} at ${sha}. Start one with \`${start}\`, then re-run this job.`);
+  }
+  if (run.status !== "completed") {
+    // The one bounded wait. Its exit status is no verdict: the run is read again.
+    const waited = dependencies.run("gh", [
+      "run", "watch", String(run.id), "--repo", dependencies.repository, "--compact", "--interval", "60",
+    ], undefined, waitMinutes * 60_000);
+    const id = run.id;
+    run = regressionRuns(dependencies, branch, sha).find((again) => again.id === id) ?? run;
+    if (run.status !== "completed") {
+      throw new Error(
+        `Regression run ${run.url} did not finish within ${waitMinutes} minutes. Re-run this job once it has finished.\n${waited.stderr}`,
+      );
+    }
+  }
+  if (run.conclusion !== "success") {
+    throw new Error(`Regression run ${run.url} concluded ${run.conclusion || "without a result"}: ${sha} gets no draft.`);
+  }
+  return run.url;
 }
 
 /**
@@ -445,7 +522,7 @@ export function facts(
     ...changed.map((file) => `- \`${file}\``),
     "",
     `- [ ] Review the facts. Real-client regression on this branch: ${regression}`,
-    `- [ ] Approve the \`release\` environment in ${releaseRun} once both are good.`,
+    `- [ ] Approve the \`release\` environment in ${releaseRun}. Its draft job waits until that regression run passed.`,
     `- [ ] \`pnpm release:test ${release.tag}\`, publish the draft, then steps 7 and 8 of docs/releasing.md.`,
   ].join("\n");
   const pullRequest: readonly [string, ...string[]] = [
@@ -468,9 +545,10 @@ function required(name: string): string {
   return value;
 }
 
-function runCommand(command: string, args: readonly string[], cwd?: string): CommandResult {
-  const result = spawnSync(command, args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
-  if (result.error) throw result.error;
+function runCommand(command: string, args: readonly string[], cwd?: string, timeoutMs?: number): CommandResult {
+  const result = spawnSync(command, args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: timeoutMs });
+  // A timeout is a result (status null) the caller judges, not a crash.
+  if (result.error && !("code" in result.error && result.error.code === "ETIMEDOUT")) throw result.error;
   return { status: result.status, stdout: result.stdout, stderr: result.stderr };
 }
 
@@ -487,6 +565,9 @@ function main(): void {
     const publishedAt = spawnSync("git", ["show", "-s", "--format=%cI", "HEAD"], { encoding: "utf8" });
     if (publishedAt.status !== 0) throw new Error("git cannot read the commit date");
     collectAssets(releaseOf(version), paths[0]!, paths[1]!, publishedAt.stdout.trim());
+  } else if (command === "regression" && !version) {
+    const run = regressionGate(required("GITHUB_REF"), workflowDependencies());
+    console.log(run ? `The real-client regression passed on this commit: ${run}` : "A release from main needs no regression run.");
   } else if (command === "draft" && version && paths.length === 1) {
     const release = draft(version, paths[0]!, workflowDependencies());
     appendFileSync(
@@ -501,7 +582,7 @@ function main(): void {
     console.log(`${release.tag} patches ${release.base} with ${release.changed.length} fact-only changes.`);
     for (const action of release.actions) console.log(`${paths.length === 1 ? "would run" : "ran"}: ${action.join(" ")}`);
   } else {
-    throw new Error("usage: release.ts facts <version> [--dry-run] | prepare <version> | assets <version> <make-dir> <out-dir> | draft <version> <assets-dir>");
+    throw new Error("usage: release.ts facts <version> [--dry-run] | prepare <version> | regression | assets <version> <make-dir> <out-dir> | draft <version> <assets-dir>");
   }
 }
 
