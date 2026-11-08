@@ -29,22 +29,28 @@ function load(document: Document) {
 
 /** Shows Settings as a Hub page, at a section or control when given. */
 export function showHubSettings(hub: HubPresenter<HTMLElement>, target: SettingsTarget | null) {
-  let landing: Element | null = null;
   hub.showView('Settings', (host, _back, _footer, pages) => {
     const frame = pages.mount('settingsHost', host, { failed: false });
     const view = frame.element;
+    const document = host.ownerDocument;
     let page: SettingsPage | null = null;
     let disposed = false;
+    // Until the page loads, the Hub parks the keyboard on the view's first control, which may be
+    // Back. Only the player's own key or press since the page opened means they moved on.
+    let moved = false;
+    const moveOn = () => { moved = true; };
+    document.addEventListener('keydown', moveOn, true);
+    document.addEventListener('pointerdown', moveOn, true);
     const refresh = () => page?.refresh();
-    load(host.ownerDocument).then(settings => {
+    load(document).then(settings => {
       if (disposed) return;
       page = shown = settings.mountSettings(view, {
         api: window.gwNative.hubSettings,
         target,
         extendedMemory: () => window.gwNative.client.session().then(session => session.extendedMemory),
         openInLauncher: next => window.gwNative.app.openSettings(next).catch(() => { throw new Error(LAUNCHER_UNAVAILABLE); }),
-        // Focus still where the Hub put it means the player is waiting for this page; anywhere else, they moved on.
-        mayTakeFocus: () => { const focused = host.ownerDocument.activeElement; return !focused || focused === landing || focused === host.ownerDocument.body || view.contains(focused); },
+        // A player who has not acted since the page opened is waiting for it; focus inside the page stays the page's.
+        mayTakeFocus: () => !moved || view.contains(document.activeElement),
       });
     }).catch(() => {
       if (!disposed) frame.update({ failed: true });
@@ -52,13 +58,14 @@ export function showHubSettings(hub: HubPresenter<HTMLElement>, target: Settings
     window.addEventListener('gw:tools-settings', refresh);
     return () => {
       disposed = true;
+      document.removeEventListener('keydown', moveOn, true);
+      document.removeEventListener('pointerdown', moveOn, true);
       window.removeEventListener('gw:tools-settings', refresh);
       page?.dispose();
       if (shown === page) shown = null;
       frame.dispose();
     };
   }, undefined, 'settings');
-  landing = document.activeElement;
 }
 
 /** Moves a Settings page that is already shown to a section or control. */
