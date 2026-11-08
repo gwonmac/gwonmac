@@ -37,7 +37,7 @@ const legacyFilenameOwners = shippedSources().filter((file) =>
 const native = read("app/native/host/host.mm");
 const legacyCleanup = read("app/main/core/legacy-secret-cleanup.ts");
 
-test("saved login has exactly two Data Protection Keychain items", () => {
+test("saved login and the build check key are Data Protection Keychain items, one each", () => {
   assert.match(native, /kSecUseDataProtectionKeychain/);
   assert.match(native, /kSecAttrAccessibleWhenUnlockedThisDeviceOnly/);
   // The items stay in the app's own default access group: a named group or
