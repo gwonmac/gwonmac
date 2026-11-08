@@ -286,7 +286,8 @@ The release `qualify` job runs this battery on the current client. Client watch
 runs the same battery and the real-client regression suite in
 `tests/client-artifact/`. A certification pull request dispatches client watch
 on its branch with `regression` (`pnpm release:facts` does it for a fact-only
-release); that run fails when either refuses.
+release); that run fails when either refuses. A `hotfix/*` release gets no
+draft until that run passed on its exact commit.
 
 A verifier change needs positive equivalent-relocation tests and adversarial
 change, duplicate, ambiguity, timeout, malformed-boundary, and output-mismatch
