@@ -14,7 +14,7 @@ import {
 } from "../../app/client/certification/local-client-verifier.js";
 import { locateNativeDoubleClickRoute } from "../../app/client/certification/native-double-click-route-proof.js";
 import { SEMANTIC_VERIFIER_ABI } from "../../app/client/certification/semantic-proof.js";
-import { wasmEvidence } from "../../app/client/certification/wasm-evidence.js";
+import { isolatedProof, wasmEvidence } from "../../app/client/certification/wasm-evidence.js";
 import { concat, encodeCode, encodeSection, uleb, WASM_HEADER } from "../../app/main/core/wasm-binary.js";
 import { TEMPLATE_SAVE_BUILDS } from "../../app/client/certification/template-save-compat.js";
 import type { EnhancementCapabilities } from "../../app/shared/enhancement-contracts.js";
@@ -1110,7 +1110,8 @@ describe("local client verifier faults", () => {
   // proof's own catch. Without the fault each entry answers about the bytes.
   for (const [name, prove, tag] of [
     ["the native double-click route", locateNativeDoubleClickRoute, 0x61],
-    ["shared evidence decode", (input: Uint8Array) => wasmEvidence(input)?.decodeFunctions([]), 0x62],
+    ["a proof inside the shared isolatedProof catch",
+      (input: Uint8Array) => isolatedProof(() => wasmEvidence(input)?.decodeFunctions([]) ?? null), 0x62],
   ] as const) {
     it(`propagates an allocation fault in ${name} instead of refusing`, () => {
       assert.throws(() => withFailedAllocation(() => prove(moduleTagged(tag))), {
