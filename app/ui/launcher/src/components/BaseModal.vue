@@ -67,8 +67,9 @@ onBeforeUnmount(() => {
 
 <style>
 .modal-backdrop { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 16px; background: var(--scrim); backdrop-filter: blur(6px); }
-/* One dialog width in the launcher and the Hub: 420px, and 16px clear of the edges when narrower. */
-.modal { width: min(420px, 100%); padding: 24px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface-raised); box-shadow: var(--shadow-pop); container: modal / inline-size; }
+/* One dialog width in the launcher and Settings: 420px, and 16px clear of the edges when narrower.
+   A dialog taller than its window or Hub panel scrolls inside the backdrop's 16px padding. */
+.modal { width: min(420px, 100%); max-height: 100%; overflow: auto; padding: 24px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface-raised); box-shadow: var(--shadow-pop); container: modal / inline-size; }
 .modal-head { display: flex; justify-content: space-between; align-items: center; }
 .modal h2 { margin: 0; font-size: var(--fs-xl); }
 .modal details { margin: 18px 0; color: var(--muted); }
@@ -80,7 +81,7 @@ onBeforeUnmount(() => {
   .modal .form-actions { flex-direction: column; align-items: stretch; }
 }
 @media (max-width: 600px) {
-  .modal { max-height: calc(100vh - 32px); overflow: auto; padding: 20px; }
+  .modal { padding: 20px; }
 }
 @media (prefers-reduced-transparency: reduce) {
   .modal-backdrop { backdrop-filter: none; }
