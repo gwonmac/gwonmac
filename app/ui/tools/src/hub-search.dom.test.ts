@@ -5,13 +5,12 @@
  * real Hub on the fixture page; it also holds the Commands page, the scope chips and the
  * settings rows' targets that the old browser spec checked next to the ranking.
  */
-import { afterEach, beforeAll, expect, test, vi } from 'vitest';
+import { afterEach, beforeAll, expect, test } from 'vitest';
 import { click, fill, loadFixture, mountFixture, press, settle, shown, unmountFixture } from './hub-fixture-harness';
 
 beforeAll(loadFixture);
 // Storage's `clear` is an own, spied property after `mountWith`; later mounts must clear plainly again.
-const clearStorage = localStorage.clear.bind(localStorage);
-afterEach(() => { if (vi.isMockFunction(localStorage.clear)) vi.mocked(localStorage.clear).mockImplementation(clearStorage); unmountFixture(); });
+afterEach(unmountFixture);
 
 const q = <T extends Element = HTMLElement>(selector: string) => document.querySelector<T>(selector);
 const all = (selector: string) => [...document.querySelectorAll<HTMLElement>(selector)];
@@ -24,14 +23,9 @@ const row = (id: string) => q(`.hub-row[data-id="${id}"]`);
 const titles = () => all('.hub-title').map(element => element.textContent);
 const back = () => click(q('.hub-back, button[aria-label="Back"]') ?? [...document.querySelectorAll('button')].find(button => button.textContent?.trim() === 'Back')!);
 async function ask(query: string) { fill(search(), query); await settle(); }
-/**
- * `localStorage.setItem` before the page loads, as the spec's `addInitScript`: the harness clears
- * storage at the start of a mount, so the seed goes in right after that clear.
- */
-async function mountWith(query: string, seed: Record<string, unknown>) {
-  vi.spyOn(localStorage, 'clear').mockImplementation(() => { clearStorage(); for (const [key, value] of Object.entries(seed)) localStorage.setItem(key, JSON.stringify(value)); });
-  return mountFixture(query);
-}
+/** Mounts with JSON values already in localStorage, as the spec's `addInitScript` stored them. */
+const mountWith = (query: string, seed: Record<string, unknown>) =>
+  mountFixture(query, Object.fromEntries(Object.entries(seed).map(([key, value]) => [key, JSON.stringify(value)])));
 const shortcuts = (items: readonly { id: string; phrase: string; pinned: boolean }[]) => ({ 'hub-fixture-shortcuts': items });
 const settings = (detail: object) => window.dispatchEvent(new CustomEvent('hub-fixture-settings', { detail }));
 

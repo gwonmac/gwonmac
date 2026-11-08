@@ -165,7 +165,7 @@ test('team authoring keeps its options and persisted edits through reopening', a
   click(q('.team-options > summary')!); await settle();
   expect(text(q('.team-actions'))).toContain('update 8 builds');
   click(byRole('button', 'Close Build Library', true)[0]!); press('Meta+b'); await settle();
-  expect(byRole('textbox', 'Team name', true)[0]!.getAttribute('value') ?? (byRole('textbox', 'Team name', true)[0] as HTMLInputElement).value).toBe('GOM AFK');
+  expect(document.querySelector<HTMLInputElement>('#team-name')?.value).toBe('GOM AFK');
   expect(text(q('.team-options > summary'))).toContain('Normal Mode');
   expect(action() ?? '').not.toMatch(/command|apply/u);
 });
