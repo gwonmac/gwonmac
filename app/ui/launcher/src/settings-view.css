@@ -276,4 +276,3 @@
   .settings-view .map-line-editor { grid-template-columns: minmax(0, 1fr); }
   .settings-view .map-line-editor legend { width: auto; }
 }
-}
