@@ -12,6 +12,14 @@ import type { AppSettings } from "../../app/shared/settings/index.ts";
 import type { Invoker } from "../../app/shared/ipc/channel-table.ts";
 import type { GameChannels } from "../../app/shared/ipc/game.ts";
 import type { LauncherChannels } from "../../app/shared/ipc/launcher.ts";
+import type { ToolsNativeApiExtension } from "../../app/shared/ipc/tools.ts";
+import type { CoreGwNativeApiBase } from "../../app/shared/contracts.ts";
+
+// Preload: no Tool namespace may shadow a Core `window.gwNative` member.
+type ShadowedCoreMembers = keyof ToolsNativeApiExtension & keyof CoreGwNativeApiBase;
+export const _toolsNamespacesAreNew: [ShadowedCoreMembers] extends [never]
+  ? true
+  : { toolsNamespacesShadowCore: ShadowedCoreMembers } = true;
 
 export function _channelTableProofs(
   define: typeof channel,
