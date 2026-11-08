@@ -26,9 +26,10 @@ import { enhancementProofContext } from "./wasm-evidence.js";
 const SHA256 = /^[0-9a-f]{64}$/;
 const MEMORY_LAYOUT_IDS = Object.keys(CARTOGRAPHY_MEMORY_LAYOUTS) as CartographyMemoryLayoutId[];
 
-// The kernel compiles each layout's context root and agent array, so the
-// layout table lives beside it. A client generation names the layouts its
-// review accepted; the verifier selects only among the active ones.
+// Each layout's context root and agent array come from
+// CARTOGRAPHY_LAYOUT_ROOTS, which the renderer installs into the kernel by the
+// layout id the derived client publishes. A client generation names the
+// layouts its review accepted; the verifier selects only among the active ones.
 const BASE_LAYOUT_IDS: readonly CartographyMemoryLayoutId[] = Object.freeze(["official", "relocated", "october"]);
 const generationLayoutIds = reviewedEntries((facts) => facts.cartographyLayouts);
 
