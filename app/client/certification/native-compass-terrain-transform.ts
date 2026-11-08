@@ -2,6 +2,7 @@
  * Gives the exact native Compass Canvas one retained terrain texture and mesh.
  * Native frame attachment, resource references and camera projection own drawing.
  */
+import { ProofRefusal } from "./stage-refusal.js";
 import {
   concat, encodeCode, encodeIndexVector, encodeSection, parseCode, parseExports,
   parseIndexVector, sectionById, sleb, splitSections, uleb, vectorPayload, WASM_HEADER,
@@ -49,7 +50,7 @@ const unstack = (index: number, bytes: number) => concat(localGet(index), i32Con
 
 export function appendNativeCompassTerrain(input: Uint8Array): Uint8Array {
   const evidence = wasmEvidence(input);
-  if (!evidence) throw new Error("invalid native Compass terrain input");
+  if (!evidence) throw new ProofRefusal("invalid native Compass terrain input");
   const module = evidence.moduleView();
   const bindings = resolveNativeRenderBindings(module, CHECKED);
   if (!bindings) return input;
@@ -59,7 +60,7 @@ export function appendNativeCompassTerrain(input: Uint8Array): Uint8Array {
 /** Both Compass consumers share exact Canvas lifetime and bitmap ownership. */
 function appendCompassSurface(input: Uint8Array, screenSpace: boolean, bindings: NativeRenderBindings): Uint8Array {
   const evidence = wasmEvidence(input);
-  if (!evidence) throw new Error("invalid Compass surface input");
+  if (!evidence) throw new ProofRefusal("invalid Compass surface input");
   const module = evidence.moduleView();
   const prefix = screenSpace ? "gwonmac_compass_ranges" : "gwonmac_compass_terrain";
   const sections = splitSections(input);
@@ -225,9 +226,9 @@ function appendCompassSurface(input: Uint8Array, screenSpace: boolean, bindings:
     let insertion = offset;
     if (screenSpace && index === 14126) {
       const terrainPublish = exported.find((entry) => entry.name === "gwonmac_compass_terrain_publish")?.index;
-      if (terrainPublish === undefined) throw new Error("missing native terrain attachment");
+      if (terrainPublish === undefined) throw new ProofRefusal("missing native terrain attachment");
       const earlier = concat(localGet(0), localGet(1), call(terrainPublish - 2));
-      if (!earlier.every((byte, at) => body[offset + at] === byte)) throw new Error("native Compass attachment changed");
+      if (!earlier.every((byte, at) => body[offset + at] === byte)) throw new ProofRefusal("native Compass attachment changed");
       insertion += earlier.length;
     }
     bodies[local] = concat(body.slice(0, insertion), bytes, body.slice(insertion));

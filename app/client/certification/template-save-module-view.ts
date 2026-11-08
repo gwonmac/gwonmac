@@ -2,6 +2,7 @@
  * Parses the bounded WebAssembly view used by Template-saving semantic proof.
  * It owns binary decoding only and grants no launch authority.
  */
+import { ProofRefusal } from "./stage-refusal.js";
 import {
   paddedIndex,
   uleb,
@@ -14,7 +15,7 @@ import type { DecodedFunction, ModuleShape } from "./enhancement-evidence-types.
 import type { WasmDataEvidence } from "./wasm-data-evidence.js";
 
 function fail(message: string): never {
-  throw new Error(`template-save recertify: ${message}`);
+  throw new ProofRefusal(`template-save recertify: ${message}`);
 }
 
 export function templateCallNeedle(functionIndex: number): Uint8Array {

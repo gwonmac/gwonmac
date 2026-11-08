@@ -5,6 +5,7 @@
  * their byte encoding: preserve the certified builders and sender exactly while
  * copying their bounded scalar evidence into caller-owned globals.
  */
+import { ProofRefusal } from "./stage-refusal.js";
 import { concat, sleb, uleb } from "../../main/core/wasm-binary.js";
 import {
   PROFESSION_TRACE_PAYLOAD_WORDS,
@@ -210,7 +211,7 @@ export function professionTraceReader(globals: ProfessionTraceGlobals): Uint8Arr
   if (fields.some((globalIndex, index) =>
     index !== PROFESSION_TRACE_WORD.schema && globalIndex === null
   )) {
-    throw new Error("profession trace layout is incomplete");
+    throw new ProofRefusal("profession trace layout is incomplete");
   }
   return concat(
     uleb(0),

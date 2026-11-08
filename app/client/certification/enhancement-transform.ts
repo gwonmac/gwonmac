@@ -15,8 +15,10 @@
  * so no capability selection may inherit another's ordering.
  *
  */
+import { ProofRefusal } from "./stage-refusal.js";
 import { appendNativeHud } from "./native-hud-transform.js";
 import { createHash } from "node:crypto";
+import { isDeepStrictEqual } from "node:util";
 import {
   enhancementCapabilityProfile,
   enhancementCapabilitiesCover,
@@ -85,11 +87,16 @@ import {
 } from "./enhancement-table.js";
 import { buildEnhancementManifestSection } from "./enhancement-transform-manifest.js";
 import { encodeName } from "./wasm-emit.js";
+import type { ModuleShape } from "./enhancement-evidence-types.js";
+import { deriveResignAction } from "./enhancement-resign-proof.js";
+import { deriveWhisperChat } from "./enhancement-whisper-proof.js";
+import { functionIsUniquelyReviewedBody, wasmEvidence } from "./wasm-evidence.js";
 export { ENHANCEMENT_MANIFEST_SECTION } from "./enhancement-transform-manifest.js";
 
 declare const WebAssembly: {
   Module: new (bytes: Uint8Array) => unknown;
   validate(bytes: Uint8Array): boolean;
+  CompileError: new () => Error;
 };
 
 export const ENHANCEMENT_HOOK_EXPORT = "enhancement_hook_slot";
@@ -100,7 +107,7 @@ const COMMAND_PARAMS = 5;
 const COMMAND_ARGS = COMMAND_PARAMS - 1;
 
 function fail(message: string): never {
-  throw new Error(`enhancement transform: ${message}`);
+  throw new ProofRefusal(`enhancement transform: ${message}`);
 }
 
 function assertSignature(
@@ -231,12 +238,19 @@ function resolveEnhancementTransform(
     }
     return hook;
   };
+  let inputModule: ModuleShape | null = null;
+  const clientModule = () =>
+    inputModule ??= (wasmEvidence(input) ?? fail("input is not a supported module")).moduleView();
+  // A relocated body counts only when its identity is unique in the module.
+  const isReviewedBody = (functionIndex: number, bodySha256: string): boolean =>
+    bodyHash(functionIndex) === bodySha256 || functionIsUniquelyReviewedBody(clientModule(), functionIndex, bodySha256);
   const skillResolution = resolveEnhancementSkillTransform({
     build,
     capabilities,
     bodies,
     importCount,
     resolveFunction: resolveHook,
+    isReviewedBody,
     fail,
   });
   const preGameResolution = resolveEnhancementPreGameTransform({
@@ -378,7 +392,8 @@ function resolveEnhancementTransform(
   }
   if (capabilities.whisperChat) {
     resolveHook("Whisper native sender", whisperChat.functionIndex, whisperChat.params, whisperChat.results);
-    if (bodyHash(whisperChat.functionIndex) !== whisperChat.bodySha256) fail("Whisper native sender changed");
+    // The process boundary checks only the shape; the path is proved here, from the bytes.
+    if (!isDeepStrictEqual(deriveWhisperChat(clientModule()), whisperChat)) fail("Whisper native chat path changed");
   }
   if (capabilities.alcoholObservation) {
     const proof = build.alcoholObservation!;
@@ -392,7 +407,7 @@ function resolveEnhancementTransform(
   }
   if (capabilities.resignAction) {
     resolveHook("Resign native sender", resignAction.functionIndex, resignAction.params, resignAction.results);
-    if (bodyHash(resignAction.functionIndex) !== resignAction.bodySha256) fail("Resign native sender changed");
+    if (!isDeepStrictEqual(deriveResignAction(clientModule()), resignAction)) fail("Resign native chat path changed");
   }
   const storageSlashParserHook = capabilities.chatAliases
     ? resolveHook(
@@ -983,6 +998,9 @@ function assembleEnhancementTransform(
     try {
       new WebAssembly.Module(output);
     } catch (error) {
+      // Only the compiler's reason belongs in the refusal; a RangeError from
+      // a failed allocation is a fault and propagates.
+      if (!(error instanceof WebAssembly.CompileError)) throw error;
       fail(`rewritten module failed validation: ${String(error)}`);
     }
     fail("rewritten module failed validation");

@@ -193,8 +193,9 @@ A crash, timeout, changed file or malformed answer is a failed check, not a
 verdict: nothing is stored, the features report `check-failed`, and the next
 start tries again. An ambiguous match, unexpected layout or transform error is
 a refusal, which a complete pass records like any other verdict. A stage
-refuses by throwing a plain `Error`, an `EvidenceError` or a `ProofLimitError`
-(`stage-refusal.ts`). Anything else it throws, such as a `TypeError` or a stack
+refuses by throwing a `ProofRefusal` (its `fail()`, an `EvidenceError` or a
+`ProofLimitError`) or the WASM codec's `WasmFormatError` (`stage-refusal.ts`).
+Anything else it throws, such as a `TypeError`, a plain `Error` or a stack
 overflow, is a failed check for that stage: the pass is not stored and the
 features of that stage report `check-failed` (for a stage before native
 double-click, every capability). A guard that throws on

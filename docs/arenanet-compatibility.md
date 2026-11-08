@@ -88,6 +88,15 @@ A refusal includes the feature-local invariant and, for ambiguity, the candidate
 count. A top-level successful verification means that at least one safe module
 can be built. It does not mean every requested feature proved.
 
+Only a proof's own answer about the bytes is a refusal: a `ProofRefusal`
+(every proof's `fail()`, `EvidenceError`, `ProofLimitError`) or the WASM
+codec's `WasmFormatError`. A verdict is stored per build, so anything else a
+proof throws (a `TypeError` from a defect, a `RangeError` from a failed
+allocation) is not a refusal: it propagates, the check reports
+`check-failed`, and the next start checks again. Every catch under
+`app/client/certification/` decides through `refusedOrRethrow`; the policy
+test `certification-catches-only-refusals` names the exceptions.
+
 Capability manifests compare every field in both directions. A requested
 capability that is missing from an otherwise valid exact regression record must
 still trigger local proof.
@@ -186,19 +195,27 @@ locator already meets the final relocation-resistant bar. At verifier ABI 10:
   checks its own relations, so a changed callee refuses only the features
   that own it. Generations
   from October 22, 2026 on carry tables; older facts match exactly; and
-- the player-effect boundary accepts only reviewed body digests, and the
-  transform rechecks the timer digest. A relocated effect body needs a
-  `playerEffectBodies` entry in its generation file. Until then, player-effect
-  observation, effect-icon geometry, and alcohol observation refuse; and
+- player-effect observation, effect-icon geometry, and alcohol observation
+  accept a reviewed effect body exactly, or on a relink a body with a reviewed
+  body's relocation identity: the same opcodes, constants, branches and call
+  order, with only callees and static addresses renumbered. A changed opcode
+  or constant refuses. Several reviewed families may match a relink only when
+  they locate the same functions. The boundary checks the proof against the
+  reviewed digests; the transform rechecks each body it hooks by the same
+  identity and refuses others. An effect body that really changed needs a
+  `playerEffectBodies` entry in its generation file; and
 - every per-client fact lives in that client's generation file
   (`reviewed-client-<id>.ts`): its records, its identity table, and its
   `facts` (alternatives to reviewed literals and the per-proof slots). Proof
   files hold only the August and October 1 references. Some facts stay pinned
   to one client's layout, so a relink that moves them refuses until a release
   adds them:
-  - resign and whisper chat paths bind function indices, because the process
-    boundary has no client bytes and rejects a substituted index only against
-    reviewed (index, digest) pairs;
+  - resign and whisper chat paths are located by their reviewed bodies (exact,
+    or by relocation identity on a relink), and the editor must call the
+    history owner, which must call the sender. The process boundary checks
+    the sender's shape; the transform derives the path again from the bytes it
+    rewrites and refuses any other sender. A path whose body really changed
+    still needs a review;
   - native draw owners (HUD, map graphics, Compass terrain) match a reviewed
     family exactly. On a relink they are derived instead: each owner is the
     one function with a reviewed owner's relocation identity, an owner with
@@ -207,12 +224,16 @@ locator already meets the final relocation-resistant bar. At verifier ABI 10:
     operands. The process boundary checks the HUD proof's shape; the transform
     derives it again from the bytes it rewrites and refuses any other value.
     An owner whose body really changed still needs a new family;
-  - pathing families bind function indices;
-  - a Cartography layout's context root and agent array live in
-    `CARTOGRAPHY_LAYOUT_ROOTS` (`app/shared/cartography-spike.ts`), keyed by
-    the layout id the derived client publishes. The reachability kernel
-    receives them at install, so a new layout no longer changes the kernel,
-    but it still needs a new id and roots there, so a release;
+  - pathing families bind function indices. Nothing in production consumes
+    that shape proof, so it does not decide any feature on patch day;
+  - the Cartography layout is derived from the bytes: the roots come from the
+    play-region, observation and pre-game proofs, each surface owner is the
+    one function whose body a review accepted (exactly, or by relocation
+    identity on a relink), and each callback slot comes from the active table.
+    The derived client publishes its context root and agent array in its
+    manifest, and the kernel installs them from there. The process boundary
+    checks only the roots' shape; the transform derives them again and refuses
+    others. A surface owner whose body really changed still needs a review;
   - a friend lifecycle family whose role bodies changed needs a review. The
     renderer pins `FRIEND_OBSERVER_SEMANTIC_SHA256`, which covers only what
     the certificate means (role names, signatures and the checked relations),
@@ -265,11 +286,26 @@ binaries and cannot grant runtime authority.
     observation on its file-compatible module;
   - any other client gets the patch-day template verdict the test states for
     it. October 1 and October 22 refuse (`template-shape-changed`: each
-    changed a reviewed helper body); November 3 proves.
+    changed a reviewed helper body). November 3 proves every feature except
+    Quick Item Move, whose memory-code digest changed; native double-click
+    and Cartography prove, and friend observation refuses until its moved
+    assertion lines are reviewed.
 
   It prints each client's refused features and module stages, and skips
   without the maintainer evidence store. Retained clients without a reviewed
   record, which includes every client before October 2026, are out of scope.
+- Review: `pnpm certification review` writes a local review packet for a
+  changed client (see [recertify.md](recertify.md#recover-a-relocation-rebuild))
+  into its bundle in the evidence store. It covers template saving and every
+  Enhancement feature, and drafts generation-file alternatives and
+  player-effect bodies. The module stages (Cartography, native double-click,
+  friend observation) are reviewed through the patch-day replay instead. An
+  unapplied draft grants nothing. An applied alternative is a reviewed fact:
+  the verifier accepts that body for that literal in every client, so review
+  each pair. A fact-only release ships the approved facts, and the verifier
+  still proves every feature from the bytes with them. There is no remote
+  facts feed, and the packet's ArenaNet code never leaves the maintainer's
+  Mac.
 - Refusal: the official client stays playable and only the refusing feature
   and its declared dependants turn off. Automation opens one issue with one
   row per verdict: template saving, every Enhancement feature, native

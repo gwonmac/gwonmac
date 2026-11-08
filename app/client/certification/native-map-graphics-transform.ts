@@ -3,6 +3,7 @@
  * read-only answer to whether the game routes the pointer to one of those maps.
  * Exact draw events retain the game's clipping, ordering and graphics context.
  */
+import { ProofRefusal } from "./stage-refusal.js";
 import {
   concat, encodeCode, encodeIndexVector, encodeSection, parseCode, parseExports,
   parseIndexVector, sectionById, sleb, splitSections, uleb, vectorPayload, WASM_HEADER,
@@ -130,7 +131,7 @@ const unstack = (index: number, bytes: number) => concat(localGet(index), i32Con
 
 export function appendNativeMapGraphics(input: Uint8Array): Uint8Array {
   const evidence = wasmEvidence(input);
-  if (!evidence) throw new Error("invalid native map graphics input");
+  if (!evidence) throw new ProofRefusal("invalid native map graphics input");
   const module = evidence.moduleView();
   const bindings = resolveNativeRenderBindings(module, CHECKED);
   if (!bindings) return input;

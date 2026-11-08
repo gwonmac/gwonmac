@@ -255,42 +255,75 @@ static data. The October 22 and November 3, 2026 clients refused almost every
 feature for that reason; only a few changes were real. Reviewed facts now
 match such a relink by relocation identity (see
 [ArenaNet compatibility](arenanet-compatibility.md#current-implementation-limits)),
-so first check what still refuses.
+so first check what still refuses. With only the older facts, November 3
+now refuses only Quick Item Move (its memory-code digest changed) and friend
+observation (moved assertion lines); both need a review.
 
-1. Run `tests/client-artifact/patch-day-replay.test.ts` with the new client in
-   the evidence store. Its diagnostics list each feature that refuses with only
-   the older generations. Trace each refusal to its first failing check before
-   you read code. Shared checks, such as the area table, can disable many
-   features.
-2. Map each refused role or exact body hash from the preceding retained client
-   to the new client. Compare bodies with call indices, static operands, and
-   constants erased. Require one unique match, and confirm it by its relations,
-   not by its hash alone: a one-call wrapper and its neighbour can collide when
-   both shift by one index.
-3. Diff each matched pair instruction by instruction. Accept call-index and
-   static-address changes. Read every changed constant: string pointers must
-   reach the same text, small integers must be explained (assertion lines,
-   content counts). Bind an explained constant to the value it derives from,
-   as the Xunlai area-type reader binds its default to the area table's.
-   Read every control-flow change in full.
-4. Add a reviewed result only where the code really changed, and only in the
-   new client's generation file: an entry in `facts.alternatives` keyed by the
-   reviewed reference literal (another body digest, or a role fingerprint with
-   its body length), or the per-proof slot for a pinned fact (see below).
-   Proof files keep only the August and October 1 references. Keep the
-   previous client proving.
-5. Write the generation file `reviewed-client-<bundle-reference>.ts` with the
-   Enhancement record and its `facts`, and add it to `REVIEWED_GENERATIONS` in
-   `reviewed-facts.ts` in client order. Run
-   `pnpm certification reviewed-identities PATH/Gw.jspi.wasm` on the new client
-   and copy its `memoryCodeSha256` and the identity entries that no older
-   generation already lists. Add `playerEffectBodies` when its effect bodies
-   moved.
-6. Run the replay test again. It must pass, and the new client's record must
-   prove every feature it supports with every generation. A client that is not
-   a relink of the previous generation needs its patch-day row in `PATCH_DAY`:
-   its template verdict, the features it refuses and its module stages with
-   only older facts. A row may only get better.
+Real ArenaNet changes ship as a fact-only release. The slow part is the human
+review, so one command prepares it:
+
+1. Put the new client in the evidence store as its bundle and run:
+
+   ```bash
+   pnpm certification review "$STORE/<bundle-reference>"
+   ```
+
+   It judges the client with only the older generations, as on its patch day,
+   and always writes its review packet to `<bundle>/review/` (`--previous`
+   names the client to compare with when the newest reviewed client's bundle
+   is elsewhere). The packet covers template saving and every Enhancement
+   feature. The module stages (Cartography, native double-click, friend
+   observation) are not in it: review them through the patch-day replay in
+   step 5. For each feature the previous client proves and the new one
+   refuses, the packet names the first failing
+   invariant, the reviewed bodies the feature lost, the old and new function
+   side by side with call targets and static addresses normalised (changed
+   lines carry `!`), the candidate count, and the drafted generation-file
+   alternative. It also says whether the client proves each feature with the
+   whole draft. The packet holds ArenaNet code: it stays in the private store.
+   Never attach it to an issue, a pull request, or a CI artifact.
+2. Review each drafted pair. Accept call-index and static-address changes.
+   Read every changed constant: string pointers must reach the same text,
+   small integers must be explained (assertion lines, content counts). Bind an
+   explained constant to the value it derives from, as the Xunlai area-type
+   reader binds its default to the area table's. Read every control-flow
+   change in full. A pair the packet could not make (more than one candidate,
+   or none) needs the manual mapping: compare bodies with call indices, static
+   operands, and constants erased, require one unique match, and confirm it by
+   its relations, not by its hash alone (a one-call wrapper and its neighbour
+   can collide when both shift by one index). A refusal with no lost body is a
+   changed relation the proof checks; trace it to its first failing check
+   before you read code. Delete each draft entry you do not approve from
+   `<bundle>/review/draft.json`.
+3. Write the approved draft:
+
+   ```bash
+   pnpm certification review --apply "$STORE/<bundle-reference>/review"
+   ```
+
+   It adds the entries to `facts.alternatives`, and drafted player-effect
+   bodies to `playerEffectBodies`, in the new client's generation file
+   `reviewed-client-<bundle-reference>.ts`, and creates and registers that
+   file in client order when it does not exist yet. It refuses a draft made
+   from a client the generation's builds do not list. An unapplied draft
+   grants nothing. An applied alternative is a reviewed fact: the verifier
+   accepts that body for that literal in every client, so review each pair.
+   Facts the packet does not draft (a pinned per-proof slot, Quick Item
+   Move's reviewed `memoryCodeSha256`) are written by hand. Proof files keep only the August
+   and October 1 references. Keep the previous client proving.
+4. Complete the generation file: the Enhancement record, and from
+   `pnpm certification reviewed-identities PATH/Gw.jspi.wasm` its
+   `memoryCodeSha256` and the identity entries that no older generation
+   already lists. `playerEffectBodies` comes from the draft, and only when an
+   effect body really changed; a relink finds them by identity.
+5. Run `tests/client-artifact/patch-day-replay.test.ts`. It must pass, and the
+   new client's record must prove every feature it supports with every
+   generation. A client that is not a relink of the previous generation needs
+   its patch-day row in `PATCH_DAY`: its template verdict, the features it
+   refuses and its module stages with only older facts. A row may only get
+   better.
+6. Run `pnpm certification verify PATH/Gw.jspi.wasm`: with every generation,
+   each feature you approved must prove.
 7. Compare all members of one function family. A matching sender alone does not
    prove its editor, history, packet, lifecycle, or dispatcher.
 
@@ -310,17 +343,15 @@ A new client can need all of these:
 - the template-save record (`pnpm certification template --write`) and the
   Tools record in its generation file;
 - in its generation file's `facts`: alternatives, template-saving helper
-  bodies, resign and whisper chat paths, the native render family, pathing
-  families, the Guild Hall area-type family, the accepted Cartography layout,
-  and the friend lifecycle family (it changes
+  bodies, the native render family, the Guild Hall area-type family, and, only when one's body really changed (a relink finds
+  them by identity), the resign and whisper chat paths and the Cartography
+  surface owners; and the friend lifecycle family (it changes
   `FRIEND_OBSERVER_SEMANTIC_SHA256` only when a role's signature changes);
-- a Cartography memory layout with its Compass, Mission Map, and World Map
-  certificates, the World Map display owner in
-  `cartography-transform-internals.ts`, and its context root and agent array in
-  `CARTOGRAPHY_LAYOUT_ROOTS` (`app/shared/cartography-spike.ts`). The
-  reachability kernel receives those roots at install, so a new layout does
-  not change the kernel. Its integration test runs the compiled kernel for
-  every layout in `CARTOGRAPHY_MEMORY_LAYOUTS`;
+- nothing for the Cartography memory layout: the verifier derives its roots,
+  surface owners and callback slots from the bytes, and the derived client
+  publishes the roots the reachability kernel installs. Add the new client's
+  roots to `tests/fixtures/retained-client.ts` and the kernel's integration
+  test;
 - `tests/fixtures/retained-client.ts`, which maps retained function indices and
   static addresses for the real-client tests; and
 - `tests/fixtures/native-friend-queue.ts`, which lists the friend queue roles

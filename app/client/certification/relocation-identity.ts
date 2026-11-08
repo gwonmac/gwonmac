@@ -25,6 +25,7 @@
 import { createHash } from "node:crypto";
 import type { ModuleShape } from "./enhancement-evidence-types.js";
 import { dataEvidence } from "./wasm-data-evidence.js";
+import { cachedFor } from "./module-views.js";
 import type { RelocationSpan } from "./semantic-proof.js";
 import { decodeFunctions } from "./wasm-instruction-evidence.js";
 
@@ -61,7 +62,7 @@ function signature(module: ModuleShape, functionIndex: number): string {
   return type ? `${type.params.join(",")}>${type.results.join(",")}` : "?";
 }
 
-/** Bodies identify a module view: clones of one module share their key. */
+/** Equal bytes identify a module, so two parses of one client share their identities. */
 function moduleKey(module: ModuleShape): string {
   const hash = createHash("sha256");
   hash.update(`${module.functionImportCount}:${module.functionTypeIndices.length}:`);
@@ -158,21 +159,17 @@ function computeIdentities(module: ModuleShape): Identities {
 }
 
 function identities(module: ModuleShape): Identities {
-  const viewed = viewCache.get(module);
-  if (viewed) return viewed;
-  const key = moduleKey(module);
-  const cached = identityCache.get(key);
-  if (cached) {
-    viewCache.set(module, cached);
-    return cached;
-  }
-  const computed = computeIdentities(module);
-  if (identityCache.size >= MAX_CACHED_MODULES) {
-    identityCache.delete(identityCache.keys().next().value!);
-  }
-  identityCache.set(key, computed);
-  viewCache.set(module, computed);
-  return computed;
+  return cachedFor(viewCache, module, (shared) => {
+    const key = moduleKey(shared);
+    const cached = identityCache.get(key);
+    if (cached) return cached;
+    const computed = computeIdentities(shared);
+    if (identityCache.size >= MAX_CACHED_MODULES) {
+      identityCache.delete(identityCache.keys().next().value!);
+    }
+    identityCache.set(key, computed);
+    return computed;
+  });
 }
 
 /** The relocation identity of one defined or imported function. */
@@ -199,6 +196,33 @@ export function functionsWithIdentity(module: ModuleShape, identity: string): re
     functionsByIdentity.set(known, index);
   }
   return index.get(identity) ?? [];
+}
+
+/**
+ * The local identity of a function: its relocation identity with each callee
+ * named by its signature only, so a change in a callee's body leaves it equal.
+ */
+export function functionLocalIdentity(module: ModuleShape, functionIndex: number): string {
+  const identity = identities(module).local[functionIndex];
+  if (identity === undefined) throw new RangeError("relocation identity: no such function");
+  return identity;
+}
+
+/**
+ * Each relocatable operand of a defined function, in body order: its byte
+ * range in the body and the name the relocation identity gives it (a callee's
+ * local identity, or a static operand's class).
+ */
+export function relocatableOperands(
+  module: ModuleShape,
+  functionIndex: number,
+): readonly Readonly<{ start: number; end: number; name: string }>[] {
+  const known = identities(module);
+  return (known.sites[functionIndex] ?? []).map((site) => Object.freeze({
+    start: site.start,
+    end: site.end,
+    name: site.callee === null ? site.marker : `call:${known.local[site.callee] ?? "?"}`,
+  }));
 }
 
 /**

@@ -12,6 +12,11 @@ import path from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import ts from "typescript";
+import {
+  newGenerationSource,
+  withDraftedAlternatives,
+  withDraftedEffectBodies,
+} from "../../app/tools-cli/generation-file.js";
 
 const directory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../app/client/certification");
 
@@ -102,4 +107,24 @@ test("the data rule refuses code in a generation file", () => {
     "5: SpreadAssignment ...LATER",
     "6: FunctionDeclaration export function derive() { return 1; }",
   ]);
+});
+
+test("review --apply writes a generation file that stays data only", () => {
+  // Catches a writer change that would put code into a generation file, which
+  // this rule then refuses only after a maintainer applied a review.
+  const literal = "1".repeat(64);
+  const alternatives = { [literal]: ["2".repeat(64), { bodyLength: 40, fingerprint: "3".repeat(64) }] };
+  const effects = { [literal]: "4".repeat(64) };
+  const note = "Review 2099-01-01-000000000000 (quickItemMove): the same function in the same role.";
+  const read = (file: string) => readFileSync(path.join(directory, file), "utf8");
+  const written: Record<string, string> = {
+    created: newGenerationSource("2099-01-01-000000000000", alternatives, note, effects),
+    "created, effects only": newGenerationSource("2099-01-01-000000000000", {}, note, effects),
+    "alternatives added to a facts block": withDraftedAlternatives(
+      read("reviewed-client-2026-11-03-f2a2b07c9c56.ts"), alternatives, note),
+    "a facts block added to a generation without one": withDraftedAlternatives(
+      read("reviewed-client-2026-10-01-7b4c3548d670.ts"), alternatives, note),
+    "effect bodies added": withDraftedEffectBodies(read("reviewed-client-2026-08-build-1eb07e32.ts"), effects, note),
+  };
+  for (const [name, source] of Object.entries(written)) assert.deepEqual(violations(`${name}.ts`, source), [], name);
 });

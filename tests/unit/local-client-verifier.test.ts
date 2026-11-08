@@ -9,9 +9,13 @@ import {
   acceptLocalClientVerification,
   isLocalClientVerification,
   localFeatureVerdictsForBuild,
+  verifyLocalClientBytes,
   type LocalClientVerification,
 } from "../../app/client/certification/local-client-verifier.js";
+import { locateNativeDoubleClickRoute } from "../../app/client/certification/native-double-click-route-proof.js";
 import { SEMANTIC_VERIFIER_ABI } from "../../app/client/certification/semantic-proof.js";
+import { wasmEvidence } from "../../app/client/certification/wasm-evidence.js";
+import { concat, encodeCode, encodeSection, uleb, WASM_HEADER } from "../../app/main/core/wasm-binary.js";
 import { TEMPLATE_SAVE_BUILDS } from "../../app/client/certification/template-save-compat.js";
 import type { EnhancementCapabilities } from "../../app/shared/enhancement-contracts.js";
 import {
@@ -1056,6 +1060,71 @@ describe("local client verification boundary", () => {
     assert.equal(
       isLocalClientVerification(invalidInvariant, TEMPLATE.sha256, ALL),
       false,
+    );
+  });
+});
+
+// The launch stores each build's verdict until the next app update. A fault
+// (a bug's TypeError, a failed allocation's RangeError) says nothing about the
+// bytes, so turning it into a refusal would switch Tools off for good on a
+// client the next start would prove. These bytes are a valid module whose
+// copies throw, as a defect inside a stage would.
+describe("local client verifier faults", () => {
+  class FaultyBytes extends Uint8Array {
+    override subarray(): never {
+      throw new TypeError("stage defect");
+    }
+    override slice(): never {
+      throw new TypeError("stage defect");
+    }
+  }
+
+  /** A module with one empty function, made distinct by `tag` so no cached decode is reused. */
+  const moduleTagged = (tag: number) => concat(
+    WASM_HEADER,
+    encodeSection({ id: 1, body: Uint8Array.of(1, 0x60, 0, 0) }),
+    encodeSection({ id: 3, body: Uint8Array.of(1, 0) }),
+    encodeSection({ id: 10, body: encodeCode([Uint8Array.of(0x00, 0x0b)]) }),
+    encodeSection({ id: 0, body: concat(uleb(1), Uint8Array.of(tag)) }),
+  );
+
+  /** Runs `run` while every new Int32Array fails as an allocation under memory pressure does. */
+  function withFailedAllocation<Value>(run: () => Value): Value {
+    const original = Object.getOwnPropertyDescriptor(globalThis, "Int32Array");
+    assert.ok(original);
+    class FailedAllocation extends Int32Array {
+      constructor(length: number) {
+        if (length >= 0) throw new RangeError("Array buffer allocation failed");
+        super(length);
+      }
+    }
+    Object.defineProperty(globalThis, "Int32Array", { ...original, value: FailedAllocation });
+    try {
+      return run();
+    } finally {
+      Object.defineProperty(globalThis, "Int32Array", original);
+    }
+  }
+
+  // The fault happens deep inside a proof: in the shared decode, under the
+  // proof's own catch. Without the fault each entry answers about the bytes.
+  for (const [name, prove, tag] of [
+    ["the native double-click route", locateNativeDoubleClickRoute, 0x61],
+    ["shared evidence decode", (input: Uint8Array) => wasmEvidence(input)?.decodeFunctions([]), 0x62],
+  ] as const) {
+    it(`propagates an allocation fault in ${name} instead of refusing`, () => {
+      assert.throws(() => withFailedAllocation(() => prove(moduleTagged(tag))), {
+        name: "RangeError",
+        message: "Array buffer allocation failed",
+      });
+      assert.doesNotThrow(() => prove(moduleTagged(tag + 0x10)));
+    });
+  }
+
+  it("propagates a stage's TypeError instead of returning a refusal verdict", () => {
+    assert.throws(
+      () => verifyLocalClientBytes(FaultyBytes.of(0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00)),
+      { name: "TypeError", message: "stage defect" },
     );
   });
 });

@@ -3,7 +3,7 @@
  * The game still owns every operation; the companion receives bounded lifecycle facts only.
  */
 import { createHash } from "node:crypto";
-import { refusedOrRethrow } from "./stage-refusal.js";
+import { ProofRefusal, refusedOrRethrow } from "./stage-refusal.js";
 import { isDigest } from "../../shared/digest.js";
 import {
   concat,
@@ -62,7 +62,7 @@ const sha256 = (bytes: Uint8Array): string =>
   createHash("sha256").update(bytes).digest("hex");
 
 function fail(message: string): never {
-  throw new Error(`friend observer transform: ${message}`);
+  throw new ProofRefusal(`friend observer transform: ${message}`);
 }
 
 function dispatch(

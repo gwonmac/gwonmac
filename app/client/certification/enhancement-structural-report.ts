@@ -3,6 +3,7 @@
  * Runtime decisions live in the feature proof modules.
  */
 import { createHash } from "node:crypto";
+import { refusedOrRethrow } from "./stage-refusal.js";
 import {
   enhancementProofContext,
   EvidenceError,
@@ -294,13 +295,7 @@ export function inspectEnhancementStructuralEvidence(
   if (input.byteLength > MAX_INPUT_BYTES) {
     return baseReport(sha256, false, "input-too-large");
   }
-  let validWasm: boolean;
-  try {
-    validWasm = WebAssembly.validate(input);
-  } catch {
-    validWasm = false;
-  }
-  if (!validWasm) return baseReport(sha256, false, "invalid-wasm");
+  if (!WebAssembly.validate(input)) return baseReport(sha256, false, "invalid-wasm");
 
   let module: ModuleShape;
   let context: EnhancementProofContext;
@@ -312,6 +307,7 @@ export function inspectEnhancementStructuralEvidence(
     context = candidate;
     module = context.moduleView();
   } catch (error) {
+    refusedOrRethrow(error);
     const failure = error instanceof EvidenceError
       ? error.code
       : "module-shape-unsupported";
@@ -325,6 +321,7 @@ export function inspectEnhancementStructuralEvidence(
       ...messageAnchors.nearbyPlayerMessages,
     ]);
   } catch (error) {
+    refusedOrRethrow(error);
     const failure = error instanceof EvidenceError
       ? error.code
       : "instruction-set-unsupported";
@@ -342,6 +339,7 @@ export function inspectEnhancementStructuralEvidence(
   try {
     playerChatUi = playerChatUiEvidence(module, decoded, messageAnchors);
   } catch (error) {
+    refusedOrRethrow(error);
     const failure = error instanceof EvidenceError
       ? error.code
       : "analysis-limit-exceeded";
@@ -366,6 +364,7 @@ export function inspectEnhancementStructuralEvidence(
       cursor: cursorEvidence(module, decoded, tableRelations),
     };
   } catch (error) {
+    refusedOrRethrow(error);
     const failure = error instanceof EvidenceError
       ? error.code
       : "active-table-unsupported";

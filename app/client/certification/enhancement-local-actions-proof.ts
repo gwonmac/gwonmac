@@ -3,6 +3,7 @@
  * Each action keeps its own refusal boundary.
  */
 import { createHash } from "node:crypto";
+import { refusedOrRethrow } from "./stage-refusal.js";
 import { CLIENT_TICK_ROLE } from "./enhancement-client-hook-role.js";
 import {
   CHAT_LOG_PRODUCER_ROLE,
@@ -498,8 +499,8 @@ export function inspectLocalActionRoleCandidates(
         partyTeam.map(({ teamApply }) => teamApply),
       ),
     });
-  } catch {
-    return null;
+  } catch (error) {
+    return refusedOrRethrow(error);
   }
 }
 
@@ -1187,7 +1188,7 @@ export function locateAutomaticLocalActions(
       teamApply: unique("teamApply"),
       quickItemMove: unique("quickItemMove"),
     });
-  } catch {
-    return null;
+  } catch (error) {
+    return refusedOrRethrow(error);
   }
 }

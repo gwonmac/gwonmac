@@ -112,6 +112,10 @@ function resolve(
         type: { params: [], results: [] },
       };
     },
+    isReviewedBody: (functionIndex, bodySha256) => {
+      const body = bodies[functionIndex];
+      return body !== undefined && hash(body) === bodySha256;
+    },
     fail,
   });
   return { labels, resolution };

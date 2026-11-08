@@ -185,16 +185,23 @@ Missing native support or stale map identity hides Compass terrain without chang
 Stationary Compass geometry is reused; range geometry changes only with its
 Canvas rectangle or artwork, not camera motion.
 
-Client updates require one coherent surface certificate and memory layout. The
-October layout is checked through current character, region, and observation
-proofs before the transform selects its exact frame dispatchers and table slots.
+Client updates require one coherent surface certificate and memory layout,
+which `cartography-layout-proof.ts` derives from the client bytes: the roots
+from the character, region, and observation proofs, each surface owner from a
+reviewed body (exactly, or by relocation identity on a relink), and each
+callback slot from the active table. The transform derives the layout again,
+refuses roots that differ from the verifier's, and publishes the context root
+and agent array in the `cartography_manifest` custom section. The derived
+client's layout identifier is a 31-bit hash of both roots, so the observer,
+the kernel diagnostics, and evidence exports name the layout without carrying a
+native address.
 The reachability kernel holds no layout of its own. On the first classification
-the loader installs that layout identifier with its certified context root and
-agent array (`CARTOGRAPHY_LAYOUT_ROOTS` in `app/shared/cartography-spike.ts`).
+the loader installs the manifest's roots under that identifier; with no exact
+manifest the kernel stays off and the rest of Maps runs.
 The kernel accepts one install per instance, checks both roots for alignment
 and bounds, and answers any other layout identifier as an ambiguous layout. Its
-offline tests install each layout in `CARTOGRAPHY_MEMORY_LAYOUTS`, populate only
-that layout's globals, and execute the compiled kernel.
+offline tests install each retained client's roots, populate only that
+layout's globals, and execute the compiled kernel.
 A successful Enhancement proof does not prove these separate Maps boundaries.
 
 Textures are published from the application's animation frame, outside the

@@ -3,6 +3,7 @@
  * Every accepted layout field comes from independent readers or writers.
  */
 import { createHash } from "node:crypto";
+import { refusedOrRethrow } from "./stage-refusal.js";
 import { verifyLayout } from "./semantic-proof.js";
 import { CLIENT_TICK_ROLE } from "./enhancement-client-hook-role.js";
 import {
@@ -419,8 +420,8 @@ export function inspectTargetRoleCandidates(
             : count, 0);
       }),
     ]);
-  } catch {
-    return null;
+  } catch (error) {
+    return refusedOrRethrow(error);
   }
 }
 
@@ -698,8 +699,8 @@ export function locateAutomaticPlayRegion(
     return matches.every((match) => identity(match) === identity(matches[0]!))
       ? matches[0]!
       : null;
-  } catch {
-    return null;
+  } catch (error) {
+    return refusedOrRethrow(error);
   }
 }
 
@@ -795,8 +796,8 @@ export function locateAutomaticTarget(
     return matches.every((match) => identity(match) === identity(matches[0]!))
       ? matches[0]!
       : null;
-  } catch {
-    return null;
+  } catch (error) {
+    return refusedOrRethrow(error);
   }
 }
 

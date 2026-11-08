@@ -868,6 +868,8 @@ const IDENTITIES: Readonly<Record<string, readonly string[]>> = Object.freeze({
     ["1239c8f3f2ccdc369a7b7b4866cc098e30a5aa7ee3bf7445376c57a3e4351141"],
   "0fd33a5d55c00d25e364ff0be0c63c67a1849acc8f0a9fb5525560367eecb41e":
     ["db0de7a034ea05ecec5c463150acc21334e74020d66e2cbc11bb7d4d76961cd5"],
+  "1082760d337d455ea976e2b6c9b99132e0e529417af2037e70ca08eeed819f0d":
+    ["41b329f3d01e85baeeb28259af86deac2e0e800d8b1842c6105a5da7fd324812"],
   "11a75789cdf24acade096cfa060b013d6141704fbbb74af31be80251e4b71b9d":
     ["7851a09c10c50be990c928fe708b4c327a9d73cdb59f8dac807c4bda90577258"],
   "11aefb16d58b062416e00f748e1e57bb52c879322b319287dfee3f478200f9ac":
@@ -942,6 +944,8 @@ const IDENTITIES: Readonly<Record<string, readonly string[]>> = Object.freeze({
     ["0cfc50ada6cd0dd41cdaeab76568edbb7d19f17731d2990e3f3d2a6d4ad63162"],
   "35e374a944b7401965998e31575be14cd7fa30daaad6dc03804f713bff8d916f":
     ["13daa10ca7f072230222e10a70a93e45cd93734c355369c54baa0638be20a911"],
+  "3667feefe1f218d803112d8c3d2c3f7c60efdaba9694b80a0ed86fe1a849d646":
+    ["f6e560c11c6c9c8de4eb24c0088e6efc9d0b972060caabf19a82ed62d113ad06"],
   "3709d9679f87e42ce28cefa257af0e89727c0ec16c66bdb5f98482fdbdb8f98c":
     ["ed352be69e8a9141fc35986b1b73ca30b3925b483f5e62a37a10433c7d86834e"],
   "3789c63f2f9c7189d49ac9d02ba40a7c555fb5f07027d34c6872ff079ee97d16":
@@ -974,6 +978,8 @@ const IDENTITIES: Readonly<Record<string, readonly string[]>> = Object.freeze({
     ["3ceba6716c6ee117c430d7a6c486f0b237f7b856cb7ceafbf05cad9a034adce0"],
   "46b73500a7f2d248c607d281f91c3fb6b9337297c1f6fd71dc831f10efdc865b":
     ["b5fcf482b465aab30ccd171a99ce1fd60bf8669b2813a8492535744ab7cd8397"],
+  "4737741bf201a48b379bbee09bc56731be209b5c886c4215c42bf8c3dc9abd88":
+    ["52444d5637379c910af88291aed4c62905b7fb5283d01ae268f633b88c4d30c7"],
   "483e9a39a81c93a2b4744034d338355bd6a8647998676d4384e134e8347ae88e":
     ["037e256eea7db569aea42d02910755cc81b1bd7eb3e4283ef9b0dfcf5b71e2c7"],
   "498a580fe1f2863df8c929ecbff1e8f864ed96ff53f7b18b803ae84dfb2545a7":
@@ -1006,6 +1012,8 @@ const IDENTITIES: Readonly<Record<string, readonly string[]>> = Object.freeze({
     ["3065c3d93375742d3cf0705c308593f4a77fef18609a3d6388b82f683aa8f84c"],
   "562b11e132a331b10a14d793a7b334997a6ecf2bdffd3115c9252391bbe4b0f0":
     ["356d0e3c0d72b3bd2afee4bd054b2a1e2a0db8cf8b26726f9d1af841c59a3470"],
+  "57a88a1a84b4ba6c6f9d5c38dd215238dcd3e7cf2888d6b2be41429673878f64":
+    ["6923f49e7c9b03923d3cea6dd181a2a2ef41845ba5344c2310e0d283dc0114eb"],
   "58eae3c31255da6e2582ded4e0615fadbb5619ecdbff597bba9dcbe166d315c4":
     ["d438e020b37d029c98182336542074d09c6486f7875cae4598fc70ede2e69a80"],
   "59c2c2556eeb11939ddfca127f48e9147c954fda6644dfc100bcacbbbb78561c":
@@ -1014,6 +1022,8 @@ const IDENTITIES: Readonly<Record<string, readonly string[]>> = Object.freeze({
     ["caf859e551e3d6989d3c321d13b4814ca22553daf8ef16d2224d71594ee9e07b"],
   "5b53e7ea08a053c2ac512a6b28660f8d927c477968df8043471ec2c2dbceee5d":
     ["a9fe7f3b8ee645dbd423742bd7d9798abe772d68edd6d06647c11aef9efcf6ca"],
+  "5e0ab6365510501ff760de8c3bdfb8682bf918e092d9263441d8fc7f56403533":
+    ["0c6159e6822076cdc48cfaf12432a10c25f7d837d371be10bfc55fab08737607"],
   "5e6a5f7de8ba304c3cef666164ad58cd9a98f3ca2fc4f0936b84697d15b38cbb":
     ["044a45f1b1f2cc499c611d8f50932ca1ee88ad6627e650d9b7fd4b587925adfe"],
   "5f5e99bed43e89cdb3ac384bf51d5c61c1616fa16c29ba985c0cc4bfa6b0ea15":
@@ -1050,6 +1060,8 @@ const IDENTITIES: Readonly<Record<string, readonly string[]>> = Object.freeze({
     ["9e2e1fbce8133821b7a97d5eb9eecb7cb24a7ff8af213e4f3be6ca049f5e258c"],
   "72ab3beab5262b9e3bb92a2695479eadc0ed735e8bf8c4dfb02b25b2232d38be":
     ["3cf03d7503fe42cb85f212e84a177e78686bbc1398edb0802fa4930ec93f84eb"],
+  "72adab1b90ab319ebf714722d199675dabdbf945affaabecabaa215cbcb858ac":
+    ["b9aafb1e52639d614522af14bf3e62741673de89cd411520e476018231b87a6c"],
   "73c890f5440d0ee73e0b71408fc0b04cb728660f8d34e5c5cfbe2a94dd2b1667":
     ["7684f1ef3d5cdc3d6bb51369289352b315e1fb5b3049880818ae595fe5b060bc"],
   "7412f7e8c717d242295a3bcff19ecbb6ab94087026ca81204b208203a968d1b5":
@@ -1076,6 +1088,8 @@ const IDENTITIES: Readonly<Record<string, readonly string[]>> = Object.freeze({
     ["fb44bb9aaf2f738b793293d5648852569507b644e274984e52cce305b971becf"],
   "7f1603650a1e2428354420bdc3ca9d4b4c9e678a2736234277cdf46755090311":
     ["0422c5f53925fdd966eb7c76ec928ea235a8afbeaef8583f4aaf79a827ab9e56"],
+  "845200d2aae2d929e80fa3ebf334133e6d9dfa4fb1d2dfca3383c0a5c6186b14":
+    ["759d09c4136db5471bccc23644c175217d49a6f6e3b61687bd02a2d08dcd2674"],
   "8476683033ad31f0b011834d9caad51f0a23c8e1ba88e10ac0c583146eb4c156":
     ["e72a87500b6bfe377128c32e2ce902981fcfa083d4162ef96a3810e9a0962ad6"],
   "8492fb8cf18d58dfb55b4659663684f521cca7e762393d2e9657b0cb59236e26":
@@ -1088,6 +1102,8 @@ const IDENTITIES: Readonly<Record<string, readonly string[]>> = Object.freeze({
     ["2a9ee6f6a8d52ab4ad7e51ac02a5749240b5ef96f97a7b7810d6696c07a8d4e4"],
   "89a3bd86b2316709e91dc8c6e29fe0dd146bd341ea67500c1803dc90833ef0b5":
     ["343609d1b72ec885303add25ee35ab43bb6259448cf431de1a9b7f092a477d5c"],
+  "8bbf0be7d8031c7a3ebb9a6d9311d4849f120352bd61e0a1abfc02735107686c":
+    ["83af6d8be66b34d39105e35258865b1db11645f9ff02140e20746cd38e092998"],
   "8c2f991e381aec54c79bb3f236652fade8de44da3fa92cfe45556bc4af60f183":
     ["0109a32ef6487ea2b983da104370ea96be50a9abd1397792a9245f0114371537"],
   "8e87304b020e158179c2a265fec3d2b82230104b60f1c55db6aaafe7ecfc7936":
@@ -1112,6 +1128,8 @@ const IDENTITIES: Readonly<Record<string, readonly string[]>> = Object.freeze({
     ["762f4d097c79f3fd89d49a2a24f76b0f0fde8e3eacd6963b15a1e3b2f831d71b"],
   "941d0f4ea3ce80d1787e3163e16cb06deb129a47f25ca91b398add3222a4082b":
     ["50363262f37ae048f0b16f1e99b1cd601ddccb796adf1789956f3979982612e3"],
+  "946992af3680b0217734172ccc0a70e7c283a44eda54edcf399a734791e347c3":
+    ["0efd1693e5415d79df8dce566b3a4fd0ac56eb41e73ec99fee11e65ac6e5b57e"],
   "94b7a29936f37b71100e1805725eaaf59df65ec763fc964667fb9166bef6acd7":
     ["736ca465422c9c9247ed4bd92111bd0a039259833f2c10d09b8266749c74a5c6"],
   "94ec7217d0fb11ead98600b7b8aa2b71ee55fad6b936d2133088b33c9962a37d":
@@ -1128,6 +1146,10 @@ const IDENTITIES: Readonly<Record<string, readonly string[]>> = Object.freeze({
     ["cb2d03006249a4eb372f5c0f3db4f48f501767792e8ecf1b3fc5faaac99669de"],
   "9a25d91557bf40566ba9ece25b3fbdba513dbe39cdb01d8437136c3b7e4a3b56":
     ["5e49acf5076e99c05a0d92a4abbe7e6a401fdd0502532bdfe0b00558504ebd6d"],
+  "9a39085dfb13220e6f834ec96f99df624116e8a207c57c07f22466705530c5e8":
+    ["8d92db018216ed702e37826b3f8c3bec27a8618b878d0d24fd32cf2ce80d2c98"],
+  "9c5177d9ca50b7fe47f7ecf52a452e4eb793537066efd1110795dbd07b52bf26":
+    ["567edc769fa3812bcda6fc82531f1afda5dcfbe6ee993a5d8d33c9e39263cd9b"],
   "9c753eb67c287ac128bbdd725290aaa3079e7711e787b2c9c337cafa5ac7bc26":
     ["85d4eca93841c4f90b5a84454a6c5b7ec90fb1ea3b695339d4c98359a28f672a"],
   "9d15fca77c779c94d8525c7d3b9a555d233f8f41027088ea2d3da59cb7d8326f":
@@ -1148,6 +1170,8 @@ const IDENTITIES: Readonly<Record<string, readonly string[]>> = Object.freeze({
     ["530a18f196435670ea99b70f7be23faf18271fafc8c2a00798f6e9c63b1d2ecf"],
   "a6c78374f4e6a901900a6f8102a49fa487170877630e532b9e1d9388bda1d93a":
     ["b1576c485ad2e0286122cf366efed176fdf78fb2ec3919b07653c559f2a0da1b"],
+  "a7791775e7756465b85e9fde1f69dfdcfebc0004d3e9183421de2e1cb5f5e379":
+    ["700fe638f86f05d1b0217a41be746bc71699e2f2419fe9571bd05d95fa079694"],
   "a8dcb08cbc985ec871d8537d056bb9a702c0b3dd33c1efdf19dfc6ba6cfbcd4c":
     ["aa27ac9011c1e846e83eb7af7f5a05abbd923574047251a074d7735fd86175af"],
   "a99214933ed1c82fe6ce45a9c067cc87b374389e00c87373defa0faeb6dea402":
@@ -1232,6 +1256,8 @@ const IDENTITIES: Readonly<Record<string, readonly string[]>> = Object.freeze({
     ["e73f053dcc3dec0c92465a3144c624e7b450edab262a82f5c4ed220f969b9cbe"],
   "c7da1da4f3c1d8f53d3bf6463b088fe12557de59888dc4e47130120529b275ea":
     ["0c5491294ad34a7c5d4cfc7ae04e6ec708267ca0f1ccece85bc46b690e908f0a"],
+  "c9d06f44e8f7c99f976ffeb728e1d8e8490a8b0202b857e130f834098ccae03d":
+    ["da1e771dd1cdc96268fc5eeb272e1bce4d1c29c4a5861ac1fdc1dbd6e23fee9b"],
   "cd19729848a8981a6c93b2e6df14d8c65a6b9861557319b876b27e176e8bb2d3":
     ["c314763760e9825e7cd2d32bf9ee89302cb07809a3ec3e18563fd71e1bbcace1"],
   "cd6b4adea9a0d131da290460d6bd379487e59f538297b8cf327a410fef3bae38":
@@ -1258,6 +1284,8 @@ const IDENTITIES: Readonly<Record<string, readonly string[]>> = Object.freeze({
     ["f0b851c9de7f56020a2cd9d76ab420d1cb21f5cc77e25d5e18369acfd9133d59"],
   "d4066bccfd04635db551e12e16406e952e90e7cb3135b10b22f1c2c99ca2d93c":
     ["ead316e17d0faa1453a087a5100e6ad5c5fb41959a4b6c5b0580f57b525b7d40"],
+  "d420d0eabfb51b9ecdb930d532f282b101febd003fffd8c993ebc9fdcd4dd33b":
+    ["0455cc0d0e80ada2479713c5ab0f027afc3267bfd0475bf1f5b087b8dc597568"],
   "d4eac5d760c62f0df7188b1b6153932c46b080343f0f37f439e495bf48227ab4":
     ["6ef763cff772296b9bfa3fd43638e9f0b97d69ecf7d616389a0686e0b723eddf"],
   "dbcadc02907cff650426b68bbf3e4b23db4a569dd407ae6088d8b42bda5ff2ee":
@@ -1340,6 +1368,8 @@ const IDENTITIES: Readonly<Record<string, readonly string[]>> = Object.freeze({
     ["739c345dc7769f625f68bae6cecebebc6e5728c7fc91f0692ef15468df977763"],
   "fb96881d692f9e58bd28daaf2a4c0f2872c9fe2f8f19b5a7248e244fbd91a03c":
     ["84eb016c3d36815e4b14ecf62eabda40a045dfe5c55419293a68eee375d103a9"],
+  "fc2afe3ac91e845eae941170a63964156daad419c4d82d54e17227b694bac250":
+    ["5c8768c6c1c9126725b399229afce79ed4b10b14bfbd3730490889c4b563cdd1"],
   "ff540acea56ffbc5947288f9d461495e1970006fba7799ffd9d2b1dae1d06b93":
     ["41d33aeaf230d0bbc6f3c528dd9e96232a82db7fd24c9762882ba8a0cfb84257"],
 });
@@ -1444,7 +1474,15 @@ const FACTS: GenerationFacts = Object.freeze<GenerationFacts>({
       builder: "47b1743a0f714bdb0c2d03ca8e6fb4ae4ef25278b29cff2f68ef5070f7ba50bc",
     }],
   }]),
-  cartographyLayouts: Object.freeze(["october22"] as const),
+  // October 22 renumbered the Cartography surface owners and their callees;
+  // the bodies are unchanged apart from moved static addresses.
+  cartographySurfaces: Object.freeze([Object.freeze({
+    compassRender: [14213, "1082760d337d455ea976e2b6c9b99132e0e529417af2037e70ca08eeed819f0d"],
+    compassMapRender: [14152, "9c5177d9ca50b7fe47f7ecf52a452e4eb793537066efd1110795dbd07b52bf26"],
+    missionMapDispatcher: [16123, "73c890f5440d0ee73e0b71408fc0b04cb728660f8d34e5c5cfbe2a94dd2b1667"],
+    missionMapGameplayContext: [13533, "a7791775e7756465b85e9fde1f69dfdcfebc0004d3e9183421de2e1cb5f5e379"],
+    worldMapDispatcher: [16210, "3667feefe1f218d803112d8c3d2c3f7c60efdaba9694b80a0ed86fe1a849d646"],
+  } as const)]),
   friendLifecycleRoles: Object.freeze([Object.freeze({
     // Message IDs and source-line witnesses shifted by one and static state
     // moved; every call and connection-store relation is unchanged.

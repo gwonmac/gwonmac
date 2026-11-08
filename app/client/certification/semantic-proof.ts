@@ -8,10 +8,11 @@
  * non-overlapping relocation operands.
  */
 import { createHash } from "node:crypto";
+import { ProofRefusal } from "./stage-refusal.js";
 
 export const SEMANTIC_VERIFIER_ABI = 10;
 
-export type ProofRefusal = Readonly<{
+export type RefusedProofFacts = Readonly<{
   inputSha256: string;
   verifierAbi: number;
   invariant: string;
@@ -24,8 +25,8 @@ export type ProofVerdict<Value> =
       verifierAbi: number;
       value: Value;
     }>
-  | (Readonly<{ status: "changed" }> & ProofRefusal)
-  | (Readonly<{ status: "ambiguous"; candidates: number }> & ProofRefusal);
+  | (Readonly<{ status: "changed" }> & RefusedProofFacts)
+  | (Readonly<{ status: "ambiguous"; candidates: number }> & RefusedProofFacts);
 
 export type AddressClass =
   | "function-index"
@@ -64,7 +65,7 @@ export function verifyLayout<Layout extends Readonly<Record<string, number>>>(
   witnesses: FieldWitnesses<Layout>,
 ): VerifiedLayout<Layout> {
   if (!exactOwnKeys(layout, witnesses)) {
-    throw new Error("semantic proof: layout witness keys do not match");
+    throw new ProofRefusal("semantic proof: layout witness keys do not match");
   }
   for (const [field, value] of Object.entries(layout)) {
     const witness = witnesses[field]!;
@@ -77,7 +78,7 @@ export function verifyLayout<Layout extends Readonly<Record<string, number>>>(
         (occurrence) => Number.isSafeInteger(occurrence) && occurrence >= 0,
       )
     ) {
-      throw new Error(`semantic proof: invalid witness for ${field}`);
+      throw new ProofRefusal(`semantic proof: invalid witness for ${field}`);
     }
   }
   return Object.freeze({
@@ -86,7 +87,7 @@ export function verifyLayout<Layout extends Readonly<Record<string, number>>>(
   });
 }
 
-export class ProofLimitError extends Error {
+export class ProofLimitError extends ProofRefusal {
   readonly limit: string;
 
   constructor(limit: string) {
@@ -101,7 +102,7 @@ export class ProofBudget {
 
   constructor(limit: number) {
     if (!Number.isSafeInteger(limit) || limit < 0) {
-      throw new Error("semantic proof: invalid analysis limit");
+      throw new ProofRefusal("semantic proof: invalid analysis limit");
     }
     this.limit = limit;
     this.#remaining = limit;
@@ -109,7 +110,7 @@ export class ProofBudget {
 
   spend(units = 1): void {
     if (!Number.isSafeInteger(units) || units < 0) {
-      throw new Error("semantic proof: invalid analysis cost");
+      throw new ProofRefusal("semantic proof: invalid analysis cost");
     }
     if (units > this.#remaining) throw new ProofLimitError("analysis-work");
     this.#remaining -= units;
@@ -148,7 +149,7 @@ export function relocationAwareFingerprint(
       || span.end <= span.start
       || span.end > bytes.byteLength
     ) {
-      throw new Error("semantic proof: invalid or overlapping relocation span");
+      throw new ProofRefusal("semantic proof: invalid or overlapping relocation span");
     }
     hash.update(bytes.subarray(cursor, span.start));
     hash.update(text.encode(`\0${span.addressClass}:${span.role}\0`));

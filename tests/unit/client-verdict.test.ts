@@ -9,7 +9,8 @@ import {
   type ClientVerificationLaunch,
   type ClientVerificationPassResult,
 } from "../../app/client/certification/client-verification-pass.js";
-import { isStageRefusal } from "../../app/client/certification/stage-refusal.js";
+import { isStageRefusal, ProofRefusal } from "../../app/client/certification/stage-refusal.js";
+import { WasmFormatError } from "../../app/main/core/wasm-binary.js";
 import {
   failedStagesField,
   isFailedStagesField,
@@ -447,7 +448,9 @@ describe("client verdict", () => {
     // Catches a crash classified as a refusal (stored forever) or a refusal
     // classified as a crash (re-proved on every launch).
     const cases: [string, unknown, boolean][] = [
-      ["fail() refusal", new Error("extended-memory transform: glue changed"), true],
+      ["fail() refusal", new ProofRefusal("extended-memory transform: glue changed"), true],
+      ["unreadable bytes", new WasmFormatError("wasm: truncated LEB128"), true],
+      ["plain Error", new Error("from a library"), false],
       ["evidence refusal", new EvidenceError("invalid-wasm"), true],
       ["proof limit", new ProofLimitError("call"), true],
       ["defect", new TypeError("x is undefined"), false],

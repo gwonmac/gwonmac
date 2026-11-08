@@ -2,6 +2,7 @@
  * Feature-owned semantic proof for the complete Template-saving rewrite path.
  * It refuses incomplete or ambiguous call, storage, and bridge relationships.
  */
+import { ProofRefusal, refusedOrRethrow } from "./stage-refusal.js";
 import { createHash } from "node:crypto";
 import { normalizeTemplateCalleeCalls } from "./template-save-callee-proof.js";
 import { readSleb, readUleb } from "../../main/core/wasm-binary.js";
@@ -31,7 +32,7 @@ const text = new TextEncoder();
 const sha256 = (bytes: Uint8Array): string =>
   createHash("sha256").update(bytes).digest("hex");
 const fail = (message: string): never => {
-  throw new Error(`template-save recertify: ${message}`);
+  throw new ProofRefusal(`template-save recertify: ${message}`);
 };
 
 const memory = (start: number, baseline: number, storage: TemplateStaticStorage) =>
@@ -129,7 +130,9 @@ function relocationValue(body: Uint8Array, item: StaticOperand): number {
       if (cursor.offset !== item.start) continue;
       const value = readUleb(body, cursor);
       if (cursor.offset === item.end) return value;
-    } catch { /* keep looking */ }
+    } catch (error) {
+      refusedOrRethrow(error); // keep looking
+    }
   }
   return fail(`static relocation at ${item.start} is not a memory offset`);
 }
@@ -209,7 +212,13 @@ function assignRoles(found: TemplateSemanticLocation): Map<number, TemplateCalle
     const matches = expected.map((role) => candidates.filter((local) => {
       const source = found.view.bodies[local]!;
       if (CALLER_RELOCATIONS[role].some(({ end }) => end > source.byteLength)) return false;
-      try { normalizeCaller(found, role, source, source.slice(), new Map()); return true; } catch { return false; }
+      try {
+        normalizeCaller(found, role, source, source.slice(), new Map());
+        return true;
+      } catch (error) {
+        refusedOrRethrow(error);
+        return false;
+      }
     }));
     if (!(matches.every((match) => match.length === 1) && matches[0]![0] !== matches[1]![0])) {
       const productionSized = candidates.some((local) => expected.some((role) =>
@@ -248,7 +257,10 @@ function screenshotFamily(found: TemplateSemanticLocation, sink: number): {
         verifyString(found, relocationValue(body, string(start, expected)), expected);
       }
       return [local];
-    } catch { return []; }
+    } catch (error) {
+      refusedOrRethrow(error);
+      return [];
+    }
   });
   if (candidates.length !== 1) fail("screenshot-state initializer is ambiguous");
   const initializer = candidates[0]!;

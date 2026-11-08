@@ -8,6 +8,7 @@
  * then checks every audited conversion before Main repeats the transform.
  */
 import { createHash } from "node:crypto";
+import { ProofRefusal } from "./stage-refusal.js";
 import { mkdir, readFile, rm, stat } from "node:fs/promises";
 import path from "node:path";
 import {
@@ -53,7 +54,7 @@ const sha256 = (bytes: Uint8Array | string): string =>
   createHash("sha256").update(bytes).digest("hex");
 
 function fail(message: string): never {
-  throw new Error(`extended-memory transform: ${message}`);
+  throw new ProofRefusal(`extended-memory transform: ${message}`);
 }
 
 function replaceExactly(

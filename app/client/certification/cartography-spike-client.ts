@@ -32,7 +32,7 @@ export function rewriteCartographySpikeWasm(
   input: Uint8Array,
   build: CartographySpikeBuild,
 ): Uint8Array {
-  return transformCartographySpikeWasm(input, build.memoryLayout);
+  return transformCartographySpikeWasm(input, { contextRoot: build.contextRoot, agentArray: build.agentArray });
 }
 
 /** Prepare Cartography only from an isolated semantic certificate. */

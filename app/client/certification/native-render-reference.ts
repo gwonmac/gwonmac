@@ -3,6 +3,7 @@
  * run while the client's frame is suspended. Publishers must neither reenter
  * a graphics queue flush nor change a model the renderer still references.
  */
+import { ProofRefusal } from "./stage-refusal.js";
 import { perReviewedFacts, recordExactMatch, reviewedIdentities } from "./reviewed-facts.js";
 import { functionBodySha256 } from "./wasm-evidence.js";
 import {
@@ -115,10 +116,10 @@ function reviewedNativeRenderFunctions(
   family: number,
 ): NativeRenderFunctionBodies {
   const functions = nativeRenderFamilies()[family]?.functions;
-  if (functions === undefined) throw new Error("unknown native render family");
+  if (functions === undefined) throw new ProofRefusal("unknown native render family");
   return functions === null ? checked : checked.map(([index]) => {
     const entry = functions[index];
-    if (!entry) throw new Error("unreviewed native render owner");
+    if (!entry) throw new ProofRefusal("unreviewed native render owner");
     return entry;
   });
 }
@@ -200,7 +201,7 @@ export function resolveNativeRenderBindings(module: ModuleShape,
       family.functions === null ? [index, hash] as const : family.functions[index]!)),
     functionIndex: (index: number) => {
       if (!checked.some(([reviewed]) => reviewed === index)) {
-        throw new Error("unreviewed native render call");
+        throw new ProofRefusal("unreviewed native render call");
       }
       return family.functions?.[index]?.[0] ?? index;
     },

@@ -147,17 +147,14 @@ const PATCH_DAY: Readonly<Record<string, PatchDayRow>> = {
     ],
     stages: { doubleClick: "refused", cartography: "refused", friends: "refused" },
   },
-  // Template saving derives its rewrite from the bytes; November 3's helper
-  // bodies and native draw owners are relocations of reviewed ones. Quick Item
-  // Move, player effects, resign and whispers need a review; Cartography needs
-  // the client's layout roots and friends its moved GcAuthCmd.cpp lines.
+  // Template saving, Cartography, player effects and the chat paths accept
+  // November 3's relocations of reviewed bodies. Quick Item Move needs a
+  // review (its memory-code digest changed), and friends its moved
+  // GcAuthCmd.cpp lines.
   "2026-11-03-f2a2b07c9c56": {
     template: "proved",
-    refuses: [
-      "quickItemMove", "playerEffectObservation", "effectIconGeometry", "resignAction",
-      "whisperChat", "alcoholObservation",
-    ],
-    stages: { doubleClick: "proved", cartography: "refused", friends: "refused" },
+    refuses: ["quickItemMove"],
+    stages: { doubleClick: "proved", cartography: "proved", friends: "refused" },
   },
 };
 

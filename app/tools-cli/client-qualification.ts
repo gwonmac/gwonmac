@@ -238,7 +238,6 @@ export function cartographyReport(
       profile,
       inputSha256: build.inputSha256,
       outputSha256: build.outputSha256,
-      memoryLayout: build.memoryLayout,
     }] : [];
   });
   const completeProof = chains.length === predecessors.length;

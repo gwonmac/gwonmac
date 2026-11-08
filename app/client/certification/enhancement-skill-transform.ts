@@ -78,6 +78,12 @@ export function resolveEnhancementSkillTransform(options: Readonly<{
   bodies: readonly Uint8Array[];
   importCount: number;
   resolveFunction: ResolveFunction;
+  /**
+   * The body at `functionIndex` is the reviewed body `bodySha256`, exactly or
+   * by relocation identity. Effect proofs name reviewed bodies, which a
+   * relinked client holds only as relocations.
+   */
+  isReviewedBody: (functionIndex: number, bodySha256: string) => boolean;
   fail: (message: string) => never;
 }>): EnhancementSkillTransformResolution {
   const {
@@ -86,6 +92,7 @@ export function resolveEnhancementSkillTransform(options: Readonly<{
     bodies,
     importCount,
     resolveFunction,
+    isReviewedBody,
     fail,
   } = options;
   let geometry: EnhancementSkillTransformResolution["geometry"] = null;
@@ -160,16 +167,16 @@ export function resolveEnhancementSkillTransform(options: Readonly<{
       "precise effect timer", certificate.timer.functionIndex,
       certificate.timer.params, certificate.timer.results,
     );
-    if (bodyHash(bodies, importCount, certificate.timer.functionIndex, fail)
-      !== certificate.timer.bodySha256) fail("effect timer body does not match its certificate");
+    if (!isReviewedBody(certificate.timer.functionIndex, certificate.timer.bodySha256)) {
+      fail("effect timer body does not match its certificate");
+    }
     for (const functionCertificate of [
       ...certificate.accessors,
       certificate.mutations.addTimed,
       certificate.mutations.renewTimed,
       certificate.mutations.remove,
     ]) {
-      if (bodyHash(bodies, importCount, functionCertificate.functionIndex, fail)
-        !== functionCertificate.bodySha256) {
+      if (!isReviewedBody(functionCertificate.functionIndex, functionCertificate.bodySha256)) {
         fail("effect collection body does not match its certificate");
       }
     }
@@ -188,12 +195,10 @@ export function resolveEnhancementSkillTransform(options: Readonly<{
       "Effects frame constructor", certificate.constructor.functionIndex,
       certificate.constructor.params, certificate.constructor.results,
     );
-    if (bodyHash(bodies, importCount, certificate.initializer.functionIndex, fail)
-        !== certificate.initializer.bodySha256
+    if (!isReviewedBody(certificate.initializer.functionIndex, certificate.initializer.bodySha256)
       || bodyHash(bodies, importCount, certificate.constructor.functionIndex, fail)
         !== certificate.constructor.bodySha256
-      || bodyHash(bodies, importCount, certificate.childBuilder.functionIndex, fail)
-        !== certificate.childBuilder.bodySha256) {
+      || !isReviewedBody(certificate.childBuilder.functionIndex, certificate.childBuilder.bodySha256)) {
       fail("Effects frame bodies do not match their certificates");
     }
     const operand = certificate.initializer.constructorCallOperand;

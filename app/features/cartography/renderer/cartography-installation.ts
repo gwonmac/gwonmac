@@ -29,6 +29,7 @@ import {
   createWorldMapFrameReader,
 } from "./frame-observer.js";
 import { mountCartographyOverlay } from "./overlay.js";
+import { decodeCartographyManifest } from "./cartography-manifest.js";
 import { installCartographyReachabilityKernel } from "./reachability-kernel.js";
 import { createWorldMapAnchorReader } from "./world-map-anchor-observer.js";
 
@@ -62,6 +63,8 @@ const unavailableWorldMap = Object.freeze({
 /** Install the atomic evidence core; unavailable presentation surfaces stay isolated. */
 export async function installCartography(options: Readonly<{
   exports: WebAssembly.Exports;
+  /** The instantiated client module; its manifest names the kernel's roots. */
+  module: WebAssembly.Module;
   parent: HTMLElement;
   canvas: HTMLCanvasElement;
   settings(): AppSettings;
@@ -96,7 +99,10 @@ export async function installCartography(options: Readonly<{
 
   let kernel;
   try {
-    kernel = await installCartographyReachabilityKernel(options.exports);
+    kernel = await installCartographyReachabilityKernel(
+      options.exports,
+      decodeCartographyManifest(options.module),
+    );
   } catch (cause) {
     console.error("[cartography] reachability kernel unavailable", cause);
     kernel = Object.freeze({

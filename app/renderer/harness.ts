@@ -786,6 +786,7 @@ Module = {
           if (!rendererUnloading) {
             cartographyHost = installCartographyHost({
               exports: result.instance.exports,
+              module: result.module,
               parent: document.body,
               canvas: Module.canvas,
               api,

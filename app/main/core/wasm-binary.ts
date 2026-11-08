@@ -4,8 +4,8 @@
  * transform, and the re-certifier that re-derives a build entry.
  *
  * Callers keep their own domain-prefixed `fail()` for their own invariants;
- * everything here throws `wasm: …` so a structural fault is distinguishable
- * from a policy one.
+ * everything here throws a `WasmFormatError` (`wasm: …`) so bytes it cannot
+ * read are distinguishable from a policy refusal and from a defect.
  */
 
 export interface Section {
@@ -34,8 +34,11 @@ const VALUE_TYPE_NAMES = new Map([
   [0x7c, "f64"],
 ]);
 
+/** Bytes this codec cannot read: a fact about the bytes, not a defect. */
+export class WasmFormatError extends Error {}
+
 function fail(message: string): never {
-  throw new Error(`wasm: ${message}`);
+  throw new WasmFormatError(`wasm: ${message}`);
 }
 
 /**
@@ -354,7 +357,7 @@ export function parseExports(bytes: Uint8Array): WasmExport[] {
     const nameLength = readUleb(bytes, cursor);
     const end = cursor.offset + nameLength;
     if (end > bytes.byteLength) {
-      throw new Error("wasm-binary: truncated export name");
+      throw new WasmFormatError("wasm-binary: truncated export name");
     }
     const name = decoder.decode(copyRange(bytes, cursor.offset, end));
     cursor.offset = end;
@@ -362,7 +365,7 @@ export function parseExports(bytes: Uint8Array): WasmExport[] {
     exports.push({ name, kind, index: readUleb(bytes, cursor) });
   }
   if (cursor.offset !== bytes.byteLength) {
-    throw new Error("wasm-binary: malformed export section");
+    throw new WasmFormatError("wasm-binary: malformed export section");
   }
   return exports;
 }

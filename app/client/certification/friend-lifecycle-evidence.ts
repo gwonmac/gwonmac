@@ -3,6 +3,7 @@
  * It refuses missing roles, changed call relationships, and incomplete connection-store coverage.
  */
 import { createHash } from "node:crypto";
+import { refusedOrRethrow } from "./stage-refusal.js";
 import type { DecodedFunction, ModuleShape } from "./enhancement-evidence-types.js";
 import { inspectFriendTable } from "./friend-table-evidence.js";
 import { friendSemanticBodyShape } from "./friend-semantic-shape.js";
@@ -232,7 +233,8 @@ export function inspectFriendLifecycle(input: Uint8Array): FriendLifecycleEviden
       },
       unresolved: ["production-friend-lifecycle-transform", "live-session-observation"],
     };
-  } catch {
+  } catch (error) {
+    refusedOrRethrow(error);
     return unavailable("bounded-analysis-refused");
   }
 }
