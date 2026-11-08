@@ -3,10 +3,15 @@
  * They turn verified runtime facts into closed diagnostics values.
  */
 import type {
+  ClientCompatibility,
+  ExtendedMemoryRuntimeStatus,
   OptionalFeatureStatus,
   RuntimeEnhancementVerification,
 } from "../shared/contracts.js";
-import { ENHANCEMENT_CAPABILITY_FIELDS } from "../shared/enhancement-contracts.js";
+import {
+  capabilityRecord,
+  ENHANCEMENT_CAPABILITY_FIELDS,
+} from "../shared/enhancement-contracts.js";
 import { isDigest, type Digest } from "../shared/digest.js";
 import type { LocalFeatureVerdicts } from
   "./certification/local-client-verification-contract.js";
@@ -33,6 +38,39 @@ export function optionalFeatureStatus(
       ? "preparation-failed"
       : "game-update",
   };
+}
+
+/**
+ * When the build could not be checked at all, no refusal is the game build's
+ * doing: every "game update" refusal of this launch is the failed check.
+ */
+export function withFailedCheck(
+  compatibility: ClientCompatibility,
+  extendedMemory: ExtendedMemoryRuntimeStatus,
+): { compatibility: ClientCompatibility; extendedMemory: ExtendedMemoryRuntimeStatus } {
+  const { features } = compatibility;
+  return {
+    compatibility: {
+      ...compatibility,
+      features: {
+        gameFileSaving: checkFailed(features.gameFileSaving),
+        nativeDoubleClick: checkFailed(features.nativeDoubleClick),
+        ...capabilityRecord((capability) => checkFailed(features[capability])),
+      },
+    },
+    extendedMemory: extendedMemory.status === "unavailable"
+      && extendedMemory.fallbackReason === "unsupported-client"
+      ? { ...extendedMemory, fallbackReason: "check-failed" }
+      : extendedMemory,
+  };
+}
+
+function checkFailed<Status extends OptionalFeatureStatus>(
+  status: Status,
+): Status | Readonly<{ status: "unavailable"; reason: "check-failed" }> {
+  return status.status === "unavailable" && status.reason === "game-update"
+    ? { status: "unavailable", reason: "check-failed" }
+    : status;
 }
 
 /** Retain one bounded, closed verdict per capability for the active generation. */

@@ -42,6 +42,7 @@ import { ensureToolsStylesheet } from "./tools-stylesheet.js";
 import { requireToolsApi } from "./tools-native-api.js";
 import { createTradeWhispers } from "./trade-whispers.js";
 import { featureActivationRequested } from "../shared/feature-contracts.js";
+import { BUILD_CHECK_FAILED } from "../shared/contracts.js";
 
 /**
  * Writes one build where the game's own template dialog will find it.
@@ -136,14 +137,18 @@ export function mountToolsInto(
         ? applyStatus?.status === 'unavailable'
           ? applyStatus.reason === 'preparation-failed'
             ? 'Apply team didn’t start. Your saved team is unchanged. Restart GWonMac to try again.'
-            : APPLY_UNAVAILABLE
+            : applyStatus.reason === 'check-failed'
+              ? `${BUILD_CHECK_FAILED} Your saved team is unchanged.`
+              : APPLY_UNAVAILABLE
           : 'Apply team is off. Your saved team is unchanged.'
         : null;
       const observationStatus = session.compatibility?.features.partyObservation;
       const observationUnavailable = observationStatus?.status === 'unavailable'
         ? observationStatus.reason === 'preparation-failed'
           ? 'Live game information didn’t start. Saved builds and teams still work. Restart GWonMac to try again.'
-          : 'Live game information is temporarily unavailable. Saved builds and teams still work.'
+          : observationStatus.reason === 'check-failed'
+            ? `${BUILD_CHECK_FAILED} Saved builds and teams still work.`
+            : 'Live game information is temporarily unavailable. Saved builds and teams still work.'
         : null;
       const app = bundle.mountToolsApp(host, {
         ...(window.gwHub ? { hub: window.gwHub } : {}),

@@ -2,7 +2,7 @@
  * Extended-memory setting presentation: its state line from the saved choice and
  * the running client's effective limit (Settings › Game).
  */
-import type { ExtendedMemoryRuntimeStatus } from "./contracts.js";
+import { BUILD_CHECK_FAILED, type ExtendedMemoryRuntimeStatus } from "./contracts.js";
 
 export type ExtendedMemoryView = Readonly<{
   label: string;
@@ -39,6 +39,13 @@ export function extendedMemoryView(
       label: "Using 4 GB",
       level: "good",
       detail: "The certified 4 GB memory module is active for this session.",
+    };
+  }
+  if (runtime.status === "unavailable" && runtime.fallbackReason === "check-failed") {
+    return {
+      label: "Couldn’t check this Guild Wars build",
+      level: "warn",
+      detail: `${BUILD_CHECK_FAILED} Guild Wars started normally with 2 GB; gameplay is not blocked.`,
     };
   }
   if (runtime.status === "unavailable") {

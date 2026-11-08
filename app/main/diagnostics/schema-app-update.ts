@@ -710,6 +710,7 @@ export const APP_AND_UPDATE_EVENT_SCHEMA = {
         "none",
         "unsupported-client",
         "preparation-failed",
+        "check-failed",
         "diagnostic-profile",
       ] as const),
     },
