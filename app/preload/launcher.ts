@@ -1,85 +1,77 @@
 // The launcher's deliberately small sandbox bridge. Built to
-// build/preload/preload-launcher.cjs; the channels are imported from the
-// canonical launcher contracts and bundled in, so there is no parallel IPC list.
-import { contextBridge, ipcRenderer, type IpcRendererEvent } from "electron";
-import {
-  LAUNCHER_IPC,
-  type LauncherNativeApi,
-} from "../shared/launcher-contracts.js";
+// build/preload/preload-launcher.cjs; every channel comes from the launcher
+// channel table (app/shared/ipc/launcher.ts), bundled in, so there is no
+// parallel IPC list.
+import { contextBridge } from "electron";
+import { LAUNCHER_CHANNELS } from "../shared/ipc/launcher.js";
+import type { LauncherNativeApi } from "../shared/launcher-contracts.js";
+import { ipcBridge } from "./ipc-bridge.js";
 
-function listen<T>(channel: string, callback: (value: T) => void) {
-  const handler = (_event: IpcRendererEvent, value: T) => callback(value);
-  ipcRenderer.on(channel, handler);
-  let active = true;
-  return () => {
-    if (!active) return;
-    active = false;
-    ipcRenderer.removeListener(channel, handler);
-  };
-}
+const invoke = ipcBridge.invoker(LAUNCHER_CHANNELS);
+const listen = ipcBridge.listener(LAUNCHER_CHANNELS);
 
 const launcherApi: LauncherNativeApi = {
   navigation: {
-    onRequest: (callback) => listen(LAUNCHER_IPC.navigationEvent, callback),
+    onRequest: (callback) => listen("navigationEvent", callback),
   },
   state: {
-    get: () => ipcRenderer.invoke(LAUNCHER_IPC.stateGet),
-    onChange: (callback) => listen(LAUNCHER_IPC.stateEvent, callback),
+    get: () => invoke("stateGet"),
+    onChange: (callback) => listen("stateEvent", callback),
   },
   profiles: {
-    create: (input) => ipcRenderer.invoke(LAUNCHER_IPC.profilesCreate, input),
-    update: (input) => ipcRenderer.invoke(LAUNCHER_IPC.profilesUpdate, input),
-    setSelection: (ids) => ipcRenderer.invoke(LAUNCHER_IPC.profilesSetSelection, ids),
-    play: (ids) => ipcRenderer.invoke(LAUNCHER_IPC.profilesPlay, ids),
-    show: (id) => ipcRenderer.invoke(LAUNCHER_IPC.profilesShow, id),
-    cancelQueued: (ids) => ipcRenderer.invoke(LAUNCHER_IPC.profilesCancelQueued, ids),
-    archive: (id) => ipcRenderer.invoke(LAUNCHER_IPC.profilesArchive, id),
-    restore: (id) => ipcRenderer.invoke(LAUNCHER_IPC.profilesRestore, id),
-    delete: (id) => ipcRenderer.invoke(LAUNCHER_IPC.profilesDelete, id),
+    create: (input) => invoke("profilesCreate", input),
+    update: (input) => invoke("profilesUpdate", input),
+    setSelection: (ids) => invoke("profilesSetSelection", ids),
+    play: (ids) => invoke("profilesPlay", ids),
+    show: (id) => invoke("profilesShow", id),
+    cancelQueued: (ids) => invoke("profilesCancelQueued", ids),
+    archive: (id) => invoke("profilesArchive", id),
+    restore: (id) => invoke("profilesRestore", id),
+    delete: (id) => invoke("profilesDelete", id),
   },
   experience: {
-    completeSetup: (input) => ipcRenderer.invoke(LAUNCHER_IPC.experienceCompleteSetup, input),
-    dismissMigrationNotice: () => ipcRenderer.invoke(LAUNCHER_IPC.experienceDismissMigration),
-    dismissPreferencesReset: () => ipcRenderer.invoke(LAUNCHER_IPC.experienceDismissPreferencesReset),
-    updatePreferences: (patch) => ipcRenderer.invoke(LAUNCHER_IPC.experienceUpdatePreferences, patch),
+    completeSetup: (input) => invoke("experienceCompleteSetup", input),
+    dismissMigrationNotice: () => invoke("experienceDismissMigration"),
+    dismissPreferencesReset: () => invoke("experienceDismissPreferencesReset"),
+    updatePreferences: (patch) => invoke("experienceUpdatePreferences", patch),
   },
   settings: {
-    update: (patch) => ipcRenderer.invoke(LAUNCHER_IPC.settingsUpdate, patch),
-    reset: () => ipcRenderer.invoke(LAUNCHER_IPC.settingsReset),
+    update: (patch) => invoke("settingsUpdate", patch),
+    reset: () => invoke("settingsReset"),
   },
   tools: {
-    setMasterEnabled: (enabled) => ipcRenderer.invoke(LAUNCHER_IPC.toolsSetMasterEnabled, enabled),
-    setFeature: (input) => ipcRenderer.invoke(LAUNCHER_IPC.toolsSetFeature, input),
-    captureShortcut: (tool) => ipcRenderer.invoke(LAUNCHER_IPC.toolsCaptureShortcut, tool),
-    replaceShortcut: (input) => ipcRenderer.invoke(LAUNCHER_IPC.toolsReplaceShortcut, input),
-    restartToApply: () => ipcRenderer.invoke(LAUNCHER_IPC.toolsRestartToApply),
+    setMasterEnabled: (enabled) => invoke("toolsSetMasterEnabled", enabled),
+    setFeature: (input) => invoke("toolsSetFeature", input),
+    captureShortcut: (tool) => invoke("toolsCaptureShortcut", tool),
+    replaceShortcut: (input) => invoke("toolsReplaceShortcut", input),
+    restartToApply: () => invoke("toolsRestartToApply"),
   },
   gameFiles: {
-    info: () => ipcRenderer.invoke(LAUNCHER_IPC.gameFilesInfo),
-    repair: () => ipcRenderer.invoke(LAUNCHER_IPC.gameFilesRepair),
-    pauseDownload: () => ipcRenderer.invoke(LAUNCHER_IPC.gameFilesPauseDownload),
-    resumeDownload: () => ipcRenderer.invoke(LAUNCHER_IPC.gameFilesResumeDownload),
-    resetAndRestart: () => ipcRenderer.invoke(LAUNCHER_IPC.gameFilesResetAndRestart),
+    info: () => invoke("gameFilesInfo"),
+    repair: () => invoke("gameFilesRepair"),
+    pauseDownload: () => invoke("gameFilesPauseDownload"),
+    resumeDownload: () => invoke("gameFilesResumeDownload"),
+    resetAndRestart: () => invoke("gameFilesResetAndRestart"),
   },
   news: {
-    open: (id) => ipcRenderer.invoke(LAUNCHER_IPC.newsOpen, id),
+    open: (id) => invoke("newsOpen", id),
   },
   texturePacks: {
-    import: () => ipcRenderer.invoke(LAUNCHER_IPC.texturePacksImport),
-    select: (id) => ipcRenderer.invoke(LAUNCHER_IPC.texturePacksSelect, id),
-    remove: (id) => ipcRenderer.invoke(LAUNCHER_IPC.texturePacksRemove, id),
+    import: () => invoke("texturePacksImport"),
+    select: (id) => invoke("texturePacksSelect", id),
+    remove: (id) => invoke("texturePacksRemove", id),
   },
   feedback: {
-    send: (input) => ipcRenderer.invoke(LAUNCHER_IPC.feedbackSend, input),
+    send: (input) => invoke("feedbackSend", input),
   },
   external: {
-    open: (kind) => ipcRenderer.invoke(LAUNCHER_IPC.externalOpen, kind),
-    openUrl: (url) => ipcRenderer.invoke(LAUNCHER_IPC.externalOpenUrl, url),
-    revealLogs: () => ipcRenderer.invoke(LAUNCHER_IPC.externalRevealLogs),
+    open: (kind) => invoke("externalOpen", kind),
+    openUrl: (url) => invoke("externalOpenUrl", url),
+    revealLogs: () => invoke("externalRevealLogs"),
   },
   updates: {
-    check: () => ipcRenderer.invoke(LAUNCHER_IPC.updatesCheck),
-    restartAndInstall: () => ipcRenderer.invoke(LAUNCHER_IPC.updatesRestartAndInstall),
+    check: () => invoke("updatesCheck"),
+    restartAndInstall: () => invoke("updatesRestartAndInstall"),
   },
 };
 

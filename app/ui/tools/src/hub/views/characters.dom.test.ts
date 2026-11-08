@@ -12,7 +12,7 @@ import type {} from '../../../../../renderer/gw-native';
 import { installSurfaceController } from '../../../../../renderer/surface-controller';
 // eslint-disable-next-line no-restricted-imports
 import { createHub } from '../../../../../renderer/hub';
-import { DEFAULT_SETTINGS, type AppSettings } from '../../../../../shared/contracts';
+import { DEFAULT_SETTINGS, type AppSettings } from '../../../../../shared/settings/index';
 // eslint-disable-next-line no-restricted-imports
 import type { CharacterSwitchActionState, CharacterSwitchContext, CharacterSwitchSource } from '../../../../../features/character-switch/renderer/character-switch-model';
 // eslint-disable-next-line no-restricted-imports

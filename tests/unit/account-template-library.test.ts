@@ -6,7 +6,7 @@ import {
   reconcileAccountTemplates,
 } from "../../app/main/core/account-template-library.js";
 import { AtomicPublicationUnconfirmedError } from "../../app/main/core/atomic-file.js";
-import type { AccountTemplateLibrary } from "../../app/shared/contracts.js";
+import type { AccountTemplateLibrary } from "../../app/shared/accounts-contracts.js";
 
 const A = "OQCiUyo8AkVwR4KMMGAAAEAA";
 const B = "OQCiUyo8AkVwR4KMMGAAAEAB";

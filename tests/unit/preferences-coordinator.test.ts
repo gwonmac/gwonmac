@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 import { PreferencesCoordinator } from "../../app/main/core/preferences-coordinator.js";
-import { DEFAULT_SETTINGS, type AppSettings } from "../../app/shared/contracts.js";
+import { DEFAULT_SETTINGS, type AppSettings } from "../../app/shared/settings/index.js";
 import {
   DEFAULT_TRAVEL_SHORTCUTS,
   replaceTravelShortcut,

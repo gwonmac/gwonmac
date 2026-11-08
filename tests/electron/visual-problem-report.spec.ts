@@ -187,7 +187,7 @@ test.describe("visual problem report", () => {
             .getBuiltinModule("node:module")
             .createRequire(args.modulePath);
           const diagnostics = load(args.modulePath);
-          const { DEFAULT_SETTINGS } = load(args.contractsPath);
+          const { DEFAULT_SETTINGS } = load(args.settingsPath);
           const { windowRegistry } = load(args.registryPath);
           const owner = BrowserWindow.getAllWindows()[0];
           const ownerId = owner
@@ -223,7 +223,7 @@ test.describe("visual problem report", () => {
         },
         {
           modulePath: path.join(root, "build/main/diagnostics.js"),
-          contractsPath: path.join(root, "build/shared/contracts.js"),
+          settingsPath: path.join(root, "build/shared/settings/index.js"),
           registryPath: path.join(root, "build/main/window-registry.js"),
           target,
         },

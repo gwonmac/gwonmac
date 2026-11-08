@@ -5,10 +5,8 @@
  */
 import { FEATURES, type GlobalTool } from "../features/index.js";
 import type {
-  AppSettings,
   AppSettingsPatch,
   AppUpdateState,
-  CacheInfo,
   ExtendedMemoryRuntimeStatus,
   DownloadActivity,
   FullDownloadState,
@@ -16,61 +14,16 @@ import type {
   RendererSettingsPatch,
 } from "./contracts.js";
 import type { ErrorCode } from "./errors.js";
+import type { Invoke, Subscribe } from "./ipc/channel-table.js";
+import type { LauncherChannels as C } from "./ipc/launcher.js";
 import type { MarkdownBlock, MarkdownInline } from "./launcher-markdown.js";
 import { isShortcutBinding, parseShortcutAction, type ShortcutAction, type ShortcutBinding } from "./keyboard-shortcuts.js";
 import { FEATURE_SELECTION_POLICIES, type FeatureId } from "./feature-contracts.js";
-import { LAUNCHER_SETTINGS, SETTING_TABLE, type LauncherSetting } from "./settings/index.js";
+import { LAUNCHER_SETTINGS, SETTING_TABLE, type AppSettings, type LauncherSetting } from "./settings/index.js";
 import { launcherSettingError } from "./settings/define.js";
 import type { ProfileId } from "./multiple-accounts.js";
 import type { SettingsTarget } from "./settings-catalogue.js";
-import type {
-  TexturePackImportResult,
-  TexturePackSnapshot,
-} from "./texture-packs.js";
-
-export const LAUNCHER_IPC = Object.freeze({
-  stateGet: "gw:launcher:state:get",
-  stateEvent: "gw:launcher:state:event",
-  navigationEvent: "gw:launcher:navigation:event",
-  profilesCreate: "gw:launcher:profiles:create",
-  profilesUpdate: "gw:launcher:profiles:update",
-  profilesSetSelection: "gw:launcher:profiles:setSelection",
-  profilesPlay: "gw:launcher:profiles:play",
-  profilesShow: "gw:launcher:profiles:show",
-  profilesCancelQueued: "gw:launcher:profiles:cancelQueued",
-  profilesArchive: "gw:launcher:profiles:archive",
-  profilesRestore: "gw:launcher:profiles:restore",
-  profilesDelete: "gw:launcher:profiles:delete",
-  experienceDismissMigration: "gw:launcher:experience:dismissMigration",
-  experienceDismissPreferencesReset: "gw:launcher:experience:dismissPreferencesReset",
-  experienceCompleteSetup: "gw:launcher:experience:completeSetup",
-  experienceUpdatePreferences: "gw:launcher:experience:updatePreferences",
-  settingsUpdate: "gw:launcher:settings:update",
-  settingsReset: "gw:launcher:settings:reset",
-  toolsSetMasterEnabled: "gw:launcher:tools:setMasterEnabled",
-  toolsSetFeature: "gw:launcher:tools:setFeature",
-  toolsCaptureShortcut: "gw:launcher:tools:captureShortcut",
-  toolsReplaceShortcut: "gw:launcher:tools:replaceShortcut",
-  toolsRestartToApply: "gw:launcher:tools:restartToApply",
-  gameFilesInfo: "gw:launcher:gameFiles:info",
-  gameFilesRepair: "gw:launcher:gameFiles:repair",
-  gameFilesPauseDownload: "gw:launcher:gameFiles:pauseDownload",
-  gameFilesResumeDownload: "gw:launcher:gameFiles:resumeDownload",
-  gameFilesResetAndRestart: "gw:launcher:gameFiles:resetAndRestart",
-  newsOpen: "gw:launcher:news:open",
-  texturePacksImport: "gw:launcher:texturePacks:import",
-  texturePacksSelect: "gw:launcher:texturePacks:select",
-  texturePacksRemove: "gw:launcher:texturePacks:remove",
-  feedbackSend: "gw:launcher:feedback:send",
-  externalOpen: "gw:launcher:external:open",
-  externalOpenUrl: "gw:launcher:external:openUrl",
-  externalRevealLogs: "gw:launcher:external:revealLogs",
-  updatesCheck: "gw:launcher:updates:check",
-  updatesRestartAndInstall: "gw:launcher:updates:restartAndInstall",
-} as const);
-
-/** Every launcher channel main answers; the two events go main→renderer only. */
-export type LauncherInvokeChannel = Exclude<keyof typeof LAUNCHER_IPC, "stateEvent" | "navigationEvent">;
+import type { TexturePackSnapshot } from "./texture-packs.js";
 
 /** A launcher page another window can open: `settings` opens the last Settings section; a target opens that section or control. */
 export type LauncherDestination = "home" | "accounts" | "settings" | SettingsTarget;
@@ -274,69 +227,70 @@ export interface LauncherSnapshot {
   readonly news: LauncherNewsState;
 }
 
+/** `window.launcherNative`: each method is one LAUNCHER_CHANNELS entry. */
 export interface LauncherNativeApi {
   readonly navigation: {
-    onRequest(callback: (destination: LauncherDestination) => void): () => void;
+    onRequest: Subscribe<C["navigationEvent"]>;
   };
   readonly state: {
-    get(): Promise<LauncherSnapshot>;
-    onChange(callback: (snapshot: LauncherSnapshot) => void): () => void;
+    get: Invoke<C["stateGet"]>;
+    onChange: Subscribe<C["stateEvent"]>;
   };
   readonly profiles: {
-    create(input: LauncherProfileCreateInput): Promise<void>;
-    update(input: LauncherProfileUpdate): Promise<void>;
-    setSelection(ids: readonly ProfileId[]): Promise<void>;
-    play(ids: readonly ProfileId[]): Promise<void>;
-    show(id: ProfileId): Promise<void>;
-    cancelQueued(ids: readonly ProfileId[]): Promise<void>;
-    archive(id: ProfileId): Promise<void>;
-    restore(id: ProfileId): Promise<void>;
-    delete(id: ProfileId): Promise<void>;
+    create: Invoke<C["profilesCreate"]>;
+    update: Invoke<C["profilesUpdate"]>;
+    setSelection: Invoke<C["profilesSetSelection"]>;
+    play: Invoke<C["profilesPlay"]>;
+    show: Invoke<C["profilesShow"]>;
+    cancelQueued: Invoke<C["profilesCancelQueued"]>;
+    archive: Invoke<C["profilesArchive"]>;
+    restore: Invoke<C["profilesRestore"]>;
+    delete: Invoke<C["profilesDelete"]>;
   };
   readonly experience: {
-    completeSetup(input: { readonly enableTools: boolean }): Promise<void>;
-    dismissMigrationNotice(): Promise<void>;
-    dismissPreferencesReset(): Promise<void>;
-    updatePreferences(patch: LauncherPreferencesPatch): Promise<void>;
+    completeSetup: Invoke<C["experienceCompleteSetup"]>;
+    dismissMigrationNotice: Invoke<C["experienceDismissMigration"]>;
+    dismissPreferencesReset: Invoke<C["experienceDismissPreferencesReset"]>;
+    updatePreferences: Invoke<C["experienceUpdatePreferences"]>;
   };
   readonly news: {
-    open(id: string): Promise<void>;
+    open: Invoke<C["newsOpen"]>;
   };
   readonly settings: {
-    update(patch: LauncherSettingsPatch): Promise<void>;
-    reset(): Promise<void>;
+    update: Invoke<C["settingsUpdate"]>;
+    reset: Invoke<C["settingsReset"]>;
   };
   readonly tools: {
-    setMasterEnabled(enabled: boolean): Promise<void>;
-    setFeature(input: GlobalToolUpdate): Promise<void>;
-    captureShortcut(action: ShortcutAction): Promise<LauncherShortcutCaptureResult>;
-    replaceShortcut(input: ShortcutReplacement): Promise<void>;
-    restartToApply(): Promise<void>;
+    setMasterEnabled: Invoke<C["toolsSetMasterEnabled"]>;
+    setFeature: Invoke<C["toolsSetFeature"]>;
+    captureShortcut: Invoke<C["toolsCaptureShortcut"]>;
+    replaceShortcut: Invoke<C["toolsReplaceShortcut"]>;
+    restartToApply: Invoke<C["toolsRestartToApply"]>;
   };
   readonly gameFiles: {
-    info(): Promise<CacheInfo>;
-    repair(): Promise<void>;
-    pauseDownload(): Promise<void>;
-    resumeDownload(): Promise<void>;
-    resetAndRestart(): Promise<void>;
+    info: Invoke<C["gameFilesInfo"]>;
+    repair: Invoke<C["gameFilesRepair"]>;
+    pauseDownload: Invoke<C["gameFilesPauseDownload"]>;
+    resumeDownload: Invoke<C["gameFilesResumeDownload"]>;
+    resetAndRestart: Invoke<C["gameFilesResetAndRestart"]>;
   };
   readonly texturePacks: {
-    import(): Promise<TexturePackImportResult>;
-    select(id: string | null): Promise<void>;
-    remove(id: string): Promise<void>;
+    import: Invoke<C["texturePacksImport"]>;
+    select: Invoke<C["texturePacksSelect"]>;
+    remove: Invoke<C["texturePacksRemove"]>;
   };
   readonly updates: {
-    check(): Promise<void>;
-    restartAndInstall(): Promise<void>;
+    check: Invoke<C["updatesCheck"]>;
+    restartAndInstall: Invoke<C["updatesRestartAndInstall"]>;
   };
   readonly feedback: {
-    send(input: LauncherFeedback): Promise<void>;
+    send: Invoke<C["feedbackSend"]>;
   };
   readonly external: {
-    open(kind: LauncherExternalLink): Promise<void>;
+    open: Invoke<C["externalOpen"]>;
     /** A web page the bundled Guide links to; main opens only the origins in LAUNCHER_GUIDE_ORIGINS. */
-    openUrl(url: string): Promise<void>;
-    revealLogs(): Promise<void>;
+    openUrl: Invoke<C["externalOpenUrl"]>;
+    revealLogs: Invoke<C["externalRevealLogs"]>;
   };
 }
 

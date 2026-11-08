@@ -3,7 +3,7 @@
  * reserved keys and Tool conflicts, so renderer code cannot bypass the policy.
  */
 import type { BrowserWindow, Event, Input } from "electron";
-import type { AppSettings } from "../shared/contracts.js";
+import type { AppSettings } from "../shared/settings/index.js";
 import type { LauncherShortcutCaptureResult } from "../shared/launcher-contracts.js";
 import { resolveShortcuts, shortcutConflict, shortcutFromInput, shortcutReserved, shortcutUsedByHub, type ShortcutAction } from "../shared/keyboard-shortcuts.js";
 

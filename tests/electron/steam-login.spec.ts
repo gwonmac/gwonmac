@@ -33,9 +33,11 @@ const NATIVE_KEYCHAIN_MODULE = path.join(
   root,
   "build/main/core/native-keychain.js",
 );
-const IPC_MODULE = path.join(root, "build/main/ipc.js");
+const SECRETS_MODULE = path.join(root, "build/main/game-ipc/secrets.js");
+const REGISTRY_MODULE = path.join(root, "build/main/ipc-channel-registry.js");
+const WINDOW_REGISTRY_MODULE = path.join(root, "build/main/window-registry.js");
 const ACQUIRE_MODULE = path.join(root, "build/main/steam-acquire.js");
-const CONTRACTS_MODULE = path.join(root, "build/shared/contracts.js");
+const CHANNELS_MODULE = path.join(root, "build/shared/ipc/game.js");
 const RETURN_URL = "https://www.guildwars.test/app/live/auth";
 
 /** A fake token: 32 hex characters that were typed here, not issued. */
@@ -119,15 +121,20 @@ async function installFixtureAcquirer(
 ): Promise<void> {
   await app.evaluate(async ({ ipcMain }, arg) => {
     const { createRequire } = process.getBuiltinModule("module");
-    const load = createRequire(arg.ipcModule);
-    const { registerSteamIpcHandlers } = load(arg.ipcModule) as {
-      registerSteamIpcHandlers(
-        acquire: (
-          parent: unknown,
-          record: (event: unknown) => void,
-        ) => Promise<unknown>,
-        store: unknown,
-      ): void;
+    const load = createRequire(arg.secretsModule);
+    const { steamChannels } = load(arg.secretsModule) as {
+      steamChannels(
+        acquire: (parent: unknown, record: (event: unknown) => void) => Promise<unknown>,
+        storeFor: (win: unknown) => unknown,
+        windows: unknown,
+      ): { channels: Record<string, unknown> };
+    };
+    const { register } = load(arg.registryModule) as {
+      register(windows: unknown, boundary: "game", handlers: Record<string, unknown>): void;
+    };
+    const { windowRegistry } = load(arg.windowRegistryModule) as { windowRegistry: unknown };
+    const { GAME_CHANNELS } = load(arg.channelsModule) as {
+      GAME_CHANNELS: Record<"steamToken" | "steamStore" | "steamClear", { channel: string }>;
     };
     const { acquireSteamToken } = load(arg.acquireModule) as {
       acquireSteamToken(
@@ -141,30 +148,27 @@ async function installFixtureAcquirer(
     const { VolatileNativeKeychain } = load(arg.nativeKeychainModule) as {
       VolatileNativeKeychain: new () => unknown;
     };
-    const { IPC } = load(arg.contractsModule) as {
-      IPC: {
-        steamToken: string;
-        steamStore: string;
-        steamClear: string;
-      };
-    };
-    for (const channel of [IPC.steamToken, IPC.steamStore, IPC.steamClear]) {
-      ipcMain.removeHandler(channel);
+    const { steamToken, steamStore, steamClear } = GAME_CHANNELS;
+    for (const spec of [steamToken, steamStore, steamClear]) {
+      ipcMain.removeHandler(spec.channel);
     }
     const store = new SteamSessionStore(new VolatileNativeKeychain());
     (globalThis as Record<PropertyKey, unknown>)[
       Symbol.for("gwonmac.test.steamStore")
     ] = store;
-    registerSteamIpcHandlers(
+    register(windowRegistry, "game", steamChannels(
       (parent, record) => acquireSteamToken(arg.config, { parent, record }),
-      store,
-    );
+      () => store,
+      windowRegistry,
+    ).channels);
   }, {
-    ipcModule: IPC_MODULE,
+    secretsModule: SECRETS_MODULE,
+    registryModule: REGISTRY_MODULE,
+    windowRegistryModule: WINDOW_REGISTRY_MODULE,
     acquireModule: ACQUIRE_MODULE,
     sessionModule: SESSION_MODULE,
     nativeKeychainModule: NATIVE_KEYCHAIN_MODULE,
-    contractsModule: CONTRACTS_MODULE,
+    channelsModule: CHANNELS_MODULE,
     config,
   });
 }
@@ -183,9 +187,20 @@ async function clearSteam(fixture: OfflineFixture): Promise<void> {
 async function installIsolatedStore(app: OfflineFixture["app"]): Promise<void> {
   await app.evaluate(async ({ ipcMain }, arg) => {
     const { createRequire } = process.getBuiltinModule("module");
-    const load = createRequire(arg.ipcModule);
-    const { registerSteamIpcHandlers } = load(arg.ipcModule) as {
-      registerSteamIpcHandlers(acquire: () => Promise<unknown>, store: unknown): void;
+    const load = createRequire(arg.secretsModule);
+    const { steamChannels } = load(arg.secretsModule) as {
+      steamChannels(
+        acquire: (parent: unknown, record: (event: unknown) => void) => Promise<unknown>,
+        storeFor: (win: unknown) => unknown,
+        windows: unknown,
+      ): { channels: Record<string, unknown> };
+    };
+    const { register } = load(arg.registryModule) as {
+      register(windows: unknown, boundary: "game", handlers: Record<string, unknown>): void;
+    };
+    const { windowRegistry } = load(arg.windowRegistryModule) as { windowRegistry: unknown };
+    const { GAME_CHANNELS } = load(arg.channelsModule) as {
+      GAME_CHANNELS: Record<"steamToken" | "steamStore" | "steamClear", { channel: string }>;
     };
     const { SteamSessionStore } = load(arg.sessionModule) as {
       SteamSessionStore: new (keychain: unknown) => unknown;
@@ -193,25 +208,26 @@ async function installIsolatedStore(app: OfflineFixture["app"]): Promise<void> {
     const { VolatileNativeKeychain } = load(arg.nativeKeychainModule) as {
       VolatileNativeKeychain: new () => unknown;
     };
-    const { IPC } = load(arg.contractsModule) as {
-      IPC: { steamToken: string; steamStore: string; steamClear: string };
-    };
     const key = Symbol.for("gwonmac.test.steamStore");
     if ((globalThis as Record<PropertyKey, unknown>)[key]) return;
     const store = new SteamSessionStore(new VolatileNativeKeychain());
     (globalThis as Record<PropertyKey, unknown>)[key] = store;
-    for (const channel of [IPC.steamToken, IPC.steamStore, IPC.steamClear]) {
-      ipcMain.removeHandler(channel);
+    const { steamToken, steamStore, steamClear } = GAME_CHANNELS;
+    for (const spec of [steamToken, steamStore, steamClear]) {
+      ipcMain.removeHandler(spec.channel);
     }
-    registerSteamIpcHandlers(
+    register(windowRegistry, "game", steamChannels(
       async () => ({ ok: false, reason: "failed" }),
-      store,
-    );
+      () => store,
+      windowRegistry,
+    ).channels);
   }, {
-    ipcModule: IPC_MODULE,
+    secretsModule: SECRETS_MODULE,
+    registryModule: REGISTRY_MODULE,
+    windowRegistryModule: WINDOW_REGISTRY_MODULE,
     sessionModule: SESSION_MODULE,
     nativeKeychainModule: NATIVE_KEYCHAIN_MODULE,
-    contractsModule: CONTRACTS_MODULE,
+    channelsModule: CHANNELS_MODULE,
   });
 }
 

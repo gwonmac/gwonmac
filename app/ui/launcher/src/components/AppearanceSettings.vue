@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { InGamePatch, InGameSettings } from "../settings-host";
 import { computed, ref } from "vue";
-import { UI_FONTS, UI_PANEL_OPACITY_MIN, UI_PANEL_OPACITY_MAX, UI_STYLES, UI_TEXT_SIZE_MIN, UI_TEXT_SIZE_MAX, type UiFont } from "@shared/contracts";
+import { UI_FONTS, UI_PANEL_OPACITY_MIN, UI_PANEL_OPACITY_MAX, UI_STYLES, UI_TEXT_SIZE_MIN, UI_TEXT_SIZE_MAX, type UiFont } from "@shared/settings/core";
 import { UI_THEME_COLOR_FIELDS, UI_THEME_MATERIALS, decodeCustomUiTheme, encodeCustomUiTheme, defaultCustomUiTheme, type CustomUiTheme, type UiThemeColorField } from "@shared/ui-theme";
 import { customThemeReadable } from "@shared/ui-color";
 import ColorControl from "./ColorControl.vue";

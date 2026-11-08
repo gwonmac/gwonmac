@@ -2,7 +2,7 @@
  * Owns the memory warning's single non-modal DOM surface and session-local
  * dismissal. Heap sampling and escalation remain in heap-pressure.ts.
  */
-import type { AppSettings } from "../shared/contracts.js";
+import type { AppSettings } from "../shared/settings/index.js";
 import { memoryWarningCopy } from "./failure-messages.js";
 import { isolateFromGame } from "./non-activating-surface.js";
 

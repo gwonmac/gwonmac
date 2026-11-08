@@ -19,9 +19,7 @@
 import assert from "node:assert/strict";
 import { register } from "node:module";
 import test from "node:test";
-import {
-  DEFAULT_SETTINGS,
-} from "../../app/shared/contracts.ts";
+import { DEFAULT_SETTINGS } from "../../app/shared/settings/index.ts";
 import {
   ENHANCEMENTS,
   ENHANCEMENT_CAPABILITY_FIELDS,

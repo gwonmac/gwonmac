@@ -2,7 +2,8 @@
  * Owns the Compass-local menu for enabling standard player ranges.
  * Range choices persist independently while the master visibility is off.
  */
-import type { AppSettings, RendererSettingsPatch } from "../../../shared/contracts.js";
+import type { RendererSettingsPatch } from "../../../shared/contracts.js";
+import type { AppSettings } from "../../../shared/settings/index.js";
 import {
   COMPASS_RANGE_INDICATORS,
   COMPASS_RANGE_OPACITY_MAX,

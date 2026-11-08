@@ -10,8 +10,8 @@ import type {
   AccountProfileUpdateRequest,
   AccountTemplateLibrary,
   AccountsState,
-  TemplateExportEntry,
-} from "../shared/contracts.js";
+} from "../shared/accounts-contracts.js";
+import type { TemplateExportEntry } from "../shared/template-contracts.js";
 import {
   LEGACY_PRIMARY_PROFILE_ID,
   profileNameKey,
@@ -144,23 +144,17 @@ export class MultipleAccountsController {
   }
 
   credentialsStoreFor(win: BrowserWindow): CredentialsStore {
-    const context = windowRegistry.contextForWebContents(win.webContents.id);
-    if (context?.role !== "game") throw new Error("game window has no profile");
-    return this.credentialsForProfile(context.profileId);
+    return this.credentialsForProfile(windowRegistry.profileForGameWindow(win));
   }
 
   steamSessionStoreFor(win: BrowserWindow): SteamSessionStore {
-    const context = windowRegistry.contextForWebContents(win.webContents.id);
-    if (context?.role !== "game") throw new Error("game window has no profile");
-    return this.steamForProfile(context.profileId);
+    return this.steamForProfile(windowRegistry.profileForGameWindow(win));
   }
 
   buildLibraryPathFor(win: BrowserWindow): string {
-    const context = windowRegistry.contextForWebContents(win.webContents.id);
-    if (context?.role !== "game") throw new Error("game window has no profile");
     return resolveProfileStorage(
       this.workspace,
-      context.profileId,
+      windowRegistry.profileForGameWindow(win),
       this.options.paths,
     ).buildLibrary;
   }

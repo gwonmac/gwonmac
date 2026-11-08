@@ -5,10 +5,8 @@
  * diagnostics ZIP.
  */
 import { dialog, shell, type BrowserWindow } from "electron";
-import type {
-  AppSettings,
-  RuntimeDiagnosticState,
-} from "../shared/contracts.js";
+import type { RuntimeDiagnosticState } from "../shared/contracts.js";
+import type { AppSettings } from "../shared/settings/index.js";
 import { exportDiagnosticsReport } from "./diagnostics-export.js";
 import { exportDiagnosticsForWindow } from "./diagnostics/export.js";
 import { sendRendererCommand } from "./renderer-commands.js";

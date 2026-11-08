@@ -16,7 +16,7 @@ import { createHub } from '../../../../../renderer/hub';
 import { withHubBuiltins, type GameHub } from '../../../../../renderer/hub-builtins';
 // eslint-disable-next-line no-restricted-imports
 import { askLeaveArea, leaveAreaCopy } from '../../../../../renderer/leave-area';
-import { DEFAULT_SETTINGS, type AppSettings } from '../../../../../shared/contracts';
+import { DEFAULT_SETTINGS, type AppSettings } from '../../../../../shared/settings/index';
 import type { HubRow, HubSource } from '../../../../../shared/hub';
 import type { HubShortcut } from '../../../../../shared/hub-preferences';
 import { estimateMarketRates } from '../../../../../shared/market-rates';

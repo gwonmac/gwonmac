@@ -8,11 +8,8 @@
  * checked against one description of that surface rather than against each
  * other's assumptions.
  */
-import type { ToolsSettings } from "../shared/settings/index.js";
-import type {
-  AppSettings,
-  RendererGwNativeApi,
-} from "../shared/contracts.js";
+import type { RendererGwNativeApi } from "../shared/contracts.js";
+import type { AppSettings, ToolsSettings } from "../shared/settings/index.js";
 import type {
   VisualCaptureFailure,
   VisualCaptureMetadata,

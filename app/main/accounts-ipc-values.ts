@@ -3,11 +3,7 @@
  * The Electron boundary owns argument counts; this module owns account values.
  */
 import type { HubAccountRequest } from '../shared/accounts-contracts.js';
-import type {
-  AccountProfileCreateRequest,
-  AccountProfileRequest,
-  AccountProfileUpdateRequest,
-} from "../shared/contracts.js";
+import type { AccountProfileCreateRequest, AccountProfileRequest, AccountProfileUpdateRequest } from "../shared/accounts-contracts.js";
 import {
   MULTI_PROFILE_MAX_COUNT,
   parseProfileId,

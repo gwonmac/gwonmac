@@ -10,7 +10,7 @@
 import { app, dialog, net, session, shell } from "electron";
 import { access, mkdir, rm } from "node:fs/promises";
 import path from "node:path";
-import type { AppSettings } from "../shared/contracts.js";
+import type { AppSettings } from "../shared/settings/index.js";
 import {
   distributionCapabilities,
   type DistributionCapabilities,
@@ -137,7 +137,20 @@ export async function openStartupState(): Promise<StartupState | null> {
     await clearBrowserNetworkCache();
   }
   logEvent({ k: "electron.ready" });
-  const settings = await loadSettings(paths.settings, async () => {
+  const settings = await loadSettings(paths.settings, async (recovery) => {
+    if (recovery.kind === "fields") {
+      const count = recovery.fields.length;
+      logEvent({ k: "settings.fieldsReset", count });
+      await dialog.showMessageBox({
+        type: "warning",
+        buttons: ["Continue"],
+        message: "Some settings went back to their defaults",
+        detail: count === 1
+          ? "Guild Wars Reforged couldn't read 1 saved setting and set it back to its default. All your other settings are kept."
+          : `Guild Wars Reforged couldn't read ${count} saved settings and set them back to their defaults. All your other settings are kept.`,
+      });
+      return;
+    }
     logEvent({ k: "settings.corruptRecovered" });
     await dialog.showMessageBox({
       type: "warning",
