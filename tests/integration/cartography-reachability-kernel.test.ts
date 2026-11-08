@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { describe, it } from "node:test";
 import {
   CARTOGRAPHY_REACHABILITY_REGION_BYTES,
+  CARTOGRAPHY_REACHABILITY_ROUTE_BYTES,
   cartographyReachabilitySignatureBytes,
 } from "../../app/shared/cartography-reachability-kernel-contract.js";
 import { cartographyLayoutId } from "../../app/shared/cartography-spike.js";
@@ -41,6 +42,7 @@ const A = Object.freeze({
   largeMaps: 0x30_0000,
   runtime: 0x60_0000,
   region: 0x62_0000,
+  routeRegion: 0x70_0000,
 });
 const MAP_ID = 200;
 const AREA_EPOCH = 7;
@@ -65,6 +67,7 @@ type Kernel = Readonly<{
   words(): Uint32Array;
   wordsShape(width: number, height: number): Uint32Array;
   terrainWords(): Uint32Array;
+  route(targetX: number, targetY: number, bytes?: number): number;
 }>;
 
 function array(view: DataView, at: number, buffer: number, count: number): void {
@@ -105,7 +108,7 @@ async function createKernel(
   const { layoutId } = layout;
   const bytes = await readFile("build/renderer/cartography-reachability-kernel.wasm");
   const module = new WebAssembly.Module(bytes);
-  const memory = new WebAssembly.Memory({ initial: 112 });
+  const memory = new WebAssembly.Memory({ initial: 144 });
   const view = new DataView(memory.buffer);
   const immutable = (value: number) => new WebAssembly.Global(
     { value: "i32", mutable: false }, value,
@@ -152,6 +155,9 @@ async function createKernel(
   const install = instance.exports.cartography_reachability_install as (
     ...args: number[]
   ) => number;
+  const route = instance.exports.cartography_reachability_route as (
+    ...args: number[]
+  ) => number;
   if (installed) assert.equal(install(layoutId, layout.contextRoot, layout.agentArray), 1);
   return {
     memory,
@@ -190,6 +196,9 @@ async function createKernel(
           A.region + 72 + Math.ceil(width * height / 32) * 4,
         ),
       );
+    },
+    route(targetX, targetY, bytes = CARTOGRAPHY_REACHABILITY_ROUTE_BYTES) {
+      return route(A.routeRegion, bytes, layoutId, MAP_ID, AREA_EPOCH, PLAYER_ID, targetX, targetY);
     },
     terrainWords() {
       const width = view.getUint32(A.region + 60, true);
@@ -452,5 +461,126 @@ describe("Cartography reachability kernel", () => {
     kernel.view.setUint32(A.blocked + 4, 1, true);
     assert.equal(kernel.classify(), 1);
     assert.equal(bit(kernel.words(), 184, 25), false);
+  });
+});
+
+// Four trapezoids in a row (cells 180-183 on row 25, each touching the next) and
+// one apart (cell 186), with a partition tree that finds the sink under a point.
+function rowOfGround(kernel: Kernel): void {
+  const { view } = kernel;
+  for (let index = 0; index < 4; index += 1) {
+    trap(view, index, 180 + index, 25, [index - 1, index + 1].filter((next) => next >= 0 && next < 4));
+  }
+  trap(view, 4, 186, 25);
+  view.setUint32(A.maps + 0x14, 5, true);
+  let next = A.nodes;
+  const node = (bytes: number): number => { const at = next; next += bytes; return at; };
+  const sink = (index: number): number => {
+    const at = node(0x10);
+    view.setUint32(at, 2, true);
+    view.setUint32(at + 0x08, A.traps + index * 0x30, true);
+    return at;
+  };
+  // Points at x <= split go to `low`, the rest to `high`.
+  const split = (cellX: number, low: number, high: number): number => {
+    const at = node(0x20);
+    view.setUint32(at, 0, true);
+    view.setFloat32(at + 0x08, cellX * CELL_GAME, true);
+    view.setFloat32(at + 0x0c, 0, true);
+    view.setFloat32(at + 0x10, 0, true);
+    view.setFloat32(at + 0x14, 1, true);
+    view.setUint32(at + 0x1c, low, true);
+    view.setUint32(at + 0x18, high, true);
+    return at;
+  };
+  const root = split(182, split(181, sink(0), sink(1)), split(183, sink(2), split(184, sink(3), sink(4))));
+  view.setUint32(A.maps + 0x44, root, true);
+}
+
+type Route = Readonly<{
+  status: number; steps: number; reached: boolean; expanded: number;
+  start: readonly [number, number]; end: readonly [number, number];
+  centres: readonly (readonly [number, number])[];
+  edges: readonly (readonly [number, number, number, number])[];
+}>;
+
+function readRoute(kernel: Kernel): Route {
+  const { view } = kernel;
+  const at = A.routeRegion;
+  assert.equal(view.getUint32(at, true), 0x5452_4347, "route magic");
+  assert.equal(view.getUint32(at + 12, true) & 1, 0, "route published");
+  const steps = view.getUint32(at + 32, true);
+  const step = (index: number, offset: number) => view.getFloat32(at + 64 + index * 24 + offset * 4, true) / CELL_GAME;
+  return {
+    status: view.getUint32(at + 16, true),
+    steps,
+    reached: view.getUint32(at + 36, true) === 1,
+    expanded: view.getUint32(at + 40, true),
+    start: [view.getFloat32(at + 44, true) / CELL_GAME, view.getFloat32(at + 48, true) / CELL_GAME],
+    end: [view.getFloat32(at + 52, true) / CELL_GAME, view.getFloat32(at + 56, true) / CELL_GAME],
+    centres: Array.from({ length: steps }, (_, index) => [step(index, 0), step(index, 1)] as const),
+    edges: Array.from({ length: steps }, (_, index) => [step(index, 2), step(index, 3), step(index, 4), step(index, 5)] as const),
+  };
+}
+
+describe("Cartography reachability route", () => {
+  it("walks the touching trapezoids to the target and names each edge it crosses", async () => {
+    const kernel = await createKernel();
+    rowOfGround(kernel);
+    assert.equal(kernel.route(183.25 * CELL_GAME, -25.75 * CELL_GAME), 1);
+    const route = readRoute(kernel);
+    assert.equal(route.reached, true);
+    assert.deepEqual(route.start, [180.5, -25.5]);
+    assert.deepEqual(route.end, [183.25, -25.75]);
+    assert.deepEqual(route.centres, [[180.5, -25.5], [181.5, -25.5], [182.5, -25.5], [183.5, -25.5]]);
+    // Each later step enters through the side it shares with the one before.
+    assert.deepEqual(route.edges.slice(1), [[181, -26, 181, -25], [182, -26, 182, -25], [183, -26, 183, -25]]);
+  });
+
+  it("ends on the reached ground nearest a target it cannot reach or that is off the ground", async () => {
+    const kernel = await createKernel();
+    rowOfGround(kernel);
+    for (const [label, cellX] of [["separate ground", 186.5], ["no ground", 185.5]] as const) {
+      assert.equal(kernel.route(cellX * CELL_GAME, -25.5 * CELL_GAME), 1, label);
+      const route = readRoute(kernel);
+      assert.equal(route.reached, false, label);
+      assert.equal(route.steps, 4, label);
+      assert.deepEqual(route.end, [184, -25.5], label);
+    }
+  });
+
+  it("follows the flood's doorway rule: a travel doorway between two trapezoids stops the route", async () => {
+    const kernel = await createKernel();
+    rowOfGround(kernel);
+    addTravelDoorway(kernel);
+    assert.equal(kernel.route(183.5 * CELL_GAME, -25.5 * CELL_GAME), 1);
+    const route = readRoute(kernel);
+    assert.equal(route.reached, false);
+    assert.equal(route.steps, 1);
+    assert.deepEqual(route.end, [181, -25.5]);
+  });
+
+  it("leaves the cached reachable component of the classification untouched", async () => {
+    const kernel = await createKernel();
+    rowOfGround(kernel);
+    assert.equal(kernel.classify(), 1);
+    const before = kernel.words();
+    assert.equal(kernel.route(183.5 * CELL_GAME, -25.5 * CELL_GAME), 1);
+    assert.equal(kernel.classify(), 1);
+    assert.deepEqual(kernel.words(), before);
+    assert.equal(bit(before, 183, 25), true);
+    assert.equal(bit(before, 186, 25), false);
+  });
+
+  it("refuses a region of the wrong size, an unknown layout and a target that is not a number", async () => {
+    const kernel = await createKernel();
+    rowOfGround(kernel);
+    assert.equal(kernel.route(183.5 * CELL_GAME, -25.5 * CELL_GAME, CARTOGRAPHY_REACHABILITY_ROUTE_BYTES - 4), 2);
+    assert.equal(kernel.route(Number.NaN, 0), 2);
+    assert.equal(readRoute(kernel).status, 2);
+    assert.equal(readRoute(kernel).steps, 0);
+    const uninstalled = await createKernel(OFFICIAL, { installed: false });
+    rowOfGround(uninstalled);
+    assert.equal(uninstalled.route(183.5 * CELL_GAME, -25.5 * CELL_GAME), 6);
   });
 });
