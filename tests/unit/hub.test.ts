@@ -78,7 +78,7 @@ test('search folds typographic punctuation and matches parenthesised name words 
   }
 });
 
-test('root search orders groups by their best answer, tools before places, and keeps a scoped page in source order (HUB-058, HUB-185)', () => {
+test('root search orders groups by their best answer, tools before places, and keeps a scoped page and Continue in source order (HUB-058, HUB-185)', () => {
   const grouped = (id: string, title: string, group: string): HubRow => ({ ...row(id, title), group });
   const maps = grouped('maps', 'Maps', 'Tools'), travel = grouped('travel', 'Travel', 'Tools'), place = grouped('place:1', 'Maguuma Stade', 'Places');
   const settings = grouped('settings', 'Settings', 'Commands'), commands = grouped('commands', 'Commands', 'Commands'), card = grouped('card', '1p in g', 'Calculator');
@@ -89,6 +89,8 @@ test('root search orders groups by their best answer, tools before places, and k
     ['a card answers its own grammar first', [settings, card], 'set', { scoped: false, phrases: new Set(), answers: candidate => candidate.id === 'card' }, ['card', 'settings']],
     ['Home orders groups, then everyday tools, with Commands first', [settings, maps, commands, place, travel], '', { scoped: false, ...none }, ['place:1', 'travel', 'maps', 'commands', 'settings']],
     ['a scoped page keeps its source order within a group', [maps, travel], '', { scoped: true, ...none }, ['maps', 'travel']],
+    // Settled (2026-10): Continue lists the player's own recent things in the order its sources give, never alphabetically.
+    ['Home keeps Continue in source order', [grouped('recent:2', 'Zen Daijun', 'Continue'), grouped('recent:1', 'Ascalon City', 'Continue')], '', { scoped: false, ...none }, ['recent:2', 'recent:1']],
   ];
   for (const [name, rows, query, options, expected] of cases) assert.deepEqual(rankHubRows(rows, query, options).map(entry => entry.id), expected, name);
 });
