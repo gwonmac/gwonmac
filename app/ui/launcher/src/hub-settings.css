@@ -62,9 +62,6 @@
 .hub-settings-host .settings-view .settings-content h1,
 .hub-settings-host .settings-view .settings-fields h1 { font-size: var(--ui-type-title-size, 20px); }
 .hub-settings-host .settings-view .opens-launcher { margin-left: auto; width: 13px; height: 13px; opacity: .7; }
-/* A Settings dialog keeps 16px clear of the edges, down to the smallest Hub. */
-.hub-settings-host .modal-backdrop { padding: 16px; }
-.hub-settings-host .modal { width: min(420px, 100%); }
 
 /* The Settings page could not be read: a message and Retry, in the Hub's text. */
 .settings-load-error { display: grid; justify-items: start; gap: 10px; padding: 18px 22px; color: var(--ui-text); font-family: var(--ui-font-interface); }
