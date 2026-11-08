@@ -269,9 +269,9 @@ review, so one command prepares it:
    ```
 
    It judges the client with only the older generations, as on its patch day,
-   and writes a review packet to `<bundle>/review/` (`--out` changes the
-   folder, `--previous` names the client to compare with when the newest
-   reviewed client's bundle is elsewhere). For each feature the previous
+   and always writes its review packet to `<bundle>/review/` (`--previous`
+   names the client to compare with when the newest reviewed client's bundle
+   is elsewhere). For each feature the previous
    client proves and the new one refuses, the packet names the first failing
    invariant, the reviewed bodies the feature lost, the old and new function
    side by side with call targets and static addresses normalised (changed

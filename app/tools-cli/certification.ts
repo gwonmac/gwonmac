@@ -94,8 +94,8 @@ const USAGE =
   + "  transform INPUT.wasm OUTPUT.wasm     write the derived Enhancement module\n"
   + "  double-click [PATH/Gw.jspi.wasm]     prove the native double-click route\n"
   + "  cartography [PATH/Gw.jspi.wasm]      prove every Cartography runtime input\n"
-  + "  review BUNDLE_DIR [--previous PATH/Gw.jspi.wasm] [--out DIR]\n"
-  + "                                       write a local review packet for a changed client\n"
+  + "  review BUNDLE_DIR [--previous PATH/Gw.jspi.wasm]\n"
+  + "                                       write a local review packet to BUNDLE_DIR/review\n"
   + "  review --apply PACKET_DIR            write the approved draft into the generation file\n";
 
 /**
@@ -439,7 +439,8 @@ function draftFeatures(packet: ReviewPacket): Record<string, string[]> {
  * proves and this one refuses, the reviewed bodies it lost, the paired old and
  * new functions side by side, and the drafted alternatives. `--apply` writes
  * an approved draft into the client's generation file. The packet holds
- * ArenaNet code and stays local: it is written beside the bundle by default.
+ * ArenaNet code, so it is always written inside the bundle, in the private
+ * evidence store, and never to a folder the caller chooses.
  */
 async function review(argv: readonly string[]): Promise<void> {
   const apply = argumentValue(argv, "--apply");
@@ -480,7 +481,7 @@ async function review(argv: readonly string[]): Promise<void> {
     return;
   }
   const [bundle, ...extra] = argv.filter((argument, index) =>
-    !argument.startsWith("--") && !["--previous", "--out"].includes(argv[index - 1] ?? ""));
+    !argument.startsWith("--") && argv[index - 1] !== "--previous");
   if (!bundle || extra.length > 0) {
     process.stderr.write(USAGE);
     process.exitCode = 2;
@@ -501,7 +502,7 @@ async function review(argv: readonly string[]): Promise<void> {
     ? new Uint8Array(await readFile(previousPath))
     : await bundleClient(path.join(path.dirname(path.resolve(bundle)), newest!.id));
   const packet = reviewClient({ candidate, previous, generations, id });
-  const out = argumentValue(argv, "--out") ?? path.join(bundle, "review");
+  const out = path.join(bundle, "review");
   await mkdir(out, { recursive: true });
   await writeAtomic(path.join(out, "packet.md"), formatReviewPacket(packet, id));
   await writeAtomic(path.join(out, "draft.json"), `${JSON.stringify({
