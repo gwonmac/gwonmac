@@ -1,14 +1,19 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
 import type { HubFixtureWindow } from './fixture-window.js';
+import { browserCell, BROWSER_KEYS, DOM_KEYS, type KeyboardView } from './keyboard-contract-keys.js';
 // The workbench page this spec drives sets the fixture hooks; they are required here.
 declare const window: HubFixtureWindow;
 
 /**
  * The keyboard contract as a golden matrix: every key in every view, each cell
- * in a fresh browser context. The golden table records what the Hub does today,
- * so any behaviour change shows up as a reviewed table diff. A branch that
- * changes keyboard behaviour regenerates the table and commits the diff:
+ * in a fresh page. The golden table records what the Hub does today, so any
+ * behaviour change shows up as a reviewed table diff. vitest holds the cells a
+ * DOM answers (src/hub-keyboard-contract.ts); this spec holds the cells only a
+ * real browser answers (keyboard-contract-keys.ts): Tab traversal, PageDown's
+ * page from the layout, and Settings' arrows past controls the stylesheet hides.
+ * A branch that changes keyboard behaviour regenerates the table, both halves,
+ * and commits the diff:
  *
  *   KEYBOARD_GOLDEN=update npx playwright test -c <config> hub-keyboard-contract
  *
@@ -28,7 +33,7 @@ const enterHub = async (page: Page, query: string) => {
   const search = page.locator('.hub-search input');
   await search.fill(query); await search.press('Enter');
 };
-const VIEWS: Record<string, { query?: string; open(page: Page): Promise<void> }> = {
+const VIEWS: Record<KeyboardView, { query?: string; open(page: Page): Promise<void> }> = {
   'closed': { open: page => page.keyboard.press('Escape') },
   'home': { open: async () => {} },
   'home-query': { open: page => page.locator('.hub-search input').fill('kam') },
@@ -53,8 +58,6 @@ const VIEWS: Record<string, { query?: string; open(page: Page): Promise<void> }>
   } },
   'settings-body': { open: async page => { await enterHub(page, 'settings'); await page.getByRole('checkbox', { name: 'Enable Tools' }).focus(); } },
 };
-const KEYS = ['a', '1', 'Enter', 'Escape', 'Backspace', 'Meta+Backspace', 'ArrowDown', 'ArrowUp', 'Tab', 'Shift+Tab',
-  'Home', 'End', 'PageDown', 'Control+n', 'Meta+Enter', 'Meta+j', 'Meta+r'];
 
 /** Two animation frames and the demo hosts' 600 ms travel or apply delays. */
 const settle = (page: Page) => page.waitForTimeout(700);
@@ -102,8 +105,8 @@ test.describe('keyboard contract', () => {
       writeFileSync(GOLDEN, `${JSON.stringify(golden, null, 2)}\n`);
     });
   }
-  for (const [view, setup] of Object.entries(VIEWS)) {
-    for (const key of KEYS) {
+  for (const [view, setup] of Object.entries(VIEWS) as [KeyboardView, typeof VIEWS[KeyboardView]][]) {
+    for (const key of [...BROWSER_KEYS, ...DOM_KEYS].filter(key => browserCell(view, key))) {
       test(`${view} × ${key}`, async ({ page }) => {
         await page.goto(`/?hub${setup.query ?? ''}`);
         await expect(page.locator('#app')).toHaveAttribute('data-ready', 'true');

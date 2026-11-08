@@ -10,6 +10,12 @@ const settingsEntry = fileURLToPath(new URL("../launcher/src/hub-entry.ts", impo
 const hubSettingsModule: Plugin = {
   name: "gwonmac-hub-settings-module",
   apply: "serve",
+  // vitest resolves the same lazy import through Vite rather than over HTTP, ahead of Vite's own
+  // resolver, which would return the missing file's path unchanged.
+  enforce: "pre",
+  resolveId(source) {
+    return source.endsWith("/settings/settings-app.js") ? settingsEntry : null;
+  },
   configureServer(server) {
     server.middlewares.use((request, _response, next) => {
       // The renderer imports it relative to its own module, so any folder may precede it.
@@ -66,6 +72,8 @@ export default defineConfig(({ mode }) => {
         },
     test: {
       environment: "happy-dom",
+      // The Hub links Settings' stylesheet; a test reads no CSS, so a link loads as an empty sheet.
+      environmentOptions: { happyDOM: { settings: { disableCSSFileLoading: true, handleDisabledFileLoadingAsSuccess: true } } },
       // Node 25+ ships its own localStorage global, which hides happy-dom's window.localStorage.
       execArgv: ["--no-experimental-webstorage"],
       globals: true,
