@@ -3,6 +3,8 @@ import type { HubFixtureWindow } from './fixture-window.js';
 // The workbench page this spec drives sets the fixture hooks; they are required here.
 declare const window: HubFixtureWindow;
 
+const searchName = /^Search (?:people, places, builds|in .+)…$/u;
+
 // Hub intent rules that a Node or vitest test can hold live in src/hub-intent.dom.test.ts and
 // tests/unit/hub*.test.ts (coverage map: what Enter, a click or a typed scope runs, which row a
 // page starts on, what a row says before Enter, what a page restores). This spec keeps what needs
@@ -271,4 +273,48 @@ test('Travel favourite arrows follow the painted columns and hold at the ends (H
     await expect(search).toBeFocused();
     await expect(page.locator('#app')).not.toHaveAttribute('data-action', /TRAVEL/);
   }
+});
+
+// HUB-130: a held Enter activates a surface control once; its repeats never toggle it back.
+test('holding Enter on Trade\'s Save offer or Follow player toggles once', async ({ page }) => {
+  await page.goto('/?hub');
+  await expect(page.locator('#app')).toHaveAttribute('data-ready', 'true');
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('Meta+k');
+  const trade = page.locator('#toolbox-trade .trade-window');
+  await expect(trade).toBeVisible();
+  await trade.locator('.trade-row', { hasText: 'Quiet Ember' }).locator('.offer-cell').click();
+  const hold = async (name: string) => {
+    await trade.locator('.offer-actions summary').click();
+    await trade.getByRole('menuitemcheckbox', { name }).focus();
+    for (let press = 0; press < 6; press++) await page.keyboard.down('Enter');
+    await page.keyboard.up('Enter');
+    await trade.locator('.offer-actions summary').click();
+    await expect(trade.getByRole('menuitemcheckbox', { name })).toHaveAttribute('aria-checked', 'true');
+    await trade.locator('.offer-actions summary').click();
+  };
+  await hold('Save offer');
+  await expect(trade.locator('.saved-count')).toHaveText('1');
+  await hold('Follow player');
+  await expect(trade.locator('.saved-count')).toHaveText('2');
+});
+
+test('a stored place phrase resolves in Home, its travel scope and detailed Travel without moving its data (HUB-061)', async ({ page }) => {
+  const stored = [{ id: 'place:194', phrase: 'home', pinned: true }];
+  await page.addInitScript(value => localStorage.setItem('hub-fixture-shortcuts', JSON.stringify(value)), stored);
+  await page.goto('/?hub');
+  await expect(page.locator('#app')).toHaveAttribute('data-ready', 'true');
+  const search = page.getByRole('combobox', { name: searchName });
+  for (const query of ['home', 'travel home']) {
+    await search.fill(query);
+    await expect(page.locator('.hub-row[aria-selected="true"]')).toHaveAttribute('data-id', 'place:194');
+    await expect(page.locator('.hub-primary')).toContainText('Travel to Kaineng Center');
+  }
+  await page.keyboard.press('Meta+t');
+  const destination = page.getByRole('combobox', { name: 'Destination, phrase, or friend' });
+  await destination.fill('home');
+  await expect(destination).toHaveAttribute('aria-activedescendant', 'travel-map-194');
+  await expect(page.locator('.hub-primary')).toContainText('Travel to Kaineng Center');
+  expect(JSON.parse(await page.evaluate(() => localStorage.getItem('hub-fixture-shortcuts')) ?? 'null')).toEqual(stored);
+  await expect(page.locator('#app')).not.toHaveAttribute('data-action', /TRAVEL/);
 });

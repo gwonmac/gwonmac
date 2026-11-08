@@ -11,9 +11,14 @@ import { click, fill, hold, keyDown, keyUp, loadFixture, mountFixture, press, se
 beforeAll(loadFixture);
 afterEach(unmountFixture);
 
+/** Narrows an element to its type, or fails the test. */
+function as<T extends Element>(element: Element | null | undefined, type: abstract new (...args: never[]) => T): T {
+  if (element instanceof type) return element;
+  throw new Error(`Expected a ${type.name}`);
+}
 const $ = (selector: string) => document.querySelector<HTMLElement>(selector);
 const $$ = (selector: string) => [...document.querySelectorAll<HTMLElement>(selector)];
-const search = () => $('.hub-search input') as HTMLInputElement;
+const search = () => as($('.hub-search input'), HTMLInputElement);
 const selected = () => $('.hub-row[aria-selected="true"]');
 const row = (id: string) => $(`.hub-row[data-id="${id}"]`);
 const norm = (value: string | null | undefined) => (value ?? '').replace(/\s+/gu, ' ').trim();
@@ -21,15 +26,16 @@ const text = (selector: string) => norm($(selector)?.textContent);
 const caption = () => text('.hub-caption');
 const crumbs = () => text('.hub-breadcrumbs');
 const detail = (element: Element | null) => norm(element?.querySelector('.hub-detail')?.textContent);
-const primary = () => $('.hub-primary') as HTMLButtonElement;
+const primary = () => as($('.hub-primary'), HTMLButtonElement);
 const app = () => $('#app')!;
 const action = () => app().dataset.action ?? null;
 const invites = () => app().dataset.invites ?? null;
 const hubOpen = () => shown($('#hub')!);
 const button = (name: string, exact = true) => byRole('button', name, exact)[0]!;
-const travelBox = () => byRole('combobox', 'Destination, phrase, or friend', true)[0] as HTMLInputElement;
-const phraseBox = () => byRole('textbox', 'Search phrase', true)[0] as HTMLInputElement;
-const lifecycle = () => byRole('combobox', 'Lifecycle state', true)[0] as HTMLSelectElement;
+const travelBox = () => as(byRole('combobox', 'Destination, phrase, or friend', true)[0], HTMLInputElement);
+const phraseBox = () => as(byRole('textbox', 'Search phrase', true)[0], HTMLInputElement);
+const actionsButton = () => as(byRole('button', 'Actions', true)[0], HTMLButtonElement);
+const lifecycle = () => as(byRole('combobox', 'Lifecycle state', true)[0], HTMLSelectElement);
 const choose = (select: HTMLSelectElement, value: string) => { select.value = value; select.dispatchEvent(new Event('change', { bubbles: true })); };
 const setLifecycle = async (value: string) => { choose(lifecycle(), value); await flush(); };
 /** A short wait: two animation frames, enough for the Hub to render what a key or click changed. */
@@ -39,18 +45,10 @@ const tick = () => vi.advanceTimersByTimeAsync(0);
 const blur = () => window.dispatchEvent(new Event('blur'));
 const openHub = async () => { click(button('Open Hub')); await flush(); };
 const goTo = async (query: string) => { fill(search(), query); press('Enter'); await flush(); };
-const openPhraseMenu = async () => { await flush(); click($('.hub-actions')!); await flush(); click(byRole('menuitem', 'Set search phrase')[0]!); await flush(); };
+const openPhraseMenu = async () => { await flush(); click(actionsButton()); await flush(); click(byRole('menuitem', 'Set search phrase')[0]!); await flush(); };
 const stored = () => JSON.parse(localStorage.getItem('hub-fixture-shortcuts') ?? 'null');
-/**
- * Mounts with `hub-fixture-shortcuts` already stored, as a Playwright init script sets it before
- * the page loads. `mountFixture` clears storage and then empties the body, so the seed goes in at
- * that second step, just before the fixture reads it.
- */
-async function mountStored(query: string, value: unknown) {
-  const replace = document.body.replaceChildren.bind(document.body);
-  document.body.replaceChildren = (...nodes: (Node | string)[]) => { replace(...nodes); localStorage.setItem('hub-fixture-shortcuts', JSON.stringify(value)); };
-  try { return await mountFixture(query); } finally { document.body.replaceChildren = replace; }
-}
+/** What the page finds in localStorage when it loads: the stored pins and phrases. */
+const shortcuts = (value: unknown) => ({ 'hub-fixture-shortcuts': JSON.stringify(value) });
 const moveDown = (times: number) => { for (let step = 0; step < times; step++) press('ArrowDown'); };
 
 // ---- Accounts, characters and temporary hides ------------------------------------------------
@@ -58,7 +56,7 @@ const moveDown = (times: number) => { for (let step = 0; step < times; step++) p
 test('character entry is card-first and Back restores the launching result', async () => {
   await mountFixture();
   await goTo('sw');
-  const focused = () => document.activeElement as HTMLElement;
+  const focused = () => as(document.activeElement, HTMLElement);
   expect(focused().matches('#character-switch-list button')).toBe(true);
   const first = focused().dataset.characterKey;
   press('ArrowRight'); await flush();
@@ -144,7 +142,7 @@ test('Travel and Settings restore their own state after a temporary hide', async
   click(button('Home')); await flush();
   await goTo('settings'); await settle();
   click(button('Appearance')); await settle();
-  const style = () => $('[data-setting="uiStyle"] select') as HTMLSelectElement;
+  const style = () => as($('[data-setting="uiStyle"] select'), HTMLSelectElement);
   style().focus();
   blur(); await flush(); await openHub();
   expect(document.activeElement).toBe(style());
@@ -156,8 +154,8 @@ test('Travel and Settings restore their own state after a temporary hide', async
   expect([phraseBox().value, document.activeElement === phraseBox()]).toEqual(['smite now', true]);
   press('Meta+r'); await flush();
   await goTo('rates');
-  choose(byRole('combobox', 'Rate source', true)[0] as HTMLSelectElement, 'manual'); await flush();
-  const rate = byRole('textbox', 'Gold per ectoplasm', true)[0] as HTMLInputElement;
+  choose(as(byRole('combobox', 'Rate source', true)[0], HTMLSelectElement), 'manual'); await flush();
+  const rate = as(byRole('textbox', 'Gold per ectoplasm', true)[0], HTMLInputElement);
   fill(rate, '7500');
   blur(); press('Meta+r'); await flush();
   expect([rate.value, document.activeElement === rate]).toEqual(['7500', true]);
@@ -221,7 +219,7 @@ test('held Enter on footer actions and Backspace in ordinary fields keep their s
 
 test('a legacy phrase that is now a scope word keeps its pins and only stops matching', async () => {
   const legacy = [{ id: 'whispers', phrase: 'invite', pinned: true }, { id: 'travel', phrase: '', pinned: true }];
-  await mountStored('', legacy);
+  await mountFixture('', shortcuts(legacy));
   expect(text('.hub-group')).toBe('Pinned');
   expect([0, 1].map(index => $$('.hub-row')[index]!.textContent?.match(/Whispers|Travel/u)?.[0])).toEqual(['Whispers', 'Travel']);
   fill(search(), 'invite '); await flush();
@@ -355,10 +353,10 @@ test('a Home place row and Travel and invite ask the same step, and staying send
 });
 
 /** The Resign dialog is created when first opened, so each use looks it up again. */
-const resignDialog = () => $('#resign-dialog') as HTMLDialogElement | null;
+const resignDialog = () => { const dialog = $('#resign-dialog'); return dialog ? as(dialog, HTMLDialogElement) : null; };
 const resignOpen = () => resignDialog()?.open === true;
-/** The harness's accessible name keeps aria-hidden key hints ("Resign ↵"), so the buttons are found by their data attributes. */
-const resignConfirm = () => resignDialog()!.querySelector<HTMLButtonElement>('[data-confirm]')!;
+const resignButton = (name: string) => byRole('button', name, true).find(candidate => resignDialog()?.contains(candidate));
+const resignConfirm = () => as(resignButton('Resign'), HTMLButtonElement);
 
 // ---- Resign -----------------------------------------------------------------------------------
 
@@ -373,7 +371,7 @@ test('Resign says what it does before Enter, reads as destructive, and Cancel re
     window.gwFixtureCanvas!.clear();
     press('Enter'); await flush();
     expect([cancel, resignOpen(), confirm().dataset.variant, resignDialog()?.textContent]).toEqual([cancel, true, 'danger', expect.stringContaining('When everyone has resigned, the party returns to the outpost')]);
-    if (cancel === 'Escape') press('Escape'); else click(resignDialog()!.querySelector<HTMLButtonElement>('[data-cancel]')!);
+    if (cancel === 'Escape') press('Escape'); else click(as(resignButton('Cancel'), HTMLButtonElement));
     await flush();
     expect([cancel, resignOpen(), document.activeElement === search(), search().value, row('resign')?.getAttribute('aria-selected'), window.gwFixtureCanvas!.events.filter(event => event.code === 'Escape').length])
       .toEqual([cancel, false, true, 'resign', 'true', 0]);
@@ -574,7 +572,7 @@ test('Invite to a friend in another map says why before Enter and sends nothing'
   // D-2: the person page keeps focus in search and moves the active descendant.
   expect([caption(), document.activeElement === search()]).toEqual(['Zed Alpha', true]);
   // The footer keeps both slots and a key legend; a person page has no details to show.
-  expect([shown($('.hub-actions')!), ($('.hub-actions') as HTMLButtonElement).disabled, text('.hub-legend')]).toEqual([true, true, '↑↓ Select⎋ Back⌘⌫ Back']);
+  expect([shown(actionsButton()), actionsButton().disabled, text('.hub-legend')]).toEqual([true, true, '↑↓ Select⎋ Back⌘⌫ Back']);
   press('ArrowDown'); press('ArrowDown'); await flush();
   expect([document.activeElement === search(), search().getAttribute('aria-activedescendant')]).toEqual([true, 'hub-result-2']);
   expect(selected()?.textContent).toContain('Invite to party');
@@ -647,8 +645,8 @@ test('a click only selects an invite; the footer or a double-click on it sends o
 // ---- Characters: typing never switches --------------------------------------------------------
 
 const card = (key: string) => $(`button[data-character-key="${key}"]`);
-const focusedCard = () => (document.activeElement as HTMLElement | null)?.dataset.characterKey;
-const query = () => $('#character-switch-query') as HTMLInputElement;
+const focusedCard = () => document.activeElement instanceof HTMLElement ? document.activeElement.dataset.characterKey : undefined;
+const query = () => as($('#character-switch-query'), HTMLInputElement);
 const toCharacters = async () => { press('Escape'); await flush(); press('Meta+e'); await flush(); };
 
 // D-5, HUB-002: a digit selects and reveals its card; only Enter switches, to the card the footer names.
@@ -784,7 +782,7 @@ test('clearing, spacing or pasting in the search keeps the chosen card, and card
   expect([last.getAttribute('aria-selected'), last.querySelector('.character-switch-key')!.textContent, last.querySelector('.character-switch-meta')?.textContent]).toEqual(['true', '', expect.stringContaining('Mo/Me · PvP')]);
   for (const enabled of [false, true]) {
     click(button('Character Switch settings')); await flush();
-    const toggle = $('#character-switch-show-profession') as HTMLInputElement;
+    const toggle = as($('#character-switch-show-profession'), HTMLInputElement);
     toggle.checked = enabled; toggle.dispatchEvent(new Event('change', { bubbles: true }));
     click(button('Character Switch settings')); await flush();
     const meta = last.querySelector('.character-switch-meta')?.textContent ?? '';
@@ -839,7 +837,7 @@ test.each(['Stay here', 'Escape'])('Leave this area names the character, and %s 
 test('a Travel number key selects its favourite, a held one repeats nothing, and only Enter travels', async () => {
   await mountFixture();
   press('Escape'); await flush(); press('Meta+t'); await flush();
-  const travelSearch = $('#travel-search-input') as HTMLInputElement;
+  const travelSearch = as($('#travel-search-input'), HTMLInputElement);
   expect(document.activeElement).toBe(travelSearch);
   hold('1', 5); await flush();
   expect([$('#travel-favorite-0')?.getAttribute('aria-selected'), primary().textContent, caption(), travelSearch.value, /TRAVEL/u.test(action() ?? '')])
@@ -848,45 +846,9 @@ test('a Travel number key selects its favourite, a held one repeats nothing, and
   expect([action(), hubOpen()]).toEqual(['TRAVEL Ascalon City', false]);
 });
 
-// HUB-130: a held Enter activates a surface control once; its repeats never toggle it back.
-test('holding Enter on Trade\'s Save offer or Follow player toggles once', async () => {
-  await mountFixture();
-  press('Escape'); await flush(); press('Meta+k'); await flush();
-  const trade = $('#toolbox-trade .trade-window')!;
-  expect(shown(trade)).toBe(true);
-  click(trade.querySelector('.trade-row:has(.offer-cell) .offer-cell, .trade-row .offer-cell')!.closest('.trade-row')!.matches('.trade-row') ? [...trade.querySelectorAll('.trade-row')].find(candidate => candidate.textContent?.includes('Quiet Ember'))!.querySelector('.offer-cell')! : trade); await flush();
-  const summary = () => trade.querySelector<HTMLElement>('.offer-actions summary')!;
-  const item = (name: string) => [...trade.querySelectorAll<HTMLElement>('[role="menuitemcheckbox"]')].find(candidate => norm(candidate.textContent).includes(name))!;
-  const holdOn = async (name: string) => {
-    click(summary()); await flush();
-    item(name).focus();
-    hold('Enter', 5); await flush();
-    click(summary()); await flush();
-    expect([name, item(name).getAttribute('aria-checked')]).toEqual([name, 'true']);
-    click(summary()); await flush();
-  };
-  await holdOn('Save offer');
-  expect(text('.saved-count')).toBe('1');
-  await holdOn('Follow player');
-  expect(text('.saved-count')).toBe('2');
-});
-
-test('a stored place phrase resolves in Home, its travel scope and detailed Travel without moving its data (HUB-061)', async () => {
-  const kept = [{ id: 'place:194', phrase: 'home', pinned: true }];
-  await mountStored('', kept);
-  for (const text of ['home', 'travel home']) {
-    fill(search(), text); await flush();
-    expect([text, selected()?.dataset.id, primary().textContent]).toEqual([text, 'place:194', expect.stringContaining('Travel to Kaineng Center')]);
-  }
-  press('Meta+t'); await flush();
-  fill(travelBox(), 'home'); await flush();
-  expect([travelBox().getAttribute('aria-activedescendant'), primary().textContent, stored(), /TRAVEL/u.test(action() ?? '')])
-    .toEqual(['travel-map-194', expect.stringContaining('Travel to Kaineng Center'), kept, false]);
-});
-
 test('editing a phrase preserves pin order and a delayed save cannot navigate a later page', async () => {
   const kept = [{ id: 'maps', phrase: '', pinned: true }, { id: 'travel', phrase: '', pinned: true }];
-  await mountStored('&settings-ms=700', kept);
+  await mountFixture('&settings-ms=700', shortcuts(kept));
   fill(search(), 'maps'); press('Meta+j'); await flush();
   click(byRole('menuitem', 'Set search phrase')[0]!); await flush();
   fill(phraseBox(), 'my map'); press('Enter'); await tick();
@@ -899,7 +861,7 @@ test('editing a phrase preserves pin order and a delayed save cannot navigate a 
 
 test('pins keep each storage owner limit and preserve unresolved references while another owner changes (HUB-090)', async () => {
   const global = [{ id: 'maps', phrase: '', pinned: true }, ...Array.from({ length: 63 }, (_, index) => ({ id: `place:${10000 + index}`, phrase: '', pinned: true }))];
-  await mountStored('', global);
+  await mountFixture('', shortcuts(global));
   fill(search(), 'team gom afk'); press('Meta+j'); await flush();
   click(byRole('menuitem', 'Pin to Hub', true)[0]!); await flush();
   expect([text('#hub .hub-status'), stored()]).toEqual(['Pinned GOM AFK.', global]);
@@ -914,7 +876,7 @@ test('existing global and Travel phrases that name different places require a ch
   press('Meta+t'); await flush();
   click(button('Customize Travel')); await flush();
   click(button('+ Add phrase')); await flush();
-  fill($('#travel-new-phrase') as HTMLInputElement, 'home');
+  fill(as($('#travel-new-phrase'), HTMLInputElement), 'home');
   const picker = $('.travel-add-phrase details')!;
   click(picker.querySelector('summary')!); await flush();
   const pick = picker.querySelector<HTMLInputElement>('[role="combobox"], input')!;
@@ -922,7 +884,7 @@ test('existing global and Travel phrases that name different places require a ch
   fill(pick, 'kamadan'); await flush();
   click([...picker.querySelectorAll<HTMLElement>('[role="option"]')].find(option => /Kamadan, Jewel of Istan/u.test(option.textContent ?? ''))!); await flush();
   click(button('Save')); await flush();
-  expect(($('#travel-search-input') as HTMLInputElement).value).toBe('home');
+  expect(as($('#travel-search-input'), HTMLInputElement).value).toBe('home');
   const kept = [{ id: 'place:194', phrase: 'home', pinned: true }];
   // Simulate an older app's separate global store arriving, without editing either phrase.
   const arrived = window.gwNative.settings.set({ hubShortcuts: kept }); await flush(); await arrived;
@@ -934,7 +896,7 @@ test('existing global and Travel phrases that name different places require a ch
     expect([text, caption(), action()]).toEqual([text, 'Home', null]);
   }
   press('Meta+t'); await flush();
-  const destination = $('#travel-search-input') as HTMLInputElement;
+  const destination = as($('#travel-search-input'), HTMLInputElement);
   fill(destination, 'home'); await flush();
   expect(destination.getAttribute('aria-activedescendant')).toBeNull();
   press('Enter'); await flush();
