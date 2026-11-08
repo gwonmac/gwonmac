@@ -18,6 +18,7 @@
  * acceptance rule per feature (`enhancement-feature-acceptance.ts`). Profile
  * state is never consulted.
  */
+import { refusedOrRethrow } from "./stage-refusal.js";
 import { deriveAlcoholObservation } from "./enhancement-alcohol-proof.js";
 import { deriveNativeHudRendering, provesNativeHudRendering } from "./native-hud-transform.js";
 import { deriveWhisperChat } from "./enhancement-whisper-proof.js";
@@ -247,8 +248,8 @@ function structuralEvidence(
   if (!anchors) return null;
   try {
     return inspectEnhancementStructuralEvidence(input, anchors, context);
-  } catch {
-    return null;
+  } catch (error) {
+    return refusedOrRethrow(error);
   }
 }
 
@@ -1094,7 +1095,8 @@ function verifyWithActiveFacts(
   let templateFailure: "template-shape-changed" | "template-transform-failed" | null = null;
   try {
     postTemplate = preparePostTemplateSaveModule(official);
-  } catch {
+  } catch (error) {
+    refusedOrRethrow(error);
     templateFailure = "template-transform-failed";
   }
   if (!postTemplate && templateFailure === null) {
@@ -1159,7 +1161,8 @@ function verifyWithActiveFacts(
       enhancementInput,
       requestedCapabilities,
     );
-  } catch {
+  } catch (error) {
+    refusedOrRethrow(error);
     refusal = "enhancement-transform-failed";
   }
   const enhancementBuild = derivation.build;

@@ -9,6 +9,7 @@ import {
   acceptLocalClientVerification,
   isLocalClientVerification,
   localFeatureVerdictsForBuild,
+  verifyLocalClientBytes,
   type LocalClientVerification,
 } from "../../app/client/certification/local-client-verifier.js";
 import { SEMANTIC_VERIFIER_ABI } from "../../app/client/certification/semantic-proof.js";
@@ -1056,6 +1057,29 @@ describe("local client verification boundary", () => {
     assert.equal(
       isLocalClientVerification(invalidInvariant, TEMPLATE.sha256, ALL),
       false,
+    );
+  });
+});
+
+// The launch stores each build's verdict until the next app update. A fault
+// (a bug's TypeError, a failed allocation's RangeError) says nothing about the
+// bytes, so turning it into a refusal would switch Tools off for good on a
+// client the next start would prove. These bytes are a valid module whose
+// copies throw, as a defect inside a stage would.
+describe("local client verifier faults", () => {
+  class FaultyBytes extends Uint8Array {
+    override subarray(): Uint8Array {
+      throw new TypeError("stage defect");
+    }
+    override slice(): Uint8Array {
+      throw new TypeError("stage defect");
+    }
+  }
+
+  it("propagates a stage's TypeError instead of returning a refusal verdict", () => {
+    assert.throws(
+      () => verifyLocalClientBytes(FaultyBytes.of(0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00)),
+      { name: "TypeError", message: "stage defect" },
     );
   });
 });
