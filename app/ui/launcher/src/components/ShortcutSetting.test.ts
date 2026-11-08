@@ -56,7 +56,11 @@ describe("Shortcut setting", () => {
     const wrapper = mount(ShortcutSetting, { attachTo: document.body, props: { action: "character.switch", shortcuts: { ...DEFAULT_SHORTCUTS, "character.switch": null, "cartography.grid.toggle": DEFAULT_SHORTCUTS["character.switch"] }, api: tools } });
     await wrapper.get('[aria-label="Restore Switch Character default shortcut"]').trigger("click");
     expect(wrapper.text()).toContain("Replace shortcut");
-    await wrapper.get(".shortcut-setting").trigger("keydown", { key: "Escape" });
+    // The Hub leaves its Settings page on any Escape it still sees, so the prompt claims the press (HUB-053).
+    const escape = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
+    wrapper.get(".shortcut-setting").element.dispatchEvent(escape);
+    await flushPromises();
+    expect(escape.defaultPrevented).toBe(true);
     expect(wrapper.text()).not.toContain("Replace shortcut");
     expect(tools.replaceShortcut).not.toHaveBeenCalled();
     expect(document.activeElement).toBe(wrapper.get(".shortcut-value").element);
