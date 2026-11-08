@@ -338,19 +338,29 @@ describe("panel text legibility over the game", () => {
       ["blue classic", blue], ["blue modern", { ...blue, material: "modern" }], ["red accent", { ...blue, accent: "#B03A2E" }],
       ["white window", { ...blue, accent: "#E6C882", window: "#FFFFFF" }],
     ];
-    // The selection fill's lightest stop mixes the selected colour with transparency. The app
-    // publishes it only for a recoloured selection, so read its share from such a theme.
-    const recoloured: AppSettings = { ...DEFAULT_SETTINGS, uiStyle: "custom", uiCustomTheme: { ...blue, selected: "#2A4A70" } };
-    const stop = /color-mix\(in srgb, \S+ (\d+)%, transparent\)/u.exec(appearanceVariables(recoloured)["--ui-selection-fill"] ?? "");
-    assert.ok(stop, "a recoloured selection publishes a fill that starts with a translucent stop");
-    const selectionAlpha = Number(stop[1]) / 100;
+    // The selection fill's lighter top stop, as the app paints it for this theme: a recoloured
+    // selection publishes a translucent mix of its colour; otherwise the stylesheet's own fill paints.
+    const rootBlock = readFileSync(new URL("../../app/shared/ui/tokens.css", import.meta.url), "utf8").split(/^:root \{$/mu)[1]?.split(/^\}$/mu)[0] ?? "";
+    const selectionStop = (settings: AppSettings): readonly [UiThemeColor, number] => {
+      const published = appearanceVariables(settings)["--ui-selection-fill"];
+      if (published) {
+        const mix = /color-mix\(in srgb, #([0-9A-Fa-f]{6}) (\d+)%, transparent\)/u.exec(published);
+        assert.ok(mix, `a published selection fill starts with a translucent stop: ${published}`);
+        return [`#${mix[1]}`, Number(mix[2]) / 100];
+      }
+      const token = /--ui-selection-fill: linear-gradient\(rgb\((\d+) (\d+) (\d+) \/ (\d+)%\)/u.exec(rootBlock);
+      assert.ok(token, "the stylesheet's selection fill starts with a translucent rgb stop");
+      const hex = [token[1], token[2], token[3]].map((channel) => Number(channel).toString(16).padStart(2, "0")).join("");
+      return [`#${hex}`, Number(token[4]) / 100];
+    };
     for (const [name, theme] of themes) {
       for (const uiPanelOpacity of [65, 70, 80, 94, 100]) {
         const settings: AppSettings = { ...DEFAULT_SETTINGS, uiStyle: "custom", uiPanelOpacity, uiCustomTheme: theme };
         const inks = publishedInks(settings);
         const rendered = renderedCustomTheme(theme);
+        const [selection, selectionAlpha] = selectionStop(settings);
         const panels = (["#FFFFFF", "#000000"] as const).map((scene) => compositeColor(rendered.window, scene, uiPanelOpacity / 100));
-        const backgrounds = [...panels, ...panels.map((panel) => compositeColor(rendered.selected, panel, selectionAlpha)), rendered.titlebar, rendered.surface];
+        const backgrounds = [...panels, ...panels.map((panel) => compositeColor(selection, panel, selectionAlpha)), rendered.titlebar, rendered.surface];
         for (const [token, ink] of Object.entries(inks)) {
           if (token === "--ui-accent-text") continue;
           for (const background of backgrounds) assert.ok(contrastRatio(ink, background) >= 4.5, `${name} ${uiPanelOpacity}% ${token} ${ink} on ${background}`);
