@@ -167,8 +167,11 @@ locator already meets the final relocation-resistant bar. At verifier ABI 10:
   after an equivalent compiler rewrite; and
 - a reviewed body digest or role fingerprint matches a relocated body only
   through a generation's identity table. The relocation identity names each
-  callee by its signature and each padded static operand by its class (text,
-  data, other); a role identity also erases the role's own spans. Generations
+  callee by its body up to the callee's own call targets, and each padded
+  static operand by its class (text, data, other). A role identity names each
+  callee by its signature only and erases the role's own spans: the role proof
+  checks its own relations, so a changed callee refuses only the features
+  that own it. Generations
   from October 22, 2026 on carry tables; older facts match exactly; and
 - the player-effect boundary accepts only reviewed body digests, and the
   transform rechecks the timer digest. A relocated effect body needs a
