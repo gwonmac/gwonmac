@@ -17,9 +17,13 @@
  *
  * Focus follows Chromium where the DOM decides it: `focus()` does nothing on an element that is
  * not shown, not focusable, or inert (under `[inert]`, or outside the top dialog opened with
- * `showModal`, which the harness records because happy-dom opens it as a plain `show`), and
- * `click` refuses a detached or inert target, as Playwright's actionability checks do. An element hidden only by the stylesheet still counts as shown: happy-dom loads
- * no CSS, so cells whose answer depends on CSS visibility stay in Playwright.
+ * `showModal`, which the harness records because happy-dom opens it as a plain `show`). A press
+ * focuses its nearest focusable ancestor, and an open dialog counts as one, else the body. As
+ * Playwright's actionability checks do, `click` refuses a target that is detached, not shown,
+ * disabled or inert, and `fill` a field that does not take focus; `forceClick` skips the shown
+ * and disabled checks, as `click({ force: true })` does. An element hidden only by the stylesheet
+ * still counts as shown: happy-dom loads no CSS, so cells whose answer depends on CSS visibility
+ * stay in Playwright.
  */
 import { vi } from 'vitest';
 import type { EmbeddedSettings } from '../../../shared/hub-settings';
@@ -78,6 +82,8 @@ export function focusable(element: HTMLElement) {
   if ('disabled' in element && element.disabled === true) return false;
   return !(element instanceof HTMLInputElement && element.type === 'hidden');
 }
+/** `focus()` before the guard: a press on an open dialog focuses it, which a script's `focus()` cannot. */
+const pressFocus = HTMLElement.prototype.focus;
 let focusGuarded = false;
 /** Makes `focus()` refuse what Chromium refuses and records modal dialogs (see the header); once per test file. */
 function guardFocus() {
@@ -238,10 +244,6 @@ export function hold(key: string, repeats = 3) {
 }
 
 /**
- * Clicks an element as a mouse press does: the press focuses its nearest focusable ancestor
- * (or the body), then the click runs with `detail` as the click run's length.
- */
-/**
  * Where a click lands. Playwright clicks an element's center; happy-dom has no layout, so each
  * element gets its own point, 60 px from any other, and the same element always the same point:
  * presses on two elements never join one click run, and a double-click on one element does.
@@ -253,15 +255,36 @@ function pointOf(element: Element) {
   if (!point) { point = { clientX: 30 + (placed % 16) * 60, clientY: 30 + Math.floor(placed / 16) * 60 }; placed++; points.set(element, point); }
   return point;
 }
-export function click(element: Element, detail = 1) {
-  // Playwright clicks an attached element that receives pointer events; a detached or inert one never does.
-  if (!element.isConnected) throw new Error(`Detached, so Playwright could not click it: ${element.tagName} "${accessibleName(element)}"`);
+/** Disabled as Playwright's actionability check reads it: a disabled control or fieldset, or under aria-disabled. */
+function disabled(element: Element) {
+  const control = element.closest('button, input, select, textarea, option, optgroup');
+  return Boolean(control?.hasAttribute('disabled') || element.closest('fieldset[disabled], [aria-disabled="true"]'));
+}
+/**
+ * Clicks an element as a mouse press does: the press focuses its nearest focusable ancestor
+ * (or the body), then the click runs with `detail` as the click run's length. `at` names the
+ * element whose point is pressed, for a press that lands on what replaced it there.
+ */
+export function click(element: Element, detail = 1, at: Element = element) {
+  // Playwright clicks only an attached, visible, enabled element that receives pointer events.
+  if (!shown(element)) throw refusal('Not shown', element);
+  if (disabled(element)) throw refusal('Disabled', element);
+  mousePress(element, detail, at);
+}
+/** Playwright's `click({ force: true })`: the same press without the visible and enabled checks. */
+export const forceClick = (element: Element) => mousePress(element, 1, element);
+const refusal = (why: string, element: Element) => new Error(`${why}, so Playwright could not click it: ${element.tagName} "${accessibleName(element)}"`);
+function mousePress(element: Element, detail: number, at: Element) {
+  if (!element.isConnected) throw refusal('Detached', element);
   if (inert(element)) throw new Error(`Inert, so Playwright could not click it: ${element.tagName} "${accessibleName(element)}" (${element.closest('[inert]') ? 'under [inert]' : `outside the modal #${topModal()?.id}`})`);
-  const init = { bubbles: true, cancelable: true, composed: true, detail, button: 0, ...pointOf(element) };
+  const init = { bubbles: true, cancelable: true, composed: true, detail, button: 0, ...pointOf(at) };
   element.dispatchEvent(trusted(new PointerEvent('pointerdown', init)));
   if (element.dispatchEvent(trusted(new MouseEvent('mousedown', init)))) {
-    const focusable = element.closest<HTMLElement>('button, a[href], input, select, textarea, summary, [tabindex]');
-    if (focusable) focusable.focus(); else if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    // Chromium focuses the nearest focusable ancestor (a disabled button is not one; an open
+    // dialog is), else the body.
+    let target: Element | null = element;
+    while (target && !(target instanceof HTMLElement && focusable(target)) && !(target instanceof HTMLDialogElement && target.open)) target = target.parentElement;
+    if (target instanceof HTMLElement) pressFocus.call(target); else if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
   }
   element.dispatchEvent(trusted(new PointerEvent('pointerup', init)));
   element.dispatchEvent(trusted(new MouseEvent('mouseup', init)));
@@ -294,12 +317,12 @@ function visibleText(element: Element): string {
   return parts.join('').replace(/\s+/gu, ' ').trim();
 }
 /**
- * The elements with this role whose accessible name contains `name` (ignoring case), like
- * Playwright's `getByRole(role, { name })`; `exact` asks for the whole name.
+ * The shown elements with this role whose accessible name contains `name` (ignoring case), like
+ * Playwright's `getByRole(role, { name })`, which skips hidden elements; `exact` asks for the whole name.
  */
 export const byRole = (role: string, name: string, exact = false) =>
   [...document.querySelectorAll<HTMLElement>('*')].filter(element => {
-    if (roleOf(element) !== role) return false;
+    if (roleOf(element) !== role || !shown(element)) return false;
     const accessible = accessibleName(element);
     return exact ? accessible === name : accessible.toLowerCase().includes(name.toLowerCase());
   });
@@ -318,5 +341,8 @@ export function type(text: string) { for (const character of text) press(charact
 
 /** Replaces a field's value as Playwright's `fill` does: focus, the new value, one input event. */
 export function fill(field: HTMLInputElement | HTMLTextAreaElement, value: string) {
-  field.focus(); field.value = value; field.dispatchEvent(trusted(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: value })));
+  field.focus();
+  // Playwright fills only a field that takes focus; a hidden, inert or disabled one never does.
+  if (document.activeElement !== field) throw new Error(`Not focusable, so Playwright could not fill it: ${field.tagName} "${accessibleName(field)}"`);
+  field.value = value; field.dispatchEvent(trusted(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: value })));
 }

@@ -6,7 +6,7 @@
  * the wheel, native macOS editing).
  */
 import { afterEach, beforeAll, expect, test, vi } from 'vitest';
-import { byRole, click, fill, hold, keyDown, keyUp, loadFixture, mountFixture, narrow, press, settle, shown, type, unmountFixture } from './hub-fixture-harness';
+import { byRole, click, fill, forceClick, hold, keyDown, keyUp, loadFixture, mountFixture, narrow, press, settle, shown, type, unmountFixture } from './hub-fixture-harness';
 import { createDemoTravelHost } from './travel-host';
 
 beforeAll(loadFixture);
@@ -583,7 +583,9 @@ test('Invite to a friend in another map says why before Enter and sends nothing'
   expect(selected()?.textContent).toContain('Zed Alpha is in Kamadan, Jewel of Istan. Use Travel and invite.');
   expect([primary().disabled, primary().textContent]).toEqual([true, expect.stringMatching(/^Invite Zed Alpha/u)]);
   // A press on the disabled primary or blank panel space keeps the keyboard in search.
-  click(primary()); await flush();
+  forceClick(primary()); await flush();
+  expect(document.activeElement).toBe(search());
+  click($('.hub-count')!); await flush();
   expect(document.activeElement).toBe(search());
   expect(search().getAttribute('aria-activedescendant')).toBe('hub-result-2');
   press('Enter'); await flush();

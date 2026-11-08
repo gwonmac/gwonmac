@@ -187,9 +187,10 @@ test.each([
   expect(text('#hub .hub-primary')).toContain('Review options');
   window.gwFixtureCanvas.clear();
   const target = locate();
-  // A person's double-click has a gap: the sheet must wait for the run, or it would cover the
-  // row before the second click (which then cannot reach the row at all).
-  for (let run = 1; run <= clicks; run++) { if (run > 1) await vi.advanceTimersByTimeAsync(120); click(target, run); }
+  // A double-click presses one point twice, with a person's gap. The first click closes the Hub,
+  // so the second lands on the game canvas beneath it, which must swallow the rest of the run.
+  const pressed = () => shown(target) ? target : document.getElementById('canvas')!;
+  for (let run = 1; run <= clicks; run++) { if (run > 1) await vi.advanceTimersByTimeAsync(120); click(pressed(), run, target); }
   await settle(); // past the double-click interval, so a second request would have arrived
   expect(sheet().open).toBe(true);
   expect(sheet().dataset.requests).toBe('1');
