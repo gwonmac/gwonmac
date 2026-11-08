@@ -7,6 +7,7 @@
  * everything here throws a `WasmFormatError` (`wasm: …`) so bytes it cannot
  * read are distinguishable from a policy refusal and from a defect.
  */
+import { Buffer } from "node:buffer";
 
 export interface Section {
   id: number;
@@ -68,30 +69,18 @@ export function concat(...parts: readonly Uint8Array[]): Uint8Array {
 
 /**
  * First index at or after `from` where `needle` starts, or -1. The verifier
- * scans the whole 8 MB data segment for hundreds of needles, so the first byte
- * is found with the engine's native `indexOf` and only those candidates are
- * compared in JavaScript; a byte-by-byte JavaScript scan was half of a proof.
+ * scans the whole 8 MB data segment for hundreds of needles, so the search is
+ * the engine's native `Buffer#indexOf` over a view, never a JavaScript loop.
+ * A negative `from` starts at 0 rather than counting from the end.
  */
 export function indexOfBytes(
   haystack: Uint8Array,
   needle: Uint8Array,
   from = 0,
 ): number {
-  const last = haystack.byteLength - needle.byteLength;
-  let at = Math.max(0, from);
-  if (needle.byteLength === 0) return at <= last ? at : -1;
-  const first = needle[0]!;
-  while (at <= last) {
-    at = haystack.indexOf(first, at);
-    if (at < 0 || at > last) return -1;
-    let index = 1;
-    while (index < needle.byteLength && haystack[at + index] === needle[index]) {
-      index += 1;
-    }
-    if (index === needle.byteLength) return at;
-    at += 1;
-  }
-  return -1;
+  const at = Math.max(0, from);
+  if (needle.byteLength === 0) return at <= haystack.byteLength ? at : -1;
+  return Buffer.from(haystack.buffer, haystack.byteOffset, haystack.byteLength).indexOf(needle, at);
 }
 
 export function uleb(value: number): Uint8Array {
