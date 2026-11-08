@@ -1,11 +1,11 @@
 import { expect, test } from '@playwright/test';
 import type { HubFixtureWindow } from './fixture-window.js';
+import { openHub } from './hub-page.js';
 // The workbench page this spec drives sets the fixture hooks; they are required here.
 declare const window: HubFixtureWindow;
 
 test('rows share a 40 px anatomy (HUB-150)', async ({ page }) => {
-  await page.goto('/?hub');
-  await expect(page.locator('#app')).toHaveAttribute('data-ready','true');
+  await openHub(page);
   const search=page.locator('.hub-search input');
   for (const query of ['', 'acc']) {
     await search.fill(query);
@@ -18,7 +18,7 @@ test('rows share a 40 px anatomy (HUB-150)', async ({ page }) => {
 });
 
 test('the Price basis picker fits its card and shares a line with its button (HUB-149)', async ({ page }) => {
-  await page.setViewportSize({width:800,height:600}); await page.goto('/?hub');
+  await page.setViewportSize({width:800,height:600}); await openHub(page);
   await page.locator('.hub-search input').fill('5 zkeys in ecto');
   const picker=page.getByRole('combobox',{name:'Price basis'});
   await picker.click();await expect(picker).toBeFocused();await expect(page.locator('#hub')).toBeVisible();await page.keyboard.press('Tab');
@@ -38,14 +38,14 @@ test('the Price basis picker fits its card and shares a line with its button (HU
 });
 
 test('row focus uses the shared 2 px ring (HUB-148)', async ({page})=>{
-  await page.goto('/?hub'); await expect(page.locator('#app')).toHaveAttribute('data-ready','true');
+  await openHub(page);
   await page.locator('.hub-row').first().evaluate(el=>{el.setAttribute('tabindex','0');(el as HTMLElement).focus();});
   await expect(page.locator('.hub-row').first()).toHaveCSS('outline-width','2px');
   for(const selector of ['.hub-close','.hub-lock']) {await page.locator(selector).focus();await expect(page.locator(selector)).toHaveCSS('outline-width','2px');}
 });
 
 test('calculator sides share one type role and preserve item capitalization (HUB-157)', async({page})=>{
-  await page.goto('/?hub'); await page.locator('.hub-search input').fill('10 ectos in p');
+  await openHub(page); await page.locator('.hub-search input').fill('10 ectos in p');
   await expect(page.locator('.hub-conversion')).toBeVisible();
   const sizes=await page.locator('.hub-conversion-input,.hub-conversion .hub-title').evaluateAll(els=>els.map(el=>getComputedStyle(el).fontSize));
   expect(new Set(sizes).size).toBe(1);
@@ -54,7 +54,7 @@ test('calculator sides share one type role and preserve item capitalization (HUB
 
 test('Text size doubles interface titles without zooming the game and keeps the caret (HUB-116, D-16)', async({page})=>{
   await page.setViewportSize({ width: 1280, height: 800 });
-  await page.goto('/?hub'); await expect(page.locator('#app')).toHaveAttribute('data-ready','true');
+  await openHub(page);
   const canvas = await page.locator('#canvas').boundingBox(), ratio = await page.evaluate(() => devicePixelRatio);
   const before=await page.locator('.hub-panel').boundingBox();
   const search=page.locator('.hub-search input');
@@ -84,7 +84,7 @@ test('Text size doubles interface titles without zooming the game and keeps the 
 
 
 test('a command example puts the caret after its text (HUB-153)',async({page})=>{
-  await page.goto('/?hub');await expect(page.locator('#app')).toHaveAttribute('data-ready','true');
+  await openHub(page);
   const search=page.locator('.hub-search input');await search.fill('commands');await search.press('Enter');
   await page.locator('.hub-row').filter({hasText:'travel <place>'}).click();
   expect(await search.evaluate(el=>[(el as HTMLInputElement).selectionStart,(el as HTMLInputElement).selectionEnd])).toEqual([7,7]);
@@ -92,7 +92,7 @@ test('a command example puts the caret after its text (HUB-153)',async({page})=>
 });
 
 test('Home pins and recent builds are one row tall with the skill bar hidden (HUB-187)',async({page})=>{
-  await page.goto('/?hub');await expect(page.locator('#app')).toHaveAttribute('data-ready','true');
+  await openHub(page);
   const search=page.locator('.hub-search input');await search.fill('build smiter');
   await search.press('Meta+j');await page.getByRole('menuitem',{name:'Pin to Hub',exact:true}).click();
   await page.keyboard.press('Meta+r');await search.fill('');
@@ -111,7 +111,7 @@ test('Home pins and recent builds are one row tall with the skill bar hidden (HU
 
 
 test('Home, Travel and Characters use one search box and glyph (HUB-145)',async({page})=>{
-  await page.goto('/?hub');await expect(page.locator('#app')).toHaveAttribute('data-ready','true');
+  await openHub(page);
   const search=page.locator('.hub-search input');
   const baseline=await page.locator('.hub-search').boundingBox();expect(baseline!.height).toBe(48);
   for(const key of ['Meta+t','Meta+e']){
@@ -125,7 +125,7 @@ test('Home, Travel and Characters use one search box and glyph (HUB-145)',async(
 
 
 test('Home, Travel and Characters share selection fill and a leading rail (HUB-148)',async({page})=>{
-  await page.goto('/?hub');await expect(page.locator('#app')).toHaveAttribute('data-ready','true');
+  await openHub(page);
   const baseline=await page.locator('.hub-row[aria-selected=true]').evaluate(el=>({fill:getComputedStyle(el).backgroundColor,shadow:getComputedStyle(el).boxShadow,rail:getComputedStyle(el,'::before').backgroundColor}));
   for(const [key,selector] of [['Meta+t','.travel-recent[data-active]'],['Meta+e','.character-switch-row[data-selected=true]']] as const){
     await page.keyboard.press(key);
@@ -136,7 +136,7 @@ test('Home, Travel and Characters share selection fill and a leading rail (HUB-1
 });
 
 test('recent destination overflow has an edge cue and top-aligned content (HUB-155)',async({page})=>{
-  await page.goto('/?hub');await expect(page.locator('#app')).toHaveAttribute('data-ready','true');await page.keyboard.press('Meta+t');
+  await openHub(page);await page.keyboard.press('Meta+t');
   const list=page.locator('.travel-history .travel-recent-grid');await expect(list).toBeVisible();
   expect(await list.evaluate(el=>el.scrollWidth>el.clientWidth)).toBe(true);
   await expect(list).not.toHaveCSS('mask-image','none');
@@ -158,21 +158,21 @@ test('recent destination overflow has an edge cue and top-aligned content (HUB-1
 });
 
 test('game context has a rule and Characters hides its second heading (HUB-158)',async({page})=>{
-  await page.goto('/?hub');await expect(page.locator('#app')).toHaveAttribute('data-ready','true');
+  await openHub(page);
   await expect(page.locator('.hub-context')).toHaveCSS('border-left-width','1px');
   await page.keyboard.press('Meta+e');
   await expect(page.locator('.character-switch-head h2')).toBeHidden();
 });
 
 test('preference pins are one row tall (HUB-151)',async({page})=>{
-  await page.goto('/?hub');await expect(page.locator('#app')).toHaveAttribute('data-ready','true');
+  await openHub(page);
   const search=page.locator('.hub-search input');await search.press('Meta+j');await page.getByRole('menuitem',{name:'Pin to Hub',exact:true}).click();
   await search.fill('hub preferences');await search.press('Enter');
   expect((await page.locator('.hub-preference-option').boundingBox())!.height).toBe(40);
 });
 
 test('visible Hub text uses one token ramp and readable line heights (HUB-147)',async({page})=>{
-  await page.goto('/?hub');await expect(page.locator('#app')).toHaveAttribute('data-ready','true');
+  await openHub(page);
   const search=page.locator('.hub-search input');
   for(const query of ['', 'kam', '10 ectos in p', 'zzzq', 'commands', 'titles', 'build library', 'team gom afk', 'settings', 'hub preferences', '@travel', '@characters', '@actions']){
     await page.keyboard.press('Meta+r');
@@ -192,7 +192,7 @@ test('visible Hub text uses one token ramp and readable line heights (HUB-147)',
 });
 
 test('hints, price basis and team selection keep the result list steady (HUB-105)',async({page})=>{
-  await page.goto('/?hub');await expect(page.locator('#app')).toHaveAttribute('data-ready','true');
+  await openHub(page);
   const search=page.locator('.hub-search input');
   const tops:number[]=[];
   for(const query of ['k','trade','1p in a','10 ecto in p']){
@@ -216,7 +216,7 @@ test('hints, price basis and team selection keep the result list steady (HUB-105
 
 test('every view keeps the same frame and search box across styles, fonts and opacity (VIS-14)',async({page})=>{
   test.setTimeout(120_000);
-  await page.goto('/?hub');await expect(page.locator('#app')).toHaveAttribute('data-ready','true');
+  await openHub(page);
   const search=page.locator('.hub-search input');
   const frame=await page.locator('.hub-panel').boundingBox(),field=await page.locator('.hub-search').boundingBox();
   expect(frame!.width).toBe(780);expect(frame!.height).toBe(590);
@@ -236,7 +236,7 @@ test('every view keeps the same frame and search box across styles, fonts and op
 });
 
 test('a four-key shortcut fits the shared cue slot at both text sizes (HUB-150)',async({page})=>{
-  await page.goto('/?hub');await expect(page.locator('#app')).toHaveAttribute('data-ready','true');
+  await openHub(page);
   await page.evaluate(()=>window.dispatchEvent(new CustomEvent('hub-fixture-settings',{detail:{shortcutOverrides:{'travel.open':{key:'t',option:true,shift:true}}}})));
   for(const uiTextSize of [100,200]){
     await page.evaluate(uiTextSize=>window.gwApplyFixtureAppearance({uiStyle:'guild-wars',uiPanelOpacity:94,uiTextSize}),uiTextSize);

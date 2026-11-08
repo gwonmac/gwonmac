@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import type { HubFixtureWindow } from './fixture-window.js';
+import { openHub } from './hub-page.js';
 // The workbench page this spec drives sets the fixture hooks; they are required here.
 declare const window: HubFixtureWindow;
 
@@ -9,11 +10,6 @@ declare const window: HubFixtureWindow;
  * first (a disclosure, a prompt, a drawer, a typed query) before a page or a popout.
  */
 const hubSearch = (page: Page) => page.locator('.hub-search input');
-const openHub = async (page: Page, query = '') => {
-  await page.goto(`/?hub${query}`);
-  await expect(page.locator('#app')).toHaveAttribute('data-ready', 'true');
-  await expect(hubSearch(page)).toBeFocused();
-};
 const canvasKeys = (page: Page) => page.evaluate(() => window.gwFixtureCanvas.events.filter(event => event.type.startsWith('key')).length);
 
 test('consecutive Escapes pop one level each and never close the Hub early (HUB-005)', async ({ page }) => {

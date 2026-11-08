@@ -1,10 +1,11 @@
 import { expect, test } from '@playwright/test';
 import type { HubFixtureWindow } from './fixture-window.js';
+import { openHub } from './hub-page.js';
 // The workbench page this spec drives sets the fixture hooks; they are required here.
 declare const window: HubFixtureWindow;
 
 test('only Hub locks, reset restores its default frame, and popouts have visible plain X controls', async ({ page }) => {
-  await page.goto('/?hub');
+  await openHub(page);
   const panel = page.locator('.hub-panel');
   const initial = await panel.boundingBox();
   await page.getByRole('button', { name: 'Lock Hub position', exact: true }).click();
@@ -37,7 +38,7 @@ test('only Hub locks, reset restores its default frame, and popouts have visible
 
 for (const viewport of [{ width: 320, height: 800 }, { width: 640, height: 500 }]) {
   test(`build comparison remains usable at ${viewport.width}x${viewport.height}`, async ({ page }, info) => {
-    await page.setViewportSize(viewport); await page.goto('/?hub');
+    await page.setViewportSize(viewport); await openHub(page);
     const search = page.locator('.hub-search input');
     await search.fill('build monk'); await search.press('ArrowRight');
     const summary = page.locator('.hub-summary');
@@ -53,7 +54,7 @@ for (const viewport of [{ width: 320, height: 800 }, { width: 640, height: 500 }
 
 for (const viewport of [{ width: 1280, height: 900 }, { width: 320, height: 800 }]) {
   test(`compact build results keep their last skill in view without overflow at ${viewport.width}px`, async ({ page }, info) => {
-    await page.setViewportSize(viewport); await page.goto('/?hub');
+    await page.setViewportSize(viewport); await openHub(page);
     const search = page.locator('.hub-search input');
     await search.fill('build monk');
     const rows = page.locator('.hub-build-row');
@@ -66,7 +67,7 @@ for (const viewport of [{ width: 1280, height: 900 }, { width: 320, height: 800 
 }
 
 test('a folder-qualified build keeps its path label inside its row at 320px', async ({ page }, info) => {
-  await page.goto('/?hub');
+  await openHub(page);
   await page.getByRole('button', { name: 'Close Hub', exact: true }).click();
   await page.getByLabel('Fixture scenario', { exact: true }).selectOption('folders');
   const search = page.locator('.hub-search input');
@@ -82,7 +83,7 @@ test('a folder-qualified build keeps its path label inside its row at 320px', as
 });
 
 test('nested folders browse one level at a time and use the same build filters', async ({ page }) => {
-  await page.goto('/?hub');
+  await openHub(page);
   await page.getByRole('button', { name: 'Close Hub', exact: true }).click();
   await page.getByLabel('Fixture scenario', { exact: true }).selectOption('folders');
   const search = page.locator('.hub-search input');
@@ -98,7 +99,7 @@ test('nested folders browse one level at a time and use the same build filters',
 });
 
 test('a blocked hero row inks its title like its detail', async ({ page }) => {
-  await page.goto('/?hub');
+  await openHub(page);
   await page.getByRole('button', { name: 'Close Hub', exact: true }).click();
   await page.getByLabel('Fixture scenario', { exact: true }).selectOption('mixed-professions');
   const search = page.locator('.hub-search input');
@@ -110,7 +111,7 @@ test('a blocked hero row inks its title like its detail', async ({ page }) => {
 });
 
 test('self application has one comparison page and Right never adds another', async ({ page }) => {
-  await page.goto('/?hub');
+  await openHub(page);
   const search = page.locator('.hub-search input');
   await search.fill('build monk'); await search.press('ArrowRight');
   const crumbs = page.locator('.hub-breadcrumbs');
@@ -121,7 +122,7 @@ test('self application has one comparison page and Right never adds another', as
 
 test('the team-apply receipt is a top-layer popover that reads and lets clicks through', async ({ page }) => {
   await page.setViewportSize({ width: 940, height: 500 });
-  await page.goto('/?hub');
+  await openHub(page);
   const search = page.locator('.hub-search input');
   await search.fill('team gom afk'); await search.press('ArrowRight');
   await expect(page.locator('.hub-review-roster .hub-skill-bar').first()).toBeInViewport({ ratio: 1 });
@@ -166,7 +167,7 @@ test('the team-apply receipt is a top-layer popover that reads and lets clicks t
 });
 
 test('a new details view clears the previous page pin receipt', async ({ page }) => {
-  await page.goto('/?hub');
+  await openHub(page);
   await page.locator('.hub-search input').fill('build Word of Healing');
   await page.keyboard.press('Meta+j');
   await page.getByRole('menuitem', { name: 'Pin to Hub', exact: true }).click();
