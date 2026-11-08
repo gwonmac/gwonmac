@@ -6,10 +6,11 @@
 //! crosses the snapshot ABI, and one malformed or missing child clears the
 //! complete observation instead of leaving a partly aligned overlay visible.
 
-use core::ptr::write_volatile;
+use core::ptr::{addr_of_mut, write_volatile};
 
 use crate::abi::*;
 use crate::memory::*;
+use crate::sequence_lock;
 
 const MAX_FRAMES: u32 = 16_384;
 // Slot frames are stable for long stretches. Revalidate the eight cached
@@ -280,7 +281,6 @@ unsafe fn collect(layout: Layout, skill_bar_id: u32) -> Result<Observation, Refu
 }
 
 unsafe fn publish(frame_id: u32, observed: Result<Observation, Refusal>) {
-    let next = unsafe { SEQUENCE }.wrapping_add(2) & !1;
     let snapshot = unsafe { POINTER as *mut SkillSlotSnapshot };
     let (flags, outcome, candidate_count, viewport_width, viewport_height, slots) = match observed {
         Ok((width, height, slots)) => (FLAG_SKILL_SLOTS_READY, 0, 0, width, height, slots),
@@ -294,18 +294,15 @@ unsafe fn publish(frame_id: u32, observed: Result<Observation, Refusal>) {
         ),
     };
     unsafe {
-        write_volatile(&mut (*snapshot).sequence, next.wrapping_sub(1));
-        write_volatile(&mut (*snapshot).magic, SKILL_SLOT_MAGIC);
-        write_volatile(&mut (*snapshot).abi_and_size, SKILL_SLOT_ABI_AND_SIZE);
-        write_volatile(&mut (*snapshot).flags, flags);
-        write_volatile(&mut (*snapshot).frame_id, if flags == 0 { 0 } else { frame_id });
-        write_volatile(&mut (*snapshot).outcome, outcome);
-        write_volatile(&mut (*snapshot).candidate_count, candidate_count);
-        write_volatile(&mut (*snapshot).viewport_width, viewport_width);
-        write_volatile(&mut (*snapshot).viewport_height, viewport_height);
-        write_volatile(&mut (*snapshot).slots, slots);
-        write_volatile(&mut (*snapshot).sequence, next);
-        SEQUENCE = next;
+        SEQUENCE = sequence_lock::write(addr_of_mut!((*snapshot).header), SEQUENCE, SKILL_SLOT_MAGIC, SKILL_SLOT_ABI_AND_SIZE, || {
+            write_volatile(&mut (*snapshot).flags, flags);
+            write_volatile(&mut (*snapshot).frame_id, if flags == 0 { 0 } else { frame_id });
+            write_volatile(&mut (*snapshot).outcome, outcome);
+            write_volatile(&mut (*snapshot).candidate_count, candidate_count);
+            write_volatile(&mut (*snapshot).viewport_width, viewport_width);
+            write_volatile(&mut (*snapshot).viewport_height, viewport_height);
+            write_volatile(&mut (*snapshot).slots, slots);
+        });
     }
 }
 

@@ -13,11 +13,7 @@
  */
 import {
   enhancementCapabilityProfile,
-  enhancementCapabilitiesCover,
-  enhancementCapabilitiesForProfile,
   enhancementCapabilitiesRequested,
-  ENHANCEMENT_CAPABILITY_FIELDS,
-  intersectEnhancementCapabilities,
   NO_ENHANCEMENT_CAPABILITIES,
   ENHANCEMENT_TRANSFORM_ABI,
   type EnhancementCapabilities,
@@ -37,9 +33,8 @@ import {
   type KnownTemplateSaveBuild,
 } from "./template-save-compat.js";
 import {
+  enhancementCandidates,
   enhancementOutputSha256,
-  enhancementProfilesForBuild,
-  supportedEnhancementCapabilities,
   type KnownEnhancementBuild,
 } from "./enhancement-builds.js";
 import { transformEnhancementWasm } from "./enhancement-transform.js";
@@ -111,36 +106,6 @@ interface PreparedWasmClientModule {
   /** The single authority for Cartography preparation and its refusal reason. */
   readonly cartography: CartographyPreparationMode;
   readonly friendObserver: FriendObserverPreparationMode;
-}
-
-function productCapabilityCount(capabilities: EnhancementCapabilities): number {
-  return ENHANCEMENT_CAPABILITY_FIELDS.reduce(
-    (count, field) => count
-      + Number(field !== "playRegionObservation" && capabilities[field]),
-    0,
-  );
-}
-
-/** Largest safe profiles first; read-only observations win ties over commands. */
-function enhancementCandidates(
-  build: KnownEnhancementBuild,
-  requested: EnhancementCapabilities,
-): EnhancementCapabilities[] {
-  const maximum = intersectEnhancementCapabilities(
-    requested,
-    supportedEnhancementCapabilities(build),
-  );
-  return enhancementProfilesForBuild(build)
-    .flatMap((profile) => {
-      const capabilities = enhancementCapabilitiesForProfile(profile);
-      return capabilities ? [capabilities] : [];
-    })
-    .filter((candidate) =>
-      enhancementCapabilitiesCover(maximum, candidate)
-      && enhancementOutputSha256(build, candidate) !== null)
-    .sort((left, right) =>
-      productCapabilityCount(right) - productCapabilityCount(left)
-      || Number(left.teamApply) - Number(right.teamApply));
 }
 
 export type ExtendedMemoryMode =

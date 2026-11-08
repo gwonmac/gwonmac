@@ -29,6 +29,21 @@ A Core launch installs no Maps or Compass native hooks, imports no Maps renderer
 implementation, and exposes no Maps IPC. Tools mode installs the certified hooks;
 its Maps switch then controls live activity. Turning Tools off stops activity
 immediately; restart the application to load the Core client without those hooks.
+The game host reaches Maps through one entry,
+`app/features/cartography/renderer/host.ts`, once the official client is
+instantiated; the host reads the switch through the feature's manifest. Elite
+Skills on the native maps run as the `cartography` companion part.
+
+Maps follows its manifest's region rule, PvE only. While the live play region
+is PvP or unknown, every Maps surface hides: the map overlays, the Compass
+terrain and reveal range, the range rings, both Compass controls, and the
+Elite Skills markers. The settings stay as they are, and the surfaces return
+when the region is PvE again. The region is the one every PvE feature reads:
+when the `cartography` companion part activates, it hands the Maps stage a
+reader of its policy source's live play region, and `featureRegionAllowsRequest`
+applies the manifest rule. The part removes the reader with its presentation.
+Without a reader (before activation, after disposal, or when no companion is
+certified) the region is unknown and Maps stays hidden.
 
 Maps settings remain available when Tools are off. The page explains how to
 enable Maps and whether an application restart is needed. An illustrative
@@ -170,11 +185,23 @@ Missing native support or stale map identity hides Compass terrain without chang
 Stationary Compass geometry is reused; range geometry changes only with its
 Canvas rectangle or artwork, not camera motion.
 
-Client updates require one coherent surface certificate and memory layout. The
-October layout is checked through current character, region, and observation
-proofs before the transform selects its exact frame dispatchers and table slots.
-The reachability kernel accepts that same layout identifier. Its offline tests
-populate only the selected layout's globals and execute the compiled kernel.
+Client updates require one coherent surface certificate and memory layout,
+which `cartography-layout-proof.ts` derives from the client bytes: the roots
+from the character, region, and observation proofs, each surface owner from a
+reviewed body (exactly, or by relocation identity on a relink), and each
+callback slot from the active table. The transform derives the layout again,
+refuses roots that differ from the verifier's, and publishes the context root
+and agent array in the `cartography_manifest` custom section. The derived
+client's layout identifier is a 31-bit hash of both roots, so the observer,
+the kernel diagnostics, and evidence exports name the layout without carrying a
+native address.
+The reachability kernel holds no layout of its own. On the first classification
+the loader installs the manifest's roots under that identifier; with no exact
+manifest the kernel stays off and the rest of Maps runs.
+The kernel accepts one install per instance, checks both roots for alignment
+and bounds, and answers any other layout identifier as an ambiguous layout. Its
+offline tests install each retained client's roots, populate only that
+layout's globals, and execute the compiled kernel.
 A successful Enhancement proof does not prove these separate Maps boundaries.
 
 Textures are published from the application's animation frame, outside the

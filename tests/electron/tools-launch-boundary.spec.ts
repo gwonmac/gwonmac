@@ -5,7 +5,7 @@ import path from "node:path";
 import { closeOffline, launchOffline } from "./fixtures.mjs";
 
 for (const tools of [false, true]) {
-  test(`${tools ? "Tools" : "Core"} launch enforces Maps transport ownership`, async () => {
+  test(`${tools ? "Tools" : "Core"} launch enforces Maps transport ownership`, { tag: "@journey" }, async () => {
     const fixture = await launchOffline("gw-tools-boundary-", {}, async (userData) => {
       await writeFile(path.join(userData, "settings.json"), JSON.stringify({
         gwonmacTools: tools, cartographyEnabled: true,

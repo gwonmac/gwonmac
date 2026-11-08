@@ -2,34 +2,30 @@
  * Builds the bounded, fail-open chat filter that runs before the game UI
  * dispatcher and keeps all message contents inside the game module.
  */
-import { concat, sleb, uleb } from "../../main/core/wasm-binary.js";
+import { concat, uleb } from "../../main/core/wasm-binary.js";
 import { ENHANCEMENT_CHAT_FILTER_MASKS } from "../../shared/enhancement-contracts.js";
 import type { KnownEnhancementBuild } from "./enhancement-build-model.js";
+import {
+  globalGet, globalSet, i32Const, i32Load, i32Load16u, localGet, localSet,
+} from "./wasm-emit.js";
 
 export const ENHANCEMENT_CHAT_FILTER_CONFIGURE_EXPORT =
   "enhancement_configure_chat_filters";
 
-const getLocal = (index: number) => concat(Uint8Array.of(0x20), uleb(index));
-const setLocal = (index: number) => concat(Uint8Array.of(0x21), uleb(index));
-const getGlobal = (index: number) => concat(Uint8Array.of(0x23), uleb(index));
-const setGlobal = (index: number) => concat(Uint8Array.of(0x24), uleb(index));
-const i32 = (value: number) => concat(Uint8Array.of(0x41), sleb(value));
-const load = (offset = 0) => concat(Uint8Array.of(0x28), uleb(2), uleb(offset));
-const load16 = (offset = 0) => concat(Uint8Array.of(0x2f), uleb(1), uleb(offset));
 const memoryPages = () => Uint8Array.of(0x3f, 0x00);
 const returnZeroIf = (condition: Uint8Array) => concat(
   condition,
-  Uint8Array.of(0x04, 0x40), i32(0), Uint8Array.of(0x0f, 0x0b),
+  Uint8Array.of(0x04, 0x40), i32Const(0), Uint8Array.of(0x0f, 0x0b),
 );
 const pointerInvalid = (pointerLocal: number, bytes: number) => concat(
-  getLocal(pointerLocal), Uint8Array.of(0x45),
-  getLocal(pointerLocal), i32(-bytes), Uint8Array.of(0x4b, 0x72),
-  getLocal(pointerLocal), i32(bytes - 1), Uint8Array.of(0x6a),
-  i32(16), Uint8Array.of(0x76), memoryPages(), Uint8Array.of(0x4f, 0x72),
+  localGet(pointerLocal), Uint8Array.of(0x45),
+  localGet(pointerLocal), i32Const(-bytes), Uint8Array.of(0x4b, 0x72),
+  localGet(pointerLocal), i32Const(bytes - 1), Uint8Array.of(0x6a),
+  i32Const(16), Uint8Array.of(0x76), memoryPages(), Uint8Array.of(0x4f, 0x72),
 );
 const localEqualsAny = (local: number, values: readonly number[]) => concat(
   ...values.map((value, index) => concat(
-    getLocal(local), i32(value), Uint8Array.of(0x46),
+    localGet(local), i32Const(value), Uint8Array.of(0x46),
     ...(index === 0 ? [] : [Uint8Array.of(0x72)]),
   )),
 );
@@ -37,10 +33,10 @@ const localEqualsAny = (local: number, values: readonly number[]) => concat(
 export function chatFilterConfigure(maskGlobal: number): Uint8Array {
   return concat(
     uleb(0),
-    getLocal(0), i32(ENHANCEMENT_CHAT_FILTER_MASKS.all), Uint8Array.of(0x4b, 0x04, 0x40),
-      i32(0), setGlobal(maskGlobal), i32(0), Uint8Array.of(0x0f),
+    localGet(0), i32Const(ENHANCEMENT_CHAT_FILTER_MASKS.all), Uint8Array.of(0x4b, 0x04, 0x40),
+      i32Const(0), globalSet(maskGlobal), i32Const(0), Uint8Array.of(0x0f),
     Uint8Array.of(0x0b),
-    getLocal(0), setGlobal(maskGlobal), i32(1), Uint8Array.of(0x0b),
+    localGet(0), globalSet(maskGlobal), i32Const(1), Uint8Array.of(0x0b),
   );
 }
 
@@ -64,146 +60,146 @@ export function chatFilterDecision(
   const NAME_INDEX = 8;
   const NAME_BASE = 9;
   const messageUnitAddress = (extraBytes = 0) => concat(
-    getLocal(MESSAGE), getLocal(CURSOR), i32(1), Uint8Array.of(0x74, 0x6a),
-    ...(extraBytes === 0 ? [] : [i32(extraBytes), Uint8Array.of(0x6a)]),
+    localGet(MESSAGE), localGet(CURSOR), i32Const(1), Uint8Array.of(0x74, 0x6a),
+    ...(extraBytes === 0 ? [] : [i32Const(extraBytes), Uint8Array.of(0x6a)]),
   );
   const indexedMessageNameUnitAddress = () => concat(
-    getLocal(MESSAGE), getLocal(CURSOR), i32(2), Uint8Array.of(0x6a),
-    getLocal(NAME_INDEX), Uint8Array.of(0x6a), i32(1), Uint8Array.of(0x74, 0x6a),
+    localGet(MESSAGE), localGet(CURSOR), i32Const(2), Uint8Array.of(0x6a),
+    localGet(NAME_INDEX), Uint8Array.of(0x6a), i32Const(1), Uint8Array.of(0x74, 0x6a),
   );
   const currentNameUnitAddress = (indexLocal: number) => concat(
-    getLocal(NAME_BASE), getLocal(indexLocal), i32(1), Uint8Array.of(0x74, 0x6a),
+    localGet(NAME_BASE), localGet(indexLocal), i32Const(1), Uint8Array.of(0x74, 0x6a),
   );
-  const returnOne = concat(i32(1), Uint8Array.of(0x0f));
+  const returnOne = concat(i32Const(1), Uint8Array.of(0x0f));
   return concat(
     uleb(1), uleb(8), Uint8Array.of(0x7f),
-    returnZeroIf(concat(getGlobal(maskGlobal), Uint8Array.of(0x45))),
+    returnZeroIf(concat(globalGet(maskGlobal), Uint8Array.of(0x45))),
     returnZeroIf(concat(
-      getLocal(0), i32(fact.writeToChatLogMessage), Uint8Array.of(0x47),
+      localGet(0), i32Const(fact.writeToChatLogMessage), Uint8Array.of(0x47),
     )),
     returnZeroIf(pointerInvalid(1, Math.max(fact.packetChannelOffset + 4, fact.packetMessageOffset + 4))),
-    getLocal(1), load(fact.packetMessageOffset), setLocal(MESSAGE),
+    localGet(1), i32Load(fact.packetMessageOffset), localSet(MESSAGE),
     returnZeroIf(pointerInvalid(MESSAGE, 4)),
-    getLocal(MESSAGE), load16(), i32(fact.systemPrefix), Uint8Array.of(0x46, 0x04, 0x40),
-      getLocal(MESSAGE), load16(2), setLocal(NESTED),
-      getGlobal(maskGlobal), i32(ENHANCEMENT_CHAT_FILTER_MASKS.hallOfHeroes), Uint8Array.of(0x71, 0x04, 0x40),
-        getLocal(NESTED), i32(fact.hallOfHeroesTemplate), Uint8Array.of(0x46, 0x04, 0x40),
+    localGet(MESSAGE), i32Load16u(), i32Const(fact.systemPrefix), Uint8Array.of(0x46, 0x04, 0x40),
+      localGet(MESSAGE), i32Load16u(2), localSet(NESTED),
+      globalGet(maskGlobal), i32Const(ENHANCEMENT_CHAT_FILTER_MASKS.hallOfHeroes), Uint8Array.of(0x71, 0x04, 0x40),
+        localGet(NESTED), i32Const(fact.hallOfHeroesTemplate), Uint8Array.of(0x46, 0x04, 0x40),
           returnOne,
         Uint8Array.of(0x0b),
       Uint8Array.of(0x0b),
-      getGlobal(maskGlobal), i32(ENHANCEMENT_CHAT_FILTER_MASKS.titleAchievements), Uint8Array.of(0x71, 0x04, 0x40),
+      globalGet(maskGlobal), i32Const(ENHANCEMENT_CHAT_FILTER_MASKS.titleAchievements), Uint8Array.of(0x71, 0x04, 0x40),
         localEqualsAny(NESTED, fact.titleTemplates), Uint8Array.of(0x04, 0x40),
           returnOne,
         Uint8Array.of(0x0b),
       Uint8Array.of(0x0b),
-      i32(0), Uint8Array.of(0x0f),
+      i32Const(0), Uint8Array.of(0x0f),
     Uint8Array.of(0x0b),
     returnZeroIf(concat(
-      getGlobal(maskGlobal), i32(ENHANCEMENT_CHAT_FILTER_MASKS.allyDrops), Uint8Array.of(0x71, 0x45),
+      globalGet(maskGlobal), i32Const(ENHANCEMENT_CHAT_FILTER_MASKS.allyDrops), Uint8Array.of(0x71, 0x45),
     )),
     returnZeroIf(concat(
-      getLocal(MESSAGE), load16(), i32(fact.allyDropTemplate), Uint8Array.of(0x47),
+      localGet(MESSAGE), i32Load16u(), i32Const(fact.allyDropTemplate), Uint8Array.of(0x47),
     )),
-    i32(1), setLocal(CURSOR),
+    i32Const(1), localSet(CURSOR),
     Uint8Array.of(0x02, 0x40, 0x03, 0x40),
-      getLocal(CURSOR), i32(64), Uint8Array.of(0x4f, 0x0d), uleb(1),
-      messageUnitAddress(), setLocal(CONTEXT),
+      localGet(CURSOR), i32Const(64), Uint8Array.of(0x4f, 0x0d), uleb(1),
+      messageUnitAddress(), localSet(CONTEXT),
       pointerInvalid(CONTEXT, 4), Uint8Array.of(0x0d), uleb(1),
-      getLocal(CONTEXT), load16(), setLocal(UNIT),
-      getLocal(UNIT), Uint8Array.of(0x45, 0x0d), uleb(1),
-      getLocal(UNIT), i32(fact.numericSegment), Uint8Array.of(0x46, 0x04, 0x40),
-        getLocal(CONTEXT), load16(2), setLocal(UNIT),
+      localGet(CONTEXT), i32Load16u(), localSet(UNIT),
+      localGet(UNIT), Uint8Array.of(0x45, 0x0d), uleb(1),
+      localGet(UNIT), i32Const(fact.numericSegment), Uint8Array.of(0x46, 0x04, 0x40),
+        localGet(CONTEXT), i32Load16u(2), localSet(UNIT),
         returnZeroIf(concat(
-          getLocal(UNIT), i32(fact.encodedNumberBase), Uint8Array.of(0x4d),
-          getLocal(UNIT), i32(fact.encodedNumberBase + 0xffff), Uint8Array.of(0x4b, 0x72),
+          localGet(UNIT), i32Const(fact.encodedNumberBase), Uint8Array.of(0x4d),
+          localGet(UNIT), i32Const(fact.encodedNumberBase + 0xffff), Uint8Array.of(0x4b, 0x72),
         )),
-        i32(layout.contextRoot), setLocal(CONTEXT),
+        i32Const(layout.contextRoot), localSet(CONTEXT),
         returnZeroIf(pointerInvalid(CONTEXT, 4)),
-        getLocal(CONTEXT), load(), setLocal(CONTEXT),
+        localGet(CONTEXT), i32Load(), localSet(CONTEXT),
         returnZeroIf(pointerInvalid(CONTEXT, layout.gameContextSlot * 4 + 4)),
-        getLocal(CONTEXT), load(layout.gameContextSlot * 4), setLocal(CONTEXT),
+        localGet(CONTEXT), i32Load(layout.gameContextSlot * 4), localSet(CONTEXT),
         returnZeroIf(pointerInvalid(CONTEXT, layout.characterContext + 4)),
-        getLocal(CONTEXT), load(layout.characterContext), setLocal(CONTEXT),
+        localGet(CONTEXT), i32Load(layout.characterContext), localSet(CONTEXT),
         returnZeroIf(pointerInvalid(CONTEXT, layout.playerNumber + 4)),
-        getLocal(CONTEXT), load(layout.playerNumber), setLocal(PLAYER),
+        localGet(CONTEXT), i32Load(layout.playerNumber), localSet(PLAYER),
         returnZeroIf(concat(
-          getLocal(PLAYER), Uint8Array.of(0x45),
-          getLocal(PLAYER), i32(0xffff), Uint8Array.of(0x4b, 0x72),
+          localGet(PLAYER), Uint8Array.of(0x45),
+          localGet(PLAYER), i32Const(0xffff), Uint8Array.of(0x4b, 0x72),
         )),
-        getLocal(UNIT), i32(fact.encodedNumberBase), Uint8Array.of(0x6b),
-        getLocal(PLAYER), Uint8Array.of(0x47, 0x04, 0x40), returnOne, Uint8Array.of(0x0b),
-        i32(0), Uint8Array.of(0x0f),
+        localGet(UNIT), i32Const(fact.encodedNumberBase), Uint8Array.of(0x6b),
+        localGet(PLAYER), Uint8Array.of(0x47, 0x04, 0x40), returnOne, Uint8Array.of(0x0b),
+        i32Const(0), Uint8Array.of(0x0f),
       Uint8Array.of(0x0b),
-      getLocal(UNIT), i32(fact.playerNameToken), Uint8Array.of(0x46, 0x04, 0x40),
+      localGet(UNIT), i32Const(fact.playerNameToken), Uint8Array.of(0x46, 0x04, 0x40),
         returnZeroIf(pointerInvalid(CONTEXT, 4)),
         returnZeroIf(concat(
-          getLocal(CONTEXT), load16(2), i32(fact.encodedStringStart), Uint8Array.of(0x47),
+          localGet(CONTEXT), i32Load16u(2), i32Const(fact.encodedStringStart), Uint8Array.of(0x47),
         )),
-        i32(layout.contextRoot), setLocal(CONTEXT),
+        i32Const(layout.contextRoot), localSet(CONTEXT),
         returnZeroIf(pointerInvalid(CONTEXT, 4)),
-        getLocal(CONTEXT), load(), setLocal(CONTEXT),
+        localGet(CONTEXT), i32Load(), localSet(CONTEXT),
         returnZeroIf(pointerInvalid(CONTEXT, layout.gameContextSlot * 4 + 4)),
-        getLocal(CONTEXT), load(layout.gameContextSlot * 4), setLocal(CONTEXT),
+        localGet(CONTEXT), i32Load(layout.gameContextSlot * 4), localSet(CONTEXT),
         returnZeroIf(pointerInvalid(CONTEXT, layout.characterContext + 4)),
-        getLocal(CONTEXT), load(layout.characterContext), setLocal(CONTEXT),
+        localGet(CONTEXT), i32Load(layout.characterContext), localSet(CONTEXT),
         returnZeroIf(pointerInvalid(
           CONTEXT,
           fact.currentPlayerNameOffset + fact.maxPlayerNameUnits * 2,
         )),
-        getLocal(CONTEXT), i32(fact.currentPlayerNameOffset), Uint8Array.of(0x6a),
-        setLocal(NAME_BASE),
+        localGet(CONTEXT), i32Const(fact.currentPlayerNameOffset), Uint8Array.of(0x6a),
+        localSet(NAME_BASE),
 
         // Validate and measure the fixed-width current-character name.
-        i32(0), setLocal(PLAYER),
+        i32Const(0), localSet(PLAYER),
         Uint8Array.of(0x02, 0x40, 0x03, 0x40),
           returnZeroIf(concat(
-            getLocal(PLAYER), i32(fact.maxPlayerNameUnits), Uint8Array.of(0x4f),
+            localGet(PLAYER), i32Const(fact.maxPlayerNameUnits), Uint8Array.of(0x4f),
           )),
-          currentNameUnitAddress(PLAYER), load16(), setLocal(UNIT),
-          getLocal(UNIT), Uint8Array.of(0x45, 0x0d), uleb(1),
-          getLocal(PLAYER), i32(1), Uint8Array.of(0x6a), setLocal(PLAYER),
+          currentNameUnitAddress(PLAYER), i32Load16u(), localSet(UNIT),
+          localGet(UNIT), Uint8Array.of(0x45, 0x0d), uleb(1),
+          localGet(PLAYER), i32Const(1), Uint8Array.of(0x6a), localSet(PLAYER),
           Uint8Array.of(0x0c), uleb(0),
         Uint8Array.of(0x0b, 0x0b),
-        returnZeroIf(concat(getLocal(PLAYER), Uint8Array.of(0x45))),
+        returnZeroIf(concat(localGet(PLAYER), Uint8Array.of(0x45))),
 
         // Validate and measure the encoded recipient. A malformed or
         // unterminated name remains visible instead of being guessed away.
-        i32(0), setLocal(NESTED),
+        i32Const(0), localSet(NESTED),
         Uint8Array.of(0x02, 0x40, 0x03, 0x40),
           returnZeroIf(concat(
-            getLocal(NESTED), i32(fact.maxPlayerNameUnits), Uint8Array.of(0x4f),
+            localGet(NESTED), i32Const(fact.maxPlayerNameUnits), Uint8Array.of(0x4f),
           )),
-          getLocal(MESSAGE), getLocal(CURSOR), i32(2), Uint8Array.of(0x6a),
-          getLocal(NESTED), Uint8Array.of(0x6a), i32(1), Uint8Array.of(0x74, 0x6a),
-          setLocal(CONTEXT),
+          localGet(MESSAGE), localGet(CURSOR), i32Const(2), Uint8Array.of(0x6a),
+          localGet(NESTED), Uint8Array.of(0x6a), i32Const(1), Uint8Array.of(0x74, 0x6a),
+          localSet(CONTEXT),
           returnZeroIf(pointerInvalid(CONTEXT, 2)),
-          getLocal(CONTEXT), load16(), setLocal(UNIT),
-          getLocal(UNIT), i32(fact.encodedStringEnd), Uint8Array.of(0x46, 0x0d), uleb(1),
-          returnZeroIf(concat(getLocal(UNIT), Uint8Array.of(0x45))),
-          getLocal(NESTED), i32(1), Uint8Array.of(0x6a), setLocal(NESTED),
+          localGet(CONTEXT), i32Load16u(), localSet(UNIT),
+          localGet(UNIT), i32Const(fact.encodedStringEnd), Uint8Array.of(0x46, 0x0d), uleb(1),
+          returnZeroIf(concat(localGet(UNIT), Uint8Array.of(0x45))),
+          localGet(NESTED), i32Const(1), Uint8Array.of(0x6a), localSet(NESTED),
           Uint8Array.of(0x0c), uleb(0),
         Uint8Array.of(0x0b, 0x0b),
-        returnZeroIf(concat(getLocal(NESTED), Uint8Array.of(0x45))),
-        getLocal(PLAYER), getLocal(NESTED), Uint8Array.of(0x47, 0x04, 0x40),
+        returnZeroIf(concat(localGet(NESTED), Uint8Array.of(0x45))),
+        localGet(PLAYER), localGet(NESTED), Uint8Array.of(0x47, 0x04, 0x40),
           returnOne,
         Uint8Array.of(0x0b),
 
         // Equal lengths make an exact bounded comparison sufficient.
-        i32(0), setLocal(NAME_INDEX),
+        i32Const(0), localSet(NAME_INDEX),
         Uint8Array.of(0x02, 0x40, 0x03, 0x40),
-          getLocal(NAME_INDEX), getLocal(PLAYER), Uint8Array.of(0x4f, 0x0d), uleb(1),
-          currentNameUnitAddress(NAME_INDEX), load16(),
-          indexedMessageNameUnitAddress(), load16(), Uint8Array.of(0x47, 0x04, 0x40),
+          localGet(NAME_INDEX), localGet(PLAYER), Uint8Array.of(0x4f, 0x0d), uleb(1),
+          currentNameUnitAddress(NAME_INDEX), i32Load16u(),
+          indexedMessageNameUnitAddress(), i32Load16u(), Uint8Array.of(0x47, 0x04, 0x40),
             returnOne,
           Uint8Array.of(0x0b),
-          getLocal(NAME_INDEX), i32(1), Uint8Array.of(0x6a), setLocal(NAME_INDEX),
+          localGet(NAME_INDEX), i32Const(1), Uint8Array.of(0x6a), localSet(NAME_INDEX),
           Uint8Array.of(0x0c), uleb(0),
         Uint8Array.of(0x0b, 0x0b),
-        i32(0), Uint8Array.of(0x0f),
+        i32Const(0), Uint8Array.of(0x0f),
       Uint8Array.of(0x0b),
-      getLocal(CURSOR), i32(1), Uint8Array.of(0x6a), setLocal(CURSOR),
+      localGet(CURSOR), i32Const(1), Uint8Array.of(0x6a), localSet(CURSOR),
       Uint8Array.of(0x0c), uleb(0),
     Uint8Array.of(0x0b, 0x0b),
-    i32(0), Uint8Array.of(0x0b),
+    i32Const(0), Uint8Array.of(0x0b),
   );
 }

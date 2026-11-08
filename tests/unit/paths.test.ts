@@ -9,6 +9,7 @@ import {
   diagnosticFramesPath,
   documentDirectories,
   gamePaths,
+  launchCacheRoots,
   matchesExpectedProfile,
   multiProfilePaths,
   unpackedPath,
@@ -76,12 +77,14 @@ describe("resolved profile paths", () => {
       artifacts: `${root}/game/artifacts`,
       previousArtifacts: `${root}/game/artifacts.previous`,
       rejectedClient: `${root}/game/rejected-client.json`,
+      clientVerdict: `${root}/game/client-verdict.json`,
       compatibility: `${root}/game/compatibility`,
       enhancements: `${root}/game/enhancements`,
       cartographySpike: `${root}/game/cartography-spike`,
       friendObserver: `${root}/game/friend-observer`,
       nativeDoubleClick: `${root}/game/double-click`,
       extendedMemory: `${root}/game/extended-memory`,
+      coreDerived: `${root}/game/core`,
       texturePacks: `${root}/texture-packs`,
       texturePackSelection: `${root}/texture-packs/selection.json`,
       texturePackSources: `${root}/texture-packs/packs`,
@@ -108,6 +111,7 @@ describe("resolved profile paths", () => {
       `${root}/game/artifacts.previous`,
       `${root}/game/compatibility`,
       `${root}/game/enhancements`,
+      `${root}/game/core/enhancements`,
       `${root}/texture-packs`,
       // `game/skill-assets` is deliberately absent. Its writes land in a
       // per-archive subdirectory that this non-recursive sweep would not reach,
@@ -124,6 +128,24 @@ describe("resolved profile paths", () => {
       templates: `${root}/multi/profiles/${id}/templates.json`,
       windowState: `${root}/multi/profiles/${id}/window-state.json`,
       gameStorageClearRequest: `${root}/multi/profiles/${id}/clear-game-storage-on-start`,
+    });
+  });
+
+  it("gives Core and Tools launches separate derived caches, Tools at the old roots", () => {
+    // A shared root lets one profile empty the other's module (Core has no
+    // Travel, so it discards the friend-observer cache), and every Tools
+    // switch rebuilds. Tools keeps the old roots so existing entries stay valid.
+    assert.deepEqual(launchCacheRoots(gamePaths(root), "tools"), {
+      enhancements: `${root}/game/enhancements`,
+      friendObserver: `${root}/game/friend-observer`,
+      nativeDoubleClick: `${root}/game/double-click`,
+      extendedMemory: `${root}/game/extended-memory`,
+    });
+    assert.deepEqual(launchCacheRoots(gamePaths(root), "core"), {
+      enhancements: `${root}/game/core/enhancements`,
+      friendObserver: `${root}/game/core/friend-observer`,
+      nativeDoubleClick: `${root}/game/core/double-click`,
+      extendedMemory: `${root}/game/core/extended-memory`,
     });
   });
 

@@ -9,7 +9,7 @@ import {
 } from "../../app/features/cartography/renderer/compass-range-layer.js";
 import { visibleCompassRanges } from "../../app/features/cartography/renderer/compass-range-controls.js";
 import { COMPASS_RANGE_INDICATORS } from "../../app/shared/compass-ranges.js";
-import { DEFAULT_SETTINGS } from "../../app/shared/contracts.js";
+import { DEFAULT_SETTINGS } from "../../app/shared/settings/index.js";
 
 test("projects standard ranges from the native Compass edge", () => {
   const projection = projectCompassRangeIndicators({

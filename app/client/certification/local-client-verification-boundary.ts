@@ -1,10 +1,12 @@
 /**
  * Strict process-boundary validation for ABI- and input-bound feature verdicts.
  * It rejects stale, malformed, and cross-input proof messages.
+ *
+ * Template saving and Enhancement are separate verdicts. A message whose
+ * Enhancement part fails here keeps its independently valid template verdict;
+ * the Enhancement build is withdrawn whole, because its pinned output hash
+ * covers every feature it carries.
  */
-import { isAlcoholObservationProof } from "./enhancement-alcohol-proof.js";
-import { isNativeHudRenderingProof } from "./native-hud-transform.js";
-import { isResignNativeSender } from "./enhancement-resign-proof.js";
 import { isDeepStrictEqual } from "node:util";
 import { isDigest } from "../../shared/digest.js";
 import {
@@ -18,10 +20,10 @@ import {
   type EnhancementCapabilities,
 } from "../../shared/enhancement-contracts.js";
 import {
-  ENHANCEMENT_BUILDS,
   supportedEnhancementCapabilities,
   type KnownEnhancementBuild,
 } from "./enhancement-builds.js";
+import { acceptsEnhancementBuild } from "./enhancement-feature-acceptance.js";
 import {
   LOCAL_FEATURE_INVARIANTS,
   LOCAL_VERIFICATION_REASONS,
@@ -38,9 +40,6 @@ import {
   type TemplateVerificationReason,
 } from "./local-client-verification-contract.js";
 import { SEMANTIC_VERIFIER_ABI } from "./semantic-proof.js";
-import { isSkillSlotGeometryProof } from "./enhancement-skill-slot-geometry-proof.js";
-import { isEffectIconGeometryProof, isPlayerEffectObservationProof } from
-  "./enhancement-player-effect-proof.js";
 import {
   BRIDGE_KINDS,
   TEMPLATE_SAVE_BUILDS,
@@ -297,421 +296,6 @@ function isTemplateSaveBuild(
   return kinds.size === BRIDGE_KINDS.length;
 }
 
-type SemanticBuild = Readonly<Partial<KnownEnhancementBuild>>;
-
-function matchesCoreProof(
-  build: SemanticBuild,
-  baseline: KnownEnhancementBuild,
-): boolean {
-  return build.programId === baseline.programId
-    && isDeepStrictEqual(build.hookParams, baseline.hookParams)
-    && isDeepStrictEqual(build.hookResults, baseline.hookResults);
-}
-
-function matchesCursorProof(
-  build: SemanticBuild,
-  baseline: KnownEnhancementBuild,
-): boolean {
-  const candidate = build.cursorEvent;
-  if (candidate === undefined) return true;
-  const expected = baseline.cursorEvent;
-  return expected !== undefined
-    && isIndex(candidate.functionIndex)
-    && isIndex(candidate.tableSlot)
-    && candidate.producerFunctions.length === 2
-    && candidate.producerFunctions.every(isIndex)
-    && candidate.producerBodySha256.length === 2
-    && candidate.producerBodySha256.every(isDigest)
-    && Object.values(candidate.layout).every(isIndex)
-    && Object.keys(candidate.layout).sort().join()
-      === Object.keys(expected.layout).sort().join()
-    && isDeepStrictEqual(build.hookParams, baseline.hookParams)
-    && isDeepStrictEqual(build.hookResults, baseline.hookResults)
-    && isDeepStrictEqual(candidate.params, expected.params)
-    && isDeepStrictEqual(candidate.results, expected.results)
-    && isDigest(candidate.bodySha256)
-    && isDeepStrictEqual(candidate.producerParams, expected.producerParams)
-    && isDeepStrictEqual(candidate.producerResults, expected.producerResults)
-    && isDeepStrictEqual(
-      candidate.tableNeighbourBodySha256,
-      expected.tableNeighbourBodySha256,
-    )
-    && candidate.layout.cursorSoftwareModel
-      === candidate.layout.cursorActiveArt + 4
-    && candidate.layout.cursorShowCount === candidate.layout.cursorActiveArt + 8
-    && candidate.layout.cursorArtHotspot === expected.layout.cursorArtHotspot
-    && candidate.layout.cursorArtTexture === expected.layout.cursorArtTexture
-    && candidate.layout.cursorHandleKey === expected.layout.cursorHandleKey
-    && candidate.layout.cursorHandleObject === expected.layout.cursorHandleObject
-    && candidate.layout.cursorViewTexture === expected.layout.cursorViewTexture
-    && candidate.layout.cursorTextureType === expected.layout.cursorTextureType
-    && candidate.layout.cursorTextureWidth === expected.layout.cursorTextureWidth
-    && candidate.layout.cursorTextureHeight === expected.layout.cursorTextureHeight;
-}
-
-function matchesObservationBase(
-  build: SemanticBuild,
-  baseline: KnownEnhancementBuild,
-): boolean {
-  const candidate = build.observationBase?.layout;
-  if (candidate === undefined) return true;
-  const expected = baseline.observationBase?.layout;
-  return expected !== undefined
-    && Object.keys(candidate).sort().join() === Object.keys(expected).sort().join()
-    && Object.values(candidate).every(isIndex)
-    && candidate.contextRoot % 4 === 0
-    && candidate.agentArray % 4 === 0
-    && candidate.areaInfo % 4 === 0
-    && Object.entries(expected).every(([key, value]) =>
-      key === "contextRoot" || key === "agentArray" || key === "areaInfo"
-        || candidate[key as keyof typeof candidate] === value);
-}
-
-function matchesPlayRegionObservation(
-  build: SemanticBuild,
-  baseline: KnownEnhancementBuild,
-): boolean {
-  const candidate = build.playRegionObservation?.layout;
-  if (candidate === undefined) return true;
-  const expected = baseline.playRegionObservation?.layout;
-  if (
-    expected === undefined
-    || Object.keys(candidate).sort().join() !== Object.keys(expected).sort().join()
-    || !Object.values(candidate).every(isIndex)
-    || Object.entries(expected).some(([key, value]) =>
-      key !== "contextRoot" && key !== "areaInfo"
-      && candidate[key as keyof typeof candidate] !== value)
-  ) return false;
-  const observation = build.observationBase?.layout;
-  return observation === undefined || Object.entries(candidate).every(
-    ([key, value]) => observation[key as keyof typeof observation] === value,
-  );
-}
-
-function matchesTargetObservation(
-  build: SemanticBuild,
-  baseline: KnownEnhancementBuild,
-): boolean {
-  const candidate = build.targetObservation?.layout;
-  if (candidate === undefined) return true;
-  const expected = baseline.targetObservation?.layout;
-  const candidateObservation = build.observationBase?.layout;
-  return matchesObservationBase(build, baseline)
-    && expected !== undefined
-    && candidateObservation !== undefined
-    && Object.keys(candidate).sort().join() === Object.keys(expected).sort().join()
-    && Object.values(candidate).every(isIndex)
-    && candidate.manualTargetAgentId === candidate.automaticTargetAgentId + 4;
-}
-
-function matchesUiDispatcher(
-  build: SemanticBuild,
-  baseline: KnownEnhancementBuild,
-): boolean {
-  const candidate = build.uiDispatcher;
-  if (candidate === undefined) return true;
-  const expected = baseline.uiDispatcher;
-  return expected !== undefined
-    && isIndex(candidate.functionIndex)
-    && isDigest(candidate.bodySha256)
-    && isDeepStrictEqual(candidate.params, expected.params)
-    && isDeepStrictEqual(candidate.results, expected.results)
-    && candidate.playerChatMessage === expected.playerChatMessage
-    && candidate.hideHeroPanelMessage === expected.hideHeroPanelMessage
-    && candidate.showHeroPanelMessage === expected.showHeroPanelMessage;
-}
-
-function matchesGameThreadSafePoint(
-  build: SemanticBuild,
-  baseline: KnownEnhancementBuild,
-): boolean {
-  const candidate = build.gameThread?.drain;
-  if (candidate === undefined) return true;
-  const expected = baseline.gameThread?.drain;
-  return expected !== undefined
-    && isIndex(candidate.functionIndex)
-    && isIndex(candidate.tableSlot)
-    && isDigest(candidate.bodySha256)
-    && isDeepStrictEqual(candidate.params, expected.params)
-    && isDeepStrictEqual(candidate.results, expected.results);
-}
-
-function matchesTravelAction(
-  build: SemanticBuild,
-  baseline: KnownEnhancementBuild,
-): boolean {
-  const candidate = build.travelAction;
-  if (candidate === undefined) return true;
-  const expected = baseline.travelAction;
-  return expected !== undefined
-    && candidate.enqueueExport === expected.enqueueExport
-    && candidate.configureExport === expected.configureExport
-    && candidate.toggleExport === expected.toggleExport
-    && candidate.messageId === expected.messageId
-    && (candidate.guildHall === undefined || ENHANCEMENT_BUILDS.some(known =>
-      isDeepStrictEqual(candidate.guildHall, known.travelAction?.guildHall)))
-    && isIndex(candidate.producer.functionIndex)
-    && isDigest(candidate.producer.bodySha256)
-    && isDeepStrictEqual(candidate.producer.params, expected.producer.params)
-    && isDeepStrictEqual(candidate.producer.results, expected.producer.results)
-    && isIndex(candidate.contextResolver.functionIndex)
-    && isDigest(candidate.contextResolver.bodySha256)
-    && isDeepStrictEqual(
-      candidate.contextResolver.params,
-      expected.contextResolver.params,
-    )
-    && isDeepStrictEqual(
-      candidate.contextResolver.results,
-      expected.contextResolver.results,
-    )
-    && isDeepStrictEqual(candidate.unlockProof.layout, expected.unlockProof.layout)
-    && isIndex(candidate.unlockProof.accessor.functionIndex)
-    && isDigest(candidate.unlockProof.accessor.bodySha256)
-    && isDeepStrictEqual(
-      candidate.unlockProof.accessor.params,
-      expected.unlockProof.accessor.params,
-    )
-    && isDeepStrictEqual(
-      candidate.unlockProof.accessor.results,
-      expected.unlockProof.accessor.results,
-    )
-    && isIndex(candidate.unlockProof.consumer.functionIndex)
-    && isDigest(candidate.unlockProof.consumer.bodySha256)
-    && isDeepStrictEqual(
-      candidate.unlockProof.consumer.params,
-      expected.unlockProof.consumer.params,
-    )
-    && isDeepStrictEqual(
-      candidate.unlockProof.consumer.results,
-      expected.unlockProof.consumer.results,
-    );
-}
-
-function matchesXunlaiAction(
-  build: SemanticBuild,
-  baseline: KnownEnhancementBuild,
-): boolean {
-  const candidate = build.xunlaiAction;
-  if (candidate === undefined) return true;
-  const expected = baseline.xunlaiAction;
-  const readers = candidate.accessProof?.readers;
-  const expectedReaders = expected?.accessProof?.readers;
-  const layout = candidate.accessProof?.layout;
-  const expectedLayout = expected?.accessProof?.layout;
-  return expected !== undefined
-    && readers !== undefined
-    && expectedReaders !== undefined
-    && layout !== undefined
-    && expectedLayout !== undefined
-    && candidate.openExport === expected.openExport
-    && candidate.configureExport === expected.configureExport
-    && Object.keys(readers).sort().join() === Object.keys(expectedReaders).sort().join()
-    && Object.entries(readers).every(([name, reader]) => {
-      const expectedReader = expectedReaders[name as keyof typeof expectedReaders];
-      return expectedReader !== undefined
-        && isIndex(reader.functionIndex)
-        && isDigest(reader.bodySha256)
-        && isDeepStrictEqual(reader.params, expectedReader.params)
-        && isDeepStrictEqual(reader.results, expectedReader.results);
-    })
-    && isDeepStrictEqual(layout, expectedLayout)
-    && isIndex(candidate.handler.functionIndex)
-    && isDigest(candidate.handler.bodySha256)
-    && isDeepStrictEqual(candidate.handler.params, expected.handler.params)
-    && isDeepStrictEqual(candidate.handler.results, expected.handler.results);
-}
-
-function matchesChatAliases(
-  build: SemanticBuild,
-  baseline: KnownEnhancementBuild,
-): boolean {
-  const candidate = build.chatAliases?.parser;
-  if (candidate === undefined) return true;
-  const expected = baseline.chatAliases?.parser;
-  return expected !== undefined
-    && isIndex(candidate.functionIndex)
-    && isDigest(candidate.bodySha256)
-    && isDeepStrictEqual(candidate.params, expected.params)
-    && isDeepStrictEqual(candidate.results, expected.results);
-}
-
-function matchesChatFiltering(
-  build: SemanticBuild,
-  baseline: KnownEnhancementBuild,
-): boolean {
-  const candidate = build.chatFiltering;
-  if (candidate === undefined) return true;
-  const expected = baseline.chatFiltering;
-  return expected !== undefined
-    && isDeepStrictEqual(
-      {
-        ...candidate,
-        producer: {
-          ...candidate.producer,
-          functionIndex: expected.producer.functionIndex,
-          bodySha256: expected.producer.bodySha256,
-        },
-      },
-      expected,
-    )
-    && isIndex(candidate.producer.functionIndex)
-    && isDigest(candidate.producer.bodySha256);
-}
-
-function matchesPartyObservation(
-  build: SemanticBuild,
-  baseline: KnownEnhancementBuild,
-): boolean {
-  const candidate = build.partyObservation;
-  if (candidate === undefined) return true;
-  const expected = baseline.partyObservation;
-  return expected !== undefined
-    && candidate.playerChatSites === 3
-    && isIndex(candidate.playerChatProducer)
-    && candidate.nearbyPlayerMessageProducers.length === 2
-    && candidate.nearbyPlayerMessageProducers.every(isIndex)
-    && isDeepStrictEqual(candidate.partyDirtyMessages, expected.partyDirtyMessages)
-    && isDeepStrictEqual(candidate.nearbyPlayerMessages, expected.nearbyPlayerMessages)
-    && isDeepStrictEqual(candidate.layout, expected.layout);
-}
-
-function matchesSkillSlotGeometry(build: SemanticBuild): boolean {
-  return build.skillSlotGeometry === undefined
-    || isSkillSlotGeometryProof(build.skillSlotGeometry);
-}
-
-function matchesTeamApply(
-  build: SemanticBuild,
-  baseline: KnownEnhancementBuild,
-): boolean {
-  const candidate = build.teamApply;
-  if (candidate === undefined) return true;
-  const expected = baseline.teamApply;
-  return expected !== undefined
-    && candidate.thunkExport === expected.thunkExport
-    && candidate.professionTrace.readerExport === expected.professionTrace.readerExport
-    && isIndex(candidate.professionTrace.sender.functionIndex)
-    && isDigest(candidate.professionTrace.sender.bodySha256)
-    && isDeepStrictEqual(
-      candidate.professionTrace.sender.params,
-      expected.professionTrace.sender.params,
-    )
-    && isDeepStrictEqual(
-      candidate.professionTrace.sender.results,
-      expected.professionTrace.sender.results,
-    )
-    && candidate.entries.length === expected.entries.length
-    && candidate.entries.every((entry, index) => {
-      const expectedEntry = expected.entries[index];
-      return expectedEntry !== undefined
-        && entry.opcode === expectedEntry.opcode
-        && entry.label === expectedEntry.label
-        && isIndex(entry.functionIndex)
-        && isDigest(entry.bodySha256)
-        && isDeepStrictEqual(entry.params, expectedEntry.params)
-        && isDeepStrictEqual(entry.results, expectedEntry.results);
-    });
-}
-
-function matchesSkillCooldownObservation(
-  build: SemanticBuild,
-  baseline: KnownEnhancementBuild,
-): boolean {
-  const candidate = build.skillCooldownObservation;
-  if (candidate === undefined) return true;
-  const expected = baseline.skillCooldownObservation;
-  return expected !== undefined
-    && isIndex(candidate.reader.functionIndex)
-    && isIndex(candidate.reader.timerCallOperand)
-    && isDigest(candidate.reader.bodySha256)
-    && isDeepStrictEqual(candidate.reader.params, expected.reader.params)
-    && isDeepStrictEqual(candidate.reader.results, expected.reader.results)
-    && isIndex(candidate.timer.functionIndex)
-    && isDigest(candidate.timer.bodySha256)
-    && isDeepStrictEqual(candidate.timer.params, expected.timer.params)
-    && isDeepStrictEqual(candidate.timer.results, expected.timer.results)
-    && isDeepStrictEqual(candidate.layout, expected.layout);
-}
-
-function matchesPlayerEffectObservation(
-  build: SemanticBuild,
-): boolean {
-  const candidate = build.playerEffectObservation;
-  return candidate === undefined || isPlayerEffectObservationProof(candidate);
-}
-
-function matchesEffectIconGeometry(build: SemanticBuild): boolean {
-  const candidate = build.effectIconGeometry;
-  return candidate === undefined || isEffectIconGeometryProof(candidate);
-}
-
-function matchesPreGameControls(
-  build: SemanticBuild,
-  baseline: KnownEnhancementBuild,
-): boolean {
-  const candidate = build.preGameControls;
-  if (candidate === undefined) return true;
-  const expected = baseline.preGameControls;
-  return expected !== undefined
-    && isIndex(candidate.hashFunction.functionIndex)
-    && isDigest(candidate.hashFunction.bodySha256)
-    && isDeepStrictEqual(candidate.hashFunction.params, expected.hashFunction.params)
-    && isDeepStrictEqual(candidate.hashFunction.results, expected.hashFunction.results)
-    && Object.values(candidate.labels).every(isIndex)
-    && isDeepStrictEqual(candidate.labelHashes, expected.labelHashes)
-    && Object.keys(candidate.layout).sort().join()
-      === Object.keys(expected.layout).sort().join()
-    && candidate.layout.frameCount === candidate.layout.frameArray + 8
-    && candidate.layout.frameBytes === expected.layout.frameBytes
-    && candidate.layout.frameId === expected.layout.frameId
-    && candidate.layout.frameHashId === expected.layout.frameHashId
-    && candidate.layout.frameState === expected.layout.frameState
-    && candidate.layout.gameContextSlot === expected.layout.gameContextSlot
-    && candidate.layout.characterContext === expected.layout.characterContext
-    && candidate.layout.characterUuid === expected.layout.characterUuid
-    && candidate.layout.currentInstanceType === expected.layout.currentInstanceType
-    && isIndex(candidate.layout.contextRoot);
-}
-
-function matchesPlayerSkillbarObservation(
-  build: SemanticBuild,
-  baseline: KnownEnhancementBuild,
-): boolean {
-  const candidate = build.playerSkillbarObservation;
-  const expected = baseline.playerSkillbarObservation;
-  if (candidate === undefined) return true;
-  if (expected === undefined) return false;
-  const proof = (
-    value: Readonly<{
-      functionIndex: number;
-      bodySha256: string;
-      params: readonly string[];
-      results: readonly string[];
-    }>,
-    reference: Readonly<{
-      functionIndex: number;
-      bodySha256: string;
-      params: readonly string[];
-      results: readonly string[];
-    }>,
-  ) => isIndex(value.functionIndex)
-    && isDigest(value.bodySha256)
-    && isDeepStrictEqual(value.params, reference.params)
-    && isDeepStrictEqual(value.results, reference.results);
-  return proof(candidate.worldLifecycle, expected.worldLifecycle)
-    && proof(candidate.update, expected.update)
-    && proof(candidate.rowReader, expected.rowReader)
-    && proof(candidate.slotReader, expected.slotReader)
-    && isDeepStrictEqual(candidate.coreLayout, expected.coreLayout)
-    && isDeepStrictEqual(candidate.partyLayout, expected.partyLayout);
-}
-
-/** Accessor identities with the build-specific function index removed. */
-function withoutIndices(accessors: object): unknown {
-  return Object.fromEntries(Object.entries(accessors)
-    .map(([name, accessor]) => [name, { ...(accessor as object), functionIndex: 0 }]));
-}
-
 function isAutomaticSemanticBuild(
   value: unknown,
   inputSha256: string,
@@ -728,27 +312,18 @@ function isAutomaticSemanticBuild(
     || !isIndex(build.tableSlot)
     || !isDigest(build.hookBodySha256)
   ) return false;
+  // Fact dependencies the transform relies on; each fact's own evidence is the
+  // shared acceptance rule's job.
   if (build.whisperChat !== undefined && (build.gameThread === undefined
-    || build.uiDispatcher === undefined || build.chatFiltering === undefined
-    || !isResignNativeSender(build.whisperChat))) return false;
+    || build.uiDispatcher === undefined || build.chatFiltering === undefined)) return false;
   if (build.resignAction !== undefined && (
     !build.playRegionObservation || !build.gameThread
-    || !isResignNativeSender(build.resignAction)
   )) return false;
-  // The validator may move between builds; its exact body and signature may not.
-  if (build.chatPrint !== undefined && (build.gameThread === undefined || build.chatFiltering === undefined
-    || !isIndex(build.chatPrint.validator?.functionIndex)
-    || !ENHANCEMENT_BUILDS.some(baseline => baseline.chatPrint !== undefined && isDeepStrictEqual(
-      { ...build.chatPrint!.validator, functionIndex: 0 }, { ...baseline.chatPrint.validator, functionIndex: 0 })))) return false;
-  // Accessors may move between builds; their exact bodies and layout may not.
-  if (build.progressObservation !== undefined && (!build.playRegionObservation || !build.observationBase
-    || !ENHANCEMENT_BUILDS.some(baseline => baseline.progressObservation !== undefined
-      && isDeepStrictEqual(build.progressObservation!.layout, baseline.progressObservation.layout)
-      && isDeepStrictEqual(withoutIndices(build.progressObservation!.accessors),
-        withoutIndices(baseline.progressObservation.accessors))))) return false;
-  if (build.quickItemMove !== undefined && !ENHANCEMENT_BUILDS.some(baseline =>
-    baseline.sha256 === build.sha256
-    && isDeepStrictEqual(build.quickItemMove, baseline.quickItemMove))) return false;
+  if (build.chatPrint !== undefined && (build.gameThread === undefined
+    || build.chatFiltering === undefined)) return false;
+  if (build.progressObservation !== undefined && (
+    !build.playRegionObservation || !build.observationBase
+  )) return false;
   const hasCursor = build.cursorEvent !== undefined;
   const hasPlayRegion = build.playRegionObservation !== undefined;
   const hasObservation = build.observationBase !== undefined;
@@ -765,10 +340,6 @@ function isAutomaticSemanticBuild(
   const hasPreGameControls = build.preGameControls !== undefined;
   const hasPlayerEffects = build.playerEffectObservation !== undefined;
   const hasEffectIcons = build.effectIconGeometry !== undefined;
-  if (build.nativeHudRendering !== undefined && (
-    (!hasSkillSlotGeometry && !hasEffectIcons)
-    || !isNativeHudRenderingProof(build.nativeHudRendering)
-  )) return false;
   if (!hasCursor && !hasPlayRegion && !hasObservation && !hasTarget
     && !hasTravel && !hasXunlai && !hasAliases && !hasChatFiltering
     && !hasParty && !hasTeam && !hasSkillSlotGeometry
@@ -811,28 +382,7 @@ function isAutomaticSemanticBuild(
     return capabilities !== null
       && enhancementCapabilitiesCover(supported, capabilities);
   })) return false;
-  return ENHANCEMENT_BUILDS.some((baseline) =>
-    matchesCoreProof(build, baseline)
-    && matchesCursorProof(build, baseline)
-    && matchesPlayRegionObservation(build, baseline)
-    && matchesObservationBase(build, baseline)
-    && matchesTargetObservation(build, baseline)
-    && matchesUiDispatcher(build, baseline)
-    && matchesGameThreadSafePoint(build, baseline)
-    && matchesTravelAction(build, baseline)
-    && matchesXunlaiAction(build, baseline)
-    && matchesChatAliases(build, baseline)
-    && matchesChatFiltering(build, baseline)
-    && matchesPartyObservation(build, baseline)
-    && matchesPlayerSkillbarObservation(build, baseline)
-    && matchesTeamApply(build, baseline)
-    && matchesSkillSlotGeometry(build)
-    && matchesSkillCooldownObservation(build, baseline)
-    && (build.alcoholObservation === undefined || isAlcoholObservationProof(build.alcoholObservation))
-    && matchesPlayerEffectObservation(build)
-    && matchesEffectIconGeometry(build)
-    && matchesPreGameControls(build, baseline)
-  );
+  return acceptsEnhancementBuild(build as KnownEnhancementBuild, requestedCapabilities);
 }
 
 /** Boundary check for utility-process messages. */
@@ -960,4 +510,50 @@ export function isLocalClientVerification(
       && isEnhancementReason(result.reasons[0]);
   }
   return result.status === "proved" && result.reasons.length === 0;
+}
+
+/**
+ * Accepts a utility-process message, or its template verdict alone when only
+ * its Enhancement part is refused. Returns null when neither survives.
+ */
+export function acceptLocalClientVerification(
+  value: unknown,
+  officialSha256: string,
+  requestedCapabilities: EnhancementCapabilities = ENHANCEMENT_CAPABILITY_PRESETS.all,
+): LocalClientVerification | null {
+  if (isLocalClientVerification(value, officialSha256, requestedCapabilities)) {
+    return value;
+  }
+  if (
+    !value
+    || typeof value !== "object"
+    || !enhancementCapabilitiesRequested(requestedCapabilities)
+  ) return null;
+  const { fileVerdict, templateSaveBuild = null } = value as Partial<LocalClientVerification>;
+  if (!fileVerdict) return null;
+  const refused = Object.freeze({
+    status: "changed",
+    invariant: "enhancement.process-boundary",
+  } as const);
+  const withdrawn: LocalClientVerification = {
+    status: "enhancement-refused",
+    officialSha256,
+    verifierAbi: SEMANTIC_VERIFIER_ABI,
+    fileVerdict,
+    templateSaveBuild,
+    enhancementBuild: null,
+    featureVerdicts: localFeatureVerdictsForBuild(
+      templateSaveBuild?.outputSha256 ?? officialSha256,
+      requestedCapabilities,
+      null,
+      Object.freeze(Object.fromEntries(ENHANCEMENT_CAPABILITY_FIELDS
+        .filter((feature) => requestedCapabilities[feature])
+        .map((feature) => [feature, refused]))),
+    ),
+    reasons: ["enhancement-layout-changed"],
+  };
+  // Every kept field is validated again, now independently of Enhancement.
+  return isLocalClientVerification(withdrawn, officialSha256, requestedCapabilities)
+    ? withdrawn
+    : null;
 }

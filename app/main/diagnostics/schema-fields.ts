@@ -7,21 +7,21 @@
  * fallback: if an event is absent here, it cannot be recorded or exported.
  */
 import {
-  EVENT_CHANNELS,
   GAME_RELOAD_CAUSES,
-  IPC,
   RENDERER_COMMAND_OUTCOMES,
   type AppUpdateErrorCode,
-  type EventChannel,
-  type InvokeChannel,
   type GameReloadCause,
   type RendererCommand,
   type RendererCommandOutcome,
   type SocketCloseReason,
   type SocketFailureCode,
 } from "../../shared/contracts.js";
+import { GAME_INVOKE_KEYS } from "../../shared/ipc/game.js";
+import { TOOLS_INVOKE_KEYS } from "../../shared/ipc/tools.js";
 import {
+  isClientBuildId,
   isDigest,
+  type ClientBuildId,
   type Digest,
 } from "../../shared/digest.js";
 import {
@@ -61,6 +61,33 @@ export const uint32: FieldGuard<number> = (value): value is number =>
   && value <= 0xffff_ffff;
 export const boolean: FieldGuard<boolean> = (value): value is boolean =>
   typeof value === "boolean";
+export const safeInteger: FieldGuard<number> = (value): value is number =>
+  typeof value === "number" && Number.isSafeInteger(value);
+/** A non-negative safe integer: a byte size, count, or WASM index. */
+export const count: FieldGuard<number> = (value): value is number =>
+  safeInteger(value) && value >= 0;
+/** A count with a fixed ceiling, for values bounded by the producer. */
+export function countUpTo(max: number): FieldGuard<number> {
+  return (value): value is number => count(value) && value <= max;
+}
+/** A 1-based installation or attempt number. */
+export const ordinal: FieldGuard<number> = (value): value is number =>
+  safeInteger(value) && value >= 1;
+
+/**
+ * Whether `value` is an object with exactly the guarded keys and every value
+ * passes its guard. The export validator and the renderer-milestone boundary
+ * read the same guards.
+ */
+export function matchesFields(
+  guards: Readonly<Record<string, FieldGuard<DiagnosticScalar>>>,
+  value: unknown,
+): value is Record<string, DiagnosticScalar> {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const fields = value as Readonly<Record<string, unknown>>;
+  return Object.keys(fields).length === Object.keys(guards).length
+    && Object.entries(guards).every(([key, guard]) => Object.hasOwn(fields, key) && guard(fields[key]));
+}
 
 export function literal<T extends DiagnosticScalar>(
   values: readonly T[],
@@ -172,14 +199,11 @@ export const socketFailureCode = literal([
   "dns",
   "other",
 ] as const satisfies readonly SocketFailureCode[]);
-export const invokeChannel = literal<InvokeChannel>(
-  Object.keys(IPC).filter(
-    (key): key is InvokeChannel =>
-      !(EVENT_CHANNELS as readonly string[]).includes(key as EventChannel),
-  ),
-);
+/** A game window channel main answers, Core or Tools, named by its table key. */
+export const invokeChannel = literal([...GAME_INVOKE_KEYS, ...TOOLS_INVOKE_KEYS]);
 export const code: FieldGuard<ErrorCode> = isErrorCode;
 export const digestOrNull = nullable<Digest>(isDigest);
+export const clientBuildId: FieldGuard<ClientBuildId> = isClientBuildId;
 export const rendererFingerprintOrNull =
   nullable<RendererFingerprint>(isRendererFingerprint);
 export const proxyRoute: FieldGuard<ProxyRoute> = (

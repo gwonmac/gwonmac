@@ -1,15 +1,25 @@
 /**
  * Owns current-client semantic proof for controlled-player timed effects.
- * It refuses the capability unless every exact function role has one match.
+ * It refuses the capability unless every function role has one match: a
+ * reviewed body, or on a relink the one function with a reviewed body's
+ * relocation identity (only callees and addresses renumbered).
  */
 import {
   functionBody,
   functionBodySha256,
+  recordReviewedLookup,
   signatureMatches,
   unsignedOperand,
 } from "./wasm-evidence.js";
 import type { ModuleShape } from "./enhancement-evidence-types.js";
 import type { KnownEnhancementBuild } from "./enhancement-builds.js";
+import { functionIdentity, functionsWithIdentity } from "./relocation-identity.js";
+import {
+  recordExactMatch,
+  reviewedGenerations,
+  reviewedIdentities,
+  type ClientGeneration,
+} from "./reviewed-facts.js";
 
 type PlayerEffectProof = NonNullable<
   KnownEnhancementBuild["playerEffectObservation"]
@@ -17,89 +27,43 @@ type PlayerEffectProof = NonNullable<
 type EffectIconProof = NonNullable<KnownEnhancementBuild["effectIconGeometry"]>;
 
 type ExactRole = Readonly<{
+  /** The August reference digest this role stands for. */
+  reference: string;
+  /** This family's body digest for the reference. */
   hash: string;
   bodyLength: number;
   params: readonly string[];
   results: readonly string[];
 }>;
 
-// Complete October bodies retain the collection and frame layouts. Their
-// native effect-dirty message changed with its producer and consumer together.
-const OCTOBER_BODY_HASHES: Readonly<Record<string, string>> = Object.freeze({
-  "7340dbe70f3f4bf731d23f80882df99553e837f825d8bbebee7f8eac45d8ef58": "20aad705e846ffd764f7de00845f7767b080329264e2526480ddb6d9d02df259",
-  "fe97a736b61e83cc5ea5a84f38aecedd384476339c5b02594fcefeebc5ce5203": "af1e0115d7251d12cc1ffe344d00d89f667c914b2cf7820bd2b8faca28e3c3a2",
-  "cafd172e56cbc1efcc64eb281fd8dadcfb6aa305eb4c165c0959f0903f98f769": "b63732a3016e26c6785f1e8e3f8c7391f163c4dba7c43e8fdd097a5549a77894",
-  "7df2376537653cac9b32172fb51073fa57503b1a2bcceb317a6d282d1e13fb0b": "8bbf0be7d8031c7a3ebb9a6d9311d4849f120352bd61e0a1abfc02735107686c",
-  "18899c4be6bf2fd51f6dbf6e52241456cdaed94d912ed23f307c95917bf615b8": "d420d0eabfb51b9ecdb930d532f282b101febd003fffd8c993ebc9fdcd4dd33b",
-  "1f2d462100add0c160d62265d2eaf292a00bfd1cde84c38c1e51f2aac0a2cc57": "4737741bf201a48b379bbee09bc56731be209b5c886c4215c42bf8c3dc9abd88",
-  "a560a223d9756fc3579f057137601853ec23c2b6bbd57248216b77ce550d29af": "fc2afe3ac91e845eae941170a63964156daad419c4d82d54e17227b694bac250",
-  "ecfa62c1bfaaebe98c2047ad986e137e9695a3cf2f0f7d5f6367b6e44cc10894": "9a39085dfb13220e6f834ec96f99df624116e8a207c57c07f22466705530c5e8",
-  "3fecf883ff7543db3cfdd8f3d77fc5cf3ef1e78282252f4f3caedbbe4f80bac0": "72adab1b90ab319ebf714722d199675dabdbf945affaabecabaa215cbcb858ac",
-  "9267c76c395a6ca5bc2efd0f9eb1cd3234feb5c95041a3e6230c98f23f9a4d60": "da295c351454465ef69d27ca0eea9cec827c779767eb55db8093fba71b34da44",
-  "d5e3a36c3336cf3e42867228919ae973072dc54fb442d80244067a3f308b5fd5": "1a93ec1b273d42e3af7c36ecfd2737dd1537cc47c47671a576f66df01e2c0ca2",
-});
-
-// October 22 renumbered the October bodies; only reviewed callee indices and
-// relocated operands differ. Keys are the August reference hashes.
-const OCTOBER_22_BODY_HASHES: Readonly<Record<string, string>> = Object.freeze({
-  "7df2376537653cac9b32172fb51073fa57503b1a2bcceb317a6d282d1e13fb0b": "8bbf0be7d8031c7a3ebb9a6d9311d4849f120352bd61e0a1abfc02735107686c",
-  "18899c4be6bf2fd51f6dbf6e52241456cdaed94d912ed23f307c95917bf615b8": "d420d0eabfb51b9ecdb930d532f282b101febd003fffd8c993ebc9fdcd4dd33b",
-  "1f2d462100add0c160d62265d2eaf292a00bfd1cde84c38c1e51f2aac0a2cc57": "4737741bf201a48b379bbee09bc56731be209b5c886c4215c42bf8c3dc9abd88",
-  "a560a223d9756fc3579f057137601853ec23c2b6bbd57248216b77ce550d29af": "fc2afe3ac91e845eae941170a63964156daad419c4d82d54e17227b694bac250",
-  "ecfa62c1bfaaebe98c2047ad986e137e9695a3cf2f0f7d5f6367b6e44cc10894": "9a39085dfb13220e6f834ec96f99df624116e8a207c57c07f22466705530c5e8",
-  "3fecf883ff7543db3cfdd8f3d77fc5cf3ef1e78282252f4f3caedbbe4f80bac0": "72adab1b90ab319ebf714722d199675dabdbf945affaabecabaa215cbcb858ac",
-  "fe97a736b61e83cc5ea5a84f38aecedd384476339c5b02594fcefeebc5ce5203": "946992af3680b0217734172ccc0a70e7c283a44eda54edcf399a734791e347c3",
-  "cafd172e56cbc1efcc64eb281fd8dadcfb6aa305eb4c165c0959f0903f98f769": "c9d06f44e8f7c99f976ffeb728e1d8e8490a8b0202b857e130f834098ccae03d",
-  "5e0ab6365510501ff760de8c3bdfb8682bf918e092d9263441d8fc7f56403533": "5e0ab6365510501ff760de8c3bdfb8682bf918e092d9263441d8fc7f56403533",
-  "7340dbe70f3f4bf731d23f80882df99553e837f825d8bbebee7f8eac45d8ef58": "d4066bccfd04635db551e12e16406e952e90e7cb3135b10b22f1c2c99ca2d93c",
-  "9267c76c395a6ca5bc2efd0f9eb1cd3234feb5c95041a3e6230c98f23f9a4d60": "57a88a1a84b4ba6c6f9d5c38dd215238dcd3e7cf2888d6b2be41429673878f64",
-  "d5e3a36c3336cf3e42867228919ae973072dc54fb442d80244067a3f308b5fd5": "845200d2aae2d929e80fa3ebf334133e6d9dfa4fb1d2dfca3383c0a5c6186b14",
-});
-
-// November 3 renumbered the October 22 bodies again; only reviewed callee
-// indices and relocated operands differ. Keys are the August reference hashes.
-const NOVEMBER_3_BODY_HASHES: Readonly<Record<string, string>> = Object.freeze({
-  "7df2376537653cac9b32172fb51073fa57503b1a2bcceb317a6d282d1e13fb0b": "f4c17bb7fb0bc0bb9a06973c06a963ef2fe93d1c35231630b0695f6c172ea202",
-  "18899c4be6bf2fd51f6dbf6e52241456cdaed94d912ed23f307c95917bf615b8": "2f4ff4d5219da4d88211c0f133ad01c1aedfab1fc135f8501b5969feb36607b2",
-  "1f2d462100add0c160d62265d2eaf292a00bfd1cde84c38c1e51f2aac0a2cc57": "a560a223d9756fc3579f057137601853ec23c2b6bbd57248216b77ce550d29af",
-  "a560a223d9756fc3579f057137601853ec23c2b6bbd57248216b77ce550d29af": "6855a6e32260141c19dc6254dde29416a22a749f3ceaf30915ebf1d6b0d4387c",
-  "ecfa62c1bfaaebe98c2047ad986e137e9695a3cf2f0f7d5f6367b6e44cc10894": "0d5710dd6b45cd590a4cbad35cc7cfe1ef8c123566c91b36d252386d7d72c2f2",
-  "3fecf883ff7543db3cfdd8f3d77fc5cf3ef1e78282252f4f3caedbbe4f80bac0": "d6cf9fdadb6b0dbb118f080bfa319be92abc941df93f17606a732d8ca69943fa",
-  "fe97a736b61e83cc5ea5a84f38aecedd384476339c5b02594fcefeebc5ce5203": "6c88594d54694899dc3ba794cbc20766cb09818bcd1313b195c23e348f6d2a06",
-  "cafd172e56cbc1efcc64eb281fd8dadcfb6aa305eb4c165c0959f0903f98f769": "eeb5dbaafe38feff1f204a88097fee908fba36ae427ba10cb18c319aa2ee30f4",
-  "5e0ab6365510501ff760de8c3bdfb8682bf918e092d9263441d8fc7f56403533": "c09646cce2a296f5a031d9e919fa799285c371c3e9546484a390b9c5c0f4d0c1",
-  "7340dbe70f3f4bf731d23f80882df99553e837f825d8bbebee7f8eac45d8ef58": "e7a7adeb46c24e4f889e39042d025795a1b801fc854e7058208e5e272f14c8c6",
-  "9267c76c395a6ca5bc2efd0f9eb1cd3234feb5c95041a3e6230c98f23f9a4d60": "9e2f337f5dac54398615ea2e1f8be49edb450b147558b6046404560e897948dd",
-  "d5e3a36c3336cf3e42867228919ae973072dc54fb442d80244067a3f308b5fd5": "cb2351264724c96192d923cfaf5b1894c366feeff58de8dc75775ba8d40f84f5",
-});
-
-function effectProofFamily(family: "august" | "october" | "october22" | "november3") {
-  const reviewedHash = (hash: string) => family === "november3"
-    ? NOVEMBER_3_BODY_HASHES[hash] ?? hash
-    : family === "october22"
-    ? OCTOBER_22_BODY_HASHES[hash] ?? hash
-    : family === "october" ? OCTOBER_BODY_HASHES[hash] ?? hash : hash;
+// A generation's `playerEffectBodies` maps each August reference digest to
+// that client's complete body; the boundary accepts only these digests.
+function effectProofFamily(bodies: Readonly<Record<string, string>> | undefined) {
+  const reviewed = (reference: string) => ({ reference, hash: bodies?.[reference] ?? reference });
+  const record = (role: ExactRole, index: number) => recordReviewedLookup({
+    kind: "effect", literal: role.hash, reference: role.reference, family: bodies ?? {},
+  }, index);
   const ACCESSORS: readonly ExactRole[] = Object.freeze([
-    { hash: reviewedHash("7df2376537653cac9b32172fb51073fa57503b1a2bcceb317a6d282d1e13fb0b"), bodyLength: 30, params: ["i32", "i32", "i32", "i32", "i32"], results: [] },
-    { hash: reviewedHash("18899c4be6bf2fd51f6dbf6e52241456cdaed94d912ed23f307c95917bf615b8"), bodyLength: 24, params: ["i32", "i32"], results: [] },
-    { hash: reviewedHash("1f2d462100add0c160d62265d2eaf292a00bfd1cde84c38c1e51f2aac0a2cc57"), bodyLength: 30, params: ["i32", "i32", "i32", "i32", "i32"], results: [] },
-    { hash: reviewedHash("a560a223d9756fc3579f057137601853ec23c2b6bbd57248216b77ce550d29af"), bodyLength: 30, params: ["i32", "i32", "i32", "i32", "f32"], results: [] },
-    { hash: reviewedHash("ecfa62c1bfaaebe98c2047ad986e137e9695a3cf2f0f7d5f6367b6e44cc10894"), bodyLength: 28, params: ["i32", "i32", "i32", "f32"], results: [] },
-    { hash: reviewedHash("3fecf883ff7543db3cfdd8f3d77fc5cf3ef1e78282252f4f3caedbbe4f80bac0"), bodyLength: 24, params: ["i32", "i32"], results: [] },
+    { ...reviewed("7df2376537653cac9b32172fb51073fa57503b1a2bcceb317a6d282d1e13fb0b"), bodyLength: 30, params: ["i32", "i32", "i32", "i32", "i32"], results: [] },
+    { ...reviewed("18899c4be6bf2fd51f6dbf6e52241456cdaed94d912ed23f307c95917bf615b8"), bodyLength: 24, params: ["i32", "i32"], results: [] },
+    { ...reviewed("1f2d462100add0c160d62265d2eaf292a00bfd1cde84c38c1e51f2aac0a2cc57"), bodyLength: 30, params: ["i32", "i32", "i32", "i32", "i32"], results: [] },
+    { ...reviewed("a560a223d9756fc3579f057137601853ec23c2b6bbd57248216b77ce550d29af"), bodyLength: 30, params: ["i32", "i32", "i32", "i32", "f32"], results: [] },
+    { ...reviewed("ecfa62c1bfaaebe98c2047ad986e137e9695a3cf2f0f7d5f6367b6e44cc10894"), bodyLength: 28, params: ["i32", "i32", "i32", "f32"], results: [] },
+    { ...reviewed("3fecf883ff7543db3cfdd8f3d77fc5cf3ef1e78282252f4f3caedbbe4f80bac0"), bodyLength: 24, params: ["i32", "i32"], results: [] },
   ]);
-  const ADD_TIMED: ExactRole = { hash: reviewedHash("fe97a736b61e83cc5ea5a84f38aecedd384476339c5b02594fcefeebc5ce5203"), bodyLength: 758, params: ["i32", "i32", "i32", "i32", "i32", "f32"], results: [] };
-  const RENEW: ExactRole = { hash: reviewedHash("cafd172e56cbc1efcc64eb281fd8dadcfb6aa305eb4c165c0959f0903f98f769"), bodyLength: 442, params: ["i32", "i32", "i32", "i32", "f32"], results: [] };
-  const REMOVE: ExactRole = { hash: reviewedHash("5e0ab6365510501ff760de8c3bdfb8682bf918e092d9263441d8fc7f56403533"), bodyLength: 429, params: ["i32", "i32", "i32"], results: [] };
+  const ADD_TIMED: ExactRole = { ...reviewed("fe97a736b61e83cc5ea5a84f38aecedd384476339c5b02594fcefeebc5ce5203"), bodyLength: 758, params: ["i32", "i32", "i32", "i32", "i32", "f32"], results: [] };
+  const RENEW: ExactRole = { ...reviewed("cafd172e56cbc1efcc64eb281fd8dadcfb6aa305eb4c165c0959f0903f98f769"), bodyLength: 442, params: ["i32", "i32", "i32", "i32", "f32"], results: [] };
+  const REMOVE: ExactRole = { ...reviewed("5e0ab6365510501ff760de8c3bdfb8682bf918e092d9263441d8fc7f56403533"), bodyLength: 429, params: ["i32", "i32", "i32"], results: [] };
   const TIMERS: readonly ExactRole[] = Object.freeze([
-    { hash: reviewedHash("7340dbe70f3f4bf731d23f80882df99553e837f825d8bbebee7f8eac45d8ef58"), bodyLength: 80, params: [], results: ["i32"] },
-    { hash: reviewedHash("c1f93ac7e783305bff7d976dbf55365b67fa6696243305685aa1fb0fb7901030"), bodyLength: 80, params: [], results: ["i32"] },
+    { ...reviewed("7340dbe70f3f4bf731d23f80882df99553e837f825d8bbebee7f8eac45d8ef58"), bodyLength: 80, params: [], results: ["i32"] },
+    { ...reviewed("c1f93ac7e783305bff7d976dbf55365b67fa6696243305685aa1fb0fb7901030"), bodyLength: 80, params: [], results: ["i32"] },
   ]);
   const EFFECTS_INITIALIZER: ExactRole = {
-    hash: reviewedHash("9267c76c395a6ca5bc2efd0f9eb1cd3234feb5c95041a3e6230c98f23f9a4d60"),
+    ...reviewed("9267c76c395a6ca5bc2efd0f9eb1cd3234feb5c95041a3e6230c98f23f9a4d60"),
     bodyLength: 374, params: ["i32", "i32"], results: [],
   };
   const CHILD_BUILDER: ExactRole = {
-    hash: reviewedHash("d5e3a36c3336cf3e42867228919ae973072dc54fb442d80244067a3f308b5fd5"),
+    ...reviewed("d5e3a36c3336cf3e42867228919ae973072dc54fb442d80244067a3f308b5fd5"),
     bodyLength: 245, params: ["i32", "i32"], results: [],
   };
   const EFFECTS_FRAME_HASH = 0x66e6211f;
@@ -111,7 +75,8 @@ function effectProofFamily(family: "august" | "october" | "october22" | "novembe
     frameScreenTop: 0x118, frameRelation: 0x128, frameState: 0x18c,
   });
   const DIRTY_MESSAGES = Object.freeze([
-    0x10000055, 0x10000056, 0x10000057, family === "august" ? 0x10000141 : 0x10000142,
+    // October moved the effect-dirty message with its producer and consumer.
+    0x10000055, 0x10000056, 0x10000057, bodies === undefined ? 0x10000141 : 0x10000142,
   ] as const);
   const PLAYER_EFFECT_LAYOUT = Object.freeze({
     worldPartyEffects: 0x508,
@@ -193,8 +158,12 @@ function effectProofFamily(family: "august" | "october" | "october22" | "novembe
         proof.layout?.[key as keyof typeof PLAYER_EFFECT_LAYOUT] === expected);
   }
 
-  function scan(module: ModuleShape, roles: readonly ExactRole[]) {
-    const indices = roles.map((): number[] => []);
+  /**
+   * The functions each role names: its exact reviewed body and, on a relink,
+   * every function with that body's reviewed relocation identity.
+   */
+  function scan(module: ModuleShape, roles: readonly ExactRole[], relinked = false) {
+    const indices = roles.map(() => new Set<number>());
     for (let index = module.functionImportCount; index < module.functionTypeIndices.length; index += 1) {
       const bodyLength = module.bodies[index - module.functionImportCount]?.byteLength;
       const matchingSignatures = roles.flatMap((role, roleIndex) =>
@@ -203,10 +172,25 @@ function effectProofFamily(family: "august" | "october" | "october22" | "novembe
       if (matchingSignatures.length === 0) continue;
       const hash = functionBodySha256(module, index);
       for (const roleIndex of matchingSignatures) {
-        if (roles[roleIndex]?.hash === hash) indices[roleIndex]?.push(index);
+        const role = roles[roleIndex];
+        if (role?.hash !== hash) continue;
+        indices[roleIndex]?.add(index);
+        record(role, index);
+        recordExactMatch(hash, () => functionIdentity(module, index));
       }
     }
-    return Object.freeze(indices.map((matches) => Object.freeze(matches)));
+    if (relinked) {
+      roles.forEach((role, roleIndex) => {
+        for (const identity of reviewedIdentities(role.hash)) {
+          for (const index of functionsWithIdentity(module, identity)) {
+            if (!signatureMatches(module, index, role.params, role.results)) continue;
+            indices[roleIndex]?.add(index);
+            record(role, index);
+          }
+        }
+      });
+    }
+    return Object.freeze(indices.map((matches) => Object.freeze([...matches])));
   }
 
   function playerEffectCandidateCounts(module: ModuleShape): readonly number[] {
@@ -217,11 +201,13 @@ function effectProofFamily(family: "august" | "october" | "october22" | "novembe
 
   function derivePlayerEffectObservation(
     module: ModuleShape,
+    relinked: boolean,
   ): NonNullable<KnownEnhancementBuild["playerEffectObservation"]> | null {
     const roles = [...ACCESSORS, ADD_TIMED, RENEW, REMOVE] as const;
-    const matches = scan(module, roles);
+    const matches = scan(module, roles, relinked);
     if (matches.some((candidate) => candidate.length !== 1)) return null;
-    const timerMatches = [...new Set(scan(module, TIMERS).flat())];
+    const timerRoles = scan(module, TIMERS, relinked);
+    const timerMatches = [...new Set(timerRoles.flat())];
     if (timerMatches.length !== 1) return null;
     const located = matches.map((candidate) => candidate[0]!);
     const accessors = ACCESSORS.map((role, index) => [role, located[index]!] as const);
@@ -229,7 +215,8 @@ function effectProofFamily(family: "august" | "october" | "october22" | "novembe
     const renewTimed = located[ACCESSORS.length + 1]!;
     const remove = located[ACCESSORS.length + 2]!;
     const timer = timerMatches[0]!;
-    const timerHash = functionBodySha256(module, timer);
+    // The reviewed timer body this function is, exactly or by relocation.
+    const timerHash = TIMERS[timerRoles.findIndex((candidates) => candidates.includes(timer))]!.hash;
     return Object.freeze({
       accessors: Object.freeze(accessors.map(([role, functionIndex]) => Object.freeze({
         functionIndex, params: Object.freeze([...role.params]),
@@ -291,8 +278,9 @@ function effectProofFamily(family: "august" | "october" | "october22" | "novembe
   function deriveEffectIconGeometry(
     module: ModuleShape,
     skillGeometry: NonNullable<KnownEnhancementBuild["skillSlotGeometry"]> | null,
+    relinked: boolean,
   ): EffectIconProof | null {
-    const matches = scan(module, [EFFECTS_INITIALIZER, CHILD_BUILDER]);
+    const matches = scan(module, [EFFECTS_INITIALIZER, CHILD_BUILDER], relinked);
     if (matches.some((candidate) => candidate.length !== 1) || skillGeometry === null) return null;
     const initializer = matches[0]![0]!;
     const childBuilder = matches[1]![0]!;
@@ -327,31 +315,67 @@ function effectProofFamily(family: "august" | "october" | "october22" | "novembe
     isEffectIconGeometryProof, deriveEffectIconGeometry };
 }
 
-const FAMILIES = Object.freeze([
-  effectProofFamily("august"), effectProofFamily("october"), effectProofFamily("october22"),
-  effectProofFamily("november3"),
-]);
+const AUGUST_FAMILY = effectProofFamily(undefined);
+const familyCache = new WeakMap<readonly ClientGeneration[], readonly EffectProofFamily[]>();
+
+/** The August reference family, then one family per active reviewed generation. */
+function families(): readonly EffectProofFamily[] {
+  const generations = reviewedGenerations();
+  let found = familyCache.get(generations);
+  if (!found) {
+    found = Object.freeze([AUGUST_FAMILY, ...generations.flatMap((generation) =>
+      generation.playerEffectBodies ? [effectProofFamily(generation.playerEffectBodies)] : [])]);
+    familyCache.set(generations, found);
+  }
+  return found;
+}
 
 export function isPlayerEffectObservationProof(value: unknown): value is PlayerEffectProof {
-  return FAMILIES.some(family => family.isPlayerEffectObservationProof(value));
+  return families().some(family => family.isPlayerEffectObservationProof(value));
 }
 export function isEffectIconGeometryProof(value: unknown): value is EffectIconProof {
-  return FAMILIES.some(family => family.isEffectIconGeometryProof(value));
+  return families().some(family => family.isEffectIconGeometryProof(value));
 }
+type EffectProofFamily = ReturnType<typeof effectProofFamily>;
+
+/** The function indices a proof names, without the reviewed digests it cites. */
+const locations = (proof: unknown) =>
+  JSON.stringify(proof, (key, value: unknown) => key === "bodySha256" ? undefined : value);
+
+/**
+ * The proof of the families whose reviewed bodies the module holds exactly.
+ * Only when no family matches exactly, of those whose bodies it holds as
+ * relocations. Families that match must name the same functions; generations
+ * with equal identities do, and the newest one's digests are cited.
+ */
+function uniqueFamilyProof<Proof>(
+  derive: (family: EffectProofFamily, relinked: boolean) => Proof | null,
+): Proof | null {
+  for (const relinked of [false, true]) {
+    const matches = families().flatMap((family) => {
+      const proof = derive(family, relinked);
+      return proof === null ? [] : [proof];
+    });
+    const newest = matches.at(-1);
+    if (newest === undefined) continue;
+    return matches.every((proof) => locations(proof) === locations(newest)) ? newest : null;
+  }
+  return null;
+}
+
 export function derivePlayerEffectObservation(module: ModuleShape): PlayerEffectProof | null {
-  const matches = FAMILIES.flatMap(family => family.derivePlayerEffectObservation(module) ?? []);
-  return matches.length === 1 ? matches[0]! : null;
+  return uniqueFamilyProof((family, relinked) => family.derivePlayerEffectObservation(module, relinked));
 }
 export function deriveEffectIconGeometry(module: ModuleShape,
   skillGeometry: NonNullable<KnownEnhancementBuild["skillSlotGeometry"]> | null): EffectIconProof | null {
-  const matches = FAMILIES.flatMap(family => family.deriveEffectIconGeometry(module, skillGeometry) ?? []);
-  return matches.length === 1 ? matches[0]! : null;
+  return uniqueFamilyProof((family, relinked) =>
+    family.deriveEffectIconGeometry(module, skillGeometry, relinked));
 }
 export function playerEffectCandidateCounts(module: ModuleShape): readonly number[] {
-  const counts = FAMILIES.map(family => family.playerEffectCandidateCounts(module));
+  const counts = families().map(family => family.playerEffectCandidateCounts(module));
   return counts[0]!.map((_, index) => Math.max(...counts.map(count => count[index]!)));
 }
 export function effectIconCandidateCounts(module: ModuleShape): readonly number[] {
-  const counts = FAMILIES.map(family => family.effectIconCandidateCounts(module));
+  const counts = families().map(family => family.effectIconCandidateCounts(module));
   return counts[0]!.map((_, index) => Math.max(...counts.map(count => count[index]!)));
 }

@@ -2,6 +2,7 @@
  * Declares the immutable and zero-initialized storage anchors used by the
  * Template-saving verifier. The verifier owns their semantic validation.
  */
+import { ProofRefusal } from "./stage-refusal.js";
 export type TemplateCallerRole =
   | "delete"
   | "skill-scan"
@@ -54,7 +55,7 @@ function utf16Le(value: string): Uint8Array {
 
 function bytesFromHex(value: string): Uint8Array {
   if (value.length % 2 !== 0 || !/^[0-9a-f]+$/.test(value)) {
-    throw new Error("template-save recertify: invalid static anchor bytes");
+    throw new ProofRefusal("template-save recertify: invalid static anchor bytes");
   }
   return Uint8Array.from(
     Array.from({ length: value.length / 2 }, (_, index) =>

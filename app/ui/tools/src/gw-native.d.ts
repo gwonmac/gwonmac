@@ -1,7 +1,5 @@
-import type {
-  AppSettings,
-  GwNativeApi,
-} from "../../../shared/contracts";
+import type { GwNativeApi } from "../../../shared/contracts";
+import type { AppSettings } from "../../../shared/settings/index";
 import type { CustomUiTheme } from "../../../shared/ui-theme";
 import type { FixtureCanvasEvent } from "./hub-fixture";
 
@@ -18,7 +16,13 @@ declare global {
     gwNative: GwNativeApi;
     /** Bounded, session-only evidence from the most recent failed Team Apply. */
     gwTeamApplyProbe?: unknown;
-    /** Test-only bridge exposed by the standalone Vite workbench. */
+    /*
+     * The standalone workbench's test hooks: only the workbench and its fixtures (standalone.ts,
+     * hub-fixture.ts) set them, never the embedded app. A spec that drives them sees them
+     * required through HubFixtureWindow (tests/fixture-window.ts), so a renamed hook fails to
+     * type-check there.
+     */
+    /** Applies an appearance through the production boundary (standalone.ts). */
     gwApplyFixtureAppearance?: (fixture: StandaloneAppearanceFixture) => void;
     /** Hub fixture only: every input event that reached the synthetic game canvas. */
     gwFixtureCanvas?: Readonly<{ events: readonly FixtureCanvasEvent[]; clear(): void }>;

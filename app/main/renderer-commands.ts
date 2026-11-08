@@ -9,14 +9,15 @@
  * the renderer a command was sent to may complete it.
  */
 import { ipcMain, type BrowserWindow } from "electron";
+import { GAME_CHANNELS } from "../shared/ipc/game.js";
 import {
-  IPC,
   RENDERER_COMMAND_COMPLETIONS,
   type TextEditCommand,
   type RendererCommand,
   type RendererCommandCompletion,
   type RendererCommandOutcome,
 } from "../shared/contracts.js";
+import { SHORTCUT_COMMANDS, type ShortcutCommandAction } from "../shared/shortcut-commands.js";
 import { logEvent } from "./diagnostics/recorder.js";
 import { windowRegistry } from "./window-registry.js";
 
@@ -30,7 +31,7 @@ let lastCommandId = 0;
 export const RENDERER_COMMAND_TIMEOUT_MS = 5_000;
 export const VISUAL_CAPTURE_COMMAND_TIMEOUT_MS = 60_000;
 
-ipcMain.on(IPC.rendererCommandDone, (event, id: unknown, outcome: unknown) => {
+ipcMain.on(GAME_CHANNELS.rendererCommandDone.channel, (event, id: unknown, outcome: unknown) => {
   if (
     typeof id !== "number"
     || !RENDERER_COMMAND_COMPLETIONS.includes(
@@ -110,7 +111,7 @@ export function sendRendererCommand(
     contents.once("render-process-gone", failed);
     contents.on("did-start-navigation", abandon);
     try {
-      contents.send(IPC.rendererCommand, id, command);
+      contents.send(GAME_CHANNELS.rendererCommand.channel, id, command);
     } catch {
       failed();
     }
@@ -142,75 +143,20 @@ export async function editWindowText(
 }
 
 /**
- * Show or hide the Build Library.
- *
- * One function for the two ways a player asks. The menu item and the keyboard
- * shortcut are different routes to the same intent, and a second copy of "send
- * the command, notice if it was refused" is how the two quietly stop agreeing.
- *
- * Deliberately no `resetGameInput`, unlike every sheet and dialog above. Those
- * take focus; this overlay does not. Opening Tools is not a statement that you
- * have stopped playing, so a held movement key keeps acting -- which is what
- * the overlay itself implements (`setOpen` releases nothing; only teardown
- * does) and what the chip and the chord already do. Clearing input here made
- * `Cmd+B` the one route that stopped your character, and on a launch without
- * the Toolbox capability it stopped them for a refusal that only reached a log.
+ * Run one shortcut's commands in order (app/shared/shortcut-commands.ts). The keyboard
+ * shortcut, the menu item and Resign's confirmation are routes to the same intent, so they
+ * share this one sender; a second copy is how the routes quietly stop agreeing.
  */
-export async function toggleTools(win: BrowserWindow): Promise<void> {
-  const ownerId = windowRegistry.requireDiagnosticOwnerForWindow(win);
-  const outcome = await sendRendererCommand(win, { type: "tools.toggle" });
-  // The renderer refuses outright when the Toolbox capability is not
-  // installed, which is the ordinary case on a launch that did not ask for it.
-  if (outcome !== "completed") {
-    logEvent(
-      { k: "tools.toggleRefused", outcome },
-      ownerId,
-    );
+export async function runShortcut(win: BrowserWindow, action: ShortcutCommandAction): Promise<void> {
+  // Resolved before the first await: a window that closes while its commands run has no
+  // owner afterwards, and its refusal is still logged under the owner it had.
+  const owner = windowRegistry.diagnosticOwnerForWindow(win);
+  for (const command of SHORTCUT_COMMANDS[action]) {
+    const outcome = await sendRendererCommand(win, command);
+    // The renderer refuses Tools outright on a launch without the Toolbox capability, the
+    // ordinary case on a launch that did not ask for it; only this log says so.
+    if (command.type === "tools.toggle" && outcome !== "completed" && owner !== null) {
+      logEvent({ k: "tools.toggleRefused", outcome }, owner);
+    }
   }
-}
-
-/** Show or hide the independent read-only Trade Chat surface. */
-export async function toggleTrade(win: BrowserWindow): Promise<void> {
-  if (await sendRendererCommand(win, { type: "trade.toggle" }) === "completed") {
-    return;
-  }
-}
-
-/** Toggle the optional whisper messenger in this game window. */
-export async function toggleWhispers(win: BrowserWindow): Promise<void> {
-  await sendRendererCommand(win, { type: "whispers.toggle" });
-}
-
-/**
- * Ask the certified game-thread command queue to open Xunlai storage.
- *
- * A refusal opens the Controls settings pane, which owns the switch and its
- * availability contract. Opening the general Tools window here looked like
- * Command-Shift-C had been misrouted to the hero-build shortcut.
- */
-export async function openStorage(win: BrowserWindow): Promise<void> {
-  // Command-Shift-C can lose its physical modifier releases in AppKit after
-  // Chromium has already forwarded Shift to the game. Clear the renderer's
-  // held-key ledger before either the native Xunlai UI or the fallback dialog
-  // opens, so Guild Wars cannot keep a synthetic Shift pressed for the rest of
-  // the session. The Tools button takes the same harmless reset-free domain
-  // action directly because it carries no held keyboard chord.
-  await resetGameInput(win);
-  if (await sendRendererCommand(win, { type: "storage.open" }) === "completed") {
-    return;
-  }
-}
-
-/** Open the focused Travel palette, with Settings as the truthful fallback. */
-export async function toggleTravel(win: BrowserWindow): Promise<void> {
-  await resetGameInput(win);
-  if (await sendRendererCommand(win, { type: "travel.toggle" }) === "completed") {
-    return;
-  }
-}
-
-/** Open or close the Core character-switch palette. */
-export async function toggleCharacterSwitch(win: BrowserWindow): Promise<void> {
-  await resetGameInput(win);
-  await sendRendererCommand(win, { type: "character.toggle" });
 }

@@ -12,6 +12,8 @@ import type { SkillCatalogue, SkillPresentation } from "../skill-catalog";
 import type { BuildDraftController } from "../use-build-draft";
 import type { SkillUnlockObservation } from "../../../../shared/builds/live-party";
 import { ATTRIBUTES } from "../../../../shared/builds/heroes";
+import { attributeLabel } from "../../../../shared/builds/presentation";
+import { listIndexAfter, listKeyStep, listPage } from "../../../../shared/ui/list-keys";
 import { presentSkillPlacement, type SkillPlacementPresentation } from "../skill-drop";
 import type { SkillDragSession } from "../use-skill-drag-session";
 import {
@@ -45,6 +47,7 @@ const placeableOnly = ref(savedPreferences.placeableOnly);
 const unlockedOnly = ref(savedPreferences.unlockedOnly);
 const inspected = ref<SkillPresentation | null>(null);
 const searchInput = ref<HTMLInputElement | null>(null);
+const resultList = ref<HTMLElement | null>(null);
 const resultButtons = ref<HTMLButtonElement[]>([]);
 const focusedResult = ref<number | null>(null);
 const collapsedGroups = ref(new Set<string>());
@@ -55,7 +58,6 @@ onBeforeUpdate(() => {
   resultButtons.value = [];
 });
 
-const label = (value: string) => value.replace(/([a-z])([A-Z])/gu, "$1 $2");
 const current = computed(() => {
   const slot = props.editor.activeSlot.value;
   if (slot === null) return null;
@@ -130,7 +132,7 @@ const groups = computed<readonly SkillGroup[]>(() => {
   }
   return [...grouped].map(([key, skills]) => ({
     key,
-    label: key === "no-attribute" ? "No attribute" : label(key),
+    label: key === "no-attribute" ? "No attribute" : attributeLabel(key),
     skills,
   }));
 });
@@ -234,24 +236,22 @@ function onResultKeydown(
     useSkill(skill);
     return;
   }
-  const movement = {
-    ArrowDown: index + 1,
-    ArrowUp: index - 1,
-    Home: 0,
-    End: visibleResults.value.length - 1,
-  }[event.key];
-  if (movement === undefined) return;
+  const step = listKeyStep(event, listPage(resultList.value, resultButtons.value[index]));
+  if (step === null) return;
   event.preventDefault();
-  focusResult(movement);
+  focusResult(listIndexAfter(index, visibleResults.value.length, step));
 }
 
 function onSearchKeydown(event: KeyboardEvent): void {
-  if (event.key === "ArrowDown" && visibleResults.value.length) {
-    event.preventDefault();
-    focusResult(0);
-  } else if (event.key === "Escape") {
+  if (event.key === "Escape") {
     closeOrCancel(event);
+    return;
   }
+  // A forward step leaves the search for the first result; the list keys take over there.
+  const step = listKeyStep(event, 1);
+  if (step === null || step <= 0 || step === Infinity || !visibleResults.value.length) return;
+  event.preventDefault();
+  focusResult(0);
 }
 
 function clear(): void {
@@ -365,7 +365,7 @@ function hideBrokenIcon(event: Event): void {
     </div>
 
     <div class="catalogue-layout">
-      <div class="skill-results" aria-label="Eligible PvE skills by attribute">
+      <div ref="resultList" class="skill-results" aria-label="Eligible PvE skills by attribute">
         <div v-if="groups.length >= 3" class="catalogue-group-actions" aria-label="Attribute sections">
           <button class="ui-link" type="button" @click="collapseAll">Collapse all</button>
           <span aria-hidden="true">·</span>
@@ -437,7 +437,7 @@ function hideBrokenIcon(event: Event): void {
                 <strong>{{ skill.name }}</strong>
                 <small>
                   <ProfessionIcon :profession="skill.profession" /> {{ skill.profession ?? "PvE" }}
-                  <template v-if="skill.attribute"> · {{ label(skill.attribute) }}</template>
+                  <template v-if="skill.attribute"> · {{ attributeLabel(skill.attribute) }}</template>
                 </small>
               </span>
               <span class="result-mechanics">

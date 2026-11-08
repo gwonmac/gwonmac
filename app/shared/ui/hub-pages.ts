@@ -2,9 +2,10 @@
  * The contract of the Hub's own pages that the Vue kit draws (app/ui/tools/src/hub/views, built
  * into `tools/hub-app.js`): the facts each page shows and the callbacks it reports back. The
  * page's controller in app/renderer owns its state, validation and IPC; the kit owns its DOM,
- * keys and focus. The Hub hands these pages to every view it mounts (HubViewMount).
+ * keys and focus. The Hub hands these pages to every view it mounts (HubViewMount), which
+ * mounts one by its name in `HubPageProps`.
  */
-import type { HubRow } from '../hub.js';
+import type { HubRow, HubSummary } from '../hub.js';
 
 /** A focus request a page applies once per new `seq`: the control with this `data-focus-key`. */
 export type HubPageFocus = Readonly<{ key: string; seq: number }>;
@@ -24,7 +25,7 @@ export type HubPhraseFormProps = Readonly<{
   input(value: string): void;
 }>;
 
-export type HubPreferenceEntry = Readonly<{ id: string; label: string; icon: Pick<HubRow, 'id' | 'group' | 'icon'> }>;
+export type HubPreferenceEntry = Readonly<{ id: string; label: string; icon: Pick<HubRow, 'icon' | 'iconKind'> }>;
 /** Hub preferences: pins and phrases in their two storage groups, Home's order (HUB-090). */
 export type HubPreferencesProps = Readonly<{
   groups: readonly Readonly<{ label: string; entries: readonly HubPreferenceEntry[] }>[];
@@ -56,15 +57,44 @@ export type HubRatesProps = Readonly<{
 /** The evidence behind a market estimate, as label and value pairs, with a way to the rates. */
 export type HubPriceDetailsProps = Readonly<{ entries: readonly (readonly [label: string, value: string])[]; editRates(): void }>;
 
+/**
+ * Build details: each build's skills with their descriptions and its invested attributes. A
+ * summary names its role (`label`), e.g. the build to apply beside a hero's current one; a
+ * build with `workspace` offers to open it in the Build Library.
+ */
+export type HubBuildDetail = HubSummary | (Readonly<Pick<HubRow, 'title' | 'detail' | 'skills' | 'attributes' | 'professions' | 'attributeStatus' | 'folder'>> & Readonly<{ workspace?(): void }>);
+export type HubBuildDetailsProps = Readonly<{ builds: readonly HubBuildDetail[] }>;
+
+/**
+ * "Leave this area?" (D-27): the question, its consequence and the leave button's name. Stay
+ * here takes the keyboard (`focus`). The leave button shows when it is `armed`; `depart` before
+ * then does nothing.
+ */
+export type HubLeaveAreaProps = Readonly<{
+  question: string; detail: string; leave: string; armed: boolean; focus?: HubPageFocus;
+  stay(): void;
+  depart(): void;
+}>;
+
 /** The host the launcher's Settings page mounts into; `failed` when that page could not load. */
 export type HubSettingsHostProps = Readonly<{ failed: boolean }>;
 
-/** The Hub's own pages, drawn by the kit into a view's target. */
+/**
+ * Every Hub page by the name views mount it with, and its props. A feature adds its own page
+ * from its folder: it declares the props here by module augmentation and names the component in
+ * `app/features/<id>/hub-views/index.ts`, which the kit's page registry collects.
+ */
+export interface HubPageProps {
+  confirm: HubConfirmProps;
+  phraseForm: HubPhraseFormProps;
+  preferences: HubPreferencesProps;
+  rates: HubRatesProps;
+  priceDetails: HubPriceDetailsProps;
+  buildDetails: HubBuildDetailsProps;
+  leaveArea: HubLeaveAreaProps;
+  settingsHost: HubSettingsHostProps;
+}
+/** The Hub's pages, drawn by the kit into a view's target. */
 export type HubPages<Target> = Readonly<{
-  confirm: HubPageMount<HubConfirmProps, Target>;
-  phraseForm: HubPageMount<HubPhraseFormProps, Target>;
-  preferences: HubPageMount<HubPreferencesProps, Target>;
-  rates: HubPageMount<HubRatesProps, Target>;
-  priceDetails: HubPageMount<HubPriceDetailsProps, Target>;
-  settingsHost: HubPageMount<HubSettingsHostProps, Target>;
+  mount<Name extends keyof HubPageProps>(name: Name, target: Target, props: HubPageProps[Name]): HubPage<HubPageProps[Name], Target>;
 }>;

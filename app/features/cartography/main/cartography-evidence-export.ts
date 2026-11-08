@@ -7,7 +7,8 @@ import {
   type CartographyEvidenceCapture,
   type CartographyEvidenceExportResult,
 } from "../../../shared/cartography-evidence.js";
-import type { AppSettings, ClientSession } from "../../../shared/contracts.js";
+import type { ClientSession } from "../../../shared/contracts.js";
+import type { AppSettings } from "../../../shared/settings/index.js";
 import {
   buildCartographyEvidenceReport,
   renderCartographyEvidencePreview,

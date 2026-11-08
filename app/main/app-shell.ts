@@ -9,17 +9,14 @@
  * projections that do exist and skips the missing one.
  */
 import { app, type BrowserWindow } from "electron";
-import {
-  IPC,
-  type AppSettings,
-  type DownloadProgress,
-} from "../shared/contracts.js";
-import {
-  LAUNCHER_IPC,
-  type LauncherDestination,
-} from "../shared/launcher-contracts.js";
+import type { DownloadProgress } from "../shared/contracts.js";
+import { GAME_CHANNELS } from "../shared/ipc/game.js";
+import { LAUNCHER_CHANNELS } from "../shared/ipc/launcher.js";
+import type { AppSettings } from "../shared/settings/index.js";
+import type { LauncherDestination } from "../shared/launcher-contracts.js";
 import { PreferencesCoordinator } from "./core/preferences-coordinator.js";
 import { logEvent } from "./diagnostics.js";
+import { emit } from "./ipc-channel-registry.js";
 import type { LauncherOrchestrator } from "./launcher-orchestrator.js";
 import { gamePaths } from "./paths.js";
 import { updateLongRunningTaskFeedback } from "./window.js";
@@ -70,11 +67,9 @@ export function createAppShell(): AppShell {
 
   function revealLauncher(destination?: LauncherDestination): boolean {
     if (!windowCoordinator.revealLauncher({ activateApp: true })) return false;
-    if (destination) {
-      windowRegistry.launcherWindow()?.webContents.send(
-        LAUNCHER_IPC.navigationEvent,
-        destination,
-      );
+    const launcherWindow = windowRegistry.launcherWindow();
+    if (destination && launcherWindow) {
+      emit(launcherWindow, LAUNCHER_CHANNELS.navigationEvent, destination);
     }
     return true;
   }
@@ -102,17 +97,6 @@ export function createAppShell(): AppShell {
     }
   }
 
-  function sendToRenderer(channel: string, value: unknown): void {
-    for (const win of windowRegistry.windows()) {
-      if (win.isDestroyed() || win.webContents.isDestroyed()) continue;
-      try {
-        win.webContents.send(channel, value);
-      } catch {
-        // Renderer teardown can race a native progress callback.
-      }
-    }
-  }
-
   /** Publish the one durable Settings snapshot to every live game projection. */
   async function publishSettings(settings: AppSettings): Promise<void> {
     currentSettings = settings;
@@ -121,7 +105,7 @@ export function createAppShell(): AppShell {
     for (const win of windowRegistry.gameWindows()) {
       updateWindowShortcuts(win, settings);
     }
-    sendToRenderer(IPC.settingsEvent, settings);
+    for (const win of windowRegistry.windows()) emit(win, GAME_CHANNELS.settingsEvent, settings);
     launcher?.publish();
   }
 

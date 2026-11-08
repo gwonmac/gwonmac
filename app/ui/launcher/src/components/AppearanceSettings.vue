@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import type { InGamePatch, InGameSettings } from "../settings-host";
 import { computed, ref } from "vue";
-import { UI_FONTS, UI_PANEL_OPACITY_MIN, UI_PANEL_OPACITY_MAX, UI_TEXT_SIZE_MIN, UI_TEXT_SIZE_MAX, type UiFont, type UiStyle } from "@shared/contracts";
-import { UI_THEME_COLOR_FIELDS, decodeCustomUiTheme, encodeCustomUiTheme, defaultCustomUiTheme, type CustomUiTheme, type UiThemeColorField } from "@shared/ui-theme";
+import { UI_FONTS, UI_PANEL_OPACITY_MIN, UI_PANEL_OPACITY_MAX, UI_STYLES, UI_TEXT_SIZE_MIN, UI_TEXT_SIZE_MAX, type UiFont } from "@shared/settings/core";
+import { UI_THEME_COLOR_FIELDS, UI_THEME_MATERIALS, decodeCustomUiTheme, encodeCustomUiTheme, defaultCustomUiTheme, type CustomUiTheme, type UiThemeColorField } from "@shared/ui-theme";
 import { customThemeReadable } from "@shared/ui-color";
 import ColorControl from "./ColorControl.vue";
 import RangeControl from "./RangeControl.vue";
 import PanelStylePreview from "./PanelStylePreview.vue";
+import { saveChoice } from "../select-choice";
 
 const props = defineProps<{ settings: InGameSettings; save: (patch: InGamePatch) => Promise<void> }>();
 const message = ref("");
@@ -37,15 +38,15 @@ async function importTheme() {
   <h2 class="appearance-heading">In-game panels</h2>
   <p>Style, font, and opacity update gwonmac panels in every open game window. Guild Wars menus keep their own appearance.</p>
   <div class="setting-group">
-    <label data-setting="uiStyle"><span><strong>Panel style</strong></span><select :value="settings.uiStyle" @change="persist({ uiStyle: ($event.currentTarget as HTMLSelectElement).value as UiStyle })"><option value="guild-wars">Guild Wars</option><option value="obsidian">Modern</option><option value="custom">Custom</option></select></label>
-    <label data-setting="uiFont"><span><strong>Panel font</strong></span><select :value="settings.uiFont" @change="persist({ uiFont: ($event.currentTarget as HTMLSelectElement).value as UiFont })"><option v-for="font in UI_FONTS" :key="font" :value="font">{{ fonts[font] }}</option></select></label>
+    <label data-setting="uiStyle"><span><strong>Panel style</strong></span><select :value="settings.uiStyle" @change="saveChoice($event, UI_STYLES, (uiStyle) => persist({ uiStyle }))"><option value="guild-wars">Guild Wars</option><option value="obsidian">Modern</option><option value="custom">Custom</option></select></label>
+    <label data-setting="uiFont"><span><strong>Panel font</strong></span><select :value="settings.uiFont" @change="saveChoice($event, UI_FONTS, (uiFont) => persist({ uiFont }))"><option v-for="font in UI_FONTS" :key="font" :value="font">{{ fonts[font] }}</option></select></label>
     <div class="setting-row" data-setting="uiTextSize"><span><strong>Text size</strong></span><RangeControl label="Text size" :value="settings.uiTextSize" :min="UI_TEXT_SIZE_MIN" :max="UI_TEXT_SIZE_MAX" unit="%" @change="persist({ uiTextSize: $event })" /></div>
     <div class="setting-row" data-setting="uiPanelOpacity"><span><strong>Panel opacity</strong></span><RangeControl label="Panel opacity" :value="settings.uiPanelOpacity" :min="UI_PANEL_OPACITY_MIN" :max="UI_PANEL_OPACITY_MAX" unit="%" @change="persist({ uiPanelOpacity: $event })" /></div>
     <PanelStylePreview :settings="settings" />
     <template v-if="settings.uiStyle === 'custom'">
-      <label><span><strong>Panel finish</strong></span><select :value="settings.uiCustomTheme.material" @change="updateTheme({ material: ($event.currentTarget as HTMLSelectElement).value as CustomUiTheme['material'] })"><option value="classic">Classic</option><option value="modern">Modern flat</option></select></label>
+      <label><span><strong>Panel finish</strong></span><select :value="settings.uiCustomTheme.material" @change="saveChoice($event, UI_THEME_MATERIALS, (material) => updateTheme({ material }))"><option value="classic">Classic</option><option value="modern">Modern flat</option></select></label>
       <label><span><strong>Window gradient</strong></span><input type="checkbox" :checked="settings.uiCustomTheme.windowGradient" @change="updateTheme({ windowGradient: ($event.currentTarget as HTMLInputElement).checked })" /></label>
-      <div class="setting-row"><span><strong>Custom colors</strong><small>Restore this palette without changing other settings.</small></span><button class="secondary" @click="persist({ uiCustomTheme: defaultCustomUiTheme(settings.uiCustomTheme.material) })">Restore default colors</button></div>
+      <div class="setting-row"><span><strong>Custom colors</strong><small>Restore this palette without changing other settings.</small></span><button class="secondary small" @click="persist({ uiCustomTheme: defaultCustomUiTheme(settings.uiCustomTheme.material) })">Restore default colors</button></div>
       <div v-for="field in UI_THEME_COLOR_FIELDS" :key="field" class="setting-row"><span>{{ colors[field] }}</span><ColorControl :label="colors[field]" :value="settings.uiCustomTheme[field]" @change="updateTheme({ [field]: $event })" /></div>
       <p v-if="!readable" role="status" class="inline-message">Some text will be hard to read on these colors. Choose a title bar, panel surface and input background closer in lightness to the window background.</p>
       <details class="theme-sharing">
@@ -53,7 +54,7 @@ async function importTheme() {
         <label>Current theme<textarea :value="shared" readonly rows="3" /></label>
         <p>Select the text and press Command-C to copy it.</p>
         <label>Import theme<textarea v-model="imported" rows="3" placeholder="Paste theme text" /></label>
-        <button class="secondary" :disabled="!imported.trim()" @click="importTheme">Import theme</button>
+        <button class="secondary small" :disabled="!imported.trim()" @click="importTheme">Import theme</button>
       </details>
     </template>
   </div>

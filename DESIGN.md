@@ -16,18 +16,32 @@ macOS supplies interaction.
   system type.
 - Use one gold accent (`#e8b75c`) for selection and primary action. Reserve red
   for destructive actions and green for an already-open account.
-- The launcher names every colour, radius, and type size once, in the `:root`
-  tokens of `app/ui/launcher/src/style.css`. Shell rules and components use only
-  those names; a policy test rejects raw colours and undefined tokens. Settings
-  keeps its own `--settings-*` set because the game's Hub draws it too.
-- The launcher has one button vocabulary: `.primary` (gold, one per view),
-  `.secondary`, `.quiet`, `.icon-button`, and `.small` for rows. Labels and
+- The launcher names every colour once, in `app/ui/launcher/src/tokens.css`,
+  beside its radius and type scales. Shell rules and components use only those
+  names. The game's Hub draws the Settings page too and loads the same file,
+  whose names apply only on the launcher's `<html data-launcher>` and on
+  `.settings-view`, never on the game's `:root`. In the Hub,
+  `hub-settings.css` points every launcher colour the page reads at the Hub
+  token for the same role, so the page and its dialogs follow the player's Hub
+  theme and accent; radii and the small type sizes stay the launcher's; fonts
+  and body size follow the Hub. The Settings stylesheet declares no colour of
+  its own. Everything else drawn in the game reads `app/shared/ui/tokens.css`.
+  Settings sets each property of a selector in one rule.
+  `tests/unit/the-ui-system-has-one-place-to-change-a-colour.test.ts` checks
+  every stylesheet and `.vue` style block, found by glob: it rejects raw
+  colours (hex, colour functions and named colours), tokens the file's system
+  does not declare, and corners or stacking orders that are not tokens. Files that cannot meet a rule yet are listed there with the reason.
+- The launcher has one button set, in `controls.css`: `.primary` (gold, one
+  per view), `.secondary`, `.quiet`, `.danger-button`, `.icon-button`,
+  `.text-link`, and `.small` for dense rows. The Hub's Settings page loads the
+  same file. Settings rows use `.small`; dialogs use the full size. Labels and
   statuses use `.chip`. No eyebrows: no small uppercase label above a heading;
   put the source and date in a plain line under the title. Support is a quiet pill
   in the title bar, never a banner or a progress counter.
 - Reading happens on pages, not in modals. A news article opens as a full page
   in **News** with a way back to the list; Help pages are the Guide. Modals are
-  for short decisions and forms only.
+  for short decisions and forms only. Launcher and Settings dialogs (`BaseModal`)
+  are `min(420px, 100% - 32px)` wide; Hub tool dialogs keep their own widths.
 - Prefer native hierarchy: system-sized controls, semantic checkboxes, sheets,
   menus, concise labels, and visible keyboard focus.
 - Use translucent material only where it improves separation from key art.

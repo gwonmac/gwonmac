@@ -3,6 +3,7 @@
  * These input-bound candidates never grant observation or command authority.
  */
 import { createHash } from "node:crypto";
+import { refusedOrRethrow } from "./stage-refusal.js";
 import type { DecodedFunction, ModuleShape } from "./enhancement-evidence-types.js";
 import { wasmEvidence, signatureMatches } from "./wasm-evidence.js";
 import { relocationAwareFingerprint, type RelocationSpan } from "./semantic-proof.js";
@@ -31,9 +32,10 @@ const RECORD_ROLE_SPECS = Object.freeze({
 const NAME_COPY_BYTES = 80;
 const NAME_COPY_SHAPE = "1c87ab4b0831420341935898d106c902d85897a116b4beb7492bf4ab3b1ea9c7";
 
+// What the record candidate means, which the renderer pins: its roles and
+// layout contract. Body lengths and shapes are matching data.
 export const FRIEND_RECORD_SEMANTIC_SHA256 = createHash("sha256").update(JSON.stringify({
-  roles: RECORD_ROLE_SPECS,
-  nameCopy: [NAME_COPY_BYTES, NAME_COPY_SHAPE],
+  roles: [...Object.keys(RECORD_ROLE_SPECS), "nameCopy"],
   contract: "sparse-array-record172-category-status-uuid-alias-character-slot-map-v1",
 })).digest("hex");
 
@@ -277,7 +279,8 @@ export function inspectFriendTable(input: Uint8Array): FriendTableEvidence {
         "reconnect-location-refresh",
       ],
     };
-  } catch {
+  } catch (error) {
+    refusedOrRethrow(error);
     return unavailable("bounded-analysis-refused");
   }
 }

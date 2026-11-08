@@ -5,6 +5,7 @@
 import { indexOfBytes, readUleb } from "../../main/core/wasm-binary.js";
 import type { ModuleShape } from "./enhancement-evidence-types.js";
 import { EvidenceError } from "./wasm-evidence-error.js";
+import { cachedFor } from "./module-views.js";
 
 const MAX_DATA_OCCURRENCES = 4_096;
 const MAX_CSTRING_BYTES = 4_096;
@@ -102,9 +103,5 @@ export class WasmDataEvidence {
 }
 
 export function dataEvidence(module: ModuleShape): WasmDataEvidence {
-  const cached = dataEvidenceCache.get(module);
-  if (cached) return cached;
-  const evidence = new WasmDataEvidence(module);
-  dataEvidenceCache.set(module, evidence);
-  return evidence;
+  return cachedFor(dataEvidenceCache, module, (shared) => new WasmDataEvidence(shared));
 }

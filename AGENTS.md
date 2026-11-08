@@ -33,10 +33,16 @@ pnpm typecheck                   # all TypeScript projects
 ```
 
 Never run Electron or Playwright UI suites locally (`pnpm test:electron`,
-`pnpm --filter @gwonmac/tools-ui test:e2e`, `pnpm verify*`, packaged tests).
-They take focus from the person working on this Mac. CI runs them.
-Add the label `mac` to PRs that touch `app/main`, `app/preload`, `app/native`,
-`packaging/`, or `forge.config.ts`, so `macos.yml` runs before the merge.
+`pnpm --filter @gwonmac/tools-ui test:e2e`, packaged tests). They take focus
+from the person working on this Mac. CI runs them: `ci.yml` runs the Hub suite
+on Linux; `macos.yml` runs the `@macos` Hub specs and the Electron suite, all
+of it on main and the tests tagged `@journey` on PRs that change app, build, or
+test code (its `paths` filter). Tag an Electron test `@journey` only when it
+guards a path every player takes. The Hub's keyboard, focus and DOM rules run
+in Node and vitest inside `pnpm check`; its Playwright suite keeps only what
+needs a real browser ([Hub tests](docs/hub-contract.md#tests)). Client-artifact
+tests need the official client and run in release qualification and client
+watch.
 
 ## Must stay
 
@@ -62,7 +68,8 @@ Players install 1.0.0 over the old app and keep everything. Do not change:
 | `app/client/` | client lifecycle: download, chunk store, activation, rollback |
 | `app/client/certification/` | client certification and deterministic WASM transforms |
 | `app/preload/` | the small validated capability bridge; no domain policy |
-| `app/renderer/` | game host, input, in-game presentation; no Node.js |
+| `app/features/<id>/` | one feature: its manifest, game-host part, renderer, main and shared modules |
+| `app/renderer/` | game host, input, in-game presentation shared by features; no Node.js |
 | `app/shared/` | contracts and validation used by two or more processes |
 | `app/native/` | native host addon and the game-archive decoder (C++, Objective-C++) |
 | `app/tools-cli/` | maintainer commands compiled with the app (certification, diagnostics) |

@@ -3,6 +3,10 @@
  * Strict normalizers and versioned clipboard JSON protect the persistence boundary.
  */
 
+/** How far the Compass footprint shows where to stand to reveal the remaining map. */
+export const CARTOGRAPHY_REVEAL_MODES = ["off", "normal", "birds-eye"] as const;
+export type CartographyRevealMode = (typeof CARTOGRAPHY_REVEAL_MODES)[number];
+
 export const CARTOGRAPHY_BUILTIN_PRESET_IDS = [
   "cartographer", "synthwave", "monochrome",
 ] as const;

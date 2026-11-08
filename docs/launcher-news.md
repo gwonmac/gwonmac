@@ -12,27 +12,30 @@ Every release gets one post in `website/content/en/2.blog`. That post is the cha
 
 ```yaml
 ---
-title: GWonMac 1.0.0
-description: Restores every GWonMac feature after the large Guild Wars update of October 22. Nothing else changes.
+title: GWonMac 1.0.1
+description: Restores every GWonMac feature after the latest Guild Wars update. Nothing else changes.
 badge: Release
-date: 2026-10-23
+date: 2026-12-01
 readingTime: 1 min read
 author: authors/matamo
-launcherId: gwonmac-1-0-0
+draft: true
+launcherId: gwonmac-1-0-1
 launcherSource: launcher
 launcherChannel: stable
-launcherFeatured: true
+launcherFeatured: false
 ---
 ```
 
 - `title` is `GWonMac` and the version, nothing else.
+- `launcherId` is `gwonmac-` and the version with dashes. The app bundles the post with this ID as its "What's new", and `app/ui/launcher/src/release-notes.test.ts` fails when the version in `package.json` has none.
+- Keep `draft: true` until the release is published (see [Releasing](releasing.md)).
 - `description` repeats the summary paragraph. The launcher shows it under the title, so it must stand alone. Keep it under 360 characters; the generator refuses longer text.
-- Set `launcherFeatured: true` only on the newest release, and set it back to `false` on the post it replaces.
+- Keep `launcherFeatured: false` while the post is a draft. On release day, step 7 of [Releasing](releasing.md) moves `launcherFeatured: true` to it from the post it replaces, so only the newest published release is featured.
 
 ### Body
 
 ```md
-Restores every GWonMac feature after the large Guild Wars update of October 22. Nothing else changes.
+Restores every GWonMac feature after the latest Guild Wars update. Nothing else changes.
 
 - **Compatibility:** Tools, Quick Travel, Xunlai Chest and the skill overlays work again with the new client.
 - **Settings → Tools:** a new option is named in bold, with where to find it and what it does.
@@ -41,11 +44,11 @@ Restores every GWonMac feature after the large Guild Wars update of October 22. 
 
 - Adrenaline skill icons can flicker. This also happens in ArenaNet's phone app.
 
-[Technical release record](https://github.com/gwonmac/gwonmac/releases/tag/v1.0.0){target="_blank"}
+[Technical release record](https://github.com/gwonmac/gwonmac/releases/tag/v1.0.1){target="_blank"}
 ```
 
 1. **Summary paragraph first.** One to three sentences: what is different for the player and why it matters. Lead with the biggest change. If a release only restores compatibility, say so plainly.
-2. **One bullet per change**, most noticeable first. Start with the place or feature in bold, then say what the player sees now: "now …", "no longer …". Name where to find it (`Settings → Display`) and its shortcut (`⌘T`).
+2. **One bullet per change**, most noticeable first. Start with the place or feature in bold, then say what the player sees now: "now …", "no longer …". Name where to find it (`Settings → Appearance`) and its shortcut (`⌘T`).
 3. **Player words only.** Describe what changed in the game, not how: no PR numbers, proofs, certification, refactors, or release tooling. If players cannot notice a change, leave it out.
 4. **Optional sections**, in this order and only when they have content: `## Known issues`, `## Notes`. Notes are for things players must do or know, for example "Restart Guild Wars once after the update."
 5. **End with the technical record link.**
@@ -81,7 +84,7 @@ pnpm --dir website generate:launcher-news
 pnpm --dir website check
 ```
 
-Commit the Markdown and regenerated JSON together. The check fails for duplicate IDs, unsupported fields, invalid channels, a summary over 360 characters, or a stale generated feed. The feed carries the newest 24 posts; older posts stay on the website.
+Commit the Markdown and regenerated JSON together. The generator runs every story and the whole feed through the parser that installed apps use (`app/shared/launcher-news-feed.ts`), so the check fails on exactly what an app would refuse: a malformed ID, an ID that any post already uses (checked across every post, not only the newest 24), an invalid source or channel, a title over 140 or a summary over 360 characters, an invalid date, or a link outside the trusted origins (the website, the Guild Wars Wiki, GitHub, Discord). It also fails for unknown `launcher*` fields and a stale generated feed. One refused story makes every app drop the whole feed, so never edit `news-v1.json` by hand. The feed carries the newest 24 posts; older posts stay on the website.
 
 ## Runtime behavior
 

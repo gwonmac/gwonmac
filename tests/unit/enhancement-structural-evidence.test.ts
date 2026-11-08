@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
+import { setFlagsFromString } from "node:v8";
+import { runInNewContext } from "node:vm";
 import { describe, it } from "node:test";
 import {
   inspectEnhancementStructuralEvidence as inspectStructuralEvidence,
@@ -630,6 +632,18 @@ describe("review-only Enhancement structural evidence", () => {
     input[input.byteLength - 1] = input[input.byteLength - 1]! ^ 1;
 
     assert.equal(matchesEvidenceInput(evidence, input), false);
+    assert.notEqual(wasmEvidence(input), evidence);
+  });
+
+  it("binds equal bytes in another array to that array, not to the first one", () => {
+    const first = fixture().bytes;
+    const second = first.slice();
+    const one = wasmEvidence(first);
+    const other = wasmEvidence(second);
+    assert.ok(one && other);
+    assert.equal(other.inputIdentity, second);
+    assert.equal(matchesEvidenceInput(other, second), true);
+    assert.equal(matchesEvidenceInput(one, second), false);
   });
 
   it("does not expose mutable active-table relation arrays", () => {
@@ -679,5 +693,46 @@ describe("review-only Enhancement structural evidence", () => {
     const second = evidence.moduleView();
     assert.equal(functionBodySha256(second, functionIndex), expectedHash);
     assert.notEqual(functionBody(second, functionIndex)[0], 0xff);
+  });
+
+  it("analyses a view whose bytes changed before its first use as it is", () => {
+    const evidence = wasmEvidence(fixture().bytes);
+    assert.ok(evidence);
+    const unchanged = evidence.moduleView();
+    const changed = evidence.moduleView();
+    const functionIndex = unchanged.functionImportCount;
+    const expectedHash = functionBodySha256(unchanged, functionIndex);
+    const body = functionBody(changed, functionIndex);
+    body[0] = body[0]! ^ 1;
+
+    assert.notEqual(functionBodySha256(changed, functionIndex), expectedHash);
+    assert.equal(functionBodySha256(evidence.moduleView(), functionIndex), expectedHash);
+  });
+
+  // A caller holding many clients in one synchronous run (a test of
+  // mutations, a replay over every retained client) must not keep every
+  // client's parse and decode alive: at about 250 MB per real client that
+  // once exhausted an 8 GB heap.
+  it("lets an older client's analysis go during one run while its input is still held", async () => {
+    setFlagsFromString("--expose-gc");
+    const collect: unknown = runInNewContext("gc");
+    assert.ok(typeof collect === "function");
+    const released: number[] = [];
+    const registry = new FinalizationRegistry<number>((index) => released.push(index));
+    const inputs = Array.from({ length: 8 }, (_, index) =>
+      concat(fixture().bytes, encodeSection({ id: 0, body: concat(uleb(1), Uint8Array.of(0x61 + index)) })));
+    inputs.forEach((input, index) => {
+      const evidence = wasmEvidence(input);
+      assert.ok(evidence);
+      evidence.decodeFunctions([PLAYER_CHAT]);
+      registry.register(evidence, index);
+    });
+    collect();
+    for (let turn = 0; turn < 3 && released.length === 0; turn += 1) {
+      await new Promise((resolve) => setImmediate(resolve));
+    }
+    assert.ok(released.includes(0), `released ${released.join(",") || "nothing"}`);
+    assert.ok(!released.includes(7));
+    assert.equal(inputs.length, 8);
   });
 });

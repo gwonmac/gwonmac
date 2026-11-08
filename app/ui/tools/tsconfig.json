@@ -9,7 +9,10 @@
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
     "verbatimModuleSyntax": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    // A feature's Hub page (app/features/*/hub-views) imports Vue from outside this package;
+    // it resolves to this package's copy, as vite.config.ts dedupes it for the build.
+    "paths": { "vue": ["./node_modules/vue"] }
   },
-  "include": ["src/**/*.ts", "src/**/*.vue", "vite.config.ts", "playwright.config.ts"]
+  "include": ["src/**/*.ts", "src/**/*.vue", "../../features/*/hub-views/**/*.ts", "../../features/*/hub-views/**/*.vue", "tests/**/*.ts", "vite.config.ts", "playwright.config.ts"]
 }

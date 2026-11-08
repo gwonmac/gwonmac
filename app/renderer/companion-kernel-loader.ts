@@ -8,13 +8,14 @@
  * side module's private aligned memory base. It initializes the verified
  * kernel, but grants no feature policy and never publishes or enables a hook.
  */
-import {
-  COMPANION_ABI,
-} from "../shared/companion-abi.js";
+import { COMPANION_ABI } from "../shared/companion-abi.js";
 import {
   COMPANION_KERNEL_EXPORTS,
   COMPANION_KERNEL_IMPORTS,
+  companionKernelInitWords,
   companionKernelSignatureBytes,
+  type CompanionKernelRegion,
+  type CompanionKernelRegions,
 } from "../shared/companion-kernel-contract.js";
 import { COMPANION_PLAY_REGION_BYTES } from "./companion-play-region-snapshot.js";
 import {
@@ -33,40 +34,7 @@ const COMPANION_CHARACTER_LIST_BYTES = COMPANION_ABI.characterList.bytes;
 const COMPANION_PLAYER_EFFECT_BYTES = COMPANION_ABI.playerEffects.bytes;
 const COMPANION_EFFECT_ICON_BYTES = COMPANION_ABI.effectIcons.bytes;
 
-type CompanionKernelInit = (
-  snapshotPointer: number,
-  snapshotBytes: number,
-  configPointer: number,
-  configBytes: number,
-  cursorPointer: number,
-  cursorBytes: number,
-  toolboxPointer: number,
-  toolboxBytes: number,
-  partyPointer: number,
-  partyBytes: number,
-  skillSlotPointer: number,
-  skillSlotBytes: number,
-  skillCooldownPointer: number,
-  skillCooldownBytes: number,
-  playRegionPointer: number,
-  playRegionBytes: number,
-  characterListPointer: number,
-  characterListBytes: number,
-  friendPointer: number,
-  friendBytes: number,
-  playerEffectPointer: number,
-  playerEffectBytes: number,
-  effectIconPointer: number,
-  effectIconBytes: number,
-  friendRoot: number,
-  featureFlags: number,
-  whisperPointer: number,
-  whisperBytes: number,
-  alcoholPointer: number,
-  alcoholBytes: number,
-  progressPointer: number,
-  progressBytes: number,
-) => number;
+type CompanionKernelInit = (...words: number[]) => number;
 
 type CompanionKernelDispatch = (
   messageId: number,
@@ -83,29 +51,20 @@ type LoadedCompanionKernel = Readonly<{
   sha256: string;
 }>;
 
-type KernelRegion = Readonly<{ pointer: number; bytes: number }>;
+/** The kernel regions Core allocates; an extension may supply any other one. */
+export type CoreKernelRegion =
+  "snapshot" | "config" | "cursor" | "toolbox" | "party" | "playRegion" | "characterList";
+
 type CompanionKernelRequest = Readonly<{
   memory: WebAssembly.Memory;
   runtimePointer: number;
   featureFlags: number;
-  friendRoot?: number;
-  regions: Readonly<{
-    snapshot: KernelRegion;
-    config: KernelRegion;
-    cursor: KernelRegion;
-    toolbox: KernelRegion;
-    party: KernelRegion;
-    skillSlots: KernelRegion;
-    skillCooldowns: KernelRegion;
-    playRegion: KernelRegion;
-    characterList?: KernelRegion;
-    friends?: KernelRegion;
-    playerEffects: KernelRegion;
-    effectIcons: KernelRegion;
-    whispers?: KernelRegion;
-    alcohol?: KernelRegion;
-    progress?: KernelRegion;
-  }>;
+  friendRoot: number;
+  /** Core's regions are always installed; an extension region left out is not. */
+  regions: Readonly<
+    Pick<CompanionKernelRegions, CoreKernelRegion>
+    & Partial<Omit<CompanionKernelRegions, CoreKernelRegion>>
+  >;
 }>;
 
 const signatureModule = new WebAssembly.Module(companionKernelSignatureBytes());
@@ -134,7 +93,7 @@ function hasExactSignatures(exports: WebAssembly.Exports): boolean {
 
 function runtimeEnd(request: CompanionKernelRequest): number {
   const sharedRegions = Object.entries(request.regions)
-    .filter((entry): entry is [string, KernelRegion] => entry[1] !== undefined)
+    .filter((entry): entry is [string, CompanionKernelRegion] => entry[1] !== undefined)
     .filter(([, region]) => region.bytes > 0)
     .map(([name, region]) => ({
       name,
@@ -175,8 +134,6 @@ function bindCompanionKernel(
   const playerEffectBytes = exports.companion_player_effect_bytes as () => number;
   const effectIconBytes = exports.companion_effect_icon_bytes as () => number;
   const { regions } = request;
-  const friends = regions.friends ?? { pointer: 0, bytes: 0 };
-  const characterList = regions.characterList ?? { pointer: 0, bytes: 0 };
   if (
     companionAbi() !== COMPANION_ABI.kernel
     || configBytes() !== regions.config.bytes
@@ -198,40 +155,10 @@ function bindCompanionKernel(
     throw new Error("Companion kernel rejected its ABI");
   }
   const init = exports.companion_init as CompanionKernelInit;
-  if (init(
-    regions.snapshot.pointer,
-    regions.snapshot.bytes,
-    regions.config.pointer,
-    regions.config.bytes,
-    regions.cursor.pointer,
-    regions.cursor.bytes,
-    regions.toolbox.pointer,
-    regions.toolbox.bytes,
-    regions.party.pointer,
-    regions.party.bytes,
-    regions.skillSlots.pointer,
-    regions.skillSlots.bytes,
-    regions.skillCooldowns.pointer,
-    regions.skillCooldowns.bytes,
-    regions.playRegion.pointer,
-    regions.playRegion.bytes,
-    characterList.pointer,
-    characterList.bytes,
-    friends.pointer,
-    friends.bytes,
-    regions.playerEffects.pointer,
-    regions.playerEffects.bytes,
-    regions.effectIcons.pointer,
-    regions.effectIcons.bytes,
-    request.friendRoot ?? 0,
-    request.featureFlags,
-    regions.whispers?.pointer ?? 0,
-    regions.whispers?.bytes ?? 0,
-    regions.alcohol?.pointer ?? 0,
-    regions.alcohol?.bytes ?? 0,
-    regions.progress?.pointer ?? 0,
-    regions.progress?.bytes ?? 0,
-  ) !== 1) {
+  if (init(...companionKernelInitWords(regions, {
+    friendRoot: request.friendRoot,
+    features: request.featureFlags,
+  })) !== 1) {
     throw new Error("Companion kernel rejected its ABI");
   }
   return Object.freeze({

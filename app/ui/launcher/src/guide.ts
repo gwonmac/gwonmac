@@ -9,6 +9,7 @@
 import { parseMarkdown, type MarkdownBlock } from "@shared/launcher-markdown";
 import { parseSettingsTarget, type SettingsTarget } from "@shared/settings-catalogue";
 import { LAUNCHER_GUIDE_ORIGINS } from "@shared/launcher-contracts";
+import { readFrontMatter } from "@shared/website-content";
 
 const WEBSITE = "https://www.gwonmac.com";
 const IMAGE_DIRECTORY = "../../../../website/public";
@@ -53,21 +54,6 @@ const images = import.meta.glob<string>("../../../../website/public/docs/**/*.{w
 
 const isPage = (id: string): id is GuidePageId => (GUIDE_PAGE_IDS as readonly string[]).includes(id);
 
-function frontmatter(source: string): { fields: Record<string, string>; body: string } {
-  const match = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/u.exec(source.replace(/\r/gu, ""));
-  if (!match) throw new Error("guide page has no frontmatter");
-  const fields: Record<string, string> = {};
-  let parent = "";
-  for (const line of match[1]!.split("\n")) {
-    const field = /^(\s*)([\w.-]+):\s*(.*)$/u.exec(line);
-    if (!field) continue;
-    const key = field[1] ? `${parent}.${field[2]}` : field[2]!;
-    if (!field[1]) parent = field[2]!;
-    fields[key] = field[3]!.replace(/^"(.*)"$/u, "$1");
-  }
-  return { fields, body: match[2]! };
-}
-
 /** The action a guide link performs, or null when the Guide cannot follow it. */
 export function guideLink(href: string, page?: GuidePageId): string | null {
   const [path = "", anchor] = href.split("#");
@@ -109,7 +95,7 @@ export function guideSource(id: GuidePageId): string {
 }
 
 function page(id: GuidePageId): GuidePage {
-  const { fields, body } = frontmatter(guideSource(id));
+  const { fields, body } = readFrontMatter(guideSource(id));
   return {
     id,
     title: fields["navigation.title"] || fields.title!,

@@ -19,12 +19,14 @@ import { companionKernelFixture } from "../helpers/companion-kernel-fixture.ts";
 
 const CONFIG_BYTES = ENHANCEMENT_CONFIG_WORD_COUNT * 4;
 const FEATURE_FLAGS = 999;
+const FRIEND_ROOT = 4_096;
 
 function request() {
   return {
     memory: new WebAssembly.Memory({ initial: 10 }),
     runtimePointer: 524_288,
     featureFlags: FEATURE_FLAGS,
+    friendRoot: FRIEND_ROOT,
     regions: {
       snapshot: { pointer: 65_536, bytes: COMPANION_SNAPSHOT_BYTES },
       config: { pointer: 131_072, bytes: CONFIG_BYTES },
@@ -37,6 +39,9 @@ function request() {
       characterList: { pointer: 450_560, bytes: COMPANION_ABI.characterList.bytes },
       playerEffects: { pointer: 475_136, bytes: COMPANION_ABI.playerEffects.bytes },
       effectIcons: { pointer: 491_520, bytes: COMPANION_ABI.effectIcons.bytes },
+      whispers: { pointer: 497_664, bytes: COMPANION_ABI.whispers.bytes },
+      alcohol: { pointer: 507_904, bytes: COMPANION_ABI.alcohol.bytes },
+      progress: { pointer: 16_384, bytes: COMPANION_ABI.progress.bytes },
     },
   } as const;
 }
@@ -55,8 +60,11 @@ function initArguments(): readonly number[] {
     0, 0,
     475_136, COMPANION_ABI.playerEffects.bytes,
     491_520, COMPANION_ABI.effectIcons.bytes,
-    0,
+    FRIEND_ROOT,
     FEATURE_FLAGS,
+    497_664, COMPANION_ABI.whispers.bytes,
+    507_904, COMPANION_ABI.alcohol.bytes,
+    16_384, COMPANION_ABI.progress.bytes,
   ];
 }
 

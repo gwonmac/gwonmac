@@ -7,6 +7,7 @@ import {
   encodeIndexVector,
   encodeSection,
   functionImportIndex,
+  indexOfBytes,
   paddedIndex,
   parseCode,
   parseIndexVector,
@@ -26,6 +27,26 @@ function bytes(...values: number[]): Uint8Array {
 }
 
 describe("wasm binary codec", () => {
+  it("finds the first complete needle at or after the start", () => {
+    // Catches a fast search that stops at a partial match of the first byte,
+    // honours a negative start like Buffer#indexOf, or matches past the end.
+    const haystack = bytes(7, 1, 7, 2, 7, 2, 9, 7);
+    for (const [needle, from, expected] of [
+      [bytes(7, 2), 0, 2],
+      [bytes(7, 2), 3, 4],
+      [bytes(7, 2, 9), 0, 4],
+      [bytes(7, 2, 9), 5, -1],
+      [bytes(7), 7, 7],
+      [bytes(7, 9), 0, -1],
+      [bytes(9, 7), -5, 6],
+      [bytes(9, 7, 0), 0, -1],
+      [bytes(), 3, 3],
+      [bytes(), 9, -1],
+    ] as const) {
+      assert.equal(indexOfBytes(haystack, needle, from), expected, `${needle} from ${from}`);
+    }
+  });
+
   it("round-trips unsigned LEB128", () => {
     for (const value of [0, 1, 63, 64, 127, 128, 624, 17_819, 1_131_422]) {
       assert.equal(readUleb(uleb(value), { offset: 0 }), value);
@@ -73,10 +94,14 @@ describe("wasm binary codec", () => {
 
   it("round-trips code bodies and index vectors", () => {
     const bodies = [bytes(0x00, 0x0b), bytes(0x00, 0x41, 0x02, 0x0b)];
-    assert.deepEqual(
-      parseCode(encodeCode(bodies)).map((body) => Array.from(body)),
-      bodies.map((body) => Array.from(body)),
-    );
+    const section = encodeCode(bodies);
+    const parsed = parseCode(section);
+    assert.deepEqual(parsed.map((body) => Array.from(body)), bodies.map((body) => Array.from(body)));
+    // A transform rewrites a parsed body in place: neither the caller's bytes
+    // (the official client) nor the next body may change with it.
+    parsed[0]!.fill(0xff);
+    assert.deepEqual(Array.from(section), Array.from(encodeCode(bodies)));
+    assert.deepEqual(Array.from(parsed[1]!), [0x00, 0x41, 0x02, 0x0b]);
     const indices = [0, 5, 200, 17_600];
     assert.deepEqual(parseIndexVector(encodeIndexVector(indices)), indices);
   });

@@ -153,14 +153,14 @@ test('the invite scope invites only an exact name, first, and names it in the fo
 
 test('a single typed word never becomes the default invite', async () => {
   const { party, calls } = invitePort();
-  await withPeople(ALL_TOOLS, ({ source, page }) => {
+  await withPeople(ALL_TOOLS, ({ source }) => {
     assert.deepEqual(source.search('invite z').map(row => `${row.title}|${row.unavailable ?? row.action}`),
       ['z|Type the full character name'], 'nothing known matches, so the partial name says why');
     assert.deepEqual(source.search('invite Mo').map(row => `${row.title}|${row.unavailable ?? row.action}`),
       ['Kai Account|View actions', 'Moira Chatter|View actions', 'Mo|Type the full character name'],
       'known people come first; the partial name stays last');
-    void source.search('whisper Mo').find(row => row.id.startsWith('person:typed:'))!.actions!();
-    assert.equal(page().find(row => row.id === 'person:invite')!.unavailable, 'Type the full character name');
+    const typed = source.search('whisper Mo').find(row => row.id.startsWith('person:typed:'))!;
+    assert.equal(typed.actions!().find(action => action.label === 'Invite Mo')!.unavailable, 'Type the full character name');
     assert.deepEqual(calls, []);
   }, party);
 });
@@ -266,13 +266,12 @@ test('friend presence reuses the readable labels in every state', () => withPeop
 // and the Home unread row opens a reduced action page instead of the reply.
 test('friend conversation state survives search and Home opens the same reply identity', async () => {
   const { party } = invitePort();
-  await withPeople(ALL_TOOLS, ({ source, session, page }) => {
+  await withPeople(ALL_TOOLS, ({ source, session }) => {
     session.observe([{ id: 2, sender: 'Mo Kaiser', message: 'Ready?', direction: 'incoming' }]);
     assert.match(source.search('mo kaiser')[0]!.detail, /1 unread/);
     const home = source.search('')[0]!;
     assert.equal(home.action, 'Reply to Mo Kaiser');
-    home.actions!();
-    assert.deepEqual(actions(page()), ['Whisper', 'Travel to outpost', 'Invite to party', 'Travel and invite']);
+    assert.deepEqual(home.actions!().map(action => action.label), ['Write whisper', 'Travel to Kamadan, Jewel of Istan', 'Invite Mo Kaiser', 'Travel and invite Mo Kaiser']);
     home.run(task);
     assert.equal(session.state.selected, 'mo kaiser');
     session.markRead('mo kaiser', 2);

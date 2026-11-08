@@ -1,6 +1,9 @@
 /**
- * Loads the sealed, pointer-private reachability side module. Native graph
- * addresses never cross this boundary; callers receive one copied cell bitset.
+ * Loads the sealed reachability side module. The only native addresses that
+ * cross this boundary are the two roots the derived client's manifest
+ * publishes, installed once on the first classification under the client's
+ * layout id (an opaque hash of both roots); callers receive one copied cell
+ * bitset.
  */
 import {
   CARTOGRAPHY_REACHABILITY_ABI,
@@ -12,7 +15,12 @@ import {
   CARTOGRAPHY_REACHABILITY_RUNTIME_BYTES,
   cartographyReachabilitySignatureBytes,
 } from "../../../shared/cartography-reachability-kernel-contract.js";
-import { isCartographyLayoutId, type CartographyLayoutId } from "../../../shared/cartography-spike.js";
+import {
+  cartographyLayoutId,
+  isCartographyLayoutId,
+  type CartographyLayoutId,
+} from "../../../shared/cartography-spike.js";
+import type { CartographyManifest } from "./cartography-manifest.js";
 
 const MAGIC = 0x5257_4347;
 const HEADER_BYTES = 72;
@@ -25,7 +33,7 @@ export type CartographyReachabilitySnapshot = Readonly<{
   sequence: number;
   mapId: number;
   areaEpoch: number;
-  layoutId: CartographyMemoryLayoutId;
+  layoutId: CartographyLayoutId;
   width: number;
   height: number;
   resourceGeneration: number;
@@ -64,7 +72,7 @@ export type CartographyReachabilityDiagnostic = Readonly<{
 export type CartographyReachabilityController = Readonly<{
   sha256: string | null;
   classify(input: Readonly<{
-    layoutId: CartographyMemoryLayoutId;
+    layoutId: CartographyLayoutId;
     mapId: number;
     areaEpoch: number;
     playerId: number;
@@ -89,12 +97,11 @@ type Classify = (
   mapMinX: number, mapMinY: number, mapMaxX: number, mapMaxY: number,
   revealRadius: number,
 ) => number;
+type Install = (layoutId: number, contextRoot: number, agentArray: number) => number;
 
 const signatureModule = new WebAssembly.Module(
   cartographyReachabilitySignatureBytes(),
 );
-
-export type CartographyMemoryLayoutId = CartographyLayoutId;
 
 function exactSurface(
   actual: readonly WebAssembly.ModuleImportDescriptor[]
@@ -236,7 +243,9 @@ function diagnostic(
 
 export async function installCartographyReachabilityKernel(
   exports: WebAssembly.Exports,
+  manifest: CartographyManifest | null,
 ): Promise<CartographyReachabilityController> {
+  if (!manifest) throw new Error("the client publishes no Cartography manifest");
   const memory = exports.memory;
   const malloc = exports.malloc;
   const free = exports.free;
@@ -306,11 +315,20 @@ export async function installCartographyReachabilityKernel(
       || bytes() !== CARTOGRAPHY_REACHABILITY_REGION_BYTES
     ) throw new Error("Cartography reachability kernel rejected its ABI");
     const classify = instance.exports.cartography_reachability_classify as Classify;
+    const install = instance.exports.cartography_reachability_install as Install;
+    let installed = false;
     let lastDiagnostic: CartographyReachabilityDiagnostic | null = null;
     return Object.freeze({
       sha256: kernelSha256,
       classify(input) {
         if (disposed) return null;
+        // The kernel keeps the manifest's roots under the client's layout id;
+        // it refuses a context that publishes any other id.
+        if (!installed) {
+          const layoutId = cartographyLayoutId(manifest.contextRoot, manifest.agentArray);
+          installed = install(layoutId, manifest.contextRoot, manifest.agentArray) === 1;
+          if (!installed) return null;
+        }
         classify(
           output.pointer,
           CARTOGRAPHY_REACHABILITY_REGION_BYTES,

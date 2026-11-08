@@ -2,7 +2,7 @@
 import { currentTravelFriend, type TravelFriend, type TravelFriends } from '../../app/shared/friends.js';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { matchHubRows, parseHubQuery, rankHubRows, type HubRow } from '../../app/shared/hub.js';
+import { isHubCalculation, matchHubRows, parseHubQuery, rankHubRows, type HubRow } from '../../app/shared/hub.js';
 import { resolveShortcuts, hubShortcutAvailable } from '../../app/shared/keyboard-shortcuts.js';
 const row = (id: string, title: string, keywords = ''): HubRow => ({ id, title, keywords, group: 'Commands', detail: '', action: 'Open', run() {} });
 test('search ranks exact names and prefixes before keywords without executing anything', () => {
@@ -78,7 +78,7 @@ test('search folds typographic punctuation and matches parenthesised name words 
   }
 });
 
-test('root search orders groups by their best answer, tools before places, and keeps a scoped page in source order (HUB-058, HUB-185)', () => {
+test('root search orders groups by their best answer, tools before places, and keeps a scoped page and Continue in source order (HUB-058, HUB-185)', () => {
   const grouped = (id: string, title: string, group: string): HubRow => ({ ...row(id, title), group });
   const maps = grouped('maps', 'Maps', 'Tools'), travel = grouped('travel', 'Travel', 'Tools'), place = grouped('place:1', 'Maguuma Stade', 'Places');
   const settings = grouped('settings', 'Settings', 'Commands'), commands = grouped('commands', 'Commands', 'Commands'), card = grouped('card', '1p in g', 'Calculator');
@@ -89,6 +89,12 @@ test('root search orders groups by their best answer, tools before places, and k
     ['a card answers its own grammar first', [settings, card], 'set', { scoped: false, phrases: new Set(), answers: candidate => candidate.id === 'card' }, ['card', 'settings']],
     ['Home orders groups, then everyday tools, with Commands first', [settings, maps, commands, place, travel], '', { scoped: false, ...none }, ['place:1', 'travel', 'maps', 'commands', 'settings']],
     ['a scoped page keeps its source order within a group', [maps, travel], '', { scoped: true, ...none }, ['maps', 'travel']],
+    // Settled (2026-10): Continue lists the player's own recent things in the order its sources give, never alphabetically.
+    ['Home keeps Continue in source order', [grouped('recent:2', 'Zen Daijun', 'Continue'), grouped('recent:1', 'Ascalon City', 'Continue')], '', { scoped: false, ...none }, ['recent:2', 'recent:1']],
   ];
   for (const [name, rows, query, options, expected] of cases) assert.deepEqual(rankHubRows(rows, query, options).map(entry => entry.id), expected, name);
+});
+test('a search that starts with a number is a calculation, so it draws currency art', () => {
+  const cases: readonly [string, boolean][] = [['1p in g', true], [' .5e', true], ['3', true], ['set', false], ['p1', false], ['trade 1p', false], ['.e', false]];
+  assert.deepEqual(cases.map(([query]) => [query, isHubCalculation(query)]), cases);
 });

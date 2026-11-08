@@ -20,11 +20,12 @@
 //! belong to another player in the party; publishing theirs as ours is how a
 //! roster silently gains members the player did not add.
 
-use core::ptr::{read_volatile, write_volatile};
+use core::ptr::{addr_of_mut, read_volatile, write_volatile};
 
 use crate::abi::*;
 use crate::memory::*;
 use crate::{find_player_agent, resolve_game, GameState};
+use crate::sequence_lock;
 
 static mut POINTER: u32 = 0;
 static mut SEQUENCE: u32 = 0;
@@ -234,73 +235,69 @@ unsafe fn publish(
     play_region: u32,
     hard_mode: u32,
 ) {
-    let next = unsafe { SEQUENCE }.wrapping_add(2) & !1;
     // SAFETY: `POINTER` is the region `companion_init` accepted through
     // `valid_region` for `FEATURE_TOOLBOX_FOUNDATION` — non-null, aligned, and
     // exactly `PARTY_BYTES` inside linear memory, which cannot shrink.
     let region = unsafe { POINTER as *mut PartySnapshot };
     unsafe {
-        write_volatile(&mut (*region).sequence, next.wrapping_sub(1));
-        write_volatile(&mut (*region).magic, PARTY_MAGIC);
-        write_volatile(&mut (*region).abi_and_size, PARTY_ABI_AND_SIZE);
-        write_volatile(&mut (*region).flags, flags);
-        write_volatile(&mut (*region).generation, GENERATION);
-        write_volatile(&mut (*region).slot_count, count);
-        write_volatile(&mut (*region).unlocked_low, unlock[0]);
-        write_volatile(&mut (*region).unlocked_high, unlock[1]);
-        write_volatile(&mut (*region).unlock_known_low, unlock[2]);
-        write_volatile(&mut (*region).unlock_known_high, unlock[3]);
-        write_volatile(&mut (*region).play_region, play_region);
-        write_volatile(&mut (*region).hard_mode, hard_mode);
-        for index in 0..4 {
-            write_volatile(
-                &mut (*region).player_profession_probe[index],
-                player_profession_probe[index],
-            );
-        }
-        for id in 0..ACCOUNT_HERO_SLOTS {
-            write_volatile(
-                &mut (*region).account_professions[id],
-                account_professions[id],
-            );
-        }
-        for index in 0..PARTY_SLOTS {
-            let slot = &mut (*region).slots[index];
-            let hero = heroes[index];
-            write_volatile(&mut slot.hero_id, hero.hero_id);
-            write_volatile(&mut slot.agent_id, hero.agent_id);
-            write_volatile(&mut slot.professions, hero.professions);
-            write_volatile(&mut slot.level, hero.level);
-            write_volatile(&mut slot.behaviour, hero.behaviour);
-            write_volatile(&mut slot.flags, hero.flags);
-            write_volatile(&mut slot.disabled, hero.disabled);
-            for skill in 0..SKILL_SLOTS {
-                write_volatile(&mut slot.skills[skill], hero.skills[skill]);
+        SEQUENCE = sequence_lock::write(addr_of_mut!((*region).header), SEQUENCE, PARTY_MAGIC, PARTY_ABI_AND_SIZE, || {
+            write_volatile(&mut (*region).flags, flags);
+            write_volatile(&mut (*region).generation, GENERATION);
+            write_volatile(&mut (*region).slot_count, count);
+            write_volatile(&mut (*region).unlocked_low, unlock[0]);
+            write_volatile(&mut (*region).unlocked_high, unlock[1]);
+            write_volatile(&mut (*region).unlock_known_low, unlock[2]);
+            write_volatile(&mut (*region).unlock_known_high, unlock[3]);
+            write_volatile(&mut (*region).play_region, play_region);
+            write_volatile(&mut (*region).hard_mode, hard_mode);
+            for index in 0..4 {
+                write_volatile(
+                    &mut (*region).player_profession_probe[index],
+                    player_profession_probe[index],
+                );
             }
-            for entry in 0..ATTRIBUTE_SLOTS {
-                write_volatile(&mut slot.attributes[entry], hero.attributes[entry]);
+            for id in 0..ACCOUNT_HERO_SLOTS {
+                write_volatile(
+                    &mut (*region).account_professions[id],
+                    account_professions[id],
+                );
             }
-        }
-        write_volatile(
-            &mut (*region).account_skill_words,
-            skill_unlocks.account_words,
-        );
-        write_volatile(
-            &mut (*region).character_skill_words,
-            skill_unlocks.character_words,
-        );
-        for index in 0..SKILL_UNLOCK_WORDS {
+            for index in 0..PARTY_SLOTS {
+                let slot = &mut (*region).slots[index];
+                let hero = heroes[index];
+                write_volatile(&mut slot.hero_id, hero.hero_id);
+                write_volatile(&mut slot.agent_id, hero.agent_id);
+                write_volatile(&mut slot.professions, hero.professions);
+                write_volatile(&mut slot.level, hero.level);
+                write_volatile(&mut slot.behaviour, hero.behaviour);
+                write_volatile(&mut slot.flags, hero.flags);
+                write_volatile(&mut slot.disabled, hero.disabled);
+                for skill in 0..SKILL_SLOTS {
+                    write_volatile(&mut slot.skills[skill], hero.skills[skill]);
+                }
+                for entry in 0..ATTRIBUTE_SLOTS {
+                    write_volatile(&mut slot.attributes[entry], hero.attributes[entry]);
+                }
+            }
             write_volatile(
-                &mut (*region).account_skills[index],
-                skill_unlocks.account[index],
+                &mut (*region).account_skill_words,
+                skill_unlocks.account_words,
             );
             write_volatile(
-                &mut (*region).character_skills[index],
-                skill_unlocks.character[index],
+                &mut (*region).character_skill_words,
+                skill_unlocks.character_words,
             );
-        }
-        write_volatile(&mut (*region).sequence, next);
-        SEQUENCE = next;
+            for index in 0..SKILL_UNLOCK_WORDS {
+                write_volatile(
+                    &mut (*region).account_skills[index],
+                    skill_unlocks.account[index],
+                );
+                write_volatile(
+                    &mut (*region).character_skills[index],
+                    skill_unlocks.character[index],
+                );
+            }
+        });
     }
 }
 

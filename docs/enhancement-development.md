@@ -50,7 +50,7 @@ Core. The optional renderer entry and `ToolsRuntime` are dynamic imports that
 run only for a Tools-capable launch.
 
 Within Tools mode, child switches are live policy. Every new tool must enter the
-Tools IPC subset, the dynamic renderer entry, and `ToolsRuntime` ownership as
+Tools channel contracts, the dynamic renderer entry, and `ToolsRuntime` ownership as
 applicable. Disabling it must stop its listeners, observers, timers, requests,
 sockets, commands, surfaces, and storage work. Disabling the master applies the
 same shutdown to every child while preserving settings and saved data. Complete
@@ -341,21 +341,30 @@ Use only the layers the feature needs:
 | Fixed native publication | [`createCompanionRegionInstallation`](../app/renderer/companion-region-installation.ts) | Own allocation, activation withdrawal, freshness, and disposal for one bounded region. |
 | Live settings and map policy | [`createCompanionPolicySource`](../app/renderer/companion-policy-source.ts) | Consume one immutable snapshot. Do not subscribe to Settings or classify play regions again. |
 | Domain behavior | A named renderer or command module | Own decoding, formatting, state transitions, and user-facing refusal in the feature domain. |
-| Game-host code of a feature | `app/features/<id>/companion.ts` and one line in [`COMPANION_PARTS`](../app/features/companion-parts.ts) | A part says what it does in each installer phase ([contract](../app/renderer/tools-companion-part.ts)). Feeds that several features read stay in the [shared substrates](../app/renderer/tools-companion-substrates.ts); a part adds its demand to them. A part that allocates keeps its registry place, which is the heap layout. |
-| Main-process channels and files of a feature | `app/features/<id>/main.ts` and one line in [`MAIN_PARTS`](../app/features/main-parts.ts) | The part owns its stores and channels ([contract](../app/main/tools-main-part.ts)); the runtime gives it a file gate. A Tools channel without an owner fails to compile. |
+| Game-host code of a feature | `app/features/<id>/companion.ts` and one line in [`COMPANION_PARTS`](../app/features/companion-parts.ts) | A part says what it does in each installer phase ([contract](../app/renderer/tools-companion-part.ts)). Feeds that several features read stay in the [shared substrates](../app/renderer/tools-companion-substrates.ts); a part adds its demand to them. A part that allocates keeps its registry place, which is the heap layout. A part's id is its feature's id or a substrate's; a unit test fails when a feature's `companion.ts` has no line. |
+| IPC channels of a feature | `app/features/<id>/shared/ipc.ts` and one line in [`TOOL_CONTRACTS`](../app/shared/ipc/tools.ts) | The contract declares each channel's string, arguments, and result once, and the `window.gwNative` namespace the Tools preload builds from them ([kernel](../app/shared/ipc/channel-table.ts)). |
+| Main-process channels and files of a feature | `app/features/<id>/main.ts` and one line in [`MAIN_PARTS`](../app/features/main-parts.ts) | The part owns its stores and answers its contract's channels ([contract](../app/main/tools-main-part.ts)); the runtime gives it a file gate. A Tools channel without exactly one owner, a parser that produces other arguments, or a handler that answers another result fails to compile. |
 | Composition and safety order | [`installCertifiedCompanion`](../app/renderer/certified-companion-installation.ts) | Allocate and validate first, enable the game hook last, disable it first, and tear down in explicit dependency-safe phases. |
 
 A feature folder holds every file that only that feature uses:
 
 ```
 app/features/<id>/
-  feature.ts     manifest: settings, activation, region, tool, shortcut, capabilities (all processes)
+  feature.ts     manifest: settings, activation, region, tool (its renderer event, Hub row), shortcut (all processes)
   companion.ts   the game-host part (renderer)
   main.ts        the main-process part
-  renderer/      renderer-only modules: DOM, game host, overlays (no Node.js)
+  renderer/      renderer-only modules: DOM, game host, overlays, stylesheets (no Node.js)
+  renderer/host.ts  the one entry for a feature the game host starts itself (Maps, Character Switch)
+  hub-views/     the feature's own Hub pages: Vue components the kit draws, their props and an index.ts
   main/          main-process-only modules: stores, files, IPC parsing
   shared/        contracts and pure logic that two processes use
+  shared/ipc.ts  the feature's channel table and its window.gwNative namespace
 ```
+
+A tool's `event` is the one name of the renderer event that runs it: its
+shortcut's command fires it through `app/renderer/commands.ts`
+(`TOOL_COMMAND_EVENTS` in `app/shared/hub-tools.ts`), and so does
+its Core Hub row.
 
 Code that several features use stays where it is: the capability registry and
 the proofs in `app/client/certification/`, the kernels, the shared substrates,
@@ -363,8 +372,15 @@ the proofs in `app/client/certification/`, the kernels, the shared substrates,
 When shared code uses part of a feature, the parts
 [contract](../app/renderer/tools-companion-part.ts) names that narrow surface
 (for example `FriendTravel`); shared code imports the contract, never a feature
-file. tsconfig.renderer.json checks `companion.ts` and `renderer/`; the root program
-checks the rest.
+file. ESLint enforces this for `app/renderer/`: inside a feature folder it
+reaches only the manifest (`feature.ts`), `renderer/host.ts`, and `shared/`.
+`shared/` is open because it holds the contracts the feature's main and
+renderer halves both read; re-exporting them through the host would be a
+second path. `companion.ts` is reached through `companion-parts.ts`, and the
+other renderer modules, `main.ts` and `main/` are the feature's own.
+`tests/policy/import-boundaries.test.ts` proves the rule rejects a crossing. A
+feature's stylesheet is listed in `scripts/copy-renderer.mjs`. tsconfig.renderer.json
+checks `companion.ts` and `renderer/`; the root program checks the rest.
 
 The feature registry and the live policy use the same IDs. Type checking and a
 runtime contract test fail when one side changes without the other. Derived
@@ -457,6 +473,18 @@ Each region needs these properties:
 - bounded count and capacity;
 - explicit invalid and overflow states;
 - no game pointer in published output.
+
+In the companion kernel, every snapshot starts with `SnapshotHeader`
+([abi.rs](../kernels/companion/abi.rs)) and is written only through
+`sequence_lock::write` ([sequence_lock.rs](../kernels/companion/sequence_lock.rs)),
+which brackets the header and payload with an odd and the next even sequence.
+
+A new region is one entry in `COMPANION_KERNEL_INIT_ARGUMENTS`
+([companion-kernel-contract.ts](../app/shared/companion-kernel-contract.ts)), the matching
+`<name>_ptr`, `<name>_size` pair in `companion_init`
+([lib.rs](../kernels/companion/lib.rs)), and the part that allocates it. The
+signature check, the loader, the region types and the Core installer follow
+from the list, and the ABI test compares it with the Rust signature.
 
 The official WASM remains canonical. Feature certificates and transformed
 outputs are derived from those bytes and the verifier ABI and must be

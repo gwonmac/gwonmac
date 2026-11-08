@@ -2,6 +2,7 @@
  * Parses the bounded WebAssembly view used by Template-saving semantic proof.
  * It owns binary decoding only and grants no launch authority.
  */
+import { ProofRefusal } from "./stage-refusal.js";
 import {
   paddedIndex,
   uleb,
@@ -10,11 +11,11 @@ import {
   signatureEvidence,
   wasmEvidence,
 } from "./wasm-evidence.js";
-import type { DecodedFunction } from "./enhancement-evidence-types.js";
+import type { DecodedFunction, ModuleShape } from "./enhancement-evidence-types.js";
 import type { WasmDataEvidence } from "./wasm-data-evidence.js";
 
 function fail(message: string): never {
-  throw new Error(`template-save recertify: ${message}`);
+  throw new ProofRefusal(`template-save recertify: ${message}`);
 }
 
 export function templateCallNeedle(functionIndex: number): Uint8Array {
@@ -28,6 +29,8 @@ export function templateCallNeedle(functionIndex: number): Uint8Array {
 /** Parsed module facts shared by every template locator and semantic proof. */
 export class TemplateSaveModuleView {
   readonly input: Uint8Array;
+  /** The shared module view, for relocation identities of reviewed bodies. */
+  readonly module: ModuleShape;
   readonly importSection: Uint8Array;
   readonly importCount: number;
   readonly bodies: readonly Uint8Array[];
@@ -42,6 +45,7 @@ export class TemplateSaveModuleView {
     this.input = input;
     const evidence = wasmEvidence(input) ?? fail("invalid or unsupported module");
     const module = evidence.moduleView();
+    this.module = module;
     this.importSection = module.importSection ?? fail("missing import section");
     this.importCount = module.functionImportCount;
     this.bodies = module.bodies;

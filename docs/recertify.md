@@ -85,7 +85,14 @@ pnpm certification template "/absolute/path/Gw.jspi.wasm"
 pnpm certification template "/absolute/path/Gw.jspi.wasm" --emit-ts
 pnpm certification recertify "/absolute/path/Gw.jspi.wasm"
 pnpm certification double-click "/absolute/path/Gw.jspi.wasm"
+pnpm certification qualify "/absolute/path/Gw.jspi.wasm" "/absolute/path/Gw.jspi.js" "/absolute/path/out"
 ```
+
+`qualify` runs the release battery and writes one record per check into the
+output folder. It exits 1 when any check refuses, so it is also the local
+check before a certification pull request. On that pull request, dispatch the
+client watch workflow on its branch with `regression` set: it runs the same
+battery and the real-client regression suite, and fails when either refuses.
 
 Read the template report status first:
 
@@ -245,55 +252,130 @@ use a nested template as a success criterion for the bridge.
 
 Most ArenaNet rebuilds are the same code with renumbered functions and moved
 static data. The October 22 and November 3, 2026 clients refused almost every
-feature for that reason; only a few changes were real.
+feature for that reason; only a few changes were real. Reviewed facts now
+match such a relink by relocation identity (see
+[ArenaNet compatibility](arenanet-compatibility.md#current-implementation-limits)),
+so first check what still refuses. With only the older facts, November 3
+now refuses only Quick Item Move (its memory-code digest changed) and friend
+observation (moved assertion lines); both need a review.
 
-1. Map each refused role or exact body hash from the preceding retained client
-   to the new client. Compare bodies with call indices, static operands, and
-   constants erased. Require one unique match, and confirm it by its relations,
-   not by its hash alone: a one-call wrapper and its neighbour can collide when
-   both shift by one index.
-2. Diff each matched pair instruction by instruction. Accept call-index and
-   static-address changes. Read every changed constant: string pointers must
-   reach the same text, small integers must be explained (assertion lines,
-   content counts). Read every control-flow change in full.
-3. Add the reviewed result as a variant next to the existing one
-   (`reviewedVariants` on a semantic role, a reviewed table digest, or a
-   reviewed static-content digest). Keep the previous client proving.
-4. Trace each remaining refusal to its first failing check before you read
-   code. Shared checks, such as the area table, can disable many features.
-5. Compare all members of one function family. A matching sender alone does not
+Real ArenaNet changes ship as a fact-only release. The slow part is the human
+review, so one command prepares it:
+
+1. Put the new client in the evidence store as its bundle and run:
+
+   ```bash
+   pnpm certification review "$STORE/<bundle-reference>"
+   ```
+
+   It judges the client with only the older generations, as on its patch day,
+   and always writes its review packet to `<bundle>/review/` (`--previous`
+   names the client to compare with when the newest reviewed client's bundle
+   is elsewhere). The packet covers template saving and every Enhancement
+   feature. The module stages (Cartography, native double-click, friend
+   observation) are not in it: review them through the patch-day replay in
+   step 5. For each feature the previous client proves and the new one
+   refuses, the packet names the first failing
+   invariant, the reviewed bodies the feature lost, the old and new function
+   side by side with call targets and static addresses normalised (changed
+   lines carry `!`), the candidate count, and the drafted generation-file
+   alternative. It also says whether the client proves each feature with the
+   whole draft. The packet holds ArenaNet code: it stays in the private store.
+   Never attach it to an issue, a pull request, or a CI artifact.
+2. Review each drafted pair. Accept call-index and static-address changes.
+   Read every changed constant: string pointers must reach the same text,
+   small integers must be explained (assertion lines, content counts). Bind an
+   explained constant to the value it derives from, as the Xunlai area-type
+   reader binds its default to the area table's. Read every control-flow
+   change in full. A pair the packet could not make (more than one candidate,
+   or none) needs the manual mapping: compare bodies with call indices, static
+   operands, and constants erased, require one unique match, and confirm it by
+   its relations, not by its hash alone (a one-call wrapper and its neighbour
+   can collide when both shift by one index). A refusal with no lost body is a
+   changed relation the proof checks; trace it to its first failing check
+   before you read code. Delete each draft entry you do not approve from
+   `<bundle>/review/draft.json`.
+3. Write the approved draft:
+
+   ```bash
+   pnpm certification review --apply "$STORE/<bundle-reference>/review"
+   ```
+
+   It adds the entries to `facts.alternatives`, and drafted player-effect
+   bodies to `playerEffectBodies`, in the new client's generation file
+   `reviewed-client-<bundle-reference>.ts`, and creates and registers that
+   file in client order when it does not exist yet. It refuses a draft made
+   from a client the generation's builds do not list. An unapplied draft
+   grants nothing. An applied alternative is a reviewed fact: the verifier
+   accepts that body for that literal in every client, so review each pair.
+   Facts the packet does not draft (a pinned per-proof slot, Quick Item
+   Move's reviewed `memoryCodeSha256`) are written by hand. Proof files keep only the August
+   and October 1 references. Keep the previous client proving.
+4. Complete the generation file: the Enhancement record, and from
+   `pnpm certification reviewed-identities PATH/Gw.jspi.wasm` its
+   `memoryCodeSha256` and the identity entries that no older generation
+   already lists. `playerEffectBodies` comes from the draft, and only when an
+   effect body really changed; a relink finds them by identity.
+5. Run `tests/client-artifact/patch-day-replay.test.ts`. It must pass, and the
+   new client's record must prove every feature it supports with every
+   generation. A client that is not a relink of the previous generation needs
+   its patch-day row in `PATCH_DAY`: its template verdict, the features it
+   refuses and its module stages with only older facts. A row may only get
+   better.
+6. Run `pnpm certification verify PATH/Gw.jspi.wasm`: with every generation,
+   each feature you approved must prove.
+7. Compare all members of one function family. A matching sender alone does not
    prove its editor, history, packet, lifecycle, or dispatcher.
 
 Anchor only the bytes a feature owns. A screenshot anchor that also covered
 neighbouring storage once refused template saving after an unrelated change.
 
-A relocation can reach code that never moved before. Template saving then needs
-a source change, not only a variant: `MOVED_CALLEES` in
-`template-save-callee-proof.ts` binds each moved helper call to its reviewed
-callee bodies.
+A relocation can reach code that never moved before. Template saving
+normalizes each call to a reviewed helper in `template-save-callee-proof.ts`
+(`HELPERS`, plus `helper:<name>` bodies in generation files) to that helper,
+wherever it is called. A call to a helper that is not reviewed keeps its callee
+index; when it moves, add the helper and its bodies there.
 
 ## Per-client records to update
 
 A new client can need all of these:
 
 - the template-save record (`pnpm certification template --write`) and the
-  Tools record in `enhancement-builds.ts`;
-- the friend lifecycle family, which changes `FRIEND_OBSERVER_SEMANTIC_SHA256`;
-- a Cartography memory layout with its Compass, Mission Map, and World Map
-  certificates. The reachability kernel in
-  `kernels/reachability/lib.rs` holds the context root and agent
-  array per layout, so a new layout also changes the kernel. Run the compiled
-  kernel for each accepted layout: checked arithmetic keeps it free of static
-  panic formatting;
-- the World Map display owner, Compass owner, pathing hashes, Guild Hall
-  producer, area-type accessor, and the native render family; and
+  Tools record in its generation file;
+- in its generation file's `facts`: alternatives, template-saving helper
+  bodies, the native render family, the Guild Hall area-type family, and, only when one's body really changed (a relink finds
+  them by identity), the resign and whisper chat paths and the Cartography
+  surface owners; and the friend lifecycle family (it changes
+  `FRIEND_OBSERVER_SEMANTIC_SHA256` only when a role's signature changes);
+- nothing for the Cartography memory layout: the verifier derives its roots,
+  surface owners and callback slots from the bytes, and the derived client
+  publishes the roots the reachability kernel installs. Add the new client's
+  roots to `tests/fixtures/retained-client.ts` and the kernel's integration
+  test;
 - `tests/fixtures/retained-client.ts`, which maps retained function indices and
-  static addresses for the real-client tests.
+  static addresses for the real-client tests; and
+- `tests/fixtures/native-friend-queue.ts`, which lists the friend queue roles
+  (allocator, context, pending, request) and the moved native owners per
+  client hash. The friend observer, queue, and records evidence tests in
+  `tests/client-artifact/` refuse a client it does not list, so they turn red
+  on every new client until its roles are reinspected and added.
 
 Compose partial records per feature: a missing historical field must not make
-current actions disappear. After accepting facts, verify the complete shipped
-chain and the refusal cases. Enhancement verdicts alone do not prove Friends or
-Maps. No offline result establishes live gameplay acceptance.
+current actions disappear. The verifier accepts each feature against any one
+retained record that holds all its facts, so different features can recover
+from different records. After accepting facts, verify the complete shipped
+chain (`qualify`) and the refusal cases. Enhancement verdicts alone do not
+prove Friends or Maps. No offline result establishes live gameplay acceptance.
+
+## Ship the facts
+
+When the recovery changed only facts (the generation file, its entry in
+`reviewed-facts.ts`, the detector record, tests, and docs), ship it with a
+[fact-only release](releasing.md#fact-only-release): `pnpm release:facts`
+checks that scope, opens the certification pull request, and starts the
+regression run and the release run, whose draft waits until the regression
+run passed. Anything else, such as a new Cartography
+layout or a proof change, goes through `main` and a normal release.
 
 ## Feature requirements during recovery
 

@@ -2,7 +2,15 @@
 
 gwonmac has one release line from 1.0.0, versioned with SemVer. `main` is the
 only long-lived branch. An urgent fix uses a `hotfix/*` branch from the last tag
-and the same workflow. `.github/workflows/release.yml` owns the exact steps.
+and the same workflow. `.github/workflows/release.yml` owns the jobs, the
+approval, and signing. `scripts/release.ts` owns the rules between them: which
+versions may ship (Stable `1.4.0`, Beta `1.4.0-beta.1`, or RC `1.4.0-rc.1`;
+Alpha is never published), the asset names, the tag check, and the draft on the
+exact commit. `pnpm release:test` reads the same rules, and `pnpm test` checks
+that it accepts the draft `scripts/release.ts` creates.
+`scripts/release-notary.ts` notarizes and staples the app and the DMG and
+validates their tickets; it retries only a lost connection to Apple's ticket
+service.
 
 An **ArenaNet game update** changes the official client or game data. A
 **gwonmac application update** is a release of this repository. They are
@@ -14,11 +22,14 @@ One maintainer, about 15 minutes of attention:
 
 | Step | Who | What |
 | --- | --- | --- |
-| 1 | maintainer | **Actions → Release → Run workflow** on `main`, version `1.4.0`. |
-| 2 | `release` reviewer | Approve the `release` environment once. |
-| 3 | machines | `qualify` checks the build against the current ArenaNet client (no secrets). In parallel, `build` signs, notarizes, and staples the app and DMG, checks the pinned Developer ID, runs the packaged and Keychain tests, and attests the ZIP and DMG. `draft` then tags the commit `v1.4.0` and creates a draft release with the ZIP, DMG, `RELEASES.json`, and `SHA256SUMS.txt`. Nothing is committed. |
-| 4 | maintainer | `pnpm release:test v1.4.0` on an Apple Silicon Mac, then play for 10 minutes on the real client. |
-| 5 | maintainer | Click **Publish release** on the draft. |
+| 1 | maintainer | Merge the release post for `1.4.0` with `draft: true` ([Launcher news](launcher-news.md)). The app bundles it as "What's new"; the website and the news feed leave it out until step 7. |
+| 2 | maintainer | **Actions → Release → Run workflow** on `main`, version `1.4.0`. |
+| 3 | `release` reviewer | Approve the `release` environment once. |
+| 4 | machines | `qualify` checks the build against the current ArenaNet client (no secrets). In parallel, `build` signs, notarizes, and staples the app and DMG, checks the pinned Developer ID, runs the packaged and Keychain tests, and attests the ZIP and DMG. `draft` then tags the commit `v1.4.0` and creates a draft release with the ZIP, DMG, `RELEASES.json`, and `SHA256SUMS.txt`. Nothing is committed. |
+| 5 | maintainer | `pnpm release:test v1.4.0` on an Apple Silicon Mac, then play for 10 minutes on the real client. |
+| 6 | maintainer | Click **Publish release** on the draft. |
+| 7 | maintainer | Remove `draft: true` from the post, move `launcherFeatured: true` to it, run `pnpm --dir website generate:launcher-news`, and merge. The website and News in every installed app show it. |
+| 8 | maintainer | `node --import ./scripts/ts-hook.mjs tests/fixtures/player-data/generate.ts v1.4.0`, add its rows to `tests/unit/player-data-fixtures.test.ts` (one per fixture file; the test fails until every file has one), and merge. Later versions must read what this one wrote ([player data fixtures](../tests/fixtures/player-data/README.md)). |
 
 The workflow never publishes. Only a person decides that the game looks and
 behaves correctly. After publishing, confirm the feed:
@@ -31,6 +42,60 @@ It must show the new `tag`.
 
 A failed run creates no draft. Fix the cause and run the workflow again with the
 same version. If a draft for that version exists, delete the draft first.
+
+## Fact-only release
+
+When client watch reports that a feature refuses on a new ArenaNet build and
+the recovery is only reviewed facts ([Recover certification](recertify.md)),
+release it as a patch of the last published release. Reviewing the facts is
+the only human step before the `release` approval.
+
+| Step | Who | What |
+| --- | --- | --- |
+| 1 | agent or maintainer | `git switch -c hotfix/1.4.1 v1.4.0`. Commit the facts, their tests, the release post for `1.4.1` with `draft: true`, and the player files `v1.4.0` writes (step 8 above) if `main` has them and the tag does not. |
+| 2 | agent or maintainer | `pnpm release:facts 1.4.1 --dry-run`, then `pnpm release:facts 1.4.1`. |
+| 3 | machines | Client watch runs the release battery and the real-client regression suite on the branch (`regression`). The release workflow runs `qualify`, waits at the `release` approval, and its `regression` job waits for that client watch run. |
+| 4 | maintainer | Review the facts in the pull request and approve the `release` environment. The draft waits for a passed regression run; a failed one turns the `regression` job red and no draft is created. |
+| 5 | maintainer | Steps 5 to 8 above. Then merge the pull request, so `main` keeps the facts. |
+
+`pnpm release:facts` (`scripts/release.ts facts`) refuses unless:
+
+- it runs on `hotfix/<version>` with no local changes, and the version is the
+  next patch (or its Beta or RC) of the latest published release, whose tag
+  `HEAD` descends from;
+- every change since that tag is a `reviewed-client-*.ts` file, an entry in the
+  `reviewed-facts.ts` generation list, the detector record, a test, a doc, or
+  website content, and at least one `reviewed-client-*.ts` file changed;
+- the certification tests, their fixtures and the policy tests only gain new
+  files. The certification tests (`tests/unit/client-certification*`,
+  `tests/unit/enhancement-*`, `tests/client-artifact/`) are Must stay in
+  AGENTS.md; their fixtures are every file under `tests/` that these tests or
+  `tests/policy/` import or name by path. Any existing one must stay
+  byte-identical, mode included;
+- exactly one post has the version's `launcherId`, its title, and `draft: true`;
+- `tests/fixtures/player-data/` holds the files the patched release writes;
+- the branch has no open pull request and no unfinished release or client
+  watch run, so running it twice starts nothing twice.
+
+Then it pushes the branch, starts client watch with `regression` and the
+release workflow on it, and opens the pull request with a review checklist.
+`--dry-run` runs every check and prints those commands instead. It never
+tags or publishes: the draft job tags after the approval. A recovery that also
+needs code, such as a new Cartography layout, is a normal release.
+
+On every `hotfix/*` branch, the release workflow's `draft` job needs its
+`regression` job (`scripts/release.ts regression`), which refuses unless:
+
+- the newest client watch run dispatched with `regression` (its title is
+  "Real-client regression") ran on this branch at exactly this commit;
+- that run concluded `success`. A run that is still going is waited for once,
+  for at most 120 minutes; after that the job fails. Once the release run has
+  finished, **Re-run failed jobs** checks again and drafts without a new build.
+
+A release from `main` skips this gate and keeps the procedure above: its code
+arrives through reviewed pull requests and CI, and `qualify` proves the shipped
+chain on today's client. A code fix on `hotfix/*` needs the same regression run:
+start it with `gh workflow run client-watch.yml --ref hotfix/<version> -f regression=true`.
 
 ## Testers and rollback
 
@@ -57,8 +122,8 @@ any 2026.x app, so 2026.x installs do not update to it by themselves.
 
 ## Release notes
 
-PR titles are Conventional Commits. The workflow groups GitHub's generated
-notes into Features (`feat`), Fixes (`fix`), and Other changes;
+PR titles are Conventional Commits. `scripts/release.ts` groups GitHub's
+generated notes into Features (`feat`), Fixes (`fix`), and Other changes;
 `.github/release.yml` hides Dependabot. Each release also gets one player post
 on the website, which feeds the launcher news. See
 [Launcher news](launcher-news.md).

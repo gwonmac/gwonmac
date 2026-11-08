@@ -2,6 +2,8 @@
 import type { InGamePatch, InGameSettings, InGameTools } from "../settings-host";
 import { computed, nextTick, ref } from "vue";
 import type { LauncherSnapshot } from "@shared/launcher-contracts";
+import { REVEAL_MODE_OPTIONS } from "@shared/setting-copy";
+import { saveChoice } from "../select-choice";
 import ShortcutSetting from "./ShortcutSetting.vue";
 import ColorControl from "./ColorControl.vue";
 import RangeControl from "./RangeControl.vue";
@@ -11,20 +13,17 @@ import {
   COMPASS_RANGE_INDICATORS,
   COMPASS_RANGE_THEMES,
   type CompassRange,
-  type CompassRangeTheme,
 } from "@shared/compass-ranges";
 import {
   ELITE_MISSION_MAP_MARKERS,
   ELITE_MISSION_MAP_MARKER_LABELS,
-  type EliteMissionMapMarkers,
 } from "@shared/elite-map-settings";
 import {
   CARTOGRAPHY_BUILTIN_PRESETS,
   isCartographyBuiltinPresetId,
   type CartographyColor,
-  type CartographyLinePattern,
-  type CartographyUnseenMarker,
   CARTOGRAPHY_LINE_PATTERNS,
+  CARTOGRAPHY_REVEAL_MODES,
   CARTOGRAPHY_UNSEEN_MARKERS,
   decodeCartographyPreset,
   encodeCartographyPreset,
@@ -57,13 +56,13 @@ const styleEditor = ref<HTMLElement | null>(null);
 const customizeButton = ref<HTMLButtonElement | null>(null);
 async function revealEditor() {
   await nextTick();
-  styleEditor.value?.scrollIntoView({ block: "start" });
+  styleEditor.value?.scrollIntoView({ block: "start", container: "nearest" });
   styleEditor.value?.focus({ preventScroll: true });
 }
 async function closeEditor() {
   editing.value = false;
   await nextTick();
-  customizeButton.value?.scrollIntoView({ block: "nearest" });
+  customizeButton.value?.scrollIntoView({ block: "nearest", container: "nearest" });
   customizeButton.value?.focus({ preventScroll: true });
 }
 const confirmDelete = ref(false);
@@ -194,10 +193,10 @@ async function updateUnseen(patch: Partial<CartographyPresetStyle["grid"]["unsee
 
 <template>
   <h1>Maps</h1>
-  <p class="section-intro">Layers and styles for every account. Changes save automatically.</p>
+  <p class="section-intro">Layers and styles for every account.</p>
   <div v-if="tools" class="feature-availability" role="status">
-    <template v-if="!tools.configured || !tools.features.maps.enabled"><span><strong>{{ !tools.configured ? 'Tools are off' : 'Maps are off' }}</strong> · You can edit your preferences here. Enable {{ !tools.configured ? 'Tools and Maps' : 'Maps' }} to see them in game.</span><button class="secondary" @click="emit('tools')">Open Tools settings</button></template>
-    <template v-else-if="!tools.loaded"><span><strong>Restart the launcher to enable Maps</strong> · Your settings are saved. Quit the entire app (⌘Q), including the launcher, then reopen it. Restarting only a game window does not load Tools.</span><button class="secondary" @click="emit('tools')">Open restart options</button></template>
+    <template v-if="!tools.configured || !tools.features.maps.enabled"><span><strong>{{ !tools.configured ? 'Tools are off' : 'Maps are off' }}</strong> · You can edit your preferences here. Enable {{ !tools.configured ? 'Tools and Maps' : 'Maps' }} to see them in game.</span><button class="secondary small" @click="emit('tools')">Open Tools settings</button></template>
+    <template v-else-if="!tools.loaded"><span><strong>Restart the launcher to enable Maps</strong> · Your settings are saved. Quit the entire app (⌘Q), including the launcher, then reopen it. Restarting only a game window does not load Tools.</span><button class="secondary small" @click="emit('tools')">Open restart options</button></template>
     <span v-else><strong>Maps enabled</strong> · Changes update open game windows. Layers appear in supported PvE areas.</span>
   </div>
   <div class="setting-group map-layers">
@@ -211,7 +210,7 @@ async function updateUnseen(patch: Partial<CartographyPresetStyle["grid"]["unsee
     <details class="compass-range-settings">
       <summary>Configure Compass ranges</summary>
       <p>Choose each ring and its opacity. These choices remain saved while Compass ranges are off.</p>
-      <label class="compass-range-theme"><span><strong>Appearance</strong></span><select aria-label="Compass range appearance" :value="settings.compassRangeTheme" @change="persist({ compassRangeTheme: ($event.currentTarget as HTMLSelectElement).value as CompassRangeTheme })"><option v-for="theme in COMPASS_RANGE_THEMES" :key="theme" :value="theme">{{ theme === 'color' ? 'Color' : 'Monochrome' }}</option></select></label>
+      <label class="compass-range-theme"><span><strong>Appearance</strong></span><select aria-label="Compass range appearance" :value="settings.compassRangeTheme" @change="saveChoice($event, COMPASS_RANGE_THEMES, (theme) => persist({ compassRangeTheme: theme }))"><option v-for="theme in COMPASS_RANGE_THEMES" :key="theme" :value="theme">{{ theme === 'color' ? 'Color' : 'Monochrome' }}</option></select></label>
       <div v-for="range in COMPASS_RANGE_INDICATORS" :key="range.id" class="setting-row compass-range-setting">
         <label><input type="checkbox" :aria-label="`Show ${range.label} range`" :checked="settings[range.enabledSetting]" @change="setRangeEnabled(range, ($event.currentTarget as HTMLInputElement).checked)" /><strong>{{ range.label }}</strong></label>
         <RangeControl :label="`${range.label} opacity`" :value="settings[range.opacitySetting]" :min="0" :max="100" unit="%" @change="setRangeOpacity(range, $event)" />
@@ -226,21 +225,21 @@ async function updateUnseen(patch: Partial<CartographyPresetStyle["grid"]["unsee
   <h2 class="settings-subheading">Elite skills</h2>
   <div class="setting-group map-elite-skills">
     <label data-setting="eliteSkillsEnabled"><span><strong>Elite skill planner</strong><small>Adds the planner to the World Map and your Hunt list to the Mission Map.</small></span><input type="checkbox" aria-label="Elite skill planner" :checked="settings.eliteSkillsEnabled" @change="persist({ eliteSkillsEnabled: ($event.currentTarget as HTMLInputElement).checked })" /></label>
-    <label data-setting="eliteMissionMapMarkers"><span><strong>Mission Map markers</strong><small>What the Mission Map shows while you play. The Hunt list includes your target.</small></span><select aria-label="Mission Map markers" :value="settings.eliteMissionMapMarkers" :disabled="!settings.eliteSkillsEnabled" @change="persist({ eliteMissionMapMarkers: ($event.currentTarget as HTMLSelectElement).value as EliteMissionMapMarkers })"><option v-for="mode in ELITE_MISSION_MAP_MARKERS" :key="mode" :value="mode">{{ ELITE_MISSION_MAP_MARKER_LABELS[mode] }}</option></select></label>
+    <label data-setting="eliteMissionMapMarkers"><span><strong>Mission Map markers</strong><small>What the Mission Map shows while you play. The Hunt list includes your target.</small></span><select aria-label="Mission Map markers" :value="settings.eliteMissionMapMarkers" :disabled="!settings.eliteSkillsEnabled" @change="saveChoice($event, ELITE_MISSION_MAP_MARKERS, (mode) => persist({ eliteMissionMapMarkers: mode }))"><option v-for="mode in ELITE_MISSION_MAP_MARKERS" :key="mode" :value="mode">{{ ELITE_MISSION_MAP_MARKER_LABELS[mode] }}</option></select></label>
   </div>
   <h2 class="settings-subheading">Map appearance</h2>
   <div class="setting-group map-appearance">
-    <div class="map-style-choice map-style-actions"><label data-setting="cartographyPresetLibrary"><span><strong>Map style</strong><small>Used by both map layers.</small></span><select :value="`${settings.cartographyPresetLibrary.activePreset.kind}:${settings.cartographyPresetLibrary.activePreset.id}`" @change="selectPreset(($event.currentTarget as HTMLSelectElement).value)"><optgroup label="Built in"><option v-for="(preset, id) in CARTOGRAPHY_BUILTIN_PRESETS" :key="id" :value="`builtin:${id}`">{{ preset.name }}</option></optgroup><optgroup v-if="settings.cartographyPresetLibrary.customPresets.length" label="My styles"><option v-for="preset in settings.cartographyPresetLibrary.customPresets" :key="preset.id" :value="`custom:${preset.id}`">{{ preset.name }}</option></optgroup></select></label><button ref="customizeButton" class="secondary" @click="customize">{{ active?.custom ? 'Edit style' : 'Customize style' }}</button></div>
+    <div class="map-style-choice map-style-actions"><label data-setting="cartographyPresetLibrary"><span><strong>Map style</strong><small>Used by both map layers.</small></span><select :value="`${settings.cartographyPresetLibrary.activePreset.kind}:${settings.cartographyPresetLibrary.activePreset.id}`" @change="selectPreset(($event.currentTarget as HTMLSelectElement).value)"><optgroup label="Built in"><option v-for="(preset, id) in CARTOGRAPHY_BUILTIN_PRESETS" :key="id" :value="`builtin:${id}`">{{ preset.name }}</option></optgroup><optgroup v-if="settings.cartographyPresetLibrary.customPresets.length" label="My styles"><option v-for="preset in settings.cartographyPresetLibrary.customPresets" :key="preset.id" :value="`custom:${preset.id}`">{{ preset.name }}</option></optgroup></select></label><button ref="customizeButton" class="secondary small" @click="customize">{{ active?.custom ? 'Edit style' : 'Customize style' }}</button></div>
     <div class="map-appearance-controls">
     <div v-if="active" class="setting-row" data-setting="cartographyBoundaryWidth"><span><strong>Terrain border thickness</strong><small>0 hides the border. Changing a built-in style saves a custom copy.</small></span><RangeControl label="Terrain border thickness" :value="active.style.walkability.boundaryWidth" :min="0" :max="4" unit="px" @change="updateWalkability({ boundaryWidth: $event })" /></div>
     <div class="setting-row" data-setting="cartographyGridOpacity"><span><strong>Grid opacity</strong></span><RangeControl label="Grid opacity" :value="settings.cartographyGridOpacity" :min="0" :max="100" unit="%" @change="persist({ cartographyGridOpacity: $event })" /></div>
-    <label class="setting-row" data-setting="cartographyRevealMode"><span><strong>Reveal range</strong><small>Outlines where to stand to reveal the remaining diamonds, and marks your range on the Compass.</small></span><select :value="settings.cartographyRevealMode" @change="persist({ cartographyRevealMode: ($event.currentTarget as HTMLSelectElement).value as InGameSettings['cartographyRevealMode'] })"><option value="off">Off</option><option value="normal">Normal · 3×3</option><option value="birds-eye">Bird’s Eye · 7×7</option></select></label>
+    <label class="setting-row" data-setting="cartographyRevealMode"><span><strong>Reveal range</strong><small>Outlines where to stand to reveal the remaining diamonds, and marks your range on the Compass.</small></span><select :value="settings.cartographyRevealMode" @change="saveChoice($event, CARTOGRAPHY_REVEAL_MODES, (mode) => persist({ cartographyRevealMode: mode }))"><option v-for="option in REVEAL_MODE_OPTIONS" :key="option.value" :value="option.value">{{ option.label }}</option></select></label>
     <div class="setting-row" data-setting="cartographyWalkabilityOpacity"><span><strong>Walkable terrain opacity</strong></span><RangeControl label="Walkable terrain opacity" :value="settings.cartographyWalkabilityOpacity" :min="0" :max="100" unit="%" @change="persist({ cartographyWalkabilityOpacity: $event })" /></div>
     </div>
     <MapStylePreview v-if="active" :style="active.style" :grid-opacity="settings.cartographyGridOpacity" :terrain-opacity="settings.cartographyWalkabilityOpacity" />
   </div>
-  <div v-if="editing && active?.custom" ref="styleEditor" class="setting-group map-style-editor" tabindex="-1" role="region" :aria-label="`Edit ${active.name}`">
-    <div class="setting-row"><span><strong>Edit {{ active.name }}</strong><small>Changes save automatically.</small></span><button class="secondary" @click="closeEditor">Done</button></div>
+  <div v-if="editing && active?.custom" ref="styleEditor" class="setting-group map-style-editor" tabindex="-1" data-focus-target role="region" :aria-label="`Edit ${active.name}`">
+    <div class="setting-row"><span><strong>Edit {{ active.name }}</strong><small>Changes save automatically.</small></span><button class="secondary small" @click="closeEditor">Done</button></div>
     <h2>Walkable terrain</h2>
     <div class="setting-row"><span>Shaded area color</span><ColorControl label="Shaded area color" :value="active.style.walkability.veilColor" @change="updateWalkability({ veilColor: $event })" /></div>
     <div class="setting-row"><span>Terrain border color</span><ColorControl label="Terrain border color" :value="active.style.walkability.boundaryColor" @change="updateWalkability({ boundaryColor: $event })" /></div>
@@ -248,13 +247,13 @@ async function updateUnseen(patch: Partial<CartographyPresetStyle["grid"]["unsee
     <h2>Grid</h2>
     <div class="setting-row"><span>Grid outline color</span><ColorControl label="Grid outline color" :value="active.style.grid.casingColor" @change="updateGrid" /></div>
     <div class="setting-row"><span>Unseen cell color</span><ColorControl label="Unseen cell color" :value="active.style.grid.unseen.color" @change="updateUnseen({ color: $event })" /></div>
-    <label><span>Unseen cell marker</span><select :value="active.style.grid.unseen.marker" @change="updateUnseen({ marker: ($event.currentTarget as HTMLSelectElement).value as CartographyUnseenMarker })"><option v-for="marker in CARTOGRAPHY_UNSEEN_MARKERS" :key="marker" :value="marker">{{ marker }}</option></select></label>
+    <label><span>Unseen cell marker</span><select :value="active.style.grid.unseen.marker" @change="saveChoice($event, CARTOGRAPHY_UNSEEN_MARKERS, (marker) => updateUnseen({ marker }))"><option v-for="marker in CARTOGRAPHY_UNSEEN_MARKERS" :key="marker" :value="marker">{{ marker }}</option></select></label>
     <details class="advanced-map-lines"><summary>Inspection outlines</summary>
     <fieldset v-for="(label, key) in lineLabels" :key="key" class="map-line-editor">
       <legend>{{ label }}</legend>
       <div class="setting-row"><span>Color</span><ColorControl :label="`${label} color`" :value="active.style.grid[key].color" @change="updateLine(key, { color: $event })" /></div>
       <div class="setting-row"><span>Width</span><RangeControl :label="`${label} width`" :value="active.style.grid[key].width" :min="0" :max="4" unit="px" @change="updateLine(key, { width: $event })" /></div>
-      <label class="setting-row"><span>Pattern</span><select :aria-label="`${label} pattern`" :value="active.style.grid[key].pattern" @change="updateLine(key, { pattern: ($event.currentTarget as HTMLSelectElement).value as CartographyLinePattern })"><option v-for="pattern in CARTOGRAPHY_LINE_PATTERNS" :key="pattern" :value="pattern">{{ pattern }}</option></select></label>
+      <label class="setting-row"><span>Pattern</span><select :aria-label="`${label} pattern`" :value="active.style.grid[key].pattern" @change="saveChoice($event, CARTOGRAPHY_LINE_PATTERNS, (pattern) => updateLine(key, { pattern }))"><option v-for="pattern in CARTOGRAPHY_LINE_PATTERNS" :key="pattern" :value="pattern">{{ pattern }}</option></select></label>
     </fieldset>
     </details>
   </div>
@@ -267,8 +266,8 @@ async function updateUnseen(patch: Partial<CartographyPresetStyle["grid"]["unsee
       <label><span><strong>Style name</strong></span><input :value="active.name" maxlength="40" @change="rename(($event.currentTarget as HTMLInputElement).value)" /></label>
       <button class="text-link" @click="confirmDelete = true">Delete custom style</button>
     </template>
-    <details><summary>Import or share a style</summary><label>Current style<textarea rows="4" :value="exportValue" readonly /></label><p>Select the text and press Command-C to share the current style.</p><label>Import style<textarea v-model="importValue" rows="4" placeholder="Paste style text" /></label><button class="secondary" :disabled="!importValue.trim()" @click="importPreset">Import as new style</button></details>
-    <button class="secondary" @click="selectPreset('builtin:cartographer')">Use Cartographer defaults</button>
+    <details><summary>Import or share a style</summary><label>Current style<textarea rows="4" :value="exportValue" readonly /></label><p>Select the text and press Command-C to share the current style.</p><label>Import style<textarea v-model="importValue" rows="4" placeholder="Paste style text" /></label><button class="secondary small" :disabled="!importValue.trim()" @click="importPreset">Import as new style</button></details>
+    <button class="secondary small" @click="selectPreset('builtin:cartographer')">Use Cartographer defaults</button>
   </div>
 
   <p v-if="status" class="inline-message" role="status" aria-live="polite">{{ status }}</p>

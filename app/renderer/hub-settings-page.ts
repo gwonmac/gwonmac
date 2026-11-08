@@ -29,22 +29,27 @@ function load(document: Document) {
 
 /** Shows Settings as a Hub page, at a section or control when given. */
 export function showHubSettings(hub: HubPresenter<HTMLElement>, target: SettingsTarget | null) {
-  let landing: Element | null = null;
   hub.showView('Settings', (host, _back, _footer, pages) => {
-    const frame = pages.settingsHost(host, { failed: false });
+    const frame = pages.mount('settingsHost', host, { failed: false });
     const view = frame.element;
+    const document = host.ownerDocument;
     let page: SettingsPage | null = null;
     let disposed = false;
+    // The Hub places the keyboard once after the page opens: until the page loads, on the view's
+    // first control, which may be Back. Any later move is the player's: they moved on.
+    let moves = 0;
+    const moved = () => { moves += 1; };
+    document.addEventListener('focusin', moved, true);
     const refresh = () => page?.refresh();
-    load(host.ownerDocument).then(settings => {
+    load(document).then(settings => {
       if (disposed) return;
       page = shown = settings.mountSettings(view, {
         api: window.gwNative.hubSettings,
         target,
         extendedMemory: () => window.gwNative.client.session().then(session => session.extendedMemory),
         openInLauncher: next => window.gwNative.app.openSettings(next).catch(() => { throw new Error(LAUNCHER_UNAVAILABLE); }),
-        // Focus still where the Hub put it means the player is waiting for this page; anywhere else, they moved on.
-        mayTakeFocus: () => { const focused = host.ownerDocument.activeElement; return !focused || focused === landing || focused === host.ownerDocument.body || view.contains(focused); },
+        // Focus still where the Hub put it means the player is waiting for this page; focus inside the page stays the page's.
+        mayTakeFocus: () => moves <= 1 || view.contains(document.activeElement),
       });
     }).catch(() => {
       if (!disposed) frame.update({ failed: true });
@@ -52,13 +57,13 @@ export function showHubSettings(hub: HubPresenter<HTMLElement>, target: Settings
     window.addEventListener('gw:tools-settings', refresh);
     return () => {
       disposed = true;
+      document.removeEventListener('focusin', moved, true);
       window.removeEventListener('gw:tools-settings', refresh);
       page?.dispose();
       if (shown === page) shown = null;
       frame.dispose();
     };
   }, undefined, 'settings');
-  landing = document.activeElement;
 }
 
 /** Moves a Settings page that is already shown to a section or control. */
@@ -94,9 +99,9 @@ export function createHubSettings(hub: Hub) {
   const source: HubSource = {
     search: () => [],
     commands: query => [
-      { id: 'settings', title: 'Settings', detail: 'Tools, maps, appearance and game · ⌘,', keywords: 'preferences graphics appearance hotkeys shortcuts', group: 'Commands', action: 'Open Settings', run: open() },
+      { id: 'settings', iconKind: 'settings', title: 'Settings', detail: 'Tools, maps, appearance and game · ⌘,', keywords: 'preferences graphics appearance hotkeys shortcuts', group: 'Commands', action: 'Open Settings', run: open() },
       // Settings are found by their own words (HUB-063). They follow the commands, so a command's own word keeps its row first.
-      ...(normaliseHubQuery(query).length < 3 ? [] : SETTINGS_SECTIONS).map(({ id, label, keywords }) => ({ id: `settings:${id}`, title: label, detail: HUB_SECTIONS.has(id) ? 'Settings section' : 'Settings section in the launcher', keywords, group: 'Settings', action: HUB_SECTIONS.has(id) ? `Open ${label} settings` : 'Open in Launcher', run: open({ section: id }) })),
+      ...(normaliseHubQuery(query).length < 3 ? [] : SETTINGS_SECTIONS).map(({ id, label, keywords }) => ({ id: `settings:${id}`, iconKind: 'settings' as const, title: label, detail: HUB_SECTIONS.has(id) ? 'Settings section' : 'Settings section in the launcher', keywords, group: 'Settings', action: HUB_SECTIONS.has(id) ? `Open ${label} settings` : 'Open in Launcher', run: open({ section: id }) })),
       ...(normaliseHubQuery(query).length < 3 ? [] : SETTINGS).map(settingRow),
     ],
     setVisible() {},

@@ -2,7 +2,8 @@
  * Owns the Compass-local menu for enabling standard player ranges.
  * Range choices persist independently while the master visibility is off.
  */
-import type { AppSettings, RendererSettingsPatch } from "../../../shared/contracts.js";
+import type { RendererSettingsPatch } from "../../../shared/contracts.js";
+import type { AppSettings } from "../../../shared/settings/index.js";
 import {
   COMPASS_RANGE_INDICATORS,
   COMPASS_RANGE_OPACITY_MAX,
@@ -23,6 +24,7 @@ import {
   type CompassRangeSelection,
 } from "./compass-range-layer.js";
 import type { ScreenBox } from "./frame-placement.js";
+import { isolateFromGame } from "../../../renderer/non-activating-surface.js";
 
 const PANEL_WIDTH = 220;
 const PANEL_HEIGHT_ESTIMATE = 290;
@@ -256,9 +258,7 @@ export function createCompassRangeControls(options: Readonly<{
       compassRangeIndicatorsEnabled: !canonical.compassRangeIndicatorsEnabled,
     });
   };
-  for (const type of ["pointerdown", "pointerup", "click", "wheel", "keydown", "keyup"]) {
-    root.addEventListener(type, (event) => event.stopPropagation());
-  }
+  isolateFromGame(root);
   trigger.addEventListener("click", () => setOpen(!open));
   const outsidePointerDown = (event: Event): void => {
     if (open && event.target instanceof Node && !root.contains(event.target)) {

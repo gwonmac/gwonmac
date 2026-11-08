@@ -44,7 +44,7 @@ test("legacy lifecycle and generic visual-mask paths stay deleted", async () => 
 });
 
 test("one missing map surface cannot disable the other Cartography surfaces", async () => {
-  const installer = await readFile(path.join(RENDERER, "index.ts"), "utf8");
+  const installer = await readFile(path.join(RENDERER, "cartography-installation.ts"), "utf8");
   assert.doesNotMatch(
     installer,
     /compass\s*===\s*null[^;]+missionMap\s*===\s*null[^;]+worldMap\s*===\s*null/s,
@@ -54,21 +54,24 @@ test("one missing map surface cannot disable the other Cartography surfaces", as
   assert.match(installer, /worldMapReader\s*\?\?\s*unavailableWorldMap/);
 });
 
-test("both native owners agree on the exact finite layout roots", async () => {
-  const transform = await readFile(
-    path.join(ROOT, "app/client/certification/cartography-transform-internals.ts"),
-    "utf8",
-  );
-  const kernel = await readFile(
-    path.join(ROOT, "kernels/reachability/lib.rs"),
-    "utf8",
-  );
-  for (const root of ["0x5a0e70", "0x5a29b0"]) {
-    assert.equal(transform.match(new RegExp(root, "g"))?.length, 1, root);
-    assert.equal(kernel.match(new RegExp(root, "g"))?.length, 1, root);
-  }
-  for (const agentArray of ["0x5a4de8", "0x5a6928"]) {
-    assert.equal(transform.match(new RegExp(agentArray, "g"))?.length, 1, agentArray);
-    assert.equal(kernel.match(new RegExp(agentArray, "g"))?.length, 1, agentArray);
+// The context roots and agent arrays of the retained clients. The verifier
+// derives them from the bytes and only the derived client's manifest carries
+// them to the kernel, so no Cartography or kernel source may spell one.
+const RETAINED_ROOTS = [
+  0x5a0e70, 0x5a4de8, 0x5a29b0, 0x5a6928, 5918848, 5935096, 5919152, 5935416, 5919552, 5935816,
+];
+
+test("no Cartography or kernel source names a native root", async () => {
+  const copies = await Promise.all([
+    "app/client/certification/cartography-layout-proof.ts",
+    "app/client/certification/cartography-transform-internals.ts",
+    "app/client/certification/pathing-spike-transform.ts",
+    "app/shared/cartography-spike.ts",
+    "app/features/cartography/renderer/reachability-kernel.ts",
+    "kernels/reachability/lib.rs",
+  ].map((file) => readFile(path.join(ROOT, file), "utf8")));
+  for (const root of RETAINED_ROOTS) {
+    const spellings = new RegExp(`\\b(?:${root}|0x${root.toString(16)})\\b`, "i");
+    for (const copy of copies) assert.doesNotMatch(copy, spellings);
   }
 });

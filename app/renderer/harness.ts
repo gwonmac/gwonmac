@@ -208,13 +208,7 @@ async function escalateRepeatedCrash(): Promise<void> {
 }
 let disposeSocketHost = () => {};
 let disposeHostOnlyTools = () => {};
-let cartographyLifecycle: ReturnType<typeof import('./cartography-lifecycle.js').createCartographyLifecycle> | null = null;
-function updateCartography(): void {
-  cartographyLifecycle?.update(!rendererUnloading
-    && native().init.enhancementSelection.tools
-    && appSettings?.gwonmacTools === true
-    && appSettings.cartographyEnabled);
-}
+let cartographyHost: import('../features/cartography/renderer/host.js').CartographyHost | null = null;
 const native = () => window.gwNative;
 const developerProgramNames: Readonly<Record<
   Exclude<import('../shared/enhancement-contracts.js').EnhancementProgram, 'none'>,
@@ -243,10 +237,10 @@ let automaticCharacterReturn:
   | null = null;
 let loginStatus: import('./login-status.js').LoginStatus | null = null;
 let characterSwitchHost:
-  | import('./character-switch-host.js').CharacterSwitchHost
+  | import('../features/character-switch/renderer/host.js').CharacterSwitchHost
   | null = null;
 let installCharacterSwitchHost:
-  typeof import('./character-switch-host.js').installCharacterSwitchHost;
+  typeof import('../features/character-switch/renderer/host.js').installCharacterSwitchHost;
 const cancelAutomaticReturnForCharacterSwitch = () => {
   automaticCharacterReturn?.cancelForCharacterSwitch();
 };
@@ -517,11 +511,11 @@ const STARTUP_LABELS = {
 };
 
 const SNAPSHOT_URL = 'Gw.snapshot';
-let appSettings: import('../shared/contracts.js').AppSettings | null = null;
+let appSettings: import('../shared/settings/index.js').AppSettings | null = null;
 let disposeSettings = () => {};
 let clientResizeFrame = 0;
 
-function currentRenderScale(): import('../shared/contracts.js').AppSettings['renderScale'] {
+function currentRenderScale(): import('../shared/settings/index.js').AppSettings['renderScale'] {
   if (!appSettings) {
     throw new Error('graphics initialized before settings');
   }
@@ -565,7 +559,7 @@ window.gwApplySettings = (next) => {
   }
   window.gwDiagnostics?.setVisible(updated.showDiagnostics);
   applyAppearance(updated);
-  updateCartography();
+  cartographyHost?.update();
   if (projectToolsSettings) {
     window.dispatchEvent(new CustomEvent('gw:tools-settings', {
       detail: window.gwToolsSettings(),
@@ -644,7 +638,7 @@ addEventListener('beforeunload', () => {
   clientHealthConfirmation?.dispose();
   imageSource?.stop();
   disposeHostOnlyTools();
-  cartographyLifecycle?.dispose();
+  cartographyHost?.dispose();
   disposeSocketHost();
   window.gwVirtualGamepad?.dispose();
   controllerPrompts?.dispose();
@@ -787,26 +781,20 @@ Module = {
       if (api.init.enhancementSelection.tools && "cartography" in api) {
         // Optional module loading must not prevent the official client starting.
         try {
-          const { createCartographyLifecycle } = await import('./cartography-lifecycle.js');
-          cartographyLifecycle?.dispose();
-          if (!rendererUnloading) cartographyLifecycle = createCartographyLifecycle(async () => {
-            const { installCartographySpike } = await import('../features/cartography/renderer/index.js');
-            return installCartographySpike({
+          const { installCartographyHost } = await import('../features/cartography/renderer/host.js');
+          cartographyHost?.dispose();
+          if (!rendererUnloading) {
+            cartographyHost = installCartographyHost({
               exports: result.instance.exports,
+              module: result.module,
               parent: document.body,
               canvas: Module.canvas,
-              settings: () => {
-                if (appSettings === null) throw new Error('cartography installed before settings');
-                return appSettings;
-              },
-              persist: (patch) => api.settings.set(patch),
-              exportEvidence: (capture) => api.cartography.exportEvidence(capture),
-              getMapKnowledge: (kernelSha256) =>
-                api.cartography.getMapKnowledge(kernelSha256),
-              recordMapKnowledge: (value) => api.cartography.recordMapKnowledge(value),
+              api,
+              settings: () => appSettings,
+              reportFailure: (error) => log('[err] Maps could not start:', String(error)),
             });
-          }, (error) => log('[err] Maps could not start:', String(error)));
-          updateCartography();
+            cartographyHost.update();
+          }
         } catch (error) {
           log('[err] Maps could not start:', String(error));
         }
@@ -1366,7 +1354,7 @@ function loadGlue(isProxyRouteLabel: (route: string) => boolean) {
       import('./virtual-gamepad.js'),
       import('./controller-prompt-texture.js'),
       import('./texture-pack.js'),
-      import('./character-switch-host.js'),
+      import('../features/character-switch/renderer/host.js'),
       import('../shared/settings/index.js'),
     ]);
     projectToolsSettings = settingsTable.toolsSettings;

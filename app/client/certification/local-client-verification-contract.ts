@@ -52,6 +52,10 @@ const SHARED_FEATURE_INVARIANTS = [
   "enhancement.output-profile",
   "enhancement.output-hash",
   "enhancement.transform",
+  // No retained record accepts the facts this feature needs.
+  "enhancement.retained-acceptance",
+  // The process boundary refused the Enhancement part of the message.
+  "enhancement.process-boundary",
 ] as const;
 
 /** Closed, feature-owned refusal vocabulary accepted across process IPC. */

@@ -4,9 +4,10 @@
  * transform, and the re-certifier that re-derives a build entry.
  *
  * Callers keep their own domain-prefixed `fail()` for their own invariants;
- * everything here throws `wasm: …` so a structural fault is distinguishable
- * from a policy one.
+ * everything here throws a `WasmFormatError` (`wasm: …`) so bytes it cannot
+ * read are distinguishable from a policy refusal and from a defect.
  */
+import { Buffer } from "node:buffer";
 
 export interface Section {
   id: number;
@@ -34,8 +35,11 @@ const VALUE_TYPE_NAMES = new Map([
   [0x7c, "f64"],
 ]);
 
+/** Bytes this codec cannot read: a fact about the bytes, not a defect. */
+export class WasmFormatError extends Error {}
+
 function fail(message: string): never {
-  throw new Error(`wasm: ${message}`);
+  throw new WasmFormatError(`wasm: ${message}`);
 }
 
 /**
@@ -63,22 +67,20 @@ export function concat(...parts: readonly Uint8Array[]): Uint8Array {
   return out;
 }
 
+/**
+ * First index at or after `from` where `needle` starts, or -1. The verifier
+ * scans the whole 8 MB data segment for hundreds of needles, so the search is
+ * the engine's native `Buffer#indexOf` over a view, never a JavaScript loop.
+ * A negative `from` starts at 0 rather than counting from the end.
+ */
 export function indexOfBytes(
   haystack: Uint8Array,
   needle: Uint8Array,
   from = 0,
 ): number {
-  outer: for (
-    let at = from;
-    at + needle.byteLength <= haystack.byteLength;
-    at += 1
-  ) {
-    for (let index = 0; index < needle.byteLength; index += 1) {
-      if (haystack[at + index] !== needle[index]) continue outer;
-    }
-    return at;
-  }
-  return -1;
+  const at = Math.max(0, from);
+  if (needle.byteLength === 0) return at <= haystack.byteLength ? at : -1;
+  return Buffer.from(haystack.buffer, haystack.byteOffset, haystack.byteLength).indexOf(needle, at);
 }
 
 export function uleb(value: number): Uint8Array {
@@ -229,7 +231,13 @@ export function encodeIndexVector(values: readonly number[]): Uint8Array {
   return concat(uleb(values.length), ...values.map(uleb));
 }
 
-export function parseCode(bytes: Uint8Array): Uint8Array[] {
+/**
+ * The function bodies of a code section. They are views into one private copy
+ * of the section: no body aliases the caller's bytes or another parse, bodies
+ * never overlap, and a client's 17 000 bodies cost one allocation, not 17 000.
+ */
+export function parseCode(section: Uint8Array): Uint8Array[] {
+  const bytes = new Uint8Array(section);
   const cursor = { offset: 0 };
   const count = readUleb(bytes, cursor);
   const bodies: Uint8Array[] = [];
@@ -237,7 +245,7 @@ export function parseCode(bytes: Uint8Array): Uint8Array[] {
     const size = readUleb(bytes, cursor);
     const end = cursor.offset + size;
     if (end > bytes.byteLength) fail("truncated function body");
-    bodies.push(copyRange(bytes, cursor.offset, end));
+    bodies.push(bytes.subarray(cursor.offset, end));
     cursor.offset = end;
   }
   if (cursor.offset !== bytes.byteLength) fail("malformed code section");
@@ -344,7 +352,7 @@ export function parseExports(bytes: Uint8Array): WasmExport[] {
     const nameLength = readUleb(bytes, cursor);
     const end = cursor.offset + nameLength;
     if (end > bytes.byteLength) {
-      throw new Error("wasm-binary: truncated export name");
+      throw new WasmFormatError("wasm-binary: truncated export name");
     }
     const name = decoder.decode(copyRange(bytes, cursor.offset, end));
     cursor.offset = end;
@@ -352,7 +360,7 @@ export function parseExports(bytes: Uint8Array): WasmExport[] {
     exports.push({ name, kind, index: readUleb(bytes, cursor) });
   }
   if (cursor.offset !== bytes.byteLength) {
-    throw new Error("wasm-binary: malformed export section");
+    throw new WasmFormatError("wasm-binary: malformed export section");
   }
   return exports;
 }

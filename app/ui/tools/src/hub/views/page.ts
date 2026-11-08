@@ -4,8 +4,11 @@
  * and a page's focus request, applied once per new `seq` after the paint that carries it.
  */
 import { h, render, watch, type Component, type Ref } from 'vue';
-import type { HubPage, HubPageFocus } from '../../../../../shared/ui/hub-pages';
+import type { HubPage, HubPageFocus, HubPageProps } from '../../../../../shared/ui/hub-pages';
 import { findFocusKey } from '../focus-zone';
+
+/** A page folder's pages by the name views mount them with (HubPageProps). */
+export type HubPageComponents = Partial<Readonly<Record<keyof HubPageProps, Component>>>;
 
 export function mountPage<Props extends object>(component: Component, target: HTMLElement, props: Props): HubPage<Props, HTMLElement> {
   // A fresh props object per draw, so every fact the controller passes is compared again.
@@ -15,10 +18,13 @@ export function mountPage<Props extends object>(component: Component, target: HT
   return { element, update: next => { draw(next); }, dispose: () => render(null, target) };
 }
 
-/** Puts the keyboard on the page's control with the requested key, once per request. */
-export function usePageFocus(root: Ref<HTMLElement | undefined>, request: () => HubPageFocus | undefined) {
+/**
+ * Puts the keyboard on the page's control with the requested key, once per request. A page that
+ * scrolls its own content into view (a carousel) focuses without scrolling.
+ */
+export function usePageFocus(root: Ref<HTMLElement | undefined>, request: () => HubPageFocus | undefined, options: FocusOptions = {}) {
   watch(() => request()?.seq, () => {
     const key = request()?.key;
-    if (key && root.value) findFocusKey(root.value, key)?.focus();
+    if (key && root.value) findFocusKey(root.value, key)?.focus(options);
   }, { flush: 'post' });
 }

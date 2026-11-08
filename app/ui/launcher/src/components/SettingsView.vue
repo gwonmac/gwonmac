@@ -2,10 +2,13 @@
 import type { SettingsSection as Section } from "@shared/settings-catalogue";
 /** The last section shown in this launcher session; Settings reopens there. Tools comes first. */
 let lastSection: Section = "tools";
+/** Starts the next Settings page on Tools, as a new page load does (the Hub's test fixture mounts). */
+export function resetSettingsNavigation() { lastSection = "tools"; }
 </script>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, provide, ref, watch } from "vue";
+import { MODAL_HOST } from "../modal-host";
 import { ArrowUpRight, Contrast, FileText, FolderDown, Gamepad2, House, Image, Map as MapIcon, RefreshCw, Search, WandSparkles, X } from "lucide-vue-next";
 import { SETTING_APPLIES_NOTE } from "@shared/setting-copy";
 import { HUB_SECTIONS, SETTINGS, SETTINGS_GROUP_LABELS, SETTINGS_SECTIONS, searchSettings, type SettingsSection, type SettingsTarget } from "@shared/settings-catalogue";
@@ -57,13 +60,22 @@ const groups = (["game", "app"] as const).map(group => ({ label: SETTINGS_GROUP_
 /** In the Hub, the launcher's sections stay listed and open the launcher. */
 const inLauncher = (id: SettingsSection) => !props.launcher && !HUB_SECTIONS.has(id);
 const nav = ref<HTMLElement | null>(null);
+// The game document has no launcher tokens: in the Hub, modals open inside the page.
+const modalHost = ref<HTMLElement | null>(null);
+if (!props.launcher) provide(MODAL_HOST, modalHost);
 const retryButton = ref<HTMLButtonElement | null>(null);
 
 const section = ref<SettingsSection>(lastSection);
 const query = ref("");
 const results = computed(() => searchSettings(query.value));
 const content = ref<HTMLElement | null>(null);
+const page = ref<HTMLElement | null>(null);
 const searchField = ref<HTMLInputElement | null>(null);
+const searchToggle = ref<HTMLButtonElement | null>(null);
+/** Narrow page only: the search field has replaced the section tabs. Wide, the field is always shown and this has no effect. */
+const searchOpen = ref(false);
+/** Which ends of the narrow tab row hide more tabs, so each can fade. */
+const tabsClipped = ref({ start: false, end: false });
 const sectionLabel = (id: SettingsSection) => SETTINGS_SECTIONS.find(candidate => candidate.id === id)!.label;
 
 // One pending save prevents stale whole-preset edits. On failure, keep the visible
@@ -175,18 +187,23 @@ async function launch(target: SettingsTarget) {
 async function select(next: SettingsSection, moveFocus = false) {
   if (inLauncher(next)) { void launch({ section: next }); return; }
   query.value = "";
+  searchOpen.value = false;
   if (saveState.value === "saved") saveState.value = "idle";
   section.value = lastSection = next;
   emit("section", next);
   actionError.value = "";
   if (next === "game-files") void loadGameFilesInfo();
   await nextTick();
+  revealActiveTab();
   if (!content.value) return;
+  // Wide, the content column scrolls; narrow, the whole page does.
   content.value.scrollTop = 0;
+  if (page.value) page.value.scrollTop = 0;
   if (!moveFocus) return;
   // A screen reader hears where it landed; Tab continues from the section's top.
   const heading = content.value.querySelector<HTMLElement>("h1");
   heading?.setAttribute("tabindex", "-1");
+  heading?.setAttribute("data-focus-target", "");
   heading?.focus({ preventScroll: true });
 }
 
@@ -209,7 +226,7 @@ async function open(target: SettingsTarget, takeFocus = true) {
     if (parent instanceof HTMLDetailsElement) parent.open = true;
   }
   await nextTick();
-  row.scrollIntoView({ block: "center" });
+  row.scrollIntoView({ block: "center", container: "nearest" });
   const control = row.matches("input, select, button, textarea") ? row : row.querySelector<HTMLElement>("input:not([disabled]), select:not([disabled]), button:not([disabled]), textarea");
   if (takeFocus) (control ?? row).focus({ preventScroll: true });
   root.querySelectorAll(".setting-focus").forEach(element => element.classList.remove("setting-focus"));
@@ -232,8 +249,46 @@ function onNavKey(event: KeyboardEvent) {
   next.focus();
 }
 
+/**
+ * Narrow page: the tab row's search button swaps the tabs for the field. Wide, the toggle is not
+ * displayed and the field always is, so nothing opens and Escape stays the Hub's Back.
+ */
+async function openSearch() {
+  if (searchToggle.value && getComputedStyle(searchToggle.value).display !== "none") searchOpen.value = true;
+  await nextTick();
+  searchField.value?.focus();
+}
+async function closeSearch() {
+  query.value = "";
+  searchOpen.value = false;
+  await nextTick();
+  // Wide, the toggle is not displayed, so it refuses focus and the field keeps it.
+  searchToggle.value?.focus();
+}
+
+/**
+ * Narrow page: keeps the shown section's tab in view and marks each end of the row that hides
+ * more tabs. Wide, the list does not scroll sideways, so neither changes anything.
+ */
+function revealActiveTab() {
+  const row = nav.value;
+  const tab = row?.querySelector<HTMLElement>("button.active");
+  if (row && tab) {
+    const bounds = row.getBoundingClientRect();
+    const box = tab.getBoundingClientRect();
+    if (box.left < bounds.left) row.scrollLeft -= bounds.left - box.left + 24;
+    else if (box.right > bounds.right) row.scrollLeft += box.right - bounds.right + 24;
+  }
+  updateTabFades();
+}
+function updateTabFades() {
+  const row = nav.value;
+  if (!row) return;
+  tabsClipped.value = { start: row.scrollLeft > 1, end: row.scrollLeft + row.clientWidth < row.scrollWidth - 1 };
+}
+
 function onSearchKey(event: KeyboardEvent) {
-  if (event.key === "Escape" && query.value) { event.preventDefault(); query.value = ""; }
+  if (event.key === "Escape" && (query.value || searchOpen.value)) { event.preventDefault(); void closeSearch(); }
   else if (event.key === "Enter" && results.value[0]) { event.preventDefault(); void openResult(results.value[0].id); }
 }
 async function openResult(id: string) {
@@ -241,33 +296,45 @@ async function openResult(id: string) {
   await open({ section: entry.section, control: entry.id });
 }
 
-/** Command-F finds a setting, as in macOS Settings. */
+/**
+ * Command-F finds a setting, as in macOS Settings. The page hears it on itself, because the Hub
+ * stops keys at its panel before they reach the window; the window listener covers the launcher
+ * when focus is outside the page. The first to act prevents the default, so it runs once.
+ */
 function onKey(event: KeyboardEvent) {
-  if (event.key === "f" && event.metaKey && !event.shiftKey && !event.altKey) { event.preventDefault(); searchField.value?.focus(); searchField.value?.select(); }
+  if (event.defaultPrevented) return;
+  if (event.key === "f" && event.metaKey && !event.shiftKey && !event.altKey) { event.preventDefault(); void openSearch().then(() => searchField.value?.select()); }
 }
 
 watch(query, () => { if (saveState.value === "saved") saveState.value = "idle"; });
 watch(() => props.target, target => { if (target) void open(target); });
+// The tab row's fades follow the page's width.
+const tabRowSize = new ResizeObserver(() => revealActiveTab());
 onMounted(() => {
   window.addEventListener("keydown", onKey);
+  if (nav.value) tabRowSize.observe(nav.value);
   void open(props.target ?? { section: section.value }, props.mayTakeFocus?.() ?? true);
 });
 onBeforeUnmount(() => {
   window.removeEventListener("keydown", onKey);
+  tabRowSize.disconnect();
   clearTimeout(highlightTimer);
 });
 </script>
 
 <template>
-  <div class="settings-view">
-    <section class="settings-page">
-      <aside>
+  <div class="settings-view" @keydown="onKey">
+    <div class="settings-layout">
+    <section ref="page" class="settings-page">
+      <aside :class="{ 'search-open': searchOpen }">
+        <button ref="searchToggle" type="button" class="icon-button search-toggle" aria-label="Search settings" @click="openSearch"><Search aria-hidden="true" /></button>
         <label class="settings-search">
           <Search aria-hidden="true" />
           <input ref="searchField" v-model="query" type="search" placeholder="Search settings" aria-label="Search settings" aria-controls="settings-content" @keydown="onSearchKey" />
           <button v-if="query" type="button" class="icon-button" aria-label="Clear search" @click="query = ''; searchField?.focus()"><X /></button>
         </label>
-        <nav ref="nav" aria-label="Settings sections" @keydown="onNavKey">
+        <button type="button" class="text-link search-cancel" @click="closeSearch">Cancel</button>
+        <nav ref="nav" aria-label="Settings sections" :class="{ 'clipped-start': tabsClipped.start, 'clipped-end': tabsClipped.end }" @keydown="onNavKey" @scroll.passive="updateTabFades">
         <div v-for="group in groups" :key="group.label" class="settings-nav-group" role="group" :aria-label="group.label">
           <h3>{{ group.label }}</h3>
           <button v-for="item in group.items" :key="item.id" :data-section="item.id" :aria-current="!query && section === item.id ? 'page' : undefined" :class="{ active: !query && section === item.id }" @click="select(item.id)"><component :is="icons[item.id]" aria-hidden="true" />{{ item.label }}<ArrowUpRight v-if="inLauncher(item.id)" class="opens-launcher" aria-label="opens the launcher" /></button>
@@ -314,18 +381,20 @@ onBeforeUnmount(() => {
             <template v-else-if="launcher">
               <h1>Advanced</h1>
               <div class="setting-group">
-                <div class="setting-row" data-setting="openLogs"><span><strong>Open logs</strong><small>Show the log folder in Finder, for a bug report.</small></span><button class="secondary" @click="run('Logs could not be opened.', () => launcherNative?.external.revealLogs())"><FileText />Open logs</button></div>
+                <div class="setting-row" data-setting="openLogs"><span><strong>Open logs</strong><small>Show the log folder in Finder, for a bug report.</small></span><button class="secondary small" @click="run('Logs could not be opened.', () => launcherNative?.external.revealLogs())"><FileText />Open logs</button></div>
               </div>
-              <details class="settings-reset" data-setting="resetAllSettings"><summary>Reset all app settings</summary><p>Restores launcher and game preferences, Tools, shortcuts, custom map styles and panel colors. Original textures will be selected. Accounts and game files are kept.</p><button class="danger-button" @click="run('Settings could not be reset.', () => launcherNative?.settings.reset())">Reset all app settings…</button></details>
+              <details class="settings-reset" data-setting="resetAllSettings"><summary>Reset all app settings</summary><p>Restores launcher and game preferences, Tools, shortcuts, custom map styles and panel colors. Original textures will be selected. Accounts and game files are kept.</p><button class="danger-button small" @click="run('Settings could not be reset.', () => launcherNative?.settings.reset())">Reset all app settings…</button></details>
             </template>
             <p v-if="actionError" role="alert" class="inline-message">{{ actionError }}</p>
           </fieldset>
         </div>
         <footer class="settings-status" :class="{ 'save-failed': saveState === 'failed' }">
           <span class="status-line" role="status"><template v-if="saveState === 'saving'">Saving…</template><template v-else-if="saveState === 'saved'">{{ savedNote }}</template><template v-else-if="saveState === 'idle'">Changes save right away and apply in every game window.</template></span>
-          <template v-if="saveState === 'failed'"><span class="status-alert" role="alert"><strong>{{ editedSetting.label }} could not be saved.</strong> The change shown is not saved.</span><span class="save-actions"><button ref="retryButton" class="secondary" @click="retry">Retry</button><button class="secondary" @click="revert">Revert</button></span></template>
+          <template v-if="saveState === 'failed'"><span class="status-alert" role="alert"><strong>{{ editedSetting.label }} could not be saved.</strong> The change shown is not saved.</span><span class="save-actions"><button ref="retryButton" class="secondary small" @click="retry">Retry</button><button class="secondary small" @click="revert">Revert</button></span></template>
         </footer>
       </div>
     </section>
+    </div>
+    <div v-if="!launcher" ref="modalHost"></div>
   </div>
 </template>

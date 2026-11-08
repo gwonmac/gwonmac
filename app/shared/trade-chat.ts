@@ -6,6 +6,8 @@
  * WebSocket frames or a URL it could change.
  */
 
+import { characterKey } from "./player-text.js";
+
 export const TRADE_SOURCES = ["kamadan", "pre-searing"] as const;
 export type TradeSource = (typeof TRADE_SOURCES)[number];
 
@@ -212,21 +214,29 @@ export function parseTradeSavedState(value: unknown): TradeSavedState {
   ) throw new TypeError("invalid saved trade state");
 
   const offers = value.offers.map((candidate) => parseSavedOffer(candidate));
-  const players = value.players.map((candidate) => parseSavedPlayer(candidate));
-  if (offers.some((offer) => offer === null) || players.some((player) => player === null)) {
-    throw new TypeError("invalid saved trade state");
-  }
+  if (offers.some((offer) => offer === null)) throw new TypeError("invalid saved trade state");
   const typedOffers = offers as TradeSavedOffer[];
-  const typedPlayers = players as TradeSavedPlayer[];
   if (
     new Set(typedOffers.map((offer) => `${offer.source}:${offer.timestamp}`)).size
       !== typedOffers.length
-    || new Set(typedPlayers.map((player) => player.sender.toLocaleLowerCase())).size
-      !== typedPlayers.length
   ) throw new TypeError("duplicate saved trade entry");
+  // Players are one entry per character, by the same characterKey the Trade UI
+  // uses. A file written before that key may hold two spellings of one character
+  // (case, spacing, a pasted invisible character); the first one saved is kept
+  // and later ones are dropped, so every file accepted before still loads.
+  const players: TradeSavedPlayer[] = [];
+  const playerKeys = new Set<string>();
+  for (const candidate of value.players) {
+    const player = parseSavedPlayer(candidate);
+    if (player === null) throw new TypeError("invalid saved trade state");
+    const key = characterKey(player.sender);
+    if (playerKeys.has(key)) continue;
+    playerKeys.add(key);
+    players.push(player);
+  }
   return Object.freeze({
     offers: Object.freeze(typedOffers),
-    players: Object.freeze(typedPlayers),
+    players: Object.freeze(players),
   });
 }
 

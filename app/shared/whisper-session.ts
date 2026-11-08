@@ -4,9 +4,10 @@
  */
 import { isCharacterName, whisperLine, type ObservedChatEvent, type ObservedWhisper } from "./whispers.js";
 import type { TravelFriend, TravelFriends } from "./friends.js";
-import { normaliseCharacterName } from "./player-text.js";
+import { characterKey, normaliseCharacterName } from "./player-text.js";
 
-export type WhisperSound = "off" | "background" | "every";
+export const WHISPER_SOUNDS = ["off", "background", "every"] as const;
+export type WhisperSound = (typeof WHISPER_SOUNDS)[number];
 export type WhisperConversation = Readonly<{
   key: string; name: string; messages: readonly ObservedWhisper[];
   draft: string; readThrough: number; muted: boolean; sent: boolean;
@@ -21,7 +22,6 @@ export type WhisperSessionState = Readonly<{
   friends: TravelFriends; selected: string | null; visible: boolean;
   available: boolean; sound: WhisperSound; backgroundOpacity: number; missed: number;
 }>;
-export const whisperPersonKey = (name: string) => normaliseCharacterName(name).toLocaleLowerCase("en-US");
 export const whisperUnread = (conversation: WhisperConversation) => conversation.messages
   .filter(message => message.direction === "incoming" && message.id > conversation.readThrough).length;
 const initial = (): WhisperSessionState => ({ conversations: [], recent: [], participants: [],
@@ -41,12 +41,12 @@ export function createWhisperSession(send: (recipient: string, message: string) 
     for (const listener of listeners) listener(state);
   };
   const friendKeys = () => new Set(state.friends.status === "ready"
-    ? state.friends.friends.map(friend => whisperPersonKey(friend.character || friend.alias)) : []);
+    ? state.friends.friends.map(friend => characterKey(friend.character || friend.alias)) : []);
   const update = (key: string, patch: Partial<WhisperConversation>) => publish({
     conversations: state.conversations.map(c => c.key === key ? { ...c, ...patch } : c),
   });
   const ensure = (name: string): WhisperConversation | null => {
-    const key = whisperPersonKey(name);
+    const key = characterKey(name);
     const existing = state.conversations.find(c => c.key === key);
     if (existing) return existing;
     if (state.conversations.length >= MAX_CONVERSATIONS) return null;
@@ -58,7 +58,7 @@ export function createWhisperSession(send: (recipient: string, message: string) 
   const rememberParticipant = (name: string, activity: number) => {
     name = normaliseCharacterName(name);
     if (!isCharacterName(name)) return;
-    const key = whisperPersonKey(name);
+    const key = characterKey(name);
     publish({ participants: [
       { key, name, activity },
       ...state.participants.filter(person => person.key !== key),
@@ -189,20 +189,20 @@ function nameRank(name: string, query: string): number | null {
  */
 export function findPeople(state: WhisperSessionState, query: string,
   friends: TravelFriends = state.friends): readonly Person[] {
-  const term = whisperPersonKey(query);
+  const term = characterKey(query);
   if (!term) return [];
   const people = new Map<string, Person & { rank: number }>();
   const add = (name: string, source: PersonSource, activity: number, extra: Partial<Person> = {}, alias = "") => {
-    const key = whisperPersonKey(name);
+    const key = characterKey(name);
     if (!key || people.has(key)) return;
     const ranks = [name, alias].filter(Boolean)
-      .map(value => nameRank(whisperPersonKey(value), term)).filter(rank => rank !== null);
+      .map(value => nameRank(characterKey(value), term)).filter(rank => rank !== null);
     if (!ranks.length) return;
     const rank = Math.min(...ranks);
     people.set(key, { key, name: normaliseCharacterName(name), source, activity, exact: rank === 0, rank, ...extra });
   };
   if (state.suggest.friends && friends.status === "ready") for (const friend of friends.friends) {
-    const conversation = state.conversations.find(conversation => conversation.key === whisperPersonKey(friend.character || friend.alias));
+    const conversation = state.conversations.find(conversation => conversation.key === characterKey(friend.character || friend.alias));
     add(friend.character || friend.alias, "friend", 0, { friend, ...(conversation ? { conversation } : {}) }, friend.alias);
   }
   for (const conversation of state.conversations) {

@@ -21,6 +21,7 @@
  * host writes it; this file only carries it across.
  */
 import { createHash } from "node:crypto";
+import { ProofRefusal, refusedOrRethrow } from "./stage-refusal.js";
 import {
   concat,
   encodeCode,
@@ -43,6 +44,7 @@ import {
   locateNativeDoubleClickRoute,
   NATIVE_DOUBLE_CLICK_ROUTE_SHA256,
 } from "./native-double-click-route-proof.js";
+import { encodeName, globalGet, i32Store, localGet } from "./wasm-emit.js";
 
 declare const WebAssembly: {
   validate(bytes: Uint8Array): boolean;
@@ -101,16 +103,11 @@ export const NATIVE_DOUBLE_CLICK_BUILDS: readonly NativeDoubleClickBuild[] = [
 ];
 
 function fail(message: string): never {
-  throw new Error(`native double-click transform: ${message}`);
+  throw new ProofRefusal(`native double-click transform: ${message}`);
 }
 
 const sha256 = (bytes: Uint8Array): string =>
   createHash("sha256").update(bytes).digest("hex");
-
-function encodeName(name: string): Uint8Array {
-  const bytes = new TextEncoder().encode(name);
-  return concat(uleb(bytes.length), bytes);
-}
 
 /** The module this stage produces from a certified predecessor. */
 export function nativeDoubleClickOutputSha256(
@@ -160,11 +157,15 @@ export function isDerivedNativeDoubleClickBuild(
   );
 }
 
-/** Locate an unchanged callback semantically when only the predecessor hash moved. */
-export function deriveNativeDoubleClickBuild(
+/**
+ * Locate an unchanged callback semantically when only the predecessor hash
+ * moved. The verifier pass continues the chain on `output`, so it is returned
+ * rather than rewritten a second time.
+ */
+export function deriveNativeDoubleClickStage(
   input: Uint8Array,
   baselines: readonly NativeDoubleClickBuild[] = NATIVE_DOUBLE_CLICK_BUILDS,
-): NativeDoubleClickBuild | null {
+): Readonly<{ build: NativeDoubleClickBuild; output: Uint8Array }> | null {
   try {
     const route = locateNativeDoubleClickRoute(input);
     if (!route || route.semanticSha256 !== NATIVE_DOUBLE_CLICK_ROUTE_SHA256) return null;
@@ -188,13 +189,20 @@ export function deriveNativeDoubleClickBuild(
       derivations: {},
     };
     const output = rewriteWithBuild(input, candidate);
-    return {
-      ...candidate,
-      derivations: Object.freeze({ [inputSha256]: sha256(output) }),
-    };
-  } catch {
-    return null;
+    return Object.freeze({
+      build: { ...candidate, derivations: Object.freeze({ [inputSha256]: sha256(output) }) },
+      output,
+    });
+  } catch (error) {
+    return refusedOrRethrow(error);
   }
+}
+
+export function deriveNativeDoubleClickBuild(
+  input: Uint8Array,
+  baselines: readonly NativeDoubleClickBuild[] = NATIVE_DOUBLE_CLICK_BUILDS,
+): NativeDoubleClickBuild | null {
+  return deriveNativeDoubleClickStage(input, baselines)?.build ?? null;
 }
 
 /**
@@ -205,13 +213,7 @@ export function deriveNativeDoubleClickBuild(
  * as a double-click sets it and no state survives between presses.
  */
 function flagStore(globalIndex: number, frameOffset: number): Uint8Array {
-  return concat(
-    Uint8Array.of(0x20, 0x03),
-    Uint8Array.of(0x23),
-    uleb(globalIndex),
-    Uint8Array.of(0x36, 0x02),
-    uleb(frameOffset),
-  );
+  return concat(localGet(3), globalGet(globalIndex), i32Store(frameOffset));
 }
 
 /**

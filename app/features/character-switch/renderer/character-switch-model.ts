@@ -1,0 +1,169 @@
+/**
+ * Closed Character Switch domain contract shared by the controller, host, and
+ * palette. Presentation never receives native coordinates or open diagnostics.
+ */
+import type { CompanionCharacterListState } from "../../../renderer/companion-character-list-snapshot.js";
+import type { CompanionPlayRegionState } from "../../../renderer/companion-play-region-snapshot.js";
+
+export type CharacterSwitchContext =
+  | "outpost"
+  | "pve-explorable"
+  | "pvp-explorable"
+  | "loading"
+  | "character-select"
+  | "unavailable";
+
+export type CharacterSwitchFailureCode =
+  | "play-path-unproved"
+  | "list-unavailable"
+  | "current-target"
+  | "busy"
+  | "active-pvp"
+  | "game-loading"
+  | "state-unavailable"
+  | "focus-lost"
+  | "target-missing"
+  | "logout-refused"
+  | "logout-invalid"
+  | "logout-timeout"
+  | "selector-timeout"
+  | "selector-refused"
+  | "selector-invalid"
+  | "selector-frame-missing"
+  | "selector-child-missing"
+  | "selector-index-invalid"
+  | "selector-context-invalid"
+  | "selector-array-invalid"
+  | "selector-target-missing"
+  | "selector-parent-invalid"
+  | "selection-not-confirmed"
+  | "play-refused"
+  | "play-invalid"
+  | "play-frame-missing"
+  | "play-parent-invalid"
+  | "play-timeout"
+  | "confirmation-timeout";
+
+export type CharacterSwitchStage =
+  | "logout"
+  | "selector"
+  | "selection"
+  | "play"
+  | "confirmation";
+
+export type CharacterSwitchActionState =
+  | Readonly<{ status: "idle" }>
+  | Readonly<{ status: "confirming" }>
+  | Readonly<{ status: "switching"; stage: CharacterSwitchStage }>
+  | Readonly<{
+      status: "failed";
+      code: CharacterSwitchFailureCode;
+      retryable: boolean;
+    }>
+  | Readonly<{ status: "complete" }>;
+
+export type CharacterSwitchTransitionStage =
+  | "idle:reset"
+  | "confirmation:required"
+  | "confirmation:cancelled"
+  | "logout:queued"
+  | "logout:sent"
+  | "selector:list-ready"
+  | `selector:waiting-${"frame" | "child" | "index" | "context" | "array" | "target"}`
+  | "selection:confirmed"
+  | "selection:sent"
+  | "play:sent"
+  | "confirmation:complete"
+  | `failed:${CharacterSwitchFailureCode}`;
+
+export type CharacterSwitchDiagnosticTransition = Readonly<{
+  sequence: number;
+  stage: CharacterSwitchTransitionStage;
+  elapsedBucketMs: number;
+}>;
+
+export type CharacterSwitchDiagnostics =
+  | Readonly<{
+      version: 1;
+      stage: "unavailable";
+      lastCode: "play-path-unproved";
+    }>
+  | Readonly<{
+      version: 7;
+      buildId: number;
+      programId: number;
+      readerState: CompanionCharacterListState["status"];
+      characterCount: number;
+      preGameState: "not-read";
+      preGameReadCount: 0;
+      preGameReadBucketMs: 0;
+      playability: CharacterSwitchContext;
+      requestSequence: number;
+      actionSequence: number;
+      focused: boolean;
+      policyEnabled: boolean;
+      stage: CharacterSwitchActionState["status"] | CharacterSwitchStage;
+      lastCode: CharacterSwitchFailureCode | null;
+      elapsedBucketMs: number;
+      lastSelectorReadiness: "frame" | "child" | "index" | "context" | "array" | "target" | null;
+      selectorReadinessRetries: number;
+      lastSelectorProofMask: number;
+      selectorClickProved: boolean;
+      selectorConfirmationProved: boolean;
+      selectorParentResolverProved: boolean;
+      selectorParentIdentityProved: boolean;
+      selectorParentProved: boolean;
+      selectorContextRowsProved: boolean;
+      selectorContextProved: boolean;
+      selectorContextIdentityProved: boolean;
+      selectorCharacterArrayProved: boolean;
+      selectorTargetProved: boolean;
+      selectorTargetPointerProved: boolean;
+      requestedListIndex: number | null;
+      selectorObservedIndex: number | null;
+      lastFrameProofMask: number;
+      counters: Readonly<{ logout: number; select: number; play: number }>;
+      transitions: readonly CharacterSwitchDiagnosticTransition[];
+    }>;
+
+export interface CharacterSwitchSource {
+  readonly characters: CompanionCharacterListState;
+  readonly action: CharacterSwitchActionState;
+  readonly context: CharacterSwitchContext;
+  request(characterKey: string): void;
+  confirm(): void;
+  cancelConfirmation(): void;
+  reset(): void;
+  diagnostics(): CharacterSwitchDiagnostics;
+  subscribe(listener: () => void): () => void;
+}
+
+/**
+ * At the Guild Wars selector, the list index names the last entered character.
+ * It is not an active character and must not block selecting it again.
+ */
+export function currentCharacterIndex(
+  source: Pick<CharacterSwitchSource, "characters" | "context">,
+): number | null {
+  const state = source.characters;
+  return state.status === "ready" && source.context !== "character-select"
+    ? state.selectedIndex
+    : null;
+}
+
+/**
+ * The one mapping from the pre-game screen and the play region to where the
+ * player is. The certified runtime and the browser fixture both derive the
+ * context here, so a fixture lifecycle cannot drift from the game's.
+ */
+export function characterSwitchContext(
+  preGame: PreGameState,
+  region: CompanionPlayRegionState,
+): CharacterSwitchContext {
+  if (preGame === "character-select") return "character-select";
+  if (preGame === "reconnect" || preGame === "loading") return "loading";
+  if (region.status !== "ready") return "unavailable";
+  if (region.instanceType === 0) return "outpost";
+  if (region.instanceType !== 1) return "unavailable";
+  return region.playRegion === "pve" ? "pve-explorable" : "pvp-explorable";
+}

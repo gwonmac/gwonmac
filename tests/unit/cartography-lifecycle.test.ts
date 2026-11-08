@@ -1,7 +1,7 @@
 /** Live Maps toggles cannot leak an overlay during asynchronous installation. */
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { createCartographyLifecycle } from "../../app/renderer/cartography-lifecycle.ts";
+import { createCartographyLifecycle } from "../../app/features/cartography/renderer/cartography-lifecycle.ts";
 
 const tick = () => new Promise<void>(resolve => setImmediate(resolve));
 test("Maps loads once, disposes on disable, and reinstalls on enable", async () => {
@@ -54,7 +54,7 @@ test("a failed optional installation reports failure without retrying forever", 
 
 
 test("failed Maps constructors release earlier native surfaces and detached painters", async (t) => {
-  const {installCartographySpike} = await import("../../app/features/cartography/renderer/index.js");
+  const {installCartography} = await import("../../app/features/cartography/renderer/cartography-installation.js");
   const {CARTOGRAPHY_CONTEXT_GLOBALS, CARTOGRAPHY_CONTEXT_SCALARS,
     EXPLORATION_SPIKE_GLOBALS, EXPLORATION_SPIKE_SCALARS,
     WORLD_MAP_ANCHOR_SPIKE_GLOBALS, WORLD_MAP_ANCHOR_SPIKE_SCALARS} = await import("../../app/shared/cartography-spike.js");
@@ -87,7 +87,8 @@ test("failed Maps constructors release earlier native surfaces and detached pain
         canvases.push(canvas); return canvas;
       }};
       // Deliberately incomplete DOM peer: construction fails before any game observation.
-      await assert.rejects(installCartographySpike({exports,
+      await assert.rejects(installCartography({exports,
+        module: new WebAssembly.Module(Uint8Array.of(0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00)),
         parent: {ownerDocument: document} as unknown as HTMLElement, canvas: {} as HTMLCanvasElement,
         settings: () => { throw new Error("must not read settings"); },
         persist: async () => { throw new Error("must not save"); },
@@ -97,8 +98,8 @@ test("failed Maps constructors release earlier native surfaces and detached pain
       assert.equal(hides, 1, "an earlier native range owner is released on either failure");
       assert.ok(canvases.every(canvas => canvas.width === 0 && canvas.height === 0));
       assert.equal(add.mock.callCount(), remove.mock.callCount(), "no graphics-reset listener survives refusal");
-      assert.equal(window.gwExplorationSpike, undefined);
-      assert.equal(window.gwWorldMapAnchorSpike, undefined);
+      assert.equal(window.gwExploration, undefined);
+      assert.equal(window.gwWorldMapAnchor, undefined);
     } finally {
       if (oldWindow) Object.defineProperty(globalThis, "window", oldWindow);
       else Reflect.deleteProperty(globalThis, "window");

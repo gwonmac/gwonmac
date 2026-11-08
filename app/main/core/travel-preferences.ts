@@ -1,6 +1,6 @@
 /**
- * Owns durable Travel preferences.
- * Keeps them outside Stable-owned settings.json for rollback safety.
+ * Owns durable Travel preferences in travel-preferences.json, beside
+ * settings.json.
  */
 import { readFile } from "node:fs/promises";
 import { isDeepStrictEqual } from "node:util";

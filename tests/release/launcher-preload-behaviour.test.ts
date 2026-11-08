@@ -5,7 +5,7 @@ import path from "node:path";
 import test from "node:test";
 import vm from "node:vm";
 import type { LauncherNativeApi } from "../../app/shared/launcher-contracts.ts";
-import { LAUNCHER_IPC } from "../../app/shared/launcher-contracts.ts";
+import { LAUNCHER_CHANNELS } from "../../app/shared/ipc/launcher.ts";
 import { LEGACY_PRIMARY_PROFILE_ID } from "../../app/shared/multiple-accounts.ts";
 
 const source = await readFile(
@@ -51,13 +51,13 @@ test("the built launcher preload exposes every launcher command and nothing else
   const id = LEGACY_PRIMARY_PROFILE_ID;
   const binding = { key: "t", shift: false, option: false } as const;
   const stop = api.state.onChange(() => undefined);
-  assert.equal(listeners.get(LAUNCHER_IPC.stateEvent)?.length, 1);
+  assert.equal(listeners.get(LAUNCHER_CHANNELS.stateEvent.channel)?.length, 1);
   stop();
-  assert.equal(listeners.get(LAUNCHER_IPC.stateEvent)?.length, 0);
+  assert.equal(listeners.get(LAUNCHER_CHANNELS.stateEvent.channel)?.length, 0);
   const stopNavigation = api.navigation.onRequest(() => undefined);
-  assert.equal(listeners.get(LAUNCHER_IPC.navigationEvent)?.length, 1);
+  assert.equal(listeners.get(LAUNCHER_CHANNELS.navigationEvent.channel)?.length, 1);
   stopNavigation();
-  assert.equal(listeners.get(LAUNCHER_IPC.navigationEvent)?.length, 0);
+  assert.equal(listeners.get(LAUNCHER_CHANNELS.navigationEvent.channel)?.length, 0);
 
   await api.state.get();
   await api.profiles.create({ name: "Second account" });
@@ -99,9 +99,8 @@ test("the built launcher preload exposes every launcher command and nothing else
 
   assert.deepEqual(
     new Set(invoked.map(({ channel }) => channel)),
-    new Set(Object.values(LAUNCHER_IPC).filter((channel) => (
-      channel !== LAUNCHER_IPC.stateEvent
-      && channel !== LAUNCHER_IPC.navigationEvent
-    ))),
+    new Set(Object.values(LAUNCHER_CHANNELS)
+      .filter((spec) => spec.kind === "invoke")
+      .map((spec) => spec.channel)),
   );
 });

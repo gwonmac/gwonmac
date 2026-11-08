@@ -1,11 +1,12 @@
 //! Observes the certified post-processing notification without modifying it.
 //! The countdown is an estimate corrected by every native alcohol-level update.
 //! Character identity owns continuity across zoning; no state survives logout.
-use core::ptr::write_volatile;
+use core::ptr::{addr_of_mut, write_volatile};
 use crate::abi::*;
 use crate::memory::*;
 use crate::{resolve_game, GameState};
 use crate::play_region::current_character_key;
+use crate::sequence_lock;
 
 static mut POINTER: u32 = 0;
 static mut SEQUENCE: u32 = 0;
@@ -22,15 +23,16 @@ unsafe fn reset() {
 }
 unsafe fn publish(ready: bool) {
     unsafe {
-        SEQUENCE = SEQUENCE.wrapping_add(2) & !1;
         let remaining = DEADLINE.wrapping_sub(CLOCK);
         let remaining = if ready && remaining <= 300_000 { remaining } else { 0 };
-        let values = [0x414c_5747, (ALCOHOL_BYTES << 16) | 1, SEQUENCE - 1,
-            u32::from(ready), CLOCK, remaining, CHARACTER as u32, (CHARACTER >> 32) as u32];
-        for (index, value) in values.iter().enumerate() {
-            write_volatile((POINTER + index as u32 * 4) as *mut u32, *value);
-        }
-        write_volatile((POINTER + 8) as *mut u32, SEQUENCE);
+        let snapshot = POINTER as *mut AlcoholSnapshot;
+        SEQUENCE = sequence_lock::write(addr_of_mut!((*snapshot).header), SEQUENCE, ALCOHOL_MAGIC, ALCOHOL_ABI_AND_SIZE, || {
+            write_volatile(addr_of_mut!((*snapshot).ready), u32::from(ready));
+            write_volatile(addr_of_mut!((*snapshot).game_timer), CLOCK);
+            write_volatile(addr_of_mut!((*snapshot).remaining_ms), remaining);
+            write_volatile(addr_of_mut!((*snapshot).character_key_low), CHARACTER as u32);
+            write_volatile(addr_of_mut!((*snapshot).character_key_high), (CHARACTER >> 32) as u32);
+        });
     }
 }
 pub(crate) unsafe fn initialize(pointer: u32) {

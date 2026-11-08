@@ -95,17 +95,14 @@ test("retains bounded generation evidence without paths or raw addresses", async
       profile: "file-compatible",
       inputSha256: fileOutputDigest,
       outputSha256: sha256("cartography-file"),
-      memoryLayout: "relocated",
     }, {
       profile: "features-e01",
       inputSha256: feature601Input,
       outputSha256: sha256("cartography-e01"),
-      memoryLayout: "relocated",
     }, {
       profile: "features-3fffff",
       inputSha256: featureAllInput,
       outputSha256: sha256("cartography-fff"),
-      memoryLayout: "relocated",
     }],
     completeProof: true,
   };

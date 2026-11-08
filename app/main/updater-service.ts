@@ -59,7 +59,7 @@ export function createUpdaterService(input: Readonly<{
       quitAndInstall: () => autoUpdater.quitAndInstall(),
     },
     rememberCheckedAt: async (lastUpdateCheckAt) => {
-      await preferences.updateSettings({ lastUpdateCheckAt });
+      await preferences.write({ kind: "settings", patch: { lastUpdateCheckAt } });
     },
     recordFailure: (reason) => {
       logEvent({ k: "appUpdate.requestFailed", reason });

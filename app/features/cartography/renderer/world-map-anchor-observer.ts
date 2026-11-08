@@ -5,7 +5,7 @@
 import {
   WORLD_MAP_ANCHOR_SPIKE_GLOBALS,
   WORLD_MAP_ANCHOR_SPIKE_SCALARS,
-  type WorldMapAnchorSpikeController,
+  type WorldMapAnchorController,
 } from "../../../shared/cartography-spike.js";
 
 function numberGlobal(exports: WebAssembly.Exports, name: string): number | null {
@@ -16,9 +16,9 @@ function numberGlobal(exports: WebAssembly.Exports, name: string): number | null
   return Number.isFinite(candidate.value) ? candidate.value : null;
 }
 
-export function createWorldMapAnchorSpikeReader(
+export function createWorldMapAnchorReader(
   exports: WebAssembly.Exports,
-): WorldMapAnchorSpikeController | null {
+): WorldMapAnchorController | null {
   const observe = exports[WORLD_MAP_ANCHOR_SPIKE_GLOBALS.observe];
   if (
     typeof observe !== "function"

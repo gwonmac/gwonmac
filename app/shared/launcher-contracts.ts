@@ -5,68 +5,25 @@
  */
 import { FEATURES, type GlobalTool } from "../features/index.js";
 import type {
-  AppSettings,
   AppSettingsPatch,
   AppUpdateState,
-  CacheInfo,
   ExtendedMemoryRuntimeStatus,
   DownloadActivity,
   FullDownloadState,
   NoticeCode,
+  RendererSettingsPatch,
 } from "./contracts.js";
 import type { ErrorCode } from "./errors.js";
+import type { Invoke, Subscribe } from "./ipc/channel-table.js";
+import type { LauncherChannels as C } from "./ipc/launcher.js";
 import type { MarkdownBlock, MarkdownInline } from "./launcher-markdown.js";
-import type { ShortcutAction, ShortcutBinding } from "./keyboard-shortcuts.js";
+import { isShortcutBinding, parseShortcutAction, type ShortcutAction, type ShortcutBinding } from "./keyboard-shortcuts.js";
 import { FEATURE_SELECTION_POLICIES, type FeatureId } from "./feature-contracts.js";
-import { LAUNCHER_SETTINGS, SETTING_TABLE, type LauncherSetting } from "./settings/index.js";
+import { LAUNCHER_SETTINGS, SETTING_TABLE, type AppSettings, type LauncherSetting } from "./settings/index.js";
 import { launcherSettingError } from "./settings/define.js";
 import type { ProfileId } from "./multiple-accounts.js";
 import type { SettingsTarget } from "./settings-catalogue.js";
-import type {
-  TexturePackImportResult,
-  TexturePackSnapshot,
-} from "./texture-packs.js";
-
-export const LAUNCHER_IPC = Object.freeze({
-  stateGet: "gw:launcher:state:get",
-  stateEvent: "gw:launcher:state:event",
-  navigationEvent: "gw:launcher:navigation:event",
-  profilesCreate: "gw:launcher:profiles:create",
-  profilesUpdate: "gw:launcher:profiles:update",
-  profilesSetSelection: "gw:launcher:profiles:setSelection",
-  profilesPlay: "gw:launcher:profiles:play",
-  profilesShow: "gw:launcher:profiles:show",
-  profilesCancelQueued: "gw:launcher:profiles:cancelQueued",
-  profilesArchive: "gw:launcher:profiles:archive",
-  profilesRestore: "gw:launcher:profiles:restore",
-  profilesDelete: "gw:launcher:profiles:delete",
-  experienceDismissMigration: "gw:launcher:experience:dismissMigration",
-  experienceDismissPreferencesReset: "gw:launcher:experience:dismissPreferencesReset",
-  experienceCompleteSetup: "gw:launcher:experience:completeSetup",
-  experienceUpdatePreferences: "gw:launcher:experience:updatePreferences",
-  settingsUpdate: "gw:launcher:settings:update",
-  settingsReset: "gw:launcher:settings:reset",
-  toolsSetMasterEnabled: "gw:launcher:tools:setMasterEnabled",
-  toolsSetFeature: "gw:launcher:tools:setFeature",
-  toolsCaptureShortcut: "gw:launcher:tools:captureShortcut",
-  toolsReplaceShortcut: "gw:launcher:tools:replaceShortcut",
-  toolsRestartToApply: "gw:launcher:tools:restartToApply",
-  gameFilesInfo: "gw:launcher:gameFiles:info",
-  gameFilesRepair: "gw:launcher:gameFiles:repair",
-  gameFilesPauseDownload: "gw:launcher:gameFiles:pauseDownload",
-  gameFilesResumeDownload: "gw:launcher:gameFiles:resumeDownload",
-  gameFilesResetAndRestart: "gw:launcher:gameFiles:resetAndRestart",
-  newsOpen: "gw:launcher:news:open",
-  texturePacksImport: "gw:launcher:texturePacks:import",
-  texturePacksSelect: "gw:launcher:texturePacks:select",
-  texturePacksRemove: "gw:launcher:texturePacks:remove",
-  feedbackSend: "gw:launcher:feedback:send",
-  externalOpen: "gw:launcher:external:open",
-  externalOpenUrl: "gw:launcher:external:openUrl",
-  externalRevealLogs: "gw:launcher:external:revealLogs",
-  updatesCheck: "gw:launcher:updates:check",
-  updatesRestartAndInstall: "gw:launcher:updates:restartAndInstall",
-} as const);
+import type { TexturePackSnapshot } from "./texture-packs.js";
 
 /** A launcher page another window can open: `settings` opens the last Settings section; a target opens that section or control. */
 export type LauncherDestination = "home" | "accounts" | "settings" | SettingsTarget;
@@ -77,7 +34,8 @@ export type LauncherInstallationKind =
   | "migrated-multi"
   | "mixed";
 
-export type LauncherContentKind = "news" | "dailies";
+export const LAUNCHER_CONTENT_KINDS = ["news", "dailies"] as const;
+export type LauncherContentKind = (typeof LAUNCHER_CONTENT_KINDS)[number];
 
 export type LauncherPlayPage = "home" | "accounts";
 
@@ -125,16 +83,31 @@ export interface LauncherPreferencesPatch {
   readonly content?: Partial<LauncherPreferences["content"]>;
 }
 
+/** The account appearance vocabulary: the icons and preset colours both pickers offer, and a new account's look. */
+export const LAUNCHER_PROFILE_ICONS = ["swords", "archive", "map", "scroll", "shield", "star", "crown", "flame"] as const;
+export type LauncherProfileIcon = (typeof LAUNCHER_PROFILE_ICONS)[number];
+export const LAUNCHER_PROFILE_COLORS = ["#9a6638", "#496b58", "#46658a", "#76558b", "#9a4f4f", "#76703c", "#4c777d", "#6f6258"] as const;
+export const DEFAULT_PROFILE_ICON: LauncherProfileIcon = "swords";
+export const DEFAULT_PROFILE_COLOR = LAUNCHER_PROFILE_COLORS[0];
+
 export interface LauncherProfileAppearance {
-  readonly icon: string;
+  readonly icon: LauncherProfileIcon;
+  /** Any #rrggbb colour; the presets are only suggestions. */
   readonly color: string;
 }
-export const LAUNCHER_PROFILE_ICONS = ["swords", "archive", "map", "scroll", "shield", "star", "crown", "flame"] as const;
+
+export function isLauncherProfileIcon(value: unknown): value is LauncherProfileIcon {
+  return LAUNCHER_PROFILE_ICONS.some((icon) => icon === value);
+}
+
+export function isLauncherProfileColor(value: unknown): value is string {
+  return typeof value === "string" && /^#[0-9a-f]{6}$/iu.test(value);
+}
 
 export function parseLauncherProfileAppearance(value: unknown): LauncherProfileAppearance {
   const source = exactObject(value, ["icon", "color"], "profile appearance");
-  if (typeof source.icon !== "string" || !LAUNCHER_PROFILE_ICONS.includes(source.icon as (typeof LAUNCHER_PROFILE_ICONS)[number])) throw new Error("profile icon is invalid");
-  if (typeof source.color !== "string" || !/^#[0-9a-f]{6}$/iu.test(source.color)) throw new Error("profile color is invalid");
+  if (!isLauncherProfileIcon(source.icon)) throw new Error("profile icon is invalid");
+  if (!isLauncherProfileColor(source.color)) throw new Error("profile color is invalid");
   return { icon: source.icon, color: source.color };
 }
 
@@ -173,6 +146,25 @@ export interface ShortcutReplacement {
   readonly action: ShortcutAction;
   readonly binding: ShortcutBinding | null;
 }
+/**
+ * One settings write. The launcher's Settings and the Hub send `settings`,
+ * `master`, `tool` and `shortcut`, each narrowed by its boundary's parser; a
+ * game window sends `renderer`; menus and main's own bookkeeping send
+ * `settings`. Main applies every one through the same dispatch.
+ */
+export type SettingsWrite =
+  | Readonly<{ kind: "settings"; patch: AppSettingsPatch }>
+  | Readonly<{ kind: "renderer"; patch: RendererSettingsPatch }>
+  | Readonly<{ kind: "master"; enabled: boolean }>
+  | Readonly<{ kind: "tool" }> & GlobalToolUpdate
+  | Readonly<{ kind: "shortcut" }> & ShortcutReplacement;
+/**
+ * What the launcher's settings channels may write: launcher settings only, so
+ * no launcher channel can reach a bookkeeping field such as `lastUpdateCheckAt`.
+ */
+export type LauncherSettingsWrite =
+  | Exclude<SettingsWrite, { kind: "settings" | "renderer" }>
+  | Readonly<{ kind: "settings"; patch: LauncherSettingsPatch }>;
 export type LauncherShortcutCaptureResult =
   | Readonly<{ status: "captured"; binding: ShortcutBinding }>
   /** `owner: "hub"` is Command-R while the Hub uses it (HUB-095). */
@@ -235,69 +227,70 @@ export interface LauncherSnapshot {
   readonly news: LauncherNewsState;
 }
 
+/** `window.launcherNative`: each method is one LAUNCHER_CHANNELS entry. */
 export interface LauncherNativeApi {
   readonly navigation: {
-    onRequest(callback: (destination: LauncherDestination) => void): () => void;
+    onRequest: Subscribe<C["navigationEvent"]>;
   };
   readonly state: {
-    get(): Promise<LauncherSnapshot>;
-    onChange(callback: (snapshot: LauncherSnapshot) => void): () => void;
+    get: Invoke<C["stateGet"]>;
+    onChange: Subscribe<C["stateEvent"]>;
   };
   readonly profiles: {
-    create(input: LauncherProfileCreateInput): Promise<void>;
-    update(input: LauncherProfileUpdate): Promise<void>;
-    setSelection(ids: readonly ProfileId[]): Promise<void>;
-    play(ids: readonly ProfileId[]): Promise<void>;
-    show(id: ProfileId): Promise<void>;
-    cancelQueued(ids: readonly ProfileId[]): Promise<void>;
-    archive(id: ProfileId): Promise<void>;
-    restore(id: ProfileId): Promise<void>;
-    delete(id: ProfileId): Promise<void>;
+    create: Invoke<C["profilesCreate"]>;
+    update: Invoke<C["profilesUpdate"]>;
+    setSelection: Invoke<C["profilesSetSelection"]>;
+    play: Invoke<C["profilesPlay"]>;
+    show: Invoke<C["profilesShow"]>;
+    cancelQueued: Invoke<C["profilesCancelQueued"]>;
+    archive: Invoke<C["profilesArchive"]>;
+    restore: Invoke<C["profilesRestore"]>;
+    delete: Invoke<C["profilesDelete"]>;
   };
   readonly experience: {
-    completeSetup(input: { readonly enableTools: boolean }): Promise<void>;
-    dismissMigrationNotice(): Promise<void>;
-    dismissPreferencesReset(): Promise<void>;
-    updatePreferences(patch: LauncherPreferencesPatch): Promise<void>;
+    completeSetup: Invoke<C["experienceCompleteSetup"]>;
+    dismissMigrationNotice: Invoke<C["experienceDismissMigration"]>;
+    dismissPreferencesReset: Invoke<C["experienceDismissPreferencesReset"]>;
+    updatePreferences: Invoke<C["experienceUpdatePreferences"]>;
   };
   readonly news: {
-    open(id: string): Promise<void>;
+    open: Invoke<C["newsOpen"]>;
   };
   readonly settings: {
-    update(patch: LauncherSettingsPatch): Promise<void>;
-    reset(): Promise<void>;
+    update: Invoke<C["settingsUpdate"]>;
+    reset: Invoke<C["settingsReset"]>;
   };
   readonly tools: {
-    setMasterEnabled(enabled: boolean): Promise<void>;
-    setFeature(input: GlobalToolUpdate): Promise<void>;
-    captureShortcut(action: ShortcutAction): Promise<LauncherShortcutCaptureResult>;
-    replaceShortcut(input: ShortcutReplacement): Promise<void>;
-    restartToApply(): Promise<void>;
+    setMasterEnabled: Invoke<C["toolsSetMasterEnabled"]>;
+    setFeature: Invoke<C["toolsSetFeature"]>;
+    captureShortcut: Invoke<C["toolsCaptureShortcut"]>;
+    replaceShortcut: Invoke<C["toolsReplaceShortcut"]>;
+    restartToApply: Invoke<C["toolsRestartToApply"]>;
   };
   readonly gameFiles: {
-    info(): Promise<CacheInfo>;
-    repair(): Promise<void>;
-    pauseDownload(): Promise<void>;
-    resumeDownload(): Promise<void>;
-    resetAndRestart(): Promise<void>;
+    info: Invoke<C["gameFilesInfo"]>;
+    repair: Invoke<C["gameFilesRepair"]>;
+    pauseDownload: Invoke<C["gameFilesPauseDownload"]>;
+    resumeDownload: Invoke<C["gameFilesResumeDownload"]>;
+    resetAndRestart: Invoke<C["gameFilesResetAndRestart"]>;
   };
   readonly texturePacks: {
-    import(): Promise<TexturePackImportResult>;
-    select(id: string | null): Promise<void>;
-    remove(id: string): Promise<void>;
+    import: Invoke<C["texturePacksImport"]>;
+    select: Invoke<C["texturePacksSelect"]>;
+    remove: Invoke<C["texturePacksRemove"]>;
   };
   readonly updates: {
-    check(): Promise<void>;
-    restartAndInstall(): Promise<void>;
+    check: Invoke<C["updatesCheck"]>;
+    restartAndInstall: Invoke<C["updatesRestartAndInstall"]>;
   };
   readonly feedback: {
-    send(input: LauncherFeedback): Promise<void>;
+    send: Invoke<C["feedbackSend"]>;
   };
   readonly external: {
-    open(kind: LauncherExternalLink): Promise<void>;
+    open: Invoke<C["externalOpen"]>;
     /** A web page the bundled Guide links to; main opens only the origins in LAUNCHER_GUIDE_ORIGINS. */
-    openUrl(url: string): Promise<void>;
-    revealLogs(): Promise<void>;
+    openUrl: Invoke<C["externalOpenUrl"]>;
+    revealLogs: Invoke<C["externalRevealLogs"]>;
   };
 }
 
@@ -390,6 +383,18 @@ export function launcherToolSettings(settings: AppSettings): GlobalToolSettings 
 
 export function globalToolPatch(tool: GlobalTool, enabled: boolean): AppSettingsPatch {
   return { [FEATURE_SELECTION_POLICIES[GLOBAL_TOOL_FEATURES[tool]].activation.setting]: enabled };
+}
+
+export function parseGlobalToolUpdate(value: unknown): GlobalToolUpdate {
+  const source = exactObject(value, ["tool", "enabled"], "Tool update");
+  if (typeof source.enabled !== "boolean") throw new Error("Tool update is invalid");
+  return { tool: parseGlobalTool(source.tool), enabled: source.enabled };
+}
+
+export function parseShortcutReplacement(value: unknown): ShortcutReplacement {
+  const source = exactObject(value, ["action", "binding"], "shortcut replacement");
+  if (source.binding !== null && !isShortcutBinding(source.binding)) throw new Error("shortcut replacement is invalid");
+  return { action: parseShortcutAction(source.action), binding: source.binding };
 }
 
 function exactObject(value: unknown, allowed: readonly string[], label: string): Record<string, unknown> {

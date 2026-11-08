@@ -27,3 +27,23 @@ export function asDigest(value: string): Digest {
   }
   return value;
 }
+
+/**
+ * A client build named by the first 12 hex digits of its official WASM digest:
+ * short enough to read in a report, still only ever derived from a digest.
+ */
+export type ClientBuildId = string & { readonly __clientBuildId: unique symbol };
+
+const BUILD_ID = /^[a-f0-9]{12}$/;
+
+export function isClientBuildId(value: unknown): value is ClientBuildId {
+  return typeof value === "string" && BUILD_ID.test(value);
+}
+
+export function clientBuildId(digest: Digest): ClientBuildId {
+  const value = digest.slice(0, 12);
+  if (!isClientBuildId(value)) {
+    throw new AppError("bad_digest", "expected a 64-character hex digest");
+  }
+  return value;
+}

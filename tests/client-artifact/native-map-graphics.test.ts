@@ -14,7 +14,7 @@ test("each native map owns its mesh, restores matrices and refuses stale or malf
   assert.ok(process.env.GW_CLIENT_WASM);
   const input = new Uint8Array(await readFile(process.env.GW_CLIENT_WASM));
   const fixture = retainedClientFixture(input);
-  const output = transformCartographySpikeWasm(input, fixture.memoryLayout);
+  const output = transformCartographySpikeWasm(input, fixture.cartographyRoots);
   // Handlers are written against August indices; the fixture moves them.
   const clientImports = (handlers: Record<number, (...args: number[]) => unknown>): WebAssembly.ModuleImports =>
     Object.fromEntries(Object.entries(handlers).map(([index, handler]) =>
@@ -194,7 +194,7 @@ test("each map draws its surfaces in the shared order", async () => {
   assert.ok(process.env.GW_CLIENT_WASM);
   const input = new Uint8Array(await readFile(process.env.GW_CLIENT_WASM));
   const fixture = retainedClientFixture(input);
-  const output = transformCartographySpikeWasm(input, fixture.memoryLayout);
+  const output = transformCartographySpikeWasm(input, fixture.cartographyRoots);
   const exported = parseExports(sectionById(splitSections(output), 7));
   const evidence = wasmEvidence(output); assert.ok(evidence); const decoded = evidence.decodeFunctions([]);
   for (const [map, dispatcher] of [["mission", fixture.functionIndex(16136)], ["world", fixture.functionIndex(16224)]] as const) {
@@ -212,7 +212,7 @@ test("the map pointer answer follows the hovered frame's ancestors and refuses b
   assert.ok(process.env.GW_CLIENT_WASM);
   const input = new Uint8Array(await readFile(process.env.GW_CLIENT_WASM));
   const fixture = retainedClientFixture(input);
-  const output = transformCartographySpikeWasm(input, fixture.memoryLayout);
+  const output = transformCartographySpikeWasm(input, fixture.cartographyRoots);
   const sections = splitSections(output); const bodies = parseCode(sectionById(sections, 10));
   const evidence = wasmEvidence(output); assert.ok(evidence); const module = evidence.moduleView();
   const index = parseExports(sectionById(sections, 7)).find((entry) => entry.name === "gwonmac_map_pointer_within")?.index;

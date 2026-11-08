@@ -2,6 +2,7 @@
  * Feature-owned rewrite contributions consumed by the Enhancement assembler.
  * Generic WASM section assembly remains outside this module.
  */
+import { ProofRefusal } from "./stage-refusal.js";
 import { concat } from "../../main/core/wasm-binary.js";
 import { partyInviteEnqueue, whisperConfigure, whisperEnqueue, whisperDrain } from "./enhancement-whisper-transform.js";
 import { resignConfigure, resignEnqueue, resignExecute, resignDrain } from "./enhancement-resign-transform.js";
@@ -53,7 +54,7 @@ import {
 const REVIEWED_TRAVEL_MAP_IDS = TRAVEL_DESTINATIONS.map(({ mapId }) => mapId);
 
 function fail(message: string): never {
-  throw new Error(`enhancement transform: ${message}`);
+  throw new ProofRefusal(`enhancement transform: ${message}`);
 }
 
 function required<T>(value: T | null | undefined, label: string): T {

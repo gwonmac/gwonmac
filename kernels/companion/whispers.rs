@@ -5,10 +5,11 @@
 //! bounded control-code shapes. It copies whisper content or public sender names
 //! into its own bounded host region before the ephemeral game pointer expires.
 
-use core::ptr::write_volatile;
+use core::ptr::{addr_of_mut, write_volatile};
 
 use crate::abi::*;
 use crate::memory::{checked_mul, contains, indexed, offset, pointer, read_u16, read_u32};
+use crate::sequence_lock;
 
 const INCOMING_WHISPER_CHANNEL: u32 = 14;
 const GLOBAL_CHANNEL: u32 = 10;
@@ -169,16 +170,19 @@ unsafe fn reject() {
 }
 
 unsafe fn publish_header() {
-    let next = unsafe { SEQUENCE }.wrapping_add(2) & !1;
+    unsafe { publish(|| {}) };
+}
+
+/// Publishes the counters, after `write_slot` has filled at most one slot
+/// inside the same sequence window.
+unsafe fn publish(write_slot: impl FnOnce()) {
     let snapshot = unsafe { POINTER as *mut WhisperSnapshot };
     unsafe {
-        write_volatile(&mut (*snapshot).sequence, next.wrapping_sub(1));
-        write_volatile(&mut (*snapshot).magic, WHISPER_MAGIC);
-        write_volatile(&mut (*snapshot).abi_and_size, WHISPER_ABI_AND_SIZE);
-        write_volatile(&mut (*snapshot).write_count, WRITE_COUNT);
-        write_volatile(&mut (*snapshot).rejected_count, REJECTED_COUNT);
-        write_volatile(&mut (*snapshot).sequence, next);
-        SEQUENCE = next;
+        SEQUENCE = sequence_lock::write(addr_of_mut!((*snapshot).header), SEQUENCE, WHISPER_MAGIC, WHISPER_ABI_AND_SIZE, || {
+            write_slot();
+            write_volatile(&mut (*snapshot).write_count, WRITE_COUNT);
+            write_volatile(&mut (*snapshot).rejected_count, REJECTED_COUNT);
+        });
     }
 }
 
@@ -195,40 +199,34 @@ unsafe fn append(
     let index = (id as usize - 1) % WHISPER_SLOT_COUNT;
     let snapshot = unsafe { POINTER as *mut WhisperSnapshot };
     let slot = unsafe { &mut (*snapshot).slots[index] };
-    let next = unsafe { SEQUENCE }.wrapping_add(2) & !1;
     unsafe {
-        write_volatile(&mut (*snapshot).sequence, next.wrapping_sub(1));
-        write_volatile(&mut slot.id, 0);
-        write_volatile(
-            &mut slot.sender_and_message_units,
-            sender_units
-                | if participant { 1 << 30 } else { message_units << 16 }
-                | if outgoing { 1 << 31 } else { 0 },
-        );
-        for index in 0..WHISPER_SENDER_UNITS {
-            let value = if index < sender_units as usize {
-                read_u16(indexed(text, index as u32 + sender_start, 2).unwrap_or(0)).unwrap_or(0)
-            } else {
-                0
-            };
-            write_volatile(&mut slot.sender[index], value);
-        }
-        for index in 0..WHISPER_MESSAGE_UNITS {
-            let value = if !participant && index < message_units as usize {
-                read_u16(indexed(text, message_start + index as u32, 2).unwrap_or(0)).unwrap_or(0)
-            } else {
-                0
-            };
-            write_volatile(&mut slot.message[index], value);
-        }
-        write_volatile(&mut slot.id, id);
-        WRITE_COUNT = id;
-        write_volatile(&mut (*snapshot).magic, WHISPER_MAGIC);
-        write_volatile(&mut (*snapshot).abi_and_size, WHISPER_ABI_AND_SIZE);
-        write_volatile(&mut (*snapshot).write_count, WRITE_COUNT);
-        write_volatile(&mut (*snapshot).rejected_count, REJECTED_COUNT);
-        write_volatile(&mut (*snapshot).sequence, next);
-        SEQUENCE = next;
+        publish(|| {
+            write_volatile(&mut slot.id, 0);
+            write_volatile(
+                &mut slot.sender_and_message_units,
+                sender_units
+                    | if participant { 1 << 30 } else { message_units << 16 }
+                    | if outgoing { 1 << 31 } else { 0 },
+            );
+            for index in 0..WHISPER_SENDER_UNITS {
+                let value = if index < sender_units as usize {
+                    read_u16(indexed(text, index as u32 + sender_start, 2).unwrap_or(0)).unwrap_or(0)
+                } else {
+                    0
+                };
+                write_volatile(&mut slot.sender[index], value);
+            }
+            for index in 0..WHISPER_MESSAGE_UNITS {
+                let value = if !participant && index < message_units as usize {
+                    read_u16(indexed(text, message_start + index as u32, 2).unwrap_or(0)).unwrap_or(0)
+                } else {
+                    0
+                };
+                write_volatile(&mut slot.message[index], value);
+            }
+            write_volatile(&mut slot.id, id);
+            WRITE_COUNT = id;
+        });
     }
 }
 

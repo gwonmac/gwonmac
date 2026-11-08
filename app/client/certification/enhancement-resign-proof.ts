@@ -1,12 +1,15 @@
 /**
  * Proves the reviewed native chat submission path for the fixed Resign action.
- * Exact bodies bind the editor, history owner, and native sender together;
- * a changed client withdraws only this action until it is reviewed again.
+ * Reviewed bodies (exact, or relocations of them) bind the editor, history
+ * owner, and native sender, and their calls bind them together; a changed
+ * client withdraws only this action until it is reviewed again.
  */
 import { isDeepStrictEqual } from "node:util";
 import type { KnownEnhancementBuild } from "./enhancement-build-model.js";
 import type { ModuleShape } from "./enhancement-evidence-types.js";
-import { uniqueExactFunction } from "./wasm-evidence.js";
+import { orderedCallees } from "./relocation-identity.js";
+import { reviewedEntries } from "./reviewed-facts.js";
+import { functionBodySha256, uniqueExactFunction } from "./wasm-evidence.js";
 
 const SENDER_SHA256 = "ee40947fd46b4a8b408fc7e1647729dd989a77599f4f637280cc7ca27d56390f";
 
@@ -17,9 +20,18 @@ export const RESIGN_NATIVE_SENDER = Object.freeze({
   bodySha256: SENDER_SHA256,
 });
 
-// Each family keeps the complete editor → history → sender call operands.
-// A sender hash alone cannot establish which editor submits through it.
-const CHAT_PATHS = Object.freeze([
+/** One reviewed editor → history → sender path, each by index and exact body. */
+export type ResignChatPath = Readonly<{
+  editor: readonly [number, string];
+  history: readonly [number, string];
+  sender: NonNullable<KnownEnhancementBuild["resignAction"]>;
+}>;
+
+// Each family keeps the complete editor → history → sender path. A sender hash
+// alone cannot establish which editor submits through it, so the path also
+// requires each call. A relink renumbers the path; its bodies, located by
+// relocation identity, must still call each other.
+const AUGUST_AND_OCTOBER_PATHS: readonly ResignChatPath[] = Object.freeze([
   { editor: [13720, "0a140a3dd416fa6256572baa07fc601b4c2516197086ef88e828c01102c63cc2"],
     history: [7883, "b09d619996a57afd40ad95e28042913dd12933681343488cb26c24ac5f4902ff"],
     sender: RESIGN_NATIVE_SENDER },
@@ -31,31 +43,52 @@ const CHAT_PATHS = Object.freeze([
     sender: Object.freeze({ functionIndex: 7879,
       params: Object.freeze(["i32", "i32"] as const), results: Object.freeze([] as const),
       bodySha256: "3947df1c888113fe94a12fea2f3d500387b71f2e56b8ddf970d571621248b584" }) },
-  // October 22: the October path renumbered; bodies differ only in reviewed
-  // callee indices and relocated operands.
-  { editor: [13691, "1db8ba05f768aac797e225582b746434ca4b75d565d94aad4c3814afc3bd6af6"],
-    history: [7887, "f4649cdc08d2f6cec6d2719956745aabd769ef5787dba529cc476457de2daa66"],
-    sender: Object.freeze({ functionIndex: 7879,
-      params: Object.freeze(["i32", "i32"] as const), results: Object.freeze([] as const),
-      bodySha256: "3947df1c888113fe94a12fea2f3d500387b71f2e56b8ddf970d571621248b584" }) },
-  // November 3: the October 22 path renumbered again (reviewed callee and
-  // operand moves only).
-  { editor: [13696, "47b690af00d5ba4191961b5f8eb4e55a40b08cfdd0439a2017b8a6dc69b2afe1"],
-    history: [7888, "e7052010aa2d4b48cad89f8e7ec28e328c05da695ef4c6e2ce0ba1e4aa32840f"],
-    sender: Object.freeze({ functionIndex: 7880,
-      params: Object.freeze(["i32", "i32"] as const), results: Object.freeze([] as const),
-      bodySha256: "ece875d8de34f7d77a9d1c81ad17604c0318424fce3650e9aeeec8d842f632ac" }) },
 ] as const);
 
-export function isResignNativeSender(value: unknown): boolean {
-  return CHAT_PATHS.some(({ sender }) => isDeepStrictEqual(value, sender));
+const generationPaths = reviewedEntries((facts) => facts.resignChatPaths);
+/** Every reviewed chat path of the active generations. */
+export const chatPaths = (): readonly ResignChatPath[] => [...AUGUST_AND_OCTOBER_PATHS, ...generationPaths()];
+
+type NativeSender = NonNullable<KnownEnhancementBuild["resignAction"]>;
+
+/**
+ * The shape of a native chat sender proof. The process boundary has no client
+ * bytes; the transform derives the sender again and refuses any other value.
+ */
+export function isResignNativeSender(value: unknown): value is NativeSender {
+  if (!value || typeof value !== "object") return false;
+  const sender = value as Partial<NativeSender>;
+  return Object.keys(value).sort().join() === "bodySha256,functionIndex,params,results"
+    && Number.isSafeInteger(sender.functionIndex) && Number(sender.functionIndex) >= 0
+    && isDeepStrictEqual(sender.params, ["i32", "i32"])
+    && isDeepStrictEqual(sender.results, [])
+    && typeof sender.bodySha256 === "string" && /^[0-9a-f]{64}$/u.test(sender.bodySha256);
+}
+
+/** Where `module` holds a reviewed path's sender, or null when it does not hold the path. */
+function locatedSender(module: ModuleShape, { editor, history, sender }: ResignChatPath): NativeSender | null {
+  const editorIndex = uniqueExactFunction(module, editor[1], ["i32"], []);
+  const historyIndex = uniqueExactFunction(module, history[1], ["i32", "i32"], []);
+  const senderIndex = uniqueExactFunction(module, sender.bodySha256, sender.params, sender.results);
+  if (editorIndex === null || historyIndex === null || senderIndex === null
+    || !orderedCallees(module, editorIndex).includes(historyIndex)
+    || !orderedCallees(module, historyIndex).includes(senderIndex)) return null;
+  return Object.freeze({ functionIndex: senderIndex, params: sender.params, results: sender.results,
+    bodySha256: functionBodySha256(module, senderIndex) });
+}
+
+/** The reviewed paths `module` holds, each with the sender it locates there. */
+export function locatedChatPaths(
+  module: ModuleShape,
+): readonly Readonly<{ path: ResignChatPath; sender: NativeSender }>[] {
+  return chatPaths().flatMap((path) => {
+    const sender = locatedSender(module, path);
+    return sender ? [{ path, sender }] : [];
+  });
 }
 
 export function deriveResignAction(module: ModuleShape): KnownEnhancementBuild["resignAction"] | null {
-  const matches = CHAT_PATHS.filter(({ editor, history, sender }) =>
-    uniqueExactFunction(module, editor[1], ["i32"], []) === editor[0]
-    && uniqueExactFunction(module, history[1], ["i32", "i32"], []) === history[0]
-    && uniqueExactFunction(module, sender.bodySha256, sender.params, sender.results)
-      === sender.functionIndex);
-  return matches.length === 1 ? matches[0]!.sender : null;
+  const senders = locatedChatPaths(module).map(({ sender }) => sender);
+  const [sender] = senders;
+  return sender !== undefined && senders.every((other) => isDeepStrictEqual(other, sender)) ? sender : null;
 }

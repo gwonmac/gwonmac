@@ -27,24 +27,3 @@ export const TOOL_PRESENTATION: Readonly<Record<GlobalTool, ToolPresentation>> =
 export const TOOL_KEYWORDS: Readonly<Partial<Record<GlobalTool, string>>> = Object.freeze(Object.fromEntries(
   toolFeatures.flatMap((feature) => "keywords" in feature.tool ? [[feature.tool.id, feature.tool.keywords]] : []),
 ));
-
-type HubToolKey = Readonly<{ command: string; tool: GlobalTool; action: ShortcutAction; label: string }>;
-const hubTools = toolFeatures.flatMap((feature) => {
-  const action = toolAction(feature);
-  if (!("hub" in feature.tool) || !action) return [];
-  const { hub, id, label } = feature.tool;
-  const keyOrder: number | undefined = "keyOrder" in hub ? hub.keyOrder : undefined;
-  const key: HubToolKey = Object.freeze({ command: hub.command, tool: id, action, label });
-  return [{ keyOrder, key }];
-});
-
-/** The shortcut each Hub command row shows, by row id. */
-export const HUB_COMMAND_SHORTCUTS: Readonly<Record<string, ShortcutAction>> = Object.freeze(
-  Object.fromEntries(hubTools.map(({ key }) => [key.command, key.action])),
-);
-
-/** The Hub Commands page's shortcut rows, in `keyOrder`. */
-export const HUB_TOOL_KEYS: readonly HubToolKey[] = Object.freeze(hubTools
-  .flatMap(({ keyOrder, key }) => keyOrder === undefined ? [] : [{ keyOrder, key }])
-  .sort((left, right) => left.keyOrder - right.keyOrder)
-  .map(({ key }) => key));

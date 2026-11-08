@@ -20,12 +20,11 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # Seconds on Linux, before anyone approves anything.
+  # Seconds on Linux, before anyone approves anything. scripts/release.ts owns
+  # the version rule and the tag check.
   prepare:
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    outputs:
-      prerelease: ${{ steps.version.outputs.prerelease }}
     env:
       GH_TOKEN: ${{ github.token }}
       VERSION: ${{ inputs.version }}
@@ -36,42 +35,15 @@ jobs:
       - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version-file: .nvmrc
-      - name: Validate the source branch and the version
-        id: version
-        env:
-          REF: ${{ github.ref }}
-        run: |
-          case "$REF" in
-            refs/heads/main | refs/heads/hotfix/*) ;;
-            *) echo "Release from main or hotfix/*, not $REF." >&2; exit 1 ;;
-          esac
-          if ! [[ "$VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-(beta|rc)\.(0|[1-9][0-9]*))?$ ]]; then
-            echo "Version must be SemVer X.Y.Z or X.Y.Z-(beta|rc).N, not $VERSION." >&2
-            exit 1
-          fi
-          # scripts/macos-version.ts owns the bounds Apple's bundle version allows.
-          node -e 'import("./scripts/macos-version.ts").then((m) => console.log(m.macOSBundleVersions(process.argv[1])))' "$VERSION"
-          if [[ "$VERSION" == *-* ]]; then prerelease=true; else prerelease=false; fi
-          echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"
-      - name: Refuse a version that already shipped
-        run: |
-          if gh release view "v$VERSION" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            echo "Release v$VERSION exists. Choose a higher version." >&2
-            exit 1
-          fi
-          # gh api prints the 404 body on stdout, so only a successful lookup names a tagged commit.
-          if tagged="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v$VERSION" --jq .object.sha 2>/dev/null)" \
-            && [ "$tagged" != "$GITHUB_SHA" ]; then
-            echo "Tag v$VERSION points at $tagged, not $GITHUB_SHA." >&2
-            exit 1
-          fi
+      - name: Validate the branch and the version, and refuse one that already shipped
+        run: node --import ./scripts/ts-hook.mjs scripts/release.ts prepare "$VERSION"
 
   # The ArenaNet compatibility gate on the exact client published now. It needs
   # no secrets, so it runs outside the approval and beside the signed build.
   qualify:
     needs: prepare
     runs-on: macos-15
-    timeout-minutes: 60
+    timeout-minutes: 30
     # Shared with client-watch.yml: one ArenaNet client download at a time.
     # Each download stays under ARENANET_REQUEST_CEILING (app/shared/contracts.ts).
     concurrency:
@@ -88,15 +60,15 @@ jobs:
       - name: Download the current ArenaNet client
         id: client
         run: pnpm client:official --download "$RUNNER_TEMP/client"
+      # The shipped chain on today's client, once. The real-client regression
+      # suite runs in client-watch.yml, which a certification PR can dispatch.
       - name: Qualify the exact client
         env:
           GW_CLIENT_JS: ${{ steps.client.outputs.js }}
           GW_CLIENT_WASM: ${{ steps.client.outputs.wasm }}
         run: |
-          node build/tools-cli/certification.js verify "$GW_CLIENT_WASM"
-          node build/tools-cli/certification.js double-click "$GW_CLIENT_WASM"
-          pnpm test:client-artifact
-          node --import ./scripts/ts-hook.mjs scripts/qualify-extended-memory.ts "$GW_CLIENT_JS" "$GW_CLIENT_WASM"
+          node build/tools-cli/certification.js qualify \
+            "$GW_CLIENT_WASM" "$GW_CLIENT_JS" "$RUNNER_TEMP/qualification"
 
   build:
     needs: prepare
@@ -166,7 +138,8 @@ jobs:
           # itself (scripts/apple-signing.ts); this only proves the identity.
           security find-identity -v -p codesigning "$keychain" | grep -q "$PINNED_IDENTITY"
 
-      # Forge signs, notarizes, and staples the app (forge.config.ts).
+      # Forge signs the app; its postPackage hook notarizes and staples it
+      # through scripts/release-notary.ts before the ZIP and DMG are made.
       - name: Build, sign, notarize, and staple
         env:
           GW_PACKAGE_INTENT: release
@@ -178,27 +151,14 @@ jobs:
         run: |
           test "$(find out/make -type f -name '*.dmg' | wc -l | tr -d ' ')" = 1
           dmg="$(find out/make -type f -name '*.dmg')"
-          xcrun notarytool submit "$dmg" --wait \
-            --key "$APPLE_API_KEY_PATH" --key-id "$APPLE_API_KEY_ID" --issuer "$APPLE_API_ISSUER_ID"
-          # Hosted runners sometimes lose the connection to Apple's ticket
-          # service. Retry only that transport error.
-          for attempt in 1 2 3 4 5; do
-            if output="$(xcrun stapler staple -v "$dmg" 2>&1)"; then echo "$output"; break; fi
-            echo "$output"
-            if [ "$attempt" = 5 ] || ! grep -q NSURLErrorDomain <<<"$output"; then exit 1; fi
-            sleep 30
-          done
+          node --import ./scripts/ts-hook.mjs scripts/release-notary.ts "$dmg"
 
+      # Canonical asset names and RELEASES.json, which names the absolute,
+      # immutable ZIP URL of this tag.
       - name: Collect the release assets
         run: |
           assets="$RUNNER_TEMP/assets"
-          base="Guild-Wars-Reforged-$VERSION-macOS-arm64"
-          mkdir "$assets"
-          cp "$(find out/make -type f -name '*.zip')" "$assets/$base.zip"
-          cp "$(find out/make -type f -name '*.dmg')" "$assets/$base.dmg"
-          # RELEASES.json names the absolute, immutable ZIP URL of this tag.
-          node --import ./scripts/ts-hook.mjs scripts/release-manifest.ts \
-            "$VERSION" "v$VERSION" "$base.zip" "$(git show -s --format=%cI HEAD)" "$assets/RELEASES.json"
+          node --import ./scripts/ts-hook.mjs scripts/release.ts assets "$VERSION" out/make "$assets"
           echo "ASSETS=$assets" >> "$GITHUB_ENV"
           echo "APP=$(find out -name 'Guild Wars Reforged.app' -type d -not -path '*/make/*' -print -quit)" >> "$GITHUB_ENV"
 
@@ -273,52 +233,51 @@ jobs:
           retention-days: 7
           compression-level: 0
 
-  # No draft exists unless qualification and the signed build both passed.
+  # A hotfix/* release, the branch every fact-only release ships from, waits
+  # here until client watch's real-client regression passed on this exact
+  # commit. It starts beside qualify and build, so a refusal shows before the
+  # approval. scripts/release.ts owns the rule and the bounded wait (120 min).
+  regression:
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 125
+    permissions:
+      actions: read
+      contents: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version-file: .nvmrc
+      - name: Wait for the real-client regression run on this commit
+        run: node --import ./scripts/ts-hook.mjs scripts/release.ts regression
+
+  # No draft exists unless qualification, the signed build and, on hotfix/*,
+  # the regression run passed. scripts/release.ts tags the commit and creates
+  # the draft on exactly it.
   draft:
-    needs: [prepare, qualify, build]
+    needs: [prepare, qualify, build, regression]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
       contents: write
     env:
       GH_TOKEN: ${{ github.token }}
-      PRERELEASE: ${{ needs.prepare.outputs.prerelease }}
-      TAG: v${{ inputs.version }}
+      VERSION: ${{ inputs.version }}
     steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version-file: .nvmrc
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: release-assets
-          path: assets
+          path: ${{ runner.temp }}/assets
       - name: Tag the commit and create the draft release
-        run: |
-          (cd assets && shasum -a 256 -c SHA256SUMS.txt)
-          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            echo "A release or draft $TAG exists. Delete the old draft first." >&2
-            exit 1
-          fi
-          if ! gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" >/dev/null 2>&1; then
-            gh api "repos/$GITHUB_REPOSITORY/git/refs" -f "ref=refs/tags/$TAG" -f "sha=$GITHUB_SHA" >/dev/null
-          fi
-          # Generated notes (.github/release.yml hides Dependabot), regrouped by
-          # the Conventional Commit type of each PR title.
-          gh api "repos/$GITHUB_REPOSITORY/releases/generate-notes" \
-            -f "tag_name=$TAG" -f "target_commitish=$GITHUB_SHA" --jq .body > generated.md
-          awk '
-            /^## / { section = $0 }
-            section ~ /What.s Changed/ && /^## / { next }
-            section ~ /What.s Changed/ && /^\* feat[(!:]/ { feat = feat $0 "\n"; next }
-            section ~ /What.s Changed/ && /^\* fix[(!:]/ { fix = fix $0 "\n"; next }
-            section ~ /What.s Changed/ && /^\* / { other = other $0 "\n"; next }
-            { rest = rest $0 "\n" }
-            END {
-              if (feat) printf "## Features\n%s\n", feat
-              if (fix) printf "## Fixes\n%s\n", fix
-              if (other) printf "## Other changes\n%s\n", other
-              printf "%s", rest
-            }' generated.md > notes.md
-          # --target records the exact commit; without it GitHub stores the branch name and
-          # `pnpm release:test` refuses the draft.
-          args=(--repo "$GITHUB_REPOSITORY" --verify-tag --target "$GITHUB_SHA" --draft --title "$TAG" --notes-file notes.md)
-          if [ "$PRERELEASE" = true ]; then args+=(--prerelease --latest=false); fi
-          gh release create "$TAG" "${args[@]}" assets/*
-          echo "Draft $TAG is ready. Run \`pnpm release:test $TAG\`, then publish it." >> "$GITHUB_STEP_SUMMARY"
+        run: node --import ./scripts/ts-hook.mjs scripts/release.ts draft "$VERSION" "$RUNNER_TEMP/assets"

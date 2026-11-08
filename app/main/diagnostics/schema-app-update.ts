@@ -19,6 +19,7 @@ import {
   isExtendedMemoryProfile,
   type ExtendedMemoryProfile,
 } from "../../client/certification/extended-memory.js";
+import { isFailedStagesField } from "../../client/certification/client-verification-pass.js";
 import {
   LOCAL_FEATURE_INVARIANTS,
   type AnyLocalFeatureInvariant,
@@ -30,7 +31,9 @@ import {
   boolean,
   captureLevel,
   captureStopReason,
+  clientBuildId,
   code,
+  count,
   digestOrNull,
   finiteNumber,
   incompleteCommandOutcome,
@@ -80,20 +83,6 @@ export const APP_AND_UPDATE_EVENT_SCHEMA = {
     subsystem: "app",
     level: "error",
     fields: { code },
-  },
-  "app.relaunchFailed": {
-    scope: "app",
-    subsystem: "app",
-    level: "error",
-    fields: {
-      action: literal([
-        "capabilityEnable",
-        "capabilityUnload",
-        "cacheClear",
-        "gameStorageReset",
-      ] as const),
-      code,
-    },
   },
   "app.beforeQuit": { scope: "app", subsystem: "app", level: "info", fields: none },
   "app.unexpectedUserData": {
@@ -440,6 +429,12 @@ export const APP_AND_UPDATE_EVENT_SCHEMA = {
     level: "error",
     fields: none,
   },
+  "settings.fieldsReset": {
+    scope: "app",
+    subsystem: "settings",
+    level: "warn",
+    fields: { count },
+  },
   "travelPreferences.corruptRecovered": {
     scope: "app",
     subsystem: "settings",
@@ -453,12 +448,6 @@ export const APP_AND_UPDATE_EVENT_SCHEMA = {
     fields: { code },
   },
   "settings.saveFailed": {
-    scope: "app",
-    subsystem: "settings",
-    level: "error",
-    fields: { code },
-  },
-  "settings.resetFailed": {
     scope: "app",
     subsystem: "settings",
     level: "error",
@@ -542,23 +531,11 @@ export const APP_AND_UPDATE_EVENT_SCHEMA = {
     level: "info",
     fields: { outcome: steamSignInOutcome },
   },
-  "filesystem.resetRequested": {
-    scope: "owner",
-    subsystem: "filesystem",
-    level: "warn",
-    fields: none,
-  },
   "filesystem.resetCompleted": {
     scope: "owner",
     subsystem: "filesystem",
     level: "warn",
     fields: none,
-  },
-  "filesystem.resetFailed": {
-    scope: "owner",
-    subsystem: "filesystem",
-    level: "error",
-    fields: { code },
   },
   /**
    * How many build templates an export wrote, and nothing about them. No
@@ -585,24 +562,6 @@ export const APP_AND_UPDATE_EVENT_SCHEMA = {
   },
 
   // Chunk cache and full download.
-  "cache.infoFailed": {
-    scope: "app",
-    subsystem: "cache",
-    level: "error",
-    fields: { code },
-  },
-  "cache.clearRequested": {
-    scope: "app",
-    subsystem: "cache",
-    level: "info",
-    fields: none,
-  },
-  "cache.clearRequestFailed": {
-    scope: "app",
-    subsystem: "cache",
-    level: "error",
-    fields: { code },
-  },
   "cache.clearedAtStartup": {
     scope: "app",
     subsystem: "cache",
@@ -699,17 +658,28 @@ export const APP_AND_UPDATE_EVENT_SCHEMA = {
     level: "warn",
     fields: { code },
   },
-  "wasm.localVerificationCompleted": {
+  // Where this launch's certification came from: the stored record, a pass,
+  // or `error` when no check could start (hashing the official JS failed).
+  // `build` is the first 12 hex digits of the public official WASM hash;
+  // nothing else names the client.
+  "wasm.clientVerdict": {
     scope: "app",
     subsystem: "wasm",
     level: "info",
-    fields: none,
+    fields: {
+      build: clientBuildId,
+      source: literal(["record", "pass", "error"] as const),
+      outcome: literal(["accepted", "check-failed"] as const),
+      passMs: nullable(finiteNumber),
+      // Stage names that failed to check, in chain order; null with no verdict.
+      failedStages: nullable(isFailedStagesField),
+    },
   },
-  "wasm.localVerificationUnavailable": {
+  "wasm.clientVerdictStored": {
     scope: "app",
     subsystem: "wasm",
-    level: "warn",
-    fields: none,
+    level: "info",
+    fields: { stored: boolean },
   },
   "wasm.templateSavePrepareFailed": {
     scope: "app",
@@ -760,6 +730,7 @@ export const APP_AND_UPDATE_EVENT_SCHEMA = {
         "none",
         "unsupported-client",
         "preparation-failed",
+        "check-failed",
         "diagnostic-profile",
       ] as const),
     },
@@ -799,12 +770,6 @@ export const APP_AND_UPDATE_EVENT_SCHEMA = {
     subsystem: "update",
     level: "error",
     fields: { code, fallbackCode: code },
-  },
-  "client.candidatePromotionFailed": {
-    scope: "app",
-    subsystem: "update",
-    level: "error",
-    fields: { code },
   },
   "client.candidatePromoted": {
     scope: "app",

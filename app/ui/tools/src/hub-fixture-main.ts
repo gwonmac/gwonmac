@@ -6,9 +6,11 @@
  * row open a model of the native Quit-or-Reload sheet. Import this module before `commands.ts`: it installs
  * the command transport that `commands.ts` registers with when it loads.
  */
-import type { AppSettings, RendererCommand } from '../../../shared/contracts';
-import { featureActivationRequested, type FeatureId } from '../../../shared/feature-contracts';
-import { HUB_SHORTCUT, hubShortcutAvailable, resolveShortcuts, shortcutMatches, type ShortcutAction } from '../../../shared/keyboard-shortcuts';
+import type { RendererCommand } from '../../../shared/contracts';
+import type { AppSettings } from '../../../shared/settings/index';
+import { featureActivationRequested } from '../../../shared/feature-contracts';
+import { HUB_SHORTCUT, hubShortcutAvailable, resolveShortcuts, SHORTCUT_FEATURES, shortcutMatches, type ShortcutAction } from '../../../shared/keyboard-shortcuts';
+import { isMapLayerShortcut, SHORTCUT_COMMANDS, SHORTCUT_MAP_LAYERS } from '../../../shared/shortcut-commands';
 
 const QUIT_CHORD = { key: 'q', shift: false, option: false } as const;
 type CommandHandler = (command: RendererCommand) => void | 'unhandled' | Promise<void | 'unhandled'>;
@@ -25,19 +27,6 @@ export async function sendFixtureCommand(command: RendererCommand): Promise<'com
   try { return await handler(command) === 'unhandled' ? 'unhandled' : 'completed'; }
   catch (error) { console.warn(`Fixture command ${command.type} failed`, error); return 'failed'; }
 }
-
-/** Each shortcut action, the feature that enables it, and the commands main sends (window.ts `run`). */
-const ACTIONS: Readonly<Record<Exclude<ShortcutAction, `cartography.${string}`>, readonly [FeatureId, readonly RendererCommand[]]>> = {
-  'game.call-target': ['callTarget', [{ type: 'game.call-target' }]],
-  'game.resign': ['resign', [{ type: 'input.reset' }, { type: 'game.resign' }]],
-  'character.switch': ['characterSwitch', [{ type: 'input.reset' }, { type: 'character.toggle' }]],
-  'tools.toggle': ['buildLibrary', [{ type: 'tools.toggle' }]],
-  'whispers.toggle': ['whispers', [{ type: 'whispers.toggle' }]],
-  'trade.toggle': ['tradeChat', [{ type: 'trade.toggle' }]],
-  'storage.open': ['xunlaiStorage', [{ type: 'input.reset' }, { type: 'storage.open' }]],
-  'travel.open': ['travel', [{ type: 'input.reset' }, { type: 'travel.toggle' }]],
-};
-const MAP_LAYERS = { 'cartography.grid.toggle': 'cartographyGridEnabled', 'cartography.walkability.toggle': 'cartographyOverlayEnabled' } as const;
 
 export interface FixtureMainOptions {
   settings(): AppSettings;
@@ -72,13 +61,10 @@ export function installFixtureMain(options: FixtureMainOptions) {
       // A disabled tool's chord stays claimed and does nothing, as in main.
       claim(event);
       if (event.repeat) return;
-      if (action in MAP_LAYERS) {
-        const key = MAP_LAYERS[action as keyof typeof MAP_LAYERS];
-        if (featureActivationRequested('cartography', settings)) options.updateSettings({ [key]: !settings[key] });
-        return;
-      }
-      const [feature, commands] = ACTIONS[action as keyof typeof ACTIONS];
-      if (featureActivationRequested(feature, settings)) void run(commands);
+      if (!featureActivationRequested(SHORTCUT_FEATURES[action], settings)) return;
+      // Main's own table (app/shared/shortcut-commands.ts): a map layer flips its setting, any other sends its commands.
+      if (isMapLayerShortcut(action)) { const key = SHORTCUT_MAP_LAYERS[action]; options.updateSettings({ [key]: !settings[key] }); }
+      else void run(SHORTCUT_COMMANDS[action]);
       return;
     }
   };

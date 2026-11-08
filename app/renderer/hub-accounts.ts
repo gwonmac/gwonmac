@@ -50,7 +50,7 @@ export function createHubAccounts(hub: AccountsHub, api: { get(): Promise<HubAcc
   function confirmReplace(profile: Profile, title: string, current: string) {
     hub.showView(`Close ${current}?`, (target, back, footer, pages) => {
       // The page itself takes focus, so Enter reaches the named primary once it has armed.
-      const page = pages.confirm(target, { question: `${title}?`, consequence: `${profile.name} opens first. Then ${current} saves and closes.` });
+      const page = pages.mount('confirm', target, { question: `${title}?`, consequence: `${profile.name} opens first. Then ${current} saves and closes.` });
       footer.primary({ label: title, destructive: true, armed: true, run: task => open(profile, 'replace', task, back) });
       footer.secondary({ label: `Keep ${current}`, run: back });
       return page.dispose;
@@ -64,7 +64,7 @@ export function createHubAccounts(hub: AccountsHub, api: { get(): Promise<HubAcc
     const current = snapshot?.profiles.find(item => item.id === snapshot?.current)?.name ?? 'current account';
     return (['open', 'replace'] as const).map(mode => {
       const title = mode === 'replace' ? `Close ${current} and open ${profile.name}` : `${profile.state === 'running' ? 'Show' : 'Open'} ${profile.name}`;
-      return { id: `account:${profile.id}:${mode}`, title,
+      return { id: `account:${profile.id}:${mode}`, title, iconKind: 'accounts',
         detail: mode === 'replace' ? `Closes ${current}` : `Keep ${current} running`,
         group: 'Accounts', action: title, consequential: true, ...(mode === 'replace' ? { destructive: true } : {}),
         // Opening waits until the new window runs; the footer and status name it meanwhile (HUB-083).
@@ -75,20 +75,20 @@ export function createHubAccounts(hub: AccountsHub, api: { get(): Promise<HubAcc
   };
   const rows = (): HubRow[] => {
     const list = snapshot;
-    if (problem) return [{ id: 'accounts-retry', title: 'Retry accounts', detail: problem, group: 'Accounts', action: 'Retry', run: load }];
+    if (problem) return [{ id: 'accounts-retry', iconKind: 'person', title: 'Retry accounts', detail: problem, group: 'Accounts', action: 'Retry', run: load }];
     // Loading runs nothing, so Enter never opens the Launcher before the accounts are known (HUB-232).
-    if (!list) return [{ id: 'accounts-loading', title: 'Loading accounts…', detail: '', group: 'Accounts', action: 'Loading', unavailable: 'Accounts are still loading.', run() {} }];
-    if (list.profiles.length < 2) return [{ id: 'accounts-manage', title: 'Manage accounts', detail: 'Add another account in the launcher.', group: 'Accounts', action: 'Show Launcher', ...(!api.manage ? { unavailable: 'Open the launcher to manage accounts.' } : {}), run: async task => { await api.manage?.(); task.done(); } }];
+    if (!list) return [{ id: 'accounts-loading', iconKind: 'person', title: 'Loading accounts…', detail: '', group: 'Accounts', action: 'Loading', unavailable: 'Accounts are still loading.', run() {} }];
+    if (list.profiles.length < 2) return [{ id: 'accounts-manage', iconKind: 'person', title: 'Manage accounts', detail: 'Add another account in the launcher.', group: 'Accounts', action: 'Show Launcher', ...(!api.manage ? { unavailable: 'Open the launcher to manage accounts.' } : {}), run: async task => { await api.manage?.(); task.done(); } }];
     return list.profiles.map(profile => {
       const unavailable = profile.id === list.current ? 'Current account' : !['ready', 'failed', 'running'].includes(profile.state) ? 'This account is still opening.' : null;
       const choose = () => hub.showRows(profile.name, () => actions(profile));
-      return { id: `account:${profile.id}`, title: profile.name, detail: profile.id === list.current ? 'Current account' : profile.state === 'running' ? 'Running' : profile.state === 'ready' ? 'Saved account' : profile.state === 'failed' ? 'Retry opening' : 'Opening…',
+      return { id: `account:${profile.id}`, iconKind: 'accounts', title: profile.name, detail: profile.id === list.current ? 'Current account' : profile.state === 'running' ? 'Running' : profile.state === 'ready' ? 'Saved account' : profile.state === 'failed' ? 'Retry opening' : 'Opening…',
         group: 'Accounts', action: 'Choose account action',
         // → follows the same availability as Enter: the current account has no actions to open (HUB-175).
         ...(unavailable ? { unavailable } : { navigate: choose }), run: choose };
     });
   };
-  const accountRow = (): HubRow => ({ id: 'accounts', title: 'Switch Account', detail: 'Open another saved account or switch to it', group: 'Tools', action: 'Browse accounts', navigate: showAccounts, run: showAccounts });
+  const accountRow = (): HubRow => ({ id: 'accounts', iconKind: 'accounts', title: 'Switch Account', detail: 'Open another saved account or switch to it', group: 'Tools', action: 'Browse accounts', navigate: showAccounts, run: showAccounts });
   return {
     searchNames: { Accounts: 'accounts' },
     lookup: id => id === 'accounts' ? accountRow() : undefined,

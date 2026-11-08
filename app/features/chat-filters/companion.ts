@@ -1,7 +1,7 @@
 /**
  * Chat Filters in the game host: the certified filter mask for the saved choices.
  */
-import type { AppSettings } from "../../shared/contracts.js";
+import type { AppSettings } from "../../shared/settings/index.js";
 import { ENHANCEMENT_CHAT_FILTER_MASKS } from "../../shared/enhancement-contracts.js";
 import type { ToolsCompanionPart } from "../../renderer/tools-companion-part.js";
 

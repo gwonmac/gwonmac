@@ -1,12 +1,14 @@
 /**
  * The contract between the Hub's controller (app/renderer/hub.ts with its engine,
  * hub-engine.ts) and its Vue view (app/ui/tools/src/hub, built as `tools/hub-app.js`). The
- * controller owns state, search and where the keyboard should be, as a focus target; the
- * view draws exactly these facts, owns the focus zones that put the keyboard there, and hands
- * back the elements the controller measures and attaches its listeners to. Core loads the
- * view module alone, never the Tools application.
+ * controller owns state, search and where the keyboard should be, as a focus target, and
+ * paints once per entry point; the view draws exactly these facts, owns the focus zones that
+ * put the keyboard there and every measurement (currency art, scroll, the menu's and the
+ * receipt's place), and hands back the elements the controller attaches its listeners to. Core
+ * loads the view module alone, never the Tools application.
  */
 import type { HubRow, HubSummary } from '../hub.js';
+import type { Currency } from '../hub-calculator.js';
 import type { resolveShortcuts } from '../keyboard-shortcuts.js';
 import type { HubPages } from './hub-pages.js';
 
@@ -18,26 +20,12 @@ export type HubMenuItem = Readonly<{
   destructive?: boolean; disabled?: boolean; reason?: string;
   click(event: MouseEvent): void;
 }>;
-/** The calculator's Price basis picker. It stands in the row it prices, else before the results. */
-export type HubRateControls = Readonly<{
-  /** The row that holds the picker; null while it waits before the results. */
-  host: string | null;
-  hidden: boolean;
-  /** Absent until a priced row was first selected; the picker then stays built. */
-  basis: Readonly<{ value: string; options: readonly Readonly<{ value: string; label: string }>[] }> | null;
-  detailsLabel: string;
-  change(value: string): void;
-  keydown(event: KeyboardEvent): void;
-  details(): void;
-}>;
-/** The calculation input's measuring layer: the typed text, with currency art after each unit. */
-export type HubGlyphs = Readonly<{
-  hidden: boolean;
-  calculation: boolean;
-  box: Readonly<{ left: number; top: number; width: number; height: number }> | null;
-  segments: readonly Readonly<{ text: string; token?: Readonly<{ start: number; end: number; unit: string }> }>[];
-  icons: readonly Readonly<{ url: string; unit: string; left: number }>[];
-}>;
+/**
+ * What the calculation input's measuring layer repeats: the typed text while the query is a
+ * calculation, and each currency unit's art. The view places the art after each unit itself
+ * (HubSearchBar); the art's address stays the renderer's, so the view bundles no images.
+ */
+export type HubGlyphs = Readonly<{ calculation: boolean; text: string; art(unit: Currency): string | undefined }>;
 /**
  * The Hub's focus zones. `results` is the list stage: DOM focus stays in the Hub search and the
  * selection moves by aria-activedescendant (D-2). `search` is the page's search: the Hub
@@ -55,12 +43,15 @@ export type HubFocusRequest = HubFocusTarget & Readonly<{
   seq: number;
   /** A restored page's key may mount late (a loading view): it still takes the keyboard until the player acts. */
   wait?: boolean;
+  /** A resumed or re-shown Hub search is selected once it holds the keyboard, so typing starts a new search (D-11). */
+  select?: boolean;
 }>;
 export type HubPrimary = Readonly<{ label: string; art?: string; keycap: boolean; disabled: boolean; variant: 'primary' | 'danger' }>;
 export type HubReceipt = Readonly<{
   text: string; announcement: string; hidden: boolean;
   outcome?: string; tone?: string;
-  place?: Readonly<{ left: string; bottom: string; maxWidth: string }>;
+  /** Where the Hub frame last stood: a receipt after closing appears in its footprint, not as a window toast. */
+  frame?: Readonly<{ left: number; bottom: number; width: number }>;
 }>;
 
 /**
@@ -81,14 +72,21 @@ export type HubViewModel = {
   scope: Readonly<{ text: string; hidden: boolean }>;
   search: Readonly<{
     hidden: boolean; placeholder: string; label: string; expanded: boolean;
-    activeDescendant?: string | undefined; description?: string | undefined; calculation: boolean;
+    activeDescendant?: string | undefined; description?: string | undefined;
   }>;
   glyphs: HubGlyphs;
-  rates: HubRateControls;
   results: Readonly<{
     hidden: boolean; previewList: boolean;
     rows: readonly HubRow[]; painted: number; selected: string | null; compact: boolean;
     bindings: HubShortcutBindings;
+    /** Bring this row into view, once per new `seq`: a keyboard move to it. */
+    reveal?: Readonly<{ id: string; seq: number }>;
+    /** Scroll back to this offset, once per new `seq`, painting rows down to it first: a restored page. */
+    scroll?: Readonly<{ top: number; seq: number }>;
+    /** Paints the next chunk of a long list now, for a scroll position the painted rows do not reach. */
+    more(): void;
+    /** Enter on the selected row's Price basis picker: run the row's primary, as Enter in the search does (HUB-022). */
+    run(): void;
   }>;
   empty: Readonly<{ hidden: boolean }>;
   preview: Readonly<{ text: string; hidden: boolean }>;
@@ -101,19 +99,17 @@ export type HubViewModel = {
   count: string;
   primary?: HubPrimary;
   actions: Readonly<{ keys: boolean; disabled: boolean; expanded: boolean }>;
-  menu: Readonly<{ hidden: boolean; bottom?: string; items: readonly HubMenuItem[] }>;
+  menu: Readonly<{ hidden: boolean; items: readonly HubMenuItem[] }>;
   receipt: HubReceipt;
   focus?: HubFocusRequest;
 };
 
-/** The stable elements the controller keeps; the view never replaces them. */
+/** The stable elements the controller attaches its listeners to; the view never replaces them. */
 export type HubViewElements = Readonly<{
   root: HTMLDialogElement; panel: HTMLElement; heading: HTMLElement; lock: HTMLButtonElement; resize: HTMLElement;
-  back: HTMLButtonElement; close: HTMLButtonElement; search: HTMLElement; input: HTMLInputElement; glyphs: HTMLElement;
-  results: HTMLElement; view: HTMLElement; footer: HTMLElement; primary: HTMLButtonElement; actions: HTMLButtonElement;
-  menu: HTMLElement; receipt: HTMLElement;
+  back: HTMLButtonElement; close: HTMLButtonElement; input: HTMLInputElement;
+  results: HTMLElement; view: HTMLElement; primary: HTMLButtonElement; actions: HTMLButtonElement; menu: HTMLElement;
 }>;
-export type HubBuildDetails = readonly (HubSummary | HubRow)[];
 /** Where the keyboard is, read from the view's focus zones. */
 export type HubFocusReader = Readonly<{
   /** The keyboard's place as a target a later paint can restore. */
@@ -123,13 +119,28 @@ export type HubFocusReader = Readonly<{
   /** Where typing goes: the Hub search on list stages, else a list view's own search (Travel, Characters). */
   searchField(): HTMLInputElement | null;
 }>;
+/** The geometry the controller records with a page or a close; the view measures it. */
+export type HubLayoutReader = Readonly<{
+  /** The panel's place on screen, for a receipt after the Hub closes. */
+  frame(): Readonly<{ left: number; bottom: number; width: number }>;
+  /** The results' scroll offset, which Back and a resume restore. */
+  scrollTop(): number;
+  /** How many rows PageUp and PageDown move: one page of the list, less one row. */
+  pageRows(): number;
+}>;
+/** A mounted page's form fields by focus key, for the session drafts the controller keeps. */
+export type HubDraftFields = Readonly<{
+  read(): readonly (readonly [key: string, value: string])[];
+  /** Puts a kept value back into its field as an edit the page hears. */
+  write(key: string, value: string): void;
+}>;
 export type HubViewHandle = Readonly<{
   elements: HubViewElements;
-  /** Redraws the model now, applying its focus request, so the controller can measure right after. */
+  /** Redraws the model now and applies its focus request; the controller calls it once per entry point. */
   paint(model: HubViewModel): void;
   focus: HubFocusReader;
-  /** Mounts Build details into a view host; returns its section and its disposal. */
-  mountBuildDetails(target: HTMLElement, builds: HubBuildDetails): Readonly<{ element: HTMLElement; dispose(): void }>;
+  layout: HubLayoutReader;
+  drafts: HubDraftFields;
   /** The Hub's own pages, which the controller hands to every view it mounts. */
   pages: HubPages<HTMLElement>;
   dispose(): void;
@@ -138,7 +149,7 @@ export type HubViewHandle = Readonly<{
 export const hubPrimaryArt = (row: HubRow | undefined): string | undefined => row?.conversion?.iconTo;
 /** Whether a row draws as the one before it, so its mounted option stays; its actions still come from the new row. */
 export const hubRowPaintsSame = (row: HubRow, previous: HubRow | undefined): boolean => !!previous && row.id === previous.id && row.title === previous.title
-  && row.detail === previous.detail && row.group === previous.group && row.icon === previous.icon
+  && row.detail === previous.detail && row.group === previous.group && row.icon === previous.icon && row.iconKind === previous.iconKind
   && row.action === previous.action && row.destructive === previous.destructive && row.unavailable === previous.unavailable
   && row.readOnly === previous.readOnly && !!row.navigate === !!previous.navigate && row.preview === previous.preview
   && row.folder === previous.folder && row.attributeStatus === previous.attributeStatus

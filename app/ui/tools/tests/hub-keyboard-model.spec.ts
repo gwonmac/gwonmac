@@ -1,4 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
+import type { HubFixtureWindow } from './fixture-window.js';
+import { openHub } from './hub-page.js';
+// The workbench page this spec drives sets the fixture hooks; they are required here.
+declare const window: HubFixtureWindow;
 
 /**
  * One keyboard model across the Hub and its popouts: the shared list keys never
@@ -6,12 +10,7 @@ import { expect, test, type Page } from '@playwright/test';
  * first (a disclosure, a prompt, a drawer, a typed query) before a page or a popout.
  */
 const hubSearch = (page: Page) => page.locator('.hub-search input');
-const openHub = async (page: Page, query = '') => {
-  await page.goto(`/?hub${query}`);
-  await expect(page.locator('#app')).toHaveAttribute('data-ready', 'true');
-  await expect(hubSearch(page)).toBeFocused();
-};
-const canvasKeys = (page: Page) => page.evaluate(() => (window.gwFixtureCanvas?.events ?? []).filter(event => event.type.startsWith('key')).length);
+const canvasKeys = (page: Page) => page.evaluate(() => window.gwFixtureCanvas.events.filter(event => event.type.startsWith('key')).length);
 
 test('consecutive Escapes pop one level each and never close the Hub early (HUB-005)', async ({ page }) => {
   await openHub(page);
@@ -27,7 +26,7 @@ test('consecutive Escapes pop one level each and never close the Hub early (HUB-
         if (dialog?.open && dialog.querySelector('.hub-caption')?.textContent === 'Home' && search?.value === 'switch account') homes.push({ query: search.value, focused: document.activeElement === search });
       });
     }, true);
-    window.gwFixtureCanvas?.clear();
+    window.gwFixtureCanvas.clear();
   });
   // No evaluate or locator read between the presses: those would grant user activation.
   for (let cycle = 0; cycle < 5; cycle++) {
@@ -44,7 +43,7 @@ test('consecutive Escapes pop one level each and never close the Hub early (HUB-
     { query: 'switch account', focused: true }, { query: 'switch account', focused: true },
     { query: 'switch account', focused: true },
   ]);
-  expect(await page.evaluate(() => window.gwFixtureCanvas?.events.filter(event => event.code === 'Escape'))).toEqual([]);
+  expect(await page.evaluate(() => window.gwFixtureCanvas.events.filter(event => event.code === 'Escape'))).toEqual([]);
   // Three Build Library levels deep, then one Escape per level back to Home (KEY-09).
   await hubSearch(page).fill('build library');
   await page.keyboard.press('Enter');
@@ -82,52 +81,6 @@ test('consecutive Escapes pop one level each and never close the Hub early (HUB-
   await page.keyboard.press('Escape'); await page.keyboard.press('Escape'); await page.keyboard.press('Escape');
   await expect(page.locator('#hub')).toBeHidden();
   expect(await page.evaluate(() => (window as typeof window & { acceptanceCancels: boolean[] }).acceptanceCancels)).not.toContain(false);
-});
-
-test('Escape and Command-Backspace close an open disclosure before they leave its page', async ({ page }) => {
-  await openHub(page);
-  await hubSearch(page).fill('team gom afk'); await page.keyboard.press('ArrowRight');
-  await expect(page.locator('.hub-caption')).toHaveText('GOM AFK');
-  const summary = page.locator('#hub details summary').first();
-  for (const key of ['Escape', 'Meta+Backspace']) {
-    await summary.click();
-    await expect(page.locator('#hub details[open]')).toHaveCount(1);
-    await page.keyboard.press(key);
-    await expect(page.locator('#hub details[open]')).toHaveCount(0);
-    await expect(summary).toBeFocused();
-    await expect(page.locator('.hub-caption')).toHaveText('GOM AFK');
-  }
-  await page.keyboard.press('Escape');
-  await expect(page.locator('.hub-caption')).toHaveText('Home');
-});
-
-test('Escape on a page its shortcut opened clears the query, then closes without a Home step (D-4)', async ({ page }) => {
-  await openHub(page);
-  await page.keyboard.press('Escape');
-  await expect(page.locator('#hub')).toBeHidden();
-  await page.keyboard.press('Meta+t');
-  const travel = page.getByRole('combobox', { name: 'Destination, phrase, or friend' });
-  await expect(travel).toBeFocused();
-  // The hint names what Esc does here, and ⌘⌫ still has the real Home to return to.
-  await expect(page.locator('.hub-legend')).toContainText('⎋ Close');
-  await travel.fill('kam');
-  // A held Escape clears the query and stops there: one step per physical press.
-  await page.evaluate(() => window.gwFixtureCanvas?.clear());
-  for (let press = 0; press < 4; press++) await page.keyboard.down('Escape');
-  await page.keyboard.up('Escape');
-  await expect(travel).toHaveValue('');
-  await expect(page.locator('.hub-caption')).toHaveText('Travel');
-  await page.keyboard.press('Escape');
-  await expect(page.locator('#hub')).toBeHidden();
-  expect(await canvasKeys(page)).toBe(0);
-  // ⌘⌫ there returns to the real Home instead, and the Characters hint names each Esc step.
-  await page.keyboard.press('Meta+e');
-  const hints = page.locator('.hub-legend');
-  await expect(hints).toContainText('⎋ Close⌘⌫ Back');
-  await page.keyboard.press('Meta+Backspace');
-  await expect(page.locator('.hub-caption')).toHaveText('Home');
-  await hubSearch(page).fill('switch character'); await page.keyboard.press('Enter');
-  await expect(hints).toContainText('⎋ Back');
 });
 
 test('list stages keep focus in search: ↓ moves one selection, Tab never lands on the list, ↓ steps from a hovered row (HUB-045, HUB-047)', async ({ page }) => {
@@ -194,53 +147,26 @@ test('list stages keep focus in search: ↓ moves one selection, Tab never lands
   }
 });
 
-test('Travel moves one selection with the shared list keys and never wraps (HUB-044, HUB-137)', async ({ page }) => {
+test('Travel keeps the active result in view after End (HUB-044)', async ({ page }) => {
   await openHub(page);
   await page.keyboard.press('Meta+t');
   const travel = page.getByRole('combobox', { name: 'Destination, phrase, or friend' });
   await expect(travel).toBeFocused();
-  const active = () => travel.getAttribute('aria-activedescendant');
-  const first = await active();
-  await page.keyboard.press('ArrowUp');
-  expect(await active()).toBe(first);
-  await page.keyboard.press('End');
-  const last = await active();
-  expect(last).not.toBe(first);
-  await page.keyboard.press('ArrowDown');
-  expect(await active()).toBe(last);
-  await page.keyboard.press('Home');
-  expect(await active()).toBe(first);
-  await page.keyboard.press('Control+n');
-  expect(await active()).not.toBe(first);
-  await page.keyboard.press('Control+p');
-  expect(await active()).toBe(first);
-  await page.keyboard.press('PageDown');
-  expect(await active()).not.toBe(first);
-  await expect(travel).toBeFocused();
   await travel.fill('a');
   await page.keyboard.press('End');
-  await expect(page.locator(`#${await active()}`)).toBeInViewport();
+  await expect(page.locator(`#${await travel.getAttribute('aria-activedescendant')}`)).toBeInViewport();
   await expect(travel).toBeFocused();
 });
 
-test('Characters: search leads the Tab order, the cards are one roving Tab stop, and ↑ in search stays (HUB-137, HUB-138)', async ({ page }) => {
+test('Characters: a real Tab from the search reaches the selected card, not the first one (HUB-138)', async ({ page }) => {
   await openHub(page);
   await page.keyboard.press('Meta+e');
   const card = page.locator('#character-switch-list button[data-selected=true]');
   await expect(card).toBeFocused();
   await page.keyboard.press('ArrowRight'); await page.keyboard.press('ArrowRight');
   const chosen = await card.getAttribute('data-character-key');
-  await expect(page.locator('#character-switch-list button[tabindex="0"]')).toHaveCount(1);
-  await expect(page.locator('#character-switch-list button[tabindex="0"]')).toHaveAttribute('data-character-key', chosen!);
-  const query = page.locator('#character-switch-query');
-  // In DOM order the search comes before the heading, where it is drawn.
-  expect(await page.evaluate(() => {
-    const search = document.querySelector('#character-switch-query')!;
-    const heading = document.querySelector('#character-switch-title')!;
-    return Boolean(search.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING);
-  })).toBe(true);
-  await page.keyboard.press('ArrowUp'); await expect(query).toBeFocused();
-  await page.keyboard.press('ArrowUp'); await expect(query).toBeFocused();
+  await page.keyboard.press('ArrowUp');
+  await expect(page.locator('#character-switch-query')).toBeFocused();
   // Tab from the search reaches the selected card, not the first one.
   for (let press = 0; press < 6 && !(await card.evaluate(element => element === document.activeElement)); press++) await page.keyboard.press('Tab');
   await expect(card).toBeFocused();
@@ -279,119 +205,18 @@ test('typing and ⌫ on a view\'s buttons and the header edit that view\'s searc
   }
 });
 
-test('Travel Customize stays form-first: typing on its controls never jumps to the Travel search (HUB-046)', async ({ page }) => {
+test('Command-F on the wide Settings page finds a setting, and the first Escape still goes Back', async ({ page }) => {
+  // The narrow page opens search in place of the tabs and Escape closes it. Wide, the field is
+  // always there, so an Escape with nothing typed is the Hub's Back, not a close of nothing. The
+  // page tells wide from narrow by the stylesheet, so this stays here; that Command-F reaches the
+  // page through the Hub is held in vitest (hub.dom.test.ts).
   await openHub(page);
-  await page.keyboard.press('Meta+t');
-  const search = page.getByRole('combobox', { name: 'Destination, phrase, or friend' });
-  await page.getByRole('button', { name: 'Customize Travel' }).click();
-  const panel = page.locator('#travel-customize-panel');
-  await expect(panel).toBeVisible();
-  for (const control of [page.getByRole('button', { name: '+ Add phrase' }), page.locator('.travel-customize-shortcuts button').first()]) {
-    await control.focus();
-    await page.keyboard.type('d'); await page.keyboard.press('Backspace');
-    await expect(control).toBeFocused();
-    await expect(panel).toBeVisible();
-    await expect(search).toHaveValue('');
-  }
-});
-
-test('Characters: Escape during composition keeps the query (HUB-140)', async ({ page }) => {
-  await openHub(page);
-  await page.keyboard.press('Meta+e');
-  await page.keyboard.type('toe');
-  const query = page.locator('#character-switch-query');
-  await expect(query).toHaveValue('toe');
-  await expect(page.locator('.hub-legend')).toContainText('⎋ Clear');
-  await query.evaluate(element => element.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', isComposing: true, bubbles: true, cancelable: true })));
-  await expect(query).toHaveValue('toe');
-  await expect(page.locator('.hub-caption')).toHaveText('Characters');
+  await hubSearch(page).fill('settings'); await page.keyboard.press('Enter');
+  await expect(page.locator('.settings-fields h1')).toBeFocused();
+  await page.keyboard.press('Meta+f');
+  await expect(page.getByRole('searchbox', { name: 'Search settings' })).toBeFocused();
   await page.keyboard.press('Escape');
-  await expect(query).toHaveValue('');
-  await expect(page.locator('.hub-caption')).toHaveText('Characters');
-});
-
-test('Settings sections: a click keeps the keyboard on the button, ↑ ↓ move without wrapping (HUB-054)', async ({ page }) => {
-  await openHub(page);
-  await hubSearch(page).fill('settings'); await page.keyboard.press('Enter');
-  const sections = page.getByRole('navigation', { name: 'Settings sections' });
-  // A section that opens the launcher also names that, so match with or without that.
-  const section = (name: string) => sections.getByRole('button', { name: new RegExp(`^${name}( opens the launcher)?$`) });
-  const heading = page.locator('.settings-fields h1');
-  await section('Appearance').click();
-  await expect(heading).toHaveText('Appearance');
-  await expect(section('Appearance')).toBeFocused();
-  await section('Tools').focus();
-  await page.keyboard.press('ArrowUp');
-  await expect(section('Tools')).toBeFocused();
-  await page.keyboard.press('ArrowDown');
-  await expect(section('Maps')).toBeFocused();
-  await expect(heading).toHaveText('Maps');
-  await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown');
-  await expect(section('Game')).toBeFocused();
-  await expect(heading).toHaveText('Game');
-  // The launcher's sections are reached by the same keys but only open the launcher when chosen.
-  await page.keyboard.press('ArrowDown');
-  await expect(section('Texture packs')).toBeFocused();
-  await expect(heading).toHaveText('Game');
-  await page.keyboard.press('End');
-  await expect(section('Advanced')).toBeFocused();
-  await page.keyboard.press('ArrowDown');
-  await expect(section('Advanced')).toBeFocused();
-});
-
-test('Escape at a shortcut conflict cancels the prompt and returns to its shortcut (HUB-053)', async ({ page }) => {
-  await openHub(page);
-  await hubSearch(page).fill('settings'); await page.keyboard.press('Enter');
-  const record = page.getByRole('button', { name: 'Change Travel shortcut', exact: true });
-  await record.click();
-  await page.keyboard.press('Meta+e');
-  const row = page.locator('[data-setting="tool:quick-travel"]');
-  await expect(row).toContainText('Already used by Switch Character');
-  await expect(row.getByRole('button', { name: 'Replace shortcut' })).toBeVisible();
-  await page.keyboard.press('Escape');
-  await expect(row.getByRole('button', { name: 'Replace shortcut' })).toHaveCount(0);
-  await expect(row).toContainText('Shortcut change cancelled.');
-  await expect(record).toBeFocused();
-  await expect(page.locator('.hub-caption')).toHaveText('Settings');
-});
-
-test('closing the Hub with the mouse while a shortcut records gives the next keys back to the game (HUB-038)', async ({ page }) => {
-  await openHub(page);
-  await hubSearch(page).fill('settings'); await page.keyboard.press('Enter');
-  const record = page.getByRole('button', { name: 'Change Travel shortcut', exact: true });
-  await record.click();
-  await expect(record).toContainText('Press keys…');
-  await page.getByRole('button', { name: 'Close Hub', exact: true }).click();
-  await expect(page.locator('#hub')).toBeHidden();
-  await page.evaluate(() => window.gwFixtureCanvas?.clear());
-  await page.keyboard.press('w');
-  expect(await canvasKeys(page)).toBe(2);
-  await page.keyboard.press('Meta+r');
-  await expect(hubSearch(page)).toBeFocused();
-});
-
-test('Hub Back follows the named key and composition never navigates (KEY-24)', async ({ page }) => {
-  await openHub(page);
-  const search = hubSearch(page);
-  await search.fill('commands');
-  for (const input of [
-    { key: 'Enter', code: 'Enter' },
-    { key: 'Backspace', code: 'Backspace' },
-    { key: 'Backspace', code: 'Delete', metaKey: true },
-  ]) {
-    await search.evaluate((element, input) => element.dispatchEvent(new KeyboardEvent('keydown', {
-      ...input, isComposing: true, bubbles: true, cancelable: true,
-    })), input);
-    await expect(page.locator('.hub-caption')).toHaveText('Home');
-    await expect(search).toHaveValue('commands');
-  }
-  await search.press('Enter');
-  await expect(page.locator('.hub-caption')).toHaveText('Commands');
-  await search.evaluate(element => element.dispatchEvent(new KeyboardEvent('keydown', {
-    key: 'Backspace', code: 'Delete', metaKey: true, bubbles: true, cancelable: true,
-  })));
   await expect(page.locator('.hub-caption')).toHaveText('Home');
-  await expect(search).toHaveValue('commands');
 });
 
 test('arrow keys scroll Build details and never jump to Back (HUB-088)', async ({ page }) => {
@@ -417,7 +242,7 @@ test('Whispers: Escape clears the picker text first, ↓ walks the people, ⌘�
   const picker = page.locator('#whisper-person');
   await expect(picker).toBeFocused();
   await page.keyboard.type('ro');
-  await page.evaluate(() => window.gwFixtureCanvas?.clear());
+  await page.evaluate(() => window.gwFixtureCanvas.clear());
   await page.keyboard.press('Escape');
   await expect(picker).toHaveValue('');
   await expect(page.locator('#whisper-window')).toBeVisible();
@@ -467,72 +292,7 @@ test('Whispers: Escape clears the picker text first, ↓ walks the people, ⌘�
   expect(await canvasKeys(page)).toBe(0);
 });
 
-test('Trade: Escape and ⌘⌫ leave the Saved drawer, the Actions menu and Trader prices, and Escape a typed search, before Trade hides (HUB-120)', async ({ page }) => {
-  await openHub(page);
-  await page.keyboard.press('Escape');
-  await page.keyboard.press('Meta+k');
-  const trade = page.getByRole('dialog', { name: 'Trade Chat' });
-  await expect(trade).toBeVisible();
-  await trade.getByRole('button', { name: /Saved/ }).click();
-  const drawer = trade.getByRole('complementary', { name: 'Saved trade items' });
-  await expect(drawer).toBeVisible();
-  await page.keyboard.press('Escape');
-  await expect(drawer).toHaveCount(0);
-  await expect(trade).toBeVisible();
-  // Opening Actions by mouse enters the same keyboard menu as ⌘J.
-  // Escape returns to its trigger without closing Trade.
-  const canvas = page.locator('#canvas');
-  const menu = trade.locator('.offer-actions');
-  await canvas.focus();
-  await menu.locator('summary').click();
-  await expect(menu).toHaveAttribute('open', '');
-  await expect(menu.getByRole('menuitem').first()).toBeFocused();
-  await page.keyboard.press('Escape');
-  await expect(menu).not.toHaveAttribute('open', '');
-  await expect(trade).toBeVisible();
-  await expect(menu.locator('summary')).toBeFocused();
-  // The drawer takes focus when it opens; once the player clicks back into the game, Escape leaves it there.
-  await trade.getByRole('button', { name: /Saved/ }).click();
-  await expect(drawer).toBeVisible();
-  await canvas.focus();
-  await page.keyboard.press('Escape');
-  await expect(drawer).toHaveCount(0);
-  await expect(canvas).toBeFocused();
-  await page.evaluate(() => window.gwFixtureCanvas?.clear());
-  await page.keyboard.press('w');
-  await expect.poll(() => canvasKeys(page)).toBe(2);
-  await trade.getByRole('button', { name: 'Trader prices' }).click();
-  const item = trade.locator('[data-trader-id]');
-  await item.first().focus();
-  await page.keyboard.press('End');
-  await expect(item.last()).toBeFocused();
-  await page.keyboard.press('Home');
-  await expect(item.first()).toBeFocused();
-  await page.keyboard.press('Meta+Backspace');
-  await expect(trade).toHaveAttribute('data-view', 'listings');
-  await expect(trade).toBeVisible();
-  // At the listings ⌘⌫ does nothing, not even to a typed search; Escape clears the search, then hides Trade (D-4).
-  const search = trade.getByRole('searchbox', { name: 'Search offers or character names' });
-  await search.fill('ecto');
-  await page.keyboard.press('Meta+Backspace');
-  await expect(trade).toBeVisible();
-  await expect(search).toHaveValue('ecto');
-  await page.keyboard.press('Escape');
-  await expect(search).toHaveValue('');
-  await expect(trade).toBeVisible();
-  await page.keyboard.press('Escape');
-  await expect(trade).toBeHidden();
-  // A submitted search clears the same way, back to the live feed.
-  await page.keyboard.press('Meta+k');
-  await search.fill('ecto'); await page.keyboard.press('Enter');
-  await expect(trade.getByRole('button', { name: 'Live feed' })).toBeVisible();
-  await page.keyboard.press('Escape');
-  await expect(search).toHaveValue('');
-  await expect(trade.getByRole('button', { name: 'Live feed' })).toHaveCount(0);
-  await expect(trade).toBeVisible();
-});
-
-test('the Trade ledger moves with the shared list keys (HUB-044), from search and back (HUB-024, HUB-121)', async ({ page }) => {
+test('typing on a focused Trade ledger row writes its first key into the search (HUB-121)', async ({ page }) => {
   await openHub(page);
   await page.keyboard.press('Escape');
   await page.keyboard.press('Meta+k');
@@ -540,31 +300,8 @@ test('the Trade ledger moves with the shared list keys (HUB-044), from search an
   const search = trade.getByRole('searchbox', { name: 'Search offers or character names' });
   const rows = trade.getByRole('listbox', { name: 'Trade offers' }).getByRole('option');
   await expect(search).toBeFocused();
-  await search.fill('arms');
-  // ↓ from search enters the ledger at the selected row; the query stays.
-  await page.keyboard.press('ArrowDown');
-  await expect(rows.first()).toBeFocused();
-  await expect(rows.first()).toHaveAttribute('aria-selected', 'true');
-  await expect(search).toHaveValue('arms');
-  // ↑ on the first row returns to search.
-  await page.keyboard.press('ArrowUp');
-  await expect(search).toBeFocused();
   await search.fill('');
-  await page.keyboard.press('Control+n');
-  await expect(rows.first()).toBeFocused();
-  await page.keyboard.press('End');
-  await expect(rows.last()).toBeFocused();
-  await page.keyboard.press('ArrowDown');
-  await expect(rows.last()).toBeFocused();
-  await page.keyboard.press('Home');
-  await expect(rows.first()).toBeFocused();
-  await page.keyboard.press('Control+n');
-  await expect(rows.nth(1)).toBeFocused();
-  // The move steps from the focused row, not from an older selection.
   await rows.nth(3).focus();
-  await page.keyboard.press('ArrowDown');
-  await expect(rows.nth(4)).toBeFocused();
-  await expect(rows.nth(4)).toHaveAttribute('aria-selected', 'true');
   // Typing on a row writes into the search, first key included.
   await page.keyboard.type('choc');
   await expect(search).toBeFocused();

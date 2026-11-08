@@ -8,11 +8,8 @@
  * checked against one description of that surface rather than against each
  * other's assumptions.
  */
-import type { ToolsSettings } from "../shared/settings/index.js";
-import type {
-  AppSettings,
-  RendererGwNativeApi,
-} from "../shared/contracts.js";
+import type { RendererGwNativeApi } from "../shared/contracts.js";
+import type { AppSettings, ToolsSettings } from "../shared/settings/index.js";
 import type {
   VisualCaptureFailure,
   VisualCaptureMetadata,
@@ -34,21 +31,21 @@ import type {
   CartographyGridStats,
   CartographyModelStats,
   CompassRangeStats,
-} from "../features/cartography/renderer/overlay.js";
+} from "../features/cartography/renderer/host.js";
 import type {
-  CompassFrameSpikeController,
-  ExplorationSpikeController,
-  MissionMapFrameSpikeController,
-  WorldMapFrameSpikeController,
-  WorldMapAnchorSpikeController,
+  CompassFrameController,
+  ExplorationController,
+  MissionMapFrameController,
+  WorldMapFrameController,
+  WorldMapAnchorController,
 } from "../shared/cartography-spike.js";
 import type { CompanionCharacterListState } from "./companion-character-list-snapshot.js";
 import type { GameHub } from "./hub-builtins.js";
-import type { CharacterSwitchHost } from "./character-switch-host.js";
 import type {
   CharacterSwitchContext as SharedCharacterSwitchContext,
+  CharacterSwitchHost,
   CharacterSwitchSource,
-} from "./character-switch-model.js";
+} from "../features/character-switch/renderer/host.js";
 import type {
   InputTrace as SharedInputTrace,
   InputTraceEntry as SharedInputTraceEntry,
@@ -324,14 +321,14 @@ declare global {
     gwTextureStats?(): TextureMemorySnapshot;
     /** Bounded atlas-sized upload fingerprints; unpackaged development only. */
     gwControllerPromptTextureStats?(): ControllerPromptTextureStats;
-    /** Certified native Compass frame scalars; unpackaged development spike only. */
-    gwCompassFrameSpike?: CompassFrameSpikeController;
-    /** Certified native Mission Map frame scalars; unpackaged development spike only. */
-    gwMissionMapFrameSpike?: MissionMapFrameSpikeController;
-    gwWorldMapFrameSpike?: WorldMapFrameSpikeController;
-    gwWorldMapAnchorSpike?: WorldMapAnchorSpikeController;
-    /** Certified exploration bitmap dimensions and bounded bit reader; development only. */
-    gwExplorationSpike?: ExplorationSpikeController;
+    /** Certified native Compass frame scalars, published while Maps is installed. */
+    gwCompassFrame?: CompassFrameController;
+    /** Certified native Mission Map frame scalars, published while Maps is installed. */
+    gwMissionMapFrame?: MissionMapFrameController;
+    gwWorldMapFrame?: WorldMapFrameController;
+    gwWorldMapAnchor?: WorldMapAnchorController;
+    /** Certified exploration bitmap dimensions and bounded bit reader, published while Maps is installed. */
+    gwExploration?: ExplorationController;
     /** Unpackaged-development controller used to exercise Guild Wars' real gamepad UI. */
     gwVirtualGamepad?: VirtualGamepadController;
     gwLog(visible?: boolean): boolean;

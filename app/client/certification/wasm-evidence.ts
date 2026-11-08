@@ -2,6 +2,7 @@
  * Bounded, capability-free WASM parsing and relationship primitives for proofs.
  * Only feature modules may turn its facts into authority.
  */
+import { Buffer } from "node:buffer";
 import { createHash } from "node:crypto";
 import {
   parseCode,
@@ -25,8 +26,18 @@ import type {
 import { decodeFunctions } from "./wasm-instruction-evidence.js";
 export { decodeFunctions } from "./wasm-instruction-evidence.js";
 import { EvidenceError } from "./wasm-evidence-error.js";
+import { refusedOrRethrow } from "./stage-refusal.js";
 import { dataEvidence, type WasmDataEvidence } from "./wasm-data-evidence.js";
 import { readonlyMapView } from "./readonly-map-view.js";
+import { cachedFor, moduleViews } from "./module-views.js";
+import { functionIdentity, functionRoleIdentity, functionsWithIdentity } from "./relocation-identity.js";
+import {
+  recordExactMatch,
+  reviewedAlternatives,
+  reviewedGenerations,
+  reviewedIdentities,
+  type ClientGeneration,
+} from "./reviewed-facts.js";
 export { EvidenceError } from "./wasm-evidence-error.js";
 
 declare const WebAssembly: {
@@ -52,34 +63,27 @@ export interface WasmEvidence {
 /** Compatibility name while feature-owned locators migrate independently. */
 export type EnhancementProofContext = WasmEvidence;
 
-const proofContexts = new WeakMap<Uint8Array, WasmEvidence>();
+/** One validated parse of one exact client, shared by every context for those bytes. */
+interface ParsedClient {
+  readonly sha256: string;
+  /** A private copy of the parsed bytes; nothing outside this module holds it. */
+  readonly bytes: Uint8Array;
+  readonly views: ReturnType<typeof moduleViews>;
+  readonly tableRelations: ReadonlyMap<number, readonly number[]>;
+}
+
+// The RECENT_CONTEXTS most recently used contexts, newest last. A context
+// holds its parse and every decode cached on it, and is found again by its
+// input or, for equal bytes in another array, by its digest. Older contexts
+// live only while a caller holds them, whether or not their input is alive.
+// Held strongly on purpose: a WeakRef keeps its target alive until the
+// current job ends, and one synchronous run over dozens of mutated clients
+// once kept every analysis that way and ran out of memory.
+const RECENT_CONTEXTS = 4;
+const recentContexts: WasmEvidence[] = [];
+const contextClients = new WeakMap<WasmEvidence, ParsedClient>();
 
 const I32 = 0x7f;
-
-function copyBytes(bytes: Uint8Array | null): Uint8Array | null {
-  return bytes?.slice() ?? null;
-}
-
-function cloneModuleShape(module: ModuleShape): ModuleShape {
-  return {
-    types: module.types.map((type) => ({
-      params: [...type.params],
-      results: [...type.results],
-    })),
-    functionTypeIndices: [...module.functionTypeIndices],
-    functionImportCount: module.functionImportCount,
-    bodies: module.bodies.map((body) => body.slice()),
-    exports: module.exports.map((entry) => ({ ...entry })),
-    importSection: copyBytes(module.importSection),
-    memorySection: copyBytes(module.memorySection),
-    tableSection: copyBytes(module.tableSection),
-    elementSection: copyBytes(module.elementSection),
-    dataSegments: module.dataSegments.map((segment) => ({
-      base: segment.base,
-      bytes: segment.bytes.slice(),
-    })),
-  };
-}
 
 interface Offset {
   value: number;
@@ -150,7 +154,10 @@ function skipName(bytes: Uint8Array, cursor: Offset): string {
     return new TextDecoder("utf-8", { fatal: true }).decode(
       bytes.subarray(start, cursor.value),
     );
-  } catch {
+  } catch (error) {
+    // A fatal TextDecoder reports invalid UTF-8 as a TypeError: a fact about
+    // these bytes, so it alone is a refusal here.
+    if (!(error instanceof TypeError)) throw error;
     throw new EvidenceError("module-shape-unsupported");
   }
 }
@@ -242,7 +249,8 @@ function parseModule(input: Uint8Array): ModuleShape {
   let sections: Section[];
   try {
     sections = splitSections(input);
-  } catch {
+  } catch (error) {
+    refusedOrRethrow(error);
     throw new EvidenceError("module-shape-unsupported");
   }
   let types: FunctionType[];
@@ -253,6 +261,7 @@ function parseModule(input: Uint8Array): ModuleShape {
     definedTypeIndices = parseIndexVector(requiredSection(sections, 3));
     bodies = parseCode(requiredSection(sections, 10));
   } catch (error) {
+    refusedOrRethrow(error);
     if (error instanceof EvidenceError) throw error;
     throw new EvidenceError("module-shape-unsupported");
   }
@@ -294,35 +303,58 @@ function parseModule(input: Uint8Array): ModuleShape {
 export function wasmEvidence(
   input: Uint8Array,
 ): WasmEvidence | null {
-  if (input.byteLength > MAX_INPUT_BYTES || !WebAssembly.validate(input)) return null;
+  const cached = [...recentContexts].reverse().find((context) => context.inputIdentity === input);
+  if (matchesEvidenceInput(cached, input)) return recentlyUsed(cached);
+  if (input.byteLength > MAX_INPUT_BYTES) return null;
   const inputSha256 = createHash("sha256").update(input).digest("hex");
-  const cached = proofContexts.get(input);
-  if (cached?.inputSha256 === inputSha256) return cached;
+  const client = recentContexts.map((context) => contextClients.get(context))
+    .find((parsed) => parsed?.sha256 === inputSha256)
+    ?? parseClient(input.slice(), inputSha256);
+  if (!client) return null;
+  const module = client.views.module;
+  const context: WasmEvidence = Object.freeze({
+    inputIdentity: input,
+    inputSha256,
+    moduleView: client.views.view,
+    get data() {
+      return dataEvidence(module);
+    },
+    get tableRelations() {
+      return client.tableRelations;
+    },
+    decodeFunctions(trackedConstants: readonly number[]) {
+      return decodeFunctions(module, trackedConstants);
+    },
+  });
+  contextClients.set(context, client);
+  return recentlyUsed(context);
+}
+
+function recentlyUsed(context: WasmEvidence): WasmEvidence {
+  const index = recentContexts.indexOf(context);
+  if (index >= 0) recentContexts.splice(index, 1);
+  recentContexts.push(context);
+  if (recentContexts.length > RECENT_CONTEXTS) recentContexts.shift();
+  return context;
+}
+
+function parseClient(bytes: Uint8Array, sha256: string): ParsedClient | null {
+  if (!WebAssembly.validate(bytes)) return null;
+  let views: ParsedClient["views"];
   try {
-    const module = parseModule(input);
-    let tableRelations: ReadonlyMap<number, readonly number[]> | undefined;
-    let data: WasmDataEvidence | undefined;
-    const context = Object.freeze({
-      inputIdentity: input,
-      inputSha256,
-      moduleView() {
-        return cloneModuleShape(module);
-      },
-      get data() {
-        return data ??= dataEvidence(module);
-      },
-      get tableRelations() {
-        return tableRelations ??= parseActiveTableRelations(module.elementSection);
-      },
-      decodeFunctions(trackedConstants: readonly number[]) {
-        return decodeFunctions(module, trackedConstants);
-      },
-    });
-    proofContexts.set(input, context);
-    return context;
-  } catch {
-    return null;
+    views = moduleViews(parseModule(bytes));
+  } catch (error) {
+    return refusedOrRethrow(error);
   }
+  let tableRelations: ReadonlyMap<number, readonly number[]> | undefined;
+  return Object.freeze({
+    sha256,
+    bytes,
+    views,
+    get tableRelations() {
+      return tableRelations ??= parseActiveTableRelations(views.module.elementSection);
+    },
+  });
 }
 
 export const enhancementProofContext = wasmEvidence;
@@ -331,8 +363,8 @@ export function matchesEvidenceInput(
   evidence: WasmEvidence | null | undefined,
   input: Uint8Array,
 ): evidence is WasmEvidence {
-  return evidence?.inputIdentity === input
-    && evidence.inputSha256 === createHash("sha256").update(input).digest("hex");
+  const bytes = evidence && contextClients.get(evidence)?.bytes;
+  return evidence?.inputIdentity === input && !!bytes && Buffer.compare(bytes, input) === 0;
 }
 
 function parseStaticData(
@@ -412,8 +444,7 @@ export function functionBodySha256(module: ModuleShape, functionIndex: number): 
   const localIndex = functionIndex - module.functionImportCount;
   const body = module.bodies[localIndex];
   if (!body) throw new EvidenceError("module-shape-unsupported");
-  const hashes = bodyHashCache.get(module) ?? new Array<string | undefined>(module.bodies.length);
-  bodyHashCache.set(module, hashes);
+  const hashes = cachedFor(bodyHashCache, module, (shared) => new Array<string | undefined>(shared.bodies.length));
   const cached = hashes[localIndex];
   if (cached) return cached;
   const digest = createHash("sha256").update(body).digest("hex");
@@ -433,7 +464,8 @@ export function activeTableEvidence(
   let segments: number;
   try {
     segments = readUnsigned(bytes, cursor);
-  } catch {
+  } catch (error) {
+    refusedOrRethrow(error);
     throw new EvidenceError("active-table-unsupported");
   }
   if (segments > MAX_FUNCTIONS) {
@@ -483,10 +515,8 @@ export function activeTableEvidence(
       }
     }
   } catch (error) {
-    if (error instanceof EvidenceError) {
-      if (error.code === "analysis-limit-exceeded") throw error;
-      throw new EvidenceError("active-table-unsupported");
-    }
+    refusedOrRethrow(error);
+    if (error instanceof EvidenceError && error.code === "analysis-limit-exceeded") throw error;
     throw new EvidenceError("active-table-unsupported");
   }
   if (cursor.value !== bytes.byteLength) {
@@ -564,11 +594,157 @@ export function signatureMatches(
     );
 }
 
-export function bodyMatchesRole(body: Uint8Array, role: SemanticRole): boolean {
-  if (body.byteLength !== role.bodyLength) return false;
+/**
+ * A reviewed literal (a body digest or role fingerprint) names this function
+ * when it matches exactly, or when an active reviewed generation measured this
+ * function's relocation identity for the literal. A relink therefore keeps the
+ * match; any other change to the body or to a callee's body refuses it.
+ */
+function identityReviewedFor(literals: readonly string[], identity: () => string): boolean {
+  const reviewed = literals.map(reviewedIdentities).filter((identities) => identities.size > 0);
+  if (reviewed.length === 0) return false;
+  const measured = identity();
+  return reviewed.some((identities) => identities.has(measured));
+}
+
+/**
+ * A reviewed literal a proof matched on a module: a body digest, a semantic
+ * role, or a player-effect body (its digest in one generation's family, with
+ * the August reference digest it stands for and that family's whole map).
+ */
+export type ReviewedLookup =
+  | Readonly<{ kind: "body"; literal: string }>
+  | Readonly<{ kind: "role"; role: SemanticRole }>
+  | Readonly<{
+    kind: "effect";
+    literal: string;
+    reference: string;
+    family: Readonly<Record<string, string>>;
+  }>;
+type LookupRecorder = (lookup: ReviewedLookup, functionIndex: number) => void;
+let lookupRecorder: LookupRecorder | null = null;
+
+/**
+ * Reports every reviewed body digest and role that matched a function while
+ * `run` runs. Only the maintainer review command uses it, to name the reviewed
+ * bodies a refused feature relied on.
+ */
+export function withReviewedLookupRecorder<Value>(record: LookupRecorder, run: () => Value): Value {
+  const previous = lookupRecorder;
+  lookupRecorder = record;
+  try {
+    return run();
+  } finally {
+    lookupRecorder = previous;
+  }
+}
+
+/** Reports a match by a proof that compares reviewed digests itself. */
+export function recordReviewedLookup(lookup: ReviewedLookup, functionIndex: number): void {
+  lookupRecorder?.(lookup, functionIndex);
+}
+
+/**
+ * How the body of `functionIndex` is the reviewed body `bodySha256`: by an
+ * exact reviewed digest, by a reviewed relocation identity, or not at all.
+ */
+export function reviewedBodyMatchKind(
+  module: ModuleShape,
+  functionIndex: number,
+  bodySha256: string,
+): "exact" | "identity" | null {
+  const accepted = [bodySha256, ...reviewedAlternatives(bodySha256).flatMap((alternative) =>
+    typeof alternative === "string" ? [alternative] : [])];
+  const measured = functionBodySha256(module, functionIndex);
+  const exact = accepted.includes(measured);
+  if (exact) recordExactMatch(measured, () => functionIdentity(module, functionIndex));
+  const match = exact ? "exact"
+    : identityReviewedFor(accepted, () => functionIdentity(module, functionIndex)) ? "identity" : null;
+  if (match) lookupRecorder?.({ kind: "body", literal: bodySha256 }, functionIndex);
+  return match;
+}
+
+/** The body of `functionIndex` is the reviewed body `bodySha256`. */
+export function functionMatchesReviewedBody(
+  module: ModuleShape,
+  functionIndex: number,
+  bodySha256: string,
+): boolean {
+  return reviewedBodyMatchKind(module, functionIndex, bodySha256) !== null;
+}
+
+/**
+ * The body of `functionIndex` is the reviewed body `bodySha256` exactly, or by
+ * a relocation identity that no other function of `module` has.
+ */
+export function functionIsUniquelyReviewedBody(
+  module: ModuleShape,
+  functionIndex: number,
+  bodySha256: string,
+): boolean {
+  const match = reviewedBodyMatchKind(module, functionIndex, bodySha256);
+  return match === "exact" || (match === "identity"
+    && functionsWithIdentity(module, functionIdentity(module, functionIndex)).length === 1);
+}
+
+/**
+ * The one function reviewed `[index, body digest]` pairs name: a function with
+ * an exact reviewed digest at a reviewed index, else the only function with a
+ * reviewed body's relocation identity. A relocated body at a reviewed index
+ * counts only through that uniqueness.
+ */
+export function reviewedOwner(
+  module: ModuleShape,
+  reviewed: readonly (readonly [number, string])[],
+): number | null {
+  const defined = (index: number) => index >= module.functionImportCount
+    && index < module.functionImportCount + module.bodies.length;
+  const exact = new Set(reviewed.flatMap(([index, bodySha256]) =>
+    defined(index) && reviewedBodyMatchKind(module, index, bodySha256) === "exact" ? [index] : []));
+  const owners = exact.size > 0 ? exact : new Set(reviewed.flatMap(([, bodySha256]) =>
+    [...reviewedIdentities(bodySha256)].flatMap((identity) => functionsWithIdentity(module, identity))));
+  const [owner] = owners;
+  return owners.size === 1 && owner !== undefined ? owner : null;
+}
+
+/** The reviewed body digest among `bodySha256s` that names `functionIndex`. */
+export function reviewedBodyMatch(
+  module: ModuleShape,
+  functionIndex: number,
+  bodySha256s: readonly string[],
+): string | null {
+  return bodySha256s.find((bodySha256) =>
+    functionMatchesReviewedBody(module, functionIndex, bodySha256)) ?? null;
+}
+
+export function functionMatchesRole(
+  module: ModuleShape,
+  functionIndex: number,
+  role: SemanticRole,
+): boolean {
+  const body = functionBody(module, functionIndex);
+  const accepted = roleFingerprintsFor(role, body.byteLength);
+  if (accepted.length === 0) return false;
   const fingerprint = relocationAwareFingerprint(body, role.spans);
-  return fingerprint === role.fingerprint
-    || (role.reviewedVariants?.includes(fingerprint) ?? false);
+  const identity = () => functionRoleIdentity(module, functionIndex, role.spans);
+  const exact = accepted.includes(fingerprint);
+  if (exact) recordExactMatch(fingerprint, identity);
+  const matched = exact || identityReviewedFor(accepted, identity);
+  if (matched) lookupRecorder?.({ kind: "role", role }, functionIndex);
+  return matched;
+}
+
+/** The reviewed fingerprints of `role` for a body of `bodyLength` bytes. */
+function roleFingerprintsFor(role: SemanticRole, bodyLength: number): readonly string[] {
+  const alternatives = reviewedAlternatives(role.fingerprint);
+  return [
+    ...(bodyLength === role.bodyLength
+      ? [role.fingerprint, ...(role.reviewedVariants ?? [])]
+      : []),
+    ...alternatives.flatMap((alternative) => typeof alternative === "string"
+      ? (bodyLength === role.bodyLength ? [alternative] : [])
+      : (bodyLength === alternative.bodyLength ? [alternative.fingerprint] : [])),
+  ];
 }
 
 export function uniqueRoleFunction(module: ModuleShape, role: SemanticRole): number | null {
@@ -586,27 +762,31 @@ export function uniqueRoleVariant(
   return candidates.length === 1 ? candidates[0]! : null;
 }
 
+// Matches depend on the active reviewed generations, so the cache is per set.
 const roleFunctionCache = new WeakMap<
-  ModuleShape,
-  WeakMap<SemanticRole, readonly number[]>
+  readonly ClientGeneration[],
+  WeakMap<ModuleShape, WeakMap<SemanticRole, readonly number[]>>
 >();
 
 export function roleFunctions(module: ModuleShape, role: SemanticRole): readonly number[] {
-  const moduleCache = roleFunctionCache.get(module) ?? new WeakMap();
-  roleFunctionCache.set(module, moduleCache);
+  const generations = reviewedGenerations();
+  const generationCache = roleFunctionCache.get(generations) ?? new WeakMap();
+  roleFunctionCache.set(generations, generationCache);
+  const moduleCache = cachedFor(generationCache, module, () => new WeakMap<SemanticRole, readonly number[]>());
   const cached = moduleCache.get(role);
-  if (cached) return cached;
+  if (cached) {
+    for (const functionIndex of cached) lookupRecorder?.({ kind: "role", role }, functionIndex);
+    return cached;
+  }
   const matches: number[] = [];
   for (
     let functionIndex = module.functionImportCount;
     functionIndex < module.functionTypeIndices.length;
     functionIndex += 1
   ) {
-    const body = functionBody(module, functionIndex);
     if (
-      body.byteLength === role.bodyLength
-      && signatureMatches(module, functionIndex, role.params, role.results)
-      && bodyMatchesRole(body, role)
+      signatureMatches(module, functionIndex, role.params, role.results)
+      && functionMatchesRole(module, functionIndex, role)
     ) matches.push(functionIndex);
   }
   const immutableMatches = Object.freeze(matches);
@@ -628,7 +808,7 @@ export function uniqueExactFunction(
   ) {
     if (
       signatureMatches(module, functionIndex, params, results)
-      && functionBodySha256(module, functionIndex) === bodySha256
+      && functionMatchesReviewedBody(module, functionIndex, bodySha256)
     ) matches.push(functionIndex);
     if (matches.length > 1) return null;
   }
@@ -665,19 +845,15 @@ export function paddedOperand(value: number): Uint8Array {
   return bytes;
 }
 
+/** Occurrences of `value`'s padded operand encoding in function bodies, overlapping ones included. */
 export function codeOperandOccurrences(module: ModuleShape, value: number): number {
   const needle = paddedOperand(value);
   let count = 0;
   for (const body of module.bodies) {
-    let offset = body.indexOf(needle[0]!);
-    while (offset >= 0 && offset <= body.byteLength - needle.byteLength) {
-      if (
-        body[offset + 1] === needle[1]
-        && body[offset + 2] === needle[2]
-        && body[offset + 3] === needle[3]
-        && body[offset + 4] === needle[4]
-      ) count += 1;
-      offset = body.indexOf(needle[0]!, offset + 1);
+    // Buffer's native search over the body's own bytes; no copy.
+    const bytes = Buffer.from(body.buffer, body.byteOffset, body.byteLength);
+    for (let offset = bytes.indexOf(needle); offset >= 0; offset = bytes.indexOf(needle, offset + 1)) {
+      count += 1;
     }
   }
   return count;
@@ -747,7 +923,7 @@ export function callsAt(
 export function isolatedProof<Value>(proof: () => Value | null): Value | null {
   try {
     return proof();
-  } catch {
-    return null;
+  } catch (error) {
+    return refusedOrRethrow(error);
   }
 }

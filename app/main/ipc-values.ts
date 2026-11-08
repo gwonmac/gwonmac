@@ -1,27 +1,51 @@
 /**
- * Pure bounded-value validation and wire normalization for the IPC boundary.
- * No Electron capability or domain policy belongs in this module.
+ * Pure bounded-value validation and wire normalization for the IPC boundary,
+ * and the one parser kit (`args`, `nothing`, `one`) every boundary builds its
+ * argument parsers from. No Electron capability or domain policy belongs in
+ * this module.
  */
 import type { GraphicsDiagnostics, SocketEvent } from "../shared/contracts.js";
-import type {
-  RendererMilestone,
-  RendererMilestoneFields,
-  WasmAbortReasonKind,
-} from "../shared/diagnostics.js";
 import {
-  RELOG_INPUT_OUTCOMES,
-  RELOG_INPUT_STAGES,
-  RELOG_SKIP_REASONS,
-  RELOG_TERMINAL_OUTCOMES,
   RENDERER_MILESTONES,
-  ENHANCEMENT_OBSERVER_CONSUMERS,
-  SKILL_GEOMETRY_WAIT_REASONS,
-  WASM_ABORT_REASON_KINDS,
-  WASM_GROWTH_OUTCOMES,
-  WASM_MEMORY_PROBE_STATUSES,
+  type RendererMilestone,
+  type RendererMilestoneArgs,
 } from "../shared/diagnostics.js";
-import { ValidationError } from "../shared/errors.js";
-import { isRendererFingerprint } from "./diagnostics/schema-fields.js";
+import { AppError, ValidationError } from "../shared/errors.js";
+import { RENDERER_MILESTONE_FIELDS } from "./diagnostics/schema-protocol-renderer.js";
+import { literal, matchesFields } from "./diagnostics/schema-fields.js";
+
+/** Turns one invoke's argument list into the declared argument tuple, or throws. */
+export type Parser<Args extends readonly unknown[]> = (args: readonly unknown[]) => Args;
+
+/**
+ * Builds a parser over exactly `count` arguments. Every rejection leaves as a
+ * ValidationError, also from a shared value parser that throws a plain Error,
+ * so `ipc.rejected` reports `validation` and never looks like a handler crash.
+ */
+export const args = <Args extends readonly unknown[]>(
+  count: number,
+  parse: (values: readonly unknown[]) => Args,
+): Parser<Args> => (values) => {
+  if (values.length !== count) {
+    throw new ValidationError(`expected ${count} IPC argument(s)`);
+  }
+  try {
+    return parse(values);
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    throw new ValidationError(
+      error instanceof Error ? error.message : "invalid IPC argument",
+      { cause: error },
+    );
+  }
+};
+
+/** For the channels that carry nothing. Still a parser, still explicit. */
+export const nothing: Parser<[]> = args(0, () => []);
+
+/** Lifts a single-value validator into a parser over the argument list. */
+export const one = <Value>(parse: (value: unknown) => Value): Parser<[Value]> =>
+  args(1, ([value]) => [parse(value)]);
 
 export function toWireSocketEvent(event: SocketEvent): SocketEvent {
   if (event.type !== "data") return event;
@@ -69,227 +93,38 @@ export function isGraphicsDiagnostics(value: unknown): value is GraphicsDiagnost
   );
 }
 
-export interface ParsedMilestone {
-  readonly name: RendererMilestone;
-  readonly rendererTimestampUs: number;
-  readonly fields: RendererMilestoneFields | undefined;
+const isRendererMilestone = literal(RENDERER_MILESTONES);
+const isRendererTimestamp = (value: unknown): value is number =>
+  typeof value === "number" && Number.isFinite(value)
+  && value >= 0 && value <= Number.MAX_SAFE_INTEGER;
+const hasMilestoneFields = (
+  name: RendererMilestone,
+): name is keyof typeof RENDERER_MILESTONE_FIELDS => Object.hasOwn(RENDERER_MILESTONE_FIELDS, name);
+
+/**
+ * The one rule across milestone fields: skill geometry names a reason only
+ * while waiting, and a candidate count only for an ambiguous slot.
+ */
+function skillGeometryConsistent({ state, reason, candidates }: Readonly<Record<string, unknown>>): boolean {
+  if (state === "ready") return reason === null && candidates === null;
+  return reason === "slot-ambiguous"
+    ? typeof candidates === "number" && candidates >= 2
+    : reason !== null && candidates === null;
 }
 
-const isByteCount = (value: unknown): value is number =>
-  typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
-
-/** Validates the complete renderer milestone tuple before diagnostics sees it. */
-export function parseRendererMilestoneArgs(args: readonly unknown[]): ParsedMilestone {
-  if (args.length !== 3) throw new ValidationError("expected 3 IPC argument(s)");
-  const [name, rendererTimestampUs, fields] = args;
-  if (
-    typeof name !== "string"
-    || !RENDERER_MILESTONES.includes(name as RendererMilestone)
-    || typeof rendererTimestampUs !== "number"
-    || !Number.isFinite(rendererTimestampUs)
-    || rendererTimestampUs < 0
-    || rendererTimestampUs > Number.MAX_SAFE_INTEGER
-  ) throw new ValidationError("invalid renderer milestone");
-
-  const record = fields as Record<string, unknown> | undefined;
-  const recordIsObject = record !== undefined && record !== null
-    && typeof record === "object" && !Array.isArray(record);
-  let milestoneFields: RendererMilestoneFields | undefined;
-  if (name === "build.info") {
-    const valid = recordIsObject && Object.keys(record).length === 2
-      && (typeof record.programId === "string" || typeof record.programId === "number")
-      && (typeof record.buildId === "string" || typeof record.buildId === "number")
-      && [record.programId, record.buildId].every((value) =>
-        (typeof value === "string" && value.length <= 128)
-        || (typeof value === "number" && Number.isSafeInteger(value) && value >= 0));
-    if (!valid) throw new ValidationError("invalid renderer milestone");
-    milestoneFields = {
-      programId: record.programId as string | number,
-      buildId: record.buildId as string | number,
-    };
-  } else if (name === "relog.preGameProbe") {
-    const states = ["unknown", "character-select", "reconnect", "loading"];
-    const valid = recordIsObject && Object.keys(record).length === 2
-      && typeof record.state === "string" && states.includes(record.state)
-      && typeof record.mask === "number" && Number.isInteger(record.mask)
-      && record.mask >= 0 && record.mask <= 0xffff_ffff;
-    if (!valid) throw new ValidationError("invalid renderer milestone");
-    milestoneFields = {
-      state: record.state as "unknown" | "character-select" | "reconnect" | "loading",
-      mask: record.mask as number,
-    };
-  } else if (name === "relog.inputSettled") {
-    const valid = recordIsObject && Object.keys(record).length === 2
-      && typeof record.stage === "string"
-      && (RELOG_INPUT_STAGES as readonly string[]).includes(record.stage)
-      && typeof record.outcome === "string"
-      && (RELOG_INPUT_OUTCOMES as readonly string[]).includes(record.outcome);
-    if (!valid) throw new ValidationError("invalid renderer milestone");
-    milestoneFields = {
-      stage: record.stage as (typeof RELOG_INPUT_STAGES)[number],
-      outcome: record.outcome as (typeof RELOG_INPUT_OUTCOMES)[number],
-    };
-  } else if (name === "relog.finished") {
-    const valid = recordIsObject && Object.keys(record).length === 1
-      && typeof record.outcome === "string"
-      && (RELOG_TERMINAL_OUTCOMES as readonly string[]).includes(record.outcome);
-    if (!valid) throw new ValidationError("invalid renderer milestone");
-    milestoneFields = {
-      outcome: record.outcome as (typeof RELOG_TERMINAL_OUTCOMES)[number],
-    };
-  } else if (name === "relog.skipped") {
-    const valid = recordIsObject && Object.keys(record).length === 1
-      && typeof record.reason === "string"
-      && (RELOG_SKIP_REASONS as readonly string[]).includes(record.reason);
-    if (!valid) throw new ValidationError("invalid renderer milestone");
-    milestoneFields = {
-      reason: record.reason as (typeof RELOG_SKIP_REASONS)[number],
-    };
-  } else if (name === "wasm.abort") {
-    const valid = recordIsObject && Object.keys(record).length === 3
-      && typeof record.reasonKind === "string"
-      && (WASM_ABORT_REASON_KINDS as readonly string[]).includes(record.reasonKind)
-      && isRendererFingerprint(record.fingerprint) && isByteCount(record.heapBytes);
-    if (!valid) throw new ValidationError("invalid renderer milestone");
-    milestoneFields = {
-      reasonKind: record.reasonKind as WasmAbortReasonKind,
-      fingerprint: record.fingerprint as string,
-      heapBytes: record.heapBytes as number,
-    };
-  } else if (name === "wasm.exit") {
-    const valid = recordIsObject && Object.keys(record).length === 2
-      && typeof record.code === "number" && Number.isSafeInteger(record.code)
-      && isByteCount(record.heapBytes);
-    if (!valid) throw new ValidationError("invalid renderer milestone");
-    milestoneFields = { code: record.code as number, heapBytes: record.heapBytes as number };
-  } else if (name === "wasm.memoryProbe") {
-    const valid = recordIsObject && Object.keys(record).length === 1
-      && typeof record.status === "string"
-      && (WASM_MEMORY_PROBE_STATUSES as readonly string[]).includes(record.status);
-    if (!valid) throw new ValidationError("invalid renderer milestone");
-    milestoneFields = { status: record.status as (typeof WASM_MEMORY_PROBE_STATUSES)[number] };
-  } else if (name === "wasm.growthRequested") {
-    const numericFields = [
-      "requestedBytes", "beforeBytes", "afterBytes", "stackDepth",
-      "frame0Function", "frame0Offset", "frame1Function", "frame1Offset",
-      "frame2Function", "frame2Offset", "frame3Function", "frame3Offset",
-      "generatedTextures", "deletedTextures", "liveTextures", "trackedTextures",
-      "knownTextureBytes", "textureUploadBytes", "unknownTextureAllocations",
-    ] as const;
-    const valid = recordIsObject && Object.keys(record).length === numericFields.length + 3
-      && numericFields.every((field) => isByteCount(record[field]))
-      && (record.stackDepth as number) <= 4 && (record.trackedTextures as number) <= 4_096
-      && typeof record.outcome === "string"
-      && (WASM_GROWTH_OUTCOMES as readonly string[]).includes(record.outcome)
-      && isRendererFingerprint(record.stackFingerprint)
-      && typeof record.textureTrackingSaturated === "boolean";
-    if (!valid) throw new ValidationError("invalid renderer milestone");
-    milestoneFields = {
-      requestedBytes: record.requestedBytes as number, beforeBytes: record.beforeBytes as number,
-      afterBytes: record.afterBytes as number,
-      outcome: record.outcome as (typeof WASM_GROWTH_OUTCOMES)[number],
-      stackFingerprint: record.stackFingerprint as string, stackDepth: record.stackDepth as number,
-      frame0Function: record.frame0Function as number, frame0Offset: record.frame0Offset as number,
-      frame1Function: record.frame1Function as number, frame1Offset: record.frame1Offset as number,
-      frame2Function: record.frame2Function as number, frame2Offset: record.frame2Offset as number,
-      frame3Function: record.frame3Function as number, frame3Offset: record.frame3Offset as number,
-      generatedTextures: record.generatedTextures as number, deletedTextures: record.deletedTextures as number,
-      liveTextures: record.liveTextures as number, trackedTextures: record.trackedTextures as number,
-      knownTextureBytes: record.knownTextureBytes as number, textureUploadBytes: record.textureUploadBytes as number,
-      unknownTextureAllocations: record.unknownTextureAllocations as number,
-      textureTrackingSaturated: record.textureTrackingSaturated as boolean,
-    };
-  } else if (name === "graphics.visualProblem") {
-    const numericFields = [
-      "wasmHeapBytes", "canvasWidth", "canvasHeight", "offscreenWidth",
-      "offscreenHeight", "drawingBufferWidth", "drawingBufferHeight",
-      "generatedTextures", "deletedTextures", "liveTextures",
-      "trackedTextures", "knownTextureBytes", "textureUploadBytes",
-      "unknownTextureAllocations", "livePrograms", "programPassThroughQueries",
-    ] as const;
-    const valid = recordIsObject
-      && Object.keys(record).length === numericFields.length + 5
-      && numericFields.every((field) => isByteCount(record[field]))
-      && (record.trackedTextures as number) <= 4_096
-      && typeof record.textureProbeInstalled === "boolean"
-      && typeof record.textureTrackingSaturated === "boolean"
-      && typeof record.webglContextAvailable === "boolean"
-      && typeof record.programProbeInstalled === "boolean"
-      && typeof record.contextLost === "boolean";
-    if (!valid) throw new ValidationError("invalid renderer milestone");
-    milestoneFields = {
-      textureProbeInstalled: record.textureProbeInstalled as boolean,
-      wasmHeapBytes: record.wasmHeapBytes as number,
-      webglContextAvailable: record.webglContextAvailable as boolean,
-      contextLost: record.contextLost as boolean,
-      canvasWidth: record.canvasWidth as number,
-      canvasHeight: record.canvasHeight as number,
-      offscreenWidth: record.offscreenWidth as number,
-      offscreenHeight: record.offscreenHeight as number,
-      drawingBufferWidth: record.drawingBufferWidth as number,
-      drawingBufferHeight: record.drawingBufferHeight as number,
-      generatedTextures: record.generatedTextures as number,
-      deletedTextures: record.deletedTextures as number,
-      liveTextures: record.liveTextures as number,
-      trackedTextures: record.trackedTextures as number,
-      knownTextureBytes: record.knownTextureBytes as number,
-      textureUploadBytes: record.textureUploadBytes as number,
-      unknownTextureAllocations: record.unknownTextureAllocations as number,
-      textureTrackingSaturated: record.textureTrackingSaturated as boolean,
-      programProbeInstalled: record.programProbeInstalled as boolean,
-      livePrograms: record.livePrograms as number,
-      programPassThroughQueries: record.programPassThroughQueries as number,
-    };
-  } else if (name === "enhancement.installed") {
-    const valid = recordIsObject && Object.keys(record).length === 3
-      && typeof record.companionAbi === "number" && Number.isSafeInteger(record.companionAbi) && record.companionAbi >= 0
-      && typeof record.installation === "number" && Number.isSafeInteger(record.installation) && record.installation >= 1
-      && typeof record.capabilityProfile === "string" && record.capabilityProfile.length <= 32;
-    if (!valid) throw new ValidationError("invalid renderer milestone");
-    milestoneFields = {
-      companionAbi: record.companionAbi as number,
-      installation: record.installation as number,
-      capabilityProfile: record.capabilityProfile as string,
-    };
-  } else if (name === "enhancement.consumerSignal") {
-    const valid = recordIsObject && Object.keys(record).length === 2
-      && typeof record.consumer === "string"
-      && (ENHANCEMENT_OBSERVER_CONSUMERS as readonly string[]).includes(record.consumer)
-      && (record.signal === "installed" || record.signal === "first-observation");
-    if (!valid) throw new ValidationError("invalid renderer milestone");
-    milestoneFields = {
-      consumer: record.consumer as (typeof ENHANCEMENT_OBSERVER_CONSUMERS)[number],
-      signal: record.signal as "installed" | "first-observation",
-    };
-  } else if (name === "enhancement.skillGeometryState") {
-    const waiting = recordIsObject && record.state === "waiting"
-      && typeof record.reason === "string"
-      && (SKILL_GEOMETRY_WAIT_REASONS as readonly string[]).includes(record.reason)
-      && (record.reason === "slot-ambiguous"
-        ? (typeof record.candidates === "number"
-          && Number.isSafeInteger(record.candidates)
-          && record.candidates >= 2
-          && record.candidates <= 16_384)
-        : record.candidates === null);
-    const ready = recordIsObject && record.state === "ready"
-      && record.reason === null
-      && record.candidates === null;
-    if (!recordIsObject || Object.keys(record).length !== 3 || (!waiting && !ready)) {
-      throw new ValidationError("invalid renderer milestone");
-    }
-    milestoneFields = {
-      state: record.state as "waiting" | "ready",
-      reason: record.reason as (typeof SKILL_GEOMETRY_WAIT_REASONS)[number] | null,
-      candidates: record.candidates as number | null,
-    };
-  } else if (name === "enhancement.uninstalled") {
-    const valid = recordIsObject && Object.keys(record).length === 1
-      && typeof record.installation === "number" && Number.isSafeInteger(record.installation)
-      && record.installation >= 1;
-    if (!valid) throw new ValidationError("invalid renderer milestone");
-    milestoneFields = { installation: record.installation as number };
-  } else if (fields !== undefined) {
+/**
+ * Validates the complete renderer milestone tuple before diagnostics sees it,
+ * with the schema's own field guards (RENDERER_MILESTONE_FIELDS).
+ */
+export const parseRendererMilestoneArgs: Parser<RendererMilestoneArgs> = args(3, ([name, rendererTimestampUs, fields]) => {
+  if (!isRendererMilestone(name) || !isRendererTimestamp(rendererTimestampUs)) {
     throw new ValidationError("invalid renderer milestone");
   }
-  return { name: name as RendererMilestone, rendererTimestampUs, fields: milestoneFields };
-}
+  const valid = hasMilestoneFields(name)
+    ? matchesFields(RENDERER_MILESTONE_FIELDS[name], fields)
+      && (name !== "enhancement.skillGeometryState" || skillGeometryConsistent(fields))
+    : fields === undefined;
+  if (!valid) throw new ValidationError("invalid renderer milestone");
+  // The guards matched exactly the fields RendererMilestoneFieldsByName declares for this name.
+  return [name, rendererTimestampUs, fields] as RendererMilestoneArgs;
+});

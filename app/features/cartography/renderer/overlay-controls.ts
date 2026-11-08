@@ -4,8 +4,11 @@
  */
 import { resolveCartographyPreset } from "../../../shared/cartography-presets.js";
 import type { CartographyEvidenceExportResult } from "../../../shared/cartography-evidence.js";
-import type { AppSettings, RendererSettingsPatch } from "../../../shared/contracts.js";
-import type { WorldMapFrameSpikeDiagnostic } from "../../../shared/cartography-spike.js";
+import type { RendererSettingsPatch } from "../../../shared/contracts.js";
+import type { AppSettings } from "../../../shared/settings/index.js";
+import { CARTOGRAPHY_REVEAL_MODES } from "../../../shared/cartography-overlay.js";
+import { optionFor, REVEAL_MODE_OPTIONS } from "../../../shared/setting-copy.js";
+import type { WorldMapFrameDiagnostic } from "../../../shared/cartography-spike.js";
 import {
   encodeCartographyPresetRef,
   parseCartographyPresetRef,
@@ -20,6 +23,7 @@ import {
   projectCompassControlPosition,
   type CompassControlPlacement,
 } from "./compass-control-placement.js";
+import { isolateFromGame } from "../../../renderer/non-activating-surface.js";
 
 const PANEL_WIDTH = 204;
 const PANEL_HEIGHT_ESTIMATE = 230;
@@ -52,7 +56,7 @@ export type CartographyQaStatus = Readonly<{
   compassReady: boolean;
   missionMapReady: boolean;
   worldMapReady: boolean;
-  worldMapObserver: WorldMapFrameSpikeDiagnostic;
+  worldMapObserver: WorldMapFrameDiagnostic;
   kernel: CartographyReachabilityDiagnostic | null;
 }>;
 
@@ -93,7 +97,7 @@ const WORLD_MAP_STATUS = Object.freeze({
   10: "frame-pointer",
 }) satisfies Readonly<Record<number, string>>;
 
-function worldMapStatus(value: WorldMapFrameSpikeDiagnostic): string {
+function worldMapStatus(value: WorldMapFrameDiagnostic): string {
   const reason = WORLD_MAP_STATUS[value.status as keyof typeof WORLD_MAP_STATUS]
     ?? `status-${value.status ?? "missing"}`;
   return `${reason} · frame ${value.frameId ?? "?"} · generation ${value.generation ?? "?"}`;
@@ -263,10 +267,10 @@ export function createCartographyOverlayControls(options: Readonly<{
   reachLabel.textContent = "Reach";
   const reach = document.createElement("select");
   reach.setAttribute("aria-label", "Reveal range");
-  for (const [value, text] of [["off", "Off"], ["normal", "3×3"], ["birds-eye", "7×7"]] as const) {
+  for (const { value, compact } of REVEAL_MODE_OPTIONS) {
     const option = document.createElement("option");
     option.value = value;
-    option.textContent = text;
+    option.textContent = compact;
     reach.append(option);
   }
   reachRow.append(reachLabel, reach);
@@ -420,9 +424,7 @@ export function createCartographyOverlayControls(options: Readonly<{
       sync(true);
     });
   };
-  for (const type of ["pointerdown", "pointerup", "click", "wheel", "keydown", "keyup"]) {
-    root.addEventListener(type, (event) => event.stopPropagation());
-  }
+  isolateFromGame(root);
   trigger.addEventListener("click", () => setOpen(!open));
   root.addEventListener("keydown", (event) => {
     if (event.key !== "Escape" || !open) return;
@@ -459,8 +461,8 @@ export function createCartographyOverlayControls(options: Readonly<{
   bindSlider("grid", gridOpacity, "cartographyGridOpacity");
   bindSlider("walkability", walkabilityOpacity, "cartographyWalkabilityOpacity");
   reach.addEventListener("change", () => {
-    const value = reach.value;
-    if (value === "off" || value === "normal" || value === "birds-eye") apply({ cartographyRevealMode: value });
+    const value = optionFor(CARTOGRAPHY_REVEAL_MODES, reach.value);
+    if (value) apply({ cartographyRevealMode: value });
   });
   preset.addEventListener("change", () => {
     const settings = currentSettings();

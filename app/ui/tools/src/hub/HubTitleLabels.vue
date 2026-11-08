@@ -10,5 +10,5 @@ defineProps<{ professions?: HubRow['professions']; folder?: HubRow['folder'] }>(
   <template v-if="professions?.length">{{ ' ' }}<span class="hub-profession-label">{{ professions.map(profession => profession.code).join('/') }}</span></template>
   <template v-if="folder !== null && folder !== undefined">{{ ' ' }}<span
     class="hub-folder-label" :title="`Template folder: ${folder || 'Skills'}`" :aria-label="`Template folder: ${folder || 'Skills'}`"
-  ><HubIcon :row="{ id: 'folder', group: 'Builds' }" />{{ folder || 'Skills' }}</span></template>
+  ><HubIcon :row="{ iconKind: 'folder' }" />{{ folder || 'Skills' }}</span></template>
 </template>

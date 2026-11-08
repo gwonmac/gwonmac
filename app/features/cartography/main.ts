@@ -9,16 +9,19 @@ import { parseCartographyEvidenceCapture } from "./main/cartography-evidence/cap
 import { CartographyMapKnowledgeStore } from "./main/cartography-map-knowledge.js";
 import { EliteTrackingStore } from "./main/elite-tracking.js";
 import { channel } from "../../main/ipc-channel-registry.js";
-import { one, type ToolsMainPart } from "../../main/tools-main-part.js";
+import { one } from "../../main/ipc-values.js";
+import type { ToolsMainPart } from "../../main/tools-main-part.js";
+import contract from "./shared/ipc.js";
 import { parseCartographyMapKnowledge } from "../../shared/cartography-map-knowledge.js";
 import { isDigest } from "../../shared/digest.js";
-import { eliteWikiUrl } from "../../shared/elite-wiki.js";
+import { eliteWikiUrl, parseEliteWikiRequest } from "../../shared/elite-wiki.js";
 import { parseEliteCharacter, parseEliteUpdate } from "../../shared/elite-skills.js";
 import { ValidationError } from "../../shared/errors.js";
 
 export default {
   feature: "cartography",
   label: "Maps",
+  contract,
   create({ paths, accounts, preferences, clientFingerprint, getClientSession, run }) {
     const knowledge = new CartographyMapKnowledgeStore(paths.cartographyMapKnowledge);
     const tracking = new EliteTrackingStore();
@@ -52,7 +55,8 @@ export default {
             return fingerprint ? knowledge.record(fingerprint, value) : Promise.resolve([]);
           }),
         ),
-        eliteWikiOpen: channel(one(eliteWikiUrl), (_win, url) => run(() => shell.openExternal(url))),
+        eliteWikiOpen: channel(one(parseEliteWikiRequest), (_win, request) =>
+          run(() => shell.openExternal(eliteWikiUrl(request)))),
         eliteTrackingGet: channel(one(parseEliteCharacter), (win, value) =>
           run(() => tracking.get(trackingPath(win), value.characterKey))),
         eliteTrackingUpdate: channel(one(parseEliteUpdate), (win, value) =>
@@ -60,4 +64,4 @@ export default {
       },
     };
   },
-} satisfies ToolsMainPart;
+} satisfies ToolsMainPart<typeof contract>;

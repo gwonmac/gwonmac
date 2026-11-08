@@ -3,6 +3,7 @@
  * Runtime decisions live in the feature proof modules.
  */
 import { createHash } from "node:crypto";
+import { refusedOrRethrow } from "./stage-refusal.js";
 import {
   enhancementProofContext,
   EvidenceError,
@@ -60,17 +61,40 @@ function baseReport(
   };
 }
 
+/**
+ * Producers of each message, in decoded order. Chat evidence asks for every
+ * candidate dispatcher times three messages, and filtering all decoded
+ * functions for each of those questions was a second of every proof.
+ */
+const producersByMessage = new WeakMap<
+  readonly DecodedFunction[],
+  Map<number, readonly DecodedFunction[]>
+>();
+
+function messageProducers(
+  decoded: readonly DecodedFunction[],
+  message: number,
+): readonly DecodedFunction[] {
+  let byMessage = producersByMessage.get(decoded);
+  if (!byMessage) {
+    byMessage = new Map();
+    producersByMessage.set(decoded, byMessage);
+  }
+  let producers = byMessage.get(message);
+  if (!producers) {
+    producers = decoded.filter((producer) => (producer.messageSites[message] ?? 0) > 0);
+    byMessage.set(message, producers);
+  }
+  return producers;
+}
+
 export function messageRelations(
   decoded: readonly DecodedFunction[],
   target: number,
   message: number,
 ): MessageProducerEvidence[] {
-  return decoded
-    .filter(
-      (producer) =>
-        (producer.messageSites[message] ?? 0) > 0
-        && (producer.calls.get(target) ?? 0) > 0,
-    )
+  return messageProducers(decoded, message)
+    .filter((producer) => (producer.calls.get(target) ?? 0) > 0)
     .map((producer) => ({
       producerFunctionIndex: producer.functionIndex,
       messageSites: producer.messageSites[message] ?? 0,
@@ -271,13 +295,7 @@ export function inspectEnhancementStructuralEvidence(
   if (input.byteLength > MAX_INPUT_BYTES) {
     return baseReport(sha256, false, "input-too-large");
   }
-  let validWasm: boolean;
-  try {
-    validWasm = WebAssembly.validate(input);
-  } catch {
-    validWasm = false;
-  }
-  if (!validWasm) return baseReport(sha256, false, "invalid-wasm");
+  if (!WebAssembly.validate(input)) return baseReport(sha256, false, "invalid-wasm");
 
   let module: ModuleShape;
   let context: EnhancementProofContext;
@@ -289,6 +307,7 @@ export function inspectEnhancementStructuralEvidence(
     context = candidate;
     module = context.moduleView();
   } catch (error) {
+    refusedOrRethrow(error);
     const failure = error instanceof EvidenceError
       ? error.code
       : "module-shape-unsupported";
@@ -302,6 +321,7 @@ export function inspectEnhancementStructuralEvidence(
       ...messageAnchors.nearbyPlayerMessages,
     ]);
   } catch (error) {
+    refusedOrRethrow(error);
     const failure = error instanceof EvidenceError
       ? error.code
       : "instruction-set-unsupported";
@@ -319,6 +339,7 @@ export function inspectEnhancementStructuralEvidence(
   try {
     playerChatUi = playerChatUiEvidence(module, decoded, messageAnchors);
   } catch (error) {
+    refusedOrRethrow(error);
     const failure = error instanceof EvidenceError
       ? error.code
       : "analysis-limit-exceeded";
@@ -343,6 +364,7 @@ export function inspectEnhancementStructuralEvidence(
       cursor: cursorEvidence(module, decoded, tableRelations),
     };
   } catch (error) {
+    refusedOrRethrow(error);
     const failure = error instanceof EvidenceError
       ? error.code
       : "active-table-unsupported";

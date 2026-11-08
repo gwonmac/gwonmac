@@ -1,7 +1,8 @@
 /**
- * Owns the cleanup of text a player copied from outside Guild Wars.
- * Game paste and character-name search share it, so a pasted name behaves
- * exactly like the same name typed by hand.
+ * Owns the cleanup of text a player copied from outside Guild Wars, and the
+ * one key that says two names are the same character. Game paste, character-name
+ * search, Whispers and Trade share it, so a pasted name behaves exactly like the
+ * same name typed by hand.
  */
 
 // Web pages, Discord and word processors add invisible format characters
@@ -19,3 +20,9 @@ export function cleanPastedText(value: string): string {
 export function normaliseCharacterName(value: string): string {
   return cleanPastedText(value).replace(/\s+/gu, " ");
 }
+
+/**
+ * The key two names share when they are the same character. The fixed locale keeps
+ * it the same on every Mac, a Turkish one included.
+ */
+export const characterKey = (name: string) => normaliseCharacterName(name).toLocaleLowerCase("en-US");

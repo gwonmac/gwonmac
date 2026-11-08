@@ -2,10 +2,10 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
   characterCarouselRows,
-  numberedCharacterPosition,
   characterRows,
   searchCharacters,
 } from "../../app/features/character-switch/renderer/character-switch-palette.js";
+import { numberedCharacterPosition } from "../../app/features/character-switch/hub-views/characters-page.js";
 import type { CharacterSummary } from "../../app/renderer/companion-character-list-snapshot.js";
 
 const character = (

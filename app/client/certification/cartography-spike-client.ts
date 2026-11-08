@@ -8,11 +8,8 @@ import {
   prepareDerivedWasm,
   type DerivedWasmCache,
 } from "../derived-wasm.js";
-import {
-  CARTOGRAPHY_SPIKE_TRANSFORM_ABI,
-  transformCartographySpikeWasm,
-} from "./pathing-spike-transform.js";
-import type { CartographySpikeBuild } from "./cartography-spike-verifier.js";
+import { CARTOGRAPHY_SPIKE_TRANSFORM_ABI } from "./pathing-spike-transform.js";
+import { rewriteCartographySpikeWasm, type CartographySpikeBuild } from "./cartography-spike-verifier.js";
 
 export type CartographySpikePreparation =
   | Readonly<{
@@ -67,7 +64,7 @@ export async function prepareCartographySpike(
       wasmPath: await prepareDerivedWasm(
         wasmPath,
         cache,
-        (input) => transformCartographySpikeWasm(input, build.memoryLayout),
+        (input) => rewriteCartographySpikeWasm(input, build),
       ),
       wasmSha256: build.outputSha256,
     });

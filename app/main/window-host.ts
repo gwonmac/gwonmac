@@ -55,7 +55,7 @@ export function createWindowHost(input: Readonly<{
     diagnosticProfile: input.diagnosticProfile,
     getProgress: () => clientRuntime.progress,
     getSettings: () => preferences.getSettings(),
-    updateSettings: (patch) => preferences.updateSettings(patch),
+    updateSettings: (patch) => preferences.write({ kind: "settings", patch }),
     exportDiagnostics: (win) =>
       clientRuntime.diagnosticState().then((runtimeState) =>
         exportDiagnosticsForWindow(win, () => preferences.getSettings(), {

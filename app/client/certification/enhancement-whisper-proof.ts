@@ -2,13 +2,21 @@
  * Binds the whisper observer's bounded grammar to the reviewed incoming
  * producer and native string encoders. Submission reuses the native chat proof.
  */
+import { isDeepStrictEqual } from "node:util";
 import type { ModuleShape } from "./enhancement-evidence-types.js";
-import { deriveResignAction } from "./enhancement-resign-proof.js";
+import { chatPaths, deriveResignAction, locatedChatPaths } from "./enhancement-resign-proof.js";
+import { reviewedEntries } from "./reviewed-facts.js";
 import { uniqueExactFunction } from "./wasm-evidence.js";
+
+/** One reviewed whisper path: the native sender and each bound function. */
+export type WhisperPath = Readonly<{
+  sender: number;
+  functions: readonly (readonly [number, string, readonly string[], readonly string[]])[];
+}>;
 
 // These complete paths retain the bounded copier, both string encoders, and
 // incoming/outgoing producers. The October log message uses the current UI ID.
-const WHISPER_PATHS = Object.freeze([
+const AUGUST_AND_OCTOBER_PATHS: readonly WhisperPath[] = Object.freeze([
   { sender: 7875,
     functions: [
       [358, "1c87ab4b0831420341935898d106c902d85897a116b4beb7492bf4ab3b1ea9c7", ["i32", "i32", "i32"], []],
@@ -29,34 +37,34 @@ const WHISPER_PATHS = Object.freeze([
       [8847, "6694fdf5dc2395af5adab5e60840eba7467316720b57c4e3a64f4526bb027b5c", ["i32"], ["i32"]],
       [5779, "6bbd6f5802d760ba6d72568c07901c0ae989ba290458b8cdeaa5db39da7a0cd4", ["i32", "i32", "i32", "i32", "i32"], ["i32"]],
     ] },
-  // October 22: the October path renumbered (reviewed callee and operand moves only).
-  { sender: 7879,
-    functions: [
-      [358, "1c87ab4b0831420341935898d106c902d85897a116b4beb7492bf4ab3b1ea9c7", ["i32", "i32", "i32"], []],
-      [11744, "6e67ac04077857e0da665be75ad5ed98a9927a5607bc1ddbd78fb1ab8039f04c", ["i32"], []],
-      [5865, "f7a2017ce827175b1c593cc6f62f34bcc06c43593157a8f267305eec062e9a0a", ["i32", "i32", "i32"], ["i32"]],
-      [5871, "013e7a049e0be2d3e4597d1feee0bad39f0ba1fe1d5ffd82cf35397630264e10", ["i32", "i32", "i32", "i32"], ["i32"]],
-      [11742, "a6c78374f4e6a901900a6f8102a49fa487170877630e532b9e1d9388bda1d93a", ["i32", "i32"], []],
-      [8847, "6694fdf5dc2395af5adab5e60840eba7467316720b57c4e3a64f4526bb027b5c", ["i32"], ["i32"]],
-      [5779, "5fd1c714b97dfb852012420d0e8d5f32e28bd9fee000590de08958ba78a11031", ["i32", "i32", "i32", "i32", "i32"], ["i32"]],
-    ] },
-  // November 3: the October 22 path renumbered again (reviewed callee and operand moves only).
-  { sender: 7880,
-    functions: [
-      [359, "1c87ab4b0831420341935898d106c902d85897a116b4beb7492bf4ab3b1ea9c7", ["i32", "i32", "i32"], []],
-      [11747, "8e66a730acb5424aeb93f5f174ececa587c4c1c12ff9a4db2cd96dad2f584906", ["i32"], []],
-      [5866, "013beb33a62a8148261e2a67f657f9b2e02bb618136dc62621831f68f6f3bce0", ["i32", "i32", "i32"], ["i32"]],
-      [5872, "06c0e7ea8532c1ac11c1a0909ea07d6471108d688d94f49c38fccdf45d2968f7", ["i32", "i32", "i32", "i32"], ["i32"]],
-      [11745, "2a91d529aa19c39b435491b4567896663bcd99cfea4b16b98d36bc80ef80ea60", ["i32", "i32"], []],
-      [8848, "6694fdf5dc2395af5adab5e60840eba7467316720b57c4e3a64f4526bb027b5c", ["i32"], ["i32"]],
-      [5780, "2241b6c2c774a5bf31ccc43cf112ebbc7aa061870dfff34a457652e3d47ded55", ["i32", "i32", "i32", "i32", "i32"], ["i32"]],
-    ] },
 ] as const);
 
+const generationPaths = reviewedEntries((facts) => facts.whisperPaths);
+
+/**
+ * The native chat sender when `module` holds a reviewed whisper path: one whose
+ * reviewed sender is the sender of a chat path the module holds, and each of
+ * whose bodies the module holds once (exactly, or as a relocation).
+ *
+ * A whisper path names its sender by reviewed index, so it refuses when one of
+ * those indices names two different reviewed senders in the active generations.
+ */
 export function deriveWhisperChat(module: ModuleShape) {
   const sender = deriveResignAction(module);
   if (!sender) return null;
-  return WHISPER_PATHS.some(path => path.sender === sender.functionIndex
-    && path.functions.every(([index, hash, params, results]) =>
-      uniqueExactFunction(module, hash, params, results) === index)) ? sender : null;
+  const whisperPaths = [...AUGUST_AND_OCTOBER_PATHS, ...generationPaths()];
+  const named = new Set(whisperPaths.map((path) => path.sender));
+  const reviewedAt = new Map<number, NonNullable<ReturnType<typeof deriveResignAction>>[]>();
+  for (const { sender: reviewed } of chatPaths()) {
+    if (!named.has(reviewed.functionIndex)) continue;
+    const known = reviewedAt.get(reviewed.functionIndex) ?? [];
+    if (!known.some((entry) => isDeepStrictEqual(entry, reviewed))) reviewedAt.set(reviewed.functionIndex, [...known, reviewed]);
+  }
+  if ([...reviewedAt.values()].some((senders) => senders.length > 1)) return null;
+  const reviewedSenders = new Set(locatedChatPaths(module)
+    .filter((located) => isDeepStrictEqual(located.sender, sender))
+    .map(({ path }) => path.sender.functionIndex));
+  return whisperPaths.some(path => reviewedSenders.has(path.sender)
+    && path.functions.every(([, hash, params, results]) =>
+      uniqueExactFunction(module, hash, params, results) !== null)) ? sender : null;
 }

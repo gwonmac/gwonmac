@@ -2,7 +2,7 @@
  * Defines the exact executable boundary for the private Cartography reachability module.
  * Changes to memory, imports, exports, or function types must update this one contract.
  */
-export const CARTOGRAPHY_REACHABILITY_ABI = 3;
+export const CARTOGRAPHY_REACHABILITY_ABI = 4;
 export const CARTOGRAPHY_REACHABILITY_MAX_CELLS = 131_072;
 export const CARTOGRAPHY_REACHABILITY_REGION_BYTES = 584_776;
 export const CARTOGRAPHY_REACHABILITY_RUNTIME_BYTES = 65_536;
@@ -19,6 +19,7 @@ export const CARTOGRAPHY_REACHABILITY_SIGNATURES = Object.freeze([
   { name: "cartography_reachability_classify", typeIndex: 0 },
   { name: "cartography_reachability_abi", typeIndex: 1 },
   { name: "cartography_reachability_region_bytes", typeIndex: 1 },
+  { name: "cartography_reachability_install", typeIndex: 2 },
 ]);
 
 export const CARTOGRAPHY_REACHABILITY_EXPORTS = Object.freeze(
@@ -67,6 +68,7 @@ export function cartographyReachabilitySignatureBytes(): Uint8Array<ArrayBuffer>
       0x7f,
     ]),
     functionType([]),
+    functionType([0x7f, 0x7f, 0x7f]),
   ];
   const typeSection = [...uleb(types.length), ...types.flat()];
   const importSection = [

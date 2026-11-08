@@ -8,48 +8,35 @@
  * separate commands this replaced cannot drift apart in how they locate the
  * installed client or spell a failure.
  *
- * `template --write` is the one subcommand that changes a tracked file. It is
- * a manual developer tool; automation must never call it or treat its output
- * as launch authority. It refuses every case but a new structurally derived
- * build — including one already certified.
+ * `template --write` and `review --apply` are the two subcommands that change
+ * a tracked file. They are manual developer tools; automation must never call
+ * them or treat their output as launch authority. `template --write` refuses
+ * every case but a new structurally derived build — including one already
+ * certified. `review --apply` writes only the alternatives and player-effect
+ * bodies a maintainer approved in a review packet.
  * It never touches `ENHANCEMENT_BUILDS`: those layout words are client-memory
  * addresses no structural anchor re-derives, so nothing may add them without a
  * person measuring them.
  *
  * Machine-readable output goes to stdout and human findings go to stderr, so a
  * caller can pipe one without losing the other. A misuse exits 2 and a refusal
- * the chain itself made exits 1, uniformly across the four subcommands; only a
+ * the chain itself made exits 1, uniformly across every subcommand; only a
  * transform that refuses its input throws, because the hash it names is the
  * finding.
  */
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { mkdir, readFile, open } from "node:fs/promises";
 import path from "node:path";
 import { writeAtomic } from "../main/core/atomic-file.js";
 import {
   enhancementOutputSha256,
   findEnhancementBuild,
-  supportedEnhancementCapabilities,
 } from "../client/certification/enhancement-builds.js";
 import { transformEnhancementWasm } from "../client/certification/enhancement-transform.js";
 import {
-  deriveNativeDoubleClickBuild,
-} from "../client/certification/native-double-click.js";
-import { deriveCartographySpikeBuild } from
-  "../client/certification/cartography-spike-verifier.js";
-import { preparePostTemplateSaveModule } from "../client/certification/template-save-verifier.js";
-import {
-  isLocalClientVerification,
-  verifyLocalClientBytes,
-} from "../client/certification/local-client-verifier.js";
-import { rewriteTemplateSaveWasm } from
-  "../client/certification/template-save-compat.js";
-import {
   ENHANCEMENT_CAPABILITY_PRESETS,
-  ENHANCEMENT_CAPABILITY_FIELDS,
   ENHANCEMENT_TRANSFORM_ABI,
-  RELEASE_ENHANCEMENT_CAPABILITIES,
-  enhancementCapabilityProfile,
 } from "../shared/enhancement-contracts.js";
 import {
   currentMessageAnchors,
@@ -66,11 +53,23 @@ import {
   TEMPLATE_SAVE_TABLE,
 } from "./template-save-recert.js";
 import {
-  createCarryForwardReport,
-  formatCarryForwardMarkdown,
-} from "./carry-forward.js";
+  cartographyReport,
+  doubleClickReport,
+  QUALIFICATION_CHECKS,
+  qualifyClient,
+  runtimePredecessors,
+  runtimeReport,
+} from "./client-qualification.js";
+import { formatWatchReport } from "./watch-report.js";
+import { withIdentityRecorder } from "../client/certification/reviewed-facts.js";
+import { memoryCodeSha256 } from "../client/certification/relocation-identity.js";
+import { preparePostTemplateSaveModule } from "../client/certification/template-save-verifier.js";
+import { enhancementProofContext } from "../client/certification/wasm-evidence.js";
 
 import { inspectWasmBytes } from "./wasm-inspection.js";
+import { formatReviewPacket, reviewClient, type ReviewPacket } from "./fact-review.js";
+import { reviewDraftWrites, type SourceWrite } from "./generation-file.js";
+import { REVIEWED_GENERATIONS } from "../client/certification/reviewed-facts.js";
 
 const USAGE =
   "usage: pnpm certification <command>\n"
@@ -78,12 +77,18 @@ const USAGE =
   + "  doctor [--profile PATH]              why Enhancement is or is not running here\n"
   + "  recertify [PATH/Gw.jspi.wasm]        draft an Enhancement build entry, with evidence\n"
   + "  verify [PATH/Gw.jspi.wasm]           run the exact runtime feature verifier\n"
-  + "  compare INPUT.wasm OUTPUT_DIR        write shared JSON and Markdown patch evidence\n"
+  + "  qualify WASM JS OUTPUT_DIR           run the release battery on one exact client\n"
+  + "  watch-report GENERATION.json         render the client-watch issue table\n"
+  + "  reviewed-identities [PATH/Gw.jspi.wasm]\n"
+  + "                                       print a reviewed client's identity table and memory-code digest\n"
   + "  template [PATH/Gw.jspi.wasm] [--emit-ts] [--write] [--expect-certified]\n"
   + "                                       re-derive the template-save build entry\n"
   + "  transform INPUT.wasm OUTPUT.wasm     write the derived Enhancement module\n"
   + "  double-click [PATH/Gw.jspi.wasm]     prove the native double-click route\n"
-  + "  cartography [PATH/Gw.jspi.wasm]      prove every Cartography runtime input\n";
+  + "  cartography [PATH/Gw.jspi.wasm]      prove every Cartography runtime input\n"
+  + "  review BUNDLE_DIR [--previous PATH/Gw.jspi.wasm]\n"
+  + "                                       write a local review packet to BUNDLE_DIR/review\n"
+  + "  review --apply PACKET_DIR            write the approved draft into the generation file\n";
 
 /**
  * The one fixed profile the command line emits. The other certified profiles
@@ -184,94 +189,50 @@ async function verify(argv: readonly string[]): Promise<void> {
     process.exitCode = 2;
     return;
   }
-  const official = new Uint8Array(
+  const { report, proved } = runtimeReport(new Uint8Array(
     await readFile(positional[0] ?? installedClientArtifact()),
-  );
-  const result = verifyLocalClientBytes(official);
-  if (!isLocalClientVerification(result, result.officialSha256)) {
-    throw new Error("runtime feature verifier produced an invalid boundary result");
-  }
-  const capabilities = result.enhancementBuild
-    ? supportedEnhancementCapabilities(result.enhancementBuild)
-    : null;
-  const featureVerdicts = result.featureVerdicts;
-  const features = featureVerdicts === null
-    ? null
-    : Object.fromEntries(ENHANCEMENT_CAPABILITY_FIELDS.map((feature) => {
-        const verdict = featureVerdicts[feature];
-        return [feature, verdict.status === "ambiguous"
-          ? {
-              status: verdict.status,
-              invariant: verdict.invariant,
-              candidates: verdict.candidates,
-            }
-          : verdict.status === "changed"
-            ? { status: verdict.status, invariant: verdict.invariant }
-            : { status: verdict.status }];
-      }));
-  process.stdout.write(`${JSON.stringify({
-    officialSha256: result.officialSha256,
-    fileVerdict: result.fileVerdict,
-    templateSaving: result.templateSaveBuild !== null,
-    verifierAbi: result.verifierAbi,
-    features,
-    capabilities,
-    reasons: result.reasons,
-  })}\n`);
-  if (
-    result.templateSaveBuild === null
-    || features === null
-    || Object.values(features).some(({ status }) => status !== "proved")
-  ) {
-    process.exitCode = 1;
-  }
+  ));
+  process.stdout.write(`${JSON.stringify(report)}\n`);
+  if (!proved) process.exitCode = 1;
 }
 
-async function compare(argv: readonly string[]): Promise<void> {
-  const [filename, outputDirectory, ...extra] = positionalArguments(argv);
-  if (!filename || !outputDirectory || extra.length > 0) {
+/**
+ * The release battery: every check once, in one process. Each check's evidence
+ * record goes to OUTPUT_DIR as `<check>.json`; the runtime record is
+ * `runtime-verdicts.json`. Exits 1 when any check refused.
+ */
+async function qualify(argv: readonly string[]): Promise<void> {
+  const [wasmPath, jsPath, outputDirectory, ...extra] = positionalArguments(argv);
+  if (!wasmPath || !jsPath || !outputDirectory || extra.length > 0) {
     process.stderr.write(USAGE);
     process.exitCode = 2;
     return;
   }
-  const official = new Uint8Array(await readFile(filename));
-  const verification = verifyLocalClientBytes(official);
-  if (!isLocalClientVerification(verification, verification.officialSha256)) {
-    throw new Error("runtime feature verifier produced an invalid boundary result");
-  }
-  const templateSave = inspectTemplateSaveCandidate(official);
-  const enhancement = recertifyEnhancementBytes(
-    official,
-    currentMessageAnchors(),
-  );
-  const postTemplate = preparePostTemplateSaveModule(official);
-  const selectedInput = postTemplate?.bytes ?? official;
-  const doubleClick = deriveNativeDoubleClickBuild(selectedInput)
-    ? "exact" as const
-    : "not-located" as const;
-  const report = createCarryForwardReport(
-    verification,
-    templateSave,
-    enhancement,
-    doubleClick,
-  );
+  const records = await qualifyClient(wasmPath, jsPath);
   const directory = path.resolve(outputDirectory);
   await mkdir(directory, { recursive: true });
-  await Promise.all([
-    writeAtomic(
-      path.join(directory, "carry-forward.json"),
-      `${JSON.stringify(report, null, 2)}\n`,
-    ),
-    writeAtomic(
-      path.join(directory, "carry-forward.md"),
-      formatCarryForwardMarkdown(report),
-    ),
-  ]);
-  process.stdout.write(`${JSON.stringify({
-    json: path.join(directory, "carry-forward.json"),
-    markdown: path.join(directory, "carry-forward.md"),
-    capabilities: report.capabilities,
-  })}\n`);
+  for (const check of QUALIFICATION_CHECKS) {
+    const name = check === "runtime" ? "runtime-verdicts" : check;
+    await writeAtomic(
+      path.join(directory, `${name}.json`),
+      `${JSON.stringify(records[check], null, 2)}\n`,
+    );
+    process.stderr.write(`qualify ${check}: ${records[check].status}\n`);
+  }
+  if (QUALIFICATION_CHECKS.some((check) => records[check].status !== "proved")) {
+    process.exitCode = 1;
+  }
+}
+
+async function watchReport(argv: readonly string[]): Promise<void> {
+  const [filename, ...extra] = positionalArguments(argv);
+  if (!filename || extra.length > 0) {
+    process.stderr.write(USAGE);
+    process.exitCode = 2;
+    return;
+  }
+  const generation: unknown = JSON.parse(await readFile(filename, "utf8"));
+  process.stdout.write(formatWatchReport(generation));
 }
 
 async function template(argv: readonly string[]): Promise<void> {
@@ -374,87 +335,16 @@ async function transform(argv: readonly string[]): Promise<void> {
   })}\n`);
 }
 
-interface RuntimePredecessor {
-  readonly profile: string;
-  readonly bytes: Uint8Array;
-  readonly enhancementInputSha256?: string;
-}
-
-/** One canonical enumeration of every module the runtime can serve. */
-function runtimePredecessors(official: Uint8Array): Readonly<{
-  officialSha256: string;
-  predecessors: readonly RuntimePredecessor[];
-}> {
-  const officialSha256 = createHash("sha256").update(official).digest("hex");
-  const verification = verifyLocalClientBytes(official);
-  const templateBuild = verification.templateSaveBuild;
-  const selectedInput = templateBuild
-    ? rewriteTemplateSaveWasm(official, templateBuild)
-    : official;
-  const enhancementInputSha256 = createHash("sha256")
-    .update(selectedInput)
-    .digest("hex");
-  const predecessors: RuntimePredecessor[] = [
-    { profile: templateBuild ? "file-compatible" : "official", bytes: selectedInput },
-  ];
-  for (const [launch, capabilities] of Object.entries(
-    RELEASE_ENHANCEMENT_CAPABILITIES,
-  )) {
-    const profile = enhancementCapabilityProfile(capabilities);
-    if (!profile) throw new Error(`invalid ${launch} release capability set`);
-    const profileBuild = verifyLocalClientBytes(official, capabilities).enhancementBuild;
-    if (!profileBuild) throw new Error(`semantic verification refused profile ${profile}`);
-    predecessors.push({
-      profile,
-      bytes: transformEnhancementWasm(selectedInput, profileBuild, capabilities),
-      enhancementInputSha256,
-    });
-  }
-  return Object.freeze({ officialSha256, predecessors: Object.freeze(predecessors) });
-}
-
-/**
- * Proves the native double-click route against each output of the whole chain.
- * Each result is one exact input/output transaction; there is no Cartesian
- * predecessor table to update when an unrelated capability profile changes.
- */
+/** Proves the native double-click route against each output of the whole chain. */
 async function doubleClick(argv: readonly string[]): Promise<void> {
   const [filename] = positionalArguments(argv);
   const official = new Uint8Array(
     await readFile(filename ?? installedClientArtifact()),
   );
   const { officialSha256, predecessors } = runtimePredecessors(official);
-  const chains: Array<Readonly<{
-    profile: string;
-    inputSha256: string;
-    outputSha256: string;
-    enhancementInputSha256?: string;
-  }>> = [];
-  let completeRouteProved = true;
-  for (const predecessor of predecessors) {
-    const { profile, bytes } = predecessor;
-    const inputSha256 = createHash("sha256").update(bytes).digest("hex");
-    const build = deriveNativeDoubleClickBuild(bytes);
-    const outputSha256 = build?.derivations[inputSha256];
-    if (!outputSha256) {
-      completeRouteProved = false;
-      continue;
-    }
-    chains.push(Object.freeze({
-      profile,
-      inputSha256,
-      outputSha256,
-      ...(predecessor.enhancementInputSha256 === undefined
-        ? {}
-        : { enhancementInputSha256: predecessor.enhancementInputSha256 }),
-    }));
-  }
-  process.stdout.write(`${JSON.stringify({
-    officialSha256,
-    chains,
-    completeRouteProved,
-  }, null, 2)}\n`);
-  if (!completeRouteProved || chains.length !== predecessors.length) {
+  const { report, proved } = doubleClickReport(officialSha256, predecessors);
+  process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
+  if (!proved) {
     process.stderr.write(
       "certification double-click: complete native input route did not prove\n",
     );
@@ -469,22 +359,9 @@ async function cartography(argv: readonly string[]): Promise<void> {
     await readFile(filename ?? installedClientArtifact()),
   );
   const { officialSha256, predecessors } = runtimePredecessors(official);
-  const chains = predecessors.flatMap(({ profile, bytes }) => {
-    const build = deriveCartographySpikeBuild(bytes);
-    return build ? [{
-      profile,
-      inputSha256: build.inputSha256,
-      outputSha256: build.outputSha256,
-      memoryLayout: build.memoryLayout,
-    }] : [];
-  });
-  const completeProof = chains.length === predecessors.length;
-  process.stdout.write(`${JSON.stringify({
-    officialSha256,
-    chains,
-    completeProof,
-  }, null, 2)}\n`);
-  if (!completeProof) {
+  const { report, proved } = cartographyReport(officialSha256, predecessors);
+  process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
+  if (!proved) {
     process.stderr.write(
       "certification cartography: one or more runtime inputs did not prove\n",
     );
@@ -492,16 +369,146 @@ async function cartography(argv: readonly string[]): Promise<void> {
   }
 }
 
+/**
+ * Prints the identity table for a reviewed client's `reviewed-client-<id>.ts`:
+ * every reviewed literal that matched one of its bodies exactly in the runtime,
+ * double-click, Cartography and Template-saving proofs, with that body's relocation identity.
+ * Review the client first; the table only lets its exact facts survive a relink.
+ */
+async function reviewedIdentities(argv: readonly string[]): Promise<void> {
+  const [filename, ...extra] = positionalArguments(argv);
+  if (extra.length > 0) {
+    process.stderr.write(USAGE);
+    process.exitCode = 2;
+    return;
+  }
+  const official = new Uint8Array(await readFile(filename ?? installedClientArtifact()));
+  const table = new Map<string, Set<string>>();
+  withIdentityRecorder((literal, identity) => {
+    table.set(literal, (table.get(literal) ?? new Set()).add(identity));
+  }, () => {
+    const { officialSha256, predecessors } = runtimePredecessors(official);
+    doubleClickReport(officialSha256, predecessors);
+    cartographyReport(officialSha256, predecessors);
+    preparePostTemplateSaveModule(official);
+  });
+  const entries = [...table].sort(([left], [right]) => left.localeCompare(right))
+    .map(([literal, identities]) => [literal, [...identities].sort()] as const);
+  const templateOutput = preparePostTemplateSaveModule(official)?.bytes;
+  const context = templateOutput ? enhancementProofContext(templateOutput) : null;
+  process.stdout.write(`${JSON.stringify({
+    memoryCodeSha256: context ? memoryCodeSha256(context.moduleView()) : null,
+    identities: Object.fromEntries(entries),
+  }, null, 2)}\n`);
+}
+
+/** The official client inside an evidence bundle, in either retained layout. */
+async function bundleClient(bundle: string): Promise<Uint8Array> {
+  for (const candidate of ["official/artifacts/Gw.jspi.wasm", "artifacts/Gw.jspi.wasm"]) {
+    try {
+      return new Uint8Array(await readFile(path.join(bundle, candidate)));
+    } catch {
+      // try the other layout
+    }
+  }
+  throw new Error(`no Gw.jspi.wasm in ${bundle}`);
+}
+
+/** The literals each feature's draft needs, to note in the generation file. */
+function draftFeatures(packet: ReviewPacket): Record<string, string[]> {
+  const features: Record<string, string[]> = {};
+  for (const review of packet.features) {
+    for (const body of review.missing) {
+      if (body.draft !== null) features[body.literal] = [...features[body.literal] ?? [], review.feature];
+    }
+  }
+  return features;
+}
+
+/**
+ * Judges an evidence bundle's client with only the generations older than it
+ * and writes a local review packet: for each feature the previous client
+ * proves and this one refuses, the reviewed bodies it lost, the paired old and
+ * new functions side by side, and the drafted alternatives. `--apply` writes
+ * an approved draft into the client's generation file. The packet holds
+ * ArenaNet code, so it is always written inside the bundle, in the private
+ * evidence store, and never to a folder the caller chooses.
+ */
+async function review(argv: readonly string[]): Promise<void> {
+  const apply = argumentValue(argv, "--apply");
+  if (apply !== null) {
+    let writes: SourceWrite[];
+    try {
+      const draft: unknown = JSON.parse(await readFile(path.join(apply, "draft.json"), "utf8"));
+      writes = reviewDraftWrites(draft, REVIEWED_GENERATIONS, (file) => {
+        try {
+          return readFileSync(file, "utf8");
+        } catch {
+          return null;
+        }
+      });
+    } catch (error) {
+      process.stderr.write(`certification ${error instanceof Error ? error.message : String(error)}\n`);
+      process.exitCode = 2;
+      return;
+    }
+    for (const write of writes) await writeAtomic(write.file, write.source);
+    process.stderr.write(`certification review: wrote ${writes.map((write) =>
+      path.relative(process.cwd(), write.file)).join(" and ")}; run the replay and \`pnpm check\` before committing\n`);
+    return;
+  }
+  const [bundle, ...extra] = argv.filter((argument, index) =>
+    !argument.startsWith("--") && argv[index - 1] !== "--previous");
+  if (!bundle || extra.length > 0) {
+    process.stderr.write(USAGE);
+    process.exitCode = 2;
+    return;
+  }
+  const id = path.basename(path.resolve(bundle));
+  const own = REVIEWED_GENERATIONS.findIndex((generation) => generation.id === id);
+  const generations = own < 0 ? REVIEWED_GENERATIONS : REVIEWED_GENERATIONS.slice(0, own);
+  const newest = generations.at(-1);
+  const previousPath = argumentValue(argv, "--previous");
+  if (!newest && previousPath === null) {
+    process.stderr.write("certification review: no older generation to compare with\n");
+    process.exitCode = 2;
+    return;
+  }
+  const candidate = await bundleClient(bundle);
+  const previous = previousPath !== null
+    ? new Uint8Array(await readFile(previousPath))
+    : await bundleClient(path.join(path.dirname(path.resolve(bundle)), newest!.id));
+  const packet = reviewClient({ candidate, previous, generations, id });
+  const out = path.join(bundle, "review");
+  await mkdir(out, { recursive: true });
+  await writeAtomic(path.join(out, "packet.md"), formatReviewPacket(packet, id));
+  await writeAtomic(path.join(out, "draft.json"), `${JSON.stringify({
+    id,
+    candidateSha256: packet.candidateSha256,
+    previousSha256: packet.previousSha256,
+    features: draftFeatures(packet),
+    alternatives: packet.alternatives,
+    playerEffectBodies: packet.playerEffectBodies,
+  }, null, 2)}\n`);
+  process.stdout.write(`${JSON.stringify(packet.features.map(({ feature, invariant, provesWithDraft }) =>
+    ({ feature, invariant, provesWithDraft })))}\n`);
+  process.stderr.write(`certification review: wrote ${path.join(out, "packet.md")}\n`);
+  if (packet.features.length > 0) process.exitCode = 1;
+}
+
 const COMMANDS = Object.freeze({
   inspect,
   doctor,
   recertify,
   verify,
-  compare,
+  qualify,
+  "watch-report": watchReport,
+  "reviewed-identities": reviewedIdentities,
   template,
   transform,
   "double-click": doubleClick,
   cartography,
+  review,
 });
 
 // The subcommand name is argv, so the lookup has to be closed over own

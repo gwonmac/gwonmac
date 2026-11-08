@@ -2,6 +2,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { ELITE_REGIONS, type EliteLearnedFilter, type EliteViewPreferences } from "../../../../shared/elite-skills";
+import { optionFor } from "../../../../shared/setting-copy";
 import { PROFESSIONS } from "../../../../shared/builds/heroes";
 import { professionPresentation } from "../../../../shared/profession-assets";
 import type { Profession, ProfessionPair } from "../../../../shared/builds/library";
@@ -10,6 +11,13 @@ const props = defineProps<{
   myProfessions: ProfessionPair | null; learnedAvailable: boolean;
 }>();
 const emit = defineEmits<{ change: [value: Partial<EliteViewPreferences>] }>();
+/** "" is All regions. */
+const REGION_CHOICES = ["", ...ELITE_REGIONS] as const;
+function chooseRegion(event: Event) {
+  const select = event.target;
+  const region = select instanceof HTMLSelectElement ? optionFor(REGION_CHOICES, select.value) : undefined;
+  if (region !== undefined) emit("change", { region, focusedSkill: null });
+}
 const searchInput = ref<HTMLInputElement | null>(null);
 const professions = Object.entries(PROFESSIONS).map(([code, facts]) => ({ ...facts, code: code as Profession, icon: professionPresentation(facts.id)!.icon }));
 const mine = computed(() => props.myProfessions?.filter((value): value is Profession => value !== null) ?? []);
@@ -46,7 +54,7 @@ defineExpose({ searchInput });
       </div>
     </div>
     <select class="ui-select" aria-label="Capture region" :value="preferences.region"
-      @change="emit('change', { region: ($event.target as HTMLSelectElement).value as EliteViewPreferences['region'], focusedSkill: null })">
+      @change="chooseRegion">
       <option value="">All regions</option><option v-for="name in ELITE_REGIONS" :key="name">{{ name }}</option>
     </select>
     <p v-if="preferences.professions.kind === 'mine' && !mine.length" class="elite-support">Your professions are unavailable. Choose classes above.</p>

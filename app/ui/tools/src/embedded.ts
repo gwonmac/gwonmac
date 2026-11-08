@@ -30,16 +30,17 @@ const embedded: EmbeddedToolsBundle<HTMLElement> = Object.freeze({
       options.observationUnavailable,
       options.readTemplates,
       options.templateFiles,
+      { storage: options.storageUnavailable, publish: options.publishUnavailable },
     ),
     mode: "embedded",
     ...options,
   }),
-  createHubTravel: ({ nativeApi, command, development, hub, leaveArea }) => createTravel(
-    createNativeTravelHost(nativeApi, command, development), hub, leaveArea,
+  createHubTravel: ({ nativeApi, command, development, hub, leaveArea, toolOn }) => createTravel(
+    createNativeTravelHost(nativeApi, command, development), hub, leaveArea, toolOn,
   ),
-  mountTradeChat: (target, { nativeApi, ...options }) => mountTrade(target, {
+  mountTradeChat: (target, { nativeApi, whispers, ...options }) => mountTrade(target, {
     ...options,
-    host: createNativeTradeHost(nativeApi),
+    host: createNativeTradeHost(nativeApi, whispers),
   }),
 });
 

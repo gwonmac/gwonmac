@@ -11,9 +11,9 @@ import { teamId, teamSlotsOf } from '../../app/shared/builds/library.js';
  * native-dialog priority. A canvas key recorder stands in for Guild Wars' canvas
  * listeners. A key can reach the game only while the canvas has focus, so each
  * release check sends the key-up after the press has moved focus back to the
- * canvas. The browser fixture's golden matrix
- * (`app/ui/tools/tests/hub-keyboard-contract.spec.ts`) covers the same keys
- * without the main process.
+ * canvas. The fixture's golden table
+ * (`app/ui/tools/tests/keyboard-contract.golden.json`, run by vitest and
+ * Playwright) covers the same keys without the main process.
  */
 type RecordingWindow = typeof window & { __hubContractKeys?: string[]; __hubContractPointer?: string[]; __hubContractTrips?: number[] };
 type DialogRecord = { __hubContractDialogs?: string[] };
@@ -767,7 +767,7 @@ test('a native held Enter applies one team and owns its repeats and release (HUB
       const nativeApi = window.gwNative;
       if (!('buildLibrary' in nativeApi)) throw new Error('Tools native API is missing');
       const app = mountToolsApp(host, { nativeApi: { ...nativeApi, buildLibrary: { get: async () => ({ library, recovered: false }), set: async value => value } },
-        hub: window.gwHub!, initiallyVisible: false, publishTemplate: null, templateFiles: null, storage: null, applyUnavailable: null, observationUnavailable: null, development: false,
+        hub: window.gwHub!, initiallyVisible: false, publishTemplate: null, templateFiles: null, storage: null, storageUnavailable: null, publishUnavailable: null, applyUnavailable: null, observationUnavailable: null, development: false,
         commands: { cancelPending() {}, setHardMode(enabled) { modes.push(enabled); app.update(observation(enabled)); },
           setPlayerSecondary: unexpected, setPlayerSkills: unexpected, setPlayerAttributes: unexpected, addHero: unexpected, kickHero: unexpected,
           setHeroBehaviour: unexpected, setHeroSecondary: unexpected, setHeroSkills: unexpected, setHeroAttributes: unexpected } });

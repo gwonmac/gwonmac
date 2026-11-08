@@ -344,18 +344,10 @@ function cartographyEvidence(value: JsonRecord): JsonRecord {
       && !isEnhancementCapabilityProfile(profile)) {
       throw new Error("Cartography chain profile is not closed");
     }
-    const memoryLayout = string(
-      chain.memoryLayout,
-      `cartography.chains[${index}].memoryLayout`,
-    );
-    if (memoryLayout !== "official" && memoryLayout !== "relocated" && memoryLayout !== "october") {
-      throw new Error("Cartography memory layout is not closed");
-    }
     return Object.freeze({
       profile,
       inputSha256: digest(chain.inputSha256, "Cartography chain input"),
       outputSha256: digest(chain.outputSha256, "Cartography chain output"),
-      memoryLayout,
     });
   });
   if (new Set(chains.map(({ profile }) => profile)).size !== chains.length

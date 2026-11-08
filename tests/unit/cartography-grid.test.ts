@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type {
-  CompassFrameSpikeSnapshot,
-  MissionMapFrameSpikeSnapshot,
-  WorldMapFrameSpikeSnapshot,
+  CompassFrameSnapshot,
+  MissionMapFrameSnapshot,
+  WorldMapFrameSnapshot,
 } from "../../app/shared/cartography-spike.js";
 import {
   cartographyCellPixelSize,
@@ -59,7 +59,7 @@ test("lets proven map knowledge replace a larger continent estimate", () => {
   }), { count: 12, source: "estimate" });
 });
 
-const missionFrame: MissionMapFrameSpikeSnapshot = Object.freeze({
+const missionFrame: MissionMapFrameSnapshot = Object.freeze({
   status: 1,
   generation: 7,
   frameId: 162,
@@ -84,7 +84,7 @@ const missionFrame: MissionMapFrameSpikeSnapshot = Object.freeze({
   nativeMapHeight: 320,
 });
 
-const compassFrame: CompassFrameSpikeSnapshot = Object.freeze({
+const compassFrame: CompassFrameSnapshot = Object.freeze({
   status: 1,
   generation: 7,
   frameId: 24,
@@ -100,7 +100,7 @@ const compassFrame: CompassFrameSpikeSnapshot = Object.freeze({
   compassDirectionY: 1,
 });
 
-const worldFrame: WorldMapFrameSpikeSnapshot = Object.freeze({
+const worldFrame: WorldMapFrameSnapshot = Object.freeze({
   status: 1,
   sequence: 11,
   generation: 7,

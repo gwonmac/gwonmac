@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from "vue";
-import { findPeople, whisperPersonKey, whisperUnread, type Person, type WhisperSession, type WhisperSound } from "../../../shared/whisper-session";
+import { findPeople, whisperUnread, WHISPER_SOUNDS, type Person, type WhisperSession, type WhisperSound } from "../../../shared/whisper-session";
+import { optionFor } from "../../../shared/setting-copy";
+import { characterKey } from "../../../shared/player-text";
 import { TRAVEL_DESTINATIONS } from "../../../shared/travel-destinations";
 import { WHISPER_LINE_UNITS, WHISPER_MESSAGE_UNITS } from "../../../shared/whispers";
 import { presenceLabel, type TravelFriend } from "../../../shared/friends";
@@ -105,8 +107,8 @@ const continuedConversations = computed(() => state.value.conversations.filter(c
 const openKeys = computed(() => new Set(continuedConversations.value.map(c => c.key)));
 const observedFriends = computed(() => state.value.friends.status === "ready" ? state.value.friends.friends : []);
 function friendFor(name: string): TravelFriend | undefined {
-  const key = whisperPersonKey(name);
-  return observedFriends.value.find(friend => whisperPersonKey(friend.character) === key || whisperPersonKey(friend.alias) === key);
+  const key = characterKey(name);
+  return observedFriends.value.find(friend => characterKey(friend.character) === key || characterKey(friend.alias) === key);
 }
 const selectedFriend = computed(() => selected.value ? friendFor(selected.value.name) : undefined);
 const selectedLocation = computed(() => selectedFriend.value && selectedFriend.value.status !== "offline"
@@ -120,7 +122,7 @@ watch(() => state.value.conversations.map(conversation => conversation.key), key
   }
 });
 const friends = computed(() => state.value.friends.status === "ready"
-  ? state.value.friends.friends.filter(f => (f.status === "online" || f.status === "away" || f.status === "do-not-disturb") && !openKeys.value.has(whisperPersonKey(f.character || f.alias))
+  ? state.value.friends.friends.filter(f => (f.status === "online" || f.status === "away" || f.status === "do-not-disturb") && !openKeys.value.has(characterKey(f.character || f.alias))
     && `${f.character} ${f.alias}`.toLocaleLowerCase().includes(search.value.toLocaleLowerCase())) : []);
 const recent = computed(() => state.value.recent.filter(p => p.name.toLocaleLowerCase().includes(search.value.toLocaleLowerCase())));
 const suggestionDetail = (person: Person) => person.friend ? `Friend · ${presenceLabel(person.friend.status)}`
@@ -136,11 +138,11 @@ const pickerPeople = computed(() => [...continuedConversations.value.map(c => c.
 const pickerOptions = computed(() => search.value.trim() ? suggestions.value.map(person => person.name) : pickerPeople.value);
 /** Feed updates may reorder people; the chosen name keeps its identity, never its position. */
 const suggestionIndex = computed({
-  get: () => selectedPerson.value === null ? -1 : pickerOptions.value.findIndex(name => whisperPersonKey(name) === selectedPerson.value),
-  set: index => {selectedPerson.value = pickerOptions.value[index] === undefined ? null : whisperPersonKey(pickerOptions.value[index]);},
+  get: () => selectedPerson.value === null ? -1 : pickerOptions.value.findIndex(name => characterKey(name) === selectedPerson.value),
+  set: index => {selectedPerson.value = pickerOptions.value[index] === undefined ? null : characterKey(pickerOptions.value[index]);},
 });
 watch(pickerOptions, options => {
-  if (selectedPerson.value !== null && !options.some(name => whisperPersonKey(name) === selectedPerson.value)) selectedPerson.value = null;
+  if (selectedPerson.value !== null && !options.some(name => characterKey(name) === selectedPerson.value)) selectedPerson.value = null;
 });
 const pickerOptionId = (index: number) => search.value.trim() ? `whisper-suggestion-${index}` : `whisper-pick-${index}`;
 const maxLength = computed(() => Math.min(WHISPER_MESSAGE_UNITS, WHISPER_LINE_UNITS - (selected.value?.name.length ?? 0) - 2));
@@ -308,8 +310,11 @@ watch(() => state.value.conversations, conversations => {
   oscillator.start(); oscillator.stop(audio.currentTime + 0.18);
   oscillator.onended = () => { oscillator.disconnect(); volume.disconnect(); };
 });
+const SOUND_LABELS: Readonly<Record<WhisperSound, string>> = { off: "Off", background: "When chat is in background", every: "Every incoming whisper" };
 function soundChange(event: Event) {
-  const value = (event.target as HTMLSelectElement).value as WhisperSound;
+  const select = event.target;
+  const value = select instanceof HTMLSelectElement ? optionFor(WHISPER_SOUNDS, select.value) : undefined;
+  if (value === undefined) return;
   props.session.setSound(value);
   if (value !== "off") enableAudio();
 }
@@ -465,7 +470,7 @@ useClassicFrame(panel);
         <summary data-variant="quiet" class="ui-button whisper-control whisper-icon" aria-label="Chat options" title="Chat options"><svg viewBox="0 0 24 24" aria-hidden="true"><circle class="whisper-icon-dot" cx="5" cy="12" r="1.5"/><circle class="whisper-icon-dot" cx="12" cy="12" r="1.5"/><circle class="whisper-icon-dot" cx="19" cy="12" r="1.5"/></svg></summary>
         <div class="ui-raised ui-scroll whisper-menu">
           <label for="whisper-sound">Sound alerts</label>
-          <select id="whisper-sound" class="ui-select" :value="state.sound" @change="soundChange"><option value="off">Off</option><option value="background">When chat is in background</option><option value="every">Every incoming whisper</option></select>
+          <select id="whisper-sound" class="ui-select" :value="state.sound" @change="soundChange"><option v-for="sound in WHISPER_SOUNDS" :key="sound" :value="sound">{{ SOUND_LABELS[sound] }}</option></select>
           <label class="ui-range-field whisper-opacity" for="whisper-opacity"><span><span id="whisper-opacity-label">Background</span><span class="whisper-opacity-value">{{ state.backgroundOpacity }}%</span></span><input id="whisper-opacity" aria-labelledby="whisper-opacity-label" :aria-valuetext="`${state.backgroundOpacity}%`" class="ui-range" type="range" min="15" max="100" step="5" :value="state.backgroundOpacity" @input="opacityChange"/></label>
           <button v-if="selected" data-variant="quiet" class="ui-button whisper-control" :aria-pressed="selected.muted" @click="session.mute(selected.key)">{{ selected.muted ? 'Unmute this conversation' : 'Mute this conversation' }}</button>
           <button v-if="selected" data-variant="quiet" class="ui-button whisper-control whisper-danger" :disabled="selected.sending" :aria-label="`Close conversation with ${selected.name}`" @click="close(selected.key)">Close conversation</button>

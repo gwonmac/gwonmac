@@ -2,10 +2,8 @@
  * The one trust-boundary parser for portable Guild Wars template entries.
  * It validates bounded paths and contents before either process may store them.
  */
-import {
-  TEMPLATE_CEILINGS,
-  type TemplateExportEntry,
-} from "./contracts.js";
+import { TEMPLATE_CEILINGS } from "./contracts.js";
+import type { TemplateExportEntry } from "./template-contracts.js";
 import { ValidationError } from "./errors.js";
 
 const MIN_SEGMENTS = 2;

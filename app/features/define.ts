@@ -9,9 +9,25 @@
  * never app/shared/settings/index.ts, contracts.ts or keyboard-shortcuts.ts at
  * runtime, which import FEATURES themselves.
  */
-import type { EnhancementCapability, EnhancementProgram } from "../shared/enhancement-contracts.js";
+import type { EnhancementProgram } from "../shared/enhancement-contracts.js";
 import type { ShortcutBinding } from "../shared/keyboard-shortcuts.js";
 import type { SettingSpecs } from "../shared/settings/define.js";
+import type { SettingsSection } from "../shared/settings-catalogue.js";
+import type { HubIconKind } from "../shared/ui/hub-icon.js";
+
+/**
+ * A Tools row Core draws for a tool without loading its code: its detail, its icon, its action
+ * name (`Open <label>` by default) and how it opens; it matches the tool's `keywords`. A tool
+ * opens through its own `event`, asked to `show` (never to close), as a Hub page (`page`, so
+ * Right Arrow opens it too) or after the Hub closes (`closesHub`); or at a Settings section.
+ */
+export type HubToolRow = Readonly<{
+  detail: string;
+  iconKind: HubIconKind;
+  action?: string;
+  aliases?: readonly string[];
+  open: Readonly<{ show?: true; page?: true; closesHub?: true }> | Readonly<{ settings: SettingsSection }>;
+}>;
 
 /** What selects a feature, before its region and any live-state gate. */
 export type FeatureActivation =
@@ -38,13 +54,22 @@ export type FeatureDefinition = Readonly<{
     id: string;
     label: string;
     description: string;
-    /** Extra words Settings search matches. */
+    /** Extra words Settings search and the tool's Hub row match. */
     keywords?: string;
     /**
-     * The Hub command row that runs this tool and shows its shortcut. `keyOrder`, when
-     * present, also lists the shortcut on the Hub's Commands page, lowest first.
+     * The renderer event that runs this tool. Its shortcut's command fires it
+     * (app/renderer/commands.ts), and so does its Hub row. A listener cancels the event to
+     * claim it and, given an object detail, sets `error` on it to refuse.
      */
-    hub?: Readonly<{ command: string; keyOrder?: number }>;
+    event?: `gw:${string}`;
+    /**
+     * The Hub's Tools row that runs this tool and shows its shortcut, by its id `command`.
+     * `order` places it among the Tools rows, lowest first; `keyOrder`, when present, also
+     * lists the shortcut on the Hub's Commands page, lowest first. With `row`, Core draws the
+     * row from this manifest (app/shared/hub-tools.ts); a tool whose own Hub source attaches
+     * the row (Travel, Build Library) leaves it out.
+     */
+    hub?: Readonly<{ command: string; order: number; keyOrder?: number; row?: HubToolRow }>;
   }>;
   /**
    * App shortcuts this feature runs. One without a `label` is the tool's own shortcut and
@@ -56,12 +81,6 @@ export type FeatureDefinition = Readonly<{
     label?: string;
     menuItem?: string;
   }>[];
-  /**
-   * Capability ids this feature needs: those its own code checks and those behind the
-   * shared feeds it subscribes to. References only; the registry in enhancement-contracts
-   * stays the owner and adds each capability's own dependencies. Empty when it needs none.
-   */
-  capabilities?: readonly EnhancementCapability[];
 }>;
 
 export const defineFeature = <const Feature extends FeatureDefinition>(feature: Feature): Feature => feature;

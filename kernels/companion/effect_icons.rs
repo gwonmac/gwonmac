@@ -2,11 +2,12 @@
 //! only the certified Effects label hash; this module resolves visible child
 //! frames that belong to that parent and match `skill_id + 4`.
 
-use core::ptr::{read_volatile, write_volatile};
+use core::ptr::{addr_of_mut, read_volatile, write_volatile};
 
 use crate::abi::*;
 use crate::memory::*;
 use crate::player_effects;
+use crate::sequence_lock;
 
 const MAX_FRAMES: u32 = 16_384;
 const MAX_RELATION_DEPTH: u32 = 16;
@@ -321,14 +322,12 @@ unsafe fn collect(
     Ok((parent_id, viewport_width, viewport_height, anchor, output_count, records))
 }
 
+// A heartbeat (`None`) republishes the last observation under a new sequence.
 unsafe fn publish(observed: Option<Observation>) {
-    let next = unsafe { SEQUENCE }.wrapping_add(2) & !1;
     let snapshot = unsafe { POINTER as *mut EffectIconSnapshot };
     unsafe {
-        write_volatile(&mut (*snapshot).sequence, next.wrapping_sub(1));
-        if let Some(value) = observed {
-            write_volatile(&mut (*snapshot).magic, EFFECT_ICON_MAGIC);
-            write_volatile(&mut (*snapshot).abi_and_size, EFFECT_ICON_ABI_AND_SIZE);
+        SEQUENCE = sequence_lock::write(addr_of_mut!((*snapshot).header), SEQUENCE, EFFECT_ICON_MAGIC, EFFECT_ICON_ABI_AND_SIZE, || {
+            let Some(value) = observed else { return };
             write_volatile(&mut (*snapshot).flags, value.flags);
             write_volatile(&mut (*snapshot).generation, GENERATION);
             write_volatile(&mut (*snapshot).frame_id, value.frame_id);
@@ -339,9 +338,7 @@ unsafe fn publish(observed: Option<Observation>) {
             write_volatile(&mut (*snapshot).viewport_height, value.viewport_height);
             write_volatile(&mut (*snapshot).anchor, value.anchor);
             write_volatile(&mut (*snapshot).icons, value.icons);
-        }
-        write_volatile(&mut (*snapshot).sequence, next);
-        SEQUENCE = next;
+        });
     }
 }
 

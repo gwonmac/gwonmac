@@ -13,7 +13,7 @@ const hostDoubleClickMs = (app: ElectronApplication) =>
       : null;
   });
 
-test.describe("sandbox boundary", () => {
+test.describe("sandbox boundary", { tag: "@journey" }, () => {
   test("exposes only the frozen application capabilities", async () => {
     const fixture = await launchOffline("gw-sandbox-e2e-");
     try {
@@ -148,7 +148,7 @@ test.describe("sandbox boundary", () => {
   });
 
   // This used to be fourteen regular expressions over app/main/window.ts,
-  // app/main/ipc.ts and app/main/protocol.ts in the release suite — a test that
+  // the game-window IPC module and app/main/protocol.ts in the release suite — a test that
   // proved those files contained certain characters. Eleven of them are asked
   // of the running application here instead: the preferences Chromium actually
   // applied, the guard actually attached, the policy actually served, and a

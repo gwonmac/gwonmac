@@ -25,7 +25,7 @@ describe("extended memory Settings projection", () => {
     assert.match(view.detail, /still uses 4 GB/);
   });
 
-  it("keeps unsupported and preparation failures visibly distinct", () => {
+  it("keeps unsupported, preparation and check failures visibly distinct", () => {
     const base = {
       requestedAtLaunch: true as const,
       status: "unavailable" as const,
@@ -39,8 +39,19 @@ describe("extended memory Settings projection", () => {
       ...base,
       fallbackReason: "preparation-failed",
     });
+    const unchecked = extendedMemoryView(true, {
+      ...base,
+      fallbackReason: "check-failed",
+    });
     assert.match(unsupported.detail, /has not passed 4 GB certification/);
     assert.match(failed.detail, /could not be prepared safely/);
-    assert.notEqual(unsupported.detail, failed.detail);
+    // A module that failed to build says nothing about the update either.
+    assert.equal(failed.label, "4 GB didn’t start");
+    assert.equal(unsupported.label, "Unavailable for this Guild Wars update");
+    // A verifier that timed out says nothing about the build; the player must
+    // not read it as an unsupported Guild Wars update.
+    assert.equal(unchecked.label, "Couldn’t check this Guild Wars build");
+    assert.match(unchecked.detail, /^Couldn’t check this Guild Wars build\. Trying again at next start\./);
+    assert.equal(new Set([unsupported.detail, failed.detail, unchecked.detail]).size, 3);
   });
 });

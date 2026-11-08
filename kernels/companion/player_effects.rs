@@ -2,11 +2,12 @@
 //! timed-effect collection. UI messages only mark the projection dirty; the
 //! array remains the source of truth and is reconciled at least every 30 ticks.
 
-use core::ptr::{read_volatile, write_volatile};
+use core::ptr::{addr_of_mut, read_volatile, write_volatile};
 
 use crate::abi::*;
 use crate::memory::*;
 use crate::{find_player_agent, resolve_game, GameState};
+use crate::sequence_lock;
 
 const MAX_AGENT_EFFECT_ROWS: u32 = 64;
 const RECONCILE_TICKS: u32 = 30;
@@ -215,21 +216,17 @@ fn records_changed(player: u32, count: u32, records: &[PlayerEffectRecord; EFFEC
 }
 
 unsafe fn publish(flags: u32, game_timer: u32) {
-    let next = unsafe { SEQUENCE }.wrapping_add(2) & !1;
     let snapshot = unsafe { POINTER as *mut PlayerEffectSnapshot };
     unsafe {
-        write_volatile(&mut (*snapshot).sequence, next.wrapping_sub(1));
-        write_volatile(&mut (*snapshot).magic, PLAYER_EFFECT_MAGIC);
-        write_volatile(&mut (*snapshot).abi_and_size, PLAYER_EFFECT_ABI_AND_SIZE);
-        write_volatile(&mut (*snapshot).flags, flags);
-        write_volatile(&mut (*snapshot).generation, GENERATION);
-        write_volatile(&mut (*snapshot).game_timer, game_timer);
-        write_volatile(&mut (*snapshot).count, if flags & FLAG_PLAYER_EFFECTS_READY != 0 { CACHED_COUNT } else { 0 });
-        write_volatile(&mut (*snapshot).player_agent_id, if flags & FLAG_PLAYER_EFFECTS_READY != 0 { CACHED_PLAYER } else { 0 });
-        write_volatile(&mut (*snapshot).outcome, if flags & FLAG_PLAYER_EFFECTS_READY != 0 || flags & FLAG_PLAYER_EFFECTS_LOADING != 0 { 0 } else { OUTCOME });
-        write_volatile(&mut (*snapshot).effects, if flags & FLAG_PLAYER_EFFECTS_READY != 0 { CACHED } else { [EMPTY; EFFECT_RECORDS] });
-        write_volatile(&mut (*snapshot).sequence, next);
-        SEQUENCE = next;
+        SEQUENCE = sequence_lock::write(addr_of_mut!((*snapshot).header), SEQUENCE, PLAYER_EFFECT_MAGIC, PLAYER_EFFECT_ABI_AND_SIZE, || {
+            write_volatile(&mut (*snapshot).flags, flags);
+            write_volatile(&mut (*snapshot).generation, GENERATION);
+            write_volatile(&mut (*snapshot).game_timer, game_timer);
+            write_volatile(&mut (*snapshot).count, if flags & FLAG_PLAYER_EFFECTS_READY != 0 { CACHED_COUNT } else { 0 });
+            write_volatile(&mut (*snapshot).player_agent_id, if flags & FLAG_PLAYER_EFFECTS_READY != 0 { CACHED_PLAYER } else { 0 });
+            write_volatile(&mut (*snapshot).outcome, if flags & FLAG_PLAYER_EFFECTS_READY != 0 || flags & FLAG_PLAYER_EFFECTS_LOADING != 0 { 0 } else { OUTCOME });
+            write_volatile(&mut (*snapshot).effects, if flags & FLAG_PLAYER_EFFECTS_READY != 0 { CACHED } else { [EMPTY; EFFECT_RECORDS] });
+        });
     }
 }
 

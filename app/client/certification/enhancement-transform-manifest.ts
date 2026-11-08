@@ -7,18 +7,14 @@ import {
   ENHANCEMENT_TRANSFORM_ABI,
   type EnhancementCapabilities,
 } from "../../shared/enhancement-contracts.js";
-import { concat, uleb, type Section } from "../../main/core/wasm-binary.js";
+import { concat, type Section } from "../../main/core/wasm-binary.js";
 import {
   enhancementConfigWords,
   type KnownEnhancementBuild,
 } from "./enhancement-builds.js";
+import { encodeName } from "./wasm-emit.js";
 
 export const ENHANCEMENT_MANIFEST_SECTION = "enhancement_manifest";
-
-function encodeName(value: string): Uint8Array {
-  const bytes = new TextEncoder().encode(value);
-  return concat(uleb(bytes.byteLength), bytes);
-}
 
 export function buildEnhancementManifestSection(
   build: KnownEnhancementBuild,

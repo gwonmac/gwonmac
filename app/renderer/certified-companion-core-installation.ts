@@ -9,7 +9,6 @@ import {
 } from "../shared/enhancement-contracts.js";
 import { COMPANION_ABI, COMPANION_FEATURE_BITS } from "../shared/companion-abi.js";
 import { CHARACTER_SWITCH_ACTION_ABI } from "../shared/character-switch-action-abi.js";
-import { characterSwitchContext } from "./character-switch-model.js";
 import type {
   EnhancementObserverConsumer,
   RendererMilestone,
@@ -37,9 +36,10 @@ import {
   type CompanionCharacterListState,
 } from "./companion-character-list-snapshot.js";
 import {
+  characterSwitchContext,
   createCharacterSwitchController,
   type CharacterSwitchController,
-} from "./character-switch-controller.js";
+} from "../features/character-switch/renderer/host.js";
 
 let coreInstallations = 0;
 
@@ -306,25 +306,19 @@ export async function installCoreCertifiedCompanion(
     core.initialize();
     extension?.initialize(memory);
 
+    const { friendRoot, ...extensionRegions } = extension?.kernelRegions ?? { friendRoot: 0 };
     const kernel = await installCompanionKernel({
       memory,
       runtimePointer: core.runtimePointer,
       featureFlags,
-      friendRoot: extension?.kernelRegions.friendRoot ?? 0,
+      friendRoot,
       regions: {
+        ...extensionRegions,
         snapshot: core.snapshot,
         config: core.config,
         cursor: core.cursor,
         toolbox: core.toolbox,
         party: core.party,
-        skillSlots: extension?.kernelRegions.skillSlots ?? { pointer: 0, bytes: 0 },
-        skillCooldowns: extension?.kernelRegions.skillCooldowns ?? { pointer: 0, bytes: 0 },
-        playerEffects: extension?.kernelRegions.playerEffects ?? { pointer: 0, bytes: 0 },
-        effectIcons: extension?.kernelRegions.effectIcons ?? { pointer: 0, bytes: 0 },
-        alcohol: extension?.kernelRegions.alcohol ?? { pointer: 0, bytes: 0 },
-        progress: extension?.kernelRegions.progress ?? { pointer: 0, bytes: 0 },
-        whispers: extension?.kernelRegions.whispers ?? { pointer: 0, bytes: 0 },
-        friends: extension?.kernelRegions.friends ?? { pointer: 0, bytes: 0 },
         playRegion: { pointer: playRegions.pointer, bytes: playRegions.bytes },
         characterList: core.characterList,
       },

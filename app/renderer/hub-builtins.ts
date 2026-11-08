@@ -5,6 +5,7 @@
  * game runs, with these sources.
  */
 import { DEFAULT_CALCULATOR_RATES } from '../shared/hub-calculator.js';
+import { featureActivationRequested } from '../shared/feature-contracts.js';
 import type { SettingsTarget } from '../shared/settings-catalogue.js';
 import type { EmbeddedHubView } from '../shared/ui/hub-view.js';
 import { createHub, type Hub } from './hub.js';
@@ -23,7 +24,7 @@ export function withHubBuiltins(hub: Hub) {
     saveRates: async calculatorRates => { await window.gwNative.settings.set({ calculatorRates }); },
     // A copy names what it put on the clipboard in the status line (D-8); it is never silent.
     copy: async (value, label = value) => { await window.gwNative.clipboard.writeText(value); hub.notify(`Copied “${label}”`); },
-    marketEnabled: () => !!window.gwToolsSettings?.().gwonmacTools && !!window.gwToolsSettings?.().tradeChat,
+    marketEnabled: () => featureActivationRequested('tradeChat', window.gwToolsSettings?.() ?? {}),
     market: () => 'trade' in window.gwNative ? window.gwNative.trade.getMarketRates() : Promise.reject(new Error('Rate unavailable')),
     quotes: () => 'trade' in window.gwNative ? window.gwNative.trade.getTraderQuotes() : Promise.reject(new Error('Rate unavailable')),
   }));

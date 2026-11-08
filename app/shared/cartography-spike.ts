@@ -2,14 +2,46 @@
  * Defines the fixed scalar contract for Cartography's certified native context
  * and map surfaces.
  * Exposes no raw WebAssembly pointers across the renderer boundary.
+ *
+ * The file and its `*_SPIKE_*` tables keep the name of the certified
+ * `gwonmac_*_spike_*` exports they list, which the certification chain also
+ * imports from here; the renderer-side types use the domain names.
  */
 
-/** Native memory layouts known to the sealed reachability kernel (its lib.rs). */
-export const CARTOGRAPHY_LAYOUT_IDS = Object.freeze([1, 2, 3, 4, 5] as const);
-export type CartographyLayoutId = (typeof CARTOGRAPHY_LAYOUT_IDS)[number];
+/**
+ * The derived client's layout id: an opaque name for its memory layout. The
+ * context observer publishes it, evidence exports carry it, and the
+ * reachability kernel refuses any id but the one it was installed with.
+ */
+export type CartographyLayoutId = number;
 export function isCartographyLayoutId(value: unknown): value is CartographyLayoutId {
-  return CARTOGRAPHY_LAYOUT_IDS.includes(value as CartographyLayoutId);
+  return Number.isSafeInteger(value) && Number(value) > 0 && Number(value) <= 0xffff_ffff;
 }
+
+/**
+ * The layout id of a client with these roots: a 31-bit FNV-1a hash of both, so
+ * the id names the layout without carrying a native address, and stays a
+ * positive i32 global.
+ */
+export function cartographyLayoutId(contextRoot: number, agentArray: number): CartographyLayoutId {
+  let hash = 0x811c_9dc5;
+  for (const root of [contextRoot, agentArray]) {
+    for (let shift = 0; shift < 32; shift += 8) {
+      hash = Math.imul(hash ^ ((root >>> shift) & 0xff), 0x0100_0193);
+    }
+  }
+  return (hash & 0x7fff_ffff) || 1;
+}
+
+/** The Cartography transform's ABI; the manifest and derived-module cache carry it. */
+export const CARTOGRAPHY_SPIKE_TRANSFORM_ABI = 49;
+
+/**
+ * The custom section through which the derived client publishes the context
+ * root and agent array the verifier derived from its bytes. It is the only
+ * route by which native roots reach the reachability kernel.
+ */
+export const CARTOGRAPHY_MANIFEST_SECTION = "cartography_manifest";
 
 export const CARTOGRAPHY_CONTEXT_GLOBALS = Object.freeze({
   status: "gwonmac_cartography_context_status",
@@ -215,7 +247,7 @@ export const WORLD_MAP_FRAME_SPIKE_SCALARS = Object.freeze([
   WORLD_MAP_FRAME_SPIKE_GLOBALS.bottomRightY,
 ]);
 
-export type NativeFrameSpikeSnapshot = Readonly<{
+export type NativeFrameSnapshot = Readonly<{
   status: number;
   generation: number;
   frameId: number;
@@ -228,13 +260,13 @@ export type NativeFrameSpikeSnapshot = Readonly<{
   top: number;
 }>;
 
-export type CompassFrameSpikeSnapshot = NativeFrameSpikeSnapshot & Readonly<{
+export type CompassFrameSnapshot = NativeFrameSnapshot & Readonly<{
   cameraSequence: number;
   compassDirectionX: number;
   compassDirectionY: number;
 }>;
 
-export type MissionMapFrameSpikeSnapshot = NativeFrameSpikeSnapshot & Readonly<{
+export type MissionMapFrameSnapshot = NativeFrameSnapshot & Readonly<{
   projectionStatus: number;
   projectionSequence: number;
   projectionGeneration: number;
@@ -249,7 +281,7 @@ export type MissionMapFrameSpikeSnapshot = NativeFrameSpikeSnapshot & Readonly<{
   nativeMapHeight: number;
 }>;
 
-export type WorldMapFrameSpikeSnapshot = NativeFrameSpikeSnapshot & Readonly<{
+export type WorldMapFrameSnapshot = NativeFrameSnapshot & Readonly<{
   sequence: number;
   continent: number;
   zoom: number;
@@ -259,7 +291,7 @@ export type WorldMapFrameSpikeSnapshot = NativeFrameSpikeSnapshot & Readonly<{
   bottomRightY: number;
 }>;
 
-export type SpikeController<T> = Readonly<{
+export type SnapshotController<T> = Readonly<{
   snapshot(): T | null;
 }>;
 
@@ -271,14 +303,14 @@ export type CartographyContextSnapshot = Readonly<{
   layoutId: CartographyLayoutId;
 }>;
 
-export type CartographyContextController = SpikeController<CartographyContextSnapshot> & Readonly<{
+export type CartographyContextController = SnapshotController<CartographyContextSnapshot> & Readonly<{
   /** Publish one fresh native identity before starting an atomic model read. */
   refresh(): boolean;
 }>;
 
-export type CompassFrameSpikeController = SpikeController<CompassFrameSpikeSnapshot>;
-export type MissionMapFrameSpikeController = SpikeController<MissionMapFrameSpikeSnapshot>;
-export type WorldMapFrameSpikeDiagnostic = Readonly<{
+export type CompassFrameController = SnapshotController<CompassFrameSnapshot>;
+export type MissionMapFrameController = SnapshotController<MissionMapFrameSnapshot>;
+export type WorldMapFrameDiagnostic = Readonly<{
   status: number | null;
   sequence: number | null;
   generation: number | null;
@@ -292,12 +324,12 @@ export type WorldMapFrameSpikeDiagnostic = Readonly<{
   bottomRightY: number | null;
 }>;
 
-export type WorldMapFrameSpikeController = SpikeController<WorldMapFrameSpikeSnapshot> & Readonly<{
+export type WorldMapFrameController = SnapshotController<WorldMapFrameSnapshot> & Readonly<{
   /** Closed scalar readout for live certification; contains no native pointers. */
-  diagnostics(): WorldMapFrameSpikeDiagnostic;
+  diagnostics(): WorldMapFrameDiagnostic;
 }>;
 
-export type ExplorationSpikeSnapshot = Readonly<{
+export type ExplorationSnapshot = Readonly<{
   status: number;
   sequence: number;
   generation: number;
@@ -306,17 +338,17 @@ export type ExplorationSpikeSnapshot = Readonly<{
   dwordCount: number;
 }>;
 
-export type ExplorationSpikeBitmap = Readonly<{
-  snapshot: ExplorationSpikeSnapshot;
+export type ExplorationBitmap = Readonly<{
+  snapshot: ExplorationSnapshot;
   words: Uint32Array;
 }>;
 
-export type ExplorationSpikeController = SpikeController<ExplorationSpikeSnapshot> & Readonly<{
+export type ExplorationController = SnapshotController<ExplorationSnapshot> & Readonly<{
   isExplored(cellX: number, cellY: number): boolean | null;
-  readBitmap(): ExplorationSpikeBitmap | null;
+  readBitmap(): ExplorationBitmap | null;
 }>;
 
-export type WorldMapAnchorSpikeSnapshot = Readonly<{
+export type WorldMapAnchorSnapshot = Readonly<{
   status: number;
   generation: number;
   continent: number;
@@ -328,4 +360,4 @@ export type WorldMapAnchorSpikeSnapshot = Readonly<{
   mapMaxY: number;
 }>;
 
-export type WorldMapAnchorSpikeController = SpikeController<WorldMapAnchorSpikeSnapshot>;
+export type WorldMapAnchorController = SnapshotController<WorldMapAnchorSnapshot>;

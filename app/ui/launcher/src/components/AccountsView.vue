@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { Archive, Crown, Flame, Map as MapIcon, Pencil, Play, Plus, RotateCcw, ScrollText, Shield, Star, Swords } from "lucide-vue-next";
+import { Pencil, Play, Plus, RotateCcw } from "lucide-vue-next";
 import type { LauncherProfileSummary, LauncherReadiness } from "@shared/launcher-contracts";
 import type { ProfileId } from "@shared/multiple-accounts";
 import { profileStatus } from "../launcher-view-model";
+import { PROFILE_ICONS } from "../profile-icons";
 
 const props = defineProps<{
   profiles: readonly LauncherProfileSummary[];
@@ -23,8 +24,6 @@ const emit = defineEmits<{
   restore: [id: ProfileId];
   delete: [id: ProfileId];
 }>();
-
-const profileIcons = { swords: Swords, archive: Archive, map: MapIcon, scroll: ScrollText, shield: Shield, star: Star, crown: Crown, flame: Flame } as const;
 </script>
 
 <template>
@@ -37,7 +36,7 @@ const profileIcons = { swords: Swords, archive: Archive, map: MapIcon, scroll: S
     <div class="account-cards">
       <article v-for="profile in activeProfiles" :key="profile.id" class="account-card" :class="{ selected: selected.includes(profile.id) }">
         <input class="account-select" type="checkbox" :disabled="selected.length === 1 && selected.includes(profile.id)" :title="selected.length === 1 && selected.includes(profile.id) ? 'Select another account before removing this one' : undefined" :checked="selected.includes(profile.id)" :aria-label="`Select ${profile.name}`" @change="emit('toggle', profile.id)" />
-        <div class="avatar" :style="{ background: profile.appearance.color }" aria-hidden="true"><component :is="profileIcons[profile.appearance.icon as keyof typeof profileIcons] ?? Swords" /></div>
+        <div class="avatar" :style="{ background: profile.appearance.color }" aria-hidden="true"><component :is="PROFILE_ICONS[profile.appearance.icon]" /></div>
         <div class="account-details"><h2>{{ profile.name }}</h2></div>
         <p class="account-state" :class="{ failed: profile.state === 'failed' }" :role="profile.state === 'opening' || profile.state === 'checking' ? 'status' : undefined"><span class="status-dot" :class="profile.state" aria-hidden="true" />{{ profileStatus(profile) }}</p>
         <div class="account-actions">

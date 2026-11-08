@@ -1,21 +1,29 @@
 /**
- * The Hub's own pages, one folder per page (app/shared/ui/hub-pages.ts). They are part of the Hub
- * view module, so Core draws them without the Tools application.
+ * The Hub's page registry. Each page folder names its pages in an `index.ts`, the Hub's own
+ * folders here and a feature's `app/features/<id>/hub-views/` alike, so a feature adds a page
+ * from its own folder: the component, its `index.ts` and the props it adds to `HubPageProps`
+ * (app/shared/ui/hub-pages.ts). The pages are part of the Hub view module, so Core draws them
+ * without the Tools application.
  */
+import type { Component } from 'vue';
 import type { HubPages } from '../../../../../shared/ui/hub-pages';
-import HubPriceDetails from './calculator/HubPriceDetails.vue';
-import HubRatesForm from './calculator/HubRatesForm.vue';
-import HubConfirm from './confirm/HubConfirm.vue';
-import { mountPage } from './page';
-import HubPhraseForm from './preferences/HubPhraseForm.vue';
-import HubPreferences from './preferences/HubPreferences.vue';
-import HubSettingsHost from './settings/HubSettingsHost.vue';
+import { mountPage, type HubPageComponents } from './page';
+
+const folders = import.meta.glob<{ default: HubPageComponents }>(['./*/index.ts', '../../../../../features/*/hub-views/index.ts'], { eager: true });
+const components = new Map<string, Component>();
+for (const [path, folder] of Object.entries(folders)) for (const [name, component] of Object.entries(folder.default)) {
+  if (!component) continue;
+  if (components.has(name)) throw new Error(`Hub page ${name} is named twice (${path})`);
+  components.set(name, component);
+}
+
+/** The page names the folders give, for the registry's completeness test (registry.test.ts). */
+export const HUB_PAGE_NAMES: ReadonlySet<string> = new Set(components.keys());
 
 export const HUB_PAGES: HubPages<HTMLElement> = {
-  confirm: (target, props) => mountPage(HubConfirm, target, props),
-  phraseForm: (target, props) => mountPage(HubPhraseForm, target, props),
-  preferences: (target, props) => mountPage(HubPreferences, target, props),
-  rates: (target, props) => mountPage(HubRatesForm, target, props),
-  priceDetails: (target, props) => mountPage(HubPriceDetails, target, props),
-  settingsHost: (target, props) => mountPage(HubSettingsHost, target, props),
+  mount(name, target, props) {
+    const component = components.get(name);
+    if (!component) throw new Error(`Hub page ${name} has no component`);
+    return mountPage(component, target, props);
+  },
 };

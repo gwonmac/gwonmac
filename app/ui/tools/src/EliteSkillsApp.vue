@@ -10,6 +10,7 @@ import { eliteContinent, eliteLearned, type EliteLocation, type EliteViewPrefere
 import { guildWarsMapName } from "../../../shared/guild-wars-map-names";
 import { liveParty, unavailableParty } from "../../../shared/builds/live-party";
 import { PROFESSIONS } from "../../../shared/builds/heroes";
+import { attributeLabel } from "../../../shared/builds/presentation";
 import { skillId, type Profession } from "../../../shared/builds/library";
 import type { SkillCatalogue, SkillPresentation } from "./skill-catalog";
 import { useEliteTracking, type EliteTrackingHost } from "./use-elite-tracking";
@@ -361,7 +362,7 @@ const detailLocations = (id: number) => ELITE_LOCATIONS.filter((entry) => entry.
   .sort((a, b) => Number(isTarget(b)) - Number(isTarget(a)) || Number(b.mapId === props.view.mapId) - Number(a.mapId === props.view.mapId) || a.boss.localeCompare(b.boss));
 /** Profession · attribute · area (or boss count), as the skill reads in the game's skills window. */
 const rowMeta = (value: SkillPresentation, locations: readonly EliteLocation[]) => [
-  value.profession ? PROFESSIONS[value.profession].name : null, value.attribute?.replace(/([a-z])([A-Z])/gu, "$1 $2") ?? null,
+  value.profession ? PROFESSIONS[value.profession].name : null, value.attribute ? attributeLabel(value.attribute) : null,
   locations.length === 1 ? guildWarsMapName(locations[0]!.mapId) : `${locations.length} bosses`,
 ].filter(Boolean).join(" · ");
 const myClasses = computed(() => party.value.player?.professions?.filter((value): value is Profession => value !== null).join("/") ?? "");

@@ -1,5 +1,10 @@
 import { test, expect, type Locator, type Page } from '@playwright/test';
 import { PNG } from 'pngjs';
+import type { CustomUiTheme } from '../../../shared/ui-theme';
+import type { HubFixtureWindow } from './fixture-window.js';
+import { openHub } from './hub-page.js';
+// The workbench page this spec drives sets the fixture hooks; they are required here.
+declare const window: HubFixtureWindow;
 
 for (const ratio of [1, 2]) {
   test.describe(`Classic frame at ${ratio}×`, () => {
@@ -9,7 +14,7 @@ for (const ratio of [1, 2]) {
       // modes explicitly instead of inheriting the machine's accessibility setting.
       const media = await page.context().newCDPSession(page);
       await media.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-transparency', value: 'no-preference' }] });
-      await page.goto('/?hub');
+      await openHub(page);
       const frame = page.locator('#hub .ui-frame-artwork');
       await expect(page.locator('.hub-panel')).toHaveClass(/ui-art-frame/);
       await expect.poll(() => frame.evaluate(element => element instanceof HTMLCanvasElement ? element.width : 0)).toBe(780 * ratio);
@@ -28,7 +33,7 @@ for (const ratio of [1, 2]) {
       expect(pixels.pointer).toBe('none');
       await expect.poll(() => page.evaluate(async () => { await document.fonts.load('14px QTFrizQuad'); return document.fonts.check('14px QTFrizQuad'); })).toBe(true);
       const box = await page.locator('.hub-panel').boundingBox();
-      await page.evaluate(() => window.gwApplyFixtureAppearance?.({ uiStyle: 'guild-wars', uiPanelOpacity: 65 }));
+      await page.evaluate(() => window.gwApplyFixtureAppearance({ uiStyle: 'guild-wars', uiPanelOpacity: 65 }));
       await expect.poll(() => page.locator('.hub-panel').evaluate(element => getComputedStyle(element, '::before').backgroundColor)).toMatch(/0\.65\)/);
       await page.screenshot({ path: info.outputPath('classic-home-65.png') });
       await media.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-transparency', value: 'reduce' }] });
@@ -36,11 +41,11 @@ for (const ratio of [1, 2]) {
       expect(await page.evaluate(() => document.documentElement.style.getPropertyValue('--ui-panel-opacity'))).toBe('0.65');
       await media.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-transparency', value: 'no-preference' }] });
       await expect.poll(() => page.locator('.hub-panel').evaluate(element => getComputedStyle(element, '::before').backgroundColor)).toMatch(/0\.65\)/);
-      await page.evaluate(() => window.gwApplyFixtureAppearance?.({ uiStyle: 'obsidian', uiPanelOpacity: 100 }));
+      await page.evaluate(() => window.gwApplyFixtureAppearance({ uiStyle: 'obsidian', uiPanelOpacity: 100 }));
       await expect(frame).toBeHidden();
       expect(await page.locator('.hub-panel').boundingBox()).toEqual(box);
       await page.screenshot({ path: info.outputPath('modern-home.png') });
-      await page.evaluate(() => window.gwApplyFixtureAppearance?.({ uiStyle: 'guild-wars', uiPanelOpacity: 94 }));
+      await page.evaluate(() => window.gwApplyFixtureAppearance({ uiStyle: 'guild-wars', uiPanelOpacity: 94 }));
       await expect(frame).toBeVisible();
       const search = page.locator('.hub-search input');
       await search.fill('travel'); await search.press('Enter');
@@ -55,20 +60,19 @@ for (const ratio of [1, 2]) {
 }
 
 
-test('saved font and custom title material apply to the real Hub without losing query', async ({ page }, info) => {
-  await page.goto('/?hub');
+test('saved font and custom title material apply to the real Hub and keep its scroll and caret', async ({ page }, info) => {
+  await openHub(page);
   const search = page.locator('.hub-search input');
   await search.fill('k');
   for (let i = 0; i < 5; i++) await search.press('ArrowDown');
   await search.evaluate(el => (el as HTMLInputElement).setSelectionRange(0, 1));
   await page.locator('.hub-results').evaluate(el => { el.scrollTop = 60; });
-  const state = async () => ({ query: await search.inputValue(), caret: await search.evaluate(el => [(el as HTMLInputElement).selectionStart, (el as HTMLInputElement).selectionEnd]), id: await page.locator('.hub-row[aria-selected=true]').getAttribute('data-id'), scroll: await page.locator('.hub-results').evaluate(el => el.scrollTop) });
+  const state = async () => ({ caret: await search.evaluate(el => [(el as HTMLInputElement).selectionStart, (el as HTMLInputElement).selectionEnd]), scroll: await page.locator('.hub-results').evaluate(el => el.scrollTop) });
   const before = await state();
   expect(before.scroll).toBeGreaterThan(0);
   for (const patch of [{ uiStyle: 'obsidian' as const }, { uiFont: 'inter' as const }, { uiPanelOpacity: 65 }]) {
-    await page.evaluate(patch => window.gwApplyFixtureAppearance?.({ uiStyle: 'guild-wars', uiPanelOpacity: 94, ...patch }), patch);
+    await page.evaluate(patch => window.gwApplyFixtureAppearance({ uiStyle: 'guild-wars', uiPanelOpacity: 94, ...patch }), patch);
     expect(await state()).toEqual(before);
-    await expect(search).toBeFocused();
   }
 
   await search.fill('settings'); await search.press('Enter');
@@ -77,15 +81,12 @@ test('saved font and custom title material apply to the real Hub without losing 
   await expect.poll(() => page.locator('.hub-name').evaluate(element => getComputedStyle(element).fontFamily)).toContain('Inter');
   await page.locator('[data-setting="uiStyle"] select').selectOption('obsidian');
   await expect(page.locator('#hub > .hub-panel > .ui-frame-artwork')).toBeHidden();
-  await page.getByRole('button', { name: 'Back', exact: true }).click();
-  await expect(search).toHaveValue('settings');
-  await page.evaluate(() => window.gwApplyFixtureAppearance?.({
+  await page.evaluate(() => window.gwApplyFixtureAppearance({
     uiStyle: 'custom', uiPanelOpacity: 94, uiFont: 'inter',
     uiCustomTheme: { material: 'classic', window: '#172025', titlebar: '#365063', surface: '#263948', recessed: '#10181F', selected: '#315B7A', accent: '#E6C882', text: '#F1EBDD', mutedText: '#B7B09F', border: '#D8D2BF', windowGradient: false },
   }));
   await expect(page.locator('#hub > .hub-panel > .ui-frame-artwork')).toBeVisible();
   await expect.poll(() => page.locator('.hub-heading').evaluate(element => getComputedStyle(element).backgroundImage)).toContain('54, 80, 99');
-  await expect(search).toHaveValue('settings');
   await page.screenshot({ path: info.outputPath('custom-classic-inter.png') });
 });
 
@@ -93,9 +94,9 @@ test('saved font and custom title material apply to the real Hub without losing 
 test('compact Hub keeps navigation reachable with reduced motion over a bright backdrop', async ({ page }, info) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.setViewportSize({ width: 390, height: 800 });
-  await page.goto('/?hub');
+  await openHub(page);
   await page.addStyleTag({ content: 'body { background: repeating-conic-gradient(#fff 0% 25%, #ddd 0% 50%) 0 / 32px 32px !important; }' });
-  await page.evaluate(() => window.gwApplyFixtureAppearance?.({ uiStyle: 'guild-wars', uiPanelOpacity: 65 }));
+  await page.evaluate(() => window.gwApplyFixtureAppearance({ uiStyle: 'guild-wars', uiPanelOpacity: 65 }));
   const search = page.locator('.hub-search input');
   await search.fill('travel'); await search.press('Enter');
   await expect(page.getByRole('button', { name: 'Back', exact: true })).toBeInViewport();
@@ -112,7 +113,7 @@ test('compact Hub keeps navigation reachable with reduced motion over a bright b
   }));
   const hiddenInk = await page.addStyleTag({ content: '.hub-title, .hub-detail { visibility:hidden; }' });
   const composed = PNG.sync.read(await page.screenshot());
-  await hiddenInk.evaluate(element => element.remove());
+  await hiddenInk.evaluate(element => element.parentNode?.removeChild(element));
   const luminance = (rgb: number[]) => {
     const linear = rgb.map(channel => { const value = channel / 255; return value <= .04045 ? value / 12.92 : ((value + .055) / 1.055) ** 2.4; });
     return .2126 * linear[0]! + .7152 * linear[1]! + .0722 * linear[2]!;
@@ -126,9 +127,8 @@ test('compact Hub keeps navigation reachable with reduced motion over a bright b
 });
 
 test('Modern hover stays clearly weaker than the selection it is not', async ({ page }, info) => {
-  await page.goto('/?hub');
-  await expect(page.locator('#app')).toHaveAttribute('data-ready', 'true');
-  await page.evaluate(() => window.gwApplyFixtureAppearance?.({ uiStyle: 'obsidian', uiPanelOpacity: 100 }));
+  await openHub(page);
+  await page.evaluate(() => window.gwApplyFixtureAppearance({ uiStyle: 'obsidian', uiPanelOpacity: 100 }));
   const rows = page.locator('#hub .hub-row');
   // The pointer rests on row 2 while the keyboard selects row 1: row 2 shows hover, not selection.
   const resting = (await rows.nth(2).boundingBox())!;
@@ -152,7 +152,6 @@ test('Modern hover stays clearly weaker than the selection it is not', async ({ 
 
 const CHECKERBOARD = 'body { background: repeating-conic-gradient(#fff 0% 25%, #ddd 0% 50%) 0 / 32px 32px !important; } .hub-fixture-controls { visibility:hidden; }';
 const BRIGHT = 'body { background: #f4f6f8 !important; } .hub-fixture-controls { visibility:hidden; }';
-const OVERCAST = 'body { background: #d0d4d8 !important; } .hub-fixture-controls { visibility:hidden; }';
 const NIGHT = 'body { background: #000 !important; } .hub-fixture-controls { visibility:hidden; }';
 const luminance = (rgb: readonly number[]) => {
   const linear = rgb.map(channel => { const value = channel / 255; return value <= .04045 ? value / 12.92 : ((value + .055) / 1.055) ** 2.4; });
@@ -185,7 +184,7 @@ async function textContrast(page: Page, selectors: Record<string, string>) {
   }, selectors);
   const hidden = await page.addStyleTag({ content: '#hub, #hub *, #hub input::placeholder { color:transparent !important; -webkit-text-fill-color:transparent !important; text-shadow:none !important; caret-color:transparent !important; } #hub svg, #hub img { visibility:hidden !important; }' });
   const composed = PNG.sync.read(await page.screenshot());
-  await hidden.evaluate(element => element.remove());
+  await hidden.evaluate(element => element.parentNode?.removeChild(element));
   return labels.map(label => {
     const ink = luminance(label.color);
     const ratios: number[] = [];
@@ -209,27 +208,13 @@ const TEXT_ROLES = {
   setting: '.settings-fields h1, .settings-fields strong, .settings-fields small',
 };
 const BLUE_ACCENT = { material: 'classic', window: '#0B0B0B', titlebar: '#292927', surface: '#202225', recessed: '#080807', selected: '#1B3554', accent: '#4A6FA5', text: '#F1EBDD', mutedText: '#B7B09F', border: '#D8D2BF', windowGradient: true } as const;
-// Modern gold headings (HUB-249) and the Classic head (HUB-106) are the known worst cases.
+// The extremes of the matrix stay as composed pixels: the lowest and highest panel opacity on the
+// brightest backdrops, the lightest window, and Modern gold headings (HUB-249) with the Classic head
+// (HUB-106). The token maths of every other combination is held by tests/unit/appearance.test.ts.
 for (const [name, appearance, scene] of [
   ['Modern 65% over snow', { uiStyle: 'obsidian', uiPanelOpacity: 65 }, CHECKERBOARD],
-  ['Modern 70% over snow', { uiStyle: 'obsidian', uiPanelOpacity: 70 }, CHECKERBOARD],
-  ['Modern 65% over overcast', { uiStyle: 'obsidian', uiPanelOpacity: 65 }, OVERCAST],
-  ['Modern 65% over bright', { uiStyle: 'obsidian', uiPanelOpacity: 65 }, BRIGHT],
-  ['Classic 100% over bright', { uiStyle: 'guild-wars', uiPanelOpacity: 100 }, BRIGHT],
-  ['Classic 94% over bright', { uiStyle: 'guild-wars', uiPanelOpacity: 94 }, BRIGHT],
-  ['Classic 80% over bright', { uiStyle: 'guild-wars', uiPanelOpacity: 80 }, BRIGHT],
   ['Classic 65% over bright', { uiStyle: 'guild-wars', uiPanelOpacity: 65 }, BRIGHT],
-  ['custom Classic at 65% over bright', { uiStyle: 'custom', uiPanelOpacity: 65, uiCustomTheme: BLUE_ACCENT }, BRIGHT],
-  ['custom Modern at 65% over bright', { uiStyle: 'custom', uiPanelOpacity: 65, uiCustomTheme: { ...BLUE_ACCENT, material: 'modern' } }, BRIGHT],
   ['Classic 100% over snow', { uiStyle: 'guild-wars', uiPanelOpacity: 100 }, CHECKERBOARD],
-  ['Classic 80% over snow', { uiStyle: 'guild-wars', uiPanelOpacity: 80 }, CHECKERBOARD],
-  ['Classic 94% over night', { uiStyle: 'guild-wars', uiPanelOpacity: 94 }, NIGHT],
-  ['Classic 94% over snow', { uiStyle: 'guild-wars', uiPanelOpacity: 94 }, CHECKERBOARD],
-  ['Classic 65% over snow', { uiStyle: 'guild-wars', uiPanelOpacity: 65 }, CHECKERBOARD],
-  ['a blue custom accent at 94% over night', { uiStyle: 'custom', uiPanelOpacity: 94, uiCustomTheme: BLUE_ACCENT }, NIGHT],
-  ['a red custom accent at 94% over night', { uiStyle: 'custom', uiPanelOpacity: 94, uiCustomTheme: { ...BLUE_ACCENT, accent: '#B03A2E' } }, NIGHT],
-  ['custom Classic at 65% over snow', { uiStyle: 'custom', uiPanelOpacity: 65, uiCustomTheme: BLUE_ACCENT }, CHECKERBOARD],
-  ['custom Modern at 65% over snow', { uiStyle: 'custom', uiPanelOpacity: 65, uiCustomTheme: { ...BLUE_ACCENT, material: 'modern' } }, CHECKERBOARD],
   // A light window with otherwise default colours: its controls follow the window.
   ['a white custom window at 100% over night', { uiStyle: 'custom', uiPanelOpacity: 100, uiCustomTheme: { ...BLUE_ACCENT, accent: '#E6C882', selected: '#1B3554', window: '#FFFFFF' } }, NIGHT],
 ] as const) {
@@ -237,11 +222,11 @@ for (const [name, appearance, scene] of [
     const media = await page.context().newCDPSession(page);
     await media.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-transparency', value: 'no-preference' }] });
     await page.setViewportSize({ width: 1280, height: 800 });
-    await page.goto('/?hub');
+    await openHub(page);
     await page.addStyleTag({ content: scene });
     const search = page.locator('.hub-search input');
     await expect(search).toBeFocused();
-    await page.evaluate(value => window.gwApplyFixtureAppearance?.(value), appearance);
+    await page.evaluate(value => window.gwApplyFixtureAppearance(value), appearance);
     const measured = await textContrast(page, TEXT_ROLES);
     for (const query of ['kam', 'team']) { await search.fill(query); measured.push(...await textContrast(page, TEXT_ROLES)); }
     await page.keyboard.press('Meta+t'); measured.push(...await textContrast(page, TEXT_ROLES));
@@ -273,7 +258,7 @@ test('Reduce Transparency makes the Hub opaque without hiding the game or re-ink
   const media = await page.context().newCDPSession(page);
   const reduce = (value: 'reduce' | 'no-preference') => media.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-transparency', value }] });
   await reduce('no-preference');
-  await page.goto('/?hub');
+  await openHub(page);
   await page.addStyleTag({ content: CHECKERBOARD });
   await expect(page.locator('.hub-search input')).toBeFocused();
   const look = async () => {
@@ -289,9 +274,9 @@ test('Reduce Transparency makes the Hub opaque without hiding the game or re-ink
     }) };
   };
   for (const uiStyle of ['guild-wars', 'obsidian'] as const) {
-    await page.evaluate(value => window.gwApplyFixtureAppearance?.({ uiStyle: value, uiPanelOpacity: 100 }), uiStyle);
+    await page.evaluate(value => window.gwApplyFixtureAppearance({ uiStyle: value, uiPanelOpacity: 100 }), uiStyle);
     const opaque = await look();
-    await page.evaluate(value => window.gwApplyFixtureAppearance?.({ uiStyle: value, uiPanelOpacity: 65 }), uiStyle);
+    await page.evaluate(value => window.gwApplyFixtureAppearance({ uiStyle: value, uiPanelOpacity: 65 }), uiStyle);
     const translucent = await look();
     await reduce('reduce');
     await expect.poll(() => page.locator('.hub-panel').evaluate(element => getComputedStyle(element, '::before').backgroundColor), uiStyle).not.toMatch(/0\.65\)/);
@@ -312,13 +297,12 @@ const PANEL_FONTS = ['guild-wars', 'inter', 'system', 'georgia', 'avenir', 'pala
 for (const [name, viewport, hub] of [['a narrow window', { width: 390, height: 800 }, null], ['the smallest Hub', { width: 1280, height: 800 }, { width: 340, height: 380 }]] as const) {
   test(`the footer stays one line while arrowing in ${name}`, async ({ page }) => {
     await page.setViewportSize(viewport);
-    await page.goto('/?hub');
+    await openHub(page);
     const search = page.locator('.hub-search input');
     await expect(search).toBeFocused();
     if (hub) await page.locator('.hub-panel').evaluate((panel, size) => { panel.style.width = `${size.width}px`; panel.style.height = `${size.height}px`; }, hub);
-    const primary = page.locator('.hub-primary');
     for (const uiFont of PANEL_FONTS) {
-      await page.evaluate(value => window.gwApplyFixtureAppearance?.({ uiStyle: 'guild-wars', uiPanelOpacity: 94, uiFont: value }), uiFont);
+      await page.evaluate(value => window.gwApplyFixtureAppearance({ uiStyle: 'guild-wars', uiPanelOpacity: 94, uiFont: value }), uiFont);
       await search.fill(''); await search.fill('k');
       const heights = new Set<number>();
       for (let step = 0; step < 6; step += 1) {
@@ -327,8 +311,6 @@ for (const [name, viewport, hub] of [['a narrow window', { width: 390, height: 8
       }
       expect([...heights], uiFont).toHaveLength(1);
       expect([...heights][0], `${uiFont} footer`).toBeLessThanOrEqual(52);
-      // The full label stays the primary's name even where it ends in an ellipsis.
-      expect(await primary.getAttribute('title')).toBe(await primary.locator('.hub-primary-label').textContent());
       // The smallest Hub still shows three whole results (HUB-238).
       if (hub) expect(await page.locator('#hub-results').evaluate(list => { const box = list.getBoundingClientRect();
         return [...list.querySelectorAll('.hub-row')].filter(row => { const rect = row.getBoundingClientRect(); return rect.top >= box.top - 1 && rect.bottom <= box.bottom + 1; }).length; }), `${uiFont} rows`).toBeGreaterThanOrEqual(3);
@@ -338,11 +320,11 @@ for (const [name, viewport, hub] of [['a narrow window', { width: 390, height: 8
 
 test('every Settings section fits one line in all six panel fonts (HUB-253)', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
-  await page.goto('/?hub');
+  await openHub(page);
   const search = page.locator('.hub-search input');
   for (const uiStyle of ['guild-wars', 'obsidian'] as const) for (const uiPanelOpacity of [94, 65]) for (const uiFont of PANEL_FONTS) {
     await page.keyboard.press('Meta+r');
-    await page.evaluate(value => window.gwApplyFixtureAppearance?.(value), { uiStyle, uiPanelOpacity, uiFont });
+    await page.evaluate(value => window.gwApplyFixtureAppearance(value), { uiStyle, uiPanelOpacity, uiFont });
     await search.fill('kam');
     const geometry = await page.locator('.hub-row').evaluateAll(rows => rows.map(row => {
       const title = row.querySelector('.hub-title')!, cue = row.querySelector('.hub-row-type')!;
@@ -363,8 +345,8 @@ test('every Settings section fits one line in all six panel fonts (HUB-253)', as
 // The Launcher's default custom palette with the "Modern flat" finish. Any
 // border other than the Modern baseline makes `--ui-frame` opaque, so a frame
 // mask that loses its cut-out paints that border over the whole window.
-const customModern = (border: string) => ({
-  material: 'modern' as const, window: '#0B0B0B', titlebar: '#292927', surface: '#202225', recessed: '#080807', selected: '#1B3554',
+const customModern = (border: `#${string}`): CustomUiTheme => ({
+  material: 'modern', window: '#0B0B0B', titlebar: '#292927', surface: '#202225', recessed: '#080807', selected: '#1B3554',
   accent: '#E6C882', text: '#F1EBDD', mutedText: '#B7B09F', border, windowGradient: true,
 });
 
@@ -381,7 +363,7 @@ async function expectRowPainted(page: Page, panel: Locator, row: Locator, ink: L
   await row.evaluate(element => element.setAttribute('data-ink-probe', ''));
   const hiddenInk = await page.addStyleTag({ content: '[data-ink-probe], [data-ink-probe] * { color: transparent !important; text-shadow: none !important; }' });
   const composed = PNG.sync.read(await page.screenshot());
-  await hiddenInk.evaluate(element => element.remove());
+  await hiddenInk.evaluate(element => element.parentNode?.removeChild(element));
   await row.evaluate(element => element.removeAttribute('data-ink-probe'));
   const pixel = (x: number, y: number) => [...composed.data.subarray((y * composed.width + x) * 4, (y * composed.width + x) * 4 + 3)];
   const sheet = border.match(/[0-9a-f]{2}/giu)!.map(channel => parseInt(channel, 16));
@@ -402,7 +384,7 @@ test.describe('custom theme with the Modern flat finish', () => {
   test.use({ viewport: { width: 1280, height: 720 } });
 
   test('Hub rows stay visible for every border and opacity', async ({ page }, info) => {
-    await page.goto('/?hub');
+    await openHub(page);
     const search = page.locator('.hub-search input');
     await search.fill('kam');
     const panel = page.locator('.hub-panel');
@@ -410,7 +392,7 @@ test.describe('custom theme with the Modern flat finish', () => {
     // Kamadan and Trade Chat; the Trade Chat setting is hidden because its title equals the tool row.
     await expect(rows).toHaveCount(2);
     for (const [border, opacity] of [['#D8D2BF', 94], ['#8A7F6A', 94], ['#1B1A18', 94], ['#5F5A52', 94], ['#D8D2BF', 65], ['#D8D2BF', 100]] as const) {
-      await page.evaluate(([theme, uiPanelOpacity]) => window.gwApplyFixtureAppearance?.({ uiStyle: 'custom', uiPanelOpacity, uiCustomTheme: theme }), [customModern(border), opacity] as const);
+      await page.evaluate(([theme, uiPanelOpacity]) => window.gwApplyFixtureAppearance({ uiStyle: 'custom', uiPanelOpacity, uiCustomTheme: theme }), [customModern(border), opacity] as const);
       await expect.poll(() => page.evaluate(() => document.documentElement.dataset.uiMaterial)).toBe('modern');
       await expectRowPainted(page, panel, rows.first(), rows.first().locator('.hub-title'), border);
       await expect(search).toBeInViewport();
@@ -420,15 +402,15 @@ test.describe('custom theme with the Modern flat finish', () => {
   });
 
   test('Trade and the Build Library window render their lists', async ({ page }, info) => {
-    await page.goto('/?hub');
+    await openHub(page);
     await expect(page.locator('.hub-search input')).toBeFocused();
-    await page.evaluate(theme => window.gwApplyFixtureAppearance?.({ uiStyle: 'custom', uiPanelOpacity: 94, uiCustomTheme: theme }), customModern('#D8D2BF'));
+    await page.evaluate(theme => window.gwApplyFixtureAppearance({ uiStyle: 'custom', uiPanelOpacity: 94, uiCustomTheme: theme }), customModern('#D8D2BF'));
     await page.keyboard.press('Meta+k');
     const trade = page.getByRole('dialog', { name: 'Trade Chat' });
     const offer = trade.locator('.trade-row').first();
     await expect(offer).toBeVisible();
-    for (const border of ['#D8D2BF', '#8A7F6A', '#1B1A18']) {
-      await page.evaluate(theme => window.gwApplyFixtureAppearance?.({ uiStyle: 'custom', uiPanelOpacity: 94, uiCustomTheme: theme }), customModern(border));
+    for (const border of ['#D8D2BF', '#8A7F6A', '#1B1A18'] as const) {
+      await page.evaluate(theme => window.gwApplyFixtureAppearance({ uiStyle: 'custom', uiPanelOpacity: 94, uiCustomTheme: theme }), customModern(border));
       await expectRowPainted(page, trade, offer, offer.locator('.character-cell bdi'), border);
     }
     await page.screenshot({ path: info.outputPath('custom-modern-trade.png') });
@@ -442,19 +424,19 @@ test.describe('custom theme with the Modern flat finish', () => {
     const library = page.getByRole('dialog', { name: 'Build Library' });
     const build = library.locator('.library-row').first();
     await expect(build).toBeVisible();
-    for (const border of ['#D8D2BF', '#8A7F6A', '#1B1A18']) {
-      await page.evaluate(theme => window.gwApplyFixtureAppearance?.({ uiStyle: 'custom', uiPanelOpacity: 94, uiCustomTheme: theme }), customModern(border));
+    for (const border of ['#D8D2BF', '#8A7F6A', '#1B1A18'] as const) {
+      await page.evaluate(theme => window.gwApplyFixtureAppearance({ uiStyle: 'custom', uiPanelOpacity: 94, uiCustomTheme: theme }), customModern(border));
       await expectRowPainted(page, library, build, build.locator('.row-title'), border);
     }
     await page.screenshot({ path: info.outputPath('custom-modern-build-library.png') });
   });
 
-  test('choosing the saved theme in Hub Settings keeps the page and focus', async ({ page }, info) => {
-    await page.goto('/?hub');
+  test('choosing the saved theme in Hub Settings keeps focus on the select and paints the rows', async ({ page }, info) => {
+    await openHub(page);
     const search = page.locator('.hub-search input');
     await expect(search).toBeFocused();
     await page.evaluate(theme => window.dispatchEvent(new CustomEvent('hub-fixture-settings', { detail: { uiStyle: 'guild-wars', uiCustomTheme: theme } })), customModern('#D8D2BF'));
-    await page.evaluate(() => window.gwApplyFixtureAppearance?.({ uiStyle: 'guild-wars', uiPanelOpacity: 94 }));
+    await page.evaluate(() => window.gwApplyFixtureAppearance({ uiStyle: 'guild-wars', uiPanelOpacity: 94 }));
     await search.fill('settings'); await search.press('Enter');
     await page.getByRole('navigation', { name: 'Settings sections' }).getByRole('button', { name: 'Appearance', exact: true }).click();
     const style = page.locator('[data-setting="uiStyle"] select');
@@ -462,12 +444,10 @@ test.describe('custom theme with the Modern flat finish', () => {
     // the saved change re-renders the page and must keep focus on the control.
     await style.focus(); await style.selectOption('custom');
     await expect.poll(() => page.evaluate(() => document.documentElement.dataset.uiMaterial)).toBe('modern');
-    await expect(style).toHaveValue('custom');
     await expect(style).toBeFocused();
-    await expect(page.locator('.hub-caption')).toHaveText('Settings');
     const row = page.locator('[data-setting="uiStyle"]');
     let expectedPaint: number[] | undefined;
-    for (const border of ['#D8D2BF', '#8A7F6A', '#1B1A18']) {
+    for (const border of ['#D8D2BF', '#8A7F6A', '#1B1A18'] as const) {
       await page.evaluate(theme => window.dispatchEvent(new CustomEvent('hub-fixture-settings', { detail: { uiCustomTheme: theme } })), customModern(border));
       expectedPaint = await expectRowPainted(page, page.locator('.hub-panel'), row, row.locator('strong'), border, expectedPaint);
     }

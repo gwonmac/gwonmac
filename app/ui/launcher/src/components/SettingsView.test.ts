@@ -4,6 +4,8 @@ import type { LauncherNativeApi, LauncherSnapshot } from "@shared/launcher-contr
 import { SETTINGS, type SettingsTarget } from "@shared/settings-catalogue";
 import SettingsView from "./SettingsView.vue";
 import { fixtureSnapshot } from "../fixtures";
+import { CARTOGRAPHY_BUILTIN_PRESETS } from "@shared/cartography-overlay";
+import { addCartographyPreset } from "@shared/cartography-presets";
 
 const allToolsOn: LauncherSnapshot = {
   ...fixtureSnapshot,
@@ -17,7 +19,7 @@ function mountView(overrides: Record<string, unknown> = {}, { snapshot = fixture
 }
 
 async function openSection(wrapper: ReturnType<typeof mount>, label: string) {
-  await wrapper.findAll(".settings-page aside button").find(button => button.text() === label)!.trigger("click");
+  await wrapper.findAll(".settings-page nav button").find(button => button.text() === label)!.trigger("click");
   await flushPromises();
 }
 
@@ -30,7 +32,7 @@ describe("Settings page", () => {
     const wrapper = mountView({}, { snapshot: allToolsOn });
     await flushPromises();
     const found = new Map<string, string[]>();
-    for (const button of wrapper.findAll(".settings-page aside button")) {
+    for (const button of wrapper.findAll(".settings-page nav button")) {
       await button.trigger("click");
       await flushPromises();
       for (const control of wrapper.findAll("[data-setting]")) {
@@ -184,6 +186,19 @@ describe("Settings page", () => {
     expect(wrapper.get(".settings-fields h1").text()).toBe("Maps");
   });
 
+  it("in the Hub, opens a Settings dialog inside the page, where the launcher tokens apply", async () => {
+    // The game document carries no launcher tokens or modal styles on <body>.
+    const { tools, shortcuts } = fixtureSnapshot;
+    const library = addCartographyPreset(fixtureSnapshot.settings.cartographyPresetLibrary, { id: "test-style", name: "My map", style: CARTOGRAPHY_BUILTIN_PRESETS.cartographer.style })!;
+    const settings = { ...fixtureSnapshot.settings, cartographyPresetLibrary: library };
+    const wrapper = mount(SettingsView, { props: { snapshot: { settings, tools, shortcuts }, native: undefined, openInLauncher: vi.fn(), target: { section: "maps" } } });
+    await flushPromises();
+    await wrapper.findAll("button").find(button => button.text() === "Delete custom style")!.trigger("click");
+    await flushPromises();
+    expect(wrapper.element.querySelector(".settings-view [role='dialog']")?.textContent).toContain("Delete My map?");
+    wrapper.unmount();
+  });
+
   it("loads real cache information when Game Files opens", async () => {
     const info = vi.fn(async () => ({ bytes: 1024 ** 3, chunks: 10, totalBytes: 2 * 1024 ** 3, totalChunks: 20, freeBytes: 3 * 1024 ** 3, fullDownloadShortfall: 0 }));
     const wrapper = mountView({ gameFiles: { info } });
@@ -191,6 +206,40 @@ describe("Settings page", () => {
     await openSection(wrapper, "Game files");
     expect(info).toHaveBeenCalledOnce();
     expect(wrapper.text()).toContain("1.0 GB of 2.0 GB verified");
+  });
+
+  it("on a narrow page, swaps the section tabs for search, and Escape or Cancel brings them back", async () => {
+    // The narrow page hides the field behind a button. A close that kept the
+    // query would leave results under the tabs; one that dropped focus would
+    // strand a keyboard player.
+    const wrapper = mountView({}, { attach: true });
+    await flushPromises();
+    const aside = wrapper.get(".settings-page aside");
+    const toggle = wrapper.get('button[aria-label="Search settings"]');
+    for (const close of [
+      () => wrapper.get('input[type="search"]').trigger("keydown", { key: "Escape" }),
+      () => wrapper.findAll("aside button").find(button => button.text() === "Cancel")!.trigger("click"),
+    ]) {
+      await toggle.trigger("click");
+      await flushPromises();
+      expect(aside.classes()).toContain("search-open");
+      expect(document.activeElement).toBe(wrapper.get('input[type="search"]').element);
+      await wrapper.get('input[type="search"]').setValue("compass");
+      expect(wrapper.get(".settings-content h1").text()).toBe("Results");
+      await close();
+      await flushPromises();
+      expect(aside.classes()).not.toContain("search-open");
+      expect(wrapper.get(".settings-content h1").text()).toBe("Tools");
+      expect(document.activeElement).toBe(toggle.element);
+    }
+    // Choosing a result goes to its section: the tabs come back to show where it landed.
+    await toggle.trigger("click");
+    await wrapper.get('input[type="search"]').setValue("compass");
+    await wrapper.get(".settings-results button").trigger("click");
+    await flushPromises();
+    expect(aside.classes()).not.toContain("search-open");
+    expect(wrapper.get(".settings-content h1").text()).not.toBe("Results");
+    wrapper.unmount();
   });
 
   it("keeps the keyboard on a clicked section button, moves with the arrow keys without wrapping, and forgets the saved note", async () => {
@@ -214,6 +263,25 @@ describe("Settings page", () => {
     expect(document.activeElement).toBe(button("Tools").element);
     await button("Tools").trigger("keydown", { key: "ArrowUp" });
     expect(document.activeElement).toBe(button("Tools").element);
+    wrapper.unmount();
+  });
+
+  it("in the Hub, the arrow keys move onto a launcher section without opening the launcher (HUB-054)", async () => {
+    const openInLauncher = vi.fn();
+    const { tools, shortcuts } = fixtureSnapshot;
+    const wrapper = mount(SettingsView, { props: { snapshot: { settings: fixtureSnapshot.settings, tools, shortcuts }, native: undefined, openInLauncher, target: { section: "game" } }, attachTo: document.body });
+    await flushPromises();
+    const nav = wrapper.get('nav[aria-label="Settings sections"]');
+    const button = (label: string) => nav.findAll("button").find(candidate => candidate.text() === label)!;
+    const press = async (from: string, key: string) => { await button(from).trigger("keydown", { key }); await flushPromises(); };
+    button("Game").element.focus();
+    await press("Game", "ArrowDown");
+    expect([document.activeElement, wrapper.get(".settings-fields h1").text()]).toEqual([button("Texture packs").element, "Game"]);
+    await press("Texture packs", "End");
+    expect(document.activeElement).toBe(button("Advanced").element);
+    await press("Advanced", "ArrowDown");
+    expect([document.activeElement, wrapper.get(".settings-fields h1").text()]).toEqual([button("Advanced").element, "Game"]);
+    expect(openInLauncher).not.toHaveBeenCalled();
     wrapper.unmount();
   });
 

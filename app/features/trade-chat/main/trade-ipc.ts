@@ -4,8 +4,7 @@
  * Trade lifecycle cleanup remains beside subscription registration so a
  * destroyed renderer cannot retain a process-wide feed subscription.
  */
-import { IPC } from "../../../shared/contracts.js";
-import { AllowlistError, ValidationError } from "../../../shared/errors.js";
+import { AllowlistError } from "../../../shared/errors.js";
 import {
   parseTraderPriceHistoryRequest,
   parseTradeSavedState,
@@ -16,21 +15,11 @@ import {
 import type { TradeChatService } from "./trade-chat-service.js";
 import {
   channel,
-  sendIfLive,
-  type AnyChannelDef,
-  type Parser,
+  emit,
+  type Handlers,
 } from "../../../main/ipc-channel-registry.js";
-
-export type TradeInvokeChannel =
-  | "tradeSubscribe"
-  | "tradeUnsubscribe"
-  | "tradeSavedGet"
-  | "tradeSavedSet"
-  | "marketRatesGet"
-  | "traderQuotesGet"
-  | "traderPriceHistoryGet"
-  | "tradeSearch"
-  | "tradeRetry";
+import contract from "../shared/ipc.js";
+import { nothing, one } from "../../../main/ipc-values.js";
 
 export interface TradeIpcContext {
   tradeChat: TradeChatService;
@@ -39,36 +28,16 @@ export interface TradeIpcContext {
   setTradeSaved: (value: TradeSavedState) => Promise<TradeSavedState>;
 }
 
-const nothing: Parser<void> = (args) => {
-  if (args.length !== 0) throw new ValidationError("expected 0 IPC argument(s)");
-};
-
-const one = <In>(parse: (value: unknown) => In): Parser<In> => (args) => {
-  if (args.length !== 1) throw new ValidationError("expected 1 IPC argument(s)");
-  return parse(args[0]);
-};
-
-const validated = <Value>(
-  parse: (value: unknown) => Value,
-  message: string,
-): Parser<Value> => one((value) => {
-  try {
-    return parse(value);
-  } catch {
-    throw new ValidationError(message);
-  }
-});
-
 export function tradeChannelDefinitions(
   ctx: TradeIpcContext,
-): Record<TradeInvokeChannel, AnyChannelDef> {
+): Handlers<typeof contract.channels> {
   const cleanupInstalled = new Set<number>();
   const requireEnabled = (): void => {
     if (!ctx.isFeatureEnabled("tradeChat")) {
       throw new AllowlistError("trade chat is disabled");
     }
   };
-  const asTradeSource = validated(parseTradeSource, "invalid trade source");
+  const asTradeSource = one(parseTradeSource);
 
   return {
     tradeSubscribe: channel(asTradeSource, async (win, source) => {
@@ -82,7 +51,7 @@ export function tradeChannelDefinitions(
         });
       }
       return ctx.tradeChat.subscribe(id, source, (event) => {
-        sendIfLive(win, IPC.tradeEvent, event);
+        emit(win, contract.channels.tradeEvent, event);
       });
     }),
 
@@ -95,7 +64,7 @@ export function tradeChannelDefinitions(
       return ctx.getTradeSaved();
     }),
 
-    tradeSavedSet: channel(validated(parseTradeSavedState, "invalid trade saved state"), async (_win, value) => {
+    tradeSavedSet: channel(one(parseTradeSavedState), async (_win, value) => {
       requireEnabled();
       return ctx.setTradeSaved(value);
     }),
@@ -111,7 +80,7 @@ export function tradeChannelDefinitions(
     }),
 
     traderPriceHistoryGet: channel(
-      validated(parseTraderPriceHistoryRequest, "invalid trader price history request"),
+      one(parseTraderPriceHistoryRequest),
       async (_win, request) => {
         requireEnabled();
         return ctx.tradeChat.getTraderPriceHistory(request);
@@ -119,7 +88,7 @@ export function tradeChannelDefinitions(
     ),
 
     tradeSearch: channel(
-      validated(parseTradeSearchRequest, "invalid trade search request"),
+      one(parseTradeSearchRequest),
       async (win, request) => {
         requireEnabled();
         return ctx.tradeChat.search(

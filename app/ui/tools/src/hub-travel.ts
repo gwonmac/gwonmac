@@ -1,4 +1,7 @@
-/** One Travel host serves both unified search and the existing detailed view. */
+/**
+ * One Travel host serves both unified search and the existing detailed view.
+ * It stays in the Tools app because it serves two features: Travel and Progress.
+ */
 import { TOOL_PRESENTATION } from '../../../shared/tool-presentation';
 import { createApp, h, reactive, shallowRef, watch } from 'vue';
 import type { HubPresenter, HubRow, HubSource, HubTask, HubViewMount } from '../../../shared/hub';
@@ -21,7 +24,8 @@ const PLACES_SHOWN = 8;
  */
 export type LeaveArea = (place: string, leave: () => Promise<void>) => Promise<void>;
 
-export function createHubTravel(host: TravelHost, hub: HubPresenter<HTMLElement>, leaveArea: LeaveArea) {
+/** `toolOn` answers whether the Travel tool is switched on; the renderer builds it from the feature manifest. */
+export function createHubTravel(host: TravelHost, hub: HubPresenter<HTMLElement>, leaveArea: LeaveArea, toolOn: () => boolean) {
   const preferences = useTravelPreferences(host);
   let visible = false;
   let active = false;
@@ -89,7 +93,7 @@ export function createHubTravel(host: TravelHost, hub: HubPresenter<HTMLElement>
     if (start) progressGoalChoice.set(start.campaign, start.goal);
     hub.showView('Progress', progressPage(start), available);
   }
-  const available = () => !disposed && !!window.gwToolsSettings?.().gwonmacTools && !!window.gwToolsSettings?.().travelPalette;
+  const available = () => !disposed && toolOn();
   function open() { hub.showView('Travel', page(), available, 'travel'); }
   /** The certified instance type, never the catalogue: a Guild Hall or an uncatalogued outpost is no explorable area. */
   const explorable = () => host.state.value.status === 'ready' && host.state.value.explorable;
@@ -114,7 +118,7 @@ export function createHubTravel(host: TravelHost, hub: HubPresenter<HTMLElement>
   }
   /** Travel's own search phrases for one place: they find it as exactly as its name. */
   const phrases = (mapId: number, query: string) => preferences.searchSynonyms(query).filter(entry => entry.mapId === mapId).map(entry => entry.term);
-  const toolRow = (): HubRow => ({ id: 'travel', title: TOOL_PRESENTATION['quick-travel'].label, detail: loadError || 'Outposts, favourites, recent places and Guild Hall', group: 'Tools', keywords: 'tp teleport destination', action: 'Browse travel', navigate: open, run: open });
+  const toolRow = (): HubRow => ({ id: 'travel', iconKind: 'travel', title: TOOL_PRESENTATION['quick-travel'].label, detail: loadError || 'Outposts, favourites, recent places and Guild Hall', group: 'Tools', keywords: 'tp teleport destination', action: 'Browse travel', navigate: open, run: open });
   const progressRow = (): HubRow => ({ id: 'progress', title: 'Progress', detail: progress.value.status === 'ready' ? 'Missions, vanquishes and outposts still to do' : 'Missions, vanquishes and outposts · in an outpost or explorable area',
     group: 'Tools', keywords: 'protector guardian vanquisher cartographer title missions hm vq', action: 'Show progress', navigate: () => openProgress(), run: () => openProgress() });
   /** A goal word ("vq", "guardian") offers that goal of the campaign the player is in. */
@@ -175,7 +179,7 @@ export function createHubTravel(host: TravelHost, hub: HubPresenter<HTMLElement>
       const state = host.state.value;
       const inHall = state.status === 'ready' && state.guildHall;
       const guildHall: HubRow[] = query.trim() && hubTier({ title: 'Guild Hall', aliases: ['gh'] }, query) !== null ? [{
-        id: 'place:guild-hall', title: inHall ? 'Leave Guild Hall' : 'Guild Hall', detail: inHall ? 'Return to the outpost you came from' : 'Your guild’s hall',
+        id: 'place:guild-hall', iconKind: 'travel', title: inHall ? 'Leave Guild Hall' : 'Guild Hall', detail: inHall ? 'Return to the outpost you came from' : 'Your guild’s hall',
         group: 'Places', action: inHall ? 'Leave Guild Hall' : 'Travel to Guild Hall', consequential: true, leavesArea: explorable(),
         ...(host.guildHallUnavailable ? { unavailable: host.guildHallUnavailable } : {}), run: async (task: HubTask) => {
           if (explorable()) await leaveArea('Guild Hall', () => host.guildHall());
@@ -184,12 +188,12 @@ export function createHubTravel(host: TravelHost, hub: HubPresenter<HTMLElement>
         },
       }] : [];
       // The rest stay one step away, in Travel with the same search.
-      const more: HubRow[] = matches.length > PLACES_SHOWN ? [{ id: 'places:more', title: `All ${matches.length} places`, detail: 'Open Travel with this search', group: 'Places', action: 'Show in Travel',
+      const more: HubRow[] = matches.length > PLACES_SHOWN ? [{ id: 'places:more', iconKind: 'travel', title: `All ${matches.length} places`, detail: 'Open Travel with this search', group: 'Places', action: 'Show in Travel',
         navigate: () => hub.showView('Travel', page(parsed.text), available, 'travel'), run: () => hub.showView('Travel', page(parsed.text), available, 'travel') }] : [];
       return [...[...guildHall, ...destinations.map(destination => {
         const reason = refusal(destination.mapId);
         // The aliases travel with the row, so Home ranks it by them as this list did.
-        return { id: `place:${destination.mapId}`, title: destination.name, aliases: aliasesOf(destination),
+        return { id: `place:${destination.mapId}`, iconKind: 'travel' as const, title: destination.name, aliases: aliasesOf(destination),
           ...(query.trim() && phrases(destination.mapId, query).some(phrase => normaliseHubQuery(phrase) === query) ? {exactPhrase: true} : {}),
           detail: query.trim() ? 'Outpost · Any district' : 'Recently visited · Any district',
           group: query.trim() ? 'Places' : 'Continue', action: `Travel to ${destination.name}`, consequential: true, leavesArea: explorable(),

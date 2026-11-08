@@ -4,16 +4,16 @@
  */
 import type { EliteMapView } from "../../../shared/elite-map.js";
 import type {
-  CartographyContextSnapshot, CompassFrameSpikeSnapshot,
-  MissionMapFrameSpikeSnapshot, WorldMapFrameSpikeSnapshot, WorldMapAnchorSpikeSnapshot,
+  CartographyContextSnapshot, CompassFrameSnapshot,
+  MissionMapFrameSnapshot, WorldMapFrameSnapshot, WorldMapAnchorSnapshot,
 } from "../../../shared/cartography-spike.js";
 import { projectMissionMapFrame, projectNativeFrame, type ScreenBox } from "./frame-placement.js";
 import { projectMissionMapContentBox, projectMapUnitsToMissionMap, projectMapUnitsToWorldMap } from "./map-projections.js";
 export function eliteMapSurfaces(input: Readonly<{
   context: CartographyContextSnapshot | null; mapId: number | null;
-  anchor: WorldMapAnchorSpikeSnapshot | null; onWorldMap: boolean;
-  compass: CompassFrameSpikeSnapshot | null; mission: MissionMapFrameSpikeSnapshot | null;
-  world: WorldMapFrameSpikeSnapshot | null; canvas: ScreenBox;
+  anchor: WorldMapAnchorSnapshot | null; onWorldMap: boolean;
+  compass: CompassFrameSnapshot | null; mission: MissionMapFrameSnapshot | null;
+  world: WorldMapFrameSnapshot | null; canvas: ScreenBox;
 }>): Pick<EliteMapView, "world" | "mission"> {
   const { context, compass, mission, world, canvas } = input;
   if (!context || context.status !== 1 || context.mapId !== input.mapId) return { world: null, mission: null };

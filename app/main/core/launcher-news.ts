@@ -1,41 +1,29 @@
 /**
- * Owns the launcher's two exact news sources, their bounded validation, the
- * last-good cache, safe Markdown projection, and trusted story/media actions.
+ * Owns the launcher's two exact news sources, their byte limits, the last-good
+ * cache, safe Markdown projection, and trusted story/media actions. The
+ * news-v1 feed rules belong to app/shared/launcher-news-feed.ts.
  * The renderer receives presentation data and opaque IDs, never remote URLs.
  */
 import { readFile } from "node:fs/promises";
 import type { LauncherPreferences, LauncherNewsBlock, LauncherNewsState, LauncherNewsStory } from "../../shared/launcher-contracts.js";
 import { parseMarkdown } from "../../shared/launcher-markdown.js";
+import { PROJECT_NEWS_ORIGIN, parseProjectNewsFeed, trustedNewsUrl, type ProjectNewsStory } from "../../shared/launcher-news-feed.js";
 import { readBoundedResponse } from "./bounded-response.js";
 import { writeAtomicJson } from "./atomic-file.js";
 
-export const PROJECT_NEWS_URL = "https://www.gwonmac.com/launcher/news-v1.json";
+export const PROJECT_NEWS_URL = `${PROJECT_NEWS_ORIGIN}/launcher/news-v1.json`;
 // The page source, not a plain-text extract: the wiki returns a whole-page extract for only
 // one page per request, and the source keeps the bullet lists that update notes are made of.
 export const WIKI_UPDATES_URL = "https://wiki.guildwars.com/api.php?action=query&generator=allpages&gapnamespace=202&gapprefix=Game%20updates%2F&gaplimit=5&gapdir=descending&prop=revisions%7Cinfo&rvprop=content%7Ctimestamp&rvslots=main&inprop=url&format=json&origin=*";
 const WIKI_ORIGIN = "https://wiki.guildwars.com";
-const PROJECT_ORIGIN = "https://www.gwonmac.com";
 const MAX_FEED_BYTES = 512 * 1024;
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
-const MAX_STORIES = 24;
 const MAX_WIKI_SUMMARY_LENGTH = 280;
 const REQUEST_TIMEOUT_MS = 8_000;
-const ALLOWED_LINK_ORIGINS = new Set([PROJECT_ORIGIN, "https://wiki.guildwars.com", "https://github.com", "https://discord.gg"]);
 const IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 
-interface RawStory {
-  id: string;
-  source: "launcher" | "event" | "game";
-  channel: "all" | "stable" | "beta";
-  title: string;
-  summary: string;
-  publishedAt: string;
-  featured: boolean;
-  url: string;
-  startsAt?: string;
-  endsAt?: string;
-  body: string;
-}
+/** A feed story, or a Guild Wars Wiki update this service builds itself. */
+type RawStory = Omit<ProjectNewsStory, "source"> & { source: ProjectNewsStory["source"] | "game" };
 
 interface FetchLike {
   (input: string, init?: RequestInit): Promise<Response>;
@@ -53,53 +41,6 @@ function object(value: unknown, label: string): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
-function text(value: unknown, label: string, max: number): string {
-  if (typeof value !== "string" || value.length === 0 || value.length > max) throw new Error(`${label} is invalid`);
-  return value;
-}
-
-function iso(value: unknown, label: string): string {
-  const candidate = text(value, label, 40);
-  if (!Number.isFinite(Date.parse(candidate))) throw new Error(`${label} is invalid`);
-  return candidate;
-}
-
-function trustedUrl(value: unknown, label: string): string {
-  const candidate = new URL(text(value, label, 500), PROJECT_ORIGIN);
-  if (!ALLOWED_LINK_ORIGINS.has(candidate.origin) || candidate.protocol !== "https:") throw new Error(`${label} is not trusted`);
-  return candidate.href;
-}
-
-function rawStory(value: unknown): RawStory {
-  const source = object(value, "story");
-  const id = text(source.id, "story id", 80);
-  if (!/^[a-z0-9][a-z0-9-]*$/u.test(id)) throw new Error("story id is invalid");
-  if (source.source !== "launcher" && source.source !== "event") throw new Error("story source is invalid");
-  if (source.channel !== "all" && source.channel !== "stable" && source.channel !== "beta") throw new Error("story channel is invalid");
-  if (typeof source.featured !== "boolean") throw new Error("story featured is invalid");
-  return {
-    id,
-    source: source.source,
-    channel: source.channel,
-    title: text(source.title, "story title", 140),
-    summary: text(source.summary, "story summary", 360),
-    publishedAt: iso(source.publishedAt, "story publishedAt"),
-    featured: source.featured,
-    url: trustedUrl(source.url, "story url"),
-    ...(source.startsAt === undefined ? {} : { startsAt: iso(source.startsAt, "story startsAt") }),
-    ...(source.endsAt === undefined ? {} : { endsAt: iso(source.endsAt, "story endsAt") }),
-    body: text(source.body, "story body", 80_000),
-  };
-}
-
-export function parseProjectNewsFeed(value: unknown): readonly RawStory[] {
-  const source = object(value, "news feed");
-  if (source.version !== 1 || !Array.isArray(source.stories) || source.stories.length > MAX_STORIES) throw new Error("news feed is invalid");
-  const stories = source.stories.map(rawStory);
-  if (new Set(stories.map((story) => story.id)).size !== stories.length) throw new Error("news story ids must be unique");
-  return stories;
-}
-
 function linkActionId(storyId: string, url: string, index: number): string {
   let hash = 2_166_136_261;
   for (const character of `${storyId}\0${url}\0${index}`) {
@@ -111,8 +52,8 @@ function linkActionId(storyId: string, url: string, index: number): string {
 
 function imageUrl(source: string): string | null {
   try {
-    const url = new URL(source, PROJECT_ORIGIN);
-    return url.origin === PROJECT_ORIGIN && url.protocol === "https:" ? url.href : null;
+    const url = new URL(source, PROJECT_NEWS_ORIGIN);
+    return url.origin === PROJECT_NEWS_ORIGIN && url.protocol === "https:" ? url.href : null;
   } catch { return null; }
 }
 
@@ -122,7 +63,7 @@ function markdown(body: string, storyId: string, media: Map<string, string>, lin
   return parseMarkdown(body, {
     link: (href) => {
       let url: string;
-      try { url = trustedUrl(href, "article link"); } catch { return null; }
+      try { url = trustedNewsUrl(href, "article link"); } catch { return null; }
       const id = linkActionId(storyId, url, linkIndex);
       linkIndex += 1;
       links.set(id, url);
@@ -221,7 +162,7 @@ function wikiStories(value: unknown): RawStory[] {
       summary: wikiSummary(body),
       publishedAt,
       featured: true,
-      url: trustedUrl(page.fullurl, "Wiki page url"),
+      url: trustedNewsUrl(page.fullurl, "Wiki page url"),
       body,
     }];
   });

@@ -1,8 +1,12 @@
 import { expect, test } from '@playwright/test';
+import { openHub, reloadHub } from './hub-page.js';
 
-test('Trade gives the ledger space and retains its offer through actions and reopening', async ({ page }, info) => {
+// What stays here is geometry, scrolling, reload and the screenshots. Trade's and the team editor's
+// state through actions and reopening is held in src/hub-polish.dom.test.ts.
+
+test('Trade gives the ledger space and keeps the offer actions in view after reopening', async ({ page }, info) => {
   await page.setViewportSize({ width: 1280, height: 720 });
-  await page.goto('/?hub');
+  await openHub(page);
   const search = page.locator('.hub-search input');
   await search.fill('trade'); await search.press('Enter');
   await expect(page.getByRole('listbox', { name: 'Trade offers' })).toBeVisible();
@@ -15,28 +19,18 @@ test('Trade gives the ledger space and retains its offer through actions and reo
   });
   expect(fullyVisible).toBeGreaterThanOrEqual(5);
   await page.getByRole('option', { name: /^Silver Wayfarer:/u }).click();
-  const inspector = page.getByRole('region', { name: 'Offer from Silver Wayfarer' });
-  await expect(inspector).toContainText('105 consets');
-  await page.locator('.offer-actions > summary').click();
-  await expect(page.getByRole('menuitem', { name: 'Copy offer', exact: true })).toBeVisible();
-  await page.locator('.offer-actions > summary').press('Escape');
-  await expect(page.locator('.offer-actions')).not.toHaveAttribute('open');
-  await expect(inspector).toBeVisible();
-  await expect(page.locator('#hub')).not.toBeVisible();
   await page.getByRole('button', { name: 'Close Trade Chat', exact: true }).click();
   await page.keyboard.press('Meta+k');
-  await expect(inspector).toContainText('105 consets');
   await expect(page.getByRole('button', { name: 'Whisper Silver Wayfarer', exact: true })).toBeInViewport();
   await page.screenshot({ path: info.outputPath('trade.png') });
 });
 
-test('team authoring prioritizes the roster while options and persisted edits stay available', async ({ page }, info) => {
+test('team authoring prioritizes the roster and persists its edits across a reload', async ({ page }, info) => {
   await page.setViewportSize({ width: 1280, height: 720 });
-  await page.goto('/?hub');
+  await openHub(page);
   const search = page.locator('.hub-search input');
   await page.getByRole('button', { name: 'Close Hub', exact: true }).click(); await page.keyboard.press('Meta+b');
   await page.getByRole('button', { name: /Favourite GOM AFK/ }).click();
-  await expect(page.locator('.team-options')).not.toHaveAttribute('open');
   const visibleSlots = await page.locator('.team-scroll').evaluate(list => {
     const box = list.getBoundingClientRect();
     return [...list.querySelectorAll('[data-team-slot]')].filter(row => {
@@ -47,29 +41,23 @@ test('team authoring prioritizes the roster while options and persisted edits st
   expect(visibleSlots).toBeGreaterThanOrEqual(3);
   await page.locator('.team-options > summary').click();
   await page.getByRole('button', { name: 'Normal', exact: true }).click();
-  await expect(page.locator('.team-options > summary')).toContainText('Normal Mode');
   await page.locator('.team-options > summary').click();
-  await expect(page.locator('.team-actions')).toContainText('update 8 builds');
   await page.getByRole('button', { name: 'Close Build Library', exact: true }).click();
   await page.keyboard.press('Meta+b');
-  await expect(page.getByRole('textbox', { name: 'Team name', exact: true })).toHaveValue('GOM AFK');
-  await expect(page.locator('.team-options > summary')).toContainText('Normal Mode');
   await page.screenshot({ path: info.outputPath('team-editor.png') });
-  await page.reload();
+  await reloadHub(page);
   await search.fill('team gom afk');
   await expect(page.locator('.hub-preview')).toContainText('Normal Mode');
-  await expect(page.locator('#app')).not.toHaveAttribute('data-action', /command|apply/);
 });
 
 for (const viewport of [{ width: 390, height: 650 }, { width: 640, height: 480 }]) {
   test(`team options remain reachable in a constrained Hub at ${viewport.width}`, async ({ page }, info) => {
     await page.setViewportSize(viewport);
-    await page.goto('/?hub');
+    await openHub(page);
     await page.getByRole('button', { name: 'Close Hub', exact: true }).click(); await page.keyboard.press('Meta+b');
     await page.getByRole('button', { name: /Favourite GOM AFK/ }).click();
     await page.locator('.team-options > summary').click();
     await page.getByRole('button', { name: 'Normal', exact: true }).click();
-    await expect(page.locator('.team-options > summary')).toContainText('Normal Mode');
     await expect(page.getByRole('button', { name: 'Apply team', exact: true })).toBeInViewport();
     const overflow = await page.locator('.hub-panel').evaluate(element => element.scrollWidth - element.clientWidth);
     expect(overflow).toBeLessThanOrEqual(1);

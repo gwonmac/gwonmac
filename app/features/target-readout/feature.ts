@@ -16,5 +16,4 @@ export default defineFeature({
     description: "Show distance to the selected target in PvE.",
     keywords: "distance range",
   },
-  capabilities: ["targetObservation"],
 });

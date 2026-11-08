@@ -18,10 +18,13 @@ export default defineFeature({
   tool: {
     id: "character-switch",
     label: "Switch Character",
+    event: "gw:character-toggle",
     description: "Search and browse every character. Available without optional Tools.",
     keywords: "characters relog alts profession",
-    hub: { command: "character", keyOrder: 1 },
+    hub: {
+      command: "character", order: 1, keyOrder: 1,
+      row: { detail: "Choose another character", iconKind: "character", action: "Choose character", open: { page: true } },
+    },
   },
   shortcuts: [{ action: "character.switch", binding: { key: "e", shift: false, option: false }, menuItem: "switch-character" }],
-  capabilities: ["preGameControls", "characterSwitchAction"],
 });

@@ -10,7 +10,6 @@ export default defineConfig({
   // Mac, several times that on a loaded CI runner), and some specs launch twice.
   timeout: 60_000,
   workers: 1,
-  ...(process.env.CI ? { maxFailures: 1 } : {}),
   forbidOnly: !!process.env.CI,
   reporter: process.env.CI ? [["github"], ["line"]] : "list",
   use: {

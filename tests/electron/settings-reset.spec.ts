@@ -6,7 +6,7 @@ import { serializeTravelPreferencesV1 } from
   "../../app/main/core/travel-preferences-v1.js";
 import { closeOffline, launchOffline } from "./fixtures.mjs";
 
-test("Tools reset promises and clears both Travel preference owners", async () => {
+test("Tools reset promises and clears both Travel preference owners", { tag: "@journey" }, async () => {
   const fixture = await launchOffline(
     "gw-settings-tools-reset-e2e-",
     { GW_TEST_RETURN_LAUNCHER: "1" },

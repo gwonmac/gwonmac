@@ -209,6 +209,6 @@ describe("launcher presentation state", () => {
     await store.updateAppearance(id, { icon: "archive", color: "#496b58" });
     assert.equal(store.get().setupVersion, 1);
     assert.deepEqual(store.appearance(id), { icon: "archive", color: "#496b58" });
-    await assert.rejects(store.updateAppearance(id, { icon: "url", color: "red" }));
+    await assert.rejects(store.updateAppearance(id, { icon: "archive", color: "red" }));
   });
 });

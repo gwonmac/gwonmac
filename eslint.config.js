@@ -43,15 +43,25 @@ const CERTIFICATION_ELECTRON_CALLERS = String.raw`(?:^|/)(?:enhancement-policy|l
 const INTO_MAIN = String.raw`(?:^|/)(?:\.\.|app)/(?:main|client)/`;
 // The mirror of INTO_MAIN for app/client: the renderer, the Vue UIs, the
 // preloads, and a feature's renderer half (its renderer/ folder, companion.ts,
-// and companion-parts.ts, the files the renderer block below lints).
+// and companion-parts.ts, the files the feature block below lints).
 // `shared/ui/` does not match: only `../ui/` or `app/ui/` names app/ui.
 const INTO_PRESENTATION = String.raw`(?:^|/)(?:\.\.|app)/(?:renderer|ui|preload)/|(?:^|/)features/(?:[^/]+/renderer/|[^/]+/companion(?:\.js)?$|companion-parts(?:\.js)?$)`;
+// Entering a feature from the shared renderer. Inside a feature folder only
+// three things are reachable: the manifest (feature.ts), the one game-host
+// entry (renderer/host.ts), and shared/, the contracts the feature's two
+// processes both read. Everything else is the feature's own: companion.ts
+// (reached through app/features/companion-parts.ts), the other renderer
+// modules, and the main-process half (main.ts, main/). An allowlist, so a new
+// kind of file is private until this line names it; a `..` after shared/ is
+// rejected so the exemption cannot be spelled as an escape. The files beside
+// the feature folders (define.ts, companion-parts.ts) do not match.
+const INTO_FEATURE_INTERNALS = String.raw`(?:^|/)features/[^/]+/(?!(?:feature|renderer/host)(?:\.js)?$|shared/(?!.*\.\.))`;
 // Leaving website: any escape into the host application's app/ other than
 // app/shared. Naming main/renderer/preload alone let app/tools-cli/** through while
 // the message claimed only app/shared was reachable. The first alternative is
 // anchored to a `../` run so a package whose own path contains `/src/` is not
 // caught; the second keeps the original spellings rejected.
-const INTO_APP = String.raw`^(?:\.\./)+app/(?!shared/|ui/)|(?:^|/)(?:\.\.|app)/(?:main|client|renderer|preload|tools-cli)/`;
+const INTO_APP = String.raw`^(?:\.\./)+app/(?!shared/|ui/)|(?:^|/)(?:\.\.|app)/(?:main|client|renderer|preload|tools-cli|features)/`;
 const ELECTRON = String.raw`^electron(/|$)`;
 
 /**
@@ -96,6 +106,18 @@ const NO_PRESENTATION_FROM_CLIENT =
 const NO_MAIN_FROM_RENDERER =
   "app/renderer/** must not import from app/main/** or app/client/**. Cross the boundary through the preload bridge or app/shared/**.";
 const APP_SHARED_ONLY = "website/** and app/ui/tools/** may only reach into app/shared/**.";
+const NO_FEATURE_INTERNALS =
+  "app/renderer/** reaches a feature only through app/features/companion-parts.ts, its manifest (feature.ts), its renderer/host.ts, or its shared/ folder. Move the code into the feature, or export it from its host.";
+
+// Any `goto` whose URL spells `?hub`, in a literal or a template, however the call wraps it.
+const HUB_GOTO = {
+  selector: String.raw`CallExpression[callee.property.name="goto"] :matches(Literal[value=/\?hub/], TemplateElement[value.raw=/\?hub/])`,
+  message: "Open the Hub fixture with openHub(page, query) from tests/hub-page.ts. page.goto returns before the Hub can take input.",
+};
+const HUB_RELOAD = {
+  selector: `CallExpression[callee.property.name="reload"]`,
+  message: "Reload the Hub fixture with reloadHub(page) from tests/hub-page.ts. page.reload returns before the Hub can take input.",
+};
 
 export default tseslint.config(
   eslint.configs.recommended,
@@ -200,16 +222,37 @@ export default tseslint.config(
     },
   },
   {
-    // The renderer owns presentation and the game host; it never reaches
-    // into the main process. Every renderer source extension, not only .js:
-    // app/renderer/gw-native.d.ts is a real tracked file.
-    files: ["app/renderer/**/*.{js,mjs,cjs,ts}", "app/features/*/companion.ts", "app/features/companion-parts.ts", "app/features/*/renderer/**/*.ts"],
+    // A feature's renderer half never reaches into the main process.
+    files: ["app/features/*/companion.ts", "app/features/companion-parts.ts", "app/features/*/renderer/**/*.ts"],
     rules: {
       "no-restricted-imports": [
         "error",
         { patterns: [{ regex: INTO_MAIN, message: NO_MAIN_FROM_RENDERER }] },
       ],
       "no-restricted-syntax": ["error", ...crossings(INTO_MAIN, NO_MAIN_FROM_RENDERER)],
+    },
+  },
+  {
+    // The renderer owns presentation and the game host; it never reaches
+    // into the main process, and it never imports a feature's own files.
+    // Every renderer source extension, not only .js:
+    // app/renderer/gw-native.d.ts is a real tracked file.
+    files: ["app/renderer/**/*.{js,mjs,cjs,ts}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            { regex: INTO_MAIN, message: NO_MAIN_FROM_RENDERER },
+            { regex: INTO_FEATURE_INTERNALS, message: NO_FEATURE_INTERNALS },
+          ],
+        },
+      ],
+      "no-restricted-syntax": [
+        "error",
+        ...crossings(INTO_MAIN, NO_MAIN_FROM_RENDERER),
+        ...crossings(INTO_FEATURE_INTERNALS, NO_FEATURE_INTERNALS),
+      ],
     },
   },
   // Use `flat/essential` only: the rules that catch errors. `flat/recommended`
@@ -249,6 +292,22 @@ export default tseslint.config(
     },
   },
   {
+    // `page.goto` returns at the load event, before the Hub fixture has mounted the Hub, so a
+    // key pressed at once can reach no Hub. The Hub specs open and reload the page through
+    // tests/hub-page.ts, which waits until the Hub can take input. Other workbench pages reload
+    // freely, so only the Hub specs lose `reload`.
+    files: ["app/ui/tools/tests/**/*.ts"],
+    rules: {
+      "no-restricted-syntax": ["error", ...crossings(INTO_APP, APP_SHARED_ONLY), HUB_GOTO],
+    },
+  },
+  {
+    files: ["app/ui/tools/tests/hub*.spec.ts", "app/ui/tools/tests/trade-popout.spec.ts"],
+    rules: {
+      "no-restricted-syntax": ["error", ...crossings(INTO_APP, APP_SHARED_ONLY), HUB_GOTO, HUB_RELOAD],
+    },
+  },
+  {
     // forge.config.ts used to be excluded from linting entirely.
     files: ["forge.config.ts"],
     languageOptions: {
@@ -257,8 +316,9 @@ export default tseslint.config(
   },
   {
     files: ["app/main/**/*.ts", "app/client/**/*.ts", "app/shared/**/*.ts", "app/tools-cli/**/*.ts", "app/features/**/*.ts"],
-    // A feature's renderer half belongs to tsconfig.renderer.json, which the service does not reach.
-    ignores: ["app/features/*/companion.ts", "app/features/companion-parts.ts", "app/features/*/renderer/**/*.ts"],
+    // A feature's renderer half belongs to tsconfig.renderer.json, which the service does not reach;
+    // its Hub pages (hub-views/) belong to the Tools program.
+    ignores: ["app/features/*/companion.ts", "app/features/companion-parts.ts", "app/features/*/renderer/**/*.ts", "app/features/*/hub-views/**/*.ts"],
     languageOptions: {
       parserOptions: {
         projectService: true,

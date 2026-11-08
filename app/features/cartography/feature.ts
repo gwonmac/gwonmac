@@ -3,6 +3,7 @@ import {
   CARTOGRAPHY_CONTROL_IDLE_OPACITY_MIN,
   CARTOGRAPHY_OPACITY_MAX,
   CARTOGRAPHY_OPACITY_MIN,
+  CARTOGRAPHY_REVEAL_MODES,
   DEFAULT_CARTOGRAPHY_PRESET_LIBRARY,
   normaliseCartographyPresetLibrary,
   type CartographyPresetLibrary,
@@ -56,7 +57,7 @@ export default defineFeature({
       launcherError: "Compass range theme is invalid",
     }),
     /** Persistent Compass footprint; Mission Map hover uses Shift or Option+Shift. */
-    cartographyRevealMode: setting.enum(["off", "normal", "birds-eye"], "off", {
+    cartographyRevealMode: setting.enum(CARTOGRAPHY_REVEAL_MODES, "off", {
       ...MAP_LAYER,
       launcherError: "cartography reveal mode is invalid",
     }),
@@ -91,11 +92,14 @@ export default defineFeature({
     id: "maps",
     label: "Maps",
     description: "Exploration grid and walkable terrain on supported PvE maps.",
-    keywords: "grid terrain compass",
+    keywords: "grid terrain compass opacity",
+    hub: {
+      command: "maps", order: 6,
+      row: { detail: "Exploration grid, walkable terrain and compass ranges", iconKind: "maps", action: "Adjust maps", open: { settings: "maps" } },
+    },
   },
   shortcuts: [
     { action: "cartography.grid.toggle", binding: null, label: "Exploration grid" },
     { action: "cartography.walkability.toggle", binding: null, label: "Walkable terrain" },
   ],
-  capabilities: ["targetObservation", "partyObservation"],
 });

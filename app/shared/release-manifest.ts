@@ -7,6 +7,7 @@ import { releaseAssetUrl } from "./project-identity.js";
 import {
   formatReleaseVersion,
   parseReleaseVersion,
+  releaseAssetNames,
   type ReleaseVersion,
 } from "./release.js";
 
@@ -60,9 +61,7 @@ export function parseReleaseManifest(
     Number.isNaN(publishedAt.valueOf())
     || publishedAt.toISOString() !== value.pub_date
   ) return null;
-  const zipName =
-    `Guild-Wars-Reforged-${value.version}-macOS-arm64.zip`;
-  if (value.url !== releaseAssetUrl(value.tag, zipName)) return null;
+  if (value.url !== releaseAssetUrl(value.tag, releaseAssetNames(value.version).zip)) return null;
   return {
     manifest: {
       url: value.url,

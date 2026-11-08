@@ -1,9 +1,9 @@
-// The one owner of what a release version of this app may look like, and of the
-// two numbers macOS reads out of it.
+// The two numbers macOS reads out of a release version of this app.
 //
-// Releases use plain SemVer: `MAJOR.MINOR.PATCH`, optionally
-// `-(alpha|beta|rc).N`, with no leading zeroes. This file maps that onto
-// Apple's two fields and is the check the release build runs first.
+// app/shared/release.ts owns the version grammar: plain SemVer
+// `MAJOR.MINOR.PATCH`, optionally `-(alpha|beta|rc).N`, with no leading
+// zeroes. This file maps that onto Apple's two fields and refuses what they
+// cannot hold:
 //
 //   CFBundleShortVersionString  the release version, without the prerelease
 //   CFBundleVersion             a build number that only ever increases
@@ -19,51 +19,34 @@
 // rises across a prerelease channel (alpha.1 -> beta.1 -> rc.1 -> the release),
 // then across patches, then across minor and major versions.
 
-const RELEASE_PATTERN =
-  /^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-(alpha|beta|rc)\.(0|[1-9][0-9]*))?$/;
+import {
+  formatReleaseVersion,
+  parseReleaseVersion,
+  type ReleaseChannel,
+} from "../app/shared/release.js";
 
 /**
  * Where a channel begins inside the two digits Apple allows for the last
  * component: 30 sequence numbers each, and the release itself at the top.
- *
- * RELEASE_PATTERN and this function have to name the same channels. A channel
- * only one of them knew would reach `stage + sequence` as `undefined`, and a
- * signed release would ship with `NaN` in its CFBundleVersion, so that drift
- * throws here rather than at the notary.
- *
- * `channel` is the prerelease channel, or `undefined` for the release the
- * prereleases lead to.
  */
-function stageOf(channel: string | undefined): number {
-  switch (channel) {
-    case "alpha":
-      return 0;
-    case "beta":
-      return 30;
-    case "rc":
-      return 60;
-    case undefined:
-      return 99;
-    default:
-      throw new Error(
-        `release channel ${JSON.stringify(channel)} has no build number stage`,
-      );
-  }
-}
+const STAGE: Record<ReleaseChannel, number> = {
+  alpha: 0,
+  beta: 30,
+  rc: 60,
+  stable: 99,
+};
 
 export function macOSBundleVersions(version: string) {
-  const match = RELEASE_PATTERN.exec(version);
-  if (!match) {
+  const parsed = parseReleaseVersion(version);
+  // The grammar also admits a `v` tag prefix; package.json carries the bare
+  // version, and only that canonical text names a build.
+  if (!parsed || formatReleaseVersion(parsed) !== version) {
     throw new Error(
       `release version must be MAJOR.MINOR.PATCH or MAJOR.MINOR.PATCH-(alpha|beta|rc).N ` +
         `with no leading zeroes, not ${JSON.stringify(version)}`,
     );
   }
-  const [, majorText, minorText, patchText, channel, sequenceText] = match;
-  const major = Number(majorText);
-  const minor = Number(minorText);
-  const patch = Number(patchText);
-  const sequence = sequenceText === undefined ? 0 : Number(sequenceText);
+  const { major, minor, patch, channel, sequence } = parsed;
   if (major < 1 || major > 99) {
     throw new Error(`release major must be 1-99, not ${major}`);
   }
@@ -77,7 +60,7 @@ export function macOSBundleVersions(version: string) {
     throw new Error(`prerelease sequence must be 0-29, not ${sequence}`);
   }
   const releaseLine = major * 100 + minor;
-  const stage = stageOf(channel);
+  const stage = STAGE[channel];
   return {
     appVersion: `${major}.${minor}.${patch}`,
     buildVersion: `${releaseLine}.${patch}.${stage + sequence}`,

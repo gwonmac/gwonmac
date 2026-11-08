@@ -2,11 +2,10 @@
  * Projects launcher feature switches from the canonical activation policy.
  * Explicit shortcut replacement resolves conflicts across every app action.
  */
-import type { AppSettings, AppSettingsPatch } from "../../shared/contracts.js";
+import type { AppSettingsPatch } from "../../shared/contracts.js";
+import type { AppSettings } from "../../shared/settings/index.js";
 import { FEATURES, FEATURE_SELECTION_POLICIES } from "../../shared/feature-contracts.js";
 import { resolveShortcuts, shortcutConflict, shortcutReserved, shortcutUsedByHub, withShortcutOverride, type ShortcutAction, type ShortcutBinding } from "../../shared/keyboard-shortcuts.js";
-
-export { globalToolPatch, launcherToolSettings } from "../../shared/launcher-contracts.js";
 
 /** The master switch, then each feature that opts in with it, in FEATURES order. */
 const FIRST_RUN_SETTINGS = [...new Set(FEATURES.flatMap((feature) =>

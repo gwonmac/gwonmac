@@ -201,6 +201,8 @@
   --ui-well-strong-fill: color-mix(in srgb, var(--ui-well-fill) 95%, var(--ui-outline));
   --ui-well-overlay-fill: color-mix(in srgb, var(--ui-outline) 72%, var(--ui-well-fill));
   --ui-accent-well-fill: color-mix(in srgb, var(--ui-accent) 10%, var(--ui-well));
+  --ui-accent-soft-fill: color-mix(in srgb, var(--ui-accent) 10%, transparent);
+  --ui-accent-line: color-mix(in srgb, var(--ui-accent) 30%, transparent);
   --ui-danger-soft-fill: color-mix(in srgb, var(--ui-danger) 10%, transparent);
   --ui-danger-panel-fill: color-mix(in srgb, var(--ui-danger) 14%, var(--ui-panel-fill));
   --ui-warning-panel-fill: color-mix(in srgb, var(--ui-warning) 10%, var(--ui-panel-fill));
@@ -215,6 +217,9 @@
   --ui-panel-opacity: 0.94;
   --ui-effective-panel-opacity: var(--ui-panel-opacity);
   --ui-panel-fill: rgb(var(--gw-panel-rgb) / var(--ui-effective-panel-opacity));
+  /* The panel colour at full strength, whatever the opacity setting, for a surface that must stay
+   * readable over others (a dialog). Derived here, so Modern and a custom window colour follow. */
+  --ui-panel-solid: rgb(from var(--ui-panel-fill) r g b / 1);
   /* Primary layout regions sit inside an already-painted panel. Giving them
    * another translucent black fill compounds opacity and makes the slider lie.
    * Controls and true recesses keep using --ui-well-fill. */

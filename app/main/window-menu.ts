@@ -19,25 +19,17 @@ import {
   type MenuItemConstructorOptions,
 } from "electron";
 import type { LauncherDestination, LauncherProfileSummary } from "../shared/launcher-contracts.js";
-import {
-  EXTERNAL_URLS,
-  type AppSettings,
-  type TextEditCommand,
-} from "../shared/contracts.js";
+import { EXTERNAL_URLS, type TextEditCommand } from "../shared/contracts.js";
+import type { AppSettings } from "../shared/settings/index.js";
 import { errorCode } from "../shared/errors.js";
 import { featureActivationRequested, type FeatureActivationSettings } from "../shared/feature-contracts.js";
 import { logEvent, reloadTranscriptForWindow } from "./diagnostics.js";
 import { exportDiagnosticsReport } from "./diagnostics-export.js";
 import {
   editWindowText,
-  openStorage,
   resetGameInput,
+  runShortcut,
   sendRendererCommand,
-  toggleTravel,
-  toggleCharacterSwitch,
-  toggleTrade,
-  toggleWhispers,
-  toggleTools,
 } from "./renderer-commands.js";
 import { isDevBuild } from "./protocol.js";
 import {
@@ -272,8 +264,7 @@ export function showQuitOrReloadGame(
 
 export async function showResignGame(host: WindowHost, win: BrowserWindow): Promise<void> {
   if (!featureActivationRequested("resign", await host.getSettings())) return;
-  await resetGameInput(win);
-  await sendRendererCommand(win, { type: "game.resign" });
+  await runShortcut(win, "game.resign");
 }
 
 function showReloadGame(host: WindowHost, win: BrowserWindow): Promise<void> {
@@ -474,31 +465,31 @@ export function installApplicationMenu(actions: ApplicationMenuActions, settings
           id: "toggle-tools",
           label: "Build Library",
           enabled: false,
-          click: withGameOwner((win) => toggleTools(win)),
+          click: withGameOwner((win) => runShortcut(win, "tools.toggle")),
         },
         {
           id: "toggle-trade",
           label: "Trade Chat",
           enabled: false,
-          click: withGameOwner((win) => toggleTrade(win)),
+          click: withGameOwner((win) => runShortcut(win, "trade.toggle")),
         },
         {
           id: "open-whispers",
           label: "Whispers",
           enabled: false,
-          click: withGameOwner((win) => toggleWhispers(win)),
+          click: withGameOwner((win) => runShortcut(win, "whispers.toggle")),
         },
         {
           id: "open-xunlai-storage",
           label: "Open Xunlai Storage",
           enabled: false,
-          click: withGameOwner((win) => openStorage(win)),
+          click: withGameOwner((win) => runShortcut(win, "storage.open")),
         },
         {
           id: "open-travel",
           label: "Travel",
           enabled: false,
-          click: withGameOwner((win) => toggleTravel(win)),
+          click: withGameOwner((win) => runShortcut(win, "travel.open")),
         },
         {
           label: "Toggle Diagnostics",
@@ -518,7 +509,7 @@ export function installApplicationMenu(actions: ApplicationMenuActions, settings
           id: "switch-character",
           label: "Switch Character",
           enabled: false,
-          click: withGameOwner((win) => toggleCharacterSwitch(win)),
+          click: withGameOwner((win) => runShortcut(win, "character.switch")),
         },
         {
           id: "resign-game",

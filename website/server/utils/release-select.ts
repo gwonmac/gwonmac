@@ -13,6 +13,7 @@ import {
   formatReleaseVersion,
   isReleaseEligibleForTrack,
   parseReleaseVersion,
+  releaseAssetNames,
   releaseMetadataMatchesStage,
   type ReleaseVersion,
   type UpdateTrack,
@@ -38,8 +39,7 @@ function appleSiliconDmg(
   version: ReleaseVersion,
 ): string | null {
   if (!Array.isArray(release.assets)) return null;
-  const name =
-    `Guild-Wars-Reforged-${formatReleaseVersion(version)}-macOS-arm64.dmg`;
+  const name = releaseAssetNames(formatReleaseVersion(version)).dmg;
   const expectedUrl = releaseAssetUrl(tag, name);
   for (const asset of release.assets) {
     if (!isRecord(asset)) continue;

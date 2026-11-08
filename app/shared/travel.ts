@@ -66,7 +66,7 @@ export const TRAVEL_DISTRICTS: readonly TravelDistrict[] = Object.freeze([
 /** Runtime action: live region/language are resolved on the game thread. */
 export type TravelRequest = Readonly<{ mapId: number }>;
 
-/** Released on-disk shortcut shape kept readable by Stable rollbacks. */
+/** The shortcut shape released apps wrote to settings.json; it stays readable. */
 export type StoredTravelShortcut = Readonly<{
   mapId: number;
   district: TravelDistrictId;
@@ -91,7 +91,7 @@ export type TravelShortcuts = readonly [
   TravelShortcut, TravelShortcut, TravelShortcut,
 ];
 
-/** The one renderer-facing view composed from both rollback-safe files. */
+/** The one renderer-facing view, composed from settings.json and travel-preferences.json. */
 export type TravelUserPreferences = Readonly<{
   shortcuts: TravelShortcuts;
   synonyms: TravelSynonyms;

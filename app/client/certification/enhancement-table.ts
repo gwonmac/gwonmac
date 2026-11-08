@@ -2,6 +2,7 @@
  * The Enhancement transform's one-table contract, shared by read-only
  * candidate inspection and the certified module rewrite.
  */
+import { ProofRefusal } from "./stage-refusal.js";
 import {
   concat,
   readSleb,
@@ -10,7 +11,7 @@ import {
 } from "../../main/core/wasm-binary.js";
 
 function fail(message: string): never {
-  throw new Error(`enhancement table: ${message}`);
+  throw new ProofRefusal(`enhancement table: ${message}`);
 }
 
 export function parseEnhancementTable(bytes: Uint8Array): {
