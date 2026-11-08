@@ -4,7 +4,7 @@
  * a vitest test can hold DOM and focus rules that need no real browser. Each mount starts from a
  * clean body and the fixture's own query; the previous mount's Hub, window and document
  * listeners and timers are removed first, and Settings starts on Tools as after a page load, so
- * tests never see each other (run the DOM suites with `--sequence.shuffle` to check).
+ * tests never see each other (vite.config.ts shuffles the order on every run to check).
  *
  * `press` sends a key the way Playwright's `keyboard.press` does: modifier key-downs, the key's
  * key-down, the browser's default action when nothing prevented it, then the key-ups. The
@@ -26,7 +26,6 @@
  * stay in Playwright.
  */
 import { vi } from 'vitest';
-import type { EmbeddedSettings } from '../../../shared/hub-settings';
 
 type Added = readonly [EventTarget, string, EventListenerOrEventListenerObject, boolean | AddEventListenerOptions | undefined];
 const added: Added[] = [];
@@ -157,20 +156,14 @@ export async function mountFixture(query = '', stored: Readonly<Record<string, s
 /**
  * A page load starts Settings on Tools. The launcher's Settings page remembers its last section
  * in module state, which outlives a fixture mount here, so once the page module has loaded, each
- * mount shows it once at Tools, detached, through its own `mountSettings`.
+ * mount resets it through the module's own export.
  */
 async function startSettingsOnTools() {
   if (!document.head.querySelector('link[data-gwonmac-settings-stylesheet]')) return;
   // The Hub's own specifier; vite.config.ts resolves it to the launcher's Settings entry.
   const specifier = './settings/settings-app.js';
-  const settings: EmbeddedSettings<HTMLElement> = await import(/* @vite-ignore */ specifier);
-  const host = document.createElement('div');
-  const page = settings.mountSettings(host, {
-    api: window.gwNative.hubSettings, target: { section: 'tools' }, extendedMemory: async () => null,
-    openInLauncher: () => undefined, mayTakeFocus: () => false,
-  });
-  await until(() => host.querySelector('.settings-page'));
-  page.dispose();
+  const settings: Readonly<{ resetSettingsNavigation(): void }> = await import(/* @vite-ignore */ specifier);
+  settings.resetSettingsNavigation();
 }
 export const unmountFixture = () => { release(); vi.useRealTimers(); };
 

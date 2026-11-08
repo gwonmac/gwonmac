@@ -2,6 +2,8 @@
 import type { SettingsSection as Section } from "@shared/settings-catalogue";
 /** The last section shown in this launcher session; Settings reopens there. Tools comes first. */
 let lastSection: Section = "tools";
+/** Starts the next Settings page on Tools, as a new page load does (the Hub's test fixture mounts). */
+export function resetSettingsNavigation() { lastSection = "tools"; }
 </script>
 
 <script setup lang="ts">

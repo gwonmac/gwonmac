@@ -8,6 +8,7 @@
 import { createApp, h, shallowRef } from "vue";
 import type { ExtendedMemoryRuntimeStatus } from "@shared/contracts";
 import SettingsView from "./components/SettingsView.vue";
+export { resetSettingsNavigation } from "./components/SettingsView.vue";
 import type { InGameNative } from "./settings-host";
 import "./tokens.css";
 import "./settings-view.css";
