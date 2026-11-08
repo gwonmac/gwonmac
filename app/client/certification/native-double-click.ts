@@ -157,11 +157,15 @@ export function isDerivedNativeDoubleClickBuild(
   );
 }
 
-/** Locate an unchanged callback semantically when only the predecessor hash moved. */
-export function deriveNativeDoubleClickBuild(
+/**
+ * Locate an unchanged callback semantically when only the predecessor hash
+ * moved. The verifier pass continues the chain on `output`, so it is returned
+ * rather than rewritten a second time.
+ */
+export function deriveNativeDoubleClickStage(
   input: Uint8Array,
   baselines: readonly NativeDoubleClickBuild[] = NATIVE_DOUBLE_CLICK_BUILDS,
-): NativeDoubleClickBuild | null {
+): Readonly<{ build: NativeDoubleClickBuild; output: Uint8Array }> | null {
   try {
     const route = locateNativeDoubleClickRoute(input);
     if (!route || route.semanticSha256 !== NATIVE_DOUBLE_CLICK_ROUTE_SHA256) return null;
@@ -185,13 +189,20 @@ export function deriveNativeDoubleClickBuild(
       derivations: {},
     };
     const output = rewriteWithBuild(input, candidate);
-    return {
-      ...candidate,
-      derivations: Object.freeze({ [inputSha256]: sha256(output) }),
-    };
+    return Object.freeze({
+      build: { ...candidate, derivations: Object.freeze({ [inputSha256]: sha256(output) }) },
+      output,
+    });
   } catch (error) {
     return refusedOrRethrow(error);
   }
+}
+
+export function deriveNativeDoubleClickBuild(
+  input: Uint8Array,
+  baselines: readonly NativeDoubleClickBuild[] = NATIVE_DOUBLE_CLICK_BUILDS,
+): NativeDoubleClickBuild | null {
+  return deriveNativeDoubleClickStage(input, baselines)?.build ?? null;
 }
 
 /**

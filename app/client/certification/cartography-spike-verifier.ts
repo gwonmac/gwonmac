@@ -28,23 +28,35 @@ export interface CartographySpikeBuild {
 const sha256 = (bytes: Uint8Array): string =>
   createHash("sha256").update(bytes).digest("hex");
 
-/** Derive one exact Cartography transaction from semantically unchanged input. */
-export function deriveCartographySpikeBuild(
+/**
+ * Derive one exact Cartography transaction from semantically unchanged input.
+ * The verifier pass continues the chain on `output`, so it is returned rather
+ * than transformed a second time.
+ */
+export function deriveCartographySpikeStage(
   input: Uint8Array,
-): CartographySpikeBuild | null {
+): Readonly<{ build: CartographySpikeBuild; output: Uint8Array }> | null {
   try {
     const layout = deriveCartographyLayout(input);
     if (!layout) return null;
     const roots = Object.freeze({ contextRoot: layout.contextRoot, agentArray: layout.agentArray });
+    const output = transformCartographySpikeWasm(input, roots);
     return Object.freeze({
-      inputSha256: sha256(input),
-      transformAbi: CARTOGRAPHY_SPIKE_TRANSFORM_ABI,
-      ...roots,
-      outputSha256: sha256(transformCartographySpikeWasm(input, roots)),
+      build: Object.freeze({
+        inputSha256: sha256(input),
+        transformAbi: CARTOGRAPHY_SPIKE_TRANSFORM_ABI,
+        ...roots,
+        outputSha256: sha256(output),
+      }),
+      output,
     });
   } catch (error) {
     return refusedOrRethrow(error);
   }
+}
+
+export function deriveCartographySpikeBuild(input: Uint8Array): CartographySpikeBuild | null {
+  return deriveCartographySpikeStage(input)?.build ?? null;
 }
 
 /** A native root the kernel can be given: a nonzero, aligned 32-bit address. */
