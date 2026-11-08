@@ -73,6 +73,8 @@
 .settings-view .settings-search input::-webkit-search-cancel-button { display: none; }
 .settings-view .settings-search .icon-button { position: absolute; right: 2px; min-width: 28px; min-height: 28px; padding: 4px; color: var(--gold); }
 .settings-view .settings-search .icon-button svg { width: 14px; height: 14px; }
+/* The narrow page's search button and Cancel; the wide page shows the field itself. */
+.settings-view .settings-page aside :is(.search-toggle, .search-cancel) { display: none; }
 
 /* The content column and the status line under it. */
 .settings-view .settings-main { min-width: 0; min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr) auto; }
@@ -237,13 +239,30 @@
   .settings-view .settings-page { grid-template-columns: 188px minmax(0, 1fr); }
   .settings-view .settings-content { padding-inline: 22px; }
 }
+/* Narrow: one scroll for the whole page under a pinned row of section tabs. The row starts with
+   a search button that swaps the tabs for the field, and fades at an end that hides more tabs. */
 @container settings (max-width: 600px) {
-  .settings-view .settings-page { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); scroll-padding-top: 72px; }
-  .settings-view .settings-page aside { position: static; top: 0; z-index: 4; flex-direction: row; gap: 4px; overflow-y: hidden; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+  .settings-view .settings-page { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto; align-content: start; overflow-y: auto; scroll-padding-top: 72px; }
+  .settings-view .settings-page aside { position: sticky; top: 0; z-index: 4; flex-direction: row; align-items: center; gap: 4px; overflow: visible; padding: 4px 8px; border-right: 0; border-bottom: 1px solid var(--line); background: var(--surface-solid); }
   .settings-view .settings-page aside h2, .settings-view .settings-nav-group h3 { display: none; }
-  .settings-view .settings-page aside nav { display: flex; gap: 4px; }
+  .settings-view .settings-page aside nav { flex: 1; min-width: 0; display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+  /* A mask reads only alpha: currentColor stands for opaque. */
+  .settings-view .settings-page aside nav.clipped-start { mask-image: linear-gradient(to right, transparent, currentColor 32px); }
+  .settings-view .settings-page aside nav.clipped-end { mask-image: linear-gradient(to left, transparent, currentColor 32px); }
+  .settings-view .settings-page aside nav.clipped-start.clipped-end { mask-image: linear-gradient(to right, transparent, currentColor 32px, currentColor calc(100% - 32px), transparent); }
   .settings-view .settings-nav-group { display: contents; }
   .settings-view .settings-page aside button { width: auto; flex: 0 0 auto; padding: 8px 10px; font-size: 13px; white-space: nowrap; }
+  .settings-view .settings-page aside .search-toggle { display: grid; flex: 0 0 40px; padding: 8px; }
+  .settings-view .settings-page aside .settings-search { display: none; }
+  .settings-view .settings-page aside.search-open .settings-search { display: flex; flex: 1; margin: 0; }
+  .settings-view .settings-page aside.search-open .search-cancel { display: inline-flex; padding: 8px 4px; }
+  .settings-view .settings-page aside.search-open :is(nav, .search-toggle) { display: none; }
+  /* The selected tab names the section; the heading stays for screen readers and as the focus target. */
+  .settings-view .settings-content h1 { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .settings-view .settings-main { display: block; }
+  .settings-view .settings-content { overflow: visible; padding: 8px 16px 16px; }
+  .settings-view .section-intro, .settings-view .settings-fields > p { margin-bottom: 10px; }
+  .settings-view .settings-status { padding-inline: 16px; }
   .settings-view .setting-group { width: 100%; min-width: 0; }
   .settings-view .setting-group > label { align-items: flex-start; }
   .settings-view .download-card, .settings-view .recovery-card, .settings-view .restart-row { align-items: flex-start; flex-wrap: wrap; gap: 12px; }
@@ -254,4 +273,5 @@
   .settings-view .map-style-choice > label { flex-basis: 100%; }
   .settings-view .map-line-editor { grid-template-columns: minmax(0, 1fr); }
   .settings-view .map-line-editor legend { width: auto; }
+}
 }

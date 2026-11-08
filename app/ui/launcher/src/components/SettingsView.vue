@@ -67,7 +67,13 @@ const section = ref<SettingsSection>(lastSection);
 const query = ref("");
 const results = computed(() => searchSettings(query.value));
 const content = ref<HTMLElement | null>(null);
+const page = ref<HTMLElement | null>(null);
 const searchField = ref<HTMLInputElement | null>(null);
+const searchToggle = ref<HTMLButtonElement | null>(null);
+/** Narrow page only: the search field has replaced the section tabs. Wide, the field is always shown and this has no effect. */
+const searchOpen = ref(false);
+/** Which ends of the narrow tab row hide more tabs, so each can fade. */
+const tabsClipped = ref({ start: false, end: false });
 const sectionLabel = (id: SettingsSection) => SETTINGS_SECTIONS.find(candidate => candidate.id === id)!.label;
 
 // One pending save prevents stale whole-preset edits. On failure, keep the visible
@@ -185,8 +191,11 @@ async function select(next: SettingsSection, moveFocus = false) {
   actionError.value = "";
   if (next === "game-files") void loadGameFilesInfo();
   await nextTick();
+  revealActiveTab();
   if (!content.value) return;
+  // Wide, the content column scrolls; narrow, the whole page does.
   content.value.scrollTop = 0;
+  if (page.value) page.value.scrollTop = 0;
   if (!moveFocus) return;
   // A screen reader hears where it landed; Tab continues from the section's top.
   const heading = content.value.querySelector<HTMLElement>("h1");
@@ -236,8 +245,43 @@ function onNavKey(event: KeyboardEvent) {
   next.focus();
 }
 
+/** Narrow page: the tab row's search button swaps the tabs for the field. */
+async function openSearch() {
+  searchOpen.value = true;
+  await nextTick();
+  searchField.value?.focus();
+}
+async function closeSearch() {
+  query.value = "";
+  searchOpen.value = false;
+  await nextTick();
+  // Wide, the toggle is not displayed, so it refuses focus and the field keeps it.
+  searchToggle.value?.focus();
+}
+
+/**
+ * Narrow page: keeps the shown section's tab in view and marks each end of the row that hides
+ * more tabs. Wide, the list does not scroll sideways, so neither changes anything.
+ */
+function revealActiveTab() {
+  const row = nav.value;
+  const tab = row?.querySelector<HTMLElement>("button.active");
+  if (row && tab) {
+    const bounds = row.getBoundingClientRect();
+    const box = tab.getBoundingClientRect();
+    if (box.left < bounds.left) row.scrollLeft -= bounds.left - box.left + 24;
+    else if (box.right > bounds.right) row.scrollLeft += box.right - bounds.right + 24;
+  }
+  updateTabFades();
+}
+function updateTabFades() {
+  const row = nav.value;
+  if (!row) return;
+  tabsClipped.value = { start: row.scrollLeft > 1, end: row.scrollLeft + row.clientWidth < row.scrollWidth - 1 };
+}
+
 function onSearchKey(event: KeyboardEvent) {
-  if (event.key === "Escape" && query.value) { event.preventDefault(); query.value = ""; }
+  if (event.key === "Escape" && (query.value || searchOpen.value)) { event.preventDefault(); void closeSearch(); }
   else if (event.key === "Enter" && results.value[0]) { event.preventDefault(); void openResult(results.value[0].id); }
 }
 async function openResult(id: string) {
@@ -247,17 +291,21 @@ async function openResult(id: string) {
 
 /** Command-F finds a setting, as in macOS Settings. */
 function onKey(event: KeyboardEvent) {
-  if (event.key === "f" && event.metaKey && !event.shiftKey && !event.altKey) { event.preventDefault(); searchField.value?.focus(); searchField.value?.select(); }
+  if (event.key === "f" && event.metaKey && !event.shiftKey && !event.altKey) { event.preventDefault(); void openSearch().then(() => searchField.value?.select()); }
 }
 
 watch(query, () => { if (saveState.value === "saved") saveState.value = "idle"; });
 watch(() => props.target, target => { if (target) void open(target); });
+// The tab row's fades follow the page's width.
+const tabRowSize = new ResizeObserver(() => revealActiveTab());
 onMounted(() => {
   window.addEventListener("keydown", onKey);
+  if (nav.value) tabRowSize.observe(nav.value);
   void open(props.target ?? { section: section.value }, props.mayTakeFocus?.() ?? true);
 });
 onBeforeUnmount(() => {
   window.removeEventListener("keydown", onKey);
+  tabRowSize.disconnect();
   clearTimeout(highlightTimer);
 });
 </script>
@@ -265,14 +313,16 @@ onBeforeUnmount(() => {
 <template>
   <div class="settings-view">
     <div class="settings-layout">
-    <section class="settings-page">
-      <aside>
+    <section ref="page" class="settings-page">
+      <aside :class="{ 'search-open': searchOpen }">
+        <button ref="searchToggle" type="button" class="icon-button search-toggle" aria-label="Search settings" @click="openSearch"><Search aria-hidden="true" /></button>
         <label class="settings-search">
           <Search aria-hidden="true" />
           <input ref="searchField" v-model="query" type="search" placeholder="Search settings" aria-label="Search settings" aria-controls="settings-content" @keydown="onSearchKey" />
           <button v-if="query" type="button" class="icon-button" aria-label="Clear search" @click="query = ''; searchField?.focus()"><X /></button>
         </label>
-        <nav ref="nav" aria-label="Settings sections" @keydown="onNavKey">
+        <button type="button" class="text-link search-cancel" @click="closeSearch">Cancel</button>
+        <nav ref="nav" aria-label="Settings sections" :class="{ 'clipped-start': tabsClipped.start, 'clipped-end': tabsClipped.end }" @keydown="onNavKey" @scroll.passive="updateTabFades">
         <div v-for="group in groups" :key="group.label" class="settings-nav-group" role="group" :aria-label="group.label">
           <h3>{{ group.label }}</h3>
           <button v-for="item in group.items" :key="item.id" :data-section="item.id" :aria-current="!query && section === item.id ? 'page' : undefined" :class="{ active: !query && section === item.id }" @click="select(item.id)"><component :is="icons[item.id]" aria-hidden="true" />{{ item.label }}<ArrowUpRight v-if="inLauncher(item.id)" class="opens-launcher" aria-label="opens the launcher" /></button>
