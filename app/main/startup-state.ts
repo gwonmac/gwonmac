@@ -139,13 +139,15 @@ export async function openStartupState(): Promise<StartupState | null> {
   logEvent({ k: "electron.ready" });
   const settings = await loadSettings(paths.settings, async (recovery) => {
     if (recovery.kind === "fields") {
-      logEvent({ k: "settings.fieldsReset", count: recovery.fields.length });
+      const count = recovery.fields.length;
+      logEvent({ k: "settings.fieldsReset", count });
       await dialog.showMessageBox({
         type: "warning",
         buttons: ["Continue"],
-        message: "Some settings were reset",
-        detail:
-          "This version could not read some saved settings. They were set back to their defaults, every other setting was kept, and a diagnostic copy was preserved.",
+        message: "Some settings went back to their defaults",
+        detail: count === 1
+          ? "Guild Wars Reforged couldn't read 1 saved setting and set it back to its default. All your other settings are kept."
+          : `Guild Wars Reforged couldn't read ${count} saved settings and set them back to their defaults. All your other settings are kept.`,
       });
       return;
     }

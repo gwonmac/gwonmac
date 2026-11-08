@@ -113,8 +113,9 @@ tagged releases and fails when a narrower reader would reset them.
 If a player's file still holds a value the reader refuses, loading costs only
 that setting: it takes its default, every other value is kept, the original
 file is preserved beside it as `settings.json.corrupt-*`, the repaired file is
-written, and the player sees one "Some settings were reset" notice
-(`settings.fieldsReset` in diagnostics, with a count and no names or values). If the backup or the repair cannot be written, the repaired values
+written, and the player sees one "Some settings went back to their defaults"
+notice (`settings.fieldsReset` in diagnostics, with a count and no names or
+values). If the backup or the repair cannot be written, the repaired values
 still apply for that run and the next launch tries again. Only a file that is
 not a JSON object, or has an unknown `formatVersion`, falls back to defaults as
 a whole. Renderer and launcher patches stay strict: a bad
