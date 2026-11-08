@@ -25,7 +25,7 @@
 //               generation markers (game/**) belong to the client-lifecycle
 //               tests; credentials live in the Keychain, never in a file.
 import assert from "node:assert/strict";
-import { cp, mkdtemp, readdir, rm } from "node:fs/promises";
+import { cp, mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import { afterEach, describe, it } from "node:test";
@@ -61,9 +61,9 @@ interface Context {
 
 /** One current loader, called the way the app calls it. */
 const LOADERS: Record<string, (context: Context) => Promise<unknown>> = {
-  loadSettings: ({ file, recovered }) => loadSettings(file, ({ backupPath }) => { recovered.push(backupPath); }),
+  loadSettings: ({ file, recovered }) => loadSettings(file, (recovery) => { recovered.push(recovery.kind); }),
   "travelShortcutsFromStored(loadSettings)": async ({ file, recovered }) =>
-    travelShortcutsFromStored((await loadSettings(file, ({ backupPath }) => { recovered.push(backupPath); })).travelShortcuts),
+    travelShortcutsFromStored((await loadSettings(file, (recovery) => { recovered.push(recovery.kind); })).travelShortcuts),
   loadTravelPreferences: ({ file, recovered }) => loadTravelPreferences(file, (backup) => { recovered.push(backup); }),
   "TravelHistoryStore.get": async ({ file }) => {
     const store = new TravelHistoryStore(file);
@@ -113,6 +113,15 @@ const BOTH = [OLD, NEW];
 
 // 1.0 clean cut (49da271f): these three are no longer read, so they are not kept.
 const DROPPED_SETTINGS = ["dataStrategy", "teamManagement", "updateTrack"];
+/** `expect` for a settings file: every field it stores, except its marker and the dropped ones. */
+const EVERY_STORED_SETTING = Symbol("every stored setting");
+
+async function storedSettings(file: string): Promise<Record<string, unknown>> {
+  const stored: Record<string, unknown> = JSON.parse(await readFile(file, "utf8"));
+  return Object.fromEntries(Object.entries(stored).filter(
+    ([key]) => key !== "formatVersion" && !DROPPED_SETTINGS.includes(key),
+  ));
+}
 
 const EMPTY_LIBRARY = { version: 3, builds: [], teams: [], tags: [] };
 const EMPTY_TEMPLATES = { revision: 0, entries: [] };
@@ -153,46 +162,6 @@ const WORKSPACE = {
   ],
   deletingProfileIds: [],
 };
-const THEME = {
-  material: "modern", window: "#0B0B0B", titlebar: "#292927", surface: "#202225", recessed: "#080807",
-  selected: "#1B3554", accent: "#5FB4A2", text: "#F1EBDD", mutedText: "#B7B09F", border: "#D8D2BF", windowGradient: false,
-};
-const SKILL_KEYS = [
-  { input: { kind: "keyboard", code: "KeyQ" }, modifiers: { control: false, option: false, shift: false, command: false } },
-  { input: { kind: "mouse-button", button: 3 }, modifiers: { control: false, option: false, shift: true, command: false } },
-  null, null, null, null, null,
-  { input: { kind: "wheel", direction: "up" }, modifiers: { control: true, option: false, shift: false, command: false } },
-];
-const STORED_SHORTCUTS = [
-  { mapId: 778, district: "international", districtNumber: 0 },
-  { mapId: 55, district: "europe-english", districtNumber: 2 },
-  null,
-  { mapId: 194, district: "international", districtNumber: 0 },
-  { mapId: 642, district: "international", districtNumber: 0 },
-  { mapId: 857, district: "international", districtNumber: 0 },
-];
-// Fields both releases customised in the `custom` settings.json.
-const CUSTOM_SETTINGS_BOTH = {
-  renderScale: 1.5, uiStyle: "obsidian", uiCustomTheme: THEME, uiFont: "inter", controllerPromptStyle: "playstation",
-  uiPanelOpacity: 80, gwonmacTools: true, buildLibrary: false, tradeChat: false, xunlaiStorage: true, travelPalette: false,
-  travelShortcuts: STORED_SHORTCUTS, targetReadout: true, skillKeyBindings: SKILL_KEYS, skillKeyLabelsEnabled: true,
-  skillCooldownOverlayEnabled: false, skillCooldownColor: { kind: "custom", value: "#33AAFF" }, extendedMemoryEnabled: true,
-  autoRelogAfterReload: true, showDiagnostics: true, autoCheckUpdates: false, lastUpdateCheckAt: 1_760_000_000_000,
-  compatibilityNoticeSeenFor: CLIENT,
-};
-const CUSTOM_PRESET_STYLE = {
-  walkability: { veilColor: "#102030", boundaryColor: "#F2A900", boundaryWidth: 1, boundaryCasingColor: "#050709" },
-  grid: {
-    casingColor: "#050709",
-    lattice: { color: "#E8E1D0", width: 2, pattern: "solid" },
-    unseen: { color: "#FF7A1A", marker: "diamond" },
-    noWalkableColor: "#8F99A3",
-    current: { color: "#FFFFFF", width: 3, pattern: "solid" },
-    hover: { color: "#FFE45C", width: 4, pattern: "solid" },
-    normalRange: { color: "#00D9FF", width: 4, pattern: "solid" },
-    birdsEyeRange: { color: "#FF4FD8", width: 4, pattern: "dash-dot" },
-  },
-};
 const ELITE_VIEW = {
   search: "", professions: { kind: "all" }, region: "", learned: "missing", mode: "browse", worldMap: true,
   panelOpen: false, panelHeightRatio: 0.8, focusedSkill: null,
@@ -208,49 +177,14 @@ const ROWS: readonly Row[] = [
   // ---- settings.json
   ...each(BOTH, {
     variant: "defaults", file: "settings.json", loader: "loadSettings", partial: true, absent: DROPPED_SETTINGS,
-    guards: "every default-valued setting passes its validator (a narrowed enum or range would reset the file)",
-    expect: {
-      renderScale: 2, uiStyle: "guild-wars", uiFont: "guild-wars", controllerPromptStyle: "game-default", uiPanelOpacity: 94,
-      buildLibrary: true, tradeChat: true, travelPalette: true, autoCheckUpdates: true, lastUpdateCheckAt: null,
-      compatibilityNoticeSeenFor: null,
-    },
+    guards: "every default-valued setting passes its validator (a narrowed enum or range would reset it)",
+    expect: EVERY_STORED_SETTING,
   }),
-  {
-    tag: OLD, variant: "custom", file: "settings.json", loader: "loadSettings", partial: true, absent: DROPPED_SETTINGS,
-    guards: "each setting family keeps a non-default value: enums, ranges, booleans, bindings, colours, positions, timestamps",
-    expect: {
-      ...CUSTOM_SETTINGS_BOTH,
-      shortcutOverrides: { "storage.open": { key: "j", shift: true, option: false } },
-    },
-  },
-  {
-    tag: NEW, variant: "custom", file: "settings.json", loader: "loadSettings", partial: true, absent: DROPPED_SETTINGS,
-    guards: "each setting family keeps a non-default value: enums, ranges, booleans, bindings, colours, positions, timestamps",
-    expect: {
-      ...CUSTOM_SETTINGS_BOTH,
-      uiTextSize: 125,
-      cartographyEnabled: false, cartographyOverlayEnabled: true, cartographyGridEnabled: true, cartographyCompassGridEnabled: true,
-      compassRangeIndicatorsEnabled: true, compassRangeEarshotEnabled: false, compassRangeCastEnabled: false,
-      compassRangeSpiritEnabled: false, compassRangeSpiritExtendedEnabled: false,
-      compassRangeEarshotOpacity: 40, compassRangeCastOpacity: 50, compassRangeSpiritOpacity: 60, compassRangeSpiritExtendedOpacity: 70,
-      compassRangeTheme: "monochrome", cartographyRevealMode: "normal",
-      cartographyPresetLibrary: {
-        activePreset: { kind: "custom", id: "fixture-preset" },
-        customPresets: [{ id: "fixture-preset", name: "Fixture preset", style: CUSTOM_PRESET_STYLE }],
-      },
-      cartographyWalkabilityOpacity: 30, cartographyGridOpacity: 45, cartographyControlIdleOpacity: 50,
-      eliteSkillsEnabled: false, eliteMissionMapMarkers: "all", quickItemMove: true,
-      characterSwitchEnabled: false, resignEnabled: true, whispersEnabled: true, callTargetEnabled: true,
-      characterSwitchProfession: false, characterSwitchLevel: false, characterSwitchLocation: false,
-      shortcutOverrides: { "game.resign": { key: "r", shift: true, option: false, command: true, control: false } },
-      hubShortcuts: [{ id: "travel", phrase: "fast travel", pinned: true }],
-      calculatorRates: { mode: "manual", ecto: "2", armbrace: "3", zkey: "4" },
-      chatFiltersEnabled: true, chatFilterAllyDrops: false, chatFilterHallOfHeroes: false, chatFilterTitleAchievements: false,
-      effectTimersEnabled: true, alcoholTimerEnabled: true, remindersEnabled: true, reminderCons: false, reminderPcons: false,
-      reminderAlcohol: false, reminderBeforeEnd: false, reminderAtEnd: false, reminderSound: true,
-      alcoholTimerPosition: { corner: "bottom-right", x: 120, y: 200, locked: false }, memoryWarningPosition: { x: 0.25, y: 0.75 },
-    },
-  },
+  ...each(BOTH, {
+    variant: "custom", file: "settings.json", loader: "loadSettings", partial: true, absent: DROPPED_SETTINGS,
+    guards: "every stored setting keeps its value: a narrowed reader, or a rename without an alias, would lose it",
+    expect: EVERY_STORED_SETTING,
+  }),
   ...each(BOTH, {
     variant: "custom", file: "settings.json", loader: "travelShortcutsFromStored(loadSettings)",
     guards: "Piken Square (pre-Searing) stored as 778 by 2026.8.9 to 2026.8.12 reads as the official 779",
@@ -429,14 +363,15 @@ describe("player data written by released apps", () => {
       const before = await filesIn(root);
       const context: Context = { file: join(root, row.file), recovered: [] };
 
+      const expected = row.expect === EVERY_STORED_SETTING ? await storedSettings(context.file) : row.expect;
       const loaded = await LOADERS[row.loader]!(context);
 
       if (row.partial) {
-        for (const [key, value] of Object.entries(row.expect as Record<string, unknown>)) {
+        for (const [key, value] of Object.entries(expected as Record<string, unknown>)) {
           assert.deepEqual((loaded as Record<string, unknown>)[key], value, `${row.guards}: ${key}`);
         }
       } else {
-        assert.deepEqual(loaded, row.expect, row.guards);
+        assert.deepEqual(loaded, expected, row.guards);
       }
       for (const key of row.absent ?? []) assert.equal(key in (loaded as object), false, `${key} is dropped on purpose`);
       assert.deepEqual(context.recovered, [], `${row.guards}: the loader recovered the file`);
