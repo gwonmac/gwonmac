@@ -134,7 +134,11 @@ export function parseRendererSettingsPatch(raw: unknown): RendererSettingsPatch 
  */
 export type SettingsRecovery =
   | Readonly<{ kind: "file"; backupPath: string }>
-  | Readonly<{ kind: "fields"; backupPath: string; fields: readonly string[] }>;
+  /**
+   * `backupPath` is null when the original could not be preserved; the file
+   * is then left as it is and repaired on a later load.
+   */
+  | Readonly<{ kind: "fields"; backupPath: string | null; fields: readonly string[] }>;
 
 export async function loadSettings(
   path: string,
@@ -158,10 +162,18 @@ export async function loadSettings(
   }
   const { settings, unreadable } = readSettings(document);
   if (unreadable.length === 0) return settings;
-  const backupPath = await preserveCorruptDocument(path, text);
-  const repaired = await saveSettings(path, settings);
+  // The repair is written only after the original is preserved. A failed
+  // write (disk full, no permission) must not stop startup: the repaired
+  // values still apply for this run, and the next load tries again.
+  let backupPath: string | null = null;
+  try {
+    backupPath = await preserveCorruptDocument(path, text);
+    await saveSettings(path, settings);
+  } catch {
+    // Reported below like a successful repair; nothing else to undo.
+  }
   await onRecovered?.({ kind: "fields", backupPath, fields: unreadable.map(({ field }) => field) });
-  return repaired;
+  return settings;
 }
 
 export async function saveSettings(path: string, value: AppSettings): Promise<AppSettings> {
