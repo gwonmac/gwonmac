@@ -194,7 +194,8 @@ locator already meets the final relocation-resistant bar. At verifier ABI 10:
     operands. The process boundary checks the HUD proof's shape; the transform
     derives it again from the bytes it rewrites and refuses any other value.
     An owner whose body really changed still needs a new family;
-  - pathing families bind function indices;
+  - pathing families bind function indices. Nothing in production consumes
+    that shape proof, so it does not decide any feature on patch day;
   - a Cartography layout's context root and agent array live in
     `CARTOGRAPHY_LAYOUT_ROOTS` (`app/shared/cartography-spike.ts`), keyed by
     the layout id the derived client publishes. The reachability kernel
