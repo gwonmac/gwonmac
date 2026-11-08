@@ -45,6 +45,9 @@ describe("extended memory Settings projection", () => {
     });
     assert.match(unsupported.detail, /has not passed 4 GB certification/);
     assert.match(failed.detail, /could not be prepared safely/);
+    // A module that failed to build says nothing about the update either.
+    assert.equal(failed.label, "4 GB didn’t start");
+    assert.equal(unsupported.label, "Unavailable for this Guild Wars update");
     // A verifier that timed out says nothing about the build; the player must
     // not read it as an unsupported Guild Wars update.
     assert.equal(unchecked.label, "Couldn’t check this Guild Wars build");

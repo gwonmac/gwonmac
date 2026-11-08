@@ -94,6 +94,9 @@ async function publishTemplate(
  */
 const APPLY_UNAVAILABLE =
   "Apply team is unavailable after this Guild Wars update. Your saved team is unchanged.";
+const STORAGE_AFTER_UPDATE = "Storage is unavailable after this Guild Wars update.";
+const STORAGE_CHECK_FAILED =
+  "Storage is unavailable until GWonMac can check this Guild Wars build. It tries again at next start.";
 
 /**
  * Loads the Tools bundle and hands the overlay a handle to it.
@@ -150,6 +153,22 @@ export function mountToolsInto(
             ? `${BUILD_CHECK_FAILED} Saved builds and teams still work.`
             : 'Live game information is temporarily unavailable. Saved builds and teams still work.'
         : null;
+      const storageStatus = session.compatibility?.features.xunlaiAction;
+      const storageUnavailable = storage === null && storageStatus?.status === 'unavailable'
+        ? storageStatus.reason === 'check-failed'
+          ? STORAGE_CHECK_FAILED
+          : storageStatus.reason === 'preparation-failed'
+            ? 'Storage didn’t start. Restart GWonMac to try again.'
+            : STORAGE_AFTER_UPDATE
+        : null;
+      const publishStatus = session.compatibility?.features.gameFileSaving;
+      const publishUnavailable = !templatePublishingAvailable && publishStatus?.status === 'unavailable'
+        ? publishStatus.reason === 'check-failed'
+          ? 'GWonMac can’t add builds to Guild Wars until it can check this Guild Wars build. It tries again at next start. The build is still saved in your library.'
+          : publishStatus.reason === 'preparation-failed'
+            ? 'Adding builds to Guild Wars didn’t start. Restart GWonMac to try again. The build is still saved in your library.'
+            : null
+        : null;
       const app = bundle.mountToolsApp(host, {
         ...(window.gwHub ? { hub: window.gwHub } : {}),
         nativeApi: native,
@@ -164,6 +183,8 @@ export function mountToolsInto(
           : null,
         commands,
         storage,
+        storageUnavailable,
+        publishUnavailable,
         applyUnavailable,
         observationUnavailable,
         development: window.gwNative.init.development,
