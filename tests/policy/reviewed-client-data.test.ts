@@ -4,7 +4,8 @@
 // stating it. So a generation file holds only type imports and `const`
 // declarations whose values are literals: strings, numbers, booleans, null,
 // arrays, objects, `Object.freeze(...)`, `as const`, and the names of earlier
-// constants in the same file.
+// constants in the same file. Each file is self-contained, so editing or
+// deleting one generation never changes another one's facts.
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
@@ -13,17 +14,6 @@ import { fileURLToPath } from "node:url";
 import ts from "typescript";
 
 const directory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../app/client/certification");
-
-// Files that break the rule, with every violation. Each entry must still match
-// exactly, so a fixed file fails until its entry goes.
-const KNOWN: Readonly<Record<string, readonly string[]>> = {
-  // The October 22 rebuild reuses the October 22 build record.
-  "reviewed-client-2026-10-22-5f149ad09879.ts": [
-    '9: value import "./reviewed-client-2026-10-22-ce3192033b14.js"',
-    "11: NonNullExpression OCTOBER_22_FACTS.builds[0]!",
-    "17: SpreadAssignment ...OCTOBER_22_BUILD",
-  ],
-};
 
 function violations(fileName: string, text: string): string[] {
   const source = ts.createSourceFile(fileName, text, ts.ScriptTarget.Latest, true);
@@ -86,9 +76,8 @@ test("every reviewed-client generation file is data only", () => {
   const files = readdirSync(directory).filter((file) => /^reviewed-client-.+\.ts$/u.test(file));
   assert.ok(files.length > 0);
   for (const file of files) {
-    assert.deepEqual(violations(file, readFileSync(path.join(directory, file), "utf8")), KNOWN[file] ?? [], file);
+    assert.deepEqual(violations(file, readFileSync(path.join(directory, file), "utf8")), [], file);
   }
-  assert.deepEqual(Object.keys(KNOWN).filter((file) => !files.includes(file)), [], "KNOWN names a deleted file");
 });
 
 test("the data rule refuses code in a generation file", () => {
