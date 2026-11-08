@@ -130,7 +130,7 @@ async function installFixtureAcquirer(
       ): { channels: Record<string, unknown> };
     };
     const { register } = load(arg.registryModule) as {
-      register(windows: unknown, role: "game", table: unknown, handlers: Record<string, unknown>): void;
+      register(windows: unknown, boundary: "game", handlers: Record<string, unknown>): void;
     };
     const { windowRegistry } = load(arg.windowRegistryModule) as { windowRegistry: unknown };
     const { GAME_CHANNELS } = load(arg.channelsModule) as {
@@ -156,7 +156,7 @@ async function installFixtureAcquirer(
     (globalThis as Record<PropertyKey, unknown>)[
       Symbol.for("gwonmac.test.steamStore")
     ] = store;
-    register(windowRegistry, "game", GAME_CHANNELS, steamChannels(
+    register(windowRegistry, "game", steamChannels(
       (parent, record) => acquireSteamToken(arg.config, { parent, record }),
       () => store,
       windowRegistry,
@@ -196,7 +196,7 @@ async function installIsolatedStore(app: OfflineFixture["app"]): Promise<void> {
       ): { channels: Record<string, unknown> };
     };
     const { register } = load(arg.registryModule) as {
-      register(windows: unknown, role: "game", table: unknown, handlers: Record<string, unknown>): void;
+      register(windows: unknown, boundary: "game", handlers: Record<string, unknown>): void;
     };
     const { windowRegistry } = load(arg.windowRegistryModule) as { windowRegistry: unknown };
     const { GAME_CHANNELS } = load(arg.channelsModule) as {
@@ -216,7 +216,7 @@ async function installIsolatedStore(app: OfflineFixture["app"]): Promise<void> {
     for (const spec of [steamToken, steamStore, steamClear]) {
       ipcMain.removeHandler(spec.channel);
     }
-    register(windowRegistry, "game", GAME_CHANNELS, steamChannels(
+    register(windowRegistry, "game", steamChannels(
       async () => ({ ok: false, reason: "failed" }),
       () => store,
       windowRegistry,

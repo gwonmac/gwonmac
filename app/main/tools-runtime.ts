@@ -57,7 +57,7 @@ export function createToolsRuntime(input: Readonly<{
         return operation();
       }),
     });
-    register(input.windows, "game", part.contract.channels, session.channels);
+    register(input.windows, "tools", session.channels);
     return session;
   });
   const drained = () => Promise.all(fileGates.map((gate) => gate.settled));

@@ -35,6 +35,10 @@ export type SendSpec<Args extends readonly unknown[]> = Readonly<{
 type AnyInvokeSpec = InvokeSpec<readonly unknown[], unknown>;
 type AnySpec = AnyInvokeSpec | EventSpec<readonly unknown[]> | SendSpec<readonly unknown[]>;
 
+/** Merges a union of tables (or APIs) into one type with every member's keys. */
+export type UnionToIntersection<Union> =
+  (Union extends unknown ? (value: Union) => void : never) extends (value: infer Each) => void ? Each : never;
+
 /** A table of channels keyed by the name both sides use in code. */
 export type ChannelTable = Readonly<Record<string, AnySpec>>;
 

@@ -133,7 +133,7 @@ selection.
 | `app/client/certification/` | Client certification and deterministic WASM transforms |
 | `app/main/protocol.ts` | `gw://app` routing and range responses |
 | `app/shared/ipc/` | The channel tables, one per window role: each channel's string, argument tuple, and result, declared once (`game.ts` Core, `launcher.ts`, and `tools.ts` composed from each Tool's `shared/ipc.ts`) |
-| `app/main/ipc-channel-registry.ts` | The typed handler builder (`channel`), the exactly-one-owner check (`ownedOnce`), and one `register` for every invoke channel: sender role check and refused-argument reporting |
+| `app/main/ipc-channel-registry.ts` | The typed handler builder (`channel`), the exactly-one-owner check (`ownedOnce`), the one map from each boundary (`game`, `launcher`, `tools`) to its window role and tables, and one `register(windows, boundary, handlers)` for every invoke channel: sender role check and refused-argument reporting |
 | `app/main/ipc-values.ts` | The parser kit (`args`, `nothing`, `one`) and bounded IPC value validation |
 | `app/main/game-ipc/` | Core game-window channels: one owner part per concern (client, network, secrets, settings, diagnostics, app, clipboard, templates); `register.ts` proves each channel has one owner |
 | `app/main/launcher-ipc.ts` | Launcher channels: one owner part per concern, each request's parser, action, and native confirmation |

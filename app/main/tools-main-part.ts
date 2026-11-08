@@ -9,9 +9,10 @@ import type { BrowserWindow } from "electron";
 import type { FeatureId } from "../features/index.js";
 import type { ClientSession } from "../shared/contracts.js";
 import type { ChannelTable, ToolContract } from "../shared/ipc/channel-table.js";
+import type { ToolsChannels } from "../shared/ipc/tools.js";
 import type { AppSettings } from "../shared/settings/index.js";
 import type { PreferencesCoordinator } from "./core/preferences-coordinator.js";
-import type { Handlers, RegisteredHandler } from "./ipc-channel-registry.js";
+import type { Handlers, HandlersPart } from "./ipc-channel-registry.js";
 import type { MultipleAccountsController } from "./multiple-accounts-controller.js";
 import type { GamePaths } from "./paths.js";
 
@@ -51,10 +52,10 @@ export type ToolsMainPart<Contract extends AnyToolContract> = Readonly<{
   create(input: ToolsMainInput): ToolsMainSession<Handlers<Contract["channels"]>>;
 }>;
 
-/** Any part, as the runtime gates and registers it. */
+/** Any part, as the runtime gates it and registers its channels as Tools channels. */
 export type AnyToolsMainPart = Readonly<{
   feature: FeatureId;
   label: string;
   contract: AnyToolContract;
-  create(input: ToolsMainInput): ToolsMainSession<Readonly<Record<string, RegisteredHandler>>>;
+  create(input: ToolsMainInput): ToolsMainSession<HandlersPart<ToolsChannels>>;
 }>;

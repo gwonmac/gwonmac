@@ -4,7 +4,7 @@
  * Adding a Core capability is its table entry, its owner's channel, and its
  * preload line.
  */
-import { GAME_CHANNELS, type GameChannels } from "../../shared/ipc/game.js";
+import type { GameChannels } from "../../shared/ipc/game.js";
 import type { InvokeKey } from "../../shared/ipc/channel-table.js";
 import { ownedOnce, register } from "../ipc-channel-registry.js";
 import app from "./app.js";
@@ -29,6 +29,6 @@ export function registerGameIpc(input: GameIpcInput): { drainSecrets(): Promise<
     clipboard(),
     templates(input),
   ]);
-  for (const part of parts) register(input.windows, "game", GAME_CHANNELS, part.channels);
+  for (const part of parts) register(input.windows, "game", part.channels);
   return { drainSecrets: () => secretParts.drain() };
 }

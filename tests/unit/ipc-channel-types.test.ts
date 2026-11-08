@@ -5,7 +5,8 @@
  * stay a type error, and an unused one fails the check. Nothing here runs:
  * main's registry imports Electron, so the proofs take its builders as types.
  */
-import type { channel, HandlersPart, ownedOnce } from "../../app/main/ipc-channel-registry.ts";
+import type { channel, HandlersPart, ownedOnce, register } from "../../app/main/ipc-channel-registry.ts";
+import type { WindowRegistry } from "../../app/main/window-registry.ts";
 import type { Parser } from "../../app/main/ipc-values.ts";
 import type { AppSettings } from "../../app/shared/settings/index.ts";
 import type { Invoker } from "../../app/shared/ipc/channel-table.ts";
@@ -21,6 +22,8 @@ export function _channelTableProofs(
   swapped: Parser<[expiry: number | null, token: string]>,
   silent: Parser<[silent: boolean]>,
   none: Parser<[]>,
+  registerPart: typeof register,
+  windows: WindowRegistry,
 ): void {
   // Main: a handler is checked against its table entry, both ways.
   void ({ steamStore: define(storeback, async () => undefined) } satisfies HandlersPart<GameChannels>);
@@ -39,6 +42,15 @@ export function _channelTableProofs(
   void owned<"steamStore" | "steamClear">()([store]);
   // @ts-expect-error steamStore has two owners.
   void owned<"steamStore" | "steamClear">()([store, clear, store]);
+
+  // Main: a part registers by boundary, and the boundary decides the table.
+  registerPart(windows, "game", store.channels);
+  // @ts-expect-error the launcher window does not answer game channels.
+  registerPart(windows, "launcher", store.channels);
+  // @ts-expect-error Tools channels do not include the game window's own channels.
+  registerPart(windows, "tools", store.channels);
+  // @ts-expect-error a part's handler is still checked against its boundary's entry.
+  registerPart(windows, "game", { steamStore: define(swapped, async () => undefined) });
 
   // Preload: the typed invoke takes the declared arguments and answers the declared result.
   void invokeGame("steamStore", "token", null);

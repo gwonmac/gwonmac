@@ -10,7 +10,7 @@ import { writeFile } from "node:fs/promises";
 import type { ClientRuntime } from "../client/client-runtime.js";
 import { EXTERNAL_URLS } from "../shared/contracts.js";
 import type { InvokeKey } from "../shared/ipc/channel-table.js";
-import { LAUNCHER_CHANNELS, type LauncherChannels } from "../shared/ipc/launcher.js";
+import type { LauncherChannels } from "../shared/ipc/launcher.js";
 import { parseShortcutAction } from "../shared/keyboard-shortcuts.js";
 import {
   parseGlobalToolUpdate,
@@ -322,5 +322,5 @@ export function registerLauncherIpc(input: LauncherIpcInput): void {
     links(input),
     updates(input),
   ]);
-  for (const part of parts) register(windowRegistry, "launcher", LAUNCHER_CHANNELS, part.channels);
+  for (const part of parts) register(windowRegistry, "launcher", part.channels);
 }

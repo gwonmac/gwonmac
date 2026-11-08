@@ -6,8 +6,11 @@
  * ties both to a channel table (app/shared/ipc/), so a parser that produces
  * other arguments, or a handler that answers another result shape, is a type
  * error. Owners return their channels as parts; `ownedOnce` proves at compile
- * time that every channel of a table has exactly one owner. This boundary
- * proves the sender once, for every channel, and reports refused arguments.
+ * time that every channel of a table has exactly one owner. `BOUNDARIES` binds
+ * each boundary to its window role and tables once, so a part registers by
+ * boundary name and cannot pair a role with another role's table. This
+ * boundary proves the sender once, for every channel, and reports refused
+ * arguments.
  */
 import { ipcMain, type BrowserWindow } from "electron";
 import type {
@@ -16,7 +19,11 @@ import type {
   EventSpec,
   InvokeKey,
   ResultOf,
+  UnionToIntersection,
 } from "../shared/ipc/channel-table.js";
+import { GAME_CHANNELS } from "../shared/ipc/game.js";
+import { LAUNCHER_CHANNELS } from "../shared/ipc/launcher.js";
+import { TOOL_CONTRACTS } from "../shared/ipc/tools.js";
 import { AllowlistError, errorCode } from "../shared/errors.js";
 import { logEvent } from "./diagnostics.js";
 import { invokeChannel } from "./diagnostics/schema-fields.js";
@@ -110,6 +117,22 @@ export const ownedOnce = <Key extends string>() =>
 /** The window role that may call a boundary's channels. */
 export type ChannelRole = "game" | "launcher";
 
+/**
+ * Each boundary's window role and channel tables, declared once. Tools
+ * channels answer the game window; their table is the composition of every
+ * Tool's contract.
+ */
+const BOUNDARIES = {
+  game: { role: "game", tables: [GAME_CHANNELS] },
+  launcher: { role: "launcher", tables: [LAUNCHER_CHANNELS] },
+  tools: { role: "game", tables: TOOL_CONTRACTS.map((contract) => contract.channels) },
+} as const satisfies Readonly<Record<string, Readonly<{ role: ChannelRole; tables: readonly ChannelTable[] }>>>;
+
+export type ChannelBoundary = keyof typeof BOUNDARIES;
+/** The one table a boundary answers. */
+export type BoundaryTable<Boundary extends ChannelBoundary> =
+  Extract<UnionToIntersection<(typeof BOUNDARIES)[Boundary]["tables"][number]>, ChannelTable>;
+
 // The launcher window has no diagnostic owner; a rejection reaches its renderer.
 const REJECTED: Readonly<Record<ChannelRole, (windows: WindowRegistry, win: BrowserWindow, key: string, error: unknown) => void>> = {
   game: (windows, win, key, error) => {
@@ -123,20 +146,33 @@ const REJECTED: Readonly<Record<ChannelRole, (windows: WindowRegistry, win: Brow
 };
 
 /** A handler with its types already checked against its table entry. */
-export type RegisteredHandler = Readonly<{
+type RegisteredHandler = Readonly<{
   answer: (win: BrowserWindow, values: readonly unknown[], refused: (error: unknown) => void) => unknown;
 }>;
 
-/** Registers the handlers one part returned, for the windows of one role. */
-export function register(
+/** A part's keys that its boundary's table does not answer; each must be absent. */
+type OnlyBoundaryKeys<Part, Table extends ChannelTable> = {
+  readonly [Key in Exclude<keyof Part, InvokeKey<Table>>]: never;
+};
+
+/**
+ * Registers the handlers one part returned, for the windows of its boundary's
+ * role. The table comes from the boundary, so a handler for a channel the
+ * boundary does not answer is a type error.
+ */
+export function register<Boundary extends ChannelBoundary, Part extends object>(
   windows: WindowRegistry,
-  role: ChannelRole,
-  table: ChannelTable,
-  handlers: Readonly<Record<string, RegisteredHandler | undefined>>,
+  boundary: Boundary,
+  // `Part` is inferred unconstrained so a part built elsewhere keeps its own
+  // keys; a constrained one would fall back to the table and hide them.
+  handlers: Part & HandlersPart<BoundaryTable<Boundary>> & OnlyBoundaryKeys<Part, BoundaryTable<Boundary>>,
 ): void {
-  for (const [key, handler] of Object.entries(handlers)) {
-    const spec = table[key];
-    if (!handler || spec?.kind !== "invoke") throw new Error(`${key} is not an invoke channel of this table`);
+  const { role, tables } = BOUNDARIES[boundary];
+  const specs: readonly ChannelTable[] = tables;
+  const answers: Readonly<Record<string, RegisteredHandler | undefined>> = handlers;
+  for (const [key, handler] of Object.entries(answers)) {
+    const spec = specs.map((table) => table[key]).find((entry) => entry !== undefined);
+    if (!handler || spec?.kind !== "invoke") throw new Error(`${key} is not an invoke channel of ${boundary}`);
     ipcMain.handle(spec.channel, async (event, ...args: unknown[]) => {
       const win = assertSender(windows, event, role);
       return handler.answer(win, args, (error) => REJECTED[role](windows, win, key, error));

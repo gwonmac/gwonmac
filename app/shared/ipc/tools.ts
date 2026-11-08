@@ -12,13 +12,11 @@ import buildLibrary from "../../features/build-library/shared/ipc.js";
 import cartography from "../../features/cartography/shared/ipc.js";
 import tradeChat from "../../features/trade-chat/shared/ipc.js";
 import travel from "../../features/travel/shared/ipc.js";
-import { invokeKeys } from "./channel-table.js";
+import { invokeKeys, type UnionToIntersection } from "./channel-table.js";
 
 export const TOOL_CONTRACTS = [buildLibrary, travel, tradeChat, cartography] as const;
 
 export type ToolContracts = typeof TOOL_CONTRACTS;
-type UnionToIntersection<Union> =
-  (Union extends unknown ? (value: Union) => void : never) extends (value: infer Each) => void ? Each : never;
 
 /** Every Tools channel, keyed like the contracts. */
 export type ToolsChannels = UnionToIntersection<ToolContracts[number]["channels"]>;
