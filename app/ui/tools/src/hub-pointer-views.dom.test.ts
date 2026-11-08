@@ -130,7 +130,7 @@ describe('right-click', () => {
 describe('Hub preferences', () => {
   type Pin = { id: string; phrase: string; pinned: boolean };
   /** The main process holds the pins; the fixture writes them to localStorage as `settings.set` lands. */
-  const withPins = async (pins: Pin[]) => { const set = window.gwNative.settings.set({ hubShortcuts: pins } as never); await vi.advanceTimersByTimeAsync(10); await set; await settle(); };
+  const withPins = async (pins: Pin[]) => { const set = window.gwNative.settings.set({ hubShortcuts: pins }); await vi.advanceTimersByTimeAsync(10); await set; await settle(); };
   const saved = () => JSON.parse(localStorage.getItem('hub-fixture-shortcuts') ?? '[]') as Pin[];
   const savedIds = () => saved().map(entry => entry.id);
   const pins = (...ids: string[]) => ids.map(id => ({ id, phrase: '', pinned: true }));

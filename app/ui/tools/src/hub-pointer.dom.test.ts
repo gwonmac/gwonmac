@@ -433,7 +433,7 @@ describe('Hub preferences', () => {
   const options = () => [...byRole('listbox', 'Pins and search phrases')[0]!.querySelectorAll<HTMLElement>('[role=option]')].map(option => option.textContent!.trim());
   test('a double-click on Move up moves the same pin twice and saves the order (PTR-12)', async () => {
     await mountFixture();
-    const set = window.gwNative.settings.set({ hubShortcuts: pins.map(id => ({ id, phrase: '', pinned: true })) } as never); await vi.advanceTimersByTimeAsync(10); await set; await settle();
+    const set = window.gwNative.settings.set({ hubShortcuts: pins.map(id => ({ id, phrase: '', pinned: true })) }); await vi.advanceTimersByTimeAsync(10); await set; await settle();
     await enter('hub preferences');
     expect(options()).toEqual([expect.stringMatching(/^Kamadan/), expect.stringMatching(/^Kaineng Center/), expect.stringMatching(/^Eye of the North/)]);
     // The list takes focus, never a Remove button; the footer names what Enter does.
