@@ -9,6 +9,7 @@ import {
   routeFrom,
   routePath,
   routeProgress,
+  routeTargetIn,
   type RouteTarget,
 } from "../../app/features/cartography/renderer/route-path.js";
 
@@ -86,5 +87,17 @@ describe("the route tracker", () => {
     assert.equal(tracker.update(frame(ROUTE_RETRY_MS + 16, undefined, { areaEpoch: 8 })), null);
     assert.equal(tracker.update(frame(ROUTE_RETRY_MS + 32, undefined, { mapId: 201 })), null);
     assert.equal(searches, 2, "another map or instance never searches for this target");
+  });
+});
+
+describe("the route target", () => {
+  it("stays on its continent point through travel and forgets it on another continent", () => {
+    const goal = { continent: 1, x: 1_010, y: 2_020 };
+    const here = { continent: 1, mapId: 200, areaEpoch: 7, worldAnchor: { x: 1_000, y: 2_000 } };
+    assert.deepEqual(routeTargetIn(goal, here), { mapId: 200, areaEpoch: 7, x: 960, y: -1_920 });
+    // The next area of the continent has its own anchor: the same point, in its own game units.
+    const next = { continent: 1, mapId: 201, areaEpoch: 8, worldAnchor: { x: 1_020, y: 2_000 } };
+    assert.deepEqual(routeTargetIn(goal, next), { mapId: 201, areaEpoch: 8, x: -960, y: -1_920 });
+    assert.equal(routeTargetIn(goal, { ...next, continent: 2 }), null);
   });
 });

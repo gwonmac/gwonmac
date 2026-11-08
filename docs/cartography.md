@@ -260,8 +260,12 @@ The route layer draws a walking line from the player to a point the player
 sets. A short right-click on the Mission Map or World Map sets the target; a
 right-click on the target removes it. A press that is held or moves is a pan
 or camera turn and sets nothing. The listeners are passive, so the game still
-receives every press. The target belongs to one map instance: travel, a new
-instance, or turning the layer off forgets it.
+receives every press. The target is a point in continent map units, which
+every map of a continent shares, so it stays through travel and loading; each
+new area searches toward it in its own game units. Another continent or
+turning the layer off forgets it. The target lives in the game window only and
+is not saved. When the target lies in another area, the route ends on the
+ground of this area nearest it, which is not always the exit that leads there.
 
 The reachability kernel searches the route (`cartography_reachability_route`)
 over the same trapezoids, portals, blocked planes, and doorway rule as the

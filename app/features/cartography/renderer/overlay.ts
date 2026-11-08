@@ -33,7 +33,7 @@ import {
   projectCartographyGridToWorldMap,
   type CartographyGridProjection,
 } from "./cartography-grid-projection.js";
-import { createRouteTracker, routeFrom, type RouteTarget, type RouteView } from "./route-path.js";
+import { GAME_UNITS_PER_MAP_UNIT, createRouteTracker, routeFrom, routeTargetIn, type RouteGoal, type RouteView } from "./route-path.js";
 import { createRouteLayer, type RouteDrawing } from "./route-paint.js";
 import { cartographyHoverRevealRadius } from "./cartography-paint.js";
 import { projectMissionMapFrame, projectNativeFrame } from "./frame-placement.js";
@@ -69,7 +69,6 @@ import {
 } from "./map-knowledge.js";
 
 const MODEL_POLL_MS = 200;
-const GAME_UNITS_PER_MAP_UNIT = 96;
 /**
  * Game units walked before a surface redraws the route from the player's place
  * on it. Each redraw uploads that surface's whole texture, so the larger maps
@@ -256,9 +255,10 @@ export function mountCartographyOverlay(options: Readonly<{
     let pointerY = Number.NaN;
     let shiftHeld = false;
     let optionHeld = false;
-    // The walking route: the point the player set on this instance, and the
-    // map projections a right-click is resolved through.
-    let routeTarget: RouteTarget | null = null;
+    // The walking route: the point the player set, in continent map units so it
+    // outlives travel to the next area, and the map projections a right-click is
+    // resolved through.
+    let routeTarget: RouteGoal | null = null;
     let routeView: RouteView | null = null;
     const routeDrawings = new Map<number, RouteDrawing>();
     let missionPointProjection: CartographyGridProjection | null = null;
@@ -313,20 +313,16 @@ export function mountCartographyOverlay(options: Readonly<{
         candidate !== null && cartographyMapPointAtScreenPoint(candidate, press.x, press.y) !== null) ?? null;
       const point = projection === null ? null : cartographyMapPointAtScreenPoint(projection, press.x, press.y);
       if (projection === null || point === null) return;
-      const anchor = current.worldAnchor;
       if (routeTarget !== null) {
         const { box, transform } = projection;
-        const x = box.left + transform.a * (anchor.x + routeTarget.x / GAME_UNITS_PER_MAP_UNIT) + transform.e;
-        const y = box.top + transform.d * (anchor.y - routeTarget.y / GAME_UNITS_PER_MAP_UNIT) + transform.f;
+        const x = box.left + transform.a * routeTarget.x + transform.e;
+        const y = box.top + transform.d * routeTarget.y + transform.f;
         if (Math.hypot(x - press.x, y - press.y) <= ROUTE_TARGET_HIT_PIXELS) {
           routeTarget = null;
           return;
         }
       }
-      routeTarget = Object.freeze({
-        mapId: current.epoch.mapId, areaEpoch: current.epoch.area,
-        x: (point.x - anchor.x) * GAME_UNITS_PER_MAP_UNIT, y: (anchor.y - point.y) * GAME_UNITS_PER_MAP_UNIT,
-      });
+      routeTarget = Object.freeze({ continent: current.continent, x: point.x, y: point.y });
     };
     view.addEventListener("pointerdown", rememberRightPress, { capture: true, passive: true });
     view.addEventListener("pointerup", placeRouteTarget, { capture: true, passive: true });
@@ -438,7 +434,7 @@ export function mountCartographyOverlay(options: Readonly<{
       if (routeTarget === null || current.status !== "ready") return undefined;
       const anchor = current.worldAnchor;
       const toMap = (x: number, y: number) => [anchor.x + x / GAME_UNITS_PER_MAP_UNIT, anchor.y - y / GAME_UNITS_PER_MAP_UNIT] as const;
-      const [targetX, targetY] = toMap(routeTarget.x, routeTarget.y);
+      const { x: targetX, y: targetY } = routeTarget;
       const step = routeView === null ? -1 : Math.floor(routeView.along / quantum);
       const version = [routeView?.path.version ?? "none", step, targetX, targetY].join(":");
       const cached = routeDrawings.get(quantum);
@@ -594,15 +590,20 @@ export function mountCartographyOverlay(options: Readonly<{
         return;
       }
       const currentInstance = state.currentInstance;
-      // Turning the route off forgets the target; so does another map or instance.
-      if (routeTarget !== null && (!settings.cartographyRouteEnabled || currentInstance.status === "ready"
-        && (routeTarget.mapId !== currentInstance.epoch.mapId || routeTarget.areaEpoch !== currentInstance.epoch.area))) {
-        routeTarget = null;
+      // Turning the route off forgets the target; so does another continent. Travel
+      // within the continent keeps it, and the next area searches toward it again.
+      if (!settings.cartographyRouteEnabled) routeTarget = null;
+      let target = null;
+      if (routeTarget !== null && currentInstance.status === "ready") {
+        const area = { mapId: currentInstance.epoch.mapId, areaEpoch: currentInstance.epoch.area,
+          continent: currentInstance.continent, worldAnchor: currentInstance.worldAnchor };
+        target = routeTargetIn(routeTarget, area);
+        if (target === null) routeTarget = null;
       }
       routeView = currentInstance.status === "ready" && presentation.player !== null
         ? routeTracker.update({
-            now, target: routeTarget, mapId: currentInstance.epoch.mapId,
-            areaEpoch: currentInstance.epoch.area, player: presentation.player,
+            now, target, mapId: currentInstance.epoch.mapId, areaEpoch: currentInstance.epoch.area,
+            player: presentation.player,
           })
         : null;
       const gridOpacity = previewGridOpacity ?? settings.cartographyGridOpacity;
