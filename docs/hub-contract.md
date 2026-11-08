@@ -125,7 +125,11 @@ The keyboard contract is one golden table,
 `app/ui/tools/tests/keyboard-contract.golden.json`: every key in every view.
 `app/ui/tools/tests/keyboard-contract-keys.ts` says which runner owns each cell,
 and a vitest test checks that the table holds every cell exactly once. A change
-to keyboard behaviour regenerates both halves and commits the table diff:
+to keyboard behaviour regenerates both halves and commits the table diff. Run
+the CI workflow by hand with **Update keyboard golden** checked
+(`gh workflow run ci.yml --ref <branch> -f update-keyboard-golden=true`): its
+`keyboard-golden` job updates the DOM cells in vitest and the browser cells in
+Chromium, then uploads the table as the `keyboard-contract-golden` artifact.
+Download it over the file and commit the diff. Locally,
 `KEYBOARD_GOLDEN=update pnpm --filter @gwonmac/tools-ui exec vitest run --no-file-parallelism hub-keyboard-contract`
-for the DOM cells, and the same variable on `hub-keyboard-contract.spec.ts` for
-the browser cells.
+updates the DOM cells alone.

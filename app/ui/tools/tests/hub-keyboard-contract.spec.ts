@@ -13,9 +13,8 @@ declare const window: HubFixtureWindow;
  * real browser answers (keyboard-contract-keys.ts): Tab traversal, PageDown's
  * page from the layout, and Settings' arrows past controls the stylesheet hides.
  * A branch that changes keyboard behaviour regenerates the table, both halves,
- * and commits the diff:
- *
- *   KEYBOARD_GOLDEN=update npx playwright test -c <config> hub-keyboard-contract
+ * and commits the diff. CI does both: run ci.yml by hand with
+ * update-keyboard-golden (docs/hub-contract.md#tests) and commit its artifact.
  *
  * One cell reads: surface (Hub caption, popout or `closed`), focus, selected
  * row, search query (the Hub's, or the Whispers picker's), an open disclosure,

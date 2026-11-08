@@ -7,6 +7,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      update-keyboard-golden:
+        description: Regenerate the Hub keyboard golden table and upload it as an artifact.
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -53,6 +58,32 @@ jobs:
           name: hub-e2e-${{ github.run_attempt }}-${{ matrix.shard }}
           path: test-results
           if-no-files-found: ignore
+          retention-days: 7
+
+  # A keyboard change regenerates the whole golden table here: the DOM cells in
+  # vitest, then the cells only Chromium answers, which the hub-e2e shards check
+  # on this same Linux image. Download the artifact and commit its diff.
+  keyboard-golden:
+    if: github.event_name == 'workflow_dispatch' && inputs.update-keyboard-golden
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      KEYBOARD_GOLDEN: update
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          electron: "false"
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm --filter @gwonmac/tools-ui exec vitest run --no-file-parallelism hub-keyboard-contract
+      - run: pnpm --filter @gwonmac/tools-ui test:e2e hub-keyboard-contract
+      - run: git diff --stat -- app/ui/tools/tests/keyboard-contract.golden.json
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: keyboard-contract-golden
+          path: app/ui/tools/tests/keyboard-contract.golden.json
           retention-days: 7
 
   website:
