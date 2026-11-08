@@ -38,9 +38,8 @@ import {
 import { ENHANCEMENT_TRANSFORM_ABI } from "../../shared/enhancement-contracts.js";
 import { FRIEND_OBSERVER_TRANSFORM_ABI } from "../../shared/friend-observer-contract.js";
 import { CARTOGRAPHY_SPIKE_TRANSFORM_ABI } from "./pathing-spike-transform.js";
-import { enhancementOutputSha256 } from "./enhancement-builds.js";
+import { enhancementCandidates, enhancementOutputSha256 } from "./enhancement-builds.js";
 import { transformEnhancementWasm } from "./enhancement-transform.js";
-import { enhancementCandidates } from "./client-module.js";
 import {
   deriveFriendObserverStage,
   isFriendObserverBuild,
@@ -50,9 +49,9 @@ import {
 import {
   deriveCartographySpikeBuild,
   isCartographySpikeBuild,
+  rewriteCartographySpikeWasm,
   type CartographySpikeBuild,
 } from "./cartography-spike-verifier.js";
-import { rewriteCartographySpikeWasm } from "./cartography-spike-client.js";
 import {
   deriveNativeDoubleClickBuild,
   isDerivedNativeDoubleClickBuild,

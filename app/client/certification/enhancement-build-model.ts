@@ -19,6 +19,7 @@ import {
   enhancementCapabilitiesCover,
   enhancementCapabilityProfile,
   enhancementConfigWordActive,
+  ENHANCEMENT_CAPABILITY_FIELDS,
   intersectEnhancementCapabilities,
   type EnhancementCapabilityProfile,
   type EnhancementCapabilities,
@@ -732,6 +733,39 @@ export function enhancementProfilesForBuild(
       ? [profile as EnhancementCapabilityProfile]
       : [];
   }).sort();
+}
+
+function productCapabilityCount(capabilities: EnhancementCapabilities): number {
+  return ENHANCEMENT_CAPABILITY_FIELDS.reduce(
+    (count, field) => count
+      + Number(field !== "playRegionObservation" && capabilities[field]),
+    0,
+  );
+}
+
+/**
+ * Largest safe profiles first; read-only observations win ties over commands.
+ * The verifier pass walks the same order, so it proves the module Main builds.
+ */
+export function enhancementCandidates(
+  build: KnownEnhancementBuild,
+  requested: EnhancementCapabilities,
+): EnhancementCapabilities[] {
+  const maximum = intersectEnhancementCapabilities(
+    requested,
+    supportedEnhancementCapabilities(build),
+  );
+  return enhancementProfilesForBuild(build)
+    .flatMap((profile) => {
+      const capabilities = enhancementCapabilitiesForProfile(profile);
+      return capabilities ? [capabilities] : [];
+    })
+    .filter((candidate) =>
+      enhancementCapabilitiesCover(maximum, candidate)
+      && enhancementOutputSha256(build, candidate) !== null)
+    .sort((left, right) =>
+      productCapabilityCount(right) - productCapabilityCount(left)
+      || Number(left.teamApply) - Number(right.teamApply));
 }
 
 /**

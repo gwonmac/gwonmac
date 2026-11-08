@@ -70,3 +70,11 @@ export function isCartographySpikeBuild(
     && typeof build.outputSha256 === "string"
     && SHA256.test(build.outputSha256);
 }
+
+/** The Cartography module for one certified input; the transform rechecks it. */
+export function rewriteCartographySpikeWasm(
+  input: Uint8Array,
+  build: CartographySpikeBuild,
+): Uint8Array {
+  return transformCartographySpikeWasm(input, { contextRoot: build.contextRoot, agentArray: build.agentArray });
+}
