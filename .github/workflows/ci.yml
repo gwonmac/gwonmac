@@ -53,7 +53,7 @@ jobs:
       - run: pnpm --filter @gwonmac/tools-ui test:e2e --shard=${{ matrix.shard }}/4 --grep-invert @macos
       - name: Upload failure evidence
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: hub-e2e-${{ github.run_attempt }}-${{ matrix.shard }}
           path: test-results
@@ -80,7 +80,7 @@ jobs:
       - run: pnpm --filter @gwonmac/tools-ui exec vitest run --no-file-parallelism hub-keyboard-contract
       - run: pnpm --filter @gwonmac/tools-ui test:e2e hub-keyboard-contract
       - run: git diff --stat -- app/ui/tools/tests/keyboard-contract.golden.json
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: keyboard-contract-golden
           path: app/ui/tools/tests/keyboard-contract.golden.json
