@@ -24,7 +24,7 @@ const key = (target: Element, init: KeyboardEventInit) => target.dispatchEvent(n
 
 let settings: AppSettings;
 beforeEach(() => {
-  vi.useFakeTimers({ now: new Date('2026-11-07T12:00:00Z'), toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date', 'requestAnimationFrame', 'cancelAnimationFrame'] });
+  vi.useFakeTimers({ now: new Date('2026-11-07T12:00:00Z'), toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date', 'requestAnimationFrame', 'cancelAnimationFrame', 'performance'] });
   // happy-dom has no popover methods; the receipt only needs them to exist.
   HTMLElement.prototype.showPopover ??= function () {};
   HTMLElement.prototype.hidePopover ??= function () {};

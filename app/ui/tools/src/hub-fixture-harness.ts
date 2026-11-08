@@ -10,7 +10,9 @@
  * default actions are the few the Hub's contract reads: typing a character or deleting one in a
  * text field, Enter on a button, a summary or a form field, and Escape closing a modal dialog.
  * The browser's own Tab traversal, caret movement and text selection are not modelled: those
- * cells stay in Playwright.
+ * cells stay in Playwright. Input is trusted, as Playwright's is, and the fake clock drives
+ * timers, `Date` and `performance.now()` alike, so event time stamps and the surface
+ * controller's click runs and deadlines read one clock.
  *
  * Focus follows Chromium where the DOM decides it: `focus()` does nothing on an element that is
  * not shown, not focusable, or inert (under `[inert]`, or outside the top dialog opened with
@@ -123,7 +125,7 @@ export async function loadFixture() {
  */
 export async function mountFixture(query = '', stored: Readonly<Record<string, string>> = {}) {
   release();
-  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date', 'requestAnimationFrame', 'cancelAnimationFrame'] });
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date', 'requestAnimationFrame', 'cancelAnimationFrame', 'performance'] });
   history.replaceState(null, '', `/?hub${query}`);
   localStorage.clear();
   for (const [key, value] of Object.entries(stored)) localStorage.setItem(key, value);
@@ -144,6 +146,11 @@ export async function mountFixture(query = '', stored: Readonly<Record<string, s
 }
 export const unmountFixture = () => { release(); vi.useRealTimers(); };
 
+/** Marks an event as the browser's own, as Playwright's input is: the surface controller reads only trusted presses. */
+function trusted<T extends Event>(event: T): T {
+  Object.defineProperty(event, 'isTrusted', { value: true });
+  return event;
+}
 const MODIFIERS = { Meta: 'metaKey', Control: 'ctrlKey', Alt: 'altKey', Shift: 'shiftKey' } as const;
 type Modifier = keyof typeof MODIFIERS;
 const isModifier = (part: string): part is Modifier => Object.hasOwn(MODIFIERS, part);
@@ -157,7 +164,7 @@ const textField = (element: Element): element is HTMLInputElement | HTMLTextArea
 function send(type: 'keydown' | 'keyup', key: string, held: ReadonlySet<Modifier>, repeat = false) {
   const init: KeyboardEventInit = { key, code: code(key), bubbles: true, cancelable: true, composed: true, repeat };
   for (const modifier of held) init[MODIFIERS[modifier]] = true;
-  return target().dispatchEvent(new KeyboardEvent(type, init));
+  return target().dispatchEvent(trusted(new KeyboardEvent(type, init)));
 }
 
 /** The browser's default action for an unprevented key-down, for the keys the Hub's contract reads. */
@@ -165,10 +172,10 @@ function defaultAction(key: string, held: ReadonlySet<Modifier>) {
   const element = target();
   const plain = held.size === 0 || (held.size === 1 && held.has('Shift'));
   if (key.length === 1 && plain && textField(element)) {
-    element.value += key; element.dispatchEvent(new InputEvent('input', { bubbles: true, data: key, inputType: 'insertText' })); return;
+    element.value += key; element.dispatchEvent(trusted(new InputEvent('input', { bubbles: true, data: key, inputType: 'insertText' }))); return;
   }
   if (key === 'Backspace' && held.size === 0 && textField(element) && element.value) {
-    element.value = element.value.slice(0, -1); element.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'deleteContentBackward' })); return;
+    element.value = element.value.slice(0, -1); element.dispatchEvent(trusted(new InputEvent('input', { bubbles: true, inputType: 'deleteContentBackward' }))); return;
   }
   if (key === 'Enter' && held.size === 0) {
     if (element instanceof HTMLButtonElement || element instanceof HTMLAnchorElement || (element instanceof HTMLElement && element.tagName === 'SUMMARY')) { element.click(); return; }
@@ -176,7 +183,7 @@ function defaultAction(key: string, held: ReadonlySet<Modifier>) {
   }
   if (key === 'Escape') {
     const dialog = topModal();
-    if (dialog && dialog.dispatchEvent(new Event('cancel', { cancelable: true }))) dialog.close();
+    if (dialog && dialog.dispatchEvent(trusted(new Event('cancel', { cancelable: true })))) dialog.close();
   }
 }
 
@@ -212,19 +219,31 @@ export function hold(key: string, repeats = 3) {
  * Clicks an element as a mouse press does: the press focuses its nearest focusable ancestor
  * (or the body), then the click runs with `detail` as the click run's length.
  */
+/**
+ * Where a click lands. Playwright clicks an element's center; happy-dom has no layout, so each
+ * element gets its own point, 60 px from any other, and the same element always the same point:
+ * presses on two elements never join one click run, and a double-click on one element does.
+ */
+const points = new WeakMap<Element, Readonly<{ clientX: number; clientY: number }>>();
+let placed = 0;
+function pointOf(element: Element) {
+  let point = points.get(element);
+  if (!point) { point = { clientX: 30 + (placed % 16) * 60, clientY: 30 + Math.floor(placed / 16) * 60 }; placed++; points.set(element, point); }
+  return point;
+}
 export function click(element: Element, detail = 1) {
   // Playwright clicks an attached element that receives pointer events; a detached or inert one never does.
   if (!element.isConnected) throw new Error(`Detached, so Playwright could not click it: ${element.tagName} "${accessibleName(element)}"`);
   if (inert(element)) throw new Error(`Inert, so Playwright could not click it: ${element.tagName} "${accessibleName(element)}" (${element.closest('[inert]') ? 'under [inert]' : `outside the modal #${topModal()?.id}`})`);
-  const init = { bubbles: true, cancelable: true, composed: true, detail, button: 0 };
-  element.dispatchEvent(new PointerEvent('pointerdown', init));
-  if (element.dispatchEvent(new MouseEvent('mousedown', init))) {
+  const init = { bubbles: true, cancelable: true, composed: true, detail, button: 0, ...pointOf(element) };
+  element.dispatchEvent(trusted(new PointerEvent('pointerdown', init)));
+  if (element.dispatchEvent(trusted(new MouseEvent('mousedown', init)))) {
     const focusable = element.closest<HTMLElement>('button, a[href], input, select, textarea, summary, [tabindex]');
     if (focusable) focusable.focus(); else if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
   }
-  element.dispatchEvent(new PointerEvent('pointerup', init));
-  element.dispatchEvent(new MouseEvent('mouseup', init));
-  element.dispatchEvent(new MouseEvent('click', init));
+  element.dispatchEvent(trusted(new PointerEvent('pointerup', init)));
+  element.dispatchEvent(trusted(new MouseEvent('mouseup', init)));
+  element.dispatchEvent(trusted(new MouseEvent('click', init)));
 }
 
 const INPUT_ROLES: Record<string, string> = { checkbox: 'checkbox', radio: 'radio', range: 'slider', button: 'button' };
@@ -277,5 +296,5 @@ export function type(text: string) { for (const character of text) press(charact
 
 /** Replaces a field's value as Playwright's `fill` does: focus, the new value, one input event. */
 export function fill(field: HTMLInputElement | HTMLTextAreaElement, value: string) {
-  field.focus(); field.value = value; field.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: value }));
+  field.focus(); field.value = value; field.dispatchEvent(trusted(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: value })));
 }

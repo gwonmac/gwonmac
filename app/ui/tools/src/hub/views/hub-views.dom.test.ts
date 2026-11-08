@@ -47,7 +47,7 @@ const primary = () => field<HTMLButtonElement>('.hub-primary');
 let settings: AppSettings;
 let hub: GameHub;
 beforeEach(() => {
-  vi.useFakeTimers({ now: new Date('2026-11-07T12:00:00Z'), toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date', 'requestAnimationFrame', 'cancelAnimationFrame'] });
+  vi.useFakeTimers({ now: new Date('2026-11-07T12:00:00Z'), toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date', 'requestAnimationFrame', 'cancelAnimationFrame', 'performance'] });
   // Price details print local dates; the snapshot must not depend on the machine's time zone or locale.
   vi.spyOn(Date.prototype, 'toLocaleString').mockImplementation(function (this: Date) { return this.toISOString(); });
   vi.spyOn(Date.prototype, 'toLocaleTimeString').mockImplementation(function (this: Date) { return this.toISOString().slice(11, 19); });

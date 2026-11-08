@@ -187,7 +187,9 @@ test.each([
   expect(text('#hub .hub-primary')).toContain('Review options');
   window.gwFixtureCanvas.clear();
   const target = locate();
-  for (let run = 1; run <= clicks; run++) click(target, run);
+  // A person's double-click has a gap: the sheet must wait for the run, or it would cover the
+  // row before the second click (which then cannot reach the row at all).
+  for (let run = 1; run <= clicks; run++) { if (run > 1) await vi.advanceTimersByTimeAsync(120); click(target, run); }
   await settle(); // past the double-click interval, so a second request would have arrived
   expect(sheet().open).toBe(true);
   expect(sheet().dataset.requests).toBe('1');
