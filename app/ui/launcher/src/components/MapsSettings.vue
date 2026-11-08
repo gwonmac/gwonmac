@@ -193,7 +193,7 @@ async function updateUnseen(patch: Partial<CartographyPresetStyle["grid"]["unsee
 
 <template>
   <h1>Maps</h1>
-  <p class="section-intro">Layers and styles for every account. Changes save automatically.</p>
+  <p class="section-intro">Layers and styles for every account.</p>
   <div v-if="tools" class="feature-availability" role="status">
     <template v-if="!tools.configured || !tools.features.maps.enabled"><span><strong>{{ !tools.configured ? 'Tools are off' : 'Maps are off' }}</strong> · You can edit your preferences here. Enable {{ !tools.configured ? 'Tools and Maps' : 'Maps' }} to see them in game.</span><button class="secondary small" @click="emit('tools')">Open Tools settings</button></template>
     <template v-else-if="!tools.loaded"><span><strong>Restart the launcher to enable Maps</strong> · Your settings are saved. Quit the entire app (⌘Q), including the launcher, then reopen it. Restarting only a game window does not load Tools.</span><button class="secondary small" @click="emit('tools')">Open restart options</button></template>
