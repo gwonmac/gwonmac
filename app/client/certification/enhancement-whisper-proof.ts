@@ -4,7 +4,7 @@
  */
 import { isDeepStrictEqual } from "node:util";
 import type { ModuleShape } from "./enhancement-evidence-types.js";
-import { deriveResignAction, locatedChatPaths } from "./enhancement-resign-proof.js";
+import { chatPaths, deriveResignAction, locatedChatPaths } from "./enhancement-resign-proof.js";
 import { reviewedEntries } from "./reviewed-facts.js";
 import { uniqueExactFunction } from "./wasm-evidence.js";
 
@@ -45,14 +45,26 @@ const generationPaths = reviewedEntries((facts) => facts.whisperPaths);
  * The native chat sender when `module` holds a reviewed whisper path: one whose
  * reviewed sender is the sender of a chat path the module holds, and each of
  * whose bodies the module holds once (exactly, or as a relocation).
+ *
+ * A whisper path names its sender by reviewed index, so it refuses when one of
+ * those indices names two different reviewed senders in the active generations.
  */
 export function deriveWhisperChat(module: ModuleShape) {
   const sender = deriveResignAction(module);
   if (!sender) return null;
+  const whisperPaths = [...AUGUST_AND_OCTOBER_PATHS, ...generationPaths()];
+  const named = new Set(whisperPaths.map((path) => path.sender));
+  const reviewedAt = new Map<number, NonNullable<ReturnType<typeof deriveResignAction>>[]>();
+  for (const { sender: reviewed } of chatPaths()) {
+    if (!named.has(reviewed.functionIndex)) continue;
+    const known = reviewedAt.get(reviewed.functionIndex) ?? [];
+    if (!known.some((entry) => isDeepStrictEqual(entry, reviewed))) reviewedAt.set(reviewed.functionIndex, [...known, reviewed]);
+  }
+  if ([...reviewedAt.values()].some((senders) => senders.length > 1)) return null;
   const reviewedSenders = new Set(locatedChatPaths(module)
     .filter((located) => isDeepStrictEqual(located.sender, sender))
     .map(({ path }) => path.sender.functionIndex));
-  return [...AUGUST_AND_OCTOBER_PATHS, ...generationPaths()].some(path => reviewedSenders.has(path.sender)
+  return whisperPaths.some(path => reviewedSenders.has(path.sender)
     && path.functions.every(([, hash, params, results]) =>
       uniqueExactFunction(module, hash, params, results) !== null)) ? sender : null;
 }

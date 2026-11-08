@@ -46,7 +46,8 @@ const AUGUST_AND_OCTOBER_PATHS: readonly ResignChatPath[] = Object.freeze([
 ] as const);
 
 const generationPaths = reviewedEntries((facts) => facts.resignChatPaths);
-const chatPaths = (): readonly ResignChatPath[] => [...AUGUST_AND_OCTOBER_PATHS, ...generationPaths()];
+/** Every reviewed chat path of the active generations. */
+export const chatPaths = (): readonly ResignChatPath[] => [...AUGUST_AND_OCTOBER_PATHS, ...generationPaths()];
 
 type NativeSender = NonNullable<KnownEnhancementBuild["resignAction"]>;
 

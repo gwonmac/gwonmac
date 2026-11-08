@@ -6,6 +6,9 @@ import { verifyLocalClientBytes, isLocalClientVerification } from "../../app/cli
 import { NO_ENHANCEMENT_CAPABILITIES } from "../../app/shared/enhancement-contracts.ts";
 import { concat, encodeCode, encodeSection, parseCode, sectionById, splitSections, WASM_HEADER } from "../../app/main/core/wasm-binary.ts";
 import { wasmEvidence } from "../../app/client/certification/wasm-evidence.ts";
+import { chatPaths } from "../../app/client/certification/enhancement-resign-proof.ts";
+import { deriveWhisperChat } from "../../app/client/certification/enhancement-whisper-proof.ts";
+import { REVIEWED_GENERATIONS, withReviewedFacts, type ClientGeneration } from "../../app/client/certification/reviewed-facts.ts";
 
 const requested = { ...NO_ENHANCEMENT_CAPABILITIES, playRegionObservation: true, chatFiltering: true, whisperChat: true };
 test("whisper certification binds the current sender, copier and observer encoders", { timeout: 120_000 }, async () => {
@@ -42,4 +45,19 @@ test("whisper certification binds the current sender, copier and observer encode
     assert.notEqual(refusal.featureVerdicts?.whisperChat.status, "proved", `changed function ${changed}`);
     assert.equal(refusal.featureVerdicts?.playRegionObservation.status, "proved");
   }
+});
+
+test("whisper refuses when one reviewed sender index names two different senders", { timeout: 120_000 }, async () => {
+  assert.ok(process.env.GW_CLIENT_WASM, "GW_CLIENT_WASM must name a retained official artifact");
+  const module = wasmEvidence(new Uint8Array(await readFile(process.env.GW_CLIENT_WASM)))!.moduleView();
+  const sender = deriveWhisperChat(module);
+  assert.ok(sender, "the retained client proves its whisper path");
+  // A later review names another sender at an index a whisper path pairs by.
+  const [path] = chatPaths();
+  assert.ok(path);
+  const ambiguous: ClientGeneration = Object.freeze({
+    id: "2099-01-01-000000000000", builds: [], identities: {},
+    facts: { resignChatPaths: [{ ...path, sender: { ...path.sender, bodySha256: "ab".repeat(32) } }] },
+  });
+  assert.equal(withReviewedFacts([...REVIEWED_GENERATIONS, ambiguous], () => deriveWhisperChat(module)), null);
 });
