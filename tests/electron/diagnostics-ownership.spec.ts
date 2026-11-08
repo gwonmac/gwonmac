@@ -70,7 +70,7 @@ test("keeps renderer capture evidence with its owning window", async () => {
       renderer.recordClockOffset(ownerId, 10_000_000, 10);
       renderer.resetRendererDiagnostics(ownerId);
       const milestoneBefore = recorder.timestampUs();
-      renderer.recordRendererMilestone(ownerId, { name: "renderer.loaded", rendererTimestampUs: 1, fields: undefined });
+      renderer.recordRendererMilestone(ownerId, "renderer.loaded", 1, undefined);
       const milestoneAfter = recorder.timestampUs();
       const replacementMilestone = recorder.summaryForOwner(ownerId, 0)
         .latest["milestone.renderer.loadedUs"];
