@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { listIndexAfter, listKeyStep, listPage } from "../../app/shared/ui/list-keys.js";
+import { gridIndexAfter, listIndexAfter, listKeyStep, listPage } from "../../app/shared/ui/list-keys.js";
 
 const key = (value: string, modifiers: Partial<Pick<KeyboardEvent, "ctrlKey" | "altKey" | "metaKey" | "shiftKey">> = {}) =>
   ({ key: value, ctrlKey: false, altKey: false, metaKey: false, shiftKey: false, ...modifiers }) as KeyboardEvent;
@@ -55,6 +55,18 @@ describe("the one list move", () => {
     const allButLast = (index: number) => index !== 4;
     assert.equal(listIndexAfter(4, 5, 1, allButLast), 4);
     assert.equal(listIndexAfter(4, 5, -1, allButLast), 3);
+  });
+  it("moves ↑ ↓ through a painted grid by row, keeping the column and passing over what it may not select", () => {
+    // Two rows of three; slot 1 cannot be chosen (the place the player stands in).
+    const grid = [0, 100, 200, 0, 100, 200].map((left, index) => ({ top: index < 3 ? 0 : 50, left }));
+    const usable = (index: number) => index !== 1;
+    assert.equal(gridIndexAfter(grid, 0, 1, usable), 3);
+    assert.equal(gridIndexAfter(grid, 5, -1, usable), 2);
+    assert.equal(gridIndexAfter(grid, 4, -1, usable), 0);
+    // No row that way: the caller decides, so the top row can hand ↑ back to the list above.
+    assert.equal(gridIndexAfter(grid, 0, -1, usable), null);
+    assert.equal(gridIndexAfter(grid, 4, 1, usable), null);
+    assert.equal(gridIndexAfter(grid, -1, 1, usable), null);
   });
   it("pages by the rows that fit, keeping one for context", () => {
     const box = (clientHeight: number, offsetHeight = 0) => ({ clientHeight, offsetHeight });

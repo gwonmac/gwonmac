@@ -24,7 +24,7 @@ import { TRAVEL_HISTORY_VISIBLE_LIMIT } from "../../../../shared/travel-history"
 import { guildWarsMapName } from "../../../../shared/guild-wars-map-names";
 import { isHubBackKey } from "../../../../shared/keyboard-shortcuts";
 import { createHoverSelection } from "../../../../shared/ui/hover-selection";
-import { listIndexAfter, listKeyStep, listPage } from "../../../../shared/ui/list-keys";
+import { gridIndexAfter, listIndexAfter, listKeyStep, listPage } from "../../../../shared/ui/list-keys";
 import { hubMatch } from "../../../../shared/hub";
 import type { HubViewFooter } from "../../../../shared/hub";
 import { useTravelPreferences } from "../travel-preferences";
@@ -853,6 +853,24 @@ async function moveActive(step: number): Promise<void> {
   if (next >= 0) await reveal(next);
 }
 
+/**
+ * Favourites are a painted grid: ↑ ↓ go to the nearest row with a destination it may choose,
+ * closest to the current column. ↑ from the top row returns to the places above the grid;
+ * ↓ from the bottom row holds, as at the end of any list.
+ */
+async function moveInFavourites(direction: 1 | -1): Promise<void> {
+  const entries = selectableDestinations.value;
+  const leading = leadingDestinations.value.length;
+  const boxes = entries.slice(leading).map((_, offset) => {
+    const button = palette.value?.querySelector<HTMLElement>(`#travel-${resultId(leading + offset)}`);
+    return { top: button?.offsetTop ?? 0, left: button?.offsetLeft ?? 0 };
+  });
+  const next = gridIndexAfter(boxes, active.value - leading, direction, offset => selectable(entries[leading + offset]!));
+  if (next !== null) return reveal(leading + next);
+  const above = direction < 0 ? listIndexAfter(leading, entries.length, -1, index => selectable(entries[index]!)) : -1;
+  if (above >= 0 && above < leading) await reveal(above);
+}
+
 /** Selects a destination by keyboard and scrolls it into view. */
 async function reveal(index: number): Promise<void> {
   hover.release();
@@ -886,18 +904,11 @@ function onKeydown(event: KeyboardEvent): void {
     : null;
   if (step !== null) {
     event.preventDefault();
-    // Favourites are a painted grid. Vertical arrows retain the column;
-    // recents and search results keep the shared linear list movement.
-    const favourites = [...(palette.value?.querySelectorAll<HTMLElement>(".travel-favorite-grid .travel-favorite") ?? [])];
-    const leading = leadingDestinations.value.length;
-    if (!hasQuery.value && active.value >= leading && plainArrow
-      && (event.key === "ArrowDown" || event.key === "ArrowUp") && favourites.length) {
-      const columns = favourites.filter(button => button.offsetTop === favourites[0]!.offsetTop).length;
-      const column = (active.value - leading) % columns;
-      const next = listIndexAfter(active.value, selectableDestinations.value.length, step * columns,
-        index => index >= leading && (index - leading) % columns === column && selectable(selectableDestinations.value[index]!));
-      if (next >= 0) void reveal(next);
-    } else void moveActive(step);
+    // ↑ ↓ (and ⌃P ⌃N) move through the favourites grid by row; every other move, and the
+    // recents and search results, keep the shared linear list movement.
+    const vertical = event.key === "ArrowDown" || event.key === "ArrowUp" || event.ctrlKey;
+    if (vertical && !hasQuery.value && active.value >= 0 && active.value >= leadingDestinations.value.length) void moveInFavourites(step > 0 ? 1 : -1);
+    else void moveActive(step);
     return;
   }
   // In the Hub, ⌘⌫ leaves Customize like Esc; an open picker closes first, and from the

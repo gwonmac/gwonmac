@@ -51,7 +51,9 @@ states.
 
 ## Keyboard and actions
 
-List movement uses `app/shared/ui/list-keys.ts` and never wraps. Enter runs the
+List movement uses `app/shared/ui/list-keys.ts` and never wraps. Travel's
+favourites are a painted grid: ↑ ↓ move by row and keep the column, and ↑ from
+the top row returns to the places above. Enter runs the
 named footer primary. Modified Enter does not run it. Right opens a result page;
 text fields keep their caret keys. Command-J opens the existing Actions menu:
 the primary, then the row's own `actions()` in its source's order (Build

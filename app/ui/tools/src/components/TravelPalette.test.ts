@@ -599,6 +599,20 @@ describe("TravelPalette", () => {
     wrapper.unmount();
   });
 
+  it("returns ↑ from the favourites to the places above them instead of holding there", async () => {
+    const { wrapper } = fixture({ history: [449, 194] });
+    await flushPromises();
+    const search = wrapper.get('[role="combobox"]');
+    const selected = () => search.attributes("aria-activedescendant");
+    await search.trigger("keydown", { key: "ArrowDown" });
+    expect(selected()).toBe("travel-recent-194");
+    await search.trigger("keydown", { key: "ArrowDown" });
+    expect(selected()).toMatch(/^travel-favorite-/u);
+    await search.trigger("keydown", { key: "ArrowUp" });
+    expect(selected()).toBe("travel-recent-194");
+    wrapper.unmount();
+  });
+
   it("keeps the selected destination when the game state reorders the places (HUB-011)", async () => {
     for (const [arrows, selected, afterArrival, removedMap] of [
       [0, "travel-recent-449", undefined, 449],
