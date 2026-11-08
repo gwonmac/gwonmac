@@ -3,7 +3,8 @@
  * in happy-dom, with the real Hub controller, views, surface controller and command router, so
  * a vitest test can hold DOM and focus rules that need no real browser. Each mount starts from a
  * clean body and the fixture's own query; the previous mount's Hub, window and document
- * listeners and timers are removed first, so tests never see each other.
+ * listeners and timers are removed first, and Settings starts on Tools as after a page load, so
+ * tests never see each other (run the DOM suites with `--sequence.shuffle` to check).
  *
  * `press` sends a key the way Playwright's `keyboard.press` does: modifier key-downs, the key's
  * key-down, the browser's default action when nothing prevented it, then the key-ups. The
@@ -21,6 +22,7 @@
  * no CSS, so cells whose answer depends on CSS visibility stay in Playwright.
  */
 import { vi } from 'vitest';
+import type { EmbeddedSettings } from '../../../shared/hub-settings';
 
 type Added = readonly [EventTarget, string, EventListenerOrEventListenerObject, boolean | AddEventListenerOptions | undefined];
 const added: Added[] = [];
@@ -142,7 +144,27 @@ export async function mountFixture(query = '', stored: Readonly<Record<string, s
   mountHubFixture(app);
   await settle();
   if (app.dataset.ready !== 'true') throw new Error('The Hub fixture did not become ready');
+  await startSettingsOnTools();
   return app;
+}
+
+/**
+ * A page load starts Settings on Tools. The launcher's Settings page remembers its last section
+ * in module state, which outlives a fixture mount here, so once the page module has loaded, each
+ * mount shows it once at Tools, detached, through its own `mountSettings`.
+ */
+async function startSettingsOnTools() {
+  if (!document.head.querySelector('link[data-gwonmac-settings-stylesheet]')) return;
+  // The Hub's own specifier; vite.config.ts resolves it to the launcher's Settings entry.
+  const specifier = './settings/settings-app.js';
+  const settings: EmbeddedSettings<HTMLElement> = await import(/* @vite-ignore */ specifier);
+  const host = document.createElement('div');
+  const page = settings.mountSettings(host, {
+    api: window.gwNative.hubSettings, target: { section: 'tools' }, extendedMemory: async () => null,
+    openInLauncher: () => undefined, mayTakeFocus: () => false,
+  });
+  await until(() => host.querySelector('.settings-page'));
+  page.dispose();
 }
 export const unmountFixture = () => { release(); vi.useRealTimers(); };
 

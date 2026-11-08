@@ -31,7 +31,6 @@ const go = async (query: string) => { fill(search(), query); press('Enter'); awa
 const actionsButton = () => document.querySelector<HTMLButtonElement>('.hub-actions')!;
 const primaryButton = () => document.querySelector<HTMLButtonElement>('.hub-primary')!;
 /** A tool switched off through the fixture's settings event stays off for the next mount in this file, so each such test puts them back. */
-const restoreTools = () => send('hub-fixture-settings', { buildLibrary: true, tradeChat: true, whispersEnabled: true });
 const draft = (name: string) => {
   const found = byRole('textbox', `Message ${name}`, true)[0];
   return found instanceof HTMLInputElement || found instanceof HTMLTextAreaElement ? found : undefined;
@@ -261,13 +260,11 @@ test('duplicate exact names require a deliberate selection', async () => {
 test('disabled capabilities disappear including friend child actions', async () => {
   await mountFixture();
   send('hub-fixture-settings', { buildLibrary: false, tradeChat: false, whispersEnabled: false }); await settle();
-  try {
-    fill(search(), 'build smiter'); await settle(); expect(options().length).toBe(0);
-    fill(search(), 'trade ecto'); await settle(); expect(options().length).toBe(0);
-    await go('romi');
-    expect(option(/Whisper/u)).toBeUndefined();
-    expect(option(/Travel to outpost/u)).toBeDefined();
-  } finally { restoreTools(); }
+  fill(search(), 'build smiter'); await settle(); expect(options().length).toBe(0);
+  fill(search(), 'trade ecto'); await settle(); expect(options().length).toBe(0);
+  await go('romi');
+  expect(option(/Whisper/u)).toBeUndefined();
+  expect(option(/Travel to outpost/u)).toBeDefined();
 });
 
 test('storage refusal stays silent', async () => {
@@ -554,9 +551,8 @@ test('account search offers explicit keep-open and replacement choices', async (
 test('in-game settings stay in Hub and Show Launcher remains explicit', async () => {
   await mountFixture();
   await go('settings');
-  // The Settings page keeps the section last opened (Maps, in the test before) across fixture mounts; a page load starts on Tools.
-  const section = (name: string) => [...document.querySelectorAll<HTMLElement>('nav[aria-label="Settings sections"] button')].find(candidate => candidate.textContent?.trim() === name)!;
-  click(section('Tools')); await settle();
+  // A page load opens Settings on Tools.
+  expect(document.querySelector('.settings-fields h1')?.textContent).toBe('Tools');
   const whispers = () => narrow(HTMLInputElement, byRole('checkbox', 'Whispers', true)[0]);
   click(whispers()); await settle();
   expect(document.querySelector('nav[aria-label="Settings sections"]')).not.toBeNull();
@@ -567,7 +563,8 @@ test('in-game settings stay in Hub and Show Launcher remains explicit', async ()
   expect(document.querySelectorAll('.hub-row[data-id="whispers"]').length).toBe(0);
   expect(document.querySelectorAll('.hub-row[data-id="setting:tool:whispers"]').length).toBe(1);
   await go('settings');
-  click(section('Tools')); await settle();
+  // Within one page load, Settings reopens on the section last shown.
+  expect(document.querySelector('.settings-fields h1')?.textContent).toBe('Tools');
   click(whispers()); await settle();
   expect(whispers().checked).toBe(true);
   click(button('Appearance')); await settle();
@@ -639,13 +636,11 @@ test('price updates preserve focus on the price basis', async () => {
 test('command examples respect tool availability', async () => {
   await mountFixture();
   send('hub-fixture-settings', { whispersEnabled: false }); await settle();
-  try {
-    await go('commands');
-    expect(text('.hub-results')).toContain('build <name or profession>');
-    expect(text('.hub-results')).not.toContain('whisper <name>');
-    await go('1p in g');
-    expect(search().value).toBe('1p in g');
-  } finally { restoreTools(); }
+  await go('commands');
+  expect(text('.hub-results')).toContain('build <name or profession>');
+  expect(text('.hub-results')).not.toContain('whisper <name>');
+  await go('1p in g');
+  expect(search().value).toBe('1p in g');
 });
 
 test('Trade opens a floating addressed composer and retains its offer and filter', async () => {
