@@ -17,6 +17,7 @@
  */
 import { appendNativeHud } from "./native-hud-transform.js";
 import { createHash } from "node:crypto";
+import { isDeepStrictEqual } from "node:util";
 import {
   enhancementCapabilityProfile,
   enhancementCapabilitiesCover,
@@ -86,6 +87,8 @@ import {
 import { buildEnhancementManifestSection } from "./enhancement-transform-manifest.js";
 import { encodeName } from "./wasm-emit.js";
 import type { ModuleShape } from "./enhancement-evidence-types.js";
+import { deriveResignAction } from "./enhancement-resign-proof.js";
+import { deriveWhisperChat } from "./enhancement-whisper-proof.js";
 import { functionMatchesReviewedBody, wasmEvidence } from "./wasm-evidence.js";
 export { ENHANCEMENT_MANIFEST_SECTION } from "./enhancement-transform-manifest.js";
 
@@ -386,7 +389,8 @@ function resolveEnhancementTransform(
   }
   if (capabilities.whisperChat) {
     resolveHook("Whisper native sender", whisperChat.functionIndex, whisperChat.params, whisperChat.results);
-    if (bodyHash(whisperChat.functionIndex) !== whisperChat.bodySha256) fail("Whisper native sender changed");
+    // The process boundary checks only the shape; the path is proved here, from the bytes.
+    if (!isDeepStrictEqual(deriveWhisperChat(clientModule()), whisperChat)) fail("Whisper native chat path changed");
   }
   if (capabilities.alcoholObservation) {
     const proof = build.alcoholObservation!;
@@ -400,7 +404,7 @@ function resolveEnhancementTransform(
   }
   if (capabilities.resignAction) {
     resolveHook("Resign native sender", resignAction.functionIndex, resignAction.params, resignAction.results);
-    if (bodyHash(resignAction.functionIndex) !== resignAction.bodySha256) fail("Resign native sender changed");
+    if (!isDeepStrictEqual(deriveResignAction(clientModule()), resignAction)) fail("Resign native chat path changed");
   }
   const storageSlashParserHook = capabilities.chatAliases
     ? resolveHook(

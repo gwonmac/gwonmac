@@ -188,9 +188,12 @@ locator already meets the final relocation-resistant bar. At verifier ABI 10:
   files hold only the August and October 1 references. Some facts stay pinned
   to one client's layout, so a relink that moves them refuses until a release
   adds them:
-  - resign and whisper chat paths bind function indices, because the process
-    boundary has no client bytes and rejects a substituted index only against
-    reviewed (index, digest) pairs;
+  - resign and whisper chat paths are located by their reviewed bodies (exact,
+    or by relocation identity on a relink), and the editor must call the
+    history owner, which must call the sender. The process boundary checks
+    the sender's shape; the transform derives the path again from the bytes it
+    rewrites and refuses any other sender. A path whose body really changed
+    still needs a review;
   - native draw owners (HUD, map graphics, Compass terrain) match a reviewed
     family exactly. On a relink they are derived instead: each owner is the
     one function with a reviewed owner's relocation identity, an owner with

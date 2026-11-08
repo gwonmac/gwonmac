@@ -310,10 +310,10 @@ A new client can need all of these:
 - the template-save record (`pnpm certification template --write`) and the
   Tools record in its generation file;
 - in its generation file's `facts`: alternatives, template-saving helper
-  bodies, resign and whisper chat paths, the native render family, pathing
-  families, the Guild Hall area-type family, the Cartography surface owners
-  (only when one's body really changed; a relink finds them by identity),
-  and the friend lifecycle family (it changes
+  bodies, the native render family, pathing families, the Guild Hall
+  area-type family, and, only when one's body really changed (a relink finds
+  them by identity), the resign and whisper chat paths and the Cartography
+  surface owners; and the friend lifecycle family (it changes
   `FRIEND_OBSERVER_SEMANTIC_SHA256` only when a role's signature changes);
 - nothing for the Cartography memory layout: the verifier derives its roots,
   surface owners and callback slots from the bytes, and the derived client
