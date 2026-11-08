@@ -363,9 +363,13 @@ export function facts(
     throw new Error(`Release ${release.tag} exists. Choose a higher version.`);
   }
   // GitHub's latest release is the one the update feed serves (docs/releasing.md).
-  const latest = succeed(dependencies, "gh", [
+  const published = dependencies.run("gh", [
     "release", "view", "--repo", dependencies.repository, "--json", "tagName", "--jq", ".tagName",
-  ], root).trim();
+  ], root);
+  if (published.status !== 0) {
+    throw new Error(`No release is published yet; a fact release patches the latest published release.\n${published.stderr}`);
+  }
+  const latest = published.stdout.trim();
   if (latest !== base) {
     throw new Error(`${latest} is the latest published release; a fact release patches it, not ${base}.`);
   }

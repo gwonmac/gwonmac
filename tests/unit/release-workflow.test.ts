@@ -233,6 +233,7 @@ describe("release workflow", () => {
       assert.throws(() => facts("1.0.1", dirty.root, dirty.github().dependencies, { dryRun: true }), /local changes/u);
       for (const [scenario, state, refusal] of [
         ["the version exists", { release: true }, /v1\.0\.1 exists/u],
+        ["nothing is published yet", { latest: null }, /No release is published yet/u],
         ["a newer release is published", { latest: "v1.4.0" }, /v1\.4\.0 is the latest published release; a fact release patches it, not v1\.0\.0/u],
         ["the pull request is open", { open: ["pr"] }, /already has an open pull request or unfinished runs:\nhttps:\/\/github\.com\/gwonmac\/gwonmac\/pull\/1$/u],
         ["the release run waits", { open: ["release.yml"] }, /unfinished runs:\nhttps:\/\/github\.com\/gwonmac\/gwonmac\/actions\/runs\/release\.yml$/u],
@@ -364,7 +365,7 @@ function factRepository(change: Readonly<Record<string, string | null | typeof E
      * that changes git or GitHub: a git tag, commit, push or ref update, and
      * every gh call other than a view or a list.
      */
-    github(state: { release?: boolean; latest?: string; open?: readonly string[] } = {}) {
+    github(state: { release?: boolean; latest?: string | null; open?: readonly string[] } = {}) {
       const writes: string[][] = [];
       const gitWrites = new Set(["tag", "push", "commit", "update-ref"]);
       const dependencies: ReleaseDependencies = {
@@ -378,7 +379,7 @@ function factRepository(change: Readonly<Record<string, string | null | typeof E
             return { status: result.status, stdout: result.stdout, stderr: result.stderr };
           }
           if (args[0] === "release" && args[1] === "view") {
-            if (args[2] === "--repo") return OK(`${state.latest ?? "v1.0.0"}\n`);
+            if (args[2] === "--repo") return state.latest === null ? NOT_FOUND : OK(`${state.latest ?? "v1.0.0"}\n`);
             return state.release ? OK("{}") : NOT_FOUND;
           }
           if (args[0] === "pr" && args[1] === "list") {
