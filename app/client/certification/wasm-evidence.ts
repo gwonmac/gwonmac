@@ -585,6 +585,28 @@ function identityReviewedFor(literals: readonly string[], identity: () => string
   return reviewed.some((identities) => identities.has(measured));
 }
 
+/** A reviewed literal a proof matched on a module: a body digest, or a semantic role. */
+export type ReviewedLookup =
+  | Readonly<{ kind: "body"; literal: string }>
+  | Readonly<{ kind: "role"; role: SemanticRole }>;
+type LookupRecorder = (lookup: ReviewedLookup, functionIndex: number) => void;
+let lookupRecorder: LookupRecorder | null = null;
+
+/**
+ * Reports every reviewed body digest and role that matched a function while
+ * `run` runs. Only the maintainer review command uses it, to name the reviewed
+ * bodies a refused feature relied on.
+ */
+export function withReviewedLookupRecorder<Value>(record: LookupRecorder, run: () => Value): Value {
+  const previous = lookupRecorder;
+  lookupRecorder = record;
+  try {
+    return run();
+  } finally {
+    lookupRecorder = previous;
+  }
+}
+
 /** The body of `functionIndex` is the reviewed body `bodySha256`. */
 export function functionMatchesReviewedBody(
   module: ModuleShape,
@@ -594,11 +616,11 @@ export function functionMatchesReviewedBody(
   const accepted = [bodySha256, ...reviewedAlternatives(bodySha256).flatMap((alternative) =>
     typeof alternative === "string" ? [alternative] : [])];
   const measured = functionBodySha256(module, functionIndex);
-  if (accepted.includes(measured)) {
-    recordExactMatch(measured, () => functionIdentity(module, functionIndex));
-    return true;
-  }
-  return identityReviewedFor(accepted, () => functionIdentity(module, functionIndex));
+  const exact = accepted.includes(measured);
+  if (exact) recordExactMatch(measured, () => functionIdentity(module, functionIndex));
+  const matched = exact || identityReviewedFor(accepted, () => functionIdentity(module, functionIndex));
+  if (matched) lookupRecorder?.({ kind: "body", literal: bodySha256 }, functionIndex);
+  return matched;
 }
 
 /** The reviewed body digest among `bodySha256s` that names `functionIndex`. */
@@ -621,11 +643,11 @@ export function functionMatchesRole(
   if (accepted.length === 0) return false;
   const fingerprint = relocationAwareFingerprint(body, role.spans);
   const identity = () => functionRoleIdentity(module, functionIndex, role.spans);
-  if (accepted.includes(fingerprint)) {
-    recordExactMatch(fingerprint, identity);
-    return true;
-  }
-  return identityReviewedFor(accepted, identity);
+  const exact = accepted.includes(fingerprint);
+  if (exact) recordExactMatch(fingerprint, identity);
+  const matched = exact || identityReviewedFor(accepted, identity);
+  if (matched) lookupRecorder?.({ kind: "role", role }, functionIndex);
+  return matched;
 }
 
 /** The reviewed fingerprints of `role` for a body of `bodyLength` bytes. */
@@ -669,7 +691,10 @@ export function roleFunctions(module: ModuleShape, role: SemanticRole): readonly
   const moduleCache = generationCache.get(module) ?? new WeakMap();
   generationCache.set(module, moduleCache);
   const cached = moduleCache.get(role);
-  if (cached) return cached;
+  if (cached) {
+    for (const functionIndex of cached) lookupRecorder?.({ kind: "role", role }, functionIndex);
+    return cached;
+  }
   const matches: number[] = [];
   for (
     let functionIndex = module.functionImportCount;

@@ -259,40 +259,65 @@ so first check what still refuses. With only the older facts, November 3
 now refuses only Quick Item Move (its memory-code digest changed) and friend
 observation (moved assertion lines); both need a review.
 
-1. Run `tests/client-artifact/patch-day-replay.test.ts` with the new client in
-   the evidence store. Its diagnostics list each feature that refuses with only
-   the older generations. Trace each refusal to its first failing check before
-   you read code. Shared checks, such as the area table, can disable many
-   features.
-2. Map each refused role or exact body hash from the preceding retained client
-   to the new client. Compare bodies with call indices, static operands, and
-   constants erased. Require one unique match, and confirm it by its relations,
-   not by its hash alone: a one-call wrapper and its neighbour can collide when
-   both shift by one index.
-3. Diff each matched pair instruction by instruction. Accept call-index and
-   static-address changes. Read every changed constant: string pointers must
-   reach the same text, small integers must be explained (assertion lines,
-   content counts). Bind an explained constant to the value it derives from,
-   as the Xunlai area-type reader binds its default to the area table's.
-   Read every control-flow change in full.
-4. Add a reviewed result only where the code really changed, and only in the
-   new client's generation file: an entry in `facts.alternatives` keyed by the
-   reviewed reference literal (another body digest, or a role fingerprint with
-   its body length), or the per-proof slot for a pinned fact (see below).
-   Proof files keep only the August and October 1 references. Keep the
-   previous client proving.
-5. Write the generation file `reviewed-client-<bundle-reference>.ts` with the
-   Enhancement record and its `facts`, and add it to `REVIEWED_GENERATIONS` in
-   `reviewed-facts.ts` in client order. Run
-   `pnpm certification reviewed-identities PATH/Gw.jspi.wasm` on the new client
-   and copy its `memoryCodeSha256` and the identity entries that no older
-   generation already lists. Add `playerEffectBodies` only when an effect
-   body really changed; a relink finds them by identity.
-6. Run the replay test again. It must pass, and the new client's record must
-   prove every feature it supports with every generation. A client that is not
-   a relink of the previous generation needs its patch-day row in `PATCH_DAY`:
-   its template verdict, the features it refuses and its module stages with
-   only older facts. A row may only get better.
+Real ArenaNet changes ship as a fact-only release. The slow part is the human
+review, so one command prepares it:
+
+1. Put the new client in the evidence store as its bundle and run:
+
+   ```bash
+   pnpm certification review "$STORE/<bundle-reference>"
+   ```
+
+   It judges the client with only the older generations, as on its patch day,
+   and writes a review packet to `<bundle>/review/` (`--out` changes the
+   folder, `--previous` names the client to compare with when the newest
+   reviewed client's bundle is elsewhere). For each feature the previous
+   client proves and the new one refuses, the packet names the first failing
+   invariant, the reviewed bodies the feature lost, the old and new function
+   side by side with call targets and static addresses normalised (changed
+   lines carry `!`), the candidate count, and the drafted generation-file
+   alternative. It also says whether the client proves each feature with the
+   whole draft. The packet holds ArenaNet code: it stays in the private store.
+   Never attach it to an issue, a pull request, or a CI artifact.
+2. Review each drafted pair. Accept call-index and static-address changes.
+   Read every changed constant: string pointers must reach the same text,
+   small integers must be explained (assertion lines, content counts). Bind an
+   explained constant to the value it derives from, as the Xunlai area-type
+   reader binds its default to the area table's. Read every control-flow
+   change in full. A pair the packet could not make (more than one candidate,
+   or none) needs the manual mapping: compare bodies with call indices, static
+   operands, and constants erased, require one unique match, and confirm it by
+   its relations, not by its hash alone (a one-call wrapper and its neighbour
+   can collide when both shift by one index). A refusal with no lost body is a
+   changed relation the proof checks; trace it to its first failing check
+   before you read code. Delete each draft entry you do not approve from
+   `<bundle>/review/draft.json`.
+3. Write the approved draft:
+
+   ```bash
+   pnpm certification review --apply "$STORE/<bundle-reference>/review"
+   ```
+
+   It adds the entries to `facts.alternatives` in the new client's generation
+   file `reviewed-client-<bundle-reference>.ts`, and creates and registers
+   that file when it does not exist yet. A draft grants nothing: the verifier
+   still proves every feature from the bytes with it. Facts that are not
+   alternatives (a pinned per-proof slot, Quick Item Move's reviewed
+   `memoryCodeSha256`) are written by hand. Proof files keep only the August
+   and October 1 references. Keep the previous client proving.
+4. Complete the generation file: the Enhancement record, and from
+   `pnpm certification reviewed-identities PATH/Gw.jspi.wasm` its
+   `memoryCodeSha256` and the identity entries that no older generation
+   already lists. Add `playerEffectBodies` only when an effect body really
+   changed; a relink finds them by identity.
+5. Run `tests/client-artifact/patch-day-replay.test.ts`. It must pass, and the
+   new client's record must prove every feature it supports with every
+   generation. A client that is not a relink of the previous generation needs
+   its patch-day row in `PATCH_DAY`: its template verdict, the features it
+   refuses and its module stages with only older facts. A row may only get
+   better.
+6. Run `pnpm certification verify PATH/Gw.jspi.wasm`: with every generation,
+   each feature you approved must prove.
 7. Compare all members of one function family. A matching sender alone does not
    prove its editor, history, packet, lifecycle, or dispatcher.
 

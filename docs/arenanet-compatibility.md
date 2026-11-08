@@ -272,6 +272,12 @@ binaries and cannot grant runtime authority.
   It prints each client's refused features and module stages, and skips
   without the maintainer evidence store. Retained clients without a reviewed
   record, which includes every client before October 2026, are out of scope.
+- Review: `pnpm certification review` writes a local review packet for a
+  changed client (see [recertify.md](recertify.md#recover-a-relocation-rebuild)).
+  It drafts generation-file alternatives; it never grants authority. A
+  maintainer approves each one, a fact-only release ships it, and the verifier
+  still proves every feature from the bytes. There is no remote facts feed,
+  and the packet's ArenaNet code never leaves the maintainer's Mac.
 - Refusal: the official client stays playable and only the refusing feature
   and its declared dependants turn off. Automation opens one issue with one
   row per verdict: template saving, every Enhancement feature, native

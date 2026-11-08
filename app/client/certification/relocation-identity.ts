@@ -202,6 +202,33 @@ export function functionsWithIdentity(module: ModuleShape, identity: string): re
 }
 
 /**
+ * The local identity of a function: its relocation identity with each callee
+ * named by its signature only, so a change in a callee's body leaves it equal.
+ */
+export function functionLocalIdentity(module: ModuleShape, functionIndex: number): string {
+  const identity = identities(module).local[functionIndex];
+  if (identity === undefined) throw new RangeError("relocation identity: no such function");
+  return identity;
+}
+
+/**
+ * Each relocatable operand of a defined function, in body order: its byte
+ * range in the body and the name the relocation identity gives it (a callee's
+ * local identity, or a static operand's class).
+ */
+export function relocatableOperands(
+  module: ModuleShape,
+  functionIndex: number,
+): readonly Readonly<{ start: number; end: number; name: string }>[] {
+  const known = identities(module);
+  return (known.sites[functionIndex] ?? []).map((site) => Object.freeze({
+    start: site.start,
+    end: site.end,
+    name: site.callee === null ? site.marker : `call:${known.local[site.callee] ?? "?"}`,
+  }));
+}
+
+/**
  * The distinct functions `functionIndex` calls directly, in the order of their
  * first call. Two functions with one identity call corresponding callees at
  * the same position.
