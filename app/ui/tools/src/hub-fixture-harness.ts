@@ -20,7 +20,8 @@ let tracking = false;
 function track() {
   if (tracking) return;
   tracking = true;
-  for (const target of [window, document, document.documentElement, document.body] as EventTarget[]) {
+  const targets: EventTarget[] = [window, document, document.documentElement, document.body];
+  for (const target of targets) {
     const original = target.addEventListener;
     target.addEventListener = (type: string, listener: EventListenerOrEventListenerObject | null, options?: boolean | AddEventListenerOptions) => {
       if (listener) added.push([target, type, listener, options]);
@@ -98,6 +99,8 @@ export const unmountFixture = () => { release(); vi.useRealTimers(); };
 
 const MODIFIERS = { Meta: 'metaKey', Control: 'ctrlKey', Alt: 'altKey', Shift: 'shiftKey' } as const;
 type Modifier = keyof typeof MODIFIERS;
+const isModifier = (part: string): part is Modifier => Object.hasOwn(MODIFIERS, part);
+const modifier = (part: string): Modifier => { if (isModifier(part)) return part; throw new Error(`Not a modifier: ${part}`); };
 const CODES: Record<string, string> = { Enter: 'Enter', Escape: 'Escape', Backspace: 'Backspace', Tab: 'Tab', ArrowDown: 'ArrowDown', ArrowUp: 'ArrowUp', ArrowLeft: 'ArrowLeft', ArrowRight: 'ArrowRight', Home: 'Home', End: 'End', PageDown: 'PageDown', PageUp: 'PageUp', Meta: 'MetaLeft', Control: 'ControlLeft', Alt: 'AltLeft', Shift: 'ShiftLeft', ' ': 'Space' };
 const code = (key: string) => CODES[key] ?? (/^[a-z]$/iu.test(key) ? `Key${key.toUpperCase()}` : /^[0-9]$/u.test(key) ? `Digit${key}` : key);
 const target = () => document.activeElement ?? document.body;
@@ -121,7 +124,7 @@ function defaultAction(key: string, held: ReadonlySet<Modifier>) {
     element.value = element.value.slice(0, -1); element.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'deleteContentBackward' })); return;
   }
   if (key === 'Enter' && held.size === 0) {
-    if (element instanceof HTMLButtonElement || element instanceof HTMLAnchorElement || element.tagName === 'SUMMARY') { (element as HTMLElement).click(); return; }
+    if (element instanceof HTMLButtonElement || element instanceof HTMLAnchorElement || (element instanceof HTMLElement && element.tagName === 'SUMMARY')) { element.click(); return; }
     if (element instanceof HTMLInputElement && element.form) { element.form.requestSubmit(); return; }
   }
   if (key === 'Escape') {
@@ -134,11 +137,12 @@ function defaultAction(key: string, held: ReadonlySet<Modifier>) {
 export function press(chord: string) {
   const parts = chord.split('+');
   const key = parts.pop()!;
+  const modifiers = parts.map(modifier);
   const held = new Set<Modifier>();
-  for (const modifier of parts as Modifier[]) { held.add(modifier); send('keydown', modifier, held); }
+  for (const modifier of modifiers) { held.add(modifier); send('keydown', modifier, held); }
   if (send('keydown', key, held)) defaultAction(key, held);
   send('keyup', key, held);
-  for (const modifier of [...parts as Modifier[]].reverse()) { held.delete(modifier); send('keyup', modifier, held); }
+  for (const modifier of [...modifiers].reverse()) { held.delete(modifier); send('keyup', modifier, held); }
 }
 
 /**
@@ -166,16 +170,17 @@ export function click(element: Element, detail = 1) {
   element.dispatchEvent(new PointerEvent('pointerdown', init));
   if (element.dispatchEvent(new MouseEvent('mousedown', init))) {
     const focusable = element.closest<HTMLElement>('button, a[href], input, select, textarea, summary, [tabindex]');
-    if (focusable) focusable.focus(); else (document.activeElement as HTMLElement | null)?.blur();
+    if (focusable) focusable.focus(); else if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
   }
   element.dispatchEvent(new PointerEvent('pointerup', init));
   element.dispatchEvent(new MouseEvent('mouseup', init));
   element.dispatchEvent(new MouseEvent('click', init));
 }
 
+const INPUT_ROLES: Record<string, string> = { checkbox: 'checkbox', radio: 'radio', range: 'slider', button: 'button' };
 const IMPLICIT_ROLES: Record<string, string> = { BUTTON: 'button', SUMMARY: 'button', A: 'link', SELECT: 'combobox', TEXTAREA: 'textbox', H1: 'heading', H2: 'heading', H3: 'heading', DIALOG: 'dialog' };
 const roleOf = (element: Element) => element.getAttribute('role')
-  ?? (element instanceof HTMLInputElement ? ({ checkbox: 'checkbox', radio: 'radio', range: 'slider', button: 'button' } as Record<string, string>)[element.type] ?? 'textbox' : IMPLICIT_ROLES[element.tagName] ?? null);
+  ?? (element instanceof HTMLInputElement ? INPUT_ROLES[element.type] ?? 'textbox' : IMPLICIT_ROLES[element.tagName] ?? null);
 /** The accessible name, as far as the Hub's markup uses it: aria-label, aria-labelledby, a wrapping label, or the text. */
 export function accessibleName(element: Element): string {
   const label = element.getAttribute('aria-label');

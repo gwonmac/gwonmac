@@ -64,7 +64,7 @@ function observe() {
           : active instanceof HTMLElement && active.dataset.characterKey ? `card:${active.dataset.characterKey}`
             : `${active.tagName.toLowerCase()}${active.id ? `#${active.id}` : ''}${(() => {
               // A Settings control is named by its row's visible label (aria-labelledby), not aria-label.
-              const name = active.getAttribute('aria-label') ?? (active as HTMLElement).dataset.settingLabel;
+              const name = active.getAttribute('aria-label') ?? (active instanceof HTMLElement ? active.dataset.settingLabel : undefined);
               return name ? `[${name}]` : active.classList[0] ? `.${active.classList[0]}` : '';
             })()}`;
   const selected = open ? document.querySelector<HTMLElement>('#hub .hub-row[aria-selected="true"]')?.dataset.id ?? '-' : '-';
