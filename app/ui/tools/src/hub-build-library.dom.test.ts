@@ -116,20 +116,6 @@ test('a build search shows inline metadata without file names (HUB-089)', async 
   expect(first.querySelectorAll('.hub-attribute-group .hub-attribute')).toHaveLength(3);
 });
 
-test('nested folders browse one level at a time and use the same build filters', async () => {
-  await mountFixture();
-  await scenario('folders');
-  await submit('build'); await submit('Guild Wars templates'); await submit('Team Builds');
-  const names = rows('.hub-row').map(row => row.textContent ?? '');
-  expect(names.some(name => name.includes('Dungeons'))).toBe(true);
-  expect(names.some(name => name.includes('Farming'))).toBe(true);
-  await submit('Farming');
-  expect(crumbs()).toContain('Team Builds›Farming');
-  fill(search(), 'folder:"Team Builds/Farming" monk'); await settle();
-  expect(rows('.hub-build-row')).toHaveLength(1);
-  expect(rows('.hub-build-row')[0]!.textContent).toContain('Protection');
-});
-
 test('comparison details are reachable from the keyboard without applying a build', async () => {
   await mountFixture();
   await submit('build monk');
@@ -294,6 +280,39 @@ test('turning a Tool off in Settings keeps the Settings page and section', async
   expect(caption()).toBe('Settings');
   expect(tools.getAttribute('aria-current')).toBe('page');
   expect(narrow(HTMLInputElement, byRole('checkbox', 'Travel', true)[0]).checked).toBe(false);
+});
+
+test('folder-qualified builds show their path in every spelling and keep it through review and Back', async () => {
+  await mountFixture();
+  await scenario('folders');
+  for (const query of ['build team builds farming monk', 'build "Team Builds/Farming" monk', 'build folder:"Team Builds/Farming" mo']) {
+    fill(search(), query); await settle();
+    const found = rows('.hub-build-row');
+    expect(found, query).toHaveLength(1);
+    expect(found[0]!.querySelector('.hub-title')?.textContent).toBe('Protection Mo/Me Team Builds/Farming');
+    expect(found[0]!.querySelector('.hub-folder-label svg')).not.toBeNull();
+  }
+  press('ArrowRight'); await settle();
+  expect(text('.hub-summary .hub-folder-label')).toBe('Team Builds/Farming');
+  noApply();
+  click(button('Back', true)); await settle();
+  expect(search().value).toBe('build folder:"Team Builds/Farming" mo');
+});
+
+test('mixed hero professions default to the eligible hero and keep a blocked hero inspectable', async () => {
+  await mountFixture();
+  await scenario('mixed-professions');
+  await submit('build monk'); await submit('hero');
+  expect(text('.hub-row[aria-selected="true"]')).toContain('Tahlkora');
+  const blocked = rows('.hub-row').find(row => row.textContent?.includes("Gwen's assigned build is for Monk, but the observed primary is Mesmer."))!;
+  expect(blocked.getAttribute('aria-description')).toBe("Slot 5 · Gwen's assigned build is for Monk, but the observed primary is Mesmer.. Mesmer / Monk. Skills: Patient Spirit, Guardian, Resurrection Chant, Protective Spirit, Word of Healing, Aegis, Dismiss Condition, Spirit Bond. Right Arrow opens the child page.");
+  click(blocked); await settle();
+  expect(narrow(HTMLButtonElement, document.querySelector('.hub-primary')).disabled).toBe(true);
+  expect(text('.hub-summary')).toContain('Protection');
+  noApply();
+  fill(search(), 'library'); await settle();
+  expect(rows('.hub-row')).toHaveLength(0);
+  expect(text('#hub')).not.toContain('Build Library is loading');
 });
 
 test.each([
