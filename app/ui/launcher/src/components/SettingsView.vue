@@ -213,7 +213,7 @@ async function open(target: SettingsTarget, takeFocus = true) {
     if (parent instanceof HTMLDetailsElement) parent.open = true;
   }
   await nextTick();
-  row.scrollIntoView({ block: "center" });
+  row.scrollIntoView({ block: "center", container: "nearest" });
   const control = row.matches("input, select, button, textarea") ? row : row.querySelector<HTMLElement>("input:not([disabled]), select:not([disabled]), button:not([disabled]), textarea");
   if (takeFocus) (control ?? row).focus({ preventScroll: true });
   root.querySelectorAll(".setting-focus").forEach(element => element.classList.remove("setting-focus"));
@@ -264,6 +264,7 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="settings-view">
+    <div class="settings-layout">
     <section class="settings-page">
       <aside>
         <label class="settings-search">
@@ -331,6 +332,7 @@ onBeforeUnmount(() => {
         </footer>
       </div>
     </section>
+    </div>
     <div v-if="!launcher" ref="modalHost"></div>
   </div>
 </template>

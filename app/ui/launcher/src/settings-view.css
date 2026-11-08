@@ -7,9 +7,7 @@
    Element-level resets use :where(.settings-view) so they stay as weak as a global reset.
    Each selector sets a property in one rule; widths that change the layout are at the end. */
 
-/* Layout follows the page's own width, not the window's: the launcher draws it full width, the Hub in its panel. */
 .settings-view {
-  container: settings / inline-size;
   height: 100%;
   color-scheme: dark;
   font-family: var(--font-ui);
@@ -20,6 +18,11 @@
   text-rendering: optimizeLegibility;
   box-sizing: border-box;
 }
+
+/* Layout follows the page's own width, not the window's: the launcher draws it full width, the Hub
+   in its panel. The size container is the layout, not .settings-view: a container holds
+   position: fixed, so a dialog drawn in .settings-view (the Hub's modal host) escapes it. */
+.settings-view .settings-layout { container: settings / inline-size; height: 100%; }
 
 /* Base resets the page needs. */
 :where(.settings-view *) { box-sizing: border-box; scrollbar-color: var(--scrollbar) var(--control); scrollbar-width: thin; }

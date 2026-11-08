@@ -67,12 +67,17 @@ onBeforeUnmount(() => {
 
 <style>
 .modal-backdrop { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 28px; background: var(--scrim); backdrop-filter: blur(6px); }
-.modal { width: min(460px, 100%); padding: 24px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface-raised); box-shadow: var(--shadow-pop); }
+.modal { width: min(460px, 100%); padding: 24px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface-raised); box-shadow: var(--shadow-pop); container: modal / inline-size; }
 .modal-head { display: flex; justify-content: space-between; align-items: center; }
 .modal h2 { margin: 0; font-size: var(--fs-xl); }
 .modal details { margin: 18px 0; color: var(--muted); }
 .modal.modal-wide { width: min(650px, 100%); }
 .modal > form { display: grid; gap: 16px; }
+/* Buttons that no longer fit side by side stack full width, the last (primary) action at the bottom. */
+.modal .form-actions { flex-wrap: wrap; }
+@container modal (max-width: 240px) {
+  .modal .form-actions { flex-direction: column; align-items: stretch; }
+}
 @media (max-width: 600px) {
   .modal-backdrop { padding: 14px; }
   .modal { max-height: calc(100vh - 28px); overflow: auto; padding: 20px; }

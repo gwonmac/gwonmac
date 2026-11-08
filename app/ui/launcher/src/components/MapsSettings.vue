@@ -56,13 +56,13 @@ const styleEditor = ref<HTMLElement | null>(null);
 const customizeButton = ref<HTMLButtonElement | null>(null);
 async function revealEditor() {
   await nextTick();
-  styleEditor.value?.scrollIntoView({ block: "start" });
+  styleEditor.value?.scrollIntoView({ block: "start", container: "nearest" });
   styleEditor.value?.focus({ preventScroll: true });
 }
 async function closeEditor() {
   editing.value = false;
   await nextTick();
-  customizeButton.value?.scrollIntoView({ block: "nearest" });
+  customizeButton.value?.scrollIntoView({ block: "nearest", container: "nearest" });
   customizeButton.value?.focus({ preventScroll: true });
 }
 const confirmDelete = ref(false);
