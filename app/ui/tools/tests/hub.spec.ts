@@ -110,6 +110,8 @@ test('Travel uses the Hub typography and Tab from its search reaches Customize',
 
 test('Tab from Travel leaves its search for Customize, then the first shortcut number, not the Hub footer (HUB-070)',async({page})=>{
   await page.goto('/?hub');
+  // A shortcut before the Hub has loaded reaches nothing; wait as a player waits for the search.
+  await expect(page.getByRole('combobox',{name:'Search people, places, builds'})).toBeFocused();
   await page.keyboard.press('Meta+t');
   const search=page.getByRole('combobox',{name:'Destination, phrase, or friend'});
   await expect(search).toBeFocused();
