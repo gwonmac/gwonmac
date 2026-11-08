@@ -173,10 +173,15 @@ locator already meets the final relocation-resistant bar. At verifier ABI 10:
   checks its own relations, so a changed callee refuses only the features
   that own it. Generations
   from October 22, 2026 on carry tables; older facts match exactly; and
-- the player-effect boundary accepts only reviewed body digests, and the
-  transform rechecks the timer digest. A relocated effect body needs a
-  `playerEffectBodies` entry in its generation file. Until then, player-effect
-  observation, effect-icon geometry, and alcohol observation refuse; and
+- player-effect observation, effect-icon geometry, and alcohol observation
+  accept a reviewed effect body exactly, or on a relink a body with a reviewed
+  body's relocation identity: the same opcodes, constants, branches and call
+  order, with only callees and static addresses renumbered. A changed opcode
+  or constant refuses. Several reviewed families may match a relink only when
+  they locate the same functions. The boundary checks the proof against the
+  reviewed digests; the transform rechecks each body it hooks by the same
+  identity and refuses others. An effect body that really changed needs a
+  `playerEffectBodies` entry in its generation file; and
 - every per-client fact lives in that client's generation file
   (`reviewed-client-<id>.ts`): its records, its identity table, and its
   `facts` (alternatives to reviewed literals and the per-proof slots). Proof

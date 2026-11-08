@@ -1,6 +1,8 @@
 /**
  * Owns current-client semantic proof for controlled-player timed effects.
- * It refuses the capability unless every exact function role has one match.
+ * It refuses the capability unless every function role has one match: a
+ * reviewed body, or on a relink the one function with a reviewed body's
+ * relocation identity (only callees and addresses renumbered).
  */
 import {
   functionBody,
@@ -10,7 +12,13 @@ import {
 } from "./wasm-evidence.js";
 import type { ModuleShape } from "./enhancement-evidence-types.js";
 import type { KnownEnhancementBuild } from "./enhancement-builds.js";
-import { reviewedGenerations, type ClientGeneration } from "./reviewed-facts.js";
+import { functionIdentity, functionsWithIdentity } from "./relocation-identity.js";
+import {
+  recordExactMatch,
+  reviewedGenerations,
+  reviewedIdentities,
+  type ClientGeneration,
+} from "./reviewed-facts.js";
 
 type PlayerEffectProof = NonNullable<
   KnownEnhancementBuild["playerEffectObservation"]
@@ -143,8 +151,12 @@ function effectProofFamily(bodies: Readonly<Record<string, string>> | undefined)
         proof.layout?.[key as keyof typeof PLAYER_EFFECT_LAYOUT] === expected);
   }
 
-  function scan(module: ModuleShape, roles: readonly ExactRole[]) {
-    const indices = roles.map((): number[] => []);
+  /**
+   * The functions each role names: its exact reviewed body and, on a relink,
+   * every function with that body's reviewed relocation identity.
+   */
+  function scan(module: ModuleShape, roles: readonly ExactRole[], relinked = false) {
+    const indices = roles.map(() => new Set<number>());
     for (let index = module.functionImportCount; index < module.functionTypeIndices.length; index += 1) {
       const bodyLength = module.bodies[index - module.functionImportCount]?.byteLength;
       const matchingSignatures = roles.flatMap((role, roleIndex) =>
@@ -153,10 +165,21 @@ function effectProofFamily(bodies: Readonly<Record<string, string>> | undefined)
       if (matchingSignatures.length === 0) continue;
       const hash = functionBodySha256(module, index);
       for (const roleIndex of matchingSignatures) {
-        if (roles[roleIndex]?.hash === hash) indices[roleIndex]?.push(index);
+        if (roles[roleIndex]?.hash !== hash) continue;
+        indices[roleIndex]?.add(index);
+        recordExactMatch(hash, () => functionIdentity(module, index));
       }
     }
-    return Object.freeze(indices.map((matches) => Object.freeze(matches)));
+    if (relinked) {
+      roles.forEach((role, roleIndex) => {
+        for (const identity of reviewedIdentities(role.hash)) {
+          for (const index of functionsWithIdentity(module, identity)) {
+            if (signatureMatches(module, index, role.params, role.results)) indices[roleIndex]?.add(index);
+          }
+        }
+      });
+    }
+    return Object.freeze(indices.map((matches) => Object.freeze([...matches])));
   }
 
   function playerEffectCandidateCounts(module: ModuleShape): readonly number[] {
@@ -167,11 +190,13 @@ function effectProofFamily(bodies: Readonly<Record<string, string>> | undefined)
 
   function derivePlayerEffectObservation(
     module: ModuleShape,
+    relinked: boolean,
   ): NonNullable<KnownEnhancementBuild["playerEffectObservation"]> | null {
     const roles = [...ACCESSORS, ADD_TIMED, RENEW, REMOVE] as const;
-    const matches = scan(module, roles);
+    const matches = scan(module, roles, relinked);
     if (matches.some((candidate) => candidate.length !== 1)) return null;
-    const timerMatches = [...new Set(scan(module, TIMERS).flat())];
+    const timerRoles = scan(module, TIMERS, relinked);
+    const timerMatches = [...new Set(timerRoles.flat())];
     if (timerMatches.length !== 1) return null;
     const located = matches.map((candidate) => candidate[0]!);
     const accessors = ACCESSORS.map((role, index) => [role, located[index]!] as const);
@@ -179,7 +204,8 @@ function effectProofFamily(bodies: Readonly<Record<string, string>> | undefined)
     const renewTimed = located[ACCESSORS.length + 1]!;
     const remove = located[ACCESSORS.length + 2]!;
     const timer = timerMatches[0]!;
-    const timerHash = functionBodySha256(module, timer);
+    // The reviewed timer body this function is, exactly or by relocation.
+    const timerHash = TIMERS[timerRoles.findIndex((candidates) => candidates.includes(timer))]!.hash;
     return Object.freeze({
       accessors: Object.freeze(accessors.map(([role, functionIndex]) => Object.freeze({
         functionIndex, params: Object.freeze([...role.params]),
@@ -241,8 +267,9 @@ function effectProofFamily(bodies: Readonly<Record<string, string>> | undefined)
   function deriveEffectIconGeometry(
     module: ModuleShape,
     skillGeometry: NonNullable<KnownEnhancementBuild["skillSlotGeometry"]> | null,
+    relinked: boolean,
   ): EffectIconProof | null {
-    const matches = scan(module, [EFFECTS_INITIALIZER, CHILD_BUILDER]);
+    const matches = scan(module, [EFFECTS_INITIALIZER, CHILD_BUILDER], relinked);
     if (matches.some((candidate) => candidate.length !== 1) || skillGeometry === null) return null;
     const initializer = matches[0]![0]!;
     const childBuilder = matches[1]![0]!;
@@ -278,10 +305,10 @@ function effectProofFamily(bodies: Readonly<Record<string, string>> | undefined)
 }
 
 const AUGUST_FAMILY = effectProofFamily(undefined);
-const familyCache = new WeakMap<readonly ClientGeneration[], readonly ReturnType<typeof effectProofFamily>[]>();
+const familyCache = new WeakMap<readonly ClientGeneration[], readonly EffectProofFamily[]>();
 
 /** The August reference family, then one family per active reviewed generation. */
-function families(): readonly ReturnType<typeof effectProofFamily>[] {
+function families(): readonly EffectProofFamily[] {
   const generations = reviewedGenerations();
   let found = familyCache.get(generations);
   if (!found) {
@@ -298,14 +325,40 @@ export function isPlayerEffectObservationProof(value: unknown): value is PlayerE
 export function isEffectIconGeometryProof(value: unknown): value is EffectIconProof {
   return families().some(family => family.isEffectIconGeometryProof(value));
 }
+type EffectProofFamily = ReturnType<typeof effectProofFamily>;
+
+/** The function indices a proof names, without the reviewed digests it cites. */
+const locations = (proof: unknown) =>
+  JSON.stringify(proof, (key, value: unknown) => key === "bodySha256" ? undefined : value);
+
+/**
+ * The proof of the families whose reviewed bodies the module holds exactly.
+ * Only when no family matches exactly, of those whose bodies it holds as
+ * relocations. Families that match must name the same functions; generations
+ * with equal identities do, and the newest one's digests are cited.
+ */
+function uniqueFamilyProof<Proof>(
+  derive: (family: EffectProofFamily, relinked: boolean) => Proof | null,
+): Proof | null {
+  for (const relinked of [false, true]) {
+    const matches = families().flatMap((family) => {
+      const proof = derive(family, relinked);
+      return proof === null ? [] : [proof];
+    });
+    const newest = matches.at(-1);
+    if (newest === undefined) continue;
+    return matches.every((proof) => locations(proof) === locations(newest)) ? newest : null;
+  }
+  return null;
+}
+
 export function derivePlayerEffectObservation(module: ModuleShape): PlayerEffectProof | null {
-  const matches = families().flatMap(family => family.derivePlayerEffectObservation(module) ?? []);
-  return matches.length === 1 ? matches[0]! : null;
+  return uniqueFamilyProof((family, relinked) => family.derivePlayerEffectObservation(module, relinked));
 }
 export function deriveEffectIconGeometry(module: ModuleShape,
   skillGeometry: NonNullable<KnownEnhancementBuild["skillSlotGeometry"]> | null): EffectIconProof | null {
-  const matches = families().flatMap(family => family.deriveEffectIconGeometry(module, skillGeometry) ?? []);
-  return matches.length === 1 ? matches[0]! : null;
+  return uniqueFamilyProof((family, relinked) =>
+    family.deriveEffectIconGeometry(module, skillGeometry, relinked));
 }
 export function playerEffectCandidateCounts(module: ModuleShape): readonly number[] {
   const counts = families().map(family => family.playerEffectCandidateCounts(module));

@@ -284,8 +284,8 @@ so first check what still refuses.
    `reviewed-facts.ts` in client order. Run
    `pnpm certification reviewed-identities PATH/Gw.jspi.wasm` on the new client
    and copy its `memoryCodeSha256` and the identity entries that no older
-   generation already lists. Add `playerEffectBodies` when its effect bodies
-   moved.
+   generation already lists. Add `playerEffectBodies` only when an effect
+   body really changed; a relink finds them by identity.
 6. Run the replay test again. It must pass, and the new client's record must
    prove every feature it supports with every generation. A client that is not
    a relink of the previous generation needs its patch-day row in `PATCH_DAY`:

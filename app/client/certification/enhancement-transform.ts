@@ -85,6 +85,8 @@ import {
 } from "./enhancement-table.js";
 import { buildEnhancementManifestSection } from "./enhancement-transform-manifest.js";
 import { encodeName } from "./wasm-emit.js";
+import type { ModuleShape } from "./enhancement-evidence-types.js";
+import { functionMatchesReviewedBody, wasmEvidence } from "./wasm-evidence.js";
 export { ENHANCEMENT_MANIFEST_SECTION } from "./enhancement-transform-manifest.js";
 
 declare const WebAssembly: {
@@ -231,12 +233,18 @@ function resolveEnhancementTransform(
     }
     return hook;
   };
+  let inputModule: ModuleShape | null = null;
+  const clientModule = () =>
+    inputModule ??= (wasmEvidence(input) ?? fail("input is not a supported module")).moduleView();
+  const isReviewedBody = (functionIndex: number, bodySha256: string): boolean =>
+    bodyHash(functionIndex) === bodySha256 || functionMatchesReviewedBody(clientModule(), functionIndex, bodySha256);
   const skillResolution = resolveEnhancementSkillTransform({
     build,
     capabilities,
     bodies,
     importCount,
     resolveFunction: resolveHook,
+    isReviewedBody,
     fail,
   });
   const preGameResolution = resolveEnhancementPreGameTransform({

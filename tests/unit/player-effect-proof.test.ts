@@ -1,7 +1,14 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { test } from "node:test";
-import { isEffectIconGeometryProof, isPlayerEffectObservationProof } from
-  "../../app/client/certification/enhancement-player-effect-proof.ts";
+import type { ModuleShape } from "../../app/client/certification/enhancement-evidence-types.ts";
+import {
+  derivePlayerEffectObservation,
+  isEffectIconGeometryProof,
+  isPlayerEffectObservationProof,
+} from "../../app/client/certification/enhancement-player-effect-proof.ts";
+import { functionIdentity } from "../../app/client/certification/relocation-identity.ts";
+import { withReviewedFacts, type ClientGeneration } from "../../app/client/certification/reviewed-facts.ts";
 
 function proof() {
   return {
@@ -130,4 +137,105 @@ test("effect-icon proof refuses changed anchors, relations, and child formula", 
     ...valid,
     layout: { ...valid.layout, frameRelation: 0x12c },
   }), false);
+});
+
+// One synthetic body per player-effect role: its August reference digest,
+// signature and length. Each body reads one static address, calls one helper
+// (both padded operands a relink rewrites) and computes `role + 2`.
+const I32 = 0x7f;
+const F32 = 0x7d;
+const ROLES = [
+  ["7df2376537653cac9b32172fb51073fa57503b1a2bcceb317a6d282d1e13fb0b", [I32, I32, I32, I32, I32], [], 30],
+  ["18899c4be6bf2fd51f6dbf6e52241456cdaed94d912ed23f307c95917bf615b8", [I32, I32], [], 24],
+  ["1f2d462100add0c160d62265d2eaf292a00bfd1cde84c38c1e51f2aac0a2cc57", [I32, I32, I32, I32, I32], [], 30],
+  ["a560a223d9756fc3579f057137601853ec23c2b6bbd57248216b77ce550d29af", [I32, I32, I32, I32, F32], [], 30],
+  ["ecfa62c1bfaaebe98c2047ad986e137e9695a3cf2f0f7d5f6367b6e44cc10894", [I32, I32, I32, F32], [], 28],
+  ["3fecf883ff7543db3cfdd8f3d77fc5cf3ef1e78282252f4f3caedbbe4f80bac0", [I32, I32], [], 24],
+  ["fe97a736b61e83cc5ea5a84f38aecedd384476339c5b02594fcefeebc5ce5203", [I32, I32, I32, I32, I32, F32], [], 758],
+  ["cafd172e56cbc1efcc64eb281fd8dadcfb6aa305eb4c165c0959f0903f98f769", [I32, I32, I32, I32, F32], [], 442],
+  ["5e0ab6365510501ff760de8c3bdfb8682bf918e092d9263441d8fc7f56403533", [I32, I32, I32], [], 429],
+  ["c1f93ac7e783305bff7d976dbf55365b67fa6696243305685aa1fb0fb7901030", [], [I32], 80],
+] as const;
+const REMOVE = 8;
+
+const padded = (value: number) => [0, 7, 14, 21].map((shift) => ((value >>> shift) & 0x7f) | 0x80)
+  .concat((value >>> 28) & 0x7f);
+
+/** Role bodies after `helpers` helper functions; `edit` changes one role's body. */
+function effectModule(options: Readonly<{
+  helpers: number;
+  address: number;
+  edit?: (role: number, body: number[]) => void;
+}>): ModuleShape {
+  const helperIndex = options.helpers - 1;
+  const bodies = ROLES.map(([, , , length], role) => {
+    const body = [0x00, 0x41, ...padded(options.address), 0x1a, 0x10, ...padded(helperIndex),
+      0x41, role, 0x41, 2, 0x6a, 0x1a];
+    while (body.length < length - 1) body.push(0x01);
+    body.push(0x0b);
+    options.edit?.(role, body);
+    return Uint8Array.from(body);
+  });
+  // The roles call the last helper; the ones before it only shift the indices.
+  const helpers = Array.from({ length: options.helpers }, (_, index) => index === helperIndex
+    ? Uint8Array.of(0x00, 0x0b)
+    : Uint8Array.of(0x00, ...Array.from({ length: index + 1 }, () => 0x01), 0x0b));
+  const types = [{ params: [], results: [] }, ...ROLES.map(([, params, results]) => ({
+    params: [...params], results: [...results],
+  }))];
+  return {
+    types,
+    functionTypeIndices: [...helpers.map(() => 0), ...ROLES.map((_, role) => role + 1)],
+    functionImportCount: 0,
+    bodies: [...helpers, ...bodies],
+    exports: [],
+    importSection: null,
+    // One memory page; no static data.
+    memorySection: Uint8Array.of(1, 0, 1),
+    tableSection: null,
+    elementSection: null,
+    dataSegments: [],
+  };
+}
+
+const sha256 = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex");
+
+/** A generation that reviewed `module`'s bodies and recorded their relocation identities. */
+function reviewed(module: ModuleShape): ClientGeneration {
+  const first = module.bodies.length - ROLES.length;
+  const digest = (role: number) => sha256(module.bodies[first + role]!);
+  return {
+    id: "synthetic",
+    builds: [],
+    playerEffectBodies: Object.fromEntries(ROLES.map(([august], role) => [august, digest(role)])),
+    identities: Object.fromEntries(ROLES.map((_, role) => [digest(role), [functionIdentity(module, first + role)]])),
+  };
+}
+
+test("player effects accept a relocated body and refuse a changed one", () => {
+  const original = effectModule({ helpers: 1, address: 0x0010_0000 });
+  const generation = reviewed(original);
+  const relocated = (edit?: (role: number, body: number[]) => void) =>
+    effectModule({ helpers: 2, address: 0x0010_0040, ...edit ? { edit } : {} });
+  withReviewedFacts([generation], () => {
+    const exact = derivePlayerEffectObservation(original);
+    assert.equal(exact?.mutations.remove.functionIndex, 1 + REMOVE);
+
+    // Only the callee index and the static address moved.
+    const moved = relocated();
+    assert.notEqual(sha256(moved.bodies[2 + REMOVE]!), sha256(original.bodies[1 + REMOVE]!));
+    const relinked = derivePlayerEffectObservation(moved);
+    assert.equal(relinked?.mutations.remove.functionIndex, 2 + REMOVE);
+    assert.equal(relinked?.mutations.remove.bodySha256, exact?.mutations.remove.bodySha256);
+    assert.equal(relinked?.timer.bodySha256, exact?.timer.bodySha256);
+    assert.equal(isPlayerEffectObservationProof(relinked), true);
+
+    // Byte 17 is the constant 2 and byte 18 its i32.add.
+    assert.equal(derivePlayerEffectObservation(relocated((role, body) => {
+      if (role === REMOVE) body[18] = 0x6b;
+    })), null, "a changed opcode");
+    assert.equal(derivePlayerEffectObservation(relocated((role, body) => {
+      if (role === REMOVE) body[17] = 3;
+    })), null, "a changed constant");
+  });
 });
