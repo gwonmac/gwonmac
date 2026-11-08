@@ -23,6 +23,7 @@
 //     tests/unit/the-ui-system-has-one-place-to-change-a-colour.test.ts
 import assert from "node:assert/strict";
 import { globSync, readFileSync } from "node:fs";
+import { posix } from "node:path";
 import test from "node:test";
 
 const TOKENS = "app/shared/ui/tokens.css";
@@ -324,17 +325,32 @@ test("the Hub's Settings page loads the launcher tokens it reads", () => {
   assert.match(readFileSync("app/ui/launcher/index.html", "utf8"), /<html [^>]*\bdata-launcher\b/u);
 });
 
-/** The stylesheets the Settings page draws with: its own, the shared buttons, and every component it renders. */
-function settingsPageStyles(): string[] {
+/** Every component the Settings page renders: each relative `.vue` import, static or dynamic, followed from SettingsView. */
+function settingsPageComponents(): Set<string> {
   const seen = new Set<string>();
   const visit = (path: string) => {
     if (seen.has(path)) return;
     seen.add(path);
-    const source = readFileSync(path, "utf8");
-    for (const [, name] of source.matchAll(/from "\.\/([A-Za-z]+)\.vue"/gu)) visit(`app/ui/launcher/src/components/${name}.vue`);
+    for (const [, target] of readFileSync(path, "utf8").matchAll(/(?:\bfrom|\bimport\s*\(?)\s*["'](\.{1,2}\/[^"']+\.vue)["']/gu)) {
+      visit(posix.join(posix.dirname(path), target!));
+    }
   };
   visit("app/ui/launcher/src/components/SettingsView.vue");
-  return [SETTINGS, "app/ui/launcher/src/controls.css", ...seen].map((path) => code(styleOf(path, readFileSync(path, "utf8"))));
+  return seen;
+}
+
+/** The stylesheets the Settings page draws with: its own, the shared buttons, and every component it renders. */
+const settingsPageStyles = () =>
+  [SETTINGS, "app/ui/launcher/src/controls.css", ...settingsPageComponents()].map((path) => code(styleOf(path, readFileSync(path, "utf8"))));
+
+/** The launcher names hub-settings.css re-points: its `.hub-settings-host .settings-view` rules, inside at-rules too, as name → value. */
+function hubRepoints(): Map<string, string> {
+  const repoints = new Map<string, string>();
+  for (const { selectors, declarations } of rules(code(readFileSync(HUB_SETTINGS, "utf8")))) {
+    if (!selectors.includes(".hub-settings-host .settings-view")) continue;
+    for (const [property, value] of declarations) if (launcherTokens.has(property)) repoints.set(property, value);
+  }
+  return repoints;
 }
 
 test("the Hub's Settings page takes every colour it reads from the Hub theme", () => {
@@ -342,18 +358,25 @@ test("the Hub's Settings page takes every colour it reads from the Hub theme", (
   // does not re-point draws launcher gold or red inside a blue Hub, as the
   // section list and the Delete style dialog once did. Radii and the type scale
   // stay the launcher's on purpose.
+  assert.ok(settingsPageComponents().has("app/ui/launcher/src/components/BaseModal.vue"), "the walk reaches the dialog");
   const read = new Set(settingsPageStyles().flatMap((css) => [...referenced(css)].filter((name) => launcherTokens.has(name))));
-  const repointed = declared(readFileSync(HUB_SETTINGS, "utf8"));
+  const repoints = hubRepoints();
+  const repointed = new Set(repoints.keys());
   const scale = (name: string) => /^--(?:radius|fs)-/u.test(name);
   const missing = [...read].filter((name) => !scale(name) && !repointed.has(name));
   assert.deepEqual(missing, [], `read by the Settings page but not re-pointed for the Hub: ${missing.join(", ")}`);
   const stale = [...repointed].filter((name) => launcherTokens.has(name) && !read.has(name));
   assert.deepEqual(stale, [], `re-pointed for the Hub but not read by the Settings page: ${stale.join(", ")}`);
+  // A re-point that reads another launcher name (`--gold: var(--gold-text)`) still paints launcher gold.
+  const launcherValued = [...repoints].filter(([, value]) => [...referenced(value)].some((name) => !name.startsWith("--ui-")));
+  assert.deepEqual(launcherValued.map(([name, value]) => `${name}: ${value}`), [], "a Hub re-point reads only --ui-* names");
 });
 
-/** Each rule as its at-rule context, its selectors and its property names. */
-function rules(css: string, context = ""): { context: string; selectors: string[]; properties: string[] }[] {
-  const out: { context: string; selectors: string[]; properties: string[] }[] = [];
+type CssRule = { context: string; selectors: string[]; declarations: [property: string, value: string][] };
+
+/** Each rule as its at-rule context, its selectors and its declarations. */
+function rules(css: string, context = ""): CssRule[] {
+  const out: CssRule[] = [];
   let at = 0;
   for (let open = css.indexOf("{", at); open >= 0; open = css.indexOf("{", at)) {
     let close = open + 1;
@@ -365,7 +388,10 @@ function rules(css: string, context = ""): { context: string; selectors: string[
       out.push({
         context,
         selectors: head.split(/,(?![^(]*\))/u).map((selector) => selector.replace(/\s+/gu, " ").trim()),
-        properties: body.split(";").map((declaration) => declaration.split(":")[0]!.trim()).filter(Boolean),
+        declarations: body.split(";").filter((declaration) => declaration.includes(":")).map((declaration) => {
+          const colon = declaration.indexOf(":");
+          return [declaration.slice(0, colon).trim(), declaration.slice(colon + 1).trim()];
+        }),
       });
     }
     at = close;
@@ -381,9 +407,9 @@ test("Settings sets each property of a selector in one rule", () => {
   // The page was once three stacked copies of itself, where the last rule
   // silently won and an edit to an earlier one did nothing.
   const seen = new Map<string, number>();
-  for (const { context, selectors, properties } of rules(file(SETTINGS).css)) {
+  for (const { context, selectors, declarations } of rules(file(SETTINGS).css)) {
     for (const selector of selectors) {
-      for (const property of new Set(properties.map(family))) {
+      for (const property of new Set(declarations.map(([property]) => family(property)))) {
         const key = `${context}${selector} { ${property} }`;
         seen.set(key, (seen.get(key) ?? 0) + 1);
       }
