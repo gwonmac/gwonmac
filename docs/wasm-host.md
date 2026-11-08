@@ -156,10 +156,17 @@ isolated utility process reads the official WASM and JS once, checks both
 hashes, and walks the whole derived chain for every release launch profile
 (Core and Tools): template, Enhancement, friends, Cartography, native
 double-click and 4 GB, each stage on the previous stage's output. It reports
-the launch that is starting first, so Play waits only for that chain, and
-finishes the other profile in the background under the same time budget. The
-process writes nothing. Known hashes take the same structural path as unknown
-hashes.
+the launch that is starting first, so Play waits only for that chain. Its 4 GB
+proof comes after that report unless this launch asked for 4 GB. The process
+writes nothing. Known hashes take the same structural path as unknown hashes.
+
+Play waits at most 120 s for the requested report. When that runs out, this
+launch serves the official module with `check-failed`, but the pass is not
+stopped: it drops to low priority, finishes the other proofs while the game
+runs, and stores its record, so the next start reads the record. A hard bound
+of 10 minutes ends any pass. Only one pass runs per install. A launch of the
+same build joins the running pass; a launch of another build cancels it, and a
+pass that was replaced never writes its record.
 
 Main keeps the complete pass in one record per install
 (`game/client-verdict.json`). The record is the verifier's own output plus its
@@ -183,8 +190,20 @@ and checks its output hash whenever it rebuilds a module.
 A crash, timeout, changed file or malformed answer is a failed check, not a
 verdict: nothing is stored, the features report `check-failed`, and the next
 start tries again. An ambiguous match, unexpected layout or transform error is
-a refusal, which a complete pass records like any other verdict. Either way the
-app serves the verified official module or the last stage that passed.
+a refusal, which a complete pass records like any other verdict. A stage
+refuses by throwing a plain `Error`, an `EvidenceError` or a `ProofLimitError`
+(`stage-refusal.ts`). Anything else it throws, such as a `TypeError` or a stack
+overflow, is a failed check for that stage: the pass is not stored and the
+features of that stage report `check-failed` (for a stage before native
+double-click, every capability). A guard that throws on
+malformed verifier output is a failed check too: Main deletes a record that
+caused it and serves the official module. Either way the app serves the
+verified official module or the last stage that passed, and activation never
+fails because of the check.
+
+When Enhancement falls back to its second candidate, a later stage whose proof
+was made for the first candidate cannot be used. Native double-click and 4 GB
+then report `preparation-failed`, not a Guild Wars update.
 
 ## Effective feature status
 

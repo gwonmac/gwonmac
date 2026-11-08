@@ -7,6 +7,7 @@
  * this bounded certificate and independently reproduces its exact output.
  */
 import { createHash } from "node:crypto";
+import { refusedOrRethrow } from "./stage-refusal.js";
 import { derivePreGameControls } from "./enhancement-pre-game-proof.js";
 import {
   deriveObservationLayout,
@@ -80,8 +81,8 @@ export function deriveCartographySpikeBuild(
       memoryLayout,
       outputSha256: sha256(transformCartographySpikeWasm(input, memoryLayout)),
     });
-  } catch {
-    return null;
+  } catch (error) {
+    return refusedOrRethrow(error);
   }
 }
 

@@ -55,12 +55,13 @@ function parseLaunches(value: string): ClientVerificationLaunch[] | null {
 }
 
 async function main(): Promise<void> {
-  const [mode, wasmPath, wasmSha256, jsPath, jsSha256, launchesJson] =
+  const [mode, wasmPath, wasmSha256, jsPath, jsSha256, launchesJson, memory] =
     process.argv.slice(2);
   const launches = launchesJson ? parseLaunches(launchesJson) : null;
   if (
     !parentPort || mode !== "pass"
     || !wasmPath || !wasmSha256 || !jsPath || !jsSha256 || !launches
+    || (memory !== "memory-first" && memory !== "memory-later")
   ) {
     parentPort?.postMessage(null);
     process.exitCode = 2;
@@ -73,16 +74,17 @@ async function main(): Promise<void> {
     return;
   }
   const port = parentPort;
+  let reported = false;
   await runClientVerificationPass(wasm, js, launches, (result, complete) => {
     port.postMessage({ complete, result });
-    if (!complete) {
-      try {
-        setPriority(constants.priority.PRIORITY_BELOW_NORMAL);
-      } catch {
-        // Priority is a courtesy to the starting game, not a requirement.
-      }
+    if (reported) return;
+    reported = true;
+    try {
+      setPriority(constants.priority.PRIORITY_BELOW_NORMAL);
+    } catch {
+      // Priority is a courtesy to the starting game, not a requirement.
     }
-  });
+  }, { extendedMemoryFirst: memory === "memory-first" });
 }
 
 await main().catch(() => {

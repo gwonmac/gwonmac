@@ -650,15 +650,17 @@ export const APP_AND_UPDATE_EVENT_SCHEMA = {
     level: "warn",
     fields: { code },
   },
-  // Where this launch's certification came from. `build` is the first 12 hex
-  // digits of the public official WASM hash; nothing else names the client.
+  // Where this launch's certification came from: the stored record, a pass,
+  // or `error` when no check could start (hashing the official JS failed).
+  // `build` is the first 12 hex digits of the public official WASM hash;
+  // nothing else names the client.
   "wasm.clientVerdict": {
     scope: "app",
     subsystem: "wasm",
     level: "info",
     fields: {
       build: clientBuildId,
-      source: literal(["record", "pass"] as const),
+      source: literal(["record", "pass", "error"] as const),
       outcome: literal(["accepted", "check-failed"] as const),
       passMs: nullable(finiteNumber),
     },

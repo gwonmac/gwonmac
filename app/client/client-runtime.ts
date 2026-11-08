@@ -104,7 +104,13 @@ import {
 } from "../main/diagnostics.js";
 import type { GamePaths } from "../main/paths.js";
 import { runVerifierPass } from "./certification/local-client-verifier-host.js";
-import { obtainClientVerdict, type ClientVerdict } from "./client-verdict.js";
+import {
+  createVerifierPassSlot,
+  obtainClientVerdict,
+  type ClientVerdict,
+  type ClientVerdictOutcome,
+} from "./client-verdict.js";
+import { discardClientVerdictRecord } from "./client-verdict-record.js";
 import type {
   AnyLocalFeatureInvariant,
   LocalFeatureVerdicts,
@@ -117,7 +123,7 @@ import {
   diagnosticDigest,
   optionalFeatureStatus,
   runtimeFeatureVerdicts,
-  withFailedCheck,
+  servedReasons,
 } from "./client-runtime-values.js";
 
 export type { ActiveClient } from "./active-client.js";
@@ -153,6 +159,8 @@ interface ClientRuntimeOptions {
 
 export class ClientRuntime {
   private readonly activeSlot = new ActiveClientSlot();
+  /** The one verifier pass this install runs at a time; see `obtainClientVerdict`. */
+  private readonly verifierPasses = createVerifierPassSlot();
   /**
    * Held by every operation that moves a generation directory. `update`,
    * candidate confirmation and crash rollback all rename `artifacts`,
@@ -371,8 +379,12 @@ export class ClientRuntime {
       requestedProfile: enhancementCapabilityProfile(this.options.enhancementCapabilities) ?? "none",
       cartography: this.options.cartographySpike === true,
     };
-    const obtained = await sha256File(officialJs).then(
-      (jsSha256) => obtainClientVerdict({
+    // Nothing in obtaining a verdict may fail activation: any error is a
+    // failed check, and the launch plays the official module.
+    let obtained: ClientVerdictOutcome | null = null;
+    try {
+      const jsSha256 = await sha256File(officialJs);
+      obtained = await obtainClientVerdict({
         recordPath: this.options.paths.clientVerdict,
         appVersion: this.options.hostVersion,
         installKey: this.options.clientVerdictKey,
@@ -382,58 +394,73 @@ export class ClientRuntime {
         jsSha256,
         launch: requestedLaunch,
         releaseLaunches: RELEASE_LAUNCHES,
+        extendedMemoryRequested: this.options.extendedMemoryEnabled,
         runPass: runVerifierPass,
-      }),
-      () => null,
-    );
-    const verdict: ClientVerdict | null = obtained?.verdict ?? null;
-    const local = verdict?.verification ?? null;
-    logEvent({
-      k: "wasm.clientVerdict",
-      build: clientBuildId(asDigest(officialSha256)),
-      source: obtained?.source ?? "pass",
-      outcome: verdict ? "accepted" : "check-failed",
-      passMs: obtained?.passMs ?? null,
-    });
+        slot: this.verifierPasses,
+      });
+    } catch {
+      obtained = null;
+    }
     if (obtained?.source === "pass") {
       void obtained.stored.then((stored) => {
         logEvent({ k: "wasm.clientVerdictStored", stored: stored === "stored" });
       });
     }
-    const certification: ClientCertification = local
-      ? certificationFromLocalVerification(local)
-      : { templateSaveBuild: null, enhancementBuild: null };
-    if (local) recordFeatureVerdicts(local.featureVerdicts);
-    const lookup = <Build>(find: ((inputSha256: string) => Build | null) | undefined) =>
-      async ({ inputSha256 }: { inputSha256: string }): Promise<Build | null> =>
-        find?.(inputSha256) ?? null;
     const { paths } = this.options;
     const roots = launchCacheRoots(paths, requestedLaunch.cartography ? "tools" : "core");
-    const prepared = await prepareClientModule({
-      officialWasmPath: officialWasm,
-      officialJsPath: officialJs,
-      officialSha256,
-      certification,
-      enhancementCapabilities: this.options.enhancementCapabilities,
-      compatibilityCacheRoot: paths.compatibility,
-      enhancementCacheRoot: roots.enhancements,
-      friendObserver: {
-        cacheRoot: roots.friendObserver,
-        verifyLocally: lookup(verdict?.friendObserver),
-      },
-      ...(this.options.cartographySpike
-        ? {
-            cartographySpike: {
-              cacheRoot: paths.cartographySpike,
-              verifyLocally: lookup(verdict?.cartography),
-            },
-          }
-        : {}),
-      nativeDoubleClickCacheRoot: roots.nativeDoubleClick,
-      extendedMemoryCacheRoot: roots.extendedMemory,
-      extendedMemoryEnabled: this.options.extendedMemoryEnabled,
-    }, lookup(verdict?.nativeDoubleClick), async ({ jsInputSha256, wasmInputSha256 }) =>
-      verdict?.extendedMemory(jsInputSha256, wasmInputSha256) ?? null);
+    const prepareWith = (verdict: ClientVerdict | null) => {
+      const lookup = <Build>(find: ((inputSha256: string) => Build | null) | undefined) =>
+        async ({ inputSha256 }: { inputSha256: string }): Promise<Build | null> =>
+          find?.(inputSha256) ?? null;
+      const local = verdict?.verification ?? null;
+      return prepareClientModule({
+        officialWasmPath: officialWasm,
+        officialJsPath: officialJs,
+        officialSha256,
+        certification: local
+          ? certificationFromLocalVerification(local)
+          : { templateSaveBuild: null, enhancementBuild: null },
+        enhancementCapabilities: this.options.enhancementCapabilities,
+        compatibilityCacheRoot: paths.compatibility,
+        enhancementCacheRoot: roots.enhancements,
+        friendObserver: {
+          cacheRoot: roots.friendObserver,
+          verifyLocally: lookup(verdict?.friendObserver),
+        },
+        ...(this.options.cartographySpike
+          ? {
+              cartographySpike: {
+                cacheRoot: paths.cartographySpike,
+                verifyLocally: lookup(verdict?.cartography),
+              },
+            }
+          : {}),
+        nativeDoubleClickCacheRoot: roots.nativeDoubleClick,
+        extendedMemoryCacheRoot: roots.extendedMemory,
+        extendedMemoryEnabled: this.options.extendedMemoryEnabled,
+      }, lookup(verdict?.nativeDoubleClick), async ({ jsInputSha256, wasmInputSha256 }) =>
+        verdict?.extendedMemory(jsInputSha256, wasmInputSha256) ?? null);
+    };
+    let verdict: ClientVerdict | null = obtained?.verdict ?? null;
+    let prepared = await prepareWith(verdict);
+    if (verdict?.guardFailed()) {
+      // A guard threw on malformed verifier output: serve the official module.
+      // A record that produced it is dropped, so the next start proves again.
+      if (obtained?.source === "record") {
+        await discardClientVerdictRecord(paths.clientVerdict).catch(() => undefined);
+      }
+      verdict = null;
+      prepared = await prepareWith(null);
+    }
+    const local = verdict?.verification ?? null;
+    logEvent({
+      k: "wasm.clientVerdict",
+      build: clientBuildId(asDigest(officialSha256)),
+      source: obtained?.source ?? "error",
+      outcome: verdict ? "accepted" : "check-failed",
+      passMs: obtained?.passMs ?? null,
+    });
+    if (local) recordFeatureVerdicts(local.featureVerdicts);
     const preparationFailed = prepared.failure?.stage === "enhancement";
     const supported = prepared.enhancementBuild
       ? supportedEnhancementCapabilities(prepared.enhancementBuild)
@@ -520,9 +547,12 @@ export class ClientRuntime {
       logEvent({ k: "enhancement.uncertifiedClientBlocked" });
     }
     gauge("enhancement.supportedBuild", prepared.enhancementBuild !== null);
-    const served = { compatibility: servedCompatibility, extendedMemory: extendedMemoryRuntimeStatus(prepared.extendedMemory) };
-    const { compatibility, extendedMemory } = verdict ? served
-      : withFailedCheck(served.compatibility, served.extendedMemory);
+    const { compatibility, extendedMemory } = servedReasons(
+      servedCompatibility,
+      extendedMemoryRuntimeStatus(prepared.extendedMemory),
+      verdict ? verdict.failedStages : null,
+      prepared.failure?.stage === "enhancement",
+    );
     const extendedCap = extendedMemory.effectiveCapBytes;
     const fallbackReason = extendedMemory.fallbackReason;
     gauge("wasm.extendedMemoryMode", prepared.extendedMemory.status);

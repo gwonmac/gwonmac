@@ -7,11 +7,22 @@ import { describe, it } from "node:test";
 import {
   runClientVerificationPass,
   type ClientVerificationLaunch,
+  type ClientVerificationPassResult,
 } from "../../app/client/certification/client-verification-pass.js";
+import { isStageRefusal } from "../../app/client/certification/stage-refusal.js";
+import { ProofLimitError } from "../../app/client/certification/semantic-proof.js";
+import { EvidenceError } from "../../app/client/certification/wasm-evidence-error.js";
 import {
+  acceptLaunchVerdict,
+  createVerifierPassSlot,
   obtainClientVerdict,
+  readPassResult,
   type RunVerifierPass,
+  type VerifierPass,
+  type VerifierPassSlot,
 } from "../../app/client/client-verdict.js";
+import { clientVerdictKey } from "../../app/main/core/client-verdict-key.js";
+import { VolatileNativeKeychain } from "../../app/main/core/native-keychain.js";
 import {
   enhancementCapabilityProfile,
   RELEASE_ENHANCEMENT_CAPABILITIES,
@@ -22,6 +33,8 @@ const sha256 = (bytes: Uint8Array | string) => createHash("sha256").update(bytes
 // The smallest valid module: the real verifier refuses every stage of it, which
 // is still a complete verifier answer that passes the acceptance boundary.
 const WASM = Uint8Array.of(0, 97, 115, 109, 1, 0, 0, 0);
+// Another build: the same module with one empty custom section.
+const WASM_NEXT = Uint8Array.of(0, 97, 115, 109, 1, 0, 0, 0, 0, 2, 1, 97);
 const JS = "var getHeapMax = () => 2147483648;";
 const CORE: ClientVerificationLaunch = {
   requestedProfile: enhancementCapabilityProfile(RELEASE_ENHANCEMENT_CAPABILITIES.core)!,
@@ -33,30 +46,65 @@ const TOOLS: ClientVerificationLaunch = {
 };
 const INSTALL_KEY = Buffer.alloc(32, 1);
 
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** A pass whose answers the test controls. */
+function controlledPass() {
+  let requested!: (value: unknown) => void;
+  let complete!: (value: unknown) => void;
+  const state = { backgrounded: false, cancelled: false };
+  const pass: VerifierPass = {
+    requested: new Promise<unknown>((resolve) => { requested = resolve; }),
+    complete: new Promise<unknown>((resolve) => { complete = resolve; }),
+    background: () => { state.backgrounded = true; },
+    cancel: () => {
+      state.cancelled = true;
+      requested(null);
+      complete(null);
+    },
+  };
+  return {
+    pass,
+    state,
+    answerRequested: (value: unknown) => requested(value),
+    answerComplete: (value: unknown) => complete(value),
+  };
+}
+
+/** The real pass's full answer for `bytes`, through a structured-clone copy. */
+async function passResult(
+  bytes: Uint8Array,
+  launches: readonly ClientVerificationLaunch[],
+): Promise<ClientVerificationPassResult> {
+  const reports: ClientVerificationPassResult[] = [];
+  await runClientVerificationPass(bytes, JS, launches, (result) => {
+    reports.push(structuredClone(result));
+  });
+  const last = reports.at(-1);
+  assert.ok(last);
+  return last;
+}
+
 /** The real pass, in this process, answering through a structured-clone copy. */
-function realPass() {
+function realPass(bytes: Uint8Array = WASM) {
   const calls: (readonly ClientVerificationLaunch[])[] = [];
-  const run: RunVerifierPass = ({ launches }) => {
+  const run: RunVerifierPass = ({ launches, extendedMemoryFirst }) => {
     calls.push(launches);
-    let requested!: (value: unknown) => void;
-    let complete!: (value: unknown) => void;
-    const answers = {
-      requested: new Promise<unknown>((resolve) => { requested = resolve; }),
-      complete: new Promise<unknown>((resolve) => { complete = resolve; }),
-    };
-    void runClientVerificationPass(WASM, JS, launches, (result, done) => {
-      requested(structuredClone(result));
-      if (done) complete(structuredClone(result));
-    });
-    return answers;
+    const control = controlledPass();
+    void runClientVerificationPass(bytes, JS, launches, (result, done) => {
+      control.answerRequested(structuredClone(result));
+      if (done) control.answerComplete(structuredClone(result));
+    }, { extendedMemoryFirst });
+    return control.pass;
   };
   return { run, calls };
 }
 
-const failedPass: RunVerifierPass = () => ({
-  requested: Promise.resolve(null),
-  complete: Promise.resolve(null),
-});
+const failedPass: RunVerifierPass = () => {
+  const control = controlledPass();
+  control.pass.cancel();
+  return control.pass;
+};
 
 async function withRecordDir<T>(body: (recordPath: string) => Promise<T>): Promise<T> {
   const root = await mkdtemp(path.join(tmpdir(), "gw-client-verdict-"));
@@ -74,6 +122,9 @@ function launchOn(
     launch: ClientVerificationLaunch;
     appVersion: string;
     installKey: Uint8Array | null;
+    wasm: Uint8Array;
+    slot: VerifierPassSlot;
+    launchBudgetMs: number;
   }> = {},
 ) {
   return obtainClientVerdict({
@@ -81,12 +132,15 @@ function launchOn(
     appVersion: overrides.appVersion ?? "1.0.0",
     installKey: async () => overrides.installKey === undefined ? INSTALL_KEY : overrides.installKey,
     wasmPath: "/official/Gw.jspi.wasm",
-    wasmSha256: sha256(WASM),
+    wasmSha256: sha256(overrides.wasm ?? WASM),
     jsPath: "/official/Gw.jspi.js",
     jsSha256: sha256(JS),
     launch: overrides.launch ?? TOOLS,
     releaseLaunches: [CORE, TOOLS],
+    extendedMemoryRequested: false,
     runPass,
+    slot: overrides.slot ?? createVerifierPassSlot(),
+    ...(overrides.launchBudgetMs === undefined ? {} : { launchBudgetMs: overrides.launchBudgetMs }),
   });
 }
 
@@ -208,14 +262,144 @@ describe("client verdict", () => {
     // Tools switch run on a profile nobody proved.
     await withRecordDir(async (recordPath) => {
       const pass = realPass();
-      const partial: RunVerifierPass = (options) => ({
-        requested: pass.run(options).requested,
-        complete: Promise.resolve(null),
-      });
+      const partial: RunVerifierPass = (options) => {
+        const answers = pass.run(options);
+        return { ...answers, complete: Promise.resolve(null) };
+      };
       const launch = await launchOn(recordPath, partial);
       assert.ok(launch.verdict);
       assert.equal(await launch.stored, "not-stored");
       await assert.rejects(readFile(recordPath), { code: "ENOENT" });
     });
+  });
+
+  it("keeps a slow pass running past the launch budget and stores it for the next launch", async () => {
+    // Catches the slow-Mac loop: a pass that misses the launch budget used to
+    // be killed, so it failed on every launch and never stored a record.
+    await withRecordDir(async (recordPath) => {
+      const answer = await passResult(WASM, [TOOLS, CORE]);
+      const slow = controlledPass();
+      let spawns = 0;
+      const runSlow: RunVerifierPass = () => {
+        spawns += 1;
+        return slow.pass;
+      };
+      const first = await launchOn(recordPath, runSlow, { launchBudgetMs: 10 });
+      assert.equal(first.verdict, null);
+      assert.equal(slow.state.backgrounded, true);
+      assert.equal(slow.state.cancelled, false);
+      await delay(20);
+      slow.answerRequested(answer);
+      slow.answerComplete(answer);
+      assert.equal(await first.stored, "stored");
+
+      const next = await launchOn(recordPath, runSlow);
+      assert.equal(next.source, "record");
+      assert.ok(next.verdict);
+      assert.equal(spawns, 1);
+    });
+  });
+
+  it("never stores a pass in which a stage failed to check", async () => {
+    // Catches a crash inside a stage stored as that stage's permanent refusal.
+    await withRecordDir(async (recordPath) => {
+      const answer = await passResult(WASM, [TOOLS, CORE]);
+      const crashed = {
+        ...answer,
+        launches: answer.launches.map((launch, index) =>
+          index === 0 ? { ...launch, failedStages: ["nativeDoubleClick"] } : launch),
+      };
+      const once = controlledPass();
+      once.answerRequested(crashed);
+      once.answerComplete(crashed);
+      const first = await launchOn(recordPath, () => once.pass);
+      assert.deepEqual(first.verdict?.failedStages, ["nativeDoubleClick"]);
+      assert.equal(await first.stored, "not-stored");
+      await assert.rejects(readFile(recordPath), { code: "ENOENT" });
+
+      const pass = realPass();
+      const next = await launchOn(recordPath, pass.run);
+      assert.equal(next.source, "pass");
+      assert.deepEqual(next.verdict?.failedStages, []);
+      assert.equal(await next.stored, "stored");
+    });
+  });
+
+  it("runs one pass per build and never lets an older build's pass store", async () => {
+    // Catches two verifiers for one build, and a superseded pass overwriting
+    // the record of the build that replaced it.
+    await withRecordDir(async (recordPath) => {
+      const slot = createVerifierPassSlot();
+      const older = controlledPass();
+      const olderLaunch = await launchOn(recordPath, () => older.pass, { slot, launchBudgetMs: 10 });
+      assert.equal(olderLaunch.verdict, null);
+
+      let spawns = 0;
+      const again = await launchOn(recordPath, () => {
+        spawns += 1;
+        return controlledPass().pass;
+      }, { slot, launchBudgetMs: 10 });
+      assert.equal(spawns, 0, "the same build reuses its running pass");
+      assert.equal(again.verdict, null);
+
+      const newer = realPass(WASM_NEXT);
+      const next = await launchOn(recordPath, newer.run, { slot, wasm: WASM_NEXT });
+      assert.equal(older.state.cancelled, true);
+      assert.equal(await next.stored, "stored");
+      assert.equal(await olderLaunch.stored, "not-stored");
+      const served = await launchOn(recordPath, failedPass, { slot, wasm: WASM_NEXT });
+      assert.equal(served.source, "record");
+    });
+  });
+
+  it("turns a guard that throws on malformed output into a failed check", async () => {
+    // Catches a malformed answer that throws through activation instead of
+    // serving the official module.
+    const result = readPassResult(await passResult(WASM, [TOOLS, CORE]));
+    assert.ok(result);
+    const throws = () => { throw new TypeError("hostile"); };
+    const hostile = new Proxy({}, { get: throws, ownKeys: throws });
+    const throwingStage = acceptLaunchVerdict(
+      { ...result, nativeDoubleClick: [hostile] },
+      TOOLS,
+      sha256(WASM),
+    );
+    assert.ok(throwingStage);
+    assert.equal(throwingStage.nativeDoubleClick(sha256(WASM)), null);
+    assert.equal(throwingStage.guardFailed(), true);
+    const throwingVerification = acceptLaunchVerdict({
+      ...result,
+      launches: result.launches.map((launch) => ({ ...launch, verification: hostile })),
+    }, TOOLS, sha256(WASM));
+    assert.equal(throwingVerification, null);
+  });
+
+  it("tries the Keychain again after it failed instead of remembering the failure", async () => {
+    // Catches one Keychain hiccup disabling the record until the app quits.
+    const keychain = new VolatileNativeKeychain();
+    let failures = 1;
+    const key = clientVerdictKey({
+      load: (slot) => failures-- > 0 ? Promise.reject(new Error("locked")) : keychain.load(slot),
+      save: (slot, value) => keychain.save(slot, value),
+      clear: (slot) => keychain.clear(slot),
+    });
+    assert.equal(await key(), null);
+    const loaded = await key();
+    assert.equal(loaded?.byteLength, 32);
+    assert.deepEqual(await key(), loaded);
+  });
+
+  it("tells a refusal from a stage that failed to check", () => {
+    // Catches a crash classified as a refusal (stored forever) or a refusal
+    // classified as a crash (re-proved on every launch).
+    const cases: [string, unknown, boolean][] = [
+      ["fail() refusal", new Error("extended-memory transform: glue changed"), true],
+      ["evidence refusal", new EvidenceError("invalid-wasm"), true],
+      ["proof limit", new ProofLimitError("call"), true],
+      ["defect", new TypeError("x is undefined"), false],
+      ["stack overflow", new RangeError("Maximum call stack size exceeded"), false],
+      ["not an Error", "boom", false],
+    ];
+    for (const [name, error, refusal] of cases) assert.equal(isStageRefusal(error), refusal, name);
   });
 });

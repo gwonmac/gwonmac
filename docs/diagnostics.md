@@ -38,8 +38,9 @@ For optional Core and Tools behavior, read the evidence in this order:
 The launch event identifies release or development build kind, the developer
 program, whether Tools were enabled, and the diagnostic profile.
 `wasm.clientVerdict` names the build (the first 12 hex digits of the official
-WASM SHA-256), whether the verdict came from the stored record or a fresh
-pass, whether the check failed, and how long Play waited for the pass;
+WASM SHA-256), whether the verdict came from the stored record, a fresh
+pass, or an error before either (`error`, for example a failed JS hash),
+whether the check failed, and how long Play waited for the pass;
 `wasm.clientVerdictStored` says whether that pass was stored. The verifier
 then records one closed verdict for every capability: off, proved,
 changed at a named invariant, or ambiguous with a candidate count. The active

@@ -43,6 +43,7 @@ void app.whenReady().then(async () => {
       { requestedProfile: profile("tools"), cartography: true },
       { requestedProfile: profile("core"), cartography: false },
     ],
+    extendedMemoryFirst: false,
   });
   const [requested, complete] = await Promise.all([pass.requested, pass.complete]);
   state.localVerifierOutcome = { requested, complete };

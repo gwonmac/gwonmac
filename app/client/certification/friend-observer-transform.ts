@@ -3,6 +3,7 @@
  * The game still owns every operation; the companion receives bounded lifecycle facts only.
  */
 import { createHash } from "node:crypto";
+import { refusedOrRethrow } from "./stage-refusal.js";
 import { isDigest } from "../../shared/digest.js";
 import {
   concat,
@@ -277,8 +278,8 @@ export function deriveFriendObserverStage(
       }),
       output,
     });
-  } catch {
-    return null;
+  } catch (error) {
+    return refusedOrRethrow(error);
   }
 }
 

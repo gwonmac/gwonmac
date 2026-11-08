@@ -13,9 +13,12 @@
  *
  * The result is the verifier's own output, never a decision: Main still
  * accepts every part through the same guards a fresh answer passes, and still
- * repeats every transform it has to build.
+ * repeats every transform it has to build. A stage that fails to check (it
+ * throws something other than a refusal, see `stage-refusal.ts`) is named in
+ * `failedStages`; Main never stores a pass that names one.
  */
 import { createHash } from "node:crypto";
+import { isStageRefusal } from "./stage-refusal.js";
 import {
   enhancementCapabilitiesForProfile,
   enhancementCapabilitiesRequested,
@@ -94,8 +97,23 @@ export interface ClientVerificationLaunch {
   readonly cartography: boolean;
 }
 
+/** The stages of one launch's chain, in chain order. */
+export const CLIENT_VERIFICATION_STAGES = [
+  "verification",
+  "template",
+  "enhancement",
+  "friendObserver",
+  "cartography",
+  "nativeDoubleClick",
+  "extendedMemory",
+] as const;
+
+export type ClientVerificationStage = (typeof CLIENT_VERIFICATION_STAGES)[number];
+
 export interface ClientVerificationLaunchResult extends ClientVerificationLaunch {
   readonly verification: LocalClientVerification | null;
+  /** Stages that failed to check rather than refused; empty when every stage answered. */
+  readonly failedStages: readonly ClientVerificationStage[];
 }
 
 /**
@@ -129,24 +147,20 @@ export function launchCapabilities(
 const sha256 = (bytes: Uint8Array | string): string =>
   createHash("sha256").update(bytes).digest("hex");
 
-/** A stage that throws has refused, like one that returns no proof. */
-function attempt<Value>(stage: () => Value): Value | null {
-  try {
-    return stage();
-  } catch {
-    return null;
-  }
-}
-
 /**
  * Prove each launch in order and report after each one, so the caller can
  * start the requested launch before the rest of the pass has finished.
+ *
+ * The 4 GB proof of the requested launch waits until that launch is reported,
+ * unless the launch asks for 4 GB: it is proved either way, so switching 4 GB
+ * on later never needs another pass, but only a launch that uses it waits.
  */
 export async function runClientVerificationPass(
   official: Uint8Array,
   officialJs: string,
   launches: readonly ClientVerificationLaunch[],
   onLaunch: (result: ClientVerificationPassResult, complete: boolean) => void,
+  options: Readonly<{ extendedMemoryFirst: boolean }> = { extendedMemoryFirst: true },
 ): Promise<void> {
   const officialSha256 = sha256(official);
   const jsSha256 = sha256(officialJs);
@@ -165,16 +179,31 @@ export async function runClientVerificationPass(
     nativeDoubleClick: Object.freeze([...nativeDoubleClick]),
     extendedMemory: Object.freeze([...extendedMemory]),
   });
+  const report = async (complete: boolean) => {
+    onLaunch(snapshot(), complete);
+    // Yield, so the report leaves the process before the next proof occupies
+    // this thread for seconds.
+    await new Promise((resolve) => setImmediate(resolve));
+  };
 
   for (const [index, launch] of launches.entries()) {
+    const failedStages = new Set<ClientVerificationStage>();
+    /** A refusal is "no proof"; any other throw marks the stage as not checked. */
+    const attempt = <Value>(stage: ClientVerificationStage, run: () => Value): Value | null => {
+      try {
+        return run();
+      } catch (error) {
+        if (!isStageRefusal(error)) failedStages.add(stage);
+        return null;
+      }
+    };
     const capabilities = launchCapabilities(launch);
-    const verification = capabilities === null ? null : attempt(() =>
+    const verification = capabilities === null ? null : attempt("verification", () =>
       acceptLocalClientVerification(
         verifyLocalClientBytes(official, capabilities),
         officialSha256,
         capabilities,
       ));
-    launchResults.push(Object.freeze({ ...launch, verification }));
 
     let bytes = official;
     let inputSha256 = officialSha256;
@@ -191,7 +220,7 @@ export async function runClientVerificationPass(
       if (!templateOutputs.has(template.outputSha256)) {
         templateOutputs.set(
           template.outputSha256,
-          attempt(() => rewriteTemplateSaveWasm(official, template)),
+          attempt("template", () => rewriteTemplateSaveWasm(official, template)),
         );
       }
       advance(templateOutputs.get(template.outputSha256) ?? null, template.outputSha256);
@@ -208,7 +237,7 @@ export async function runClientVerificationPass(
       for (const candidate of enhancementCandidates(enhancement, capabilities)) {
         const before = inputSha256;
         advance(
-          attempt(() => transformEnhancementWasm(bytes, enhancement, candidate)),
+          attempt("enhancement", () => transformEnhancementWasm(bytes, enhancement, candidate)),
           enhancementOutputSha256(enhancement, candidate),
         );
         if (inputSha256 !== before) {
@@ -222,8 +251,12 @@ export async function runClientVerificationPass(
       const known = provedFor(friendObserver, inputSha256, isFriendObserverBuild);
       const proved = bytes;
       const stage = known
-        ? { build: known, output: attempt(() => rewriteFriendObserverWasm(proved, known.certificate)) }
-        : attempt(() => deriveFriendObserverStage(proved));
+        ? {
+            build: known,
+            output: attempt("friendObserver", () =>
+              rewriteFriendObserverWasm(proved, known.certificate)),
+          }
+        : attempt("friendObserver", () => deriveFriendObserverStage(proved));
       if (stage && isFriendObserverBuild(stage.build, inputSha256)) {
         remember(friendObserver, stage.build, inputSha256, isFriendObserverBuild);
         advance(stage.output, stage.build.outputSha256);
@@ -232,41 +265,60 @@ export async function runClientVerificationPass(
 
     if (launch.cartography) {
       const build = provedFor(cartography, inputSha256, isCartographySpikeBuild)
-        ?? attempt(() => deriveCartographySpikeBuild(bytes));
+        ?? attempt("cartography", () => deriveCartographySpikeBuild(bytes));
       if (isCartographySpikeBuild(build, inputSha256)) {
         remember(cartography, build, inputSha256, isCartographySpikeBuild);
         advance(
-          attempt(() => rewriteCartographySpikeWasm(bytes, build)),
+          attempt("cartography", () => rewriteCartographySpikeWasm(bytes, build)),
           build.outputSha256,
         );
       }
     }
 
     const doubleClick = provedFor(nativeDoubleClick, inputSha256, isDerivedNativeDoubleClickBuild)
-      ?? attempt(() => deriveNativeDoubleClickBuild(bytes));
+      ?? attempt("nativeDoubleClick", () => deriveNativeDoubleClickBuild(bytes));
     if (isDerivedNativeDoubleClickBuild(doubleClick, inputSha256)) {
       remember(nativeDoubleClick, doubleClick, inputSha256, isDerivedNativeDoubleClickBuild);
       const proved = bytes;
       advance(
-        attempt(() => rewriteWithBuild(proved, doubleClick)),
+        attempt("nativeDoubleClick", () => rewriteWithBuild(proved, doubleClick)),
         nativeDoubleClickOutputSha256(doubleClick, inputSha256),
       );
     }
 
-    // Proved whether or not this launch asks for 4 GB, so switching it on
-    // later never needs another pass.
     const memoryInput = bytes;
-    const memory = extendedMemory.find((proof) =>
-      isExtendedMemoryStructuralProof(proof, jsSha256, inputSha256))
-      ?? attempt(() => deriveExtendedMemoryStructuralProof(officialJs, memoryInput));
-    if (isExtendedMemoryStructuralProof(memory, jsSha256, inputSha256)) {
-      if (!extendedMemory.includes(memory)) extendedMemory.push(memory);
-    }
+    const memoryInputSha256 = inputSha256;
+    const proveMemory = () => {
+      const memory = extendedMemory.find((proof) =>
+        isExtendedMemoryStructuralProof(proof, jsSha256, memoryInputSha256))
+        ?? attempt("extendedMemory", () =>
+          deriveExtendedMemoryStructuralProof(officialJs, memoryInput));
+      if (
+        isExtendedMemoryStructuralProof(memory, jsSha256, memoryInputSha256)
+        && !extendedMemory.includes(memory)
+      ) extendedMemory.push(memory);
+    };
+    const last = index === launches.length - 1;
+    const memoryLater = index === 0 && !options.extendedMemoryFirst;
+    if (!memoryLater) proveMemory();
 
-    onLaunch(snapshot(), index === launches.length - 1);
-    // Yield, so the report leaves the process before the next launch's proof
-    // occupies this thread for seconds.
-    await new Promise((resolve) => setImmediate(resolve));
+    launchResults.push(Object.freeze({
+      ...launch,
+      verification,
+      failedStages: Object.freeze([...failedStages]),
+    }));
+    await report(last && !memoryLater);
+    if (memoryLater) {
+      proveMemory();
+      // Replace the reported entry, so a deferred 4 GB failure reaches the
+      // final report.
+      launchResults[index] = Object.freeze({
+        ...launch,
+        verification,
+        failedStages: Object.freeze([...failedStages]),
+      });
+      if (last) await report(true);
+    }
   }
 }
 

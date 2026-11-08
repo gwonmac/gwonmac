@@ -15,26 +15,32 @@ import {
 
 const KEY_BYTES = 32;
 
-/** Load the install key, creating it once; null when the Keychain cannot hold it. */
+/**
+ * Load the install key, creating it once; null when the Keychain cannot hold
+ * it. Only a key that loaded is remembered: a Keychain failure is tried again
+ * on the next call.
+ */
 export function clientVerdictKey(
   keychain: NativeKeychain,
 ): () => Promise<Uint8Array | null> {
-  let pending: Promise<Uint8Array | null> | null = null;
-  return () => {
-    pending ??= (async () => {
-      try {
-        const stored = await keychain.load(CLIENT_VERDICT_KEY_SLOT);
-        if (stored?.byteLength === KEY_BYTES) return new Uint8Array(stored);
-        stored?.fill(0);
-        await keychain.save(CLIENT_VERDICT_KEY_SLOT, randomBytes(KEY_BYTES));
-        // Another instance may have saved its own key at the same moment; use
-        // whatever the Keychain kept, so both sign with one key.
-        const saved = await keychain.load(CLIENT_VERDICT_KEY_SLOT);
-        return saved?.byteLength === KEY_BYTES ? new Uint8Array(saved) : null;
-      } catch {
-        return null;
-      }
-    })();
-    return pending;
+  let loaded: Uint8Array | null = null;
+  return async () => {
+    loaded ??= await loadOrCreate(keychain);
+    return loaded;
   };
+}
+
+async function loadOrCreate(keychain: NativeKeychain): Promise<Uint8Array | null> {
+  try {
+    const stored = await keychain.load(CLIENT_VERDICT_KEY_SLOT);
+    if (stored?.byteLength === KEY_BYTES) return new Uint8Array(stored);
+    stored?.fill(0);
+    await keychain.save(CLIENT_VERDICT_KEY_SLOT, randomBytes(KEY_BYTES));
+    // Another instance may have saved its own key at the same moment; use
+    // whatever the Keychain kept, so both sign with one key.
+    const saved = await keychain.load(CLIENT_VERDICT_KEY_SLOT);
+    return saved?.byteLength === KEY_BYTES ? new Uint8Array(saved) : null;
+  } catch {
+    return null;
+  }
 }

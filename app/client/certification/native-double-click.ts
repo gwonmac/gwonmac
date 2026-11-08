@@ -21,6 +21,7 @@
  * host writes it; this file only carries it across.
  */
 import { createHash } from "node:crypto";
+import { refusedOrRethrow } from "./stage-refusal.js";
 import {
   concat,
   encodeCode,
@@ -188,8 +189,8 @@ export function deriveNativeDoubleClickBuild(
       ...candidate,
       derivations: Object.freeze({ [inputSha256]: sha256(output) }),
     };
-  } catch {
-    return null;
+  } catch (error) {
+    return refusedOrRethrow(error);
   }
 }
 
