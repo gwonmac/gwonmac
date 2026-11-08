@@ -27,7 +27,13 @@ import {
   verifyLocalClientBytes,
   type LocalClientVerification,
 } from "./local-client-verifier.js";
-import { rewriteTemplateSaveWasm } from "./template-save-compat.js";
+import {
+  rewriteTemplateSaveWasm,
+  TEMPLATE_SAVE_TRANSFORM_ABI,
+} from "./template-save-compat.js";
+import { ENHANCEMENT_TRANSFORM_ABI } from "../../shared/enhancement-contracts.js";
+import { FRIEND_OBSERVER_TRANSFORM_ABI } from "../../shared/friend-observer-contract.js";
+import { CARTOGRAPHY_SPIKE_TRANSFORM_ABI } from "./pathing-spike-transform.js";
 import { enhancementOutputSha256 } from "./enhancement-builds.js";
 import { transformEnhancementWasm } from "./enhancement-transform.js";
 import { enhancementCandidates } from "./client-module.js";
@@ -47,11 +53,14 @@ import {
   deriveNativeDoubleClickBuild,
   isDerivedNativeDoubleClickBuild,
   nativeDoubleClickOutputSha256,
+  NATIVE_DOUBLE_CLICK_TRANSFORM_ABI,
   rewriteWithBuild,
   type NativeDoubleClickBuild,
 } from "./native-double-click.js";
 import {
   deriveExtendedMemoryStructuralProof,
+  EXTENDED_MEMORY_TRANSFORM_ABI,
+  EXTENDED_MEMORY_VERIFIER_ABI,
   isExtendedMemoryStructuralProof,
   type ExtendedMemoryStructuralProof,
 } from "./extended-memory.js";
@@ -61,6 +70,21 @@ import {
  * an older shape is a key mismatch instead of a parse question.
  */
 export const CLIENT_VERIFICATION_PASS_ABI = 1;
+
+/**
+ * The ABI of every stage a pass proves. A stored pass made under any other
+ * value is a key mismatch, so a stage change re-proves the build even when the
+ * app version did not change (development and preview builds).
+ */
+export const CLIENT_VERIFICATION_STAGE_ABIS = Object.freeze({
+  template: TEMPLATE_SAVE_TRANSFORM_ABI,
+  enhancement: ENHANCEMENT_TRANSFORM_ABI,
+  friendObserver: FRIEND_OBSERVER_TRANSFORM_ABI,
+  cartography: CARTOGRAPHY_SPIKE_TRANSFORM_ABI,
+  nativeDoubleClick: NATIVE_DOUBLE_CLICK_TRANSFORM_ABI,
+  extendedMemoryTransform: EXTENDED_MEMORY_TRANSFORM_ABI,
+  extendedMemoryVerifier: EXTENDED_MEMORY_VERIFIER_ABI,
+});
 
 /** One module chain a launch can select. */
 export interface ClientVerificationLaunch {

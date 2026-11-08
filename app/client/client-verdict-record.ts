@@ -5,8 +5,8 @@
  *
  * The record is a cache of the verifier's own words, not a source of
  * authority. It counts only when its MAC authenticates with the install key
- * and its key matches the official WASM and JS hashes, the verifier and pass
- * ABIs, and the app version; then its contents re-enter the same boundary a
+ * and its key matches the official WASM and JS hashes, the verifier, pass and
+ * stage ABIs, and the app version; then its contents re-enter the same boundary a
  * fresh answer passes. Anything else (no key, another build, another app
  * version, a bad MAC, malformed JSON) reads as no record, and the build is
  * proved again.
@@ -26,6 +26,8 @@ export interface ClientVerdictRecordKey {
   readonly officialJsSha256: string;
   readonly verifierAbi: number;
   readonly passAbi: number;
+  /** Every stage's transform or verifier ABI, by stage. */
+  readonly stageAbis: Readonly<Record<string, number>>;
   readonly appVersion: string;
 }
 

@@ -38,23 +38,23 @@ These inputs can provide evidence but cannot grant authority:
 - compiled exact-build tables;
 - CI results and workflow summaries;
 - generated reports, attestations, caches, or diagnostics (the stored verifier
-  pass above is the verifier's own answer, replayed under the rule above);
+  pass below is the verifier's own answer, replayed under the rule there);
 - GitHub issues and pull requests;
 - a successful result from an older client generation.
 
 The verifier binds every verdict to the official input SHA-256 and verifier ABI.
-Main validates that boundary before it accepts a result.
+Main validates that boundary before it accepts a result. Production performs
+each transform again, checks every transform invariant, validates the resulting
+WASM, and requires the locally computed output hash.
 
 Main stores this install's last complete verifier pass so a proved build is
 not proved again at every launch. Stored state grants nothing by itself. The
 exact rule: a stored pass is used only when its HMAC-SHA256 verifies with this
 install's Keychain key, and its key equals the current official WASM SHA-256,
-official JS SHA-256, verifier ABI, pass ABI and app version. It then passes the
-same acceptance boundary and per-stage guards as a fresh answer. A stored pass
-that fails any of this is not used, and the build is proved again. A timeout,
-crash or malformed answer is never stored. Production performs
-each transform again, checks every transform invariant, validates the resulting
-WASM, and requires the locally computed output hash.
+official JS SHA-256, verifier ABI, pass ABI, every stage ABI and app version.
+It then passes the same acceptance boundary and per-stage guards as a fresh
+answer. A stored pass that fails any of this is not used, and the build is
+proved again. A timeout, crash or malformed answer is never stored.
 
 The runtime chain is:
 

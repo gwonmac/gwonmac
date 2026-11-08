@@ -22,6 +22,7 @@ import {
 } from "./certification/local-client-verifier.js";
 import {
   CLIENT_VERIFICATION_PASS_ABI,
+  CLIENT_VERIFICATION_STAGE_ABIS,
   launchCapabilities,
   sameLaunch,
   type ClientVerificationLaunch,
@@ -199,6 +200,7 @@ export async function obtainClientVerdict(options: Readonly<{
     officialJsSha256: options.jsSha256,
     verifierAbi: SEMANTIC_VERIFIER_ABI,
     passAbi: CLIENT_VERIFICATION_PASS_ABI,
+    stageAbis: CLIENT_VERIFICATION_STAGE_ABIS,
     appVersion: options.appVersion,
   };
   const installKey = await options.installKey().catch(() => null);

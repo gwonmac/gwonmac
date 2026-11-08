@@ -92,7 +92,7 @@ function launchOn(
 
 /** The parts of a stored record payload these tests edit. */
 interface RecordPayload {
-  key: { verifierAbi: number; officialWasmSha256: string };
+  key: { verifierAbi: number; officialWasmSha256: string; stageAbis: { cartography: number } };
   result: { launches: { verification: { fileVerdict: { verifierAbi: number } } }[] };
 }
 
@@ -147,6 +147,9 @@ describe("client verdict", () => {
       ["app update", async () => undefined, { appVersion: "1.0.1" }],
       ["verifier ABI change", (recordPath) => resign(recordPath, (payload) => {
         payload.key.verifierAbi -= 1;
+      }), {}],
+      ["stage ABI change", (recordPath) => resign(recordPath, (payload) => {
+        payload.key.stageAbis.cartography -= 1;
       }), {}],
       ["another build", (recordPath) => resign(recordPath, (payload) => {
         payload.key.officialWasmSha256 = "0".repeat(64);

@@ -163,9 +163,9 @@ hashes.
 
 Main keeps the complete pass in one record per install
 (`game/client-verdict.json`). The record is the verifier's own output plus its
-key: official WASM SHA-256, official JS SHA-256, verifier ABI, pass ABI and app
-version. Main signs it with HMAC-SHA256 under a per-install key in the
-Keychain. At launch, a record counts only when its MAC verifies with that key
+key: official WASM SHA-256, official JS SHA-256, verifier ABI, pass ABI, the ABI
+of every stage, and app version. Main signs it with HMAC-SHA256 under a
+per-install key in the Keychain. At launch, a record counts only when its MAC verifies with that key
 and its key equals the current one exactly; any mismatch, including an app
 update, means a new pass. A record that counts goes through the same
 acceptance boundary and per-stage guards as a fresh answer. A record that
