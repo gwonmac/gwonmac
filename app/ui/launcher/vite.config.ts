@@ -34,6 +34,8 @@ export default defineConfig(({ mode }) => ({
       },
   test: {
     environment: "happy-dom",
+    // Node 25+ ships its own localStorage global, which hides happy-dom's window.localStorage.
+    execArgv: ["--no-experimental-webstorage"],
     globals: true,
     include: ["src/**/*.test.ts"],
   },
