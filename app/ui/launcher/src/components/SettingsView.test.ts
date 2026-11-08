@@ -232,6 +232,13 @@ describe("Settings page", () => {
       expect(wrapper.get(".settings-content h1").text()).toBe("Tools");
       expect(document.activeElement).toBe(toggle.element);
     }
+    // Choosing a result goes to its section: the tabs come back to show where it landed.
+    await toggle.trigger("click");
+    await wrapper.get('input[type="search"]').setValue("compass");
+    await wrapper.get(".settings-results button").trigger("click");
+    await flushPromises();
+    expect(aside.classes()).not.toContain("search-open");
+    expect(wrapper.get(".settings-content h1").text()).not.toBe("Results");
     wrapper.unmount();
   });
 

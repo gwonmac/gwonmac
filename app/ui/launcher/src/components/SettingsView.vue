@@ -185,6 +185,7 @@ async function launch(target: SettingsTarget) {
 async function select(next: SettingsSection, moveFocus = false) {
   if (inLauncher(next)) { void launch({ section: next }); return; }
   query.value = "";
+  searchOpen.value = false;
   if (saveState.value === "saved") saveState.value = "idle";
   section.value = lastSection = next;
   emit("section", next);
