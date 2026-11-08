@@ -208,6 +208,9 @@ describe("release workflow", () => {
       ["no player files from the patched release", "1.0.1", { "tests/fixtures/player-data/v1.0.0/settings.json": null }, /player-data\/v1\.0\.0\/ is missing/u],
       ["a minor version", "1.1.0", {}, /patch of a published release, not 1\.1\.0/u],
       ["another version's branch", "1.0.2", {}, /Run this on hotfix\/1\.0\.2, branched from v1\.0\.1/u],
+      ["a registry line that looks like a diff header", "1.0.1", { [REGISTRY]: `${FACTS_REGISTRY_TEXT}++ extra\n` }, /may only add or remove generation entries:\n\+\+\+ extra$/u],
+      ["a changed certification test line", "1.0.1", { [POLICY]: "assert.ok(false);\n" }, /lose or change lines:\ntests\/policy\/rule\.test\.ts$/u],
+      ["a removed certification test", "1.0.1", { [PROOF]: null }, /lose or change lines:\ntests\/client-artifact\/proof\.test\.ts$/u],
     ] as const) {
       const repository = factRepository(change);
       try {
@@ -218,39 +221,52 @@ describe("release workflow", () => {
     }
     const docsOnly = factRepository({}, { facts: false });
     const dirty = factRepository({});
-    const released = factRepository({});
+    const repository = factRepository({});
     try {
       assert.throws(() => facts("1.0.1", docsOnly.root, docsOnly.github().dependencies, { dryRun: true }), /no facts to release/u);
       writeFileSync(path.join(dirty.root, "notes.txt"), "local");
       assert.throws(() => facts("1.0.1", dirty.root, dirty.github().dependencies, { dryRun: true }), /local changes/u);
-      assert.throws(() => facts("1.0.1", released.root, released.github({ release: true }).dependencies, { dryRun: true }), /v1\.0\.1 exists/u);
+      for (const [scenario, state, refusal] of [
+        ["the version exists", { release: true }, /v1\.0\.1 exists/u],
+        ["a newer release is published", { latest: "v1.4.0" }, /v1\.4\.0 is the latest published release; a fact release patches it, not v1\.0\.0/u],
+        ["the pull request is open", { open: ["pr"] }, /already has an open pull request or unfinished runs:\nhttps:\/\/github\.com\/gwonmac\/gwonmac\/pull\/1$/u],
+        ["the release run waits", { open: ["release.yml"] }, /unfinished runs:\nhttps:\/\/github\.com\/gwonmac\/gwonmac\/actions\/runs\/release\.yml$/u],
+        ["the regression run is going", { open: ["client-watch.yml"] }, /unfinished runs:\nhttps:\/\/github\.com\/gwonmac\/gwonmac\/actions\/runs\/client-watch\.yml$/u],
+      ] as const) {
+        const github = repository.github(state);
+        assert.throws(() => facts("1.0.1", repository.root, github.dependencies, { dryRun: false }), refusal, scenario);
+        assert.deepEqual(github.writes, [], scenario);
+      }
     } finally {
-      for (const repository of [docsOnly, dirty, released]) repository.close();
+      for (const each of [docsOnly, dirty, repository]) each.close();
     }
   });
 
   it("a fact release starts regression and the release run, then opens the PR, and never tags", () => {
     const repository = factRepository({});
     try {
+      const tags = () => spawnSync("git", ["tag", "--list"], { cwd: repository.root, encoding: "utf8" }).stdout;
       const dry = repository.github();
       const planned = facts("1.0.1", repository.root, dry.dependencies, { dryRun: true });
-      assert.deepEqual(planned.changed, [FACT, REGISTRY, POST]);
-      assert.deepEqual(dry.calls.map((call) => call.slice(0, 3)), [["gh", "release", "view"]]);
+      assert.deepEqual(planned.changed, [FACT, REGISTRY, POLICY, "tests/unit/free.test.ts", POST]);
+      assert.deepEqual(dry.writes, []);
 
       const live = repository.github();
       const release = facts("1.0.1", repository.root, live.dependencies, { dryRun: false });
-      assert.deepEqual(live.calls.slice(1).map((call) => call.slice(0, 4)), [
+      // The only write to git is the branch push: no tag, no commit, no tag push.
+      assert.deepEqual(live.writes.map((call) => call.slice(0, 4)), [
         ["git", "push", "origin", "HEAD:refs/heads/hotfix/1.0.1"],
         ["gh", "workflow", "run", "client-watch.yml"],
         ["gh", "workflow", "run", "release.yml"],
         ["gh", "pr", "create", "--repo"],
       ]);
-      assert.deepEqual(live.calls[2]!.slice(-4), ["--ref", "hotfix/1.0.1", "-f", "regression=true"]);
-      assert.deepEqual(live.calls[3]!.slice(-4), ["--ref", "hotfix/1.0.1", "-f", "version=1.0.1"]);
-      const body = live.calls[4]!.at(-1)!;
+      assert.equal(live.writes[0]!.length, 4);
+      assert.equal(tags(), "v1.0.0\n");
+      assert.deepEqual(live.writes[1]!.slice(-4), ["--ref", "hotfix/1.0.1", "-f", "regression=true"]);
+      assert.deepEqual(live.writes[2]!.slice(-4), ["--ref", "hotfix/1.0.1", "-f", "version=1.0.1"]);
+      const body = live.writes[3]!.at(-1)!;
       assert.match(body, /regression on this branch: https:\/\/github\.com\/gwonmac\/gwonmac\/actions\/runs\/client-watch\.yml/u);
       assert.match(body, /environment in https:\/\/github\.com\/gwonmac\/gwonmac\/actions\/runs\/release\.yml/u);
-      assert.equal(live.calls.some((call) => call.some((arg) => arg.includes("refs/tags/") || arg === "--draft")), false);
       assert.deepEqual(release.actions.map((action) => action.slice(0, 3)), planned.actions.map((action) => action.slice(0, 3)));
     } finally {
       repository.close();
@@ -266,7 +282,12 @@ const REGISTRY_TEXT = [
   "];",
   "",
 ].join("\n");
+const FACTS_REGISTRY_TEXT = REGISTRY_TEXT
+  .replace("\nexport", '\nimport { NEW_FACTS } from "./reviewed-client-2026-12-01-bbbbbbbbbbbb.js";\nexport')
+  .replace("  OLD_FACTS,\n", "  OLD_FACTS,\n  NEW_FACTS,\n");
 const FACT = "app/client/certification/reviewed-client-2026-12-01-bbbbbbbbbbbb.ts";
+const POLICY = "tests/policy/rule.test.ts";
+const PROOF = "tests/client-artifact/proof.test.ts";
 const POST = "website/content/en/2.blog/14.gwonmac-1-0-1.md";
 const POST_TEXT = "---\ntitle: GWonMac 1.0.1\ndraft: true\nlauncherId: gwonmac-1-0-1\n---\n\nTools work again on the new client.\n";
 
@@ -297,38 +318,58 @@ function factRepository(change: Readonly<Record<string, string | null>>, options
     "app/client/certification/reviewed-client-2026-11-03-aaaaaaaaaaaa.ts": "export const OLD_FACTS = {};\n",
     "app/main/window.ts": "export {};\n",
     "tests/fixtures/player-data/v1.0.0/settings.json": "{}\n",
+    [POLICY]: "assert.ok(true);\n",
+    [PROOF]: "assert.ok(true);\n",
+    "tests/unit/free.test.ts": "assert.ok(true);\n",
   });
   git("tag", "v1.0.0");
   git("switch", "-q", "-c", "hotfix/1.0.1");
+  // Facts, plus an added line in a certification test and a rewritten free test.
   write(options.facts ? {
     [FACT]: "export const NEW_FACTS = {};\n",
-    [REGISTRY]: REGISTRY_TEXT
-      .replace("\nexport", '\nimport { NEW_FACTS } from "./reviewed-client-2026-12-01-bbbbbbbbbbbb.js";\nexport')
-      .replace("  OLD_FACTS,\n", "  OLD_FACTS,\n  NEW_FACTS,\n"),
+    [REGISTRY]: FACTS_REGISTRY_TEXT,
     [POST]: POST_TEXT,
+    [POLICY]: "assert.ok(true);\nassert.ok(1);\n",
+    "tests/unit/free.test.ts": "assert.equal(1, 1);\n",
   } : { [POST]: POST_TEXT, "docs/recertify.md": "notes\n" });
   write(change);
   return {
     root,
     close: () => rmSync(root, { recursive: true }),
-    /** Real git in the repository; GitHub and the push are recorded. */
-    github(state: { release?: boolean } = {}) {
-      const calls: string[][] = [];
+    /**
+     * Real git in the repository, except push. `writes` records every call
+     * that changes git or GitHub: a git tag, commit, push or ref update, and
+     * every gh call other than a view or a list.
+     */
+    github(state: { release?: boolean; latest?: string; open?: readonly string[] } = {}) {
+      const writes: string[][] = [];
+      const gitWrites = new Set(["tag", "push", "commit", "update-ref"]);
       const dependencies: ReleaseDependencies = {
         repository: REPOSITORY,
         sha: SHA,
         run(command, args, cwd) {
+          const writing = command === "git" ? gitWrites.has(args[0] ?? "") : !["view", "list"].includes(args[1] ?? "");
+          if (writing) writes.push([command, ...args]);
           if (command === "git" && args[0] !== "push") {
             const result = spawnSync(command, args, { cwd, encoding: "utf8" });
             return { status: result.status, stdout: result.stdout, stderr: result.stderr };
           }
-          calls.push([command, ...args]);
-          if (args[0] === "release" && args[1] === "view") return state.release ? OK("{}") : NOT_FOUND;
+          if (args[0] === "release" && args[1] === "view") {
+            if (args[2] === "--repo") return OK(`${state.latest ?? "v1.0.0"}\n`);
+            return state.release ? OK("{}") : NOT_FOUND;
+          }
+          if (args[0] === "pr" && args[1] === "list") {
+            return OK(state.open?.includes("pr") ? `https://github.com/${REPOSITORY}/pull/1\n` : "");
+          }
+          if (args[0] === "run" && args[1] === "list") {
+            const workflow = args[args.indexOf("--workflow") + 1] ?? "";
+            return OK(state.open?.includes(workflow) ? `https://github.com/${REPOSITORY}/actions/runs/${workflow}\n` : "");
+          }
           if (args[0] === "workflow") return OK(`https://github.com/${REPOSITORY}/actions/runs/${args[2]}\n`);
           return OK();
         },
       };
-      return { calls, dependencies };
+      return { writes, dependencies };
     },
   };
 }

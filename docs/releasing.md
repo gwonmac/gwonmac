@@ -61,12 +61,19 @@ the only human step before the `release` approval.
 `pnpm release:facts` (`scripts/release.ts facts`) refuses unless:
 
 - it runs on `hotfix/<version>` with no local changes, and the version is the
-  next patch (or its Beta or RC) of a release tag that `HEAD` descends from;
+  next patch (or its Beta or RC) of the latest published release, whose tag
+  `HEAD` descends from;
 - every change since that tag is a `reviewed-client-*.ts` file, an entry in the
   `reviewed-facts.ts` generation list, the detector record, a test, a doc, or
   website content, and at least one `reviewed-client-*.ts` file changed;
+- the Must-stay certification tests (`tests/unit/client-certification*`,
+  `tests/unit/enhancement-*`, `tests/client-artifact/`, `tests/policy/`) only
+  gain lines;
 - exactly one post has the version's `launcherId`, its title, and `draft: true`;
 - `tests/fixtures/player-data/` holds the files the patched release writes.
+
+- the branch has no open pull request and no unfinished release or client
+  watch run, so running it twice starts nothing twice.
 
 Then it pushes the branch, starts client watch with `regression` and the
 release workflow on it, and opens the pull request with a review checklist.

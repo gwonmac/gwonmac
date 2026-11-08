@@ -262,7 +262,8 @@ export function draft(version: string, assets: string, dependencies: ReleaseDepe
  * What a fact-only release may change since the release it patches. Shipped
  * code changes only in the per-client reviewed-fact files; the registry may
  * only gain or lose their entries (FACT_REGISTRY_LINE). The rest ships no
- * code: tests, maintainer and player docs, and the detector record.
+ * code: tests (the Must-stay certification tests only gain lines,
+ * ADD_ONLY_TESTS), maintainer and player docs, and the detector record.
  */
 const FACT_PATHS: readonly RegExp[] = [
   /^app\/client\/certification\/reviewed-client-[\w.-]+\.ts$/u,
@@ -274,8 +275,52 @@ const FACT_PATHS: readonly RegExp[] = [
 ];
 const FACT_FILE = /^app\/client\/certification\/reviewed-client-[\w.-]+\.ts$/u;
 const FACT_REGISTRY = "app/client/certification/reviewed-facts.ts";
+/**
+ * The Must-stay certification tests (AGENTS.md): a fact release may add to
+ * them, never change or remove a line.
+ */
+const ADD_ONLY_TESTS: readonly RegExp[] = [
+  /^tests\/unit\/client-certification/u,
+  /^tests\/unit\/enhancement-/u,
+  /^tests\/client-artifact\//u,
+  /^tests\/policy\//u,
+];
 const FACT_REGISTRY_LINE =
   /^(?:import \{ [A-Z0-9_]+_FACTS \} from "\.\/reviewed-client-[\w.-]+\.js";| {2}[A-Z0-9_]+_FACTS,)$/u;
+
+interface DiffEdit {
+  readonly file: string;
+  /** "+" for an added line, "-" for a removed one, "binary" for a binary change to an existing file. */
+  readonly kind: "+" | "-" | "binary";
+  readonly line: string;
+}
+
+/**
+ * Every added and removed line of `git diff --unified=0`, by file. A file's
+ * header runs until its first `@@`, so a content line that starts with `+++`
+ * or `---` is still an edit.
+ */
+function diffEdits(diff: string): DiffEdit[] {
+  const edits: DiffEdit[] = [];
+  let file = "";
+  let created = false;
+  let inHunk = false;
+  for (const line of diff.split("\n")) {
+    const header = /^diff --git a\/.* b\/(.*)$/u.exec(line);
+    if (header) {
+      file = header[1] ?? "";
+      created = false;
+      inHunk = false;
+    } else if (!inHunk) {
+      if (line.startsWith("new file mode ")) created = true;
+      else if (line.startsWith("@@ ")) inHunk = true;
+      else if (line.startsWith("Binary files ") && !created) edits.push({ file, kind: "binary", line });
+    } else if (line.startsWith("+") || line.startsWith("-")) {
+      edits.push({ file, kind: line[0] === "+" ? "+" : "-", line: line.slice(1) });
+    }
+  }
+  return edits;
+}
 
 export interface FactRelease extends Release {
   /** The published release this one patches: the same version, one patch lower. */
@@ -323,6 +368,13 @@ export function facts(
   if (releaseExists(dependencies, release.tag)) {
     throw new Error(`Release ${release.tag} exists. Choose a higher version.`);
   }
+  // GitHub's latest release is the one the update feed serves (docs/releasing.md).
+  const latest = succeed(dependencies, "gh", [
+    "release", "view", "--repo", dependencies.repository, "--json", "tagName", "--jq", ".tagName",
+  ], root).trim();
+  if (latest !== base) {
+    throw new Error(`${latest} is the latest published release; a fact release patches it, not ${base}.`);
+  }
 
   const changed = read("diff", "--name-only", "--no-renames", base, "HEAD").split("\n").filter(Boolean);
   const outside = changed.filter((file) => !FACT_PATHS.some((allowed) => allowed.test(file)));
@@ -332,12 +384,18 @@ export function facts(
   if (!changed.some((file) => FACT_FILE.test(file))) {
     throw new Error(`No reviewed-client file changed since ${base}: there are no facts to release.`);
   }
-  const registryEdits = read("diff", "--unified=0", base, "HEAD", "--", FACT_REGISTRY)
-    .split("\n")
-    .filter((line) => /^[+-]/u.test(line) && !/^(?:\+\+\+|---) /u.test(line))
-    .filter((line) => !FACT_REGISTRY_LINE.test(line.slice(1)));
+  const edits = diffEdits(read("diff", "--unified=0", "--no-renames", "--no-ext-diff", base, "HEAD"));
+  const registryEdits = edits
+    .filter((edit) => edit.file === FACT_REGISTRY && !(edit.kind !== "binary" && FACT_REGISTRY_LINE.test(edit.line)))
+    .map((edit) => `${edit.kind}${edit.line}`);
   if (registryEdits.length > 0) {
     throw new Error(`${FACT_REGISTRY} may only add or remove generation entries:\n${registryEdits.join("\n")}`);
+  }
+  const rewritten = [...new Set(edits
+    .filter((edit) => edit.kind !== "+" && ADD_ONLY_TESTS.some((guarded) => guarded.test(edit.file)))
+    .map((edit) => edit.file))];
+  if (rewritten.length > 0) {
+    throw new Error(`A fact release only adds to the certification tests; these lose or change lines:\n${rewritten.join("\n")}`);
   }
 
   // The player post the app bundles as this version's "What's new".
@@ -357,6 +415,19 @@ export function facts(
   }
 
   const repository = dependencies.repository;
+  // A second run must not start a second regression or release run.
+  const open = [
+    succeed(dependencies, "gh", [
+      "pr", "list", "--repo", repository, "--head", branch, "--state", "open", "--json", "url", "--jq", ".[].url",
+    ], root),
+    ...["release.yml", "client-watch.yml"].map((workflow) => succeed(dependencies, "gh", [
+      "run", "list", "--repo", repository, "--workflow", workflow, "--branch", branch,
+      "--json", "url,status", "--jq", '.[] | select(.status != "completed") | .url',
+    ], root)),
+  ].flatMap((output) => output.split("\n").filter(Boolean));
+  if (open.length > 0) {
+    throw new Error(`${branch} already has an open pull request or unfinished runs:\n${open.join("\n")}`);
+  }
   const dispatches: (readonly [string, ...string[]])[] = [
     ["git", "push", "origin", `HEAD:refs/heads/${branch}`],
     ["gh", "workflow", "run", "client-watch.yml", "--repo", repository, "--ref", branch, "-f", "regression=true"],
