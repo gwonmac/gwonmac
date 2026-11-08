@@ -3,8 +3,14 @@
  * run while the client's frame is suspended. Publishers must neither reenter
  * a graphics queue flush nor change a model the renderer still references.
  */
-import { perReviewedFacts } from "./reviewed-facts.js";
+import { perReviewedFacts, recordExactMatch, reviewedIdentities } from "./reviewed-facts.js";
 import { functionBodySha256 } from "./wasm-evidence.js";
+import {
+  functionIdentity,
+  functionsWithIdentity,
+  orderedCallees,
+  staticOperands,
+} from "./relocation-identity.js";
 import type { ModuleShape } from "./enhancement-evidence-types.js";
 import { concat, sleb, uleb } from "../../main/core/wasm-binary.js";
 
@@ -104,11 +110,7 @@ const nativeRenderFamilies = perReviewedFacts((generations): readonly NativeRend
   Object.freeze([...BASE_FAMILIES, ...generations.flatMap((generation) =>
     generation.facts?.nativeRenderFamilies ?? [])]));
 
-export function nativeRenderFamilyCount(): number {
-  return nativeRenderFamilies().length;
-}
-
-export function reviewedNativeRenderFunctions(
+function reviewedNativeRenderFunctions(
   checked: NativeRenderFunctionBodies,
   family: number,
 ): NativeRenderFunctionBodies {
@@ -121,16 +123,81 @@ export function reviewedNativeRenderFunctions(
   });
 }
 
+// Each address is a static operand of a reviewed owner, at the ordinal its
+// relocation identity names: [reference owner, ordinal]. Every listed owner
+// must hold the same value.
+const ADDRESS_OPERANDS = Object.freeze({
+  modelTypeOffset: [[1569, 0], [2956, 0]],
+  graphicsDevice: [[2922, 0], [2956, 5]],
+  underMouse: [[6295, 1], [6284, 4], [6285, 10]],
+} as const);
+
+// Owners whose body has identical clones: [reference caller, callee position
+// in the caller's first-call order]. The caller's identity fixes the position.
+const CALLED_OWNERS: Readonly<Record<number, readonly [number, number]>> = Object.freeze({
+  5595: [6492, 1],
+});
+
+/**
+ * A relinked client's family: each checked owner is the one function whose
+ * relocation identity a reviewed family's owner has, and each address is read
+ * from the owners' corresponding static operands.
+ */
+function relinkedNativeRenderFamily(
+  module: ModuleShape,
+  checked: NativeRenderFunctionBodies,
+): NativeRenderFamily | null {
+  const families = nativeRenderFamilies();
+  const owners = new Set([
+    ...checked.map(([index]) => index),
+    ...Object.values(CALLED_OWNERS).map(([caller]) => caller),
+    ...Object.values(ADDRESS_OPERANDS).flatMap((operands) => operands.map(([owner]) => owner)),
+  ]);
+  const candidates = new Map([...owners].map((reference) => {
+    const identities = new Set(families.flatMap(({ functions: reviewed }) =>
+      reviewed?.[reference] ? [...reviewedIdentities(reviewed[reference][1])] : []));
+    return [reference, [...identities].flatMap((identity) => functionsWithIdentity(module, identity))];
+  }));
+  const functions: Record<number, readonly [number, string]> = {};
+  for (const [reference, matches] of candidates) {
+    const called = CALLED_OWNERS[reference];
+    const caller = called ? candidates.get(called[0]) : undefined;
+    // A generic owner has identical clones; take the one its caller calls.
+    const chosen = matches.length === 1 || !called || caller?.length !== 1 ? matches
+      : matches.filter((index) => orderedCallees(module, caller[0]!)[called[1]] === index);
+    if (chosen.length !== 1) return null;
+    functions[reference] = [chosen[0]!, functionBodySha256(module, chosen[0]!)];
+  }
+  if (new Set(Object.values(functions).map(([index]) => index)).size !== owners.size) return null;
+  const address = (operands: readonly (readonly [number, number])[]) => {
+    const values = new Set(operands.map(([owner, ordinal]) =>
+      staticOperands(module, functions[owner]![0])[ordinal]));
+    const [value] = values;
+    return values.size === 1 && value !== undefined ? value : null;
+  };
+  const modelTypeOffset = address(ADDRESS_OPERANDS.modelTypeOffset);
+  const graphicsDevice = address(ADDRESS_OPERANDS.graphicsDevice);
+  const underMouse = address(ADDRESS_OPERANDS.underMouse);
+  if (modelTypeOffset === null || graphicsDevice === null || underMouse === null) return null;
+  return Object.freeze({ functions: Object.freeze(functions), modelTypeOffset, graphicsDevice, underMouse });
+}
+
 export function resolveNativeRenderBindings(module: ModuleShape,
   checked: NativeRenderFunctionBodies) {
-  const families = nativeRenderFamilies().flatMap((_, family) =>
+  const matches = nativeRenderFamilies().flatMap((_, family) =>
     reviewedNativeRenderFunctions(checked, family).every(([index, hash]) =>
       index >= module.functionImportCount && index < module.functionTypeIndices.length
       && functionBodySha256(module, index) === hash) ? [family] : []);
-  if (families.length !== 1) return null;
-  const family = nativeRenderFamilies()[families[0]!]!;
+  if (matches.length > 1) return null;
+  const reviewed = matches.length === 1 ? nativeRenderFamilies()[matches[0]!]! : null;
+  for (const [index, hash] of reviewed ? reviewedNativeRenderFunctions(checked, matches[0]!) : []) {
+    recordExactMatch(hash, () => functionIdentity(module, index));
+  }
+  const family = reviewed ?? relinkedNativeRenderFamily(module, checked);
+  if (!family) return null;
   return Object.freeze({
-    functionBodies: reviewedNativeRenderFunctions(checked, families[0]!),
+    functionBodies: Object.freeze(checked.map(([index, hash]) =>
+      family.functions === null ? [index, hash] as const : family.functions[index]!)),
     functionIndex: (index: number) => {
       if (!checked.some(([reviewed]) => reviewed === index)) {
         throw new Error("unreviewed native render call");

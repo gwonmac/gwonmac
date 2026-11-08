@@ -7,9 +7,10 @@
  * padded five-byte LEB, so a relink keeps body lengths and changes only those
  * operands. The identity hashes the exact body with each such operand replaced:
  *
- * - a `call` target by its callee's local identity, so a retargeted call
- *   changes the identity unless the new callee has the same body up to its own
- *   call targets;
+ * - a `call` target by its callee's local identity (its body with its own
+ *   call targets named by signature), so a retargeted call changes the
+ *   identity unless the new callee has the same body up to its own call
+ *   targets. A role identity names each callee by its signature instead;
  * - a padded constant or memory offset by its class: the text it points to for
  *   a C string in static data, `data` for other static data, else `other`.
  *
@@ -181,10 +182,60 @@ export function functionIdentity(module: ModuleShape, functionIndex: number): st
   return identity;
 }
 
+const functionsByIdentity = new WeakMap<Identities, ReadonlyMap<string, readonly number[]>>();
+
+/** The functions of `module` whose relocation identity is `identity`. */
+export function functionsWithIdentity(module: ModuleShape, identity: string): readonly number[] {
+  const known = identities(module);
+  let index = functionsByIdentity.get(known);
+  if (!index) {
+    const built = new Map<string, number[]>();
+    known.full.forEach((value, functionIndex) => {
+      if (functionIndex >= module.functionImportCount) {
+        built.set(value, [...built.get(value) ?? [], functionIndex]);
+      }
+    });
+    index = built;
+    functionsByIdentity.set(known, index);
+  }
+  return index.get(identity) ?? [];
+}
+
+/**
+ * The distinct functions `functionIndex` calls directly, in the order of their
+ * first call. Two functions with one identity call corresponding callees at
+ * the same position.
+ */
+export function orderedCallees(module: ModuleShape, functionIndex: number): readonly number[] {
+  const callees: number[] = [];
+  for (const site of identities(module).sites[functionIndex] ?? []) {
+    if (site.callee !== null && !callees.includes(site.callee)) callees.push(site.callee);
+  }
+  return callees;
+}
+
+/**
+ * The distinct relocatable static operands of a function, in the order of
+ * their first occurrence: the ordinals its identity names. Two functions with
+ * one identity hold their corresponding addresses at the same ordinal.
+ */
+export function staticOperands(module: ModuleShape, functionIndex: number): readonly number[] {
+  const values: number[] = [];
+  for (const site of identities(module).sites[functionIndex] ?? []) {
+    if (site.callee !== null) continue;
+    const value = Number(site.key.slice("static:".length));
+    if (!values.includes(value)) values.push(value);
+  }
+  return values;
+}
+
 /**
  * The relocation identity of a function seen through a semantic role: the
  * role's own spans are erased the way its fingerprint erases them, because the
- * role's proof checks their values. Everything else keeps the plain identity.
+ * role's proof checks their values, and each callee is named by its signature.
+ * A role proof checks the relations it owns itself, so a change in a callee's
+ * body refuses only the features that own that callee: the game-thread drain
+ * calls nineteen subsystems, cursor art among them.
  */
 export function functionRoleIdentity(
   module: ModuleShape,
@@ -200,7 +251,7 @@ export function functionRoleIdentity(
     marker: `role:${span.addressClass}:${span.role}`,
   }));
   const sites = [...kept, ...erased].sort((left, right) => left.start - right.start);
-  return hashBody(module, functionIndex, sites, (target) => known.local[target] ?? "?");
+  return hashBody(module, functionIndex, sites, (target) => signature(module, target));
 }
 
 

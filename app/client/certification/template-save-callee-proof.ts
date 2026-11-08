@@ -1,6 +1,7 @@
 /**
  * Binds Template-saving helper calls to their reviewed signatures and complete
- * bodies. Call positions may move only with the independently identified callee.
+ * bodies. Each call is normalized to the helper it calls, so a callee may move
+ * only as the same independently identified helper.
  */
 import type { TemplateSaveModuleView } from "./template-save-module-view.js";
 import { perReviewedFacts } from "./reviewed-facts.js";
@@ -120,12 +121,14 @@ const CALL_WITNESSES: Readonly<Record<string, readonly CalleeWitness[]>> = {
   ],
 };
 
-// Helper calls that first moved in the November 3 client, when ArenaNet
-// inserted functions below them. Each callee is identified by its signature
-// and a complete reviewed body, or that body's relocation identity on a
-// relink. Bodies below are shared with older clients; October 22 adds the rest
-// in its generation file.
-const MOVED_CALLEES = {
+// Reviewed helpers that template-saving callers call at any position. Each
+// call to a defined function is normalized to the one helper whose signature
+// and complete reviewed body (or that body's relocation identity on a relink)
+// its callee has, so the semantic fingerprint states which helper each call
+// reaches. A call to no reviewed helper keeps its callee index. Bodies below
+// are shared with older clients; October 22 adds the rest in its generation
+// file, keyed `helper:<name>`.
+const HELPERS = {
   callee01: reviewed("(i32,i32)->()", [
     "fab95ac17337f47eb40041e800b82b5e5eab7f5c19a7cebf59955a3db9e136c4",
   ]),
@@ -203,63 +206,8 @@ const MOVED_CALLEES = {
   callee45: reviewed("(i32)->(i32)", []),
 } as const;
 
-const MOVED_CALL_SITES: Readonly<Record<string, readonly (readonly [number, keyof typeof MOVED_CALLEES])[]>> = {
-  "skill-scan": [
-    [30, "callee01"], [63, "callee02"], [90, "callee02"], [117, "callee03"],
-    [178, "callee04"], [199, "callee05"], [411, "callee06"], [606, "callee07"],
-    [675, "callee08"], [724, "callee09"], [750, "callee10"], [858, "callee11"],
-    [997, "callee08"], [1006, "callee12"], [1052, "callee10"],
-  ],
-  "equipment-scan": [
-    [30, "callee01"], [63, "callee02"], [90, "callee02"], [117, "callee03"],
-    [178, "callee04"], [199, "callee05"], [298, "callee13"], [432, "callee06"],
-    [651, "callee07"], [733, "callee11"], [755, "callee07"], [825, "callee08"],
-    [874, "callee09"], [900, "callee10"], [1015, "callee11"], [1195, "callee08"],
-    [1204, "callee12"], [1250, "callee10"],
-  ],
-  "directory-sink": [
-    [42, "callee11"], [102, "callee01"], [127, "callee02"], [170, "callee02"],
-    [247, "callee14"], [273, "callee14"], [387, "callee15"], [402, "callee16"],
-    [423, "callee17"], [479, "callee14"], [611, "callee18"], [653, "callee19"],
-    [679, "callee02"], [705, "callee10"], [727, "callee10"], [770, "callee20"],
-    [817, "callee21"], [853, "callee21"], [935, "callee21"], [1029, "callee22"],
-    [1057, "callee23"], [1065, "callee24"], [1098, "callee20"], [1124, "callee10"],
-  ],
-  "screenshot-sink": [
-    [53, "callee25"], [80, "callee01"], [107, "callee02"], [292, "callee19"],
-    [317, "callee04"], [345, "callee02"], [375, "callee02"], [481, "callee15"],
-    [496, "callee16"], [519, "callee17"], [681, "callee10"], [705, "callee11"],
-    [740, "callee19"], [768, "callee02"], [787, "callee10"], [798, "callee26"],
-    [812, "callee26"], [856, "callee27"], [881, "callee11"], [914, "callee11"],
-    [940, "callee28"], [980, "callee29"], [991, "callee30"], [1021, "callee31"],
-    [1041, "callee27"], [1066, "callee11"], [1097, "callee11"], [1126, "callee32"],
-    [1152, "callee29"], [1162, "callee30"], [1170, "callee30"], [1209, "callee20"],
-    [1229, "callee33"], [1269, "callee34"], [1319, "callee35"], [1343, "callee11"],
-    [1353, "callee35"], [1361, "callee36"], [1378, "callee37"], [1395, "callee37"],
-    [1433, "callee38"], [1454, "callee38"], [1460, "callee39"],
-  ],
-  "writer": [
-    [65, "callee01"], [88, "callee02"], [111, "callee02"], [138, "callee03"],
-    [155, "callee05"], [226, "callee22"], [251, "callee23"], [264, "callee24"],
-    [286, "callee10"],
-  ],
-  "delete": [
-    [9, "callee12"], [56, "callee11"], [149, "callee40"],
-  ],
-  "file-exists": [
-    [44, "callee11"], [166, "callee41"], [186, "callee42"], [221, "callee43"],
-    [251, "callee07"], [328, "callee44"],
-  ],
-  "screenshot-initializer": [
-    [33, "callee34"], [76, "callee35"], [100, "callee11"], [110, "callee35"],
-    [118, "callee36"], [128, "callee45"], [164, "callee26"], [181, "callee45"],
-    [198, "callee37"], [208, "callee37"], [249, "callee38"], [263, "callee38"],
-    [269, "callee39"], [298, "callee25"],
-  ],
-};
-
 // Each generation adds the helper bodies its review accepted, keyed by
-// `<role>@<call offset>` or `moved:<callee>`.
+// `<role>@<call offset>` or `helper:<name>`.
 const generationBodies = perReviewedFacts((generations) => {
   const bodies = new Map<string, string[]>();
   for (const generation of generations) {
@@ -280,18 +228,14 @@ export function normalizeTemplateCalleeCalls(
   const withGenerations = (witness: CalleeWitness, key: string): CalleeWitness => ({
     ...witness, bodyHashes: [...witness.bodyHashes, ...reviewedBodies.get(key) ?? []],
   });
-  const witnesses: readonly CalleeWitness[] = [
-    ...(CALL_WITNESSES[role] ?? []).map((witness) => withGenerations(witness, `${role}@${witness.offset}`)),
-    ...(MOVED_CALL_SITES[role] ?? []).map(([offset, name]) =>
-      withGenerations({ offset, ...MOVED_CALLEES[name] }, `moved:${name}`)),
-  ];
+  const witnesses = (CALL_WITNESSES[role] ?? []).map((witness) =>
+    withGenerations(witness, `${role}@${witness.offset}`));
   // Small synthetic locator fixtures have no production helper sites.
   if (witnesses.some(({ offset }) => offset + 6 > normalized.byteLength)) return;
-  const calls = view.instructions(local).callSites;
+  const calls = [...view.instructions(local).callSites].flatMap(([target, sites]) =>
+    sites.map((site) => ({ target, ...site })));
   for (const [index, witness] of witnesses.entries()) {
-    const site = [...calls].flatMap(([target, sites]) => sites
-      .filter(({ offset }) => offset === witness.offset)
-      .map((value) => ({ target, ...value })));
+    const site = calls.filter(({ offset }) => offset === witness.offset);
     if (site.length !== 1 || site[0]!.operandEnd !== witness.offset + 6) {
       throw new Error(`template-save recertify: ${role} helper call changed`);
     }
@@ -302,5 +246,23 @@ export function normalizeTemplateCalleeCalls(
     }
     normalized.fill(0, witness.offset + 1, witness.offset + 6);
     normalized[witness.offset + 1] = 64 + index;
+  }
+  const helpers = Object.entries(HELPERS).map(([name, helper], index) =>
+    ({ index, ...withGenerations({ offset: -1, ...helper }, `helper:${name}`) }));
+  const source = view.bodies[local]!;
+  const witnessed = new Set(witnesses.map(({ offset }) => offset));
+  for (const site of calls) {
+    const callee = site.target - view.importCount;
+    // Bridge calls and witnessed helpers are already normalized by role.
+    if (callee < 0 || witnessed.has(site.offset) || normalized.subarray(site.offset + 1, site.operandEnd)
+      .some((byte, at) => byte !== source[site.offset + 1 + at])) continue;
+    const matches = helpers.filter((helper) => view.signatures[callee] === helper.signature
+      && reviewedBodyMatch(view.module, site.target, helper.bodyHashes) !== null);
+    if (matches.length === 0) continue;
+    if (matches.length !== 1 || site.operandEnd !== site.offset + 6) {
+      throw new Error(`template-save recertify: ${role} helper call changed`);
+    }
+    normalized.fill(0, site.offset + 1, site.offset + 6);
+    normalized[site.offset + 1] = 128 + matches[0]!.index;
   }
 }

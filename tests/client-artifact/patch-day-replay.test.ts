@@ -107,20 +107,58 @@ function assertOutputsMatchRecord(
 }
 
 /**
- * Patch-day template saving of each generation that is not a relink of the
- * previous one: what it must get with only older facts.
+ * The patch-day row of each generation that is not a relink of the previous
+ * one: its template saving, the features it refuses and its module stages,
+ * with only older facts. The rows are exact, so a change that makes a row
+ * worse fails, and one that makes it better updates the row in the same change.
  */
-const TEMPLATE_ON_PATCH_DAY: Readonly<Record<string, "proved" | "template-shape-changed">> = {
+type PatchDayRow = Readonly<{
+  template: "proved" | "template-shape-changed";
+  refuses: readonly string[];
+  stages: Readonly<Record<"doubleClick" | "cartography" | "friends", "proved" | "refused">>;
+}>;
+const PATCH_DAY: Readonly<Record<string, PatchDayRow>> = {
   // October 1 changed a screenshot-initializer helper body. It never had its
   // own template review; with every generation it matches a later client's
   // relocation identity of that body.
-  "2026-10-01-7b4c3548d670": "template-shape-changed",
+  "2026-10-01-7b4c3548d670": {
+    template: "template-shape-changed",
+    refuses: [
+      "targetObservation", "partyObservation", "teamApply", "travelAction", "xunlaiAction",
+      "chatAliases", "skillSlotGeometry", "skillCooldownObservation", "playRegionObservation",
+      "preGameControls", "characterSwitchAction", "chatFiltering", "quickItemMove",
+      "playerEffectObservation", "effectIconGeometry", "resignAction", "whisperChat",
+      "alcoholObservation", "nativeHudRendering", "chatPrint", "progressObservation",
+    ],
+    stages: { doubleClick: "proved", cartography: "proved", friends: "proved" },
+  },
   // October 22 changed reviewed template-saving helper bodies (string
-  // pointers and an assertion line), so it refuses until reviewed.
-  "2026-10-22-ce3192033b14": "template-shape-changed",
+  // pointers and an assertion line), so it refuses until reviewed. The native
+  // draw owners were first reviewed on this client, so the release profiles
+  // that carry the native HUD cannot be served.
+  "2026-10-22-ce3192033b14": {
+    template: "template-shape-changed",
+    refuses: [
+      "targetObservation", "partyObservation", "teamApply", "travelAction", "xunlaiAction",
+      "chatAliases", "skillSlotGeometry", "preGameControls", "characterSwitchAction",
+      "chatFiltering", "quickItemMove", "playerEffectObservation", "effectIconGeometry",
+      "resignAction", "whisperChat", "alcoholObservation", "nativeHudRendering", "chatPrint",
+      "progressObservation",
+    ],
+    stages: { doubleClick: "refused", cartography: "refused", friends: "refused" },
+  },
   // Template saving derives its rewrite from the bytes; November 3's helper
-  // bodies are relocations of reviewed ones.
-  "2026-11-03-f2a2b07c9c56": "proved",
+  // bodies and native draw owners are relocations of reviewed ones. Quick Item
+  // Move, player effects, resign and whispers need a review; Cartography needs
+  // the client's layout roots and friends its moved GcAuthCmd.cpp lines.
+  "2026-11-03-f2a2b07c9c56": {
+    template: "proved",
+    refuses: [
+      "quickItemMove", "playerEffectObservation", "effectIconGeometry", "resignAction",
+      "whisperChat", "alcoholObservation",
+    ],
+    stages: { doubleClick: "proved", cartography: "refused", friends: "refused" },
+  },
 };
 
 /**
@@ -194,14 +232,18 @@ test("the retained ArenaNet history replays with only the facts each patch day h
 
     // Any other change is judged as stated above. A refused template leaves
     // the official client untouched: nothing is rewritten for it.
-    const expected = TEMPLATE_ON_PATCH_DAY[label];
-    assert.ok(expected, `${label}: state its patch-day template saving in TEMPLATE_ON_PATCH_DAY`);
-    if (expected === "proved") {
+    const expected = PATCH_DAY[label];
+    assert.ok(expected, `${label}: state its patch-day row in PATCH_DAY`);
+    if (expected.template === "proved") {
       assert.deepEqual(replay.fileVerdict, client.full.fileVerdict, `${label}: template saving`);
     } else {
       assert.equal(replay.fileVerdict?.status, "refused", `${label}: template saving`);
-      assert.equal(replay.fileVerdict?.reason, expected, `${label}: template refusal`);
+      assert.equal(replay.fileVerdict?.reason, expected.template, `${label}: template refusal`);
       assert.equal(replay.templateSaveBuild, null, `${label}: no template rewrite`);
     }
+    assert.deepEqual(features.filter((feature) => !proved.includes(feature)), expected.refuses,
+      `${label}: patch-day features`);
+    assert.deepEqual(Object.fromEntries(Object.entries(stages).map(([stage, verdict]) =>
+      [stage, verdict === "proved" ? "proved" : "refused"])), expected.stages, `${label}: patch-day stages`);
   }
 });

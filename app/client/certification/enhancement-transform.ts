@@ -977,7 +977,7 @@ function assembleEnhancementTransform(
   );
   // Core and observation-only profiles must not install optional HUD hooks.
   const output = capabilities.nativeHudRendering
-    ? appendNativeHud(enhanced, skillBarFrameGlobalIndex)
+    ? appendNativeHud(enhanced, skillBarFrameGlobalIndex, build.nativeHudRendering)
     : enhanced;
   if (!WebAssembly.validate(output)) {
     try {

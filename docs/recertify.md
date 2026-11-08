@@ -288,18 +288,20 @@ so first check what still refuses.
    moved.
 6. Run the replay test again. It must pass, and the new client's record must
    prove every feature it supports with every generation. A client that is not
-   a relink of the previous generation needs its patch-day template verdict
-   in `TEMPLATE_ON_PATCH_DAY`.
+   a relink of the previous generation needs its patch-day row in `PATCH_DAY`:
+   its template verdict, the features it refuses and its module stages with
+   only older facts. A row may only get better.
 7. Compare all members of one function family. A matching sender alone does not
    prove its editor, history, packet, lifecycle, or dispatcher.
 
 Anchor only the bytes a feature owns. A screenshot anchor that also covered
 neighbouring storage once refused template saving after an unrelated change.
 
-A relocation can reach code that never moved before. Template saving then needs
-a source change, not only a variant: `MOVED_CALLEES` in
-`template-save-callee-proof.ts` binds each moved helper call to its reviewed
-callee bodies.
+A relocation can reach code that never moved before. Template saving
+normalizes each call to a reviewed helper in `template-save-callee-proof.ts`
+(`HELPERS`, plus `helper:<name>` bodies in generation files) to that helper,
+wherever it is called. A call to a helper that is not reviewed keeps its callee
+index; when it moves, add the helper and its bodies there.
 
 ## Per-client records to update
 
@@ -310,8 +312,8 @@ A new client can need all of these:
 - in its generation file's `facts`: alternatives, template-saving helper
   bodies, resign and whisper chat paths, the native render family, pathing
   families, the Guild Hall area-type family, the accepted Cartography layout,
-  and the friend lifecycle family (which changes
-  `FRIEND_OBSERVER_SEMANTIC_SHA256`);
+  and the friend lifecycle family (it changes
+  `FRIEND_OBSERVER_SEMANTIC_SHA256` only when a role's signature changes);
 - a Cartography memory layout with its Compass, Mission Map, and World Map
   certificates, the World Map display owner in
   `cartography-transform-internals.ts`, and its context root and agent array in

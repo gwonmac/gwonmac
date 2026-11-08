@@ -167,8 +167,11 @@ locator already meets the final relocation-resistant bar. At verifier ABI 10:
   after an equivalent compiler rewrite; and
 - a reviewed body digest or role fingerprint matches a relocated body only
   through a generation's identity table. The relocation identity names each
-  callee by its signature and each padded static operand by its class (text,
-  data, other); a role identity also erases the role's own spans. Generations
+  callee by its body up to the callee's own call targets, and each padded
+  static operand by its class (text, data, other). A role identity names each
+  callee by its signature only and erases the role's own spans: the role proof
+  checks its own relations, so a changed callee refuses only the features
+  that own it. Generations
   from October 22, 2026 on carry tables; older facts match exactly; and
 - the player-effect boundary accepts only reviewed body digests, and the
   transform rechecks the timer digest. A relocated effect body needs a
@@ -183,16 +186,28 @@ locator already meets the final relocation-resistant bar. At verifier ABI 10:
   - resign and whisper chat paths bind function indices, because the process
     boundary has no client bytes and rejects a substituted index only against
     reviewed (index, digest) pairs;
-  - the native render family (HUD draw ownership) binds function indices and
-    static addresses;
+  - native draw owners (HUD, map graphics, Compass terrain) match a reviewed
+    family exactly. On a relink they are derived instead: each owner is the
+    one function with a reviewed owner's relocation identity, an owner with
+    identical clones is the callee its reviewed caller calls at the same
+    position, and each address is read from the owners' corresponding static
+    operands. The process boundary checks the HUD proof's shape; the transform
+    derives it again from the bytes it rewrites and refuses any other value.
+    An owner whose body really changed still needs a new family;
   - pathing families bind function indices;
-  - Cartography memory layouts are compiled into the reachability kernel, so
-    a new layout changes the kernel;
-  - friend lifecycle role families feed `FRIEND_OBSERVER_SEMANTIC_SHA256`,
-    which the renderer pins;
-  - template saving's `MOVED_CALLEES` (in `template-save-callee-proof.ts`)
-    names each helper call that has moved. A relink that moves another call
-    needs a new entry there.
+  - a Cartography layout's context root and agent array live in
+    `CARTOGRAPHY_LAYOUT_ROOTS` (`app/shared/cartography-spike.ts`), keyed by
+    the layout id the derived client publishes. The reachability kernel
+    receives them at install, so a new layout no longer changes the kernel,
+    but it still needs a new id and roots there, so a release;
+  - a friend lifecycle family whose role bodies changed needs a review. The
+    renderer pins `FRIEND_OBSERVER_SEMANTIC_SHA256`, which covers only what
+    the certificate means (role names, signatures and the checked relations),
+    so a new family changes the pin only when a role's meaning changes;
+  - template saving normalizes every call to a reviewed helper (signature and
+    complete body, or its relocation identity) to that helper, wherever it is
+    called. A call to a helper that is not reviewed keeps its callee index, so
+    a relink that moves it refuses until the helper is reviewed.
 
 These checks fail closed. They can therefore disable a feature after an
 equivalent ArenaNet rebuild even when game behavior did not change. A refusal
