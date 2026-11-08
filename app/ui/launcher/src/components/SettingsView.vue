@@ -246,9 +246,12 @@ function onNavKey(event: KeyboardEvent) {
   next.focus();
 }
 
-/** Narrow page: the tab row's search button swaps the tabs for the field. */
+/**
+ * Narrow page: the tab row's search button swaps the tabs for the field. Wide, the toggle is not
+ * displayed and the field always is, so nothing opens and Escape stays the Hub's Back.
+ */
 async function openSearch() {
-  searchOpen.value = true;
+  if (searchToggle.value && getComputedStyle(searchToggle.value).display !== "none") searchOpen.value = true;
   await nextTick();
   searchField.value?.focus();
 }
@@ -290,8 +293,13 @@ async function openResult(id: string) {
   await open({ section: entry.section, control: entry.id });
 }
 
-/** Command-F finds a setting, as in macOS Settings. */
+/**
+ * Command-F finds a setting, as in macOS Settings. The page hears it on itself, because the Hub
+ * stops keys at its panel before they reach the window; the window listener covers the launcher
+ * when focus is outside the page. The first to act prevents the default, so it runs once.
+ */
 function onKey(event: KeyboardEvent) {
+  if (event.defaultPrevented) return;
   if (event.key === "f" && event.metaKey && !event.shiftKey && !event.altKey) { event.preventDefault(); void openSearch().then(() => searchField.value?.select()); }
 }
 
@@ -312,7 +320,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="settings-view">
+  <div class="settings-view" @keydown="onKey">
     <div class="settings-layout">
     <section ref="page" class="settings-page">
       <aside :class="{ 'search-open': searchOpen }">
