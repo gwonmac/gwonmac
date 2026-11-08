@@ -406,7 +406,6 @@ test('Resign sends once from its armed confirmation, and says before Enter why i
   expect([action(), hubOpen()]).toEqual(['RESIGN', false]);
   // While a map loads, the reason shows on the row before Enter (HUB-135).
   await setLifecycle('map-loading');
-  await openHub();
   fill(search(), 'resign'); await flush();
   expect([row('resign')?.getAttribute('aria-disabled'), detail(row('resign'))]).toEqual(['true', 'Resign is available with Tools enabled in a PvE area.']);
 });

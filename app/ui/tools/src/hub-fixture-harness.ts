@@ -11,6 +11,12 @@
  * text field, Enter on a button, a summary or a form field, and Escape closing a modal dialog.
  * The browser's own Tab traversal, caret movement and text selection are not modelled: those
  * cells stay in Playwright.
+ *
+ * Focus follows Chromium where the DOM decides it: `focus()` does nothing on an element that is
+ * not shown, not focusable, or inert (under `[inert]`, or outside the top dialog opened with
+ * `showModal`, which the harness records because happy-dom opens it as a plain `show`), and
+ * `click` refuses a detached or inert target, as Playwright's actionability checks do. An element hidden only by the stylesheet still counts as shown: happy-dom loads
+ * no CSS, so cells whose answer depends on CSS visibility stay in Playwright.
  */
 import { vi } from 'vitest';
 
@@ -30,18 +36,58 @@ function track() {
   }
 }
 function release() {
+  modals.length = 0;
   window.gwHub?.dispose();
   for (const [target, type, listener, options] of added.splice(0)) target.removeEventListener(type, listener, options);
   vi.clearAllTimers();
 }
 
-/** Whether an element shows: connected, and no ancestor is hidden, `display: none` inline, or a closed dialog. */
+/**
+ * Whether an element shows: connected, and no ancestor is hidden, `display: none` inline, a
+ * closed dialog, or inside a closed disclosure other than its summary. The stylesheet is not read.
+ */
 export function shown(element: Element) {
   for (let node: Element | null = element; node; node = node.parentElement) {
     if (node.hasAttribute('hidden') || (node instanceof HTMLElement && node.style.display === 'none')) return false;
     if (node instanceof HTMLDialogElement && !node.open) return false;
+    const parent = node.parentElement;
+    if (parent instanceof HTMLDetailsElement && !parent.open && node !== parent.querySelector(':scope > summary')) return false;
   }
   return element.isConnected;
+}
+
+/** Dialogs opened with `showModal`, in opening order: happy-dom's `showModal` is `show`, with no `:modal`. */
+const modals: HTMLDialogElement[] = [];
+/** The topmost open modal dialog, as Chromium's top layer orders them. */
+export const topModal = () => modals.filter(dialog => dialog.open && dialog.isConnected).at(-1) ?? null;
+/** Inert as Chromium makes it: under `[inert]`, or outside the topmost modal dialog. */
+export function inert(element: Element) {
+  if (element.closest('[inert]')) return true;
+  const modal = topModal();
+  return !!modal && !modal.contains(element);
+}
+
+const FOCUSABLE = 'a[href], button, input, select, textarea, summary, iframe, [tabindex], [contenteditable=""], [contenteditable="true"]';
+/** Whether `focus()` takes: a focusable, enabled element that shows and is not inert. */
+export function focusable(element: HTMLElement) {
+  if (!element.matches(FOCUSABLE) || !shown(element) || inert(element)) return false;
+  if ('disabled' in element && element.disabled === true) return false;
+  return !(element instanceof HTMLInputElement && element.type === 'hidden');
+}
+let focusGuarded = false;
+/** Makes `focus()` refuse what Chromium refuses and records modal dialogs (see the header); once per test file. */
+function guardFocus() {
+  if (focusGuarded) return;
+  focusGuarded = true;
+  const focus = HTMLElement.prototype.focus;
+  HTMLElement.prototype.focus = function (this: HTMLElement, options?: FocusOptions) { if (focusable(this)) focus.call(this, options); };
+  const showModal = HTMLDialogElement.prototype.showModal;
+  HTMLDialogElement.prototype.showModal = function (this: HTMLDialogElement) {
+    showModal.call(this);
+    const index = modals.indexOf(this);
+    if (index >= 0) modals.splice(index, 1);
+    modals.push(this);
+  };
 }
 
 /**
@@ -89,6 +135,7 @@ export async function mountFixture(query = '', stored: Readonly<Record<string, s
   if (!fixture) throw new Error('Call loadFixture() in beforeAll first');
   const { mountHubFixture } = fixture;
   track();
+  guardFocus();
   const app = document.createElement('div'); app.id = 'app'; document.body.append(app);
   mountHubFixture(app);
   await settle();
@@ -128,7 +175,7 @@ function defaultAction(key: string, held: ReadonlySet<Modifier>) {
     if (element instanceof HTMLInputElement && element.form) { element.form.requestSubmit(); return; }
   }
   if (key === 'Escape') {
-    const dialog = [...document.querySelectorAll('dialog')].reverse().find(open => open.open && open.matches(':modal'));
+    const dialog = topModal();
     if (dialog && dialog.dispatchEvent(new Event('cancel', { cancelable: true }))) dialog.close();
   }
 }
@@ -166,6 +213,9 @@ export function hold(key: string, repeats = 3) {
  * (or the body), then the click runs with `detail` as the click run's length.
  */
 export function click(element: Element, detail = 1) {
+  // Playwright clicks an attached element that receives pointer events; a detached or inert one never does.
+  if (!element.isConnected) throw new Error(`Detached, so Playwright could not click it: ${element.tagName} "${accessibleName(element)}"`);
+  if (inert(element)) throw new Error(`Inert, so Playwright could not click it: ${element.tagName} "${accessibleName(element)}" (${element.closest('[inert]') ? 'under [inert]' : `outside the modal #${topModal()?.id}`})`);
   const init = { bubbles: true, cancelable: true, composed: true, detail, button: 0 };
   element.dispatchEvent(new PointerEvent('pointerdown', init));
   if (element.dispatchEvent(new MouseEvent('mousedown', init))) {

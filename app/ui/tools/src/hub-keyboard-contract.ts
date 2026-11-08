@@ -57,7 +57,8 @@ function observe() {
     : visible('#toolbox-trade .trade-window') ? 'trade' : visible('#whisper-window') ? 'whispers'
       : document.querySelector('.hub-fixture-quit') ? 'quit' : 'closed';
   const active = document.activeElement;
-  const focus = !active || active === document.body ? 'body'
+  // Chromium moves focus to the body when the focused element stops showing.
+  const focus = !active || active === document.body || !shown(active) ? 'body'
     : active.id === 'canvas' ? 'canvas'
       : active.closest('.hub-row') ? `row:${active.closest<HTMLElement>('.hub-row')!.dataset.id}`
         : active.getAttribute('role') === 'combobox' && hub?.contains(active) ? 'search'

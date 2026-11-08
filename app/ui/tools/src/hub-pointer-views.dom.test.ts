@@ -217,8 +217,8 @@ describe('Hub preferences', () => {
     const stored: Pin[] = [{ id: 'place:449', phrase: 'kama', pinned: true }, { id: 'travel', phrase: 'go', pinned: false }];
     await withPins(stored);
     await enter('hub preferences');
-    const reset = button('Remove all search phrases…');
-    click(reset); await settle();
+    const reset = () => button('Remove all search phrases…');
+    click(reset()); await settle();
     expect(caption()).toBe('Remove search phrases?');
     expect(byRole('heading', 'Remove 2 search phrases?').length).toBe(1);
     expect(primary().textContent).toMatch(/^Remove 2 search phrases/);
@@ -228,7 +228,7 @@ describe('Hub preferences', () => {
     click(item('Keep')); await settle();
     expect(caption()).toBe('Hub preferences');
     expect(saved()).toEqual(stored);
-    click(reset); await settle();
+    click(reset()); await settle();
     expect(caption()).toBe('Remove search phrases?');
     await vi.advanceTimersByTimeAsync(500);
     expect(primary().hasAttribute('data-armed')).toBe(true);
