@@ -202,6 +202,7 @@
   --ui-well-overlay-fill: color-mix(in srgb, var(--ui-outline) 72%, var(--ui-well-fill));
   --ui-accent-well-fill: color-mix(in srgb, var(--ui-accent) 10%, var(--ui-well));
   --ui-accent-soft-fill: color-mix(in srgb, var(--ui-accent) 10%, transparent);
+  --ui-accent-line: color-mix(in srgb, var(--ui-accent) 30%, transparent);
   --ui-danger-soft-fill: color-mix(in srgb, var(--ui-danger) 10%, transparent);
   --ui-danger-panel-fill: color-mix(in srgb, var(--ui-danger) 14%, var(--ui-panel-fill));
   --ui-warning-panel-fill: color-mix(in srgb, var(--ui-warning) 10%, var(--ui-panel-fill));

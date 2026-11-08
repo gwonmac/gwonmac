@@ -30,7 +30,7 @@
   --gold-text: var(--ui-accent-text);
   --gold-tint: var(--ui-accent-soft-fill);
   --gold-tint-strong: var(--ui-selection-fill);
-  --gold-line: var(--ui-line);
+  --gold-line: var(--ui-accent-line);
   --gold-gradient: var(--ui-primary-fill);
   --on-gold: var(--ui-primary-ink);
   --nav-active-text: var(--ui-selection-ink);
