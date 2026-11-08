@@ -2,7 +2,8 @@
  * Loads the sealed reachability side module. The only native addresses that
  * cross this boundary are the two roots the derived client's manifest
  * publishes, installed once on the first classification under the client's
- * layout id (its context root); callers receive one copied cell bitset.
+ * layout id (an opaque hash of both roots); callers receive one copied cell
+ * bitset.
  */
 import {
   CARTOGRAPHY_REACHABILITY_ABI,

@@ -38,9 +38,8 @@ import {
 import { ENHANCEMENT_TRANSFORM_ABI } from "../../shared/enhancement-contracts.js";
 import { FRIEND_OBSERVER_TRANSFORM_ABI } from "../../shared/friend-observer-contract.js";
 import { CARTOGRAPHY_SPIKE_TRANSFORM_ABI } from "./pathing-spike-transform.js";
-import { enhancementOutputSha256 } from "./enhancement-builds.js";
+import { enhancementCandidates, enhancementOutputSha256 } from "./enhancement-builds.js";
 import { transformEnhancementWasm } from "./enhancement-transform.js";
-import { enhancementCandidates } from "./client-module.js";
 import {
   deriveFriendObserverStage,
   isFriendObserverBuild,
@@ -48,13 +47,13 @@ import {
   type FriendObserverBuild,
 } from "./friend-observer-transform.js";
 import {
-  deriveCartographySpikeBuild,
+  deriveCartographySpikeStage,
   isCartographySpikeBuild,
+  rewriteCartographySpikeWasm,
   type CartographySpikeBuild,
 } from "./cartography-spike-verifier.js";
-import { rewriteCartographySpikeWasm } from "./cartography-spike-client.js";
 import {
-  deriveNativeDoubleClickBuild,
+  deriveNativeDoubleClickStage,
   isDerivedNativeDoubleClickBuild,
   nativeDoubleClickOutputSha256,
   NATIVE_DOUBLE_CLICK_TRANSFORM_ABI,
@@ -305,26 +304,31 @@ export async function runClientVerificationPass(
     }
 
     if (launch.cartography) {
-      const build = provedFor(cartography, inputSha256, isCartographySpikeBuild)
-        ?? attempt("cartography", () => deriveCartographySpikeBuild(bytes));
-      if (isCartographySpikeBuild(build, inputSha256)) {
-        remember(cartography, build, inputSha256, isCartographySpikeBuild);
-        advance(
-          attempt("cartography", () => rewriteCartographySpikeWasm(bytes, build)),
-          build.outputSha256,
-        );
+      const known = provedFor(cartography, inputSha256, isCartographySpikeBuild);
+      const proved = bytes;
+      const stage = known
+        ? {
+            build: known,
+            output: attempt("cartography", () => rewriteCartographySpikeWasm(proved, known)),
+          }
+        : attempt("cartography", () => deriveCartographySpikeStage(proved));
+      if (stage && isCartographySpikeBuild(stage.build, inputSha256)) {
+        remember(cartography, stage.build, inputSha256, isCartographySpikeBuild);
+        advance(stage.output, stage.build.outputSha256);
       }
     }
 
-    const doubleClick = provedFor(nativeDoubleClick, inputSha256, isDerivedNativeDoubleClickBuild)
-      ?? attempt("nativeDoubleClick", () => deriveNativeDoubleClickBuild(bytes));
-    if (isDerivedNativeDoubleClickBuild(doubleClick, inputSha256)) {
-      remember(nativeDoubleClick, doubleClick, inputSha256, isDerivedNativeDoubleClickBuild);
-      const proved = bytes;
-      advance(
-        attempt("nativeDoubleClick", () => rewriteWithBuild(proved, doubleClick)),
-        nativeDoubleClickOutputSha256(doubleClick, inputSha256),
-      );
+    const knownDoubleClick = provedFor(nativeDoubleClick, inputSha256, isDerivedNativeDoubleClickBuild);
+    const doubleClickInput = bytes;
+    const doubleClick = knownDoubleClick
+      ? {
+          build: knownDoubleClick,
+          output: attempt("nativeDoubleClick", () => rewriteWithBuild(doubleClickInput, knownDoubleClick)),
+        }
+      : attempt("nativeDoubleClick", () => deriveNativeDoubleClickStage(doubleClickInput));
+    if (doubleClick && isDerivedNativeDoubleClickBuild(doubleClick.build, inputSha256)) {
+      remember(nativeDoubleClick, doubleClick.build, inputSha256, isDerivedNativeDoubleClickBuild);
+      advance(doubleClick.output, nativeDoubleClickOutputSha256(doubleClick.build, inputSha256));
     }
 
     const memoryInput = bytes;

@@ -214,7 +214,9 @@ locator already meets the final relocation-resistant bar. At verifier ABI 10:
     or by relocation identity on a relink), and the editor must call the
     history owner, which must call the sender. The process boundary checks
     the sender's shape; the transform derives the path again from the bytes it
-    rewrites and refuses any other sender. A path whose body really changed
+    rewrites and refuses any other sender. A cached module skips that
+    transform, so it is served only when its bytes hash to the output the
+    verifier derived from the same bytes. A path whose body really changed
     still needs a review;
   - native draw owners (HUD, map graphics, Compass terrain) match a reviewed
     family exactly. On a relink they are derived instead: each owner is the

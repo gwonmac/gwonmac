@@ -8,11 +8,8 @@ import {
   prepareDerivedWasm,
   type DerivedWasmCache,
 } from "../derived-wasm.js";
-import {
-  CARTOGRAPHY_SPIKE_TRANSFORM_ABI,
-  transformCartographySpikeWasm,
-} from "./pathing-spike-transform.js";
-import type { CartographySpikeBuild } from "./cartography-spike-verifier.js";
+import { CARTOGRAPHY_SPIKE_TRANSFORM_ABI } from "./pathing-spike-transform.js";
+import { rewriteCartographySpikeWasm, type CartographySpikeBuild } from "./cartography-spike-verifier.js";
 
 export type CartographySpikePreparation =
   | Readonly<{
@@ -26,14 +23,6 @@ export type CartographySpikePreparation =
       wasmSha256: string;
       error: unknown;
     }>;
-
-/** The Cartography module for one certified input; the transform rechecks it. */
-export function rewriteCartographySpikeWasm(
-  input: Uint8Array,
-  build: CartographySpikeBuild,
-): Uint8Array {
-  return transformCartographySpikeWasm(input, { contextRoot: build.contextRoot, agentArray: build.agentArray });
-}
 
 /** Prepare Cartography only from an isolated semantic certificate. */
 export async function prepareCartographySpike(
