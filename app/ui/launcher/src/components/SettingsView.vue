@@ -201,6 +201,7 @@ async function select(next: SettingsSection, moveFocus = false) {
   // A screen reader hears where it landed; Tab continues from the section's top.
   const heading = content.value.querySelector<HTMLElement>("h1");
   heading?.setAttribute("tabindex", "-1");
+  heading?.setAttribute("data-focus-target", "");
   heading?.focus({ preventScroll: true });
 }
 

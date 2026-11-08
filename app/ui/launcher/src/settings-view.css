@@ -40,11 +40,11 @@
 :where(.settings-view) button:active { transform: scale(.985); filter: brightness(.95); }
 :where(.settings-view) button:disabled { transform: none; filter: none; cursor: default; }
 :where(.settings-view) button:focus-visible, :where(.settings-view) input:focus-visible, :where(.settings-view) textarea:focus-visible, :where(.settings-view) select:focus-visible, :where(.settings-view) summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
-/* A heading, dialog or editor focused from code to announce where focus landed is not a control:
-   no focus ring, and none of the game document's either (the Hub frame adds a halo to anything
-   with a tabindex). A texture pack card is focused from code too but keeps its own ring, so it is
-   left out here rather than winning by source order. */
-.settings-view [tabindex="-1"]:not(.texture-pack-card):focus { outline: none; box-shadow: none; }
+/* Code-focused targets (a section heading, a dialog, the map style editor) take focus only to
+   announce where it landed. They are not controls: no focus ring, and none of the game
+   document's either (the Hub frame adds a halo to anything with a tabindex). Each one opts in
+   with data-focus-target, so nothing else falls under this by accident. */
+.settings-view [data-focus-target]:focus { outline: none; box-shadow: none; }
 :where(.settings-view) textarea, :where(.settings-view) input:not([type="color"]):not([type="range"]):not([type="checkbox"]):not([type="radio"]), :where(.settings-view) select { width: 100%; padding: 12px 13px; border: 1px solid var(--line); border-radius: 10px; color: var(--text); background: var(--field); }
 :where(.settings-view) select option { color: var(--text); background: var(--surface-solid); }
 :where(.settings-view) textarea { resize: vertical; }
@@ -176,7 +176,8 @@
 .settings-view .texture-pack-card { min-height: 64px; display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 14px; padding: 12px; border-bottom: 1px solid var(--line); cursor: default; }
 .settings-view .texture-pack-card.selected { background: var(--surface-selected); box-shadow: none; }
 .settings-view .texture-pack-card.unavailable { opacity: .7; }
-.settings-view .texture-pack-card:focus-visible { outline: 2px solid var(--pack-accent); outline-offset: 2px; }
+/* The launcher's own ring; in the Hub a card takes the Hub frame's focus style instead. */
+:root[data-launcher] .settings-view .texture-pack-card:focus-visible { outline: 2px solid var(--pack-accent); outline-offset: 2px; }
 .settings-view .texture-pack-card > label { min-width: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 14px; cursor: pointer; }
 .settings-view .texture-pack-card label > span, .settings-view .texture-pack-card > span { display: grid; gap: 4px; min-width: 0; }
 .settings-view .texture-pack-card input { width: 19px; height: 19px; accent-color: var(--pack-accent); }

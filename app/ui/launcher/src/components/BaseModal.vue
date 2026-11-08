@@ -58,7 +58,7 @@ onBeforeUnmount(() => {
 <template>
   <Teleport :to="target">
     <div class="modal-backdrop" @pointerdown.self="dismissible && emit('close')">
-      <section ref="dialog" class="modal" :class="{ 'modal-wide': wide }" role="dialog" aria-modal="true" :aria-labelledby="labelledby" tabindex="-1" @keydown="onKeydown">
+      <section ref="dialog" class="modal" :class="{ 'modal-wide': wide }" role="dialog" aria-modal="true" :aria-labelledby="labelledby" tabindex="-1" data-focus-target @keydown="onKeydown">
         <slot />
       </section>
     </div>

@@ -238,7 +238,7 @@ async function updateUnseen(patch: Partial<CartographyPresetStyle["grid"]["unsee
     </div>
     <MapStylePreview v-if="active" :style="active.style" :grid-opacity="settings.cartographyGridOpacity" :terrain-opacity="settings.cartographyWalkabilityOpacity" />
   </div>
-  <div v-if="editing && active?.custom" ref="styleEditor" class="setting-group map-style-editor" tabindex="-1" role="region" :aria-label="`Edit ${active.name}`">
+  <div v-if="editing && active?.custom" ref="styleEditor" class="setting-group map-style-editor" tabindex="-1" data-focus-target role="region" :aria-label="`Edit ${active.name}`">
     <div class="setting-row"><span><strong>Edit {{ active.name }}</strong><small>Changes save automatically.</small></span><button class="secondary small" @click="closeEditor">Done</button></div>
     <h2>Walkable terrain</h2>
     <div class="setting-row"><span>Shaded area color</span><ColorControl label="Shaded area color" :value="active.style.walkability.veilColor" @change="updateWalkability({ veilColor: $event })" /></div>
