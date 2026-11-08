@@ -149,7 +149,8 @@ function harness(argv: string[]) {
       return !event.defaultPrevented;
     },
   };
-  const context: Record<string, unknown> = { console, window };
+  // The router fires its events from the document; they bubble to the window's listeners.
+  const context: Record<string, unknown> = { console, window, document: { dispatchEvent: window.dispatchEvent } };
   context.globalThis = context;
   // The router imports the shared tables at run time; they load as the test's own modules.
   vm.runInNewContext(routerSource, context, {

@@ -26,10 +26,16 @@
    * empty room succeeds exactly like dispatching to a listener that worked, so
    * a command whose completion the main process reports back to a player needs
    * the listener to say so. Callers that cannot fail ignore the result.
+   *
+   * The event starts at the document and bubbles to window, so a capture
+   * listener on window runs before every other window listener, whenever each
+   * was added. At the target itself, listeners run in the order they were
+   * added: a page that mounts late (Characters) could not otherwise put its
+   * search back in focus before the text editing decides on `gw:text-edit`.
    */
   const dispatch = (name: string, detail?: unknown): boolean =>
-    !window.dispatchEvent(
-      new window.CustomEvent(name, { cancelable: true, detail }),
+    !document.dispatchEvent(
+      new window.CustomEvent(name, { cancelable: true, bubbles: true, detail }),
     );
 
   // Every tool's event, from each tool's one entry (app/shared/hub-tools.ts). The import starts
