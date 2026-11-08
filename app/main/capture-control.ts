@@ -5,7 +5,7 @@
  */
 import { dialog } from "electron";
 import { AUTOMATION_COMMAND } from "../shared/automation.js";
-import type { AppSettings } from "../shared/contracts.js";
+import type { AppSettings } from "../shared/settings/index.js";
 import { errorCode } from "../shared/errors.js";
 import { ENHANCEMENT_AUTOMATION_ENABLED } from "../client/certification/enhancement-policy.js";
 import {

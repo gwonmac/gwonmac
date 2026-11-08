@@ -4,7 +4,7 @@
 .elite-skills-root svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .elite-skills-root .elite-panel, .elite-skills-root .elite-map-summary { position: fixed; top: 16px; right: 16px; pointer-events: auto; }
 .elite-summary-problem { padding-inline: var(--ui-space-2); color: var(--ui-accent); font-weight: bold; }
-.elite-panel { display: flex; flex-direction: column; width: min(372px, calc(100vw - 24px)); height: 80dvh; max-height: calc(100dvh - 32px); background: rgb(from var(--ui-panel-fill) r g b / 1); overflow: hidden; }
+.elite-panel { display: flex; flex-direction: column; width: min(372px, calc(100vw - 24px)); height: 80dvh; max-height: calc(100dvh - 32px); background: var(--ui-panel-solid); overflow: hidden; }
 .elite-panel .ui-panel-head { position: sticky; top: 0; z-index: 3; background-color: var(--ui-panel-fill); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
 .elite-panel-content { min-height: min(120px, 20dvh); overflow-y: auto; flex: 1 1 0px; }
 .elite-panel h2 { margin: 0; color: var(--ui-text-bright); font-size: var(--ui-font-size-lg); }
@@ -137,10 +137,10 @@
 .elite-location-text .ui-link { justify-self: start; font-size: var(--ui-font-size-sm); }
 .elite-location .elite-target-button { min-height: 28px; font-size: var(--ui-font-size-sm); }
 .elite-panel-footer { flex-shrink: 0; display: grid; gap: 6px; padding: var(--ui-space-2) var(--ui-space-3); border-top: 1px solid var(--ui-line); }
-.elite-preview { background: rgb(from var(--ui-panel-fill) r g b / 1); }
+.elite-preview { background: var(--ui-panel-solid); }
 /* Notices sit bottom-centre, clear of the planner and the map controls. */
 .elite-notice { position: fixed; left: 50%; bottom: 88px; transform: translateX(-50%); z-index: 3; display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: var(--ui-space-3);
-  max-width: min(460px, calc(100vw - 32px)); padding: var(--ui-space-2) var(--ui-space-3); pointer-events: auto; background: rgb(from var(--ui-panel-fill) r g b / 1); font-size: var(--ui-font-size-sm); }
+  max-width: min(460px, calc(100vw - 32px)); padding: var(--ui-space-2) var(--ui-space-3); pointer-events: auto; background: var(--ui-panel-solid); font-size: var(--ui-font-size-sm); }
 .elite-notice strong { grid-column: 1; color: var(--ui-text-bright); font-weight: normal; }
 .elite-notice[data-kind="captured"] strong { color: var(--ui-success); }
 .elite-notice span { grid-column: 1; color: var(--ui-text-muted); }

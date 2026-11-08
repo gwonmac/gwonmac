@@ -11,7 +11,7 @@
  * `template-pane.ts` and the format rules to `template-format.ts`.
  */
 
-import type { TemplateExportEntry } from '../shared/contracts.js';
+import type { TemplateExportEntry } from '../shared/template-contracts.js';
 import {
   type TemplateCandidate,
   type TemplateKind,

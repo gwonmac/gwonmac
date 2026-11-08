@@ -9,8 +9,8 @@
  * the renderer a command was sent to may complete it.
  */
 import { ipcMain, type BrowserWindow } from "electron";
+import { GAME_CHANNELS } from "../shared/ipc/game.js";
 import {
-  IPC,
   RENDERER_COMMAND_COMPLETIONS,
   type TextEditCommand,
   type RendererCommand,
@@ -31,7 +31,7 @@ let lastCommandId = 0;
 export const RENDERER_COMMAND_TIMEOUT_MS = 5_000;
 export const VISUAL_CAPTURE_COMMAND_TIMEOUT_MS = 60_000;
 
-ipcMain.on(IPC.rendererCommandDone, (event, id: unknown, outcome: unknown) => {
+ipcMain.on(GAME_CHANNELS.rendererCommandDone.channel, (event, id: unknown, outcome: unknown) => {
   if (
     typeof id !== "number"
     || !RENDERER_COMMAND_COMPLETIONS.includes(
@@ -111,7 +111,7 @@ export function sendRendererCommand(
     contents.once("render-process-gone", failed);
     contents.on("did-start-navigation", abandon);
     try {
-      contents.send(IPC.rendererCommand, id, command);
+      contents.send(GAME_CHANNELS.rendererCommand.channel, id, command);
     } catch {
       failed();
     }

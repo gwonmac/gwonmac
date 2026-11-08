@@ -52,7 +52,7 @@ test("loading the upgraded files quarantines nothing and requests no reset", asy
   await writeFile(settingsPath, JSON.stringify(settings("invite")));
   await writeFile(libraryPath, JSON.stringify(library("invite heroes")));
   const recovered: string[] = [];
-  const loadedSettings = await loadSettings(settingsPath, backup => { recovered.push(backup); });
+  const loadedSettings = await loadSettings(settingsPath, (recovery) => { recovered.push(recovery.kind); });
   const loadedLibrary = await loadBuildLibrary(libraryPath, backup => { recovered.push(backup); });
   assert.deepEqual(loadedSettings.hubShortcuts, settings("invite").hubShortcuts);
   assert.deepEqual(loadedLibrary.hubShortcuts, [{ id: "team:t1", phrase: "invite heroes", pinned: true }]);

@@ -4,7 +4,8 @@
  */
 import { isAppShortcutCaptureActive } from "./launcher-shortcut-capture.js";
 import type { BrowserWindow } from "electron";
-import type { AppSettings, GameTextEditCommand, TextEditCommand } from "../shared/contracts.js";
+import type { GameTextEditCommand, TextEditCommand } from "../shared/contracts.js";
+import type { AppSettings } from "../shared/settings/index.js";
 import { featureActivationRequested, type FeatureActivationSettings } from "../shared/feature-contracts.js";
 import {
   resolveShortcuts,

@@ -273,7 +273,7 @@ test.describe("diagnostics", () => {
           .getBuiltinModule("node:module")
           .createRequire(args.modulePath);
         const diagnostics = load(args.modulePath);
-        const { DEFAULT_SETTINGS } = load(args.contractsPath);
+        const { DEFAULT_SETTINGS } = load(args.settingsPath);
         const { windowRegistry } = load(
           args.modulePath.replace(/diagnostics\.js$/u, "window-registry.js"),
         );
@@ -291,7 +291,7 @@ test.describe("diagnostics", () => {
         });
       }, {
         modulePath: path.join(root, "build/main/diagnostics.js"),
-        contractsPath: path.join(root, "build/shared/contracts.js"),
+        settingsPath: path.join(root, "build/shared/settings/index.js"),
         target,
       });
 
@@ -316,14 +316,14 @@ test.describe("diagnostics", () => {
     try {
       const target = path.join(diagnosticRoot, "capture.zip");
       const modulePath = path.join(root, "build/main/diagnostics.js");
-      const contractsPath = path.join(root, "build/shared/contracts.js");
+      const settingsPath = path.join(root, "build/shared/settings/index.js");
       const stopped = await fixture.app.evaluate(
         async ({ app: electronApp, BrowserWindow, contentTracing }, args) => {
           const load = process
             .getBuiltinModule("node:module")
             .createRequire(args.modulePath);
           const diagnostics = load(args.modulePath);
-          const { DEFAULT_SETTINGS } = load(args.contractsPath);
+          const { DEFAULT_SETTINGS } = load(args.settingsPath);
           const { windowRegistry } = load(
             args.modulePath.replace(/diagnostics\.js$/u, "window-registry.js"),
           );
@@ -360,7 +360,7 @@ test.describe("diagnostics", () => {
             captureLevel: diagnostics.diagnosticSummary().captureLevel,
           };
         },
-        { modulePath, contractsPath, target },
+        { modulePath, settingsPath, target },
       );
 
       expect(path.basename(stopped.attemptedTarget)).toMatch(/^chromium-.+\.json$/);

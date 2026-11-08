@@ -5,7 +5,6 @@
  */
 import type { FeatureDefinition } from "../../features/define.js";
 import { FEATURES, type Feature } from "../../features/index.js";
-import { AppError } from "../errors.js";
 import { CORE_SETTINGS } from "./core.js";
 import { settingError, type SettingSpec, type SettingValue } from "./define.js";
 
@@ -68,23 +67,29 @@ export function toolsSettings(settings: AppSettings | null): ToolsSettings {
   return Object.freeze(Object.fromEntries(TOOLS_SETTINGS.map((key) => [key, source[key]]))) as ToolsSettings;
 }
 
+/** A stored field whose value no setting accepts; `field` is the name in the document. */
+export type UnreadableSetting = Readonly<{ field: string; error: string }>;
+
 /**
  * Reads every known field of a settings document: a missing field takes its
- * default, an unknown field is ignored, and a malformed known value is refused
- * with `bad_settings`. The document's own shape (an object, its format version)
- * is the caller's to check.
+ * default, an unknown field is ignored, and a malformed known value takes its
+ * default and is listed in `unreadable`. Whether an unreadable field is
+ * refused (renderer input) or reset (a player's file) is the caller's choice.
+ * The document's own shape (an object, its format version) is the caller's to
+ * check.
  */
-export function readSettings(source: Readonly<Record<string, unknown>>): AppSettings {
+export function readSettings(source: Readonly<Record<string, unknown>>): Readonly<{
+  settings: AppSettings;
+  unreadable: readonly UnreadableSetting[];
+}> {
   const settings: Record<string, unknown> = {};
+  const unreadable: UnreadableSetting[] = [];
   for (const [key, spec] of SETTING_TABLE) {
     const stored = key in source ? key : spec.alias !== undefined && spec.alias in source ? spec.alias : null;
-    if (stored === null) {
-      settings[key] = spec.fresh ? spec.fresh() : spec.fallback;
-      continue;
-    }
-    const value = spec.read(source[stored]);
-    if (value === undefined) throw new AppError("bad_settings", settingError(stored, spec));
-    settings[key] = value;
+    const value = stored === null ? undefined : spec.read(source[stored]);
+    if (stored !== null && value === undefined) unreadable.push({ field: stored, error: settingError(stored, spec) });
+    // A read may answer `null` (a cleared value), so only `undefined` falls back.
+    settings[key] = value !== undefined ? value : spec.fresh ? spec.fresh() : spec.fallback;
   }
-  return settings as AppSettings;
+  return { settings: settings as AppSettings, unreadable };
 }

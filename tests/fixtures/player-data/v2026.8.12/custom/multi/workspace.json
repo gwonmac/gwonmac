@@ -1,0 +1,1 @@
+{"formatVersion":1,"profiles":[{"id":"00000000-0000-4000-8000-00000000000a","name":"Fixture Main","archived":false,"templates":"shared","builds":"shared"},{"id":"00000000-0000-4000-8000-00000000000b","name":"Fixture Second","archived":true,"templates":"private","builds":"private"}],"deletingProfileIds":[]}

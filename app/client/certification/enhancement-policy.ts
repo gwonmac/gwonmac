@@ -10,9 +10,7 @@
  *
  */
 import { app } from "electron";
-import {
-  type AppSettings,
-} from "../../shared/contracts.js";
+import type { AppSettings } from "../../shared/settings/index.js";
 import {
   ENHANCEMENT_CAPABILITY_PRESETS,
   ENHANCEMENT_PROGRAMS,

@@ -17,7 +17,7 @@ import {
   type RendererFrameBatch,
   type RendererHistogramMetric,
   type RendererMetrics,
-  type RendererMilestoneRecord,
+  type RendererMilestoneArgs,
   type TextureMemorySnapshot,
 } from "../../shared/diagnostics.js";
 import {
@@ -353,40 +353,40 @@ export function recordClockOffset(
 /** Records a milestone that the IPC boundary already checked against the schema. */
 export function recordRendererMilestone(
   ownerId: number,
-  milestone: RendererMilestoneRecord,
+  ...[name, rendererTimestampUs, fields]: RendererMilestoneArgs
 ): void {
   const state = stateFor(ownerId);
   const timestampUs = state.clockSynchronized
-    ? Math.max(0, Math.round(milestone.rendererTimestampUs + state.clockOffsetUs))
+    ? Math.max(0, Math.round(rendererTimestampUs + state.clockOffsetUs))
     : recorder.timestampUs();
   const at = { timestampUs };
   const { clockSynchronized } = state;
-  recorder.setLatest(`milestone.${milestone.name}Us`, timestampUs, ownerId);
-  switch (milestone.name) {
+  recorder.setLatest(`milestone.${name}Us`, timestampUs, ownerId);
+  switch (name) {
     case "build.info": {
       // Build identifiers stay in gauges; the event records the clock state only.
-      recorder.setLatest("client.programId", milestone.fields.programId, ownerId);
-      recorder.setLatest("client.buildId", milestone.fields.buildId, ownerId);
+      recorder.setLatest("client.programId", fields.programId, ownerId);
+      recorder.setLatest("client.buildId", fields.buildId, ownerId);
       recordEvent({ k: "build.info", clockSynchronized }, at, ownerId);
       return;
     }
     case "relog.inputSettled":
-      recordEvent({ k: "relog.inputSettled", clockSynchronized, ...milestone.fields }, at, ownerId);
+      recordEvent({ k: "relog.inputSettled", clockSynchronized, ...fields }, at, ownerId);
       return;
     case "relog.preGameProbe":
-      recordEvent({ k: "relog.preGameProbe", clockSynchronized, ...milestone.fields }, at, ownerId);
+      recordEvent({ k: "relog.preGameProbe", clockSynchronized, ...fields }, at, ownerId);
       return;
     case "relog.finished":
-      recordEvent({ k: "relog.finished", clockSynchronized, ...milestone.fields }, at, ownerId);
+      recordEvent({ k: "relog.finished", clockSynchronized, ...fields }, at, ownerId);
       return;
     case "relog.skipped":
-      recordEvent({ k: "relog.skipped", ...milestone.fields }, at, ownerId);
+      recordEvent({ k: "relog.skipped", ...fields }, at, ownerId);
       return;
     case "enhancement.consumerSignal":
-      recordEvent({ k: "enhancement.consumerSignal", ...milestone.fields }, at, ownerId);
+      recordEvent({ k: "enhancement.consumerSignal", ...fields }, at, ownerId);
       return;
     case "enhancement.skillGeometryState":
-      recordEvent({ k: "enhancement.skillGeometryState", ...milestone.fields }, at, ownerId);
+      recordEvent({ k: "enhancement.skillGeometryState", ...fields }, at, ownerId);
       return;
     case "wasm.abort":
       // The run-scoped crash tally the loading overlay reads back through
@@ -397,20 +397,19 @@ export function recordRendererMilestone(
       recordEvent({
         k: "wasm.abort",
         clockSynchronized,
-        ...milestone.fields,
-        fingerprint: asRendererFingerprint(milestone.fields.fingerprint),
+        ...fields,
+        fingerprint: asRendererFingerprint(fields.fingerprint),
       }, at, ownerId);
       return;
     case "wasm.exit":
       recorder.count("wasm.crashes", 1, ownerId);
-      recordEvent({ k: "wasm.exit", clockSynchronized, ...milestone.fields }, at, ownerId);
+      recordEvent({ k: "wasm.exit", clockSynchronized, ...fields }, at, ownerId);
       return;
     case "wasm.memoryProbe":
-      recorder.setLatest("wasm.memoryProbe.status", milestone.fields.status, ownerId);
-      recordEvent({ k: "wasm.memoryProbe", clockSynchronized, ...milestone.fields }, at, ownerId);
+      recorder.setLatest("wasm.memoryProbe.status", fields.status, ownerId);
+      recordEvent({ k: "wasm.memoryProbe", clockSynchronized, ...fields }, at, ownerId);
       return;
     case "wasm.growthRequested": {
-      const fields = milestone.fields;
       recorder.count("wasm.growthRequests", 1, ownerId);
       recorder.count(`wasm.growthRequests.${fields.outcome}`, 1, ownerId);
       recorder.setLatest("wasm.growth.outcome", fields.outcome, ownerId);
@@ -433,7 +432,6 @@ export function recordRendererMilestone(
       return;
     }
     case "graphics.visualProblem": {
-      const fields = milestone.fields;
       recordTextureSnapshot(fields, ownerId);
       recorder.setLatest("graphics.webglContextAvailableAtVisualProblem", fields.webglContextAvailable, ownerId);
       recorder.setLatest("graphics.contextLostAtVisualProblem", fields.contextLost, ownerId);
@@ -446,20 +444,20 @@ export function recordRendererMilestone(
     }
     case "enhancement.installed": {
       // The IPC guard admitted only a known profile; this narrows its type.
-      const profile = milestone.fields.capabilityProfile;
+      const profile = fields.capabilityProfile;
       if (!isEnhancementCapabilityProfile(profile)) return;
       recordEvent({
         k: "enhancement.installed",
         clockSynchronized,
-        ...milestone.fields,
+        ...fields,
         capabilityProfile: profile,
       }, at, ownerId);
       return;
     }
     case "enhancement.uninstalled":
-      recordEvent({ k: "enhancement.uninstalled", clockSynchronized, ...milestone.fields }, at, ownerId);
+      recordEvent({ k: "enhancement.uninstalled", clockSynchronized, ...fields }, at, ownerId);
       return;
     default:
-      recordEvent({ k: milestone.name, clockSynchronized }, at, ownerId);
+      recordEvent({ k: name, clockSynchronized }, at, ownerId);
   }
 }

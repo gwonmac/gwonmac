@@ -12,7 +12,7 @@ import "../../../shared/ui/components.css";
 // projector. Embedded Tools still obeys the apps -> shared dependency rule.
 // eslint-disable-next-line no-restricted-imports
 import { applyAppearance } from "../../../renderer/appearance";
-import { DEFAULT_SETTINGS } from "../../../shared/contracts";
+import { DEFAULT_SETTINGS } from "../../../shared/settings/index";
 import type { StandaloneAppearanceFixture } from "./gw-native";
 import { mountWhispers } from "./whispers-mount";
 import { createWhisperSession } from "../../../shared/whisper-session";

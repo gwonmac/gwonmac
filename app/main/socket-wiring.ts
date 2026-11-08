@@ -11,7 +11,7 @@ import {
   observe,
   peakGauge,
 } from "./diagnostics.js";
-import { emitSocketEvent } from "./ipc.js";
+import { emitSocketEvent } from "./game-ipc/network.js";
 import { windowRegistry } from "./window-registry.js";
 
 export function createSocketManager(): SocketManager {

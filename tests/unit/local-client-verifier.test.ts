@@ -1071,10 +1071,10 @@ describe("local client verification boundary", () => {
 // copies throw, as a defect inside a stage would.
 describe("local client verifier faults", () => {
   class FaultyBytes extends Uint8Array {
-    override subarray(): Uint8Array {
+    override subarray(): never {
       throw new TypeError("stage defect");
     }
-    override slice(): Uint8Array {
+    override slice(): never {
       throw new TypeError("stage defect");
     }
   }

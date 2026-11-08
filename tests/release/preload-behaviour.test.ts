@@ -6,12 +6,13 @@
 // This behavior test replaced the deleted source scans. The old release suite
 // searched the preload's text for all 32 channel strings, which proved a copy
 // existed and nothing about what the preload did with it. Here the channels are
-// read from the canonical `IPC`, every exposed method is called, and the set of
+// read from the canonical channel tables (app/shared/ipc/), every exposed
+// method is called, and the set of
 // channels actually invoked is compared against the set of channels main is
 // required to answer — so a capability wired to the wrong channel, or a channel
 // no renderer can reach, fails.
 //
-// The preload imports `IPC` from app/shared and Rollup bundles it in
+// The preload imports the tables from app/shared and Rollup bundles them in
 // (scripts/build-renderer.mjs), so there is no channel copy to police. This
 // file's subject is the artifact.
 import assert from "node:assert/strict";
@@ -27,24 +28,40 @@ import type {
   RendererCommand,
   RendererInit,
 } from "../../app/shared/contracts.ts";
+import type { ChannelTable } from "../../app/shared/ipc/channel-table.ts";
+import type { GameChannels } from "../../app/shared/ipc/game.ts";
+import type { ToolsChannels } from "../../app/shared/ipc/tools.ts";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const TOOLS_ARTIFACT = "build/preload/preload-tools.cjs";
 const CORE_ARTIFACT = "build/preload/preload-core.cjs";
 
-// The canonical channels come out of `build/`, the same tree the artifact under
-// test comes from, and are typed from the `app/` module `build/` is emitted
-// from. The annotation is on the declaration rather than an assertion on the
-// call: a dynamic `import()` whose specifier is not a literal resolves to
-// `any`, and an untyped `IPC` would let the tables below name a channel that
+// The canonical channel tables come out of `build/`, the same tree the artifact
+// under test comes from, and are typed from the `app/` modules `build/` is
+// emitted from. The annotation is on the declaration rather than an assertion
+// on the call: a dynamic `import()` whose specifier is not a literal resolves
+// to `any`, and an untyped table would let the cases below name a channel that
 // does not exist and read `undefined` instead of failing.
-const {
-  EVENT_CHANNELS,
-  IPC,
-  RENDERER_INIT_ARGUMENT,
-}: typeof import("../../app/shared/contracts.ts") = await import(
+const { RENDERER_INIT_ARGUMENT }: typeof import("../../app/shared/contracts.ts") = await import(
   new URL("../../build/shared/contracts.js", import.meta.url).href
 );
+const { GAME_CHANNELS }: typeof import("../../app/shared/ipc/game.ts") = await import(
+  new URL("../../build/shared/ipc/game.js", import.meta.url).href
+);
+const { TOOL_CONTRACTS }: typeof import("../../app/shared/ipc/tools.ts") = await import(
+  new URL("../../build/shared/ipc/tools.js", import.meta.url).href
+);
+const TOOL_TABLES: readonly ChannelTable[] = TOOL_CONTRACTS.map((contract) => contract.channels);
+const TABLES: readonly ChannelTable[] = [GAME_CHANNELS, ...TOOL_TABLES];
+
+/** The channel string of one game-window table entry, Core or Tools. */
+function ipc(key: keyof GameChannels | keyof ToolsChannels): string {
+  for (const table of TABLES) {
+    const spec = table[key];
+    if (spec) return spec.channel;
+  }
+  throw new Error(`${key} is in no game-window channel table`);
+}
 const toolsSource = await readFile(path.join(root, TOOLS_ARTIFACT), "utf8");
 const coreSource = await readFile(path.join(root, CORE_ARTIFACT), "utf8");
 
@@ -195,17 +212,17 @@ interface Invocation {
 // Nothing here is optional: the coverage assertion below fails if a method the
 // preload exposes is missing from this table or from SUBSCRIPTIONS.
 const INVOCATIONS: Invocation[] = [
-  { path: "snapshot.metadata", args: [], channel: IPC.snapshotMetadata },
-  { path: "dns.resolve", args: ["geodc.arenanetworks.com"], channel: IPC.dnsResolve },
-  { path: "sockets.connect", args: ["10.0.0.1:6112"], channel: IPC.socketConnect },
-  { path: "sockets.send", args: [7, PACKET], channel: IPC.socketSend },
-  { path: "sockets.close", args: [7], channel: IPC.socketClose },
-  { path: "settings.get", args: [], channel: IPC.settingsGet },
-  { path: "settings.set", args: [RENDERER_SETTINGS_PATCH], channel: IPC.settingsSet },
+  { path: "snapshot.metadata", args: [], channel: ipc("snapshotMetadata") },
+  { path: "dns.resolve", args: ["geodc.arenanetworks.com"], channel: ipc("dnsResolve") },
+  { path: "sockets.connect", args: ["10.0.0.1:6112"], channel: ipc("socketConnect") },
+  { path: "sockets.send", args: [7, PACKET], channel: ipc("socketSend") },
+  { path: "sockets.close", args: [7], channel: ipc("socketClose") },
+  { path: "settings.get", args: [], channel: ipc("settingsGet") },
+  { path: "settings.set", args: [RENDERER_SETTINGS_PATCH], channel: ipc("settingsSet") },
   {
     path: "travelPreferences.get",
     args: [],
-    channel: IPC.travelPreferencesGet,
+    channel: ipc("travelPreferencesGet"),
   },
   {
     path: "travelPreferences.set",
@@ -216,49 +233,49 @@ const INVOCATIONS: Invocation[] = [
       },
       patch: { synonyms: [{ term: "home", mapId: 55 }] },
     }],
-    channel: IPC.travelPreferencesSet,
+    channel: ipc("travelPreferencesSet"),
   },
   {
     path: "eliteTracking.openWiki",
     args: [{ locationId: "abcdef0123456789", page: "boss" }],
-    channel: IPC.eliteWikiOpen,
+    channel: ipc("eliteWikiOpen"),
   },
   {
     path: "eliteTracking.get",
     args: [{ characterKey: "0123456789abcdef" }],
-    channel: IPC.eliteTrackingGet,
+    channel: ipc("eliteTrackingGet"),
   },
   {
     path: "eliteTracking.update",
     args: [{ characterKey: "0123456789abcdef", change: { kind: "track", skillId: 338 } }],
-    channel: IPC.eliteTrackingUpdate,
+    channel: ipc("eliteTrackingUpdate"),
   },
   {
     path: "travelHistory.get",
     args: [{ characterKey: "0123456789abcdef" }],
-    channel: IPC.travelHistoryGet,
+    channel: ipc("travelHistoryGet"),
   },
   {
     path: "travelHistory.record",
     args: [{ characterKey: "0123456789abcdef", mapId: 55 }],
-    channel: IPC.travelHistoryRecord,
+    channel: ipc("travelHistoryRecord"),
   },
-  { path: "trade.subscribe", args: ["kamadan"], channel: IPC.tradeSubscribe },
-  { path: "trade.unsubscribe", args: [], channel: IPC.tradeUnsubscribe },
+  { path: "trade.subscribe", args: ["kamadan"], channel: ipc("tradeSubscribe") },
+  { path: "trade.unsubscribe", args: [], channel: ipc("tradeUnsubscribe") },
   {
     path: "trade.search",
     args: [{ source: "kamadan", query: "black dye", scope: "all" }],
-    channel: IPC.tradeSearch,
+    channel: ipc("tradeSearch"),
   },
-  { path: "trade.retry", args: ["kamadan"], channel: IPC.tradeRetry },
-  { path: "trade.getSaved", args: [], channel: IPC.tradeSavedGet },
+  { path: "trade.retry", args: ["kamadan"], channel: ipc("tradeRetry") },
+  { path: "trade.getSaved", args: [], channel: ipc("tradeSavedGet") },
   {
     path: "trade.setSaved",
     args: [{ offers: [], players: [] }],
-    channel: IPC.tradeSavedSet,
+    channel: ipc("tradeSavedSet"),
   },
-  { path: "trade.getMarketRates", args: [], channel: IPC.marketRatesGet },
-  { path: "trade.getTraderQuotes", args: [], channel: IPC.traderQuotesGet },
+  { path: "trade.getMarketRates", args: [], channel: ipc("marketRatesGet") },
+  { path: "trade.getTraderQuotes", args: [], channel: ipc("traderQuotesGet") },
   {
     path: "trade.getTraderPriceHistory",
     args: [{
@@ -266,65 +283,65 @@ const INVOCATIONS: Invocation[] = [
       from: 1_785_004_800_000,
       to: 1_787_596_800_000,
     }],
-    channel: IPC.traderPriceHistoryGet,
+    channel: ipc("traderPriceHistoryGet"),
   },
   {
     path: "profileTemplates.loadTemplates",
     args: [],
-    channel: IPC.profileTemplatesLoad,
+    channel: ipc("profileTemplatesLoad"),
   },
   {
     path: "profileTemplates.saveTemplates",
     args: [[{ path: "Skills/Alt.txt", contents: "OQCiUyo8AkVwR4KMMGAAAEAA" }]],
-    channel: IPC.profileTemplatesSave,
+    channel: ipc("profileTemplatesSave"),
   },
-  { path: "buildLibrary.get", args: [], channel: IPC.buildLibraryGet },
+  { path: "buildLibrary.get", args: [], channel: ipc("buildLibraryGet") },
   {
     path: "buildLibrary.set",
     args: [{ version: 1, builds: [], teams: [], tags: [] }],
-    channel: IPC.buildLibrarySet,
+    channel: ipc("buildLibrarySet"),
   },
-  { path: "credentials.load", args: [], channel: IPC.credentialsLoad },
+  { path: "credentials.load", args: [], channel: ipc("credentialsLoad") },
   {
     path: "credentials.save",
     args: [{ username: "u", password: "p" }],
-    channel: IPC.credentialsSave,
+    channel: ipc("credentialsSave"),
   },
-  { path: "credentials.clear", args: [], channel: IPC.credentialsClear },
-  { path: "steam.getToken", args: [true], channel: IPC.steamToken },
+  { path: "credentials.clear", args: [], channel: ipc("credentialsClear") },
+  { path: "steam.getToken", args: [true], channel: ipc("steamToken") },
   {
     path: "steam.store",
     args: ["0123456789abcdef0123456789abcdef", 1_800_000_000_000],
-    channel: IPC.steamStore,
+    channel: ipc("steamStore"),
   },
-  { path: "steam.clear", args: [], channel: IPC.steamClear },
-  { path: "diagnostics.clockSync", args: [1_234], channel: IPC.diagnosticsClockSync },
+  { path: "steam.clear", args: [], channel: ipc("steamClear") },
+  { path: "diagnostics.clockSync", args: [1_234], channel: ipc("diagnosticsClockSync") },
   {
     path: "diagnostics.recordClockOffset",
     args: [-40, 900],
-    channel: IPC.diagnosticsClockResult,
+    channel: ipc("diagnosticsClockResult"),
   },
   {
     path: "diagnostics.recordGraphics",
     args: [{ renderer: "Apple M1" }],
-    channel: IPC.diagnosticsGraphics,
+    channel: ipc("diagnosticsGraphics"),
   },
   {
     path: "diagnostics.recordRendererMetrics",
     args: [{ rafCount: 60 }],
-    channel: IPC.diagnosticsRendererMetrics,
+    channel: ipc("diagnosticsRendererMetrics"),
   },
   {
     path: "diagnostics.recordRendererFrames",
     args: [{ frames: [] }],
-    channel: IPC.diagnosticsRendererFrames,
+    channel: ipc("diagnosticsRendererFrames"),
   },
   {
     path: "diagnostics.recordRendererMilestone",
     args: ["renderer.loaded", 5_000, { detail: 1 }],
-    channel: IPC.diagnosticsRendererMilestone,
+    channel: ipc("diagnosticsRendererMilestone"),
   },
-  { path: "diagnostics.current", args: [], channel: IPC.diagnosticsCurrent },
+  { path: "diagnostics.current", args: [], channel: ipc("diagnosticsCurrent") },
   {
     path: "diagnostics.submitVisualCapture",
     args: [{
@@ -345,17 +362,17 @@ const INVOCATIONS: Invocation[] = [
         devicePixelRatio: 2,
       },
     }],
-    channel: IPC.diagnosticsVisualSubmit,
+    channel: ipc("diagnosticsVisualSubmit"),
   },
   {
     path: "diagnostics.setProfile",
     args: ["official-baseline"],
-    channel: IPC.diagnosticsProfileSet,
+    channel: ipc("diagnosticsProfileSet"),
   },
   {
     path: "cartography.getMapKnowledge",
     args: ["a".repeat(64)],
-    channel: IPC.cartographyMapKnowledgeGet,
+    channel: ipc("cartographyMapKnowledgeGet"),
   },
   {
     path: "cartography.recordMapKnowledge",
@@ -368,67 +385,67 @@ const INVOCATIONS: Invocation[] = [
       revealRadius: 1,
       words: [3],
     }],
-    channel: IPC.cartographyMapKnowledgeRecord,
+    channel: ipc("cartographyMapKnowledgeRecord"),
   },
   {
     path: "cartography.exportEvidence",
     args: [CARTOGRAPHY_EVIDENCE_CAPTURE],
-    channel: IPC.cartographyEvidenceExport,
+    channel: ipc("cartographyEvidenceExport"),
   },
-  { path: "app.openExternal", args: ["bugReport"], channel: IPC.appOpenExternal },
-  { path: "app.reveal", args: ["gameData"], channel: IPC.appRevealPath },
-  { path: "accounts.get", args: [], channel: IPC.hubAccountsGet },
-  { path: "accounts.open", args: [{ id: "e98a37bc-5211-4bc5-8094-0b1286b3c42d", mode: "open" }], channel: IPC.hubAccountOpen },
-  { path: "app.showLauncher", args: [], channel: IPC.appShowLauncher },
-  { path: "hubSettings.get", args: [], channel: IPC.hubSettingsGet },
-  { path: "hubSettings.update", args: [{ kind: "tool", tool: "whispers", enabled: false }], channel: IPC.hubSettingsUpdate },
-  { path: "hubSettings.capture", args: ["character.switch"], channel: IPC.hubShortcutCapture },
-  { path: "hubSettings.cancelCapture", args: [], channel: IPC.hubShortcutCaptureCancel },
-  { path: "app.openSettings", args: [{ section: "game" }], channel: IPC.appOpenSettings },
-  { path: "app.requestQuit", args: [], channel: IPC.appRequestQuit },
-  { path: "app.showQuitOrReload", args: [], channel: IPC.appShowQuitOrReload },
+  { path: "app.openExternal", args: ["bugReport"], channel: ipc("appOpenExternal") },
+  { path: "app.reveal", args: ["gameData"], channel: ipc("appRevealPath") },
+  { path: "accounts.get", args: [], channel: ipc("hubAccountsGet") },
+  { path: "accounts.open", args: [{ id: "e98a37bc-5211-4bc5-8094-0b1286b3c42d", mode: "open" }], channel: ipc("hubAccountOpen") },
+  { path: "app.showLauncher", args: [], channel: ipc("appShowLauncher") },
+  { path: "hubSettings.get", args: [], channel: ipc("hubSettingsGet") },
+  { path: "hubSettings.update", args: [{ kind: "tool", tool: "whispers", enabled: false }], channel: ipc("hubSettingsUpdate") },
+  { path: "hubSettings.capture", args: ["character.switch"], channel: ipc("hubShortcutCapture") },
+  { path: "hubSettings.cancelCapture", args: [], channel: ipc("hubShortcutCaptureCancel") },
+  { path: "app.openSettings", args: [{ section: "game" }], channel: ipc("appOpenSettings") },
+  { path: "app.requestQuit", args: [], channel: ipc("appRequestQuit") },
+  { path: "app.showQuitOrReload", args: [], channel: ipc("appShowQuitOrReload") },
   {
     path: "app.reloadGame",
     args: ["memory-warning"],
-    channel: IPC.appReloadGame,
+    channel: ipc("appReloadGame"),
   },
   {
     path: "app.claimRelogIntent",
     args: [],
-    channel: IPC.appClaimRelogIntent,
+    channel: ipc("appClaimRelogIntent"),
   },
   {
     path: "clipboard.writeText",
     args: ["copied text"],
-    channel: IPC.clipboardWriteText,
+    channel: ipc("clipboardWriteText"),
   },
   {
     path: "clipboard.readText",
     args: [],
-    channel: IPC.clipboardReadText,
+    channel: ipc("clipboardReadText"),
   },
   {
     path: "clipboard.edit",
     args: [{ command: "paste", field: "text" }],
-    channel: IPC.clipboardEdit,
+    channel: ipc("clipboardEdit"),
   },
   {
     path: "templates.export",
     args: [[{ path: "Skills/Shockaxe.txt", contents: "OQCiUyo8AkVwR4KMMGAAAEAA" }]],
-    channel: IPC.templatesExport,
+    channel: ipc("templatesExport"),
   },
   {
     path: "client.featureFailure",
     args: [["nativeCursor"]],
-    channel: IPC.clientFeatureFailure,
+    channel: ipc("clientFeatureFailure"),
   },
   {
     path: "client.healthy",
     args: [{ generation: 7, fingerprint: "a".repeat(64) }],
-    channel: IPC.clientHealthy,
+    channel: ipc("clientHealthy"),
   },
-  { path: "client.readyToPresent", args: [], channel: IPC.gameReadyToPresent },
-  { path: "client.session", args: [], channel: IPC.clientSession },
+  { path: "client.readyToPresent", args: [], channel: ipc("gameReadyToPresent") },
+  { path: "client.session", args: [], channel: ipc("clientSession") },
 ];
 
 /** The main→renderer streams, which subscribe instead of invoking. */
@@ -449,22 +466,22 @@ interface Subscription {
 const SUBSCRIPTIONS: Subscription[] = [
   {
     path: "sockets.onEvent",
-    channel: IPC.socketEvent,
+    channel: ipc("socketEvent"),
     subscribe: (api, listener) => api.sockets.onEvent(listener),
   },
   {
     path: "settings.onChange",
-    channel: IPC.settingsEvent,
+    channel: ipc("settingsEvent"),
     subscribe: (api, listener) => api.settings.onChange(listener),
   },
   {
     path: "inputTrace.onEntry",
-    channel: IPC.inputTraceEvent,
+    channel: ipc("inputTraceEvent"),
     subscribe: (api, listener) => api.inputTrace.onEntry(listener),
   },
   {
     path: "trade.onEvent",
-    channel: IPC.tradeEvent,
+    channel: ipc("tradeEvent"),
     subscribe: (api, listener) => api.trade.onEvent(listener),
   },
 ];
@@ -498,9 +515,7 @@ test("the Core preload exposes no optional Tools namespace or channel", () => {
       `${namespace} leaked into the Core bridge`,
     );
   }
-  for (const channel of Object.values(IPC).filter((channel) =>
-    /gw:(?:cartography|eliteWiki|eliteTracking|trade|trader|travel|buildLibrary):/u.test(channel)
-  )) {
+  for (const channel of TOOL_TABLES.flatMap((table) => Object.values(table).map((spec) => spec.channel))) {
     assert.doesNotMatch(coreSource, new RegExp(channel.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&"), "u"));
   }
 });
@@ -548,9 +563,10 @@ test("the renderer can reach every channel main is required to answer", () => {
   // channels with an `ipcMain.handle` handler are exactly the channels some
   // exposed capability calls: nothing main answers is unreachable, and nothing
   // the preload calls is unanswered.
-  const invokeChannels = Object.entries(IPC)
-    .filter(([key]) => !EVENT_CHANNELS.some((event) => event === key))
-    .map(([, channel]) => channel);
+  const invokeChannels = TABLES
+    .flatMap((table) => Object.values(table))
+    .filter((spec) => spec.kind === "invoke")
+    .map((spec) => spec.channel);
   assert.deepEqual(
     [...new Set(INVOCATIONS.map((one) => one.channel))].sort(),
     invokeChannels.sort(),
@@ -590,7 +606,7 @@ test("an oversized or shapeless packet is refused in the renderer, without IPC",
   // The ceiling itself, not one byte below it.
   await api.sockets.send(1, new Uint8Array(MAX));
   assert.equal(invoked.length, 1);
-  assert.equal(invoked[0]?.channel, IPC.socketSend);
+  assert.equal(invoked[0]?.channel, ipc("socketSend"));
 });
 
 test("a packet view crosses the bridge as it was handed over", async () => {
@@ -642,7 +658,7 @@ test("the sender event never reaches the subscriber", () => {
   const seen: unknown[][] = [];
   api.settings.onChange((...args: unknown[]) => seen.push(args));
   const event = { sender: "the whole ipcRenderer", ports: [] };
-  const [deliver] = handlers(IPC.settingsEvent);
+  const [deliver] = handlers(ipc("settingsEvent"));
   assert.ok(deliver, "the preload subscribed to no settings channel");
   deliver(event, { renderScale: 2 });
   assert.deepEqual(seen, [[{ renderScale: 2 }]]);
@@ -658,9 +674,9 @@ test("a renderer command is acknowledged once its handler has settled", async ()
       release = () => resolve();
     });
   });
-  assert.equal(handlers(IPC.rendererCommand).length, 1);
+  assert.equal(handlers(ipc("rendererCommand")).length, 1);
 
-  const [deliver] = handlers(IPC.rendererCommand);
+  const [deliver] = handlers(ipc("rendererCommand"));
   assert.ok(deliver, "the preload registered no renderer-command listener");
   deliver({}, 11, { name: "flushCapture" });
   // A macrotask, not a microtask: draining the whole queue is what makes the
@@ -675,7 +691,7 @@ test("a renderer command is acknowledged once its handler has settled", async ()
   release();
   await new Promise((resolve) => setTimeout(resolve, 0));
   assert.deepEqual(sent, [
-    { channel: IPC.rendererCommandDone, args: [11, "completed"] },
+    { channel: ipc("rendererCommandDone"), args: [11, "completed"] },
   ]);
 });
 
@@ -684,24 +700,24 @@ test("a handler that throws reports failure instead of false completion", async 
   api.commands.handle(() => {
     throw new Error("the renderer is having a bad day");
   });
-  const [deliver] = handlers(IPC.rendererCommand);
+  const [deliver] = handlers(ipc("rendererCommand"));
   assert.ok(deliver, "the preload registered no renderer-command listener");
   deliver({}, 12, { name: "flushCapture" });
   await new Promise((resolve) => setTimeout(resolve, 0));
   assert.deepEqual(sent, [
-    { channel: IPC.rendererCommandDone, args: [12, "failed"] },
+    { channel: ipc("rendererCommandDone"), args: [12, "failed"] },
   ]);
 });
 
 test("a renderer can decline a semantic command for main-process fallback", async () => {
   const { api, sent, handlers } = load();
   api.commands.handle(() => "unhandled");
-  const [deliver] = handlers(IPC.rendererCommand);
+  const [deliver] = handlers(ipc("rendererCommand"));
   assert.ok(deliver, "the preload registered no renderer-command listener");
   deliver({}, 13, { type: "text.edit", command: "copy" });
   await new Promise((resolve) => setTimeout(resolve, 0));
   assert.deepEqual(sent, [
-    { channel: IPC.rendererCommandDone, args: [13, "unhandled"] },
+    { channel: ipc("rendererCommandDone"), args: [13, "unhandled"] },
   ]);
 });
 
@@ -712,7 +728,7 @@ test("the renderer command transport accepts exactly one handler", () => {
     () => api.commands.handle(() => undefined),
     /already registered/,
   );
-  assert.equal(handlers(IPC.rendererCommand).length, 1);
+  assert.equal(handlers(ipc("rendererCommand")).length, 1);
 });
 
 test("the launch configuration is read from argv, and defaults to production", () => {

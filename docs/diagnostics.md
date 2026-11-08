@@ -36,7 +36,13 @@ For optional Core and Tools behavior, read the evidence in this order:
 `launch selection → requested profile → verifier verdict → effective profile → consumer signal`
 
 The launch event identifies release or development build kind, the developer
-program, whether Tools were enabled, and the diagnostic profile. The verifier
+program, whether Tools were enabled, and the diagnostic profile.
+`wasm.clientVerdict` names the build (the first 12 hex digits of the official
+WASM SHA-256), whether the verdict came from the stored record, a fresh
+pass, or an error before either (`error`, for example a failed JS hash),
+whether the check failed, how long Play waited for the pass, and which stages
+failed to check (their closed names in chain order, never a path);
+`wasm.clientVerdictStored` says whether that pass was stored. The verifier
 then records one closed verdict for every capability: off, proved,
 changed at a named invariant, or ambiguous with a candidate count. The active
 runtime retains the requested and effective profiles plus any preparation

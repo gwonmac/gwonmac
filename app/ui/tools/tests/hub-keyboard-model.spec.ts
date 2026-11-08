@@ -358,6 +358,18 @@ test('Escape at a shortcut conflict cancels the prompt and returns to its shortc
   await expect(page.locator('.hub-caption')).toHaveText('Settings');
 });
 
+test('Command-F on the wide Settings page finds a setting, and the first Escape still goes Back', async ({ page }) => {
+  // The narrow page opens search in place of the tabs and Escape closes it. Wide, the field is
+  // always there, so an Escape with nothing typed is the Hub's Back, not a close of nothing.
+  await openHub(page);
+  await hubSearch(page).fill('settings'); await page.keyboard.press('Enter');
+  await expect(page.locator('.settings-fields h1')).toBeFocused();
+  await page.keyboard.press('Meta+f');
+  await expect(page.getByRole('searchbox', { name: 'Search settings' })).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.hub-caption')).toHaveText('Home');
+});
+
 test('closing the Hub with the mouse while a shortcut records gives the next keys back to the game (HUB-038)', async ({ page }) => {
   await openHub(page);
   await hubSearch(page).fill('settings'); await page.keyboard.press('Enter');

@@ -15,18 +15,7 @@
  * these boundaries; the sentence a player reads is written in the renderer,
  * where it can be tested against what is actually shown.
  */
-import type { EliteWikiRequest } from "./elite-wiki.js";
-import type { EliteTracking, EliteUpdate } from "./elite-skills.js";
-import type { SettingsTarget } from "./settings-catalogue.js";
 import type { HubSettingsApi } from "./hub-settings.js";
-import type { MarketSnapshot } from "./market-rates.js";
-import type {
-  DiagnosticSummary,
-  RendererFrameBatch,
-  RendererMilestone,
-  RendererMilestoneFields,
-  RendererMetrics,
-} from "./diagnostics.js";
 import type { ErrorCode } from "./errors.js";
 import {
   ENHANCEMENT_CAPABILITY_FIELDS,
@@ -34,54 +23,19 @@ import {
   type EnhancementCapabilityProfile,
   type EnhancementCapabilities,
   type EnhancementProgram,
+  type EnhancementSelection,
 } from "./enhancement-contracts.js";
-import type { BuildLibrary } from "./builds/library.js";
-import type { TemplateExportEntry } from "./template-contracts.js";
-import type { MainInputTraceEntry } from "./input-trace.js";
+import type { Invoke, Subscribe } from "./ipc/channel-table.js";
+import type { GameChannels as G } from "./ipc/game.js";
+import type { ToolsNativeApiExtension } from "./ipc/tools.js";
 import type {
   VisualCaptureFailure,
   VisualCaptureStage,
-  VisualCaptureSubmission,
 } from "./visual-capture.js";
-import type {
-  AccountTemplateLibrary,
-  HubAccountRequest,
-  HubAccountsSnapshot,
-} from "./accounts-contracts.js";
-import type { TravelUserPreferences, TravelUserPreferencesUpdate } from "./travel.js";
+import type { TravelUserPreferences } from "./travel.js";
 import type { CartographyPresetRef } from "./cartography-overlay.js";
 import type { AppSettings, RendererWritableSetting } from "./settings/index.js";
-import type {
-  CartographyEvidenceCapture,
-  CartographyEvidenceExportResult,
-} from "./cartography-evidence.js";
-import type { CartographyMapKnowledge } from "./cartography-map-knowledge.js";
-import type { EnhancementSelection } from "./enhancement-contracts.js";
 import { RELEASE_REPO } from "./project-identity.js";
-import type {
-  TradeEvent,
-  TradeSearchRequest,
-  TradeSearchResult,
-  TradeSavedState,
-  TradeSnapshot,
-  TradeSource,
-  TraderPriceHistoryRequest,
-  TraderPriceHistoryResult,
-  TraderQuoteSnapshot,
-} from "./trade-chat.js";
-
-export { RELEASE_REPO } from "./project-identity.js";
-export type { TemplateExportEntry } from "./template-contracts.js";
-export type {
-  AccountLaunchIssue,
-  AccountProfileCreateRequest,
-  AccountProfileRequest,
-  AccountProfileSummary,
-  AccountProfileUpdateRequest,
-  AccountsState,
-  AccountTemplateLibrary,
-  MultiProfileRuntimeState,
-} from "./accounts-contracts.js";
 
 export type BuildKind = "jspi";
 
@@ -327,21 +281,6 @@ export interface ClockSyncResponse {
   mainSendUs: number;
 }
 
-export {
-  CONTROLLER_PROMPT_STYLES,
-  LAST_UPDATE_CHECK_AT_MAX,
-  RENDER_SCALES,
-  UI_FONTS,
-  UI_PANEL_OPACITY_MAX,
-  UI_PANEL_OPACITY_MIN,
-  UI_STYLES,
-  UI_TEXT_SIZE_MAX,
-  UI_TEXT_SIZE_MIN,
-  type ControllerPromptStyle,
-  type RenderScale,
-  type UiFont,
-  type UiStyle,
-} from "./settings/core.js";
 export const DIAGNOSTIC_PROFILES = [
   "standard",
   "no-gl-overrides",
@@ -350,9 +289,6 @@ export const DIAGNOSTIC_PROFILES = [
 ] as const;
 export type DiagnosticProfile = (typeof DIAGNOSTIC_PROFILES)[number];
 
-// The settings table (app/shared/settings) derives these from core and feature settings.
-export { DEFAULT_SETTINGS, RENDERER_WRITABLE_SETTINGS } from "./settings/index.js";
-export type { AppSettings };
 export type AppSettingsPatch = Partial<AppSettings>;
 
 /**
@@ -533,8 +469,16 @@ export type SettingsPane =
   | "updates"
   | "advanced";
 
-/** Why a selected or required feature is absent from the served session. */
-export type UnavailableReason = "game-update" | "preparation-failed";
+/**
+ * Why a selected or required feature is absent from the served session:
+ * the verifier refused this Guild Wars build, a proved module could not be
+ * prepared, or the build could not be checked at all (the verifier timed out,
+ * crashed or answered malformed; the next start checks again).
+ */
+export type UnavailableReason = "game-update" | "preparation-failed" | "check-failed";
+
+/** What a player reads when this build could not be checked (`check-failed`). */
+export const BUILD_CHECK_FAILED = "Couldn’t check this Guild Wars build. Trying again at next start.";
 
 export type RequiredFeatureStatus =
   | Readonly<{ status: "available" }>
@@ -585,6 +529,7 @@ export type ExtendedMemoryRuntimeStatus =
       fallbackReason:
         | "unsupported-client"
         | "preparation-failed"
+        | "check-failed"
         | "diagnostic-profile";
     }>;
 
@@ -820,129 +765,6 @@ export const SKILL_ICON_ROUTE = (skillId: number): string =>
 /** What `SKILL_ICON_ROUTE` produces, as the server's matcher. */
 export const SKILL_ICON_PATTERN = /^skill-icons\/([0-9]{1,7})\.bmp$/u;
 
-/** Channels and events exposed by every preload. */
-export const CORE_IPC = {
-  snapshotMetadata: "gw:snapshot:metadata",
-  dnsResolve: "gw:dns:resolve",
-  socketConnect: "gw:socket:connect",
-  socketSend: "gw:socket:send",
-  socketClose: "gw:socket:close",
-  socketEvent: "gw:socket:event",
-  settingsGet: "gw:settings:get",
-  settingsSet: "gw:settings:set",
-  settingsEvent: "gw:settings:event",
-  credentialsLoad: "gw:credentials:load",
-  credentialsSave: "gw:credentials:save",
-  credentialsClear: "gw:credentials:clear",
-  steamToken: "gw:steam:token",
-  steamStore: "gw:steam:store",
-  steamClear: "gw:steam:clear",
-  diagnosticsGraphics: "gw:diagnostics:graphics",
-  diagnosticsClockSync: "gw:diagnostics:clockSync",
-  diagnosticsClockResult: "gw:diagnostics:clockResult",
-  diagnosticsRendererMetrics: "gw:diagnostics:rendererMetrics",
-  diagnosticsRendererFrames: "gw:diagnostics:rendererFrames",
-  diagnosticsRendererMilestone: "gw:diagnostics:rendererMilestone",
-  diagnosticsVisualSubmit: "gw:diagnostics:visualSubmit",
-  diagnosticsProfileSet: "gw:diagnostics:profileSet",
-  diagnosticsCurrent: "gw:diagnostics:current",
-  appOpenExternal: "gw:app:openExternal",
-  appRevealPath: "gw:app:revealPath",
-  hubAccountsGet: "gw:hub:accounts:get",
-  hubAccountOpen: "gw:hub:account:open",
-  appOpenSettings: "gw:app:openSettings",
-  hubSettingsGet: "gw:hub:settings:get",
-  hubSettingsUpdate: "gw:hub:settings:update",
-  hubShortcutCapture: "gw:hub:shortcut:capture",
-  hubShortcutCaptureCancel: "gw:hub:shortcut:captureCancel",
-  appShowLauncher: "gw:app:showLauncher",
-  appRequestQuit: "gw:app:requestQuit",
-  appShowQuitOrReload: "gw:app:showQuitOrReload",
-  appReloadGame: "gw:app:reloadGame",
-  appClaimRelogIntent: "gw:app:claimRelogIntent",
-  clipboardWriteText: "gw:clipboard:writeText",
-  clipboardReadText: "gw:clipboard:readText",
-  clipboardEdit: "gw:clipboard:edit",
-  templatesExport: "gw:templates:export",
-  clientHealthy: "gw:client:healthy",
-  gameReadyToPresent: "gw:game:readyToPresent",
-  clientSession: "gw:client:session",
-  clientFeatureFailure: "gw:client:featureFailure",
-  // Main→renderer, and the renderer's acknowledgement. Main waits on the
-  // acknowledgement because a capture flush has to finish inside the capture
-  // window, which `executeJavaScript`'s awaited result used to guarantee.
-  rendererCommand: "gw:renderer:command",
-  rendererCommandDone: "gw:renderer:commandDone",
-  inputTraceEvent: "gw:inputTrace:event",
-  profileTemplatesLoad: "gw:profileTemplates:load",
-  profileTemplatesSave: "gw:profileTemplates:save",
-} as const;
-
-/** Channels and events that exist only in a Tools-capable launch. */
-export const TOOLS_IPC = {
-  cartographyEvidenceExport: "gw:cartography:evidenceExport",
-  cartographyMapKnowledgeGet: "gw:cartography:mapKnowledgeGet",
-  cartographyMapKnowledgeRecord: "gw:cartography:mapKnowledgeRecord",
-
-  tradeSubscribe: "gw:trade:subscribe",
-  tradeUnsubscribe: "gw:trade:unsubscribe",
-  tradeSearch: "gw:trade:search",
-  tradeRetry: "gw:trade:retry",
-  tradeEvent: "gw:trade:event",
-  tradeSavedGet: "gw:trade:saved:get",
-  tradeSavedSet: "gw:trade:saved:set",
-  marketRatesGet: "gw:trade:market-rates:get",
-  traderQuotesGet: "gw:trader:quotes:get",
-  traderPriceHistoryGet: "gw:trader:priceHistory:get",
-  travelPreferencesGet: "gw:travelPreferences:get",
-  travelPreferencesSet: "gw:travelPreferences:set",
-  eliteWikiOpen: "gw:eliteWiki:open",
-  eliteTrackingGet: "gw:eliteTracking:get",
-  eliteTrackingUpdate: "gw:eliteTracking:update",
-  travelHistoryGet: "gw:travelHistory:get",
-  travelHistoryRecord: "gw:travelHistory:record",
-  buildLibraryGet: "gw:buildLibrary:get",
-  buildLibrarySet: "gw:buildLibrary:set",
-} as const;
-
-/** Complete channel vocabulary; ownership is decided at declaration time. */
-export const IPC = { ...CORE_IPC, ...TOOLS_IPC } as const;
-
-export type IpcChannel = (typeof IPC)[keyof typeof IPC];
-
-/**
- * The channels that are not request/response and so have no `ipcMain.handle`
- * handler: main→renderer events, the main→renderer command, and the renderer's
- * acknowledgement of it, which is an `ipcRenderer.send`.
- *
- * Named here so `InvokeChannel` below can be derived rather than listed. The
- * handler registry in `app/main/ipc.ts` is checked against it, which is what
- * makes a channel with no handler — and a handler with no channel — a build
- * failure instead of a runtime "no handler registered".
- */
-export const EVENT_CHANNELS = [
-  "socketEvent",
-  "settingsEvent",
-  "tradeEvent",
-  "rendererCommand",
-  "rendererCommandDone",
-  "inputTraceEvent",
-] as const;
-
-/** Channels present only in the Tools preload and Tools main runtime. */
-export const TOOL_CHANNELS = Object.freeze(
-  Object.keys(TOOLS_IPC) as (keyof typeof TOOLS_IPC)[],
-);
-
-export type ToolChannel = (typeof TOOL_CHANNELS)[number];
-
-export type EventChannel = (typeof EVENT_CHANNELS)[number];
-
-/** Every channel the renderer `invoke`s, i.e. every channel main must answer. */
-export type InvokeChannel = Exclude<keyof typeof IPC, EventChannel>;
-export type ToolsInvokeChannel = Exclude<keyof typeof TOOLS_IPC, EventChannel>;
-export type CoreInvokeChannel = Exclude<keyof typeof CORE_IPC, EventChannel>;
-
 export type GameTextEditRequest =
   | { command: "copy"; text: string }
   | { command: "cut"; text: string }
@@ -991,29 +813,29 @@ export interface CoreGwNativeApiBase {
     ): void;
   };
   inputTrace: {
-    onEntry(callback: (entry: MainInputTraceEntry) => void): () => void;
+    onEntry: Subscribe<G["inputTraceEvent"]>;
   };
   snapshot: {
-    metadata(): Promise<SnapshotMetadata>;
+    metadata: Invoke<G["snapshotMetadata"]>;
   };
   dns: {
-    resolve(name: string): Promise<string>;
+    resolve: Invoke<G["dnsResolve"]>;
   };
   sockets: {
-    connect(destination: string): Promise<number>;
-    send(socketId: number, data: Uint8Array): Promise<void>;
-    close(socketId: number): Promise<void>;
-    onEvent(callback: (event: SocketEvent) => void): () => void;
+    connect: Invoke<G["socketConnect"]>;
+    send: Invoke<G["socketSend"]>;
+    close: Invoke<G["socketClose"]>;
+    onEvent: Subscribe<G["socketEvent"]>;
   };
   settings: {
-    get(): Promise<AppSettings>;
-    set(value: RendererSettingsPatch): Promise<AppSettings>;
-    onChange(callback: (settings: AppSettings) => void): () => void;
+    get: Invoke<G["settingsGet"]>;
+    set: Invoke<G["settingsSet"]>;
+    onChange: Subscribe<G["settingsEvent"]>;
   };
   credentials: {
-    load(): Promise<StoredCredentials | null>;
-    save(value: StoredCredentials): Promise<void>;
-    clear(): Promise<void>;
+    load: Invoke<G["credentialsLoad"]>;
+    save: Invoke<G["credentialsSave"]>;
+    clear: Invoke<G["credentialsClear"]>;
   };
   /**
    * The Steam login token, which the game client redeems in `login.xml`.
@@ -1033,52 +855,48 @@ export interface CoreGwNativeApiBase {
      * already stored. A non-silent request is the player having clicked the
      * button, and is the only thing that may open a Steam sign-in window.
      */
-    getToken(silent: boolean): Promise<SteamTokenResult>;
+    getToken: Invoke<G["steamToken"]>;
     /**
      * Hand back what the account service returned. Refreshes the stored
      * expiry only when the token matches the one already held; anything else
      * is ignored, because overwriting a working credential with a value that
      * cannot be replayed would cost the player their next login.
      */
-    store(token: string, expiry: number | null): Promise<void>;
+    store: Invoke<G["steamStore"]>;
     /** Forget the stored token. Signing out here does not unlink the account. */
-    clear(): Promise<void>;
+    clear: Invoke<G["steamClear"]>;
   };
   diagnostics: {
-    clockSync(rendererNowUs: number): Promise<ClockSyncResponse>;
-    recordClockOffset(offsetUs: number, rttUs: number): Promise<void>;
-    recordGraphics(value: GraphicsDiagnostics): Promise<void>;
-    recordRendererMetrics(value: RendererMetrics): Promise<void>;
-    recordRendererFrames(value: RendererFrameBatch): Promise<void>;
-    recordRendererMilestone(
-      name: RendererMilestone,
-      rendererTimestampUs: number,
-      fields?: RendererMilestoneFields,
-    ): Promise<void>;
-    current(): Promise<DiagnosticSummary>;
-    submitVisualCapture(value: VisualCaptureSubmission): Promise<void>;
-    setProfile(value: DiagnosticProfile): Promise<DiagnosticProfile>;
+    clockSync: Invoke<G["diagnosticsClockSync"]>;
+    recordClockOffset: Invoke<G["diagnosticsClockResult"]>;
+    recordGraphics: Invoke<G["diagnosticsGraphics"]>;
+    recordRendererMetrics: Invoke<G["diagnosticsRendererMetrics"]>;
+    recordRendererFrames: Invoke<G["diagnosticsRendererFrames"]>;
+    recordRendererMilestone: Invoke<G["diagnosticsRendererMilestone"]>;
+    current: Invoke<G["diagnosticsCurrent"]>;
+    submitVisualCapture: Invoke<G["diagnosticsVisualSubmit"]>;
+    setProfile: Invoke<G["diagnosticsProfileSet"]>;
   };
   accounts: {
-    get(): Promise<HubAccountsSnapshot>;
-    open(request: HubAccountRequest): Promise<void>;
+    get: Invoke<G["hubAccountsGet"]>;
+    open: Invoke<G["hubAccountOpen"]>;
   };
   hubSettings: HubSettingsApi;
   app: {
-    showLauncher(): Promise<void>;
-    openExternal(kind: ExternalLinkKind): Promise<void>;
+    showLauncher: Invoke<G["appShowLauncher"]>;
+    openExternal: Invoke<G["appOpenExternal"]>;
     /** Reveal a named app directory in Finder. */
-    reveal(kind: RevealKind): Promise<void>;
+    reveal: Invoke<G["appRevealPath"]>;
     /** Shows the launcher's Settings, at a section or control when given. */
-    openSettings(target?: SettingsTarget): Promise<void>;
-    requestQuit(): Promise<void>;
+    openSettings: Invoke<G["appOpenSettings"]>;
+    requestQuit: Invoke<G["appRequestQuit"]>;
     /**
      * The account's Quit-or-Reload confirmation sheet, the same one Command-Q opens. "stayed"
      * means this window keeps playing; undefined means another request already owns the sheet.
      */
-    showQuitOrReload(): Promise<"stayed" | "left" | undefined>;
-    reloadGame(cause: GameReloadCause): Promise<void>;
-    claimRelogIntent(): Promise<boolean>;
+    showQuitOrReload: Invoke<G["appShowQuitOrReload"]>;
+    reloadGame: Invoke<G["appReloadGame"]>;
+    claimRelogIntent: Invoke<G["appClaimRelogIntent"]>;
   };
   clipboard: {
     /**
@@ -1087,9 +905,9 @@ export interface CoreGwNativeApiBase {
      * the OS clipboard is what a proxy field holds; canvas-rendered text
      * never arrives here.
      */
-    writeText(text: string): Promise<void>;
+    writeText: Invoke<G["clipboardWriteText"]>;
     /** Apply one validated request to the game's active text field. */
-    edit(request: GameTextEditRequest): Promise<void>;
+    edit: Invoke<G["clipboardEdit"]>;
     /**
      * Read the OS pasteboard so a player can import build codes they copied
      * from a guild page or a forum post.
@@ -1101,7 +919,7 @@ export interface CoreGwNativeApiBase {
      * Clipboard" click, and nothing it returns is written until the player has
      * seen the parsed result and confirmed it.
      */
-    readText(): Promise<string>;
+    readText: Invoke<G["clipboardReadText"]>;
   };
   templates: {
     /**
@@ -1110,82 +928,19 @@ export interface CoreGwNativeApiBase {
      * owns the dialog, the destination, and the refusal of any path that would
      * not stay inside it.
      */
-    export(
-      entries: readonly TemplateExportEntry[],
-    ): Promise<TemplateExportResult>;
+    export: Invoke<G["templatesExport"]>;
   };
   client: {
-    healthy(token: ClientHealthToken): Promise<void>;
-    session(): Promise<ClientSession>;
-    featureFailure(features: readonly EnhancementRuntimeFeature[]): Promise<void>;
-    readyToPresent(): Promise<void>;
+    healthy: Invoke<G["clientHealthy"]>;
+    session: Invoke<G["clientSession"]>;
+    featureFailure: Invoke<G["clientFeatureFailure"]>;
+    readyToPresent: Invoke<G["gameReadyToPresent"]>;
   };
   profileTemplates: {
-    loadTemplates(): Promise<AccountTemplateLibrary | null>;
-    saveTemplates(entries: readonly TemplateExportEntry[]): Promise<void>;
+    loadTemplates: Invoke<G["profileTemplatesLoad"]>;
+    saveTemplates: Invoke<G["profileTemplatesSave"]>;
   };
 }
-
-/** Optional namespaces installed only by the Tools preload extension. */
-export interface ToolsNativeApiExtension {
-  cartography: {
-    getMapKnowledge(kernelSha256: string): Promise<readonly CartographyMapKnowledge[]>;
-    recordMapKnowledge(
-      value: CartographyMapKnowledge,
-    ): Promise<readonly CartographyMapKnowledge[]>;
-    exportEvidence(
-      value: CartographyEvidenceCapture,
-    ): Promise<CartographyEvidenceExportResult>;
-  };
-
-  trade: {
-    subscribe(source: TradeSource): Promise<TradeSnapshot>;
-    unsubscribe(): Promise<void>;
-    search(request: TradeSearchRequest): Promise<TradeSearchResult>;
-    retry(source: TradeSource): Promise<void>;
-    getSaved(): Promise<TradeSavedState>;
-    setSaved(value: TradeSavedState): Promise<TradeSavedState>;
-    getMarketRates(): Promise<MarketSnapshot>;
-    getTraderQuotes(): Promise<TraderQuoteSnapshot>;
-    getTraderPriceHistory(
-      request: TraderPriceHistoryRequest,
-    ): Promise<TraderPriceHistoryResult>;
-    onEvent(callback: (event: TradeEvent) => void): () => void;
-  };
-  travelPreferences: {
-    get(): Promise<TravelUserPreferences>;
-    set(value: TravelUserPreferencesUpdate): Promise<TravelUserPreferences>;
-  };
-  eliteTracking: {
-    openWiki(value: EliteWikiRequest): Promise<void>;
-    get(value: { characterKey: string }): Promise<EliteTracking>;
-    update(value: EliteUpdate): Promise<EliteTracking>;
-  };
-  travelHistory: {
-    get(value: { characterKey: string }): Promise<readonly number[]>;
-    record(value: { characterKey: string; mapId: number }): Promise<readonly number[]>;
-  };
-  buildLibrary: {
-    get(): Promise<{ library: BuildLibrary; recovered: boolean }>;
-    set(value: BuildLibrary): Promise<BuildLibrary>;
-  };
-}
-
-export type ToolNativeNamespace = keyof ToolsNativeApiExtension;
-
-const TOOL_NATIVE_NAMESPACE_MAP = {
-  cartography: true,
-  trade: true,
-  travelPreferences: true,
-  travelHistory: true,
-  eliteTracking: true,
-  buildLibrary: true,
-} as const satisfies Record<ToolNativeNamespace, true>;
-
-/** Canonical, compile-time-exhaustive inventory owned by the Tools preload. */
-export const TOOL_NATIVE_NAMESPACES = Object.freeze(
-  Object.keys(TOOL_NATIVE_NAMESPACE_MAP) as ToolNativeNamespace[],
-);
 
 type LaunchRendererInit<Tools extends boolean> = Omit<
   RendererInit,

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { chmodSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, it } from "node:test";
@@ -8,6 +9,7 @@ import { parseReleaseManifest } from "../../app/shared/release-manifest.ts";
 import {
   collectAssets,
   draft,
+  facts,
   groupReleaseNotes,
   prepare,
   releaseAssets,
@@ -197,4 +199,201 @@ describe("release workflow", () => {
       rmSync(root, { recursive: true });
     }
   });
+
+  it("releases reviewed facts from hotfix/<version> and refuses anything else", () => {
+    for (const [scenario, version, change, refusal] of [
+      ["code outside the facts", "1.0.1", { "app/main/window.ts": "changed" }, /changed since v1\.0\.0:\napp\/main\/window\.ts$/u],
+      ["a registry edit that is not an entry", "1.0.1", { [REGISTRY]: `${REGISTRY_TEXT}export const extra = 1;\n` }, /may only add or remove generation entries:\n\+export const extra = 1;$/u],
+      ["a post that is already published", "1.0.1", { [POST]: POST_TEXT.replace("draft: true\n", "") }, /draft: true/u],
+      ["no player files from the patched release", "1.0.1", { "tests/fixtures/player-data/v1.0.0/settings.json": null }, /player-data\/v1\.0\.0\/ is missing/u],
+      ["a minor version", "1.1.0", {}, /patch of a published release, not 1\.1\.0/u],
+      ["another version's branch", "1.0.2", {}, /Run this on hotfix\/1\.0\.2, branched from v1\.0\.1/u],
+      ["a registry line that looks like a diff header", "1.0.1", { [REGISTRY]: `${FACTS_REGISTRY_TEXT}++ extra\n` }, /may only add or remove generation entries:\n\+\+\+ extra$/u],
+      ["a changed certification test line", "1.0.1", { [POLICY]: "assert.ok(false);\n" }, /these changed:\ntests\/policy\/rule\.test\.ts$/u],
+      ["an added return in a certification test", "1.0.1", { [PROOF]: `return;\n${PROOF_TEXT}` }, /these changed:\ntests\/client-artifact\/proof\.test\.ts$/u],
+      ["a mode-only change to a certification test", "1.0.1", { [PROOF]: EXECUTABLE }, /these changed:\ntests\/client-artifact\/proof\.test\.ts$/u],
+      ["a removed certification test", "1.0.1", { [PROOF]: null }, /these changed:\ntests\/client-artifact\/proof\.test\.ts$/u],
+      ["a fixture a certification test imports", "1.0.1", { "tests/fixtures/queue.ts": "export const roles = 2;\n" }, /these changed:\ntests\/fixtures\/queue\.ts$/u],
+      ["a fixture that fixture imports", "1.0.1", { "tests/fixtures/client.ts": "export const client = 2;\n" }, /these changed:\ntests\/fixtures\/client\.ts$/u],
+      ["a fixture a certification test names by path", "1.0.1", { "tests/fixtures/kernel.rs": "fn main() { loop {} }\n" }, /these changed:\ntests\/fixtures\/kernel\.rs$/u],
+    ] as const) {
+      const repository = factRepository(change);
+      try {
+        assert.throws(() => facts(version, repository.root, repository.github().dependencies, { dryRun: true }), refusal, scenario);
+      } finally {
+        repository.close();
+      }
+    }
+    const docsOnly = factRepository({}, { facts: false });
+    const dirty = factRepository({});
+    const repository = factRepository({});
+    try {
+      assert.throws(() => facts("1.0.1", docsOnly.root, docsOnly.github().dependencies, { dryRun: true }), /no facts to release/u);
+      writeFileSync(path.join(dirty.root, "notes.txt"), "local");
+      assert.throws(() => facts("1.0.1", dirty.root, dirty.github().dependencies, { dryRun: true }), /local changes/u);
+      for (const [scenario, state, refusal] of [
+        ["the version exists", { release: true }, /v1\.0\.1 exists/u],
+        ["nothing is published yet", { latest: null }, /No release is published yet/u],
+        ["a newer release is published", { latest: "v1.4.0" }, /v1\.4\.0 is the latest published release; a fact release patches it, not v1\.0\.0/u],
+        ["the pull request is open", { open: ["pr"] }, /already has an open pull request or unfinished runs:\nhttps:\/\/github\.com\/gwonmac\/gwonmac\/pull\/1$/u],
+        ["the release run waits", { open: ["release.yml"] }, /unfinished runs:\nhttps:\/\/github\.com\/gwonmac\/gwonmac\/actions\/runs\/release\.yml$/u],
+        ["the regression run is going", { open: ["client-watch.yml"] }, /unfinished runs:\nhttps:\/\/github\.com\/gwonmac\/gwonmac\/actions\/runs\/client-watch\.yml$/u],
+      ] as const) {
+        const github = repository.github(state);
+        assert.throws(() => facts("1.0.1", repository.root, github.dependencies, { dryRun: false }), refusal, scenario);
+        assert.deepEqual(github.writes, [], scenario);
+      }
+    } finally {
+      for (const each of [docsOnly, dirty, repository]) each.close();
+    }
+  });
+
+  it("a fact release starts regression and the release run, then opens the PR, and never tags", () => {
+    const repository = factRepository({});
+    try {
+      const tags = () => spawnSync("git", ["tag", "--list"], { cwd: repository.root, encoding: "utf8" }).stdout;
+      const dry = repository.github();
+      const planned = facts("1.0.1", repository.root, dry.dependencies, { dryRun: true });
+      assert.deepEqual(planned.changed, [
+        FACT, REGISTRY, "tests/client-artifact/new-client.test.ts", "tests/fixtures/free.json",
+        "tests/fixtures/new-client.ts", "tests/unit/free.test.ts", POST,
+      ]);
+      assert.deepEqual(dry.writes, []);
+
+      const live = repository.github();
+      const release = facts("1.0.1", repository.root, live.dependencies, { dryRun: false });
+      // The only write to git is the branch push: no tag, no commit, no tag push.
+      assert.deepEqual(live.writes.map((call) => call.slice(0, 4)), [
+        ["git", "push", "origin", "HEAD:refs/heads/hotfix/1.0.1"],
+        ["gh", "workflow", "run", "client-watch.yml"],
+        ["gh", "workflow", "run", "release.yml"],
+        ["gh", "pr", "create", "--repo"],
+      ]);
+      assert.equal(live.writes[0]!.length, 4);
+      assert.equal(tags(), "v1.0.0\n");
+      assert.deepEqual(live.writes[1]!.slice(-4), ["--ref", "hotfix/1.0.1", "-f", "regression=true"]);
+      assert.deepEqual(live.writes[2]!.slice(-4), ["--ref", "hotfix/1.0.1", "-f", "version=1.0.1"]);
+      const body = live.writes[3]!.at(-1)!;
+      assert.match(body, /regression on this branch: https:\/\/github\.com\/gwonmac\/gwonmac\/actions\/runs\/client-watch\.yml/u);
+      assert.match(body, /environment in https:\/\/github\.com\/gwonmac\/gwonmac\/actions\/runs\/release\.yml/u);
+      assert.deepEqual(release.actions.map((action) => action.slice(0, 3)), planned.actions.map((action) => action.slice(0, 3)));
+    } finally {
+      repository.close();
+    }
+  });
 });
+
+const REGISTRY = "app/client/certification/reviewed-facts.ts";
+const REGISTRY_TEXT = [
+  'import { OLD_FACTS } from "./reviewed-client-2026-11-03-aaaaaaaaaaaa.js";',
+  "export const REVIEWED_GENERATIONS = [",
+  "  OLD_FACTS,",
+  "];",
+  "",
+].join("\n");
+const FACTS_REGISTRY_TEXT = REGISTRY_TEXT
+  .replace("\nexport", '\nimport { NEW_FACTS } from "./reviewed-client-2026-12-01-bbbbbbbbbbbb.js";\nexport')
+  .replace("  OLD_FACTS,\n", "  OLD_FACTS,\n  NEW_FACTS,\n");
+const FACT = "app/client/certification/reviewed-client-2026-12-01-bbbbbbbbbbbb.ts";
+const POLICY = "tests/policy/rule.test.ts";
+const PROOF = "tests/client-artifact/proof.test.ts";
+// It imports a fixture (which imports another) and reads one by path.
+const PROOF_TEXT = 'import { roles } from "../fixtures/queue.js";\nconst kernel = "tests/fixtures/kernel.rs";\nassert.ok(roles && kernel);\n';
+/** A change value that sets the executable bit and leaves the content. */
+const EXECUTABLE = Symbol("executable");
+const POST = "website/content/en/2.blog/14.gwonmac-1-0-1.md";
+const POST_TEXT = "---\ntitle: GWonMac 1.0.1\ndraft: true\nlauncherId: gwonmac-1-0-1\n---\n\nTools work again on the new client.\n";
+
+/** A repository whose v1.0.0 tag is the published release and whose hotfix/1.0.1 adds facts. */
+function factRepository(change: Readonly<Record<string, string | null | typeof EXECUTABLE>>, options = { facts: true }) {
+  const root = mkdtempSync(path.join(os.tmpdir(), "release-facts-"));
+  const git = (...args: string[]) => {
+    const result = spawnSync("git", args, { cwd: root, encoding: "utf8" });
+    assert.equal(result.status, 0, result.stderr);
+  };
+  const write = (files: Readonly<Record<string, string | null | typeof EXECUTABLE>>) => {
+    for (const [file, text] of Object.entries(files)) {
+      if (text === EXECUTABLE) {
+        chmodSync(path.join(root, file), 0o755);
+        continue;
+      }
+      if (text === null) {
+        git("rm", "-q", file);
+        continue;
+      }
+      mkdirSync(path.dirname(path.join(root, file)), { recursive: true });
+      writeFileSync(path.join(root, file), text);
+    }
+    git("add", "-A");
+    git("commit", "-q", "--allow-empty", "-m", "change");
+  };
+  git("init", "-q", "-b", "main");
+  git("config", "user.email", "release@example.test");
+  git("config", "user.name", "Release test");
+  write({
+    [REGISTRY]: REGISTRY_TEXT,
+    "app/client/certification/reviewed-client-2026-11-03-aaaaaaaaaaaa.ts": "export const OLD_FACTS = {};\n",
+    "app/main/window.ts": "export {};\n",
+    "tests/fixtures/player-data/v1.0.0/settings.json": "{}\n",
+    // A sample source inside a policy test names a module that does not exist.
+    [POLICY]: "assert.ok(true);\nconst sample = 'import { a } from \"./a.js\";';\n",
+    [PROOF]: PROOF_TEXT,
+    "tests/fixtures/queue.ts": 'import { client } from "./client.js";\nexport const roles = client;\n',
+    "tests/fixtures/client.ts": "export const client = 1;\n",
+    "tests/fixtures/kernel.rs": "fn main() {}\n",
+    "tests/fixtures/free.json": "{}\n",
+    "tests/unit/free.test.ts": "assert.ok(true);\n",
+  });
+  git("tag", "v1.0.0");
+  git("switch", "-q", "-c", "hotfix/1.0.1");
+  // Facts, plus a new certification test and fixture, and a changed free test and fixture.
+  write(options.facts ? {
+    [FACT]: "export const NEW_FACTS = {};\n",
+    [REGISTRY]: FACTS_REGISTRY_TEXT,
+    [POST]: POST_TEXT,
+    "tests/client-artifact/new-client.test.ts": 'import { client } from "../fixtures/new-client.js";\nassert.ok(client);\n',
+    "tests/fixtures/new-client.ts": "export const client = 3;\n",
+    "tests/fixtures/free.json": "{ \"changed\": true }\n",
+    "tests/unit/free.test.ts": "assert.equal(1, 1);\n",
+  } : { [POST]: POST_TEXT, "docs/recertify.md": "notes\n" });
+  write(change);
+  return {
+    root,
+    close: () => rmSync(root, { recursive: true }),
+    /**
+     * Real git in the repository, except push. `writes` records every call
+     * that changes git or GitHub: a git tag, commit, push or ref update, and
+     * every gh call other than a view or a list.
+     */
+    github(state: { release?: boolean; latest?: string | null; open?: readonly string[] } = {}) {
+      const writes: string[][] = [];
+      const gitWrites = new Set(["tag", "push", "commit", "update-ref"]);
+      const dependencies: ReleaseDependencies = {
+        repository: REPOSITORY,
+        sha: SHA,
+        run(command, args, cwd) {
+          const writing = command === "git" ? gitWrites.has(args[0] ?? "") : !["view", "list"].includes(args[1] ?? "");
+          if (writing) writes.push([command, ...args]);
+          if (command === "git" && args[0] !== "push") {
+            const result = spawnSync(command, args, { cwd, encoding: "utf8" });
+            return { status: result.status, stdout: result.stdout, stderr: result.stderr };
+          }
+          if (args[0] === "release" && args[1] === "view") {
+            if (args[2] === "--repo") return state.latest === null ? NOT_FOUND : OK(`${state.latest ?? "v1.0.0"}\n`);
+            return state.release ? OK("{}") : NOT_FOUND;
+          }
+          if (args[0] === "pr" && args[1] === "list") {
+            return OK(state.open?.includes("pr") ? `https://github.com/${REPOSITORY}/pull/1\n` : "");
+          }
+          if (args[0] === "run" && args[1] === "list") {
+            const workflow = args[args.indexOf("--workflow") + 1] ?? "";
+            return OK(state.open?.includes(workflow) ? `https://github.com/${REPOSITORY}/actions/runs/${workflow}\n` : "");
+          }
+          if (args[0] === "workflow") return OK(`https://github.com/${REPOSITORY}/actions/runs/${args[2]}\n`);
+          return OK();
+        },
+      };
+      return { writes, dependencies };
+    },
+  };
+}

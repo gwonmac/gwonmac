@@ -511,11 +511,11 @@ const STARTUP_LABELS = {
 };
 
 const SNAPSHOT_URL = 'Gw.snapshot';
-let appSettings: import('../shared/contracts.js').AppSettings | null = null;
+let appSettings: import('../shared/settings/index.js').AppSettings | null = null;
 let disposeSettings = () => {};
 let clientResizeFrame = 0;
 
-function currentRenderScale(): import('../shared/contracts.js').AppSettings['renderScale'] {
+function currentRenderScale(): import('../shared/settings/index.js').AppSettings['renderScale'] {
   if (!appSettings) {
     throw new Error('graphics initialized before settings');
   }

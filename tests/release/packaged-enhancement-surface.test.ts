@@ -289,8 +289,8 @@ test("the cursor remains required without a retired game-side setting", async ()
   // declaration rather than an assertion on the call: a dynamic `import()`
   // whose specifier is not a literal resolves to `any`, so without it a renamed
   // export would read as `undefined` here instead of failing `tsc`.
-  const { DEFAULT_SETTINGS }: typeof import("../../app/shared/contracts.ts") =
-    await import(new URL("../../build/shared/contracts.js", import.meta.url).href);
+  const { DEFAULT_SETTINGS }: typeof import("../../app/shared/settings/index.ts") =
+    await import(new URL("../../build/shared/settings/index.js", import.meta.url).href);
   const { parseSettings }: typeof import("../../app/main/core/settings.ts") =
     await import(new URL("../../build/main/core/settings.js", import.meta.url).href);
 

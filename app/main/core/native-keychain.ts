@@ -4,7 +4,8 @@
  *
  * `SecretSlot` is a closed grammar rather than an arbitrary string. Single
  * keeps its legacy names; Multi adds the same two kinds under a validated
- * profile UUID. `VolatileNativeKeychain` is the implementation for builds with no
+ * profile UUID; the client-verdict key is one install-wide slot.
+ * `VolatileNativeKeychain` is the implementation for builds with no
  * provisioned signing identity: secrets live in memory and are lost at quit.
  * It is not a fallback an entitled build may drop to, and no file, encrypted
  * blob or mock-Keychain implementation stands beside it as one.
@@ -14,7 +15,12 @@ import type { ProfileId } from "../../shared/multiple-accounts.js";
 export const SINGLE_SECRET_SLOTS = ["arenaNetCredentials", "steamSession"] as const;
 export type SingleSecretSlot = (typeof SINGLE_SECRET_SLOTS)[number];
 export type MultiSecretSlot = `multi.${ProfileId}.${SingleSecretSlot}`;
-export type SecretSlot = SingleSecretSlot | MultiSecretSlot;
+/** The install's key for the signed client-verdict record; never per profile. */
+export const CLIENT_VERDICT_KEY_SLOT = "clientVerdictKey";
+export type SecretSlot =
+  | SingleSecretSlot
+  | MultiSecretSlot
+  | typeof CLIENT_VERDICT_KEY_SLOT;
 
 export function multiSecretSlot(
   profileId: ProfileId,

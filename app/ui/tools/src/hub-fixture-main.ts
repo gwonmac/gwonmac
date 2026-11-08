@@ -6,7 +6,8 @@
  * row open a model of the native Quit-or-Reload sheet. Import this module before `commands.ts`: it installs
  * the command transport that `commands.ts` registers with when it loads.
  */
-import type { AppSettings, RendererCommand } from '../../../shared/contracts';
+import type { RendererCommand } from '../../../shared/contracts';
+import type { AppSettings } from '../../../shared/settings/index';
 import { featureActivationRequested } from '../../../shared/feature-contracts';
 import { HUB_SHORTCUT, hubShortcutAvailable, resolveShortcuts, SHORTCUT_FEATURES, shortcutMatches, type ShortcutAction } from '../../../shared/keyboard-shortcuts';
 import { isMapLayerShortcut, SHORTCUT_COMMANDS, SHORTCUT_MAP_LAYERS } from '../../../shared/shortcut-commands';

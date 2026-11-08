@@ -7,21 +7,21 @@
  * fallback: if an event is absent here, it cannot be recorded or exported.
  */
 import {
-  EVENT_CHANNELS,
   GAME_RELOAD_CAUSES,
-  IPC,
   RENDERER_COMMAND_OUTCOMES,
   type AppUpdateErrorCode,
-  type EventChannel,
-  type InvokeChannel,
   type GameReloadCause,
   type RendererCommand,
   type RendererCommandOutcome,
   type SocketCloseReason,
   type SocketFailureCode,
 } from "../../shared/contracts.js";
+import { GAME_INVOKE_KEYS } from "../../shared/ipc/game.js";
+import { TOOLS_INVOKE_KEYS } from "../../shared/ipc/tools.js";
 import {
+  isClientBuildId,
   isDigest,
+  type ClientBuildId,
   type Digest,
 } from "../../shared/digest.js";
 import {
@@ -199,14 +199,11 @@ export const socketFailureCode = literal([
   "dns",
   "other",
 ] as const satisfies readonly SocketFailureCode[]);
-export const invokeChannel = literal<InvokeChannel>(
-  Object.keys(IPC).filter(
-    (key): key is InvokeChannel =>
-      !(EVENT_CHANNELS as readonly string[]).includes(key as EventChannel),
-  ),
-);
+/** A game window channel main answers, Core or Tools, named by its table key. */
+export const invokeChannel = literal([...GAME_INVOKE_KEYS, ...TOOLS_INVOKE_KEYS]);
 export const code: FieldGuard<ErrorCode> = isErrorCode;
 export const digestOrNull = nullable<Digest>(isDigest);
+export const clientBuildId: FieldGuard<ClientBuildId> = isClientBuildId;
 export const rendererFingerprintOrNull =
   nullable<RendererFingerprint>(isRendererFingerprint);
 export const proxyRoute: FieldGuard<ProxyRoute> = (

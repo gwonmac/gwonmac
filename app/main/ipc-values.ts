@@ -8,24 +8,24 @@ import type { GraphicsDiagnostics, SocketEvent } from "../shared/contracts.js";
 import {
   RENDERER_MILESTONES,
   type RendererMilestone,
-  type RendererMilestoneRecord,
+  type RendererMilestoneArgs,
 } from "../shared/diagnostics.js";
 import { AppError, ValidationError } from "../shared/errors.js";
 import { RENDERER_MILESTONE_FIELDS } from "./diagnostics/schema-protocol-renderer.js";
 import { literal, matchesFields } from "./diagnostics/schema-fields.js";
 
-/** Turns one invoke's argument list into the handler's input, or throws. */
-export type Parser<In> = (args: readonly unknown[]) => In;
+/** Turns one invoke's argument list into the declared argument tuple, or throws. */
+export type Parser<Args extends readonly unknown[]> = (args: readonly unknown[]) => Args;
 
 /**
  * Builds a parser over exactly `count` arguments. Every rejection leaves as a
  * ValidationError, also from a shared value parser that throws a plain Error,
  * so `ipc.rejected` reports `validation` and never looks like a handler crash.
  */
-export const args = <In>(
+export const args = <Args extends readonly unknown[]>(
   count: number,
-  parse: (values: readonly unknown[]) => In,
-): Parser<In> => (values) => {
+  parse: (values: readonly unknown[]) => Args,
+): Parser<Args> => (values) => {
   if (values.length !== count) {
     throw new ValidationError(`expected ${count} IPC argument(s)`);
   }
@@ -41,11 +41,11 @@ export const args = <In>(
 };
 
 /** For the channels that carry nothing. Still a parser, still explicit. */
-export const nothing: Parser<void> = args(0, () => undefined);
+export const nothing: Parser<[]> = args(0, () => []);
 
 /** Lifts a single-value validator into a parser over the argument list. */
-export const one = <In>(parse: (value: unknown) => In): Parser<In> =>
-  args(1, ([value]) => parse(value));
+export const one = <Value>(parse: (value: unknown) => Value): Parser<[Value]> =>
+  args(1, ([value]) => [parse(value)]);
 
 export function toWireSocketEvent(event: SocketEvent): SocketEvent {
   if (event.type !== "data") return event;
@@ -116,7 +116,7 @@ function skillGeometryConsistent({ state, reason, candidates }: Readonly<Record<
  * Validates the complete renderer milestone tuple before diagnostics sees it,
  * with the schema's own field guards (RENDERER_MILESTONE_FIELDS).
  */
-export const parseRendererMilestoneArgs: Parser<RendererMilestoneRecord> = args(3, ([name, rendererTimestampUs, fields]) => {
+export const parseRendererMilestoneArgs: Parser<RendererMilestoneArgs> = args(3, ([name, rendererTimestampUs, fields]) => {
   if (!isRendererMilestone(name) || !isRendererTimestamp(rendererTimestampUs)) {
     throw new ValidationError("invalid renderer milestone");
   }
@@ -126,5 +126,5 @@ export const parseRendererMilestoneArgs: Parser<RendererMilestoneRecord> = args(
     : fields === undefined;
   if (!valid) throw new ValidationError("invalid renderer milestone");
   // The guards matched exactly the fields RendererMilestoneFieldsByName declares for this name.
-  return { name, rendererTimestampUs, fields } as RendererMilestoneRecord;
+  return [name, rendererTimestampUs, fields] as RendererMilestoneArgs;
 });

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { COMPANION_FEATURE_BITS } from "../../app/shared/companion-abi.ts";
-import { DEFAULT_SETTINGS } from "../../app/shared/contracts.ts";
+import { DEFAULT_SETTINGS } from "../../app/shared/settings/index.ts";
 import { createSkillOverlaysInstallation } from "../../app/renderer/skill-overlays-installation.ts";
 
 const binding = Object.freeze({

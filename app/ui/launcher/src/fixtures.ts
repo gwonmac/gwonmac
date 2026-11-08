@@ -1,5 +1,5 @@
 import type { LauncherSnapshot } from "@shared/launcher-contracts";
-import { DEFAULT_SETTINGS } from "@shared/contracts";
+import { DEFAULT_SETTINGS } from "@shared/settings/index";
 import { resolveShortcuts } from "@shared/keyboard-shortcuts";
 import { DEFAULT_CARTOGRAPHY_PRESET_LIBRARY } from "@shared/cartography-overlay";
 import { LEGACY_PRIMARY_PROFILE_ID, parseProfileId } from "@shared/multiple-accounts";

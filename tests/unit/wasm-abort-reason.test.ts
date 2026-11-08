@@ -202,7 +202,7 @@ describe("renderer milestone bounds", () => {
     });
   }
   it("accepts the in-bounds record", () => {
-    assert.equal(parseRendererMilestoneArgs(["wasm.growthRequested", 12_000, growth]).name, "wasm.growthRequested");
+    assert.equal(parseRendererMilestoneArgs(["wasm.growthRequested", 12_000, growth])[0], "wasm.growthRequested");
   });
 });
 
@@ -273,11 +273,7 @@ describe("the recorded visual problem", () => {
         12_000,
         fields,
       ]),
-      {
-        name: "graphics.visualProblem",
-        rendererTimestampUs: 12_000,
-        fields,
-      },
+      ["graphics.visualProblem", 12_000, fields],
     );
     const incomplete = { ...fields };
     Reflect.deleteProperty(incomplete, "programProbeInstalled");
@@ -297,11 +293,7 @@ describe("the relog pre-game probe", () => {
     const fields = { state: "reconnect", mask: 0xff00_4242 } as const;
     assert.deepEqual(
       parseRendererMilestoneArgs(["relog.preGameProbe", 12_000, fields]),
-      {
-        name: "relog.preGameProbe",
-        rendererTimestampUs: 12_000,
-        fields,
-      },
+      ["relog.preGameProbe", 12_000, fields],
     );
     assert.throws(
       () => parseRendererMilestoneArgs([
@@ -327,11 +319,7 @@ describe("the skill geometry diagnostic", () => {
         12_000,
         waiting,
       ]),
-      {
-        name: "enhancement.skillGeometryState",
-        rendererTimestampUs: 12_000,
-        fields: waiting,
-      },
+      ["enhancement.skillGeometryState", 12_000, waiting],
     );
     assert.throws(
       () => parseRendererMilestoneArgs([
@@ -355,11 +343,7 @@ describe("the skill geometry diagnostic", () => {
         12_000,
         { state: "ready", reason: null, candidates: null },
       ]),
-      {
-        name: "enhancement.skillGeometryState",
-        rendererTimestampUs: 12_000,
-        fields: { state: "ready", reason: null, candidates: null },
-      },
+      ["enhancement.skillGeometryState", 12_000, { state: "ready", reason: null, candidates: null }],
     );
     assert.throws(
       () => parseRendererMilestoneArgs([

@@ -92,7 +92,7 @@ async function remove(id: string) {
 <template>
   <div class="settings-heading-row">
     <div><h1>Texture packs</h1><p>Give Guild Wars a different look. Add a .tpf file you downloaded, then choose it below.</p></div>
-    <button class="primary" :disabled="busy" @click="importPack"><Upload />Add .tpf file</button>
+    <button class="primary small" :disabled="busy" @click="importPack"><Upload />Add .tpf file</button>
   </div>
   <p class="texture-pack-note">Your choice is used for every account. If the game is open, close it and open it again to see the change.</p>
   <fieldset class="texture-pack-list" :disabled="busy">

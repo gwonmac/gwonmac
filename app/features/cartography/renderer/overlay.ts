@@ -10,7 +10,8 @@ import type {
   CartographyEvidenceCapture,
   CartographyEvidenceExportResult,
 } from "../../../shared/cartography-evidence.js";
-import type { AppSettings, RendererSettingsPatch } from "../../../shared/contracts.js";
+import type { RendererSettingsPatch } from "../../../shared/contracts.js";
+import type { AppSettings } from "../../../shared/settings/index.js";
 import type { CartographyMapKnowledge } from
   "../../../shared/cartography-map-knowledge.js";
 import {

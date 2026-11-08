@@ -102,6 +102,14 @@ export class WindowRegistry<Window extends RegisteredWindow = BrowserWindow> {
     return entry && !entry.win.isDestroyed() ? entry.win : null;
   }
 
+  /** The profile a live game window plays; anything else has none. */
+  profileForGameWindow(win: Window): ProfileId {
+    const id = this.#webContentsIds.get(win);
+    const context = id === undefined ? null : this.contextForWebContents(id);
+    if (context?.role !== "game") throw new AppError("validation", "game window has no profile");
+    return context.profileId;
+  }
+
   diagnosticOwnerForWindow(win: Window): number | null {
     const id = this.#webContentsIds.get(win);
     if (id === undefined) return null;

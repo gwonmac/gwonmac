@@ -412,15 +412,19 @@ export interface RendererMilestoneFieldsByName {
 export type RendererMilestoneFields =
   RendererMilestoneFieldsByName[keyof RendererMilestoneFieldsByName];
 
-/** One renderer milestone as main receives it: its name decides its fields. */
-export type RendererMilestoneRecord = {
-  [Name in RendererMilestone]: {
-    readonly name: Name;
-    readonly rendererTimestampUs: number;
-    readonly fields: Name extends keyof RendererMilestoneFieldsByName
+/**
+ * One renderer milestone as main receives it, as its IPC arguments: the name
+ * decides the fields. A handler that destructures it in its parameter list
+ * narrows `fields` by switching on `name`.
+ */
+export type RendererMilestoneArgs = {
+  [Name in RendererMilestone]: [
+    name: Name,
+    rendererTimestampUs: number,
+    fields: Name extends keyof RendererMilestoneFieldsByName
       ? RendererMilestoneFieldsByName[Name]
-      : undefined;
-  };
+      : undefined,
+  ];
 }[RendererMilestone];
 
 export interface DiagnosticHistogramSummary {

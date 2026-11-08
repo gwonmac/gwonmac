@@ -9,10 +9,8 @@
  */
 import { session, type Session } from "electron";
 import { readFile, rm, stat } from "node:fs/promises";
-import type {
-  AppSettings,
-  RendererSettingsPatch,
-} from "../shared/contracts.js";
+import type { RendererSettingsPatch } from "../shared/contracts.js";
+import type { AppSettings } from "../shared/settings/index.js";
 import { errorCode } from "../shared/errors.js";
 import { logEvent } from "./diagnostics.js";
 import type { GamePaths } from "./paths.js";
@@ -49,6 +47,7 @@ export async function applyPendingCacheClear(paths: GamePaths): Promise<void> {
     await rm(paths.artifacts, { recursive: true, force: true });
     await rm(paths.previousArtifacts, { recursive: true, force: true });
     await rm(paths.rejectedClient, { force: true });
+    await rm(paths.clientVerdict, { force: true });
   }
   await rm(paths.cacheClearRequest, { force: true });
   logEvent({ k: "cache.clearedAtStartup" });

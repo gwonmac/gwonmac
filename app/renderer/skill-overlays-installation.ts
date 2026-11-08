@@ -5,7 +5,7 @@
  */
 import type { NativeHudLayer } from "./native-hud-layer.js";
 import { COMPANION_FEATURE_BITS } from "../shared/companion-abi.js";
-import type { AppSettings } from "../shared/contracts.js";
+import type { AppSettings } from "../shared/settings/index.js";
 import type { EnhancementCapabilities } from "../shared/enhancement-contracts.js";
 import { createSkillCooldownOverlayConsumer } from "./skill-cooldown-overlay-consumer.js";
 import { createSkillCooldownObservationInstallation } from "./skill-cooldown-state-installation.js";

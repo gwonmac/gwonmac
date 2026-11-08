@@ -6,7 +6,8 @@
  * command only in a launch that selected Tools, turns it into its tool's event
  * (TOOL_COMMAND_EVENTS, app/shared/hub-tools.ts) and refuses what no listener claims.
  */
-import type { AppSettings, RendererCommand } from "./contracts.js";
+import type { RendererCommand } from "./contracts.js";
+import type { AppSettings } from "./settings/index.js";
 import type { ShortcutAction } from "../features/index.js";
 
 /** The map layers a shortcut flips in settings; no renderer command runs. */

@@ -9,7 +9,7 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import type {} from '../../../../renderer/gw-native';
 // eslint-disable-next-line no-restricted-imports
 import { installSurfaceController } from '../../../../renderer/surface-controller';
-import { DEFAULT_SETTINGS, type AppSettings } from '../../../../shared/contracts';
+import { DEFAULT_SETTINGS, type AppSettings } from '../../../../shared/settings/index';
 import type { HubRow, HubViewMount } from '../../../../shared/hub';
 // eslint-disable-next-line no-restricted-imports
 import { createHub } from '../../../../renderer/hub';

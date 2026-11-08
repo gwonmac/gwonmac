@@ -5,13 +5,9 @@
  * MultipleAccountsController; this module only projects them and never moves
  * launch decisions into the renderer.
  */
-import type {
-  AccountsState,
-  AppSettings,
-  AppUpdateState,
-  DownloadProgress,
-  ExtendedMemoryRuntimeStatus,
-} from "../shared/contracts.js";
+import type { AppUpdateState, DownloadProgress, ExtendedMemoryRuntimeStatus } from "../shared/contracts.js";
+import type { AccountsState } from "../shared/accounts-contracts.js";
+import type { AppSettings } from "../shared/settings/index.js";
 import {
   launcherSettings,
   launcherToolSettings,

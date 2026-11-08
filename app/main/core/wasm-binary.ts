@@ -66,20 +66,30 @@ export function concat(...parts: readonly Uint8Array[]): Uint8Array {
   return out;
 }
 
+/**
+ * First index at or after `from` where `needle` starts, or -1. The verifier
+ * scans the whole 8 MB data segment for hundreds of needles, so the first byte
+ * is found with the engine's native `indexOf` and only those candidates are
+ * compared in JavaScript; a byte-by-byte JavaScript scan was half of a proof.
+ */
 export function indexOfBytes(
   haystack: Uint8Array,
   needle: Uint8Array,
   from = 0,
 ): number {
-  outer: for (
-    let at = from;
-    at + needle.byteLength <= haystack.byteLength;
-    at += 1
-  ) {
-    for (let index = 0; index < needle.byteLength; index += 1) {
-      if (haystack[at + index] !== needle[index]) continue outer;
+  const last = haystack.byteLength - needle.byteLength;
+  let at = Math.max(0, from);
+  if (needle.byteLength === 0) return at <= last ? at : -1;
+  const first = needle[0]!;
+  while (at <= last) {
+    at = haystack.indexOf(first, at);
+    if (at < 0 || at > last) return -1;
+    let index = 1;
+    while (index < needle.byteLength && haystack[at + index] === needle[index]) {
+      index += 1;
     }
-    return at;
+    if (index === needle.byteLength) return at;
+    at += 1;
   }
   return -1;
 }

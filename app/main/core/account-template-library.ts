@@ -9,10 +9,8 @@
  * never enters this owner except as an explicit setup snapshot.
  */
 import { readFile } from "node:fs/promises";
-import type {
-  AccountTemplateLibrary,
-  TemplateExportEntry,
-} from "../../shared/contracts.js";
+import type { AccountTemplateLibrary } from "../../shared/accounts-contracts.js";
+import type { TemplateExportEntry } from "../../shared/template-contracts.js";
 import { AppError } from "../../shared/errors.js";
 import { parseTemplateEntries } from "../../shared/template-entries.js";
 import {

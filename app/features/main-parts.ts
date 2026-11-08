@@ -3,22 +3,27 @@
  *
  * Main only, and Tools only: app/main/tools-runtime.ts is the one importer,
  * behind main's dynamic import (tests/policy/core-tools-launch-boundary).
- * Every Tools channel must have an owner here, or this file does not compile.
+ * Every Tools channel (app/shared/ipc/tools.ts) must have exactly one owner
+ * here, or this file does not compile.
  */
-import type { ToolsMainInput, ToolsMainPart } from "../main/tools-main-part.js";
-import type { ToolsInvokeChannel } from "../shared/contracts.js";
+import type { ChannelTable, InvokeKey } from "../shared/ipc/channel-table.js";
+import type { ToolsChannels } from "../shared/ipc/tools.js";
+import type { OwnershipError } from "../main/ipc-channel-registry.js";
+import type { AnyToolsMainPart } from "../main/tools-main-part.js";
 import buildLibrary from "./build-library/main.js";
 import cartography from "./cartography/main.js";
 import tradeChat from "./trade-chat/main.js";
 import travel from "./travel/main.js";
 
-type ChannelsOf<Part> = Part extends Readonly<{ create(input: ToolsMainInput): { channels: infer Channels } }>
-  ? keyof Channels : never;
+type ContractKeys<Parts extends readonly unknown[]> = {
+  [Index in keyof Parts]: Parts[Index] extends Readonly<{ contract: Readonly<{ channels: infer Table extends ChannelTable }> }>
+    ? InvokeKey<Table>
+    : never
+};
 
-/** Accepts the list only when its parts register every Tools channel. */
-const everyChannelOwned = <const Parts extends readonly ToolsMainPart[]>(
-  parts: Parts & ([Exclude<ToolsInvokeChannel, ChannelsOf<Parts[number]>>] extends [never]
-    ? unknown : { unownedChannels: Exclude<ToolsInvokeChannel, ChannelsOf<Parts[number]>> }),
+/** Accepts the list only when its parts answer every Tools channel exactly once. */
+const everyChannelOwnedOnce = <const Parts extends readonly AnyToolsMainPart[]>(
+  parts: Parts & OwnershipError<InvokeKey<ToolsChannels>, ContractKeys<Parts>>,
 ): Parts => parts;
 
-export const MAIN_PARTS = everyChannelOwned([buildLibrary, travel, tradeChat, cartography]);
+export const MAIN_PARTS = everyChannelOwnedOnce([buildLibrary, travel, tradeChat, cartography]);

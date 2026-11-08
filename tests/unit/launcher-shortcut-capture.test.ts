@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
 import { test } from "node:test";
 import type { BrowserWindow, Input } from "electron";
-import { DEFAULT_SETTINGS } from "../../app/shared/contracts.ts";
+import { DEFAULT_SETTINGS } from "../../app/shared/settings/index.ts";
 import { cancelAppShortcutCapture, captureLauncherShortcut, isAppShortcutCaptureActive } from "../../app/main/launcher-shortcut-capture.ts";
 
 function fixture() {
