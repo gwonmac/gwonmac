@@ -37,8 +37,9 @@
 :where(.settings-view) button:active { transform: scale(.985); filter: brightness(.95); }
 :where(.settings-view) button:disabled { transform: none; filter: none; cursor: default; }
 :where(.settings-view) button:focus-visible, :where(.settings-view) input:focus-visible, :where(.settings-view) textarea:focus-visible, :where(.settings-view) select:focus-visible, :where(.settings-view) summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
-/* A heading focused to announce a new section is not a control: no focus ring. */
-:where(.settings-view) [tabindex="-1"]:focus { outline: none; }
+/* A heading focused to announce a new section is not a control: no focus ring, and none of the
+   game document's either (the Hub frame adds a halo to anything with a tabindex). */
+.settings-view [tabindex="-1"]:focus { outline: none; box-shadow: none; }
 :where(.settings-view) textarea, :where(.settings-view) input:not([type="color"]):not([type="range"]):not([type="checkbox"]):not([type="radio"]), :where(.settings-view) select { width: 100%; padding: 12px 13px; border: 1px solid var(--line); border-radius: 10px; color: var(--text); background: var(--field); }
 :where(.settings-view) select option { color: var(--text); background: var(--surface-solid); }
 :where(.settings-view) textarea { resize: vertical; }
