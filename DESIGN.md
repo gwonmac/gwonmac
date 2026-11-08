@@ -40,7 +40,8 @@ macOS supplies interaction.
   in the title bar, never a banner or a progress counter.
 - Reading happens on pages, not in modals. A news article opens as a full page
   in **News** with a way back to the list; Help pages are the Guide. Modals are
-  for short decisions and forms only.
+  for short decisions and forms only. Launcher and Settings dialogs (`BaseModal`)
+  are `min(420px, 100% - 32px)` wide; Hub tool dialogs keep their own widths.
 - Prefer native hierarchy: system-sized controls, semantic checkboxes, sheets,
   menus, concise labels, and visible keyboard focus.
 - Use translucent material only where it improves separation from key art.
