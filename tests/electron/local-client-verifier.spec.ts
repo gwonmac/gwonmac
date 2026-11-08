@@ -17,33 +17,33 @@ const electronPath = path.resolve(
   "node_modules/electron/dist/Electron.app/Contents/MacOS/Electron",
 );
 
-test("re-verifies an unknown exact hash in an isolated process", { tag: "@journey" }, async () => {
+test("proves an unknown exact build in one isolated pass", { tag: "@journey" }, async () => {
   const root = await mkdtemp(path.join(tmpdir(), "gw-local-verifier-"));
-  const wasmPath = path.join(root, "unknown.wasm");
+  const wasmPath = path.join(root, "Gw.jspi.wasm");
+  const jsPath = path.join(root, "Gw.jspi.js");
   // The smallest valid module has none of the certified shapes. That is useful:
   // the IPC path must return a safe negative decision rather than crash.
   const wasm = Uint8Array.of(0, 97, 115, 109, 1, 0, 0, 0);
-  const sha256 = createHash("sha256").update(wasm).digest("hex");
-  await writeFile(wasmPath, wasm);
+  const js = "var getHeapMax = () => 2147483648;";
+  const digest = (value: Uint8Array | string) =>
+    createHash("sha256").update(value).digest("hex");
+  await Promise.all([writeFile(wasmPath, wasm), writeFile(jsPath, js)]);
+  const env = Object.fromEntries(
+    Object.entries(process.env).filter(
+      (entry): entry is [string, string] =>
+        entry[1] !== undefined && entry[0] !== "ELECTRON_RUN_AS_NODE",
+    ),
+  );
 
-  const run = async () => {
-    const env: Record<string, string> = {};
-    for (const [key, value] of Object.entries(process.env)) {
-      if (value !== undefined && key !== "ELECTRON_RUN_AS_NODE") {
-        env[key] = value;
-      }
-    }
+  const run = async (wasmSha256: string) => {
     const application = await electron.launch({
       cwd: path.resolve("."),
-      args: [fixture, "client", wasmPath, sha256],
+      args: [fixture, wasmPath, wasmSha256, jsPath, digest(js)],
       executablePath: electronPath,
       env,
     });
     try {
-      await expect.poll(
-        () => completed(application),
-        { timeout: 10_000 },
-      ).toBe(true);
+      await expect.poll(() => completed(application), { timeout: 20_000 }).toBe(true);
       return await outcome(application);
     } finally {
       await application.close();
@@ -51,8 +51,8 @@ test("re-verifies an unknown exact hash in an isolated process", { tag: "@journe
   };
 
   try {
-    const first = await run();
-    expect(first).toMatchObject({
+    const sha256 = digest(wasm);
+    const refusal = {
       officialSha256: sha256,
       fileVerdict: {
         status: "refused",
@@ -62,114 +62,29 @@ test("re-verifies an unknown exact hash in an isolated process", { tag: "@journe
       templateSaveBuild: null,
       enhancementBuild: null,
       reasons: ["enhancement-layout-changed"],
+    };
+    const first = await run(sha256);
+    // The requested launch arrives first; the complete pass holds both, and no
+    // later stage (friends, Cartography, double-click, 4 GB) proved anything.
+    expect(first).toMatchObject({
+      requested: { launches: [{ cartography: true, verification: refusal }] },
+      complete: {
+        launches: [
+          { cartography: true, verification: refusal },
+          { cartography: false, verification: refusal },
+        ],
+        friendObserver: [],
+        cartography: [],
+        nativeDoubleClick: [],
+        extendedMemory: [],
+      },
     });
 
-    // A second launch must re-read the bytes. Profile state cannot preserve the
-    // first positive answer after the official artifact no longer matches.
+    // The pass re-reads the bytes: a hash that no longer matches them gets no
+    // answer, which callers report as a failed check.
     await writeFile(wasmPath, Uint8Array.of(0, 97, 115, 109, 1, 0, 0, 1));
-    const second = await run();
-    expect(second).toBeNull();
+    expect(await run(sha256)).toEqual({ requested: null, complete: null });
   } finally {
-    await rm(root, { recursive: true, force: true });
-  }
-});
-
-test("refuses an unknown native callback inside the isolated process", { tag: "@journey" }, async () => {
-  const root = await mkdtemp(path.join(tmpdir(), "gw-double-click-verifier-"));
-  const wasmPath = path.join(root, "unknown.wasm");
-  const wasm = Uint8Array.of(0, 97, 115, 109, 1, 0, 0, 0);
-  const sha256 = createHash("sha256").update(wasm).digest("hex");
-  await writeFile(wasmPath, wasm);
-  const env = Object.fromEntries(
-    Object.entries(process.env).filter(
-      (entry): entry is [string, string] =>
-        entry[1] !== undefined && entry[0] !== "ELECTRON_RUN_AS_NODE",
-    ),
-  );
-  const application = await electron.launch({
-    cwd: path.resolve("."),
-    args: [fixture, "native-double-click", wasmPath, sha256],
-    executablePath: electronPath,
-    env,
-  });
-  try {
-    await expect.poll(() => completed(application), { timeout: 10_000 }).toBe(true);
-    expect(await outcome(application)).toBeNull();
-  } finally {
-    await application.close();
-    await rm(root, { recursive: true, force: true });
-  }
-});
-
-test("refuses changed Cartography input inside the isolated process", { tag: "@journey" }, async () => {
-  const root = await mkdtemp(path.join(tmpdir(), "gw-cartography-verifier-"));
-  const wasmPath = path.join(root, "unknown.wasm");
-  const wasm = Uint8Array.of(0, 97, 115, 109, 1, 0, 0, 0);
-  const sha256 = createHash("sha256").update(wasm).digest("hex");
-  await writeFile(wasmPath, wasm);
-  const env = Object.fromEntries(
-    Object.entries(process.env).filter(
-      (entry): entry is [string, string] =>
-        entry[1] !== undefined && entry[0] !== "ELECTRON_RUN_AS_NODE",
-    ),
-  );
-  const run = async () => {
-    const application = await electron.launch({
-      cwd: path.resolve("."),
-      args: [fixture, "cartography", wasmPath, sha256],
-      executablePath: electronPath,
-      env,
-    });
-    try {
-      await expect.poll(() => completed(application), { timeout: 10_000 }).toBe(true);
-      return await outcome(application);
-    } finally {
-      await application.close();
-    }
-  };
-
-  try {
-    expect(await run()).toBeNull();
-    await writeFile(wasmPath, Uint8Array.of(0, 97, 115, 109, 1, 0, 0, 1));
-    expect(await run()).toBeNull();
-  } finally {
-    await rm(root, { recursive: true, force: true });
-  }
-});
-
-test("refuses changed 4 GB glue inside the isolated process", { tag: "@journey" }, async () => {
-  const root = await mkdtemp(path.join(tmpdir(), "gw-extended-memory-verifier-"));
-  const jsPath = path.join(root, "Gw.jspi.js");
-  const wasmPath = path.join(root, "Gw.jspi.wasm");
-  const js = "var getHeapMax = () => 2147483648;";
-  const wasm = Uint8Array.of(0, 97, 115, 109, 1, 0, 0, 0);
-  const digest = (value: Uint8Array | string) =>
-    createHash("sha256").update(value).digest("hex");
-  await Promise.all([writeFile(jsPath, js), writeFile(wasmPath, wasm)]);
-  const env = Object.fromEntries(
-    Object.entries(process.env).filter(
-      (entry): entry is [string, string] =>
-        entry[1] !== undefined && entry[0] !== "ELECTRON_RUN_AS_NODE",
-    ),
-  );
-  const application = await electron.launch({
-    cwd: path.resolve("."),
-    args: [
-      fixture,
-      "extended-memory",
-      jsPath,
-      digest(js),
-      wasmPath,
-      digest(wasm),
-    ],
-    executablePath: electronPath,
-    env,
-  });
-  try {
-    await expect.poll(() => completed(application), { timeout: 10_000 }).toBe(true);
-    expect(await outcome(application)).toBeNull();
-  } finally {
-    await application.close();
     await rm(root, { recursive: true, force: true });
   }
 });

@@ -4,7 +4,6 @@
  * Trade lifecycle cleanup remains beside subscription registration so a
  * destroyed renderer cannot retain a process-wide feed subscription.
  */
-import { IPC } from "../../../shared/contracts.js";
 import { AllowlistError } from "../../../shared/errors.js";
 import {
   parseTraderPriceHistoryRequest,
@@ -16,21 +15,11 @@ import {
 import type { TradeChatService } from "./trade-chat-service.js";
 import {
   channel,
-  sendIfLive,
-  type AnyChannelDef,
+  emit,
+  type Handlers,
 } from "../../../main/ipc-channel-registry.js";
+import contract from "../shared/ipc.js";
 import { nothing, one } from "../../../main/ipc-values.js";
-
-export type TradeInvokeChannel =
-  | "tradeSubscribe"
-  | "tradeUnsubscribe"
-  | "tradeSavedGet"
-  | "tradeSavedSet"
-  | "marketRatesGet"
-  | "traderQuotesGet"
-  | "traderPriceHistoryGet"
-  | "tradeSearch"
-  | "tradeRetry";
 
 export interface TradeIpcContext {
   tradeChat: TradeChatService;
@@ -39,10 +28,9 @@ export interface TradeIpcContext {
   setTradeSaved: (value: TradeSavedState) => Promise<TradeSavedState>;
 }
 
-
 export function tradeChannelDefinitions(
   ctx: TradeIpcContext,
-): Record<TradeInvokeChannel, AnyChannelDef> {
+): Handlers<typeof contract.channels> {
   const cleanupInstalled = new Set<number>();
   const requireEnabled = (): void => {
     if (!ctx.isFeatureEnabled("tradeChat")) {
@@ -63,7 +51,7 @@ export function tradeChannelDefinitions(
         });
       }
       return ctx.tradeChat.subscribe(id, source, (event) => {
-        sendIfLive(win, IPC.tradeEvent, event);
+        emit(win, contract.channels.tradeEvent, event);
       });
     }),
 

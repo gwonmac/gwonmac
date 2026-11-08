@@ -23,6 +23,7 @@
 //     tests/unit/the-ui-system-has-one-place-to-change-a-colour.test.ts
 import assert from "node:assert/strict";
 import { globSync, readFileSync } from "node:fs";
+import { posix } from "node:path";
 import test from "node:test";
 
 const TOKENS = "app/shared/ui/tokens.css";
@@ -60,8 +61,8 @@ const NOT_YET_TOKENISED: Record<string, { rules: Rule[]; reason: string }> = {
     reason: "the boot screen is a plain <link> in index.html and paints before the bundle brings tokens.css",
   },
   "app/ui/tools/src/styles/elite-skills.css": {
-    rules: ["colour", "radius", "z-index"],
-    reason: "opaque panel fills are derived in place with rgb(from …), and its layers and image corners are literal",
+    rules: ["radius", "z-index"],
+    reason: "its layers and image corners are literal",
   },
   "app/ui/tools/src/WhispersApp.vue": {
     rules: ["colour", "z-index"],
@@ -227,7 +228,6 @@ const IN_GAME_PROVIDED: Record<string, { setBy: string; reason: string }> = {
   "--character-cards": { setBy: "app/features/character-switch/hub-views/HubCharacters.vue", reason: "the carousel's card count" },
 };
 const launcherTokens = declared(readFileSync(LAUNCHER_TOKENS, "utf8"));
-const settingsTokens = declared(readFileSync(SETTINGS, "utf8"), "--settings-");
 
 test("the glob finds both systems and both token sources", () => {
   // A broken glob would pass every rule below by checking nothing.
@@ -318,16 +318,65 @@ test("the Hub's Settings page loads the launcher tokens it reads", () => {
   // The Hub draws Settings without the launcher's stylesheet. Without tokens.css
   // on .settings-view there, every launcher colour on the page drops out.
   const hubEntry = readFileSync("app/ui/launcher/src/hub-entry.ts", "utf8");
-  assert.match(hubEntry, /import "\.\/tokens\.css";\s*import "\.\/settings-view\.css";/u);
+  assert.match(hubEntry, /import "\.\/tokens\.css";\s*import "\.\/controls\.css";\s*import "\.\/settings-view\.css";/u);
   assert.match(code(readFileSync(LAUNCHER_TOKENS, "utf8")), /^:root\[data-launcher\], \.settings-view \{/mu);
   // Only the launcher's own document carries the attribute, so the names never
   // reach the game document's :root.
   assert.match(readFileSync("app/ui/launcher/index.html", "utf8"), /<html [^>]*\bdata-launcher\b/u);
 });
 
-/** Each rule as its at-rule context, its selectors and its property names. */
-function rules(css: string, context = ""): { context: string; selectors: string[]; properties: string[] }[] {
-  const out: { context: string; selectors: string[]; properties: string[] }[] = [];
+/** Every component the Settings page renders: each relative `.vue` import, static or dynamic, followed from SettingsView. */
+function settingsPageComponents(): Set<string> {
+  const seen = new Set<string>();
+  const visit = (path: string) => {
+    if (seen.has(path)) return;
+    seen.add(path);
+    for (const [, target] of readFileSync(path, "utf8").matchAll(/(?:\bfrom|\bimport\s*\(?)\s*["'](\.{1,2}\/[^"']+\.vue)["']/gu)) {
+      visit(posix.join(posix.dirname(path), target!));
+    }
+  };
+  visit("app/ui/launcher/src/components/SettingsView.vue");
+  return seen;
+}
+
+/** The stylesheets the Settings page draws with: its own, the shared buttons, and every component it renders. */
+const settingsPageStyles = () =>
+  [SETTINGS, "app/ui/launcher/src/controls.css", ...settingsPageComponents()].map((path) => code(styleOf(path, readFileSync(path, "utf8"))));
+
+/** The launcher names hub-settings.css re-points: its `.hub-settings-host .settings-view` rules, inside at-rules too, as name → value. */
+function hubRepoints(): Map<string, string> {
+  const repoints = new Map<string, string>();
+  for (const { selectors, declarations } of rules(code(readFileSync(HUB_SETTINGS, "utf8")))) {
+    if (!selectors.includes(".hub-settings-host .settings-view")) continue;
+    for (const [property, value] of declarations) if (launcherTokens.has(property)) repoints.set(property, value);
+  }
+  return repoints;
+}
+
+test("the Hub's Settings page takes every colour it reads from the Hub theme", () => {
+  // A Settings rule or component that reads a launcher colour hub-settings.css
+  // does not re-point draws launcher gold or red inside a blue Hub, as the
+  // section list and the Delete style dialog once did. Radii and the small type
+  // sizes stay the launcher's on purpose; fonts and body size follow the Hub.
+  assert.ok(settingsPageComponents().has("app/ui/launcher/src/components/BaseModal.vue"), "the walk reaches the dialog");
+  const read = new Set(settingsPageStyles().flatMap((css) => [...referenced(css)].filter((name) => launcherTokens.has(name))));
+  const repoints = hubRepoints();
+  const repointed = new Set(repoints.keys());
+  const scale = (name: string) => /^--(?:radius|fs)-/u.test(name);
+  const missing = [...read].filter((name) => !scale(name) && !repointed.has(name));
+  assert.deepEqual(missing, [], `read by the Settings page but not re-pointed for the Hub: ${missing.join(", ")}`);
+  const stale = [...repointed].filter((name) => launcherTokens.has(name) && !read.has(name));
+  assert.deepEqual(stale, [], `re-pointed for the Hub but not read by the Settings page: ${stale.join(", ")}`);
+  // A re-point that reads another launcher name (`--gold: var(--gold-text)`) still paints launcher gold.
+  const launcherValued = [...repoints].filter(([, value]) => [...referenced(value)].some((name) => !name.startsWith("--ui-")));
+  assert.deepEqual(launcherValued.map(([name, value]) => `${name}: ${value}`), [], "a Hub re-point reads only --ui-* names");
+});
+
+type CssRule = { context: string; selectors: string[]; declarations: [property: string, value: string][] };
+
+/** Each rule as its at-rule context, its selectors and its declarations. */
+function rules(css: string, context = ""): CssRule[] {
+  const out: CssRule[] = [];
   let at = 0;
   for (let open = css.indexOf("{", at); open >= 0; open = css.indexOf("{", at)) {
     let close = open + 1;
@@ -339,7 +388,10 @@ function rules(css: string, context = ""): { context: string; selectors: string[
       out.push({
         context,
         selectors: head.split(/,(?![^(]*\))/u).map((selector) => selector.replace(/\s+/gu, " ").trim()),
-        properties: body.split(";").map((declaration) => declaration.split(":")[0]!.trim()).filter(Boolean),
+        declarations: body.split(";").filter((declaration) => declaration.includes(":")).map((declaration) => {
+          const colon = declaration.indexOf(":");
+          return [declaration.slice(0, colon).trim(), declaration.slice(colon + 1).trim()];
+        }),
       });
     }
     at = close;
@@ -355,9 +407,9 @@ test("Settings sets each property of a selector in one rule", () => {
   // The page was once three stacked copies of itself, where the last rule
   // silently won and an edit to an earlier one did nothing.
   const seen = new Map<string, number>();
-  for (const { context, selectors, properties } of rules(file(SETTINGS).css)) {
+  for (const { context, selectors, declarations } of rules(file(SETTINGS).css)) {
     for (const selector of selectors) {
-      for (const property of new Set(properties.map(family))) {
+      for (const property of new Set(declarations.map(([property]) => family(property)))) {
         const key = `${context}${selector} { ${property} }`;
         seen.set(key, (seen.get(key) ?? 0) + 1);
       }
@@ -371,8 +423,7 @@ test("every token a stylesheet uses is actually declared", () => {
   // An undeclared token is a declaration the browser drops: the rule silently
   // loses its colour. In-game files read app/shared/ui/tokens.css and their
   // own names: a launcher name read there passes in the launcher's tests and
-  // paints nothing in the game. Launcher files read the launcher tokens and
-  // the `--settings-*` set.
+  // paints nothing in the game. Launcher files read the launcher tokens.
   const missing: string[] = [];
   for (const { path, system, css, source } of files) {
     const own = new Set([...declared(css), ...local(source)]);
@@ -383,7 +434,7 @@ test("every token a stylesheet uses is actually declared", () => {
       continue;
     }
     for (const name of referenced(css)) {
-      if (!launcherTokens.has(name) && !settingsTokens.has(name) && !own.has(name)) missing.push(`${path}: ${name}`);
+      if (!launcherTokens.has(name) && !own.has(name)) missing.push(`${path}: ${name}`);
     }
   }
   assert.deepEqual(missing, [], `undeclared tokens: ${missing.join(", ")}`);

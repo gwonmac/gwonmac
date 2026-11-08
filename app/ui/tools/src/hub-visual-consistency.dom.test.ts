@@ -6,7 +6,7 @@
  * and alignment stay in Playwright; so does the caret after an appearance change.
  */
 import { afterEach, beforeAll, expect, test } from 'vitest';
-import { DEFAULT_SETTINGS } from '../../../shared/contracts';
+import { DEFAULT_SETTINGS } from '../../../shared/settings/index';
 // The test applies the real appearance projector, as the standalone fixture page does.
 // eslint-disable-next-line no-restricted-imports
 import { applyAppearance } from '../../../renderer/appearance';

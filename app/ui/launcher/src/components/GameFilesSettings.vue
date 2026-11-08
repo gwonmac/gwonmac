@@ -70,8 +70,8 @@ const status = computed(() => {
         <span v-else-if="background.status === 'complete'">All game files are available offline.</span>
         <span v-else>Pausing download…</span>
       </div>
-      <button v-if="background.status === 'running'" class="secondary" @click="pause">Pause</button>
-      <button v-else-if="background.status === 'paused' || background.status === 'failed'" class="secondary" @click="resume">
+      <button v-if="background.status === 'running'" class="secondary small" @click="pause">Pause</button>
+      <button v-else-if="background.status === 'paused' || background.status === 'failed'" class="secondary small" @click="resume">
         {{ background.status === 'failed' ? 'Try again' : 'Resume' }}
       </button>
       <progress v-if="backgroundProgress" :value="backgroundProgress.received" :max="backgroundProgress.total || 1" />
@@ -79,16 +79,16 @@ const status = computed(() => {
 
     <div v-if="readiness.state === 'repair-required'" class="recovery-card" role="status">
       <div><strong>Repair needed</strong><span>{{ repairReason(readiness.reason) }}</span></div>
-      <button class="primary" @click="repair"><Wrench />Repair game files</button>
+      <button class="primary small" @click="repair"><Wrench />Repair game files</button>
     </div>
     <div v-else class="file-actions">
-      <button class="secondary" @click="repair"><Wrench />Check and repair game files</button>
+      <button class="secondary small" @click="repair"><Wrench />Check and repair game files</button>
       <small>The launcher restarts to verify the client. Close open game windows first.</small>
     </div>
 
     <details>
       <summary>Advanced</summary>
-      <button class="danger-button" @click="reset"><RotateCcw />Reset and redownload game files</button>
+      <button class="danger-button small" @click="reset"><RotateCcw />Reset and redownload game files</button>
       <p>This removes only downloaded Guild Wars client data after restart. Profiles, saved logins, application settings, Tools, shortcuts, builds, templates, screenshots, chat logs, and window positions are kept.</p>
     </details>
   </div>

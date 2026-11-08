@@ -71,6 +71,10 @@ export type ToolsAppMountOptions = Readonly<{
   templateFiles: TemplateFiles | null;
   commands: TeamApplyCommands | null;
   storage: StorageCommand | null;
+  /** Why `storage` is null, in the player's words; null when it is not. */
+  storageUnavailable: string | null;
+  /** Why `publishTemplate` is null, in the player's words; null when it is not. */
+  publishUnavailable: string | null;
   applyUnavailable: string | null;
   observationUnavailable: string | null;
   development: boolean;

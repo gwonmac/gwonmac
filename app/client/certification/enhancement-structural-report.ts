@@ -60,17 +60,40 @@ function baseReport(
   };
 }
 
+/**
+ * Producers of each message, in decoded order. Chat evidence asks for every
+ * candidate dispatcher times three messages, and filtering all decoded
+ * functions for each of those questions was a second of every proof.
+ */
+const producersByMessage = new WeakMap<
+  readonly DecodedFunction[],
+  Map<number, readonly DecodedFunction[]>
+>();
+
+function messageProducers(
+  decoded: readonly DecodedFunction[],
+  message: number,
+): readonly DecodedFunction[] {
+  let byMessage = producersByMessage.get(decoded);
+  if (!byMessage) {
+    byMessage = new Map();
+    producersByMessage.set(decoded, byMessage);
+  }
+  let producers = byMessage.get(message);
+  if (!producers) {
+    producers = decoded.filter((producer) => (producer.messageSites[message] ?? 0) > 0);
+    byMessage.set(message, producers);
+  }
+  return producers;
+}
+
 export function messageRelations(
   decoded: readonly DecodedFunction[],
   target: number,
   message: number,
 ): MessageProducerEvidence[] {
-  return decoded
-    .filter(
-      (producer) =>
-        (producer.messageSites[message] ?? 0) > 0
-        && (producer.calls.get(target) ?? 0) > 0,
-    )
+  return messageProducers(decoded, message)
+    .filter((producer) => (producer.calls.get(target) ?? 0) > 0)
     .map((producer) => ({
       producerFunctionIndex: producer.functionIndex,
       messageSites: producer.messageSites[message] ?? 0,

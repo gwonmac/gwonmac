@@ -548,6 +548,16 @@ test('account search offers explicit keep-open and replacement choices', async (
   expect(option(/Main/u)!.getAttribute('aria-disabled')).toBe('true');
 });
 
+test('Command-F on the Hub Settings page reaches the page and focuses its search', async () => {
+  // The Hub stops keys at its panel, so the page hears Command-F on itself, not on the window.
+  // That the first Escape then goes Back on the wide page needs the stylesheet (hub-keyboard-model.spec.ts).
+  await mountFixture();
+  await go('settings');
+  expect(document.activeElement).toBe(document.querySelector('.settings-fields h1'));
+  press('Meta+f'); await settle();
+  expect(document.activeElement).toBe(byRole('searchbox', 'Search settings', true)[0]);
+});
+
 test('in-game settings stay in Hub and Show Launcher remains explicit', async () => {
   await mountFixture();
   await go('settings');

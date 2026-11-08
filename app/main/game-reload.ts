@@ -7,11 +7,8 @@
  * the replacement document; it cannot move with focus to another account.
  */
 import type { BrowserWindow } from "electron";
-import type {
-  AppSettings,
-  GameReloadCause,
-  RendererCommandOutcome,
-} from "../shared/contracts.js";
+import type { GameReloadCause, RendererCommandOutcome } from "../shared/contracts.js";
+import type { AppSettings } from "../shared/settings/index.js";
 import type { SocketManager } from "./core/sockets.js";
 import type { logEvent } from "./diagnostics.js";
 

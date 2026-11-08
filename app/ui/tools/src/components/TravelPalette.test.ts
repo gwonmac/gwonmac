@@ -12,7 +12,7 @@ import type {
   TravelPreferencePatch,
   TravelPreferences,
 } from "../travel-host";
-import { DEFAULT_SETTINGS } from "../../../../shared/contracts";
+import { DEFAULT_SETTINGS } from "../../../../shared/settings/index";
 import TravelDestinationPicker from "./TravelDestinationPicker.vue";
 import TravelPalette from "./TravelPalette.vue";
 import {

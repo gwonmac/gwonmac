@@ -37,6 +37,7 @@ import { deriveFriendObserverBuild } from
   "../client/certification/friend-observer-transform.js";
 import {
   isLocalClientVerification,
+  type LocalClientVerification,
   verifyLocalClientBytes,
 } from "../client/certification/local-client-verifier.js";
 import {
@@ -47,6 +48,7 @@ import { rewriteTemplateSaveWasm } from
   "../client/certification/template-save-compat.js";
 import {
   ENHANCEMENT_CAPABILITY_FIELDS,
+  ENHANCEMENT_CAPABILITY_PRESETS,
   enhancementCapabilityProfile,
   NO_ENHANCEMENT_CAPABILITIES,
   RELEASE_ENHANCEMENT_CAPABILITIES,
@@ -93,6 +95,24 @@ export type QualificationRecord = Readonly<Record<string, unknown> & {
   exitCode: 0 | 1;
 }>;
 
+/**
+ * The runtime verifier for one official module, run once per capability set.
+ * The verifier is a pure function of the bytes, the requested capabilities and
+ * the reviewed generations, and one call costs seconds, so a battery that
+ * reads the same verdict in several checks asks this instead of re-running it.
+ */
+export type ClientVerifier = (capabilities?: EnhancementCapabilities) => LocalClientVerification;
+
+export function clientVerifier(official: Uint8Array): ClientVerifier {
+  const verdicts = new Map<string, LocalClientVerification>();
+  return (capabilities = ENHANCEMENT_CAPABILITY_PRESETS.all) => {
+    const key = JSON.stringify(ENHANCEMENT_CAPABILITY_FIELDS.map((field) => capabilities[field]));
+    let verdict = verdicts.get(key);
+    if (!verdict) verdicts.set(key, verdict = verifyLocalClientBytes(official, capabilities));
+    return verdict;
+  };
+}
+
 interface RuntimePredecessor {
   readonly profile: string;
   readonly bytes: Uint8Array;
@@ -100,12 +120,15 @@ interface RuntimePredecessor {
 }
 
 /** One canonical enumeration of every module the runtime can serve. */
-export function runtimePredecessors(official: Uint8Array): Readonly<{
+export function runtimePredecessors(
+  official: Uint8Array,
+  verify: ClientVerifier = clientVerifier(official),
+): Readonly<{
   officialSha256: string;
   predecessors: readonly RuntimePredecessor[];
 }> {
   const officialSha256 = sha256(official);
-  const verification = verifyLocalClientBytes(official);
+  const verification = verify();
   const templateBuild = verification.templateSaveBuild;
   const selectedInput = templateBuild
     ? rewriteTemplateSaveWasm(official, templateBuild)
@@ -119,7 +142,7 @@ export function runtimePredecessors(official: Uint8Array): Readonly<{
   )) {
     const profile = enhancementCapabilityProfile(capabilities);
     if (!profile) throw new Error(`invalid ${launch} release capability set`);
-    const profileBuild = verifyLocalClientBytes(official, capabilities).enhancementBuild;
+    const profileBuild = verify(capabilities).enhancementBuild;
     if (!profileBuild) throw new Error(`semantic verification refused profile ${profile}`);
     predecessors.push({
       profile,
@@ -131,11 +154,14 @@ export function runtimePredecessors(official: Uint8Array): Readonly<{
 }
 
 /** Every feature verdict of the runtime verifier; proved only when all prove. */
-export function runtimeReport(official: Uint8Array): Readonly<{
+export function runtimeReport(
+  official: Uint8Array,
+  verify: ClientVerifier = clientVerifier(official),
+): Readonly<{
   report: Readonly<Record<string, unknown>>;
   proved: boolean;
 }> {
-  const result = verifyLocalClientBytes(official);
+  const result = verify();
   if (!isLocalClientVerification(result, result.officialSha256)) {
     throw new Error("runtime feature verifier produced an invalid boundary result");
   }
@@ -244,17 +270,16 @@ function withNativeDoubleClick(input: Uint8Array): Uint8Array {
 async function extendedMemoryReport(
   jsPath: string,
   wasmPath: string,
+  officialWasm: Uint8Array,
+  verify: ClientVerifier,
 ): Promise<Readonly<Record<string, unknown>>> {
-  const [officialJs, officialWasm] = await Promise.all([
-    readFile(jsPath, "utf8"),
-    readFile(wasmPath),
-  ]);
+  const officialJs = await readFile(jsPath, "utf8");
   const transformedJs = rewriteExtendedMemoryJs(officialJs);
   const jsInputSha256 = sha256(officialJs);
   const jsOutputSha256 = sha256(transformedJs);
   new Function(transformedJs);
 
-  const verification = verifyLocalClientBytes(officialWasm);
+  const verification = verify();
   if (!verification.templateSaveBuild || !verification.enhancementBuild) {
     throw new Error("official WASM did not pass the local semantic verifier");
   }
@@ -267,7 +292,7 @@ async function extendedMemoryReport(
   )) {
     const profile = enhancementCapabilityProfile(capabilities);
     if (!profile) throw new Error(`invalid ${launch} release capability set`);
-    const profileBuild = verifyLocalClientBytes(officialWasm, capabilities).enhancementBuild;
+    const profileBuild = verify(capabilities).enhancementBuild;
     if (!profileBuild) {
       throw new Error(`semantic verification refused profile ${profile}`);
     }
@@ -340,9 +365,7 @@ async function extendedMemoryReport(
         officialJsPath: jsPath,
         officialWasmPath: wasmPath,
         officialSha256: sha256(officialWasm),
-        certification: certificationFromLocalVerification(
-          verifyLocalClientBytes(officialWasm, capabilities),
-        ),
+        certification: certificationFromLocalVerification(verify(capabilities)),
         enhancementCapabilities: capabilities,
         compatibilityCacheRoot: join(profileRoot, "compatibility"),
         enhancementCacheRoot: join(profileRoot, "enhancements"),
@@ -445,8 +468,9 @@ async function extendedMemoryReport(
 async function shippedChainReport(
   jsPath: string,
   wasmPath: string,
+  official: Uint8Array,
+  verify: ClientVerifier,
 ): Promise<Readonly<Record<string, unknown>>> {
-  const official = new Uint8Array(await readFile(wasmPath));
   const officialSha256 = sha256(official);
   const profiles = [];
   for (const [launch, capabilities] of Object.entries(RELEASE_ENHANCEMENT_CAPABILITIES)) {
@@ -460,9 +484,7 @@ async function shippedChainReport(
       officialWasmPath: wasmPath,
       officialJsPath: jsPath,
       officialSha256,
-      certification: certificationFromLocalVerification(
-        verifyLocalClientBytes(official, capabilities),
-      ),
+      certification: certificationFromLocalVerification(verify(capabilities)),
       enhancementCapabilities: capabilities,
       compatibilityCacheRoot: join(cacheRoot, "file"),
       enhancementCacheRoot: join(cacheRoot, "enhancement"),
@@ -537,22 +559,26 @@ async function record(name: string, check: Check): Promise<QualificationRecord> 
 const proved = async (report: Promise<Readonly<Record<string, unknown>>>) =>
   ({ report: await report, proved: true });
 
-/** Runs every check once, in one process, against one exact client. */
+/**
+ * Runs every check once, in one process, against one exact client. The checks
+ * share one verifier run per capability set: three runs instead of fourteen.
+ */
 export async function qualifyClient(
   wasmPath: string,
   jsPath: string,
 ): Promise<Readonly<Record<QualificationCheck, QualificationRecord>>> {
   const official = new Uint8Array(await readFile(wasmPath));
+  const verify = clientVerifier(official);
   let servable: ReturnType<typeof runtimePredecessors> | undefined;
-  const predecessors = () => (servable ??= runtimePredecessors(official));
+  const predecessors = () => (servable ??= runtimePredecessors(official, verify));
   return Object.freeze({
-    runtime: await record("runtime", () => runtimeReport(official)),
+    runtime: await record("runtime", () => runtimeReport(official, verify)),
     "double-click": await record("double-click", () =>
       doubleClickReport(predecessors().officialSha256, predecessors().predecessors)),
     cartography: await record("cartography", () =>
       cartographyReport(predecessors().officialSha256, predecessors().predecessors)),
     "extended-memory": await record("extended-memory", () =>
-      proved(extendedMemoryReport(jsPath, wasmPath))),
-    chain: await record("chain", () => proved(shippedChainReport(jsPath, wasmPath))),
+      proved(extendedMemoryReport(jsPath, wasmPath, official, verify))),
+    chain: await record("chain", () => proved(shippedChainReport(jsPath, wasmPath, official, verify))),
   });
 }

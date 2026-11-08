@@ -1,8 +1,6 @@
 import { expect, test } from "@playwright/test";
-import {
-  CLIPBOARD_TEXT_CEILING,
-  IPC,
-} from '../../app/shared/contracts.js';
+import { CLIPBOARD_TEXT_CEILING } from '../../app/shared/contracts.js';
+import { GAME_CHANNELS } from '../../app/shared/ipc/game.js';
 import { closeOffline, launchPlayableClient } from "./fixtures.mjs";
 import { boxOf, startGameInput } from "./input-helpers.js";
 
@@ -271,7 +269,7 @@ test.describe("input trace", () => {
       } as const;
       await app.evaluate(({ BrowserWindow }, value) => {
         BrowserWindow.getAllWindows()[0]?.webContents.send(value.channel, value.entry);
-      }, { channel: IPC.inputTraceEvent, entry: mainEntry });
+      }, { channel: GAME_CHANNELS.inputTraceEvent.channel, entry: mainEntry });
 
       const secret = 'must-not-appear-in-input-trace';
       await page.locator('#osk-input-password').evaluate((field, value) => {

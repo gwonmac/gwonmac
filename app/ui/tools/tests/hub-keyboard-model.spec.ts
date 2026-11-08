@@ -209,6 +209,20 @@ test('typing and ⌫ on a view\'s buttons and the header edit that view\'s searc
   }
 });
 
+test('Command-F on the wide Settings page finds a setting, and the first Escape still goes Back', async ({ page }) => {
+  // The narrow page opens search in place of the tabs and Escape closes it. Wide, the field is
+  // always there, so an Escape with nothing typed is the Hub's Back, not a close of nothing. The
+  // page tells wide from narrow by the stylesheet, so this stays here; that Command-F reaches the
+  // page through the Hub is held in vitest (hub.dom.test.ts).
+  await openHub(page);
+  await hubSearch(page).fill('settings'); await page.keyboard.press('Enter');
+  await expect(page.locator('.settings-fields h1')).toBeFocused();
+  await page.keyboard.press('Meta+f');
+  await expect(page.getByRole('searchbox', { name: 'Search settings' })).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.hub-caption')).toHaveText('Home');
+});
+
 test('arrow keys scroll Build details and never jump to Back (HUB-088)', async ({ page }) => {
   await openHub(page);
   await hubSearch(page).fill('build smiter'); await page.keyboard.press('Enter');

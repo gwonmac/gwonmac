@@ -284,7 +284,7 @@ function mousePress(element: Element, detail: number, at: Element) {
   element.dispatchEvent(trusted(new MouseEvent('click', init)));
 }
 
-const INPUT_ROLES: Record<string, string> = { checkbox: 'checkbox', radio: 'radio', range: 'slider', button: 'button' };
+const INPUT_ROLES: Record<string, string> = { checkbox: 'checkbox', radio: 'radio', range: 'slider', button: 'button', search: 'searchbox' };
 const IMPLICIT_ROLES: Record<string, string> = { BUTTON: 'button', SUMMARY: 'button', A: 'link', SELECT: 'combobox', TEXTAREA: 'textbox', H1: 'heading', H2: 'heading', H3: 'heading', DIALOG: 'dialog' };
 const roleOf = (element: Element) => element.getAttribute('role')
   ?? (element instanceof HTMLInputElement ? INPUT_ROLES[element.type] ?? 'textbox' : IMPLICIT_ROLES[element.tagName] ?? null);

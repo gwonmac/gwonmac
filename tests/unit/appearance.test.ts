@@ -8,10 +8,7 @@ import {
   applyAppearance,
 } from "../../app/renderer/appearance.js";
 import { accessibleForeground, compositeColor, contrastRatio, customThemeReadable, parseRgb, readableForeground, readableSharedForeground, renderedCustomTheme } from "../../app/shared/ui-color.js";
-import {
-  DEFAULT_SETTINGS,
-  type AppSettings,
-} from "../../app/shared/contracts.js";
+import { DEFAULT_SETTINGS, type AppSettings } from "../../app/shared/settings/index.js";
 import { defaultCustomUiTheme, type CustomUiTheme, type UiThemeColor } from "../../app/shared/ui-theme.js";
 
 /* Where text sits over the game: the panel over snow and over a black scene,

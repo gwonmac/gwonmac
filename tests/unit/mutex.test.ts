@@ -6,7 +6,8 @@ import { setTimeout as sleep } from "node:timers/promises";
 import { after, describe, it } from "node:test";
 import { Mutex } from "../../app/main/core/mutex.js";
 import { loadSettings, saveSettings } from "../../app/main/core/settings.js";
-import type { AppSettings, AppSettingsPatch } from "../../app/shared/contracts.js";
+import type { AppSettingsPatch } from "../../app/shared/contracts.js";
+import type { AppSettings } from "../../app/shared/settings/index.js";
 
 const scratchDirs: string[] = [];
 

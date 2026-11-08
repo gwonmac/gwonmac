@@ -27,6 +27,14 @@ export type CartographySpikePreparation =
       error: unknown;
     }>;
 
+/** The Cartography module for one certified input; the transform rechecks it. */
+export function rewriteCartographySpikeWasm(
+  input: Uint8Array,
+  build: CartographySpikeBuild,
+): Uint8Array {
+  return transformCartographySpikeWasm(input, build.memoryLayout);
+}
+
 /** Prepare Cartography only from an isolated semantic certificate. */
 export async function prepareCartographySpike(
   wasmPath: string,
@@ -67,7 +75,7 @@ export async function prepareCartographySpike(
       wasmPath: await prepareDerivedWasm(
         wasmPath,
         cache,
-        (input) => transformCartographySpikeWasm(input, build.memoryLayout),
+        (input) => rewriteCartographySpikeWasm(input, build),
       ),
       wasmSha256: build.outputSha256,
     });

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { eliteMapSurfaces } from "../../app/features/cartography/renderer/elite-map-projection.js";
-import { eliteWikiUrl } from "../../app/shared/elite-wiki.js";
+import { eliteWikiUrl, parseEliteWikiRequest } from "../../app/shared/elite-wiki.js";
 import { ELITE_LOCATIONS } from "../../app/shared/elite-locations.js";
 const context = { status: 1, sequence: 2, areaEpoch: 7, mapId: 482, layoutId: 1 } as const;
 const native = { status: 1, generation: 7, frameId: 24, visible: true,
@@ -35,6 +35,6 @@ test("wiki actions resolve reviewed data and never accept caller URLs", () => {
   const boss = ELITE_LOCATIONS.find((entry) => entry.boss === "Lissah the Packleader")!;
   assert.equal(eliteWikiUrl({ locationId: boss.id, page: "skill" }), "https://wiki.guildwars.com/wiki/Game_link:Skill_338");
   assert.match(eliteWikiUrl({ locationId: boss.id, page: "boss" }), /Lissah_the_Packleader$/u);
-  assert.throws(() => eliteWikiUrl({ locationId: boss.id, page: "boss", url: "https://evil.example" }));
-  assert.throws(() => eliteWikiUrl({ locationId: "https://evil.example", page: "boss" }));
+  assert.throws(() => parseEliteWikiRequest({ locationId: boss.id, page: "boss", url: "https://evil.example" }));
+  assert.throws(() => parseEliteWikiRequest({ locationId: "https://evil.example", page: "boss" }));
 });

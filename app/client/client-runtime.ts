@@ -15,9 +15,11 @@
  * rename away a tree the other is still reading.
  *
  * Certification is consumed, not re-derived: every launch starts without
- * transform authority, then the isolated verifier may supply one structural
- * answer carried through preparation. A build it cannot prove is served
- * untouched, including builds present in historic regression tables.
+ * transform authority, then the isolated verifier supplies one structural
+ * answer carried through preparation, either from a fresh pass or from this
+ * install's signed record of the pass it already made for this exact build
+ * (`client-verdict.ts`). A build it cannot prove is served untouched,
+ * including builds present in historic regression tables.
  */
 import { net } from "electron";
 import {
@@ -42,11 +44,13 @@ import {
   ENHANCEMENT_TRANSFORM_ABI,
   ENHANCEMENT_CAPABILITY_FIELDS,
   NO_ENHANCEMENT_CAPABILITIES,
+  RELEASE_ENHANCEMENT_CAPABILITIES,
   capabilityRecord,
   type EnhancementCapabilities,
   type EnhancementProgram,
 } from "../shared/enhancement-contracts.js";
 import { AppError, NotReadyError, errorCode } from "../shared/errors.js";
+import { asDigest, clientBuildId } from "../shared/digest.js";
 import { INITIAL_PROGRESS } from "../shared/progress.js";
 import { certificationFromLocalVerification } from "./certification/client-certification.js";
 import {
@@ -60,10 +64,7 @@ import { pruneUnreferencedChunks } from "../main/core/chunk-cache.js";
 import { readClientCacheInfo } from "../main/core/client-cache-info.js";
 import { encodedChunkLimit } from "../main/core/chunk-format.js";
 import { ChunkStore } from "./chunk-store.js";
-import {
-  prepareClientModule,
-  type ClientCertification,
-} from "./certification/client-module.js";
+import { prepareClientModule } from "./certification/client-module.js";
 import {
   clearRejectedClient,
   confirmClientCandidate,
@@ -81,7 +82,11 @@ import {
   fetchPatchBytes,
   type PatchFetch,
 } from "../main/core/patch-transport.js";
-import { clientArtifactPath, clientManifestPath } from "../main/core/paths.js";
+import {
+  clientArtifactPath,
+  clientManifestPath,
+  launchCacheRoots,
+} from "../main/core/paths.js";
 import {
   migrateLegacyPublishedClientManifest,
   verifyPublishedClientArtifacts,
@@ -95,13 +100,18 @@ import {
   startClientUpdateSpan,
 } from "../main/diagnostics.js";
 import type { GamePaths } from "../main/paths.js";
+import { runVerifierPass } from "./certification/local-client-verifier-host.js";
 import {
-  verifyCartographyLocally,
-  verifyFriendObserverLocally,
-  verifyClientLocally,
-  verifyExtendedMemoryLocally,
-  verifyNativeDoubleClickLocally,
-} from "./certification/local-client-verifier-host.js";
+  createVerifierPassSlot,
+  obtainClientVerdict,
+  type ClientVerdict,
+  type ClientVerdictOutcome,
+} from "./client-verdict.js";
+import {
+  enhancementCandidateProfile,
+  failedStagesField,
+} from "./certification/client-verification-pass.js";
+import { discardClientVerdictRecord } from "./client-verdict-record.js";
 import type {
   AnyLocalFeatureInvariant,
   LocalFeatureVerdicts,
@@ -114,9 +124,25 @@ import {
   diagnosticDigest,
   optionalFeatureStatus,
   runtimeFeatureVerdicts,
+  servedReasons,
 } from "./client-runtime-values.js";
 
 export type { ActiveClient } from "./active-client.js";
+
+/**
+ * The module chains a release launch can select: Core, and Tools with
+ * Cartography. One pass proves both, so switching Tools needs no new proof.
+ */
+const RELEASE_LAUNCHES = Object.freeze([
+  Object.freeze({
+    requestedProfile: enhancementCapabilityProfile(RELEASE_ENHANCEMENT_CAPABILITIES.core) ?? "none",
+    cartography: false,
+  }),
+  Object.freeze({
+    requestedProfile: enhancementCapabilityProfile(RELEASE_ENHANCEMENT_CAPABILITIES.tools) ?? "none",
+    cartography: true,
+  }),
+]);
 
 interface ClientRuntimeOptions {
   paths: GamePaths;
@@ -127,11 +153,15 @@ interface ClientRuntimeOptions {
   cartographySpike?: boolean;
   extendedMemoryEnabled: boolean;
   diagnosticProfile: DiagnosticProfile;
+  /** This install's key for the signed verifier record; null when unusable. */
+  clientVerdictKey: () => Promise<Uint8Array | null>;
   onProgress: (progress: DownloadProgress) => void;
 }
 
 export class ClientRuntime {
   private readonly activeSlot = new ActiveClientSlot();
+  /** The one verifier pass this install runs at a time; see `obtainClientVerdict`. */
+  private readonly verifierPasses = createVerifierPassSlot();
   /**
    * Held by every operation that moves a generation directory. `update`,
    * candidate confirmation and crash rollback all rename `artifacts`,
@@ -345,53 +375,101 @@ export class ClientRuntime {
       };
     }
 
-    let certification: ClientCertification = {
-      templateSaveBuild: null,
-      enhancementBuild: null,
+    const officialJs = clientArtifactPath(this.options.paths.artifacts, "Gw.jspi.js");
+    const requestedLaunch = {
+      requestedProfile: enhancementCapabilityProfile(this.options.enhancementCapabilities) ?? "none",
+      cartography: this.options.cartographySpike === true,
     };
-    const local = await verifyClientLocally({
-      officialWasmPath: officialWasm,
-      officialSha256,
-      requestedCapabilities: this.options.enhancementCapabilities,
-    });
-    if (local) {
-      certification = certificationFromLocalVerification(local);
-      recordFeatureVerdicts(local.featureVerdicts);
-      logEvent({ k: "wasm.localVerificationCompleted" });
-    } else {
-      logEvent({ k: "wasm.localVerificationUnavailable" });
+    // Nothing in obtaining a verdict may fail activation: any error is a
+    // failed check, and the launch plays the official module.
+    let obtained: ClientVerdictOutcome | null;
+    try {
+      const jsSha256 = await sha256File(officialJs);
+      obtained = await obtainClientVerdict({
+        recordPath: this.options.paths.clientVerdict,
+        appVersion: this.options.hostVersion,
+        installKey: this.options.clientVerdictKey,
+        wasmPath: officialWasm,
+        wasmSha256: officialSha256,
+        jsPath: officialJs,
+        jsSha256,
+        launch: requestedLaunch,
+        releaseLaunches: RELEASE_LAUNCHES,
+        extendedMemoryRequested: this.options.extendedMemoryEnabled,
+        runPass: runVerifierPass,
+        slot: this.verifierPasses,
+      });
+    } catch {
+      obtained = null;
     }
-    const prepared = await prepareClientModule({
-      officialWasmPath: officialWasm,
-      officialJsPath: clientArtifactPath(this.options.paths.artifacts, "Gw.jspi.js"),
-      officialSha256,
-      certification,
-      enhancementCapabilities: this.options.enhancementCapabilities,
-      compatibilityCacheRoot: this.options.paths.compatibility,
-      enhancementCacheRoot: this.options.paths.enhancements,
-      friendObserver: {
-        cacheRoot: this.options.paths.friendObserver,
-        verifyLocally: verifyFriendObserverLocally,
-      },
-      ...(this.options.cartographySpike
-        ? {
-            cartographySpike: {
-              cacheRoot: this.options.paths.cartographySpike,
-              verifyLocally: verifyCartographyLocally,
-            },
-          }
-        : {}),
-      nativeDoubleClickCacheRoot: this.options.paths.nativeDoubleClick,
-      extendedMemoryCacheRoot: this.options.paths.extendedMemory,
-      extendedMemoryEnabled: this.options.extendedMemoryEnabled,
-    }, verifyNativeDoubleClickLocally, verifyExtendedMemoryLocally);
+    if (obtained?.source === "pass") {
+      void obtained.stored.then((stored) => {
+        logEvent({ k: "wasm.clientVerdictStored", stored: stored === "stored" });
+      });
+    }
+    const { paths } = this.options;
+    const roots = launchCacheRoots(paths, requestedLaunch.cartography ? "tools" : "core");
+    const prepareWith = (verdict: ClientVerdict | null) => {
+      const lookup = <Build>(find: ((inputSha256: string) => Build | null) | undefined) =>
+        async ({ inputSha256 }: { inputSha256: string }): Promise<Build | null> =>
+          find?.(inputSha256) ?? null;
+      const local = verdict?.verification ?? null;
+      return prepareClientModule({
+        officialWasmPath: officialWasm,
+        officialJsPath: officialJs,
+        officialSha256,
+        certification: local
+          ? certificationFromLocalVerification(local)
+          : { templateSaveBuild: null, enhancementBuild: null },
+        enhancementCapabilities: this.options.enhancementCapabilities,
+        compatibilityCacheRoot: paths.compatibility,
+        enhancementCacheRoot: roots.enhancements,
+        friendObserver: {
+          cacheRoot: roots.friendObserver,
+          verifyLocally: lookup(verdict?.friendObserver),
+        },
+        ...(this.options.cartographySpike
+          ? {
+              cartographySpike: {
+                cacheRoot: paths.cartographySpike,
+                verifyLocally: lookup(verdict?.cartography),
+              },
+            }
+          : {}),
+        nativeDoubleClickCacheRoot: roots.nativeDoubleClick,
+        extendedMemoryCacheRoot: roots.extendedMemory,
+        extendedMemoryEnabled: this.options.extendedMemoryEnabled,
+      }, lookup(verdict?.nativeDoubleClick), async ({ jsInputSha256, wasmInputSha256 }) =>
+        verdict?.extendedMemory(jsInputSha256, wasmInputSha256) ?? null);
+    };
+    let verdict: ClientVerdict | null = obtained?.verdict ?? null;
+    let prepared = await prepareWith(verdict);
+    if (verdict?.guardFailed()) {
+      // A guard threw on malformed verifier output: serve the official module.
+      // A record that produced it is dropped, so the next start proves again.
+      if (obtained?.source === "record") {
+        await discardClientVerdictRecord(paths.clientVerdict).catch(() => undefined);
+      }
+      verdict = null;
+      prepared = await prepareWith(null);
+    }
+    const local = verdict?.verification ?? null;
+    logEvent({
+      k: "wasm.clientVerdict",
+      build: clientBuildId(asDigest(officialSha256)),
+      source: obtained?.source ?? "error",
+      outcome: verdict ? "accepted" : "check-failed",
+      passMs: obtained?.passMs ?? null,
+      failedStages: verdict ? failedStagesField(verdict.failedStages) : null,
+    });
+    if (local) recordFeatureVerdicts(local.featureVerdicts);
     const preparationFailed = prepared.failure?.stage === "enhancement";
     const supported = prepared.enhancementBuild
       ? supportedEnhancementCapabilities(prepared.enhancementBuild)
       : NO_ENHANCEMENT_CAPABILITIES;
     const requested = prepared.requestedCapabilities;
     const effective = prepared.effectiveCapabilities;
-    const compatibility: ClientCompatibility = {
+    const servedCompatibility: ClientCompatibility = {
       clientSha256: officialSha256,
       features: {
         gameFileSaving: prepared.gameFileSaving,
@@ -471,7 +549,16 @@ export class ClientRuntime {
       logEvent({ k: "enhancement.uncertifiedClientBlocked" });
     }
     gauge("enhancement.supportedBuild", prepared.enhancementBuild !== null);
-    const extendedMemory = extendedMemoryRuntimeStatus(prepared.extendedMemory);
+    const { compatibility, extendedMemory } = servedReasons(
+      servedCompatibility,
+      extendedMemoryRuntimeStatus(prepared.extendedMemory),
+      verdict ? verdict.failedStages : null,
+      // Main served another Enhancement candidate than the pass proved its
+      // later stages on: their misses are Main's, not the build's. When both
+      // fell back the same way, a refusal stays a refusal.
+      verdict !== null
+        && enhancementCandidateProfile(prepared.effectiveCapabilities) !== verdict.enhancementCandidate,
+    );
     const extendedCap = extendedMemory.effectiveCapBytes;
     const fallbackReason = extendedMemory.fallbackReason;
     gauge("wasm.extendedMemoryMode", prepared.extendedMemory.status);

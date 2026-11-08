@@ -2,7 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import type { BrowserWindow } from "electron";
 import { setInputTraceEnabled } from "../../app/main/input-trace.js";
-import { DEFAULT_SETTINGS } from "../../app/shared/contracts.js";
+import { DEFAULT_SETTINGS } from "../../app/shared/settings/index.js";
 import {
   captureWindowShortcut,
   captureWindowSkillKey,

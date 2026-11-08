@@ -5,7 +5,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { BrowserWindow } from 'electron';
-import { IPC } from '../../app/shared/contracts.js';
+import { GAME_CHANNELS } from '../../app/shared/ipc/game.js';
 import {
   inputTraceEnabled,
   recordMainInput,
@@ -38,7 +38,7 @@ test('main input trace emits only while its renderer harness is enabled', () => 
   setInputTraceEnabled(win, true);
   assert.equal(inputTraceEnabled(win), true);
   recordMainInput(win, entry);
-  assert.deepEqual(sent, [[IPC.inputTraceEvent, entry]]);
+  assert.deepEqual(sent, [[GAME_CHANNELS.inputTraceEvent.channel, entry]]);
 
   setInputTraceEnabled(win, false);
   recordMainInput(win, entry);

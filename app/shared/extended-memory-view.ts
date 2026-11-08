@@ -2,7 +2,7 @@
  * Extended-memory setting presentation: its state line from the saved choice and
  * the running client's effective limit (Settings › Game).
  */
-import type { ExtendedMemoryRuntimeStatus } from "./contracts.js";
+import { BUILD_CHECK_FAILED, type ExtendedMemoryRuntimeStatus } from "./contracts.js";
 
 export type ExtendedMemoryView = Readonly<{
   label: string;
@@ -41,13 +41,25 @@ export function extendedMemoryView(
       detail: "The certified 4 GB memory module is active for this session.",
     };
   }
+  if (runtime.status === "unavailable" && runtime.fallbackReason === "check-failed") {
+    return {
+      label: "Couldn’t check this Guild Wars build",
+      level: "warn",
+      detail: `${BUILD_CHECK_FAILED} Guild Wars started normally with 2 GB; gameplay is not blocked.`,
+    };
+  }
+  if (runtime.status === "unavailable" && runtime.fallbackReason === "preparation-failed") {
+    return {
+      label: "4 GB didn’t start",
+      level: "warn",
+      detail: "The 4 GB module could not be prepared safely. Guild Wars started normally with 2 GB; gameplay is not blocked.",
+    };
+  }
   if (runtime.status === "unavailable") {
     return {
       label: "Unavailable for this Guild Wars update",
       level: "warn",
-      detail: runtime.fallbackReason === "preparation-failed"
-        ? "The 4 GB module could not be prepared safely. Guild Wars started normally with 2 GB; gameplay is not blocked."
-        : "This Guild Wars build has not passed 4 GB certification yet. Guild Wars started normally with 2 GB; gameplay is not blocked.",
+      detail: "This Guild Wars build has not passed 4 GB certification yet. Guild Wars started normally with 2 GB; gameplay is not blocked.",
     };
   }
   return {

@@ -242,6 +242,8 @@ export function createDemoHost(storage: Storage | null = null): ToolsHost {
  * this bundle and is deliberately not on the protocol's shared-module
  * allowlist, so the encoding happens here and the host receives a string.
  */
+const STORAGE_AFTER_UPDATE = "Storage is unavailable after this Guild Wars update.";
+
 export function createNativeHost(
   api: GwNativeApi,
   publishTemplate:
@@ -259,7 +261,14 @@ export function createNativeHost(
   observationUnavailable: string | null = null,
   readTemplates?: ToolsHost["loadTemplates"],
   templateFiles: TemplateFiles | null = null,
+  /**
+   * Why the renderer has no storage command or no template publisher, in its
+   * words. Only the renderer knows the client's reason; null keeps the copy
+   * for a Guild Wars update.
+   */
+  missing: Readonly<{ storage: string | null; publish: string | null }> = { storage: null, publish: null },
 ): ToolsHost {
+  const storageMissing = missing.storage ?? STORAGE_AFTER_UPDATE;
   const party = ref(unavailableParty());
   // One counter per session, so a result can be tied to the request that asked
   // for it in a log where several ran.
@@ -376,11 +385,9 @@ export function createNativeHost(
     applyUnavailable,
     observationUnavailable,
     get storageUnavailable() {
-      return storage === null
-        ? "Storage is unavailable after this Guild Wars update."
-        : storage.unavailable();
+      return storage === null ? storageMissing : storage.unavailable();
     },
-    publishUnavailable: publishTemplate === null ? PUBLISH_UNAVAILABLE : null,
+    publishUnavailable: publishTemplate === null ? missing.publish ?? PUBLISH_UNAVAILABLE : null,
     async loadLibrary() {
       const [library, skills] = await Promise.all([
         api.buildLibrary.get(),
@@ -445,7 +452,7 @@ export function createNativeHost(
     templateFiles,
     async openStorage() {
       if (storage === null) {
-        throw new Error("Storage is unavailable after this Guild Wars update.");
+        throw new Error(storageMissing);
       }
       storage.open();
     },

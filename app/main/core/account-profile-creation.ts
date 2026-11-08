@@ -7,7 +7,7 @@ import { lstat, mkdir, readFile, rm } from "node:fs/promises";
 import { isDeepStrictEqual } from "node:util";
 import type { BuildLibrary } from "../../shared/builds/library.js";
 import { parseBuildLibrary } from "../../shared/builds/parse-library.js";
-import type { AccountProfileRequest } from "../../shared/contracts.js";
+import type { AccountProfileRequest } from "../../shared/accounts-contracts.js";
 import type { MultiWorkspace } from "../../shared/multiple-accounts.js";
 import {
   loadAccountTemplateLibrary,

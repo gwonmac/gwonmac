@@ -151,21 +151,72 @@ IDBFS operations. It preserves the original routines for other callers.
 The transform validates each complete changed caller. A change to control flow,
 flags, path handling, or an unrelated call makes the proof refuse.
 
-For every selected hash, one isolated utility process re-reads and verifies the
-artifact. It writes no profile state. Known hashes take the same structural
-path as unknown hashes.
+Each official client generation is proved once, in one verifier pass. One
+isolated utility process reads the official WASM and JS once, checks both
+hashes, and walks the whole derived chain for every release launch profile
+(Core and Tools): template, Enhancement, friends, Cartography, native
+double-click and 4 GB, each stage on the previous stage's output. It reports
+the launch that is starting first, so Play waits only for that chain. Its 4 GB
+proof comes after that report unless this launch asked for 4 GB. The process
+writes nothing. Known hashes take the same structural path as unknown hashes.
 
-A crash, timeout, changed file, malformed result, ambiguous match, unexpected
-layout, or transform error means no proof. The app then serves the verified
-official module.
+Play waits at most 120 s for the requested report. When that runs out, this
+launch serves the official module with `check-failed`, but the pass is not
+stopped: it drops to low priority, finishes the other proofs while the game
+runs, and stores its record, so the next start reads the record. Low priority
+is a nice value (below normal), a courtesy to the running game and not
+isolation: macOS background QoS is not used. A hard bound of 10 minutes ends
+any pass; a child that ignores the stop is killed 5 s later. Only one pass runs per install. A launch of the
+same build joins the running pass; a launch of another build cancels it, and a
+pass that was replaced never writes its record.
+
+Main keeps the complete pass in one record per install
+(`game/client-verdict.json`). The record is the verifier's own output plus its
+key: official WASM SHA-256, official JS SHA-256, verifier ABI, pass ABI, the ABI
+of every stage, and app version. Main signs it with HMAC-SHA256 under a
+per-install key in the Keychain. At launch, a record counts only when its MAC verifies with that key
+and its key equals the current one exactly; any mismatch, including an app
+update, means a new pass. A record that counts goes through the same
+acceptance boundary and per-stage guards as a fresh answer. A record that
+authenticates but fails that boundary is deleted and the build is proved
+again. Only a complete pass in which every launch was accepted is stored. A
+full reset deletes the record. Without a usable Keychain key, nothing is stored
+and every launch runs the pass.
+
+Switching Tools or 4 GB never needs a new pass: the record holds both release
+profiles, and the 4 GB proof is made for every chain whether or not it is
+requested. Core and Tools launches keep separate derived-module caches, so a
+switch rebuilds nothing once both have run. Main still repeats each transform
+and checks its output hash whenever it rebuilds a module.
+
+A crash, timeout, changed file or malformed answer is a failed check, not a
+verdict: nothing is stored, the features report `check-failed`, and the next
+start tries again. An ambiguous match, unexpected layout or transform error is
+a refusal, which a complete pass records like any other verdict. A stage
+refuses by throwing a plain `Error`, an `EvidenceError` or a `ProofLimitError`
+(`stage-refusal.ts`). Anything else it throws, such as a `TypeError` or a stack
+overflow, is a failed check for that stage: the pass is not stored and the
+features of that stage report `check-failed` (for a stage before native
+double-click, every capability). A guard that throws on
+malformed verifier output is a failed check too: Main deletes a record that
+caused it and serves the official module. Either way the app serves the
+verified official module or the last stage that passed, and activation never
+fails because of the check.
+
+The pass records which Enhancement candidate each chain proved. When Main
+serves a different one (it fell back where the pass did not), a later stage
+whose proof was made for the pass's candidate cannot be used, and native
+double-click and 4 GB report `preparation-failed`, not a Guild Wars update.
+When both fell back the same way, the later stages were proved on the served
+candidate, and a refusal keeps its reason.
 
 ## Effective feature status
 
 Main reports the effective served status for file saving, native double-click,
 cursor, Target, Party, Team Apply, Travel, Xunlai, aliases, and 4 GB mode. Each
 optional feature is `available`, `off`, or `unavailable`; unavailable features
-also say whether a Guild Wars update or a preparation failure caused the
-refusal. The renderer never reconstructs these answers from settings, hashes,
+also say whether a Guild Wars update, a preparation failure, or a failed
+build check (`check-failed`) caused the refusal. The renderer never reconstructs these answers from settings, hashes,
 or another feature.
 
 The verifier returns independent feature facts. The runtime selects the largest

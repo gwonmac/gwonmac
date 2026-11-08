@@ -22,7 +22,7 @@ declare global {
   var __healthTokenDescriptor: PropertyDescriptor | undefined;
   interface Window {
     __concurrentProfileOpen?: Promise<void>;
-    __appliedSettings?: import("../../app/shared/contracts.js").AppSettings;
+    __appliedSettings?: import("../../app/shared/settings/index.js").AppSettings;
   }
 }
 

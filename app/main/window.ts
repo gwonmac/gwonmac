@@ -15,13 +15,13 @@ import {
   systemPreferences,
 } from "electron";
 import type {
-  AppSettings,
   AppSettingsPatch,
   DownloadProgress,
   DiagnosticProfile,
   GameReloadCause,
   RendererInit,
 } from "../shared/contracts.js";
+import type { AppSettings } from "../shared/settings/index.js";
 import type { LauncherDestination } from "../shared/launcher-contracts.js";
 import { RENDERER_INIT_ARGUMENT } from "../shared/contracts.js";
 import { featureActivationRequested } from "../shared/feature-contracts.js";

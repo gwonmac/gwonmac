@@ -29,7 +29,7 @@ One maintainer, about 15 minutes of attention:
 | 5 | maintainer | `pnpm release:test v1.4.0` on an Apple Silicon Mac, then play for 10 minutes on the real client. |
 | 6 | maintainer | Click **Publish release** on the draft. |
 | 7 | maintainer | Remove `draft: true` from the post, move `launcherFeatured: true` to it, run `pnpm --dir website generate:launcher-news`, and merge. The website and News in every installed app show it. |
-| 8 | maintainer | `node --import ./scripts/ts-hook.mjs tests/fixtures/player-data/generate.ts v1.4.0`, add the tag to `tests/unit/player-data-fixtures.test.ts`, and merge. Later versions must read what this one wrote ([player data fixtures](../tests/fixtures/player-data/README.md)). |
+| 8 | maintainer | `node --import ./scripts/ts-hook.mjs tests/fixtures/player-data/generate.ts v1.4.0`, add its rows to `tests/unit/player-data-fixtures.test.ts` (one per fixture file; the test fails until every file has one), and merge. Later versions must read what this one wrote ([player data fixtures](../tests/fixtures/player-data/README.md)). |
 
 The workflow never publishes. Only a person decides that the game looks and
 behaves correctly. After publishing, confirm the feed:
@@ -42,6 +42,46 @@ It must show the new `tag`.
 
 A failed run creates no draft. Fix the cause and run the workflow again with the
 same version. If a draft for that version exists, delete the draft first.
+
+## Fact-only release
+
+When client watch reports that a feature refuses on a new ArenaNet build and
+the recovery is only reviewed facts ([Recover certification](recertify.md)),
+release it as a patch of the last published release. Reviewing the facts is
+the only human step before the `release` approval.
+
+| Step | Who | What |
+| --- | --- | --- |
+| 1 | agent or maintainer | `git switch -c hotfix/1.4.1 v1.4.0`. Commit the facts, their tests, the release post for `1.4.1` with `draft: true`, and the player files `v1.4.0` writes (step 8 above) if `main` has them and the tag does not. |
+| 2 | agent or maintainer | `pnpm release:facts 1.4.1 --dry-run`, then `pnpm release:facts 1.4.1`. |
+| 3 | machines | Client watch runs the release battery and the real-client regression suite on the branch (`regression`). The release workflow runs `qualify` and waits at the `release` approval. |
+| 4 | maintainer | Review the facts in the pull request. Approve the `release` environment when the regression run passed. |
+| 5 | maintainer | Steps 5 to 8 above. Then merge the pull request, so `main` keeps the facts. |
+
+`pnpm release:facts` (`scripts/release.ts facts`) refuses unless:
+
+- it runs on `hotfix/<version>` with no local changes, and the version is the
+  next patch (or its Beta or RC) of the latest published release, whose tag
+  `HEAD` descends from;
+- every change since that tag is a `reviewed-client-*.ts` file, an entry in the
+  `reviewed-facts.ts` generation list, the detector record, a test, a doc, or
+  website content, and at least one `reviewed-client-*.ts` file changed;
+- the certification tests, their fixtures and the policy tests only gain new
+  files. The certification tests (`tests/unit/client-certification*`,
+  `tests/unit/enhancement-*`, `tests/client-artifact/`) are Must stay in
+  AGENTS.md; their fixtures are every file under `tests/` that these tests or
+  `tests/policy/` import or name by path. Any existing one must stay
+  byte-identical, mode included;
+- exactly one post has the version's `launcherId`, its title, and `draft: true`;
+- `tests/fixtures/player-data/` holds the files the patched release writes;
+- the branch has no open pull request and no unfinished release or client
+  watch run, so running it twice starts nothing twice.
+
+Then it pushes the branch, starts client watch with `regression` and the
+release workflow on it, and opens the pull request with a review checklist.
+`--dry-run` runs every check and prints those commands instead. It never
+tags or publishes: the draft job tags after the approval. A recovery that also
+needs code, such as a new Cartography layout, is a normal release.
 
 ## Testers and rollback
 

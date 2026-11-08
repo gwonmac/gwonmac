@@ -1,16 +1,13 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import {
-  DEFAULT_SETTINGS,
-  LAST_UPDATE_CHECK_AT_MAX,
-  type RendererSettingsPatch,
-} from "../../app/shared/contracts.js";
+import type { RendererSettingsPatch } from "../../app/shared/contracts.js";
+import { DEFAULT_SETTINGS, TOOLS_SETTINGS, toolsSettings } from "../../app/shared/settings/index.js";
+import { LAST_UPDATE_CHECK_AT_MAX } from "../../app/shared/settings/core.js";
 import { DEFAULT_CUSTOM_UI_THEME } from "../../app/shared/ui-theme.js";
 import { AppError } from "../../app/shared/errors.js";
-import { TOOLS_SETTINGS, toolsSettings } from "../../app/shared/settings/index.js";
 import {
   CARTOGRAPHY_BUILTIN_PRESETS,
   type CartographyPresetRef,
@@ -21,6 +18,7 @@ import {
   parseSettingsPatch,
   parseRendererSettingsPatch,
   saveSettings,
+  type SettingsRecovery,
 } from "../../app/main/core/settings.js";
 
 describe("settings", () => {
@@ -601,8 +599,8 @@ describe("settings", () => {
     assert.equal(missing.renderScale, 2);
     await writeFile(path, "{not json");
     let backup = "";
-    const corrupt = await loadSettings(path, (value) => {
-      backup = value;
+    const corrupt = await loadSettings(path, ({ backupPath }) => {
+      backup = backupPath ?? "not preserved";
     });
     assert.deepEqual(corrupt, DEFAULT_SETTINGS);
     assert.equal(corrupt.renderScale, 2);
@@ -756,8 +754,8 @@ describe("settings", () => {
     await writeFile(path, JSON.stringify(alpha));
 
     let recovered = "";
-    const loaded = await loadSettings(path, (backup) => {
-      recovered = backup;
+    const loaded = await loadSettings(path, ({ backupPath }) => {
+      recovered = backupPath ?? "not preserved";
     });
     assert.equal(recovered, "", "an alpha profile must not be treated as corrupt");
     assert.equal("teamManagement" in loaded, false);
@@ -895,8 +893,8 @@ describe("settings", () => {
     await writeFile(path, "{not json");
 
     let backup = "";
-    await loadSettings(path, (value) => {
-      backup = value;
+    await loadSettings(path, ({ backupPath }) => {
+      backup = backupPath ?? "not preserved";
     });
     const kept = (await readdir(dir)).sort();
     assert.deepEqual(kept, [
@@ -911,6 +909,54 @@ describe("settings", () => {
     assert.equal(await readFile(backup, "utf8"), "{not json");
   });
 
+  it("resets only a value this build no longer accepts and keeps every other value", async (context) => {
+    const dir = await mkdtemp(join(tmpdir(), "gw-settings-"));
+    context.after(() => rm(dir, { recursive: true, force: true }));
+    const path = join(dir, "settings.json");
+    const released = JSON.parse(await readFile(
+      new URL("../fixtures/player-data/v2026.11.0/custom/settings.json", import.meta.url),
+      "utf8",
+    ));
+    // A value from a wider, older enum: "jade" was a theme before uiStyle narrowed.
+    const written = JSON.stringify({ ...released, uiStyle: "jade" });
+    await writeFile(path, written);
+
+    const recoveries: SettingsRecovery[] = [];
+    const loaded = await loadSettings(path, (recovery) => { recoveries.push(recovery); });
+
+    assert.deepEqual(loaded, { ...parseSettings(released), uiStyle: DEFAULT_SETTINGS.uiStyle });
+    const [recovery] = recoveries;
+    assert.ok(recoveries.length === 1 && recovery?.kind === "fields" && recovery.backupPath !== null);
+    assert.deepEqual(recovery.fields, ["uiStyle"], "names only, never values");
+    assert.equal(await readFile(recovery.backupPath, "utf8"), written, "the original bytes are preserved");
+    // The repaired file is written, so the reset is reported once.
+    assert.deepEqual(await loadSettings(path, () => assert.fail("reported twice")), loaded);
+    assert.equal((await readdir(dir)).length, 2);
+  });
+
+  it("still starts with the repaired values when the repair cannot be written", {
+    skip: process.getuid?.() === 0 ? "root ignores the read-only folder this test relies on" : false,
+  }, async (context) => {
+    const dir = await mkdtemp(join(tmpdir(), "gw-settings-"));
+    const path = join(dir, "settings.json");
+    const written = JSON.stringify({ formatVersion: 1, renderScale: 1.5, uiStyle: "jade" });
+    await writeFile(path, written);
+    // A folder that refuses new files: the backup and the repair both fail.
+    await chmod(dir, 0o500);
+    context.after(async () => {
+      await chmod(dir, 0o700);
+      await rm(dir, { recursive: true, force: true });
+    });
+
+    const recoveries: SettingsRecovery[] = [];
+    const loaded = await loadSettings(path, (recovery) => { recoveries.push(recovery); });
+
+    assert.equal(loaded.renderScale, 1.5);
+    assert.equal(loaded.uiStyle, DEFAULT_SETTINGS.uiStyle);
+    assert.deepEqual(recoveries, [{ kind: "fields", backupPath: null, fields: ["uiStyle"] }]);
+    assert.equal(await readFile(path, "utf8"), written, "the unrepaired file waits for the next load");
+  });
+
   it("moves aside a settings format this build cannot read", async () => {
     const dir = await mkdtemp(join(tmpdir(), "gw-settings-"));
     const path = join(dir, "settings.json");
@@ -920,8 +966,8 @@ describe("settings", () => {
 
     let backup = "";
     assert.deepEqual(
-      await loadSettings(path, (value) => {
-        backup = value;
+      await loadSettings(path, ({ backupPath }) => {
+        backup = backupPath ?? "not preserved";
       }),
       DEFAULT_SETTINGS,
     );

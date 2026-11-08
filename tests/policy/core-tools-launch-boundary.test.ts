@@ -105,7 +105,6 @@ test("the Core main graph cannot evaluate optional stores, IPC, or network code"
     "app/features/cartography/main/cartography-map-knowledge.ts",
     "app/features/cartography/main/cartography-evidence-export.ts",
     "app/main/tools-runtime.ts",
-    "app/main/tools-ipc.ts",
     "app/features/main-parts.ts",
     "app/features/trade-chat/main/trade-ipc.ts",
     "app/features/trade-chat/main/trade-chat-service.ts",

@@ -3,10 +3,7 @@
  * of the transient state projected into the launcher, and `drainLaunchQueue`
  * is the one loop that opens waiting profiles; nothing here is persisted.
  */
-import type {
-  AccountLaunchIssue,
-  MultiProfileRuntimeState,
-} from "../../shared/contracts.js";
+import type { AccountLaunchIssue, MultiProfileRuntimeState } from "../../shared/accounts-contracts.js";
 import type { ProfileId } from "../../shared/multiple-accounts.js";
 import type { Mutex } from "./mutex.js";
 
