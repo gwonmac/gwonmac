@@ -29,7 +29,7 @@ One maintainer, about 15 minutes of attention:
 | 5 | maintainer | `pnpm release:test v1.4.0` on an Apple Silicon Mac, then play for 10 minutes on the real client. |
 | 6 | maintainer | Click **Publish release** on the draft. |
 | 7 | maintainer | Remove `draft: true` from the post, move `launcherFeatured: true` to it, run `pnpm --dir website generate:launcher-news`, and merge. The website and News in every installed app show it. |
-| 8 | maintainer | `node --import ./scripts/ts-hook.mjs tests/fixtures/player-data/generate.ts v1.4.0`, add the tag to `tests/unit/player-data-fixtures.test.ts`, and merge. Later versions must read what this one wrote ([player data fixtures](../tests/fixtures/player-data/README.md)). |
+| 8 | maintainer | `node --import ./scripts/ts-hook.mjs tests/fixtures/player-data/generate.ts v1.4.0`, add its rows to `tests/unit/player-data-fixtures.test.ts` (one per fixture file; the test fails until every file has one), and merge. Later versions must read what this one wrote ([player data fixtures](../tests/fixtures/player-data/README.md)). |
 
 The workflow never publishes. Only a person decides that the game looks and
 behaves correctly. After publishing, confirm the feed:
