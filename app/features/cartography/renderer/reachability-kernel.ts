@@ -15,6 +15,7 @@ import {
   cartographyReachabilitySignatureBytes,
 } from "../../../shared/cartography-reachability-kernel-contract.js";
 import {
+  cartographyLayoutId,
   isCartographyLayoutId,
   type CartographyLayoutId,
 } from "../../../shared/cartography-spike.js";
@@ -323,7 +324,8 @@ export async function installCartographyReachabilityKernel(
         // The kernel keeps the manifest's roots under the client's layout id;
         // it refuses a context that publishes any other id.
         if (!installed) {
-          installed = install(manifest.contextRoot, manifest.contextRoot, manifest.agentArray) === 1;
+          const layoutId = cartographyLayoutId(manifest.contextRoot, manifest.agentArray);
+          installed = install(layoutId, manifest.contextRoot, manifest.agentArray) === 1;
           if (!installed) return null;
         }
         classify(

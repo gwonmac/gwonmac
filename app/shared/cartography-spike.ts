@@ -9,17 +9,32 @@
  */
 
 /**
- * The derived client's layout id: its context root, the one value that names
- * its memory layout without a table. The context observer publishes it, and
- * the reachability kernel refuses any id but the one it was installed with.
+ * The derived client's layout id: an opaque name for its memory layout. The
+ * context observer publishes it, evidence exports carry it, and the
+ * reachability kernel refuses any id but the one it was installed with.
  */
 export type CartographyLayoutId = number;
 export function isCartographyLayoutId(value: unknown): value is CartographyLayoutId {
   return Number.isSafeInteger(value) && Number(value) > 0 && Number(value) <= 0xffff_ffff;
 }
 
+/**
+ * The layout id of a client with these roots: a 31-bit FNV-1a hash of both, so
+ * the id names the layout without carrying a native address, and stays a
+ * positive i32 global.
+ */
+export function cartographyLayoutId(contextRoot: number, agentArray: number): CartographyLayoutId {
+  let hash = 0x811c_9dc5;
+  for (const root of [contextRoot, agentArray]) {
+    for (let shift = 0; shift < 32; shift += 8) {
+      hash = Math.imul(hash ^ ((root >>> shift) & 0xff), 0x0100_0193);
+    }
+  }
+  return (hash & 0x7fff_ffff) || 1;
+}
+
 /** The Cartography transform's ABI; the manifest and derived-module cache carry it. */
-export const CARTOGRAPHY_SPIKE_TRANSFORM_ABI = 48;
+export const CARTOGRAPHY_SPIKE_TRANSFORM_ABI = 49;
 
 /**
  * The custom section through which the derived client publishes the context

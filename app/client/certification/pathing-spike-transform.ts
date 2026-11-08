@@ -12,6 +12,7 @@ import {
   CARTOGRAPHY_CONTEXT_SCALARS,
   CARTOGRAPHY_MANIFEST_SECTION,
   CARTOGRAPHY_SPIKE_TRANSFORM_ABI,
+  cartographyLayoutId,
   COMPASS_FRAME_SPIKE_GLOBALS,
   COMPASS_FRAME_SPIKE_SCALARS,
   EXPLORATION_SPIKE_GLOBALS,
@@ -285,7 +286,7 @@ export function transformCartographySpikeWasm(
     gameContextSlot: WORLD_MAP_ANCHOR_CERTIFICATE.gameContextSlot,
     mapContext: WORLD_MAP_ANCHOR_CERTIFICATE.mapContext,
     mapId: WORLD_MAP_ANCHOR_CERTIFICATE.mapId,
-    layoutId: memoryLayout.contextRoot,
+    layoutId: cartographyLayoutId(memoryLayout.contextRoot, memoryLayout.agentArray),
   });
   const evidence = wasmEvidence(input) ?? fail("invalid WebAssembly input");
   const module = evidence.moduleView();

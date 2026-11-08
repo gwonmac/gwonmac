@@ -9,8 +9,10 @@ import { transformCartographySpikeWasm } from
 import { deriveCartographySpikeBuild } from
   "../../app/client/certification/cartography-spike-verifier.js";
 import { wasmEvidence } from "../../app/client/certification/wasm-evidence.js";
+import { concat, sleb, uleb } from "../../app/main/core/wasm-binary.js";
 import {
   CARTOGRAPHY_CONTEXT_GLOBALS,
+  cartographyLayoutId,
   COMPASS_FRAME_SPIKE_GLOBALS,
   EXPLORATION_SPIKE_GLOBALS,
   MISSION_MAP_PROJECTION_SPIKE_GLOBALS,
@@ -61,6 +63,19 @@ test("the certified context is added without intercepting native pathing", {
     false,
     "native pathing data must never be exported to the renderer",
   );
+
+  // Evidence exports carry the published layout id: it names the layout by a
+  // hash of its roots and never carries a root itself.
+  const layoutGlobal = evidence.moduleView().exports.find((entry) =>
+    entry.kind === 3 && entry.name === CARTOGRAPHY_CONTEXT_GLOBALS.layoutId)?.index;
+  assert.ok(layoutGlobal !== undefined);
+  const storesOf = (value: number) => evidence.moduleView().bodies.filter((body) =>
+    Buffer.from(body).includes(Buffer.from(concat(Uint8Array.of(0x41), sleb(value), Uint8Array.of(0x24), uleb(layoutGlobal))))).length;
+  const layoutId = cartographyLayoutId(build.contextRoot, build.agentArray);
+  assert.notEqual(layoutId, build.contextRoot);
+  assert.notEqual(layoutId, build.agentArray);
+  assert.equal(storesOf(layoutId), 1, "the observer publishes the hashed layout id");
+  assert.equal(storesOf(build.contextRoot) + storesOf(build.agentArray), 0, "no root is published as the layout id");
 
   const missionMapWrapper = decoded.find((candidate) =>
     candidate.calls.get(fixture.missionDispatcher) === 1 && candidate.calls.get(fixture.gameplayContext) === 1

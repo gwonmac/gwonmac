@@ -5,12 +5,13 @@ import {
   CARTOGRAPHY_REACHABILITY_REGION_BYTES,
   cartographyReachabilitySignatureBytes,
 } from "../../app/shared/cartography-reachability-kernel-contract.js";
+import { cartographyLayoutId } from "../../app/shared/cartography-spike.js";
 
-// The roots each retained client's manifest publishes; a derived client's
-// layout id is its context root.
+// The roots each retained client's manifest publishes, under the layout id the
+// derived client publishes for them.
 type Layout = Readonly<{ layoutId: number; contextRoot: number; agentArray: number }>;
 const retained = (contextRoot: number, agentArray: number): Layout =>
-  Object.freeze({ layoutId: contextRoot, contextRoot, agentArray });
+  Object.freeze({ layoutId: cartographyLayoutId(contextRoot, agentArray), contextRoot, agentArray });
 const OFFICIAL = retained(0x5a0e70, 0x5a4de8);
 const RELOCATED = retained(0x5a29b0, 0x5a6928);
 const LAYOUTS = [

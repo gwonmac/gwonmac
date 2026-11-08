@@ -192,7 +192,9 @@ reviewed body (exactly, or by relocation identity on a relink), and each
 callback slot from the active table. The transform derives the layout again,
 refuses roots that differ from the verifier's, and publishes the context root
 and agent array in the `cartography_manifest` custom section. The derived
-client's layout identifier is its context root.
+client's layout identifier is a 31-bit hash of both roots, so the observer,
+the kernel diagnostics, and evidence exports name the layout without carrying a
+native address.
 The reachability kernel holds no layout of its own. On the first classification
 the loader installs the manifest's roots under that identifier; with no exact
 manifest the kernel stays off and the rest of Maps runs.
