@@ -235,7 +235,7 @@ test('back restores the page with its query, selection, scroll and focus; close 
   assert.deepEqual(reduce(closed.state, { type: 'show' }).effects, [{ type: 'home', focus: { zone: 'search' } }]);
 });
 
-// (the Playwright test 'a suspended build page cannot resume its withdrawn source or execute stale Apply' was deleted; no vitest test guards this resume rule yet)
+// hub-build-library.dom.test.ts 'a suspended build page cannot resume once its Library source is withdrawn'
 test('Back passes over pages whose source went away, to Home when none is left', () => {
   const deep = opened(enter({ scope: travel, view: null }), enter({ scope: builds, view: null }), enter({ scope: builds, view: settings }));
   gone.add('Builds');

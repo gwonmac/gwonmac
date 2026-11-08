@@ -296,6 +296,29 @@ test('turning a Tool off in Settings keeps the Settings page and section', async
   expect(narrow(HTMLInputElement, byRole('checkbox', 'Travel', true)[0]).checked).toBe(false);
 });
 
+test.each([
+  ['a suspended build page', async () => { await submit('build monk'); }],
+  ['a suspended phrase editor', async () => {
+    fill(search(), 'build Word of Healing'); await settle(); await openActions();
+    click(menuItem('Set search phrase…', true)); await settle();
+    fill(narrow(HTMLInputElement, byRole('textbox', 'Search phrase', true)[0]), 'unfinished healing phrase');
+  }],
+])('%s cannot resume once its Library source is withdrawn', async (_name, arrange) => {
+  await mountFixture();
+  await arrange();
+  window.dispatchEvent(new Event('blur')); await settle();
+  window.dispatchEvent(new Event('hub-fixture-withdraw-library')); await settle();
+  click(button('Open Hub', true)); await settle();
+  expect(caption()).toBe('Home');
+  expect(byRole('textbox', 'Search phrase', true)).toHaveLength(0);
+  expect(rows('.hub-row').map(row => row.textContent).join(' ')).not.toMatch(/Apply to (me|hero)/u);
+  noApply();
+  fill(search(), 'library'); await settle();
+  // Only the Build Library setting row remains: the withdrawn source offers no page or action.
+  expect(rows('.hub-row:not([data-id^="setting"])')).toHaveLength(0);
+  expect(text('#hub')).not.toContain('Build Library is loading');
+});
+
 test('a new details view clears the previous page pin receipt', async () => {
   await mountFixture();
   fill(search(), 'build Word of Healing'); await settle(); await openActions();
