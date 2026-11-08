@@ -11,15 +11,17 @@ publicHoistPattern:
   - "@intlify/shared"
   - "@intlify/utils"
   - "vue-i18n"
+  # Temporary (docs/migrations.md "Ginko Docs 0.2.3 icon hook types").
+  - "@nuxt/icon"
 confirmModulesPurge: false
 blockExoticSubdeps: false
 overrides:
   # Keep Forge's legacy minimatch graph on its patched brace-expansion majors.
-  "brace-expansion@1": 1.1.20
-  "brace-expansion@2": 2.1.6
-  "brace-expansion@5": 5.0.11
-  fast-uri: 3.1.7
-  ip-address: 10.3.1
+  "brace-expansion@1": 1.1.21
+  "brace-expansion@2": 2.1.7
+  "brace-expansion@5": 5.0.12
+  fast-uri: 3.1.9
+  ip-address: 10.7.6
   nanoid: 3.3.18
   tar: 7.5.21
   tmp: 0.2.7
@@ -33,20 +35,36 @@ overrides:
   unhead: 3.2.3
   "@unhead/vue": 3.2.3
   # Website tooling advisories, October 2026.
-  seroval: 1.6.8
+  seroval: 1.6.11
   proxy-addr: 2.0.8
   tinypool: 2.2.0
   shell-quote: 1.12.0
   sharp: 0.35.5
-  "@modelcontextprotocol/sdk": 1.32.1
+  "@modelcontextprotocol/sdk": 1.32.2
   source-map-js: 1.2.2
   launch-editor: 2.14.2
   devalue: 5.9.3
-  "vite@<8.1.6": 8.3.5
+  "vite@<8.3.6": 8.3.6
   # Website tooling advisories, November 2026. Nuxt DevTools pins zod 4.4.3,
   # and express keeps the lockfile on body-parser 2.3.0.
   "zod@<4.6.6": 4.6.7
   "body-parser@<2.4.0": 2.4.0
+  # Website and tooling advisories, 8 November 2026. Nuxt's dev-only MCP and
+  # DevTools graph reaches hono through @modelcontextprotocol/sdk; Forge and
+  # @vue/test-utils keep older glob and minimatch majors whose APIs the newer
+  # majors still export; fontless reaches esbuild 0.27 for transform only.
+  hono: 4.13.17
+  "@hono/node-server": 2.1.6
+  serialize-javascript: 7.1.4
+  postcss-selector-parser: 7.1.7
+  "esbuild@>=0.27.3 <0.28.1": 0.28.2
+  "glob@>=9.0.0 <14.0.2": 14.0.4
+  "minimatch@>=7.0.0 <11.0.1": 11.0.5
+  "satori@<0.33.5": 0.33.5
+  "fflate@>=0.7.0 <0.7.5": 0.7.5
+  # DevTools 3.4.4 no longer depends on simple-git, whose 3.x line has no fix.
+  # Nuxt 4.6 asks for it itself; remove with the move to Ginko 0.16.
+  "@nuxt/devtools@<3.4.4": 3.4.4
 packageExtensions:
   "@nuxt/scripts@0.13.4":
     dependencies:
@@ -60,22 +78,13 @@ allowBuilds:
   fs-xattr: true
   macos-alias: true
   vue-demi: true
-# Electron Forge's DMG maker reaches image-size 0.7 through appdmg's callback API.
-# The affected ICNS/JXL/HEIF parsers never receive input: appdmg measures the
-# repository-owned PNG background and copies the ICNS icon without parsing it.
 auditConfig:
   ignoreGhsas:
-    # vite-plus 0.1.24 is the website's own pinned toolchain. Its local dev
-    # server can reveal whether a path exists through the open-in-editor
-    # endpoint. Only maintainers run that server locally; the app and the
-    # published website never ship it. The fix needs vite-plus 1.x. Remove
-    # this exception when the website moves to vite-plus >=1.0.1.
-    - GHSA-587h-7wmj-h5pm
+    # Electron Forge's DMG maker reaches image-size 0.7 through appdmg's
+    # callback API. The affected ICNS parser never receives input: appdmg
+    # measures the repository-owned PNG background and copies the ICNS icon
+    # without parsing it.
     - GHSA-w3rx-r6r6-pgpr
-    - GHSA-5p2g-fcmc-qvqq
-    # The affected esbuild serve-directory path exists only on Windows. Owned
-    # automation runs on macOS/Linux, and fontless invokes only transform.
-    - GHSA-g7r4-m6w7-qqqr
     # Forge reaches http-cache-semantics only in build-time download clients.
     # The app does not ship it or expose a shared authenticated response cache.
     # No patch is published. Remove when a patched release becomes available,
@@ -86,12 +95,7 @@ auditConfig:
     # No patch is published. Remove when a patched release becomes available,
     # or reassess before accepting untrusted glob patterns.
     - GHSA-vfj7-8cjw-p6xm
-    # Nuxt DevTools 3.x needs simple-git 3, which has no patched release, and
-    # simple-git 4 breaks DevTools at `nuxt prepare`. DevTools runs only for a
-    # local `nuxt dev` and calls fixed commands (branch, rev-parse --short HEAD,
-    # status) without caller options, so the bypassed option guards never see
-    # untrusted input. Remove when Nuxt ships a stable DevTools on simple-git 4.
-    - GHSA-v5rq-49vh-5v5c
-    - GHSA-x6jw-m9v5-85vh
-    - GHSA-g4wm-2vf7-vfgr
-    - GHSA-858h-whjf-mvg5
+    # deepmerge reaches only Nitro's build-time @rollup/plugin-node-resolve,
+    # which merges repository-owned resolver options. No patch is published.
+    # Remove when a patched release becomes available.
+    - GHSA-gcqx-w48m-w2h4

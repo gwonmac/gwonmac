@@ -62,6 +62,18 @@ These are permanent readers, not migrations. Keep them.
   `publicHoistPattern`, regenerate the lockfile, and require a clean install
   and website build.
 
+## Ginko Docs 0.2.3 icon hook types
+
+- Why: since Nuxt DevTools 3.4.4, the website typecheck reads the Ginko Docs
+  0.2.3 layer config, which uses the `icon:clientBundleIcons` hook that
+  `@nuxt/icon` declares. Under pnpm's isolated linker `@nuxt/icon` is not
+  reachable from `website/`, so the `@nuxt/icon` entry in `publicHoistPattern`
+  makes the hook type resolve.
+- Introduced: 2026-11-08 with the dependency security sweep.
+- Depends on it: `pnpm --filter gw-website typecheck`.
+- Remove when: the website moves to Ginko Docs 0.16, which draws icons without
+  `@nuxt/icon`. Delete the hoist entry and regenerate the lockfile.
+
 ## Ginko consumer icon compatibility
 
 - Why: Ginko Docs 0.2.3 gives Nuxt Icon a pruned Lucide collection before it
