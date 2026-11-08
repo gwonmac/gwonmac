@@ -2,6 +2,7 @@
  * Bounded, capability-free WASM parsing and relationship primitives for proofs.
  * Only feature modules may turn its facts into authority.
  */
+import { Buffer } from "node:buffer";
 import { createHash } from "node:crypto";
 import {
   parseCode,
@@ -27,6 +28,7 @@ export { decodeFunctions } from "./wasm-instruction-evidence.js";
 import { EvidenceError } from "./wasm-evidence-error.js";
 import { dataEvidence, type WasmDataEvidence } from "./wasm-data-evidence.js";
 import { readonlyMapView } from "./readonly-map-view.js";
+import { cachedFor, moduleViews } from "./module-views.js";
 import { functionIdentity, functionRoleIdentity } from "./relocation-identity.js";
 import {
   recordExactMatch,
@@ -60,34 +62,23 @@ export interface WasmEvidence {
 /** Compatibility name while feature-owned locators migrate independently. */
 export type EnhancementProofContext = WasmEvidence;
 
+/** One validated parse of one exact client, shared by every context for those bytes. */
+interface ParsedClient {
+  /** A private copy of the parsed bytes; nothing outside this module holds it. */
+  readonly bytes: Uint8Array;
+  readonly views: ReturnType<typeof moduleViews>;
+  readonly tableRelations: ReadonlyMap<number, readonly number[]>;
+}
+
 const proofContexts = new WeakMap<Uint8Array, WasmEvidence>();
+// The bytes each context was parsed from. A context answers for an input
+// only while the input still holds exactly these bytes.
+const evidenceBytes = new WeakMap<WasmEvidence, Uint8Array>();
+// Parses by sha256, so equal bytes in another array share one parse and every
+// cache keyed by its module. Weak: an entry lives only while a context uses it.
+const parsedClients = new Map<string, WeakRef<ParsedClient>>();
 
 const I32 = 0x7f;
-
-function copyBytes(bytes: Uint8Array | null): Uint8Array | null {
-  return bytes?.slice() ?? null;
-}
-
-function cloneModuleShape(module: ModuleShape): ModuleShape {
-  return {
-    types: module.types.map((type) => ({
-      params: [...type.params],
-      results: [...type.results],
-    })),
-    functionTypeIndices: [...module.functionTypeIndices],
-    functionImportCount: module.functionImportCount,
-    bodies: module.bodies.map((body) => body.slice()),
-    exports: module.exports.map((entry) => ({ ...entry })),
-    importSection: copyBytes(module.importSection),
-    memorySection: copyBytes(module.memorySection),
-    tableSection: copyBytes(module.tableSection),
-    elementSection: copyBytes(module.elementSection),
-    dataSegments: module.dataSegments.map((segment) => ({
-      base: segment.base,
-      bytes: segment.bytes.slice(),
-    })),
-  };
-}
 
 interface Offset {
   value: number;
@@ -302,35 +293,53 @@ function parseModule(input: Uint8Array): ModuleShape {
 export function wasmEvidence(
   input: Uint8Array,
 ): WasmEvidence | null {
-  if (input.byteLength > MAX_INPUT_BYTES || !WebAssembly.validate(input)) return null;
-  const inputSha256 = createHash("sha256").update(input).digest("hex");
   const cached = proofContexts.get(input);
-  if (cached?.inputSha256 === inputSha256) return cached;
+  if (matchesEvidenceInput(cached, input)) return cached;
+  if (input.byteLength > MAX_INPUT_BYTES) return null;
+  const inputSha256 = createHash("sha256").update(input).digest("hex");
+  const client = parsedClients.get(inputSha256)?.deref() ?? parseClient(input.slice(), inputSha256);
+  if (!client) return null;
+  const module = client.views.module;
+  const context: WasmEvidence = Object.freeze({
+    inputIdentity: input,
+    inputSha256,
+    moduleView: client.views.view,
+    get data() {
+      return dataEvidence(module);
+    },
+    get tableRelations() {
+      return client.tableRelations;
+    },
+    decodeFunctions(trackedConstants: readonly number[]) {
+      return decodeFunctions(module, trackedConstants);
+    },
+  });
+  evidenceBytes.set(context, client.bytes);
+  proofContexts.set(input, context);
+  return context;
+}
+
+function parseClient(bytes: Uint8Array, sha256: string): ParsedClient | null {
+  if (!WebAssembly.validate(bytes)) return null;
+  let views: ParsedClient["views"];
   try {
-    const module = parseModule(input);
-    let tableRelations: ReadonlyMap<number, readonly number[]> | undefined;
-    let data: WasmDataEvidence | undefined;
-    const context = Object.freeze({
-      inputIdentity: input,
-      inputSha256,
-      moduleView() {
-        return cloneModuleShape(module);
-      },
-      get data() {
-        return data ??= dataEvidence(module);
-      },
-      get tableRelations() {
-        return tableRelations ??= parseActiveTableRelations(module.elementSection);
-      },
-      decodeFunctions(trackedConstants: readonly number[]) {
-        return decodeFunctions(module, trackedConstants);
-      },
-    });
-    proofContexts.set(input, context);
-    return context;
+    views = moduleViews(parseModule(bytes));
   } catch {
     return null;
   }
+  let tableRelations: ReadonlyMap<number, readonly number[]> | undefined;
+  const client: ParsedClient = Object.freeze({
+    bytes,
+    views,
+    get tableRelations() {
+      return tableRelations ??= parseActiveTableRelations(views.module.elementSection);
+    },
+  });
+  for (const [digest, entry] of parsedClients) {
+    if (!entry.deref()) parsedClients.delete(digest);
+  }
+  parsedClients.set(sha256, new WeakRef(client));
+  return client;
 }
 
 export const enhancementProofContext = wasmEvidence;
@@ -339,8 +348,8 @@ export function matchesEvidenceInput(
   evidence: WasmEvidence | null | undefined,
   input: Uint8Array,
 ): evidence is WasmEvidence {
-  return evidence?.inputIdentity === input
-    && evidence.inputSha256 === createHash("sha256").update(input).digest("hex");
+  const bytes = evidence && evidenceBytes.get(evidence);
+  return evidence?.inputIdentity === input && !!bytes && Buffer.compare(bytes, input) === 0;
 }
 
 function parseStaticData(
@@ -420,8 +429,7 @@ export function functionBodySha256(module: ModuleShape, functionIndex: number): 
   const localIndex = functionIndex - module.functionImportCount;
   const body = module.bodies[localIndex];
   if (!body) throw new EvidenceError("module-shape-unsupported");
-  const hashes = bodyHashCache.get(module) ?? new Array<string | undefined>(module.bodies.length);
-  bodyHashCache.set(module, hashes);
+  const hashes = cachedFor(bodyHashCache, module, (shared) => new Array<string | undefined>(shared.bodies.length));
   const cached = hashes[localIndex];
   if (cached) return cached;
   const digest = createHash("sha256").update(body).digest("hex");
@@ -688,8 +696,7 @@ export function roleFunctions(module: ModuleShape, role: SemanticRole): readonly
   const generations = reviewedGenerations();
   const generationCache = roleFunctionCache.get(generations) ?? new WeakMap();
   roleFunctionCache.set(generations, generationCache);
-  const moduleCache = generationCache.get(module) ?? new WeakMap();
-  generationCache.set(module, moduleCache);
+  const moduleCache = cachedFor(generationCache, module, () => new WeakMap<SemanticRole, readonly number[]>());
   const cached = moduleCache.get(role);
   if (cached) {
     for (const functionIndex of cached) lookupRecorder?.({ kind: "role", role }, functionIndex);
@@ -762,19 +769,15 @@ export function paddedOperand(value: number): Uint8Array {
   return bytes;
 }
 
+/** Occurrences of `value`'s padded operand encoding in function bodies, overlapping ones included. */
 export function codeOperandOccurrences(module: ModuleShape, value: number): number {
   const needle = paddedOperand(value);
   let count = 0;
   for (const body of module.bodies) {
-    let offset = body.indexOf(needle[0]!);
-    while (offset >= 0 && offset <= body.byteLength - needle.byteLength) {
-      if (
-        body[offset + 1] === needle[1]
-        && body[offset + 2] === needle[2]
-        && body[offset + 3] === needle[3]
-        && body[offset + 4] === needle[4]
-      ) count += 1;
-      offset = body.indexOf(needle[0]!, offset + 1);
+    // Buffer's native search over the body's own bytes; no copy.
+    const bytes = Buffer.from(body.buffer, body.byteOffset, body.byteLength);
+    for (let offset = bytes.indexOf(needle); offset >= 0; offset = bytes.indexOf(needle, offset + 1)) {
+      count += 1;
     }
   }
   return count;

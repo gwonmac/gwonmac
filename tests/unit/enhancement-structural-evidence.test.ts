@@ -630,6 +630,18 @@ describe("review-only Enhancement structural evidence", () => {
     input[input.byteLength - 1] = input[input.byteLength - 1]! ^ 1;
 
     assert.equal(matchesEvidenceInput(evidence, input), false);
+    assert.notEqual(wasmEvidence(input), evidence);
+  });
+
+  it("binds equal bytes in another array to that array, not to the first one", () => {
+    const first = fixture().bytes;
+    const second = first.slice();
+    const one = wasmEvidence(first);
+    const other = wasmEvidence(second);
+    assert.ok(one && other);
+    assert.equal(other.inputIdentity, second);
+    assert.equal(matchesEvidenceInput(other, second), true);
+    assert.equal(matchesEvidenceInput(one, second), false);
   });
 
   it("does not expose mutable active-table relation arrays", () => {
@@ -679,5 +691,19 @@ describe("review-only Enhancement structural evidence", () => {
     const second = evidence.moduleView();
     assert.equal(functionBodySha256(second, functionIndex), expectedHash);
     assert.notEqual(functionBody(second, functionIndex)[0], 0xff);
+  });
+
+  it("analyses a view whose bytes changed before its first use as it is", () => {
+    const evidence = wasmEvidence(fixture().bytes);
+    assert.ok(evidence);
+    const unchanged = evidence.moduleView();
+    const changed = evidence.moduleView();
+    const functionIndex = unchanged.functionImportCount;
+    const expectedHash = functionBodySha256(unchanged, functionIndex);
+    const body = functionBody(changed, functionIndex);
+    body[0] = body[0]! ^ 1;
+
+    assert.notEqual(functionBodySha256(changed, functionIndex), expectedHash);
+    assert.equal(functionBodySha256(evidence.moduleView(), functionIndex), expectedHash);
   });
 });

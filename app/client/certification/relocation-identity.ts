@@ -25,6 +25,7 @@
 import { createHash } from "node:crypto";
 import type { ModuleShape } from "./enhancement-evidence-types.js";
 import { dataEvidence } from "./wasm-data-evidence.js";
+import { cachedFor } from "./module-views.js";
 import type { RelocationSpan } from "./semantic-proof.js";
 import { decodeFunctions } from "./wasm-instruction-evidence.js";
 
@@ -61,7 +62,7 @@ function signature(module: ModuleShape, functionIndex: number): string {
   return type ? `${type.params.join(",")}>${type.results.join(",")}` : "?";
 }
 
-/** Bodies identify a module view: clones of one module share their key. */
+/** Equal bytes identify a module, so two parses of one client share their identities. */
 function moduleKey(module: ModuleShape): string {
   const hash = createHash("sha256");
   hash.update(`${module.functionImportCount}:${module.functionTypeIndices.length}:`);
@@ -158,21 +159,17 @@ function computeIdentities(module: ModuleShape): Identities {
 }
 
 function identities(module: ModuleShape): Identities {
-  const viewed = viewCache.get(module);
-  if (viewed) return viewed;
-  const key = moduleKey(module);
-  const cached = identityCache.get(key);
-  if (cached) {
-    viewCache.set(module, cached);
-    return cached;
-  }
-  const computed = computeIdentities(module);
-  if (identityCache.size >= MAX_CACHED_MODULES) {
-    identityCache.delete(identityCache.keys().next().value!);
-  }
-  identityCache.set(key, computed);
-  viewCache.set(module, computed);
-  return computed;
+  return cachedFor(viewCache, module, (shared) => {
+    const key = moduleKey(shared);
+    const cached = identityCache.get(key);
+    if (cached) return cached;
+    const computed = computeIdentities(shared);
+    if (identityCache.size >= MAX_CACHED_MODULES) {
+      identityCache.delete(identityCache.keys().next().value!);
+    }
+    identityCache.set(key, computed);
+    return computed;
+  });
 }
 
 /** The relocation identity of one defined or imported function. */

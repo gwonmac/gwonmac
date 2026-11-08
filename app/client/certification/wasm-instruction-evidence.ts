@@ -11,6 +11,7 @@ import type {
   ModuleShape,
 } from "./enhancement-evidence-types.js";
 import { EvidenceError } from "./wasm-evidence-error.js";
+import { cachedFor } from "./module-views.js";
 import { readonlyMapView } from "./readonly-map-view.js";
 
 const MAX_TYPES = 100_000;
@@ -227,13 +228,11 @@ function decodeBody(
 }
 
 function canonicalDecode(module: ModuleShape): readonly RawDecodedFunction[] {
-  const cached = decodedCache.get(module);
-  if (cached) return cached;
-  const budget: DecodeBudget = { instructions: 0, callSites: 0, operandSites: 0 };
-  const result = Object.freeze(module.bodies.map((body, localIndex) =>
-    decodeBody(body, module.functionImportCount + localIndex, budget)));
-  decodedCache.set(module, result);
-  return result;
+  return cachedFor(decodedCache, module, (shared) => {
+    const budget: DecodeBudget = { instructions: 0, callSites: 0, operandSites: 0 };
+    return Object.freeze(shared.bodies.map((body, localIndex) =>
+      decodeBody(body, shared.functionImportCount + localIndex, budget)));
+  });
 }
 
 /** The byte offset of each instruction in `body`, after its local declarations. */
