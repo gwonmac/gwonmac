@@ -212,8 +212,10 @@ onBeforeUnmount(() => { stopEditing(); observer?.disconnect(); window.removeEven
           <template v-for="(card, slot) in cards" :key="card ? card.key : `slot-${slot}`">
             <li v-if="card === null" role="presentation" class="character-switch-slot" aria-hidden="true"></li>
             <li v-else role="presentation">
+              <!-- The focus key names the character, not its place: when the focused card leaves the
+                   list, the card that moves into its place never takes the keyboard; the search does. -->
               <button
-                type="button" :id="`character-switch-option-${card.index}`" :data-focus-key="`character-switch-option-${card.index}`" class="character-switch-row"
+                type="button" :id="`character-switch-option-${card.index}`" :data-focus-key="`character-switch-card:${card.key}`" class="character-switch-row"
                 role="option" :aria-setsize="String(listed)" :aria-posinset="String(card.row + 1)" :data-index="String(card.index)" :data-row="String(card.row)"
                 :data-character-key="card.key" :data-selected="String(card.row === selected)" :aria-selected="String(card.row === selected)" :disabled="switching"
                 :aria-disabled="refused ? 'true' : undefined" :aria-current="card.current ? 'true' : undefined" :title="card.current ? 'Already active' : undefined"

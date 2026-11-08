@@ -307,7 +307,7 @@ export function createCharacterSwitchPalette(
   const focusOn = (key: string) => { focus = { key, seq: (focus?.seq ?? 0) + 1 }; paint(); };
   const focusSelected = () => {
     const row = rows[selected];
-    if (row && windowRows.includes(selected)) focusOn(`character-switch-option-${row.index}`);
+    if (row && windowRows.includes(selected)) focusOn(`character-switch-card:${row.character.characterKey}`);
   };
   const revealSelected = () => { reveal += 1; paint(); };
   const arm = () => {

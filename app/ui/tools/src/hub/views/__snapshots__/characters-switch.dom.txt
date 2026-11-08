@@ -60,7 +60,7 @@
                 <path d="m10.5 2.5-5 5 5 5"></path>
             <ul aria-label="Characters" aria-orientation="horizontal" class="character-switch-list ui-scroll" hidden="" id="character-switch-list" role="listbox" style="--character-cards: 5;">
               <li role="presentation">
-                <button aria-current="true" aria-label="Fixture Monk, Monk, Level 20, Kamadan, Jewel of Istan, current character" aria-posinset="1" aria-selected="false" aria-setsize="6" class="character-switch-row" data-character-key="monk" data-focus-key="character-switch-option-0" data-index="0" data-row="0" data-selected="false" id="character-switch-option-0" role="option" tabindex="-1" title="Already active" type="button">
+                <button aria-current="true" aria-label="Fixture Monk, Monk, Level 20, Kamadan, Jewel of Istan, current character" aria-posinset="1" aria-selected="false" aria-setsize="6" class="character-switch-row" data-character-key="monk" data-focus-key="character-switch-card:monk" data-index="0" data-row="0" data-selected="false" id="character-switch-option-0" role="option" tabindex="-1" title="Already active" type="button">
                   <span class="character-switch-key">
                     "1"
                   <img alt="" aria-hidden="true" src="app/shared/images/professions/3.png">
@@ -73,7 +73,7 @@
                     <span class="character-switch-meta" title="Mo · Lv 20 · Kamadan">
                       "Mo · Lv 20 · Kamadan"
               <li role="presentation">
-                <button aria-label="Switch to Fixture Ranger, Ranger / Mesmer, Level 15, Kamadan, Jewel of Istan, shortcut 2" aria-posinset="2" aria-selected="true" aria-setsize="6" class="character-switch-row" data-character-key="ranger" data-focus-key="character-switch-option-1" data-index="1" data-row="1" data-selected="true" id="character-switch-option-1" role="option" tabindex="0" type="button">
+                <button aria-label="Switch to Fixture Ranger, Ranger / Mesmer, Level 15, Kamadan, Jewel of Istan, shortcut 2" aria-posinset="2" aria-selected="true" aria-setsize="6" class="character-switch-row" data-character-key="ranger" data-focus-key="character-switch-card:ranger" data-index="1" data-row="1" data-selected="true" id="character-switch-option-1" role="option" tabindex="0" type="button">
                   <span class="character-switch-key">
                     "2"
                   <img alt="" aria-hidden="true" src="app/shared/images/professions/2.png">
@@ -84,7 +84,7 @@
                     <span class="character-switch-meta" title="R/Me · Lv 15 · Kamadan">
                       "R/Me · Lv 15 · Kamadan"
               <li role="presentation">
-                <button aria-label="Switch to Fixture Mesmer, Mesmer, PvP character, Level 20, Lion's Arch, shortcut 3" aria-posinset="3" aria-selected="false" aria-setsize="6" class="character-switch-row" data-character-key="mesmer" data-focus-key="character-switch-option-2" data-index="2" data-row="2" data-selected="false" id="character-switch-option-2" role="option" tabindex="-1" type="button">
+                <button aria-label="Switch to Fixture Mesmer, Mesmer, PvP character, Level 20, Lion's Arch, shortcut 3" aria-posinset="3" aria-selected="false" aria-setsize="6" class="character-switch-row" data-character-key="mesmer" data-focus-key="character-switch-card:mesmer" data-index="2" data-row="2" data-selected="false" id="character-switch-option-2" role="option" tabindex="-1" type="button">
                   <span class="character-switch-key">
                     "3"
                   <img alt="" aria-hidden="true" src="app/shared/images/professions/5.png">
@@ -95,7 +95,7 @@
                     <span class="character-switch-meta" title="Me · PvP · Lv 20 · Lion's Arch">
                       "Me · PvP · Lv 20 · Lion's Arch"
               <li role="presentation">
-                <button aria-label="Switch to Toefte, Monk / Mesmer, Level 20, Kamadan, Jewel of Istan, shortcut 4" aria-posinset="4" aria-selected="false" aria-setsize="6" class="character-switch-row" data-character-key="toefte" data-focus-key="character-switch-option-3" data-index="3" data-row="3" data-selected="false" id="character-switch-option-3" role="option" tabindex="-1" type="button">
+                <button aria-label="Switch to Toefte, Monk / Mesmer, Level 20, Kamadan, Jewel of Istan, shortcut 4" aria-posinset="4" aria-selected="false" aria-setsize="6" class="character-switch-row" data-character-key="toefte" data-focus-key="character-switch-card:toefte" data-index="3" data-row="3" data-selected="false" id="character-switch-option-3" role="option" tabindex="-1" type="button">
                   <span class="character-switch-key">
                     "4"
                   <img alt="" aria-hidden="true" src="app/shared/images/professions/3.png">
@@ -106,7 +106,7 @@
                     <span class="character-switch-meta" title="Mo/Me · Lv 20 · Kamadan">
                       "Mo/Me · Lv 20 · Kamadan"
               <li role="presentation">
-                <button aria-label="Switch to Fixture Warrior, Warrior, Level 20, Lion's Arch, shortcut 5" aria-posinset="5" aria-selected="false" aria-setsize="6" class="character-switch-row" data-character-key="warrior" data-focus-key="character-switch-option-4" data-index="4" data-row="4" data-selected="false" id="character-switch-option-4" role="option" tabindex="-1" type="button">
+                <button aria-label="Switch to Fixture Warrior, Warrior, Level 20, Lion's Arch, shortcut 5" aria-posinset="5" aria-selected="false" aria-setsize="6" class="character-switch-row" data-character-key="warrior" data-focus-key="character-switch-card:warrior" data-index="4" data-row="4" data-selected="false" id="character-switch-option-4" role="option" tabindex="-1" type="button">
                   <span class="character-switch-key">
                     "5"
                   <img alt="" aria-hidden="true" src="app/shared/images/professions/1.png">
@@ -253,7 +253,7 @@
                 <path d="m10.5 2.5-5 5 5 5"></path>
             <ul aria-label="Characters" aria-orientation="horizontal" class="character-switch-list ui-scroll" hidden="" id="character-switch-list" role="listbox" style="--character-cards: 5;">
               <li role="presentation">
-                <button aria-current="true" aria-label="Fixture Monk, Monk, Level 20, Kamadan, Jewel of Istan, current character" aria-posinset="1" aria-selected="false" aria-setsize="6" class="character-switch-row" data-character-key="monk" data-focus-key="character-switch-option-0" data-index="0" data-row="0" data-selected="false" id="character-switch-option-0" role="option" tabindex="-1" title="Already active" type="button">
+                <button aria-current="true" aria-label="Fixture Monk, Monk, Level 20, Kamadan, Jewel of Istan, current character" aria-posinset="1" aria-selected="false" aria-setsize="6" class="character-switch-row" data-character-key="monk" data-focus-key="character-switch-card:monk" data-index="0" data-row="0" data-selected="false" id="character-switch-option-0" role="option" tabindex="-1" title="Already active" type="button">
                   <span class="character-switch-key">
                     "1"
                   <img alt="" aria-hidden="true" src="app/shared/images/professions/3.png">
@@ -266,7 +266,7 @@
                     <span class="character-switch-meta" title="Mo · Lv 20 · Kamadan">
                       "Mo · Lv 20 · Kamadan"
               <li role="presentation">
-                <button aria-label="Switch to Fixture Ranger, Ranger / Mesmer, Level 15, Kamadan, Jewel of Istan, shortcut 2" aria-posinset="2" aria-selected="true" aria-setsize="6" class="character-switch-row" data-character-key="ranger" data-focus-key="character-switch-option-1" data-index="1" data-row="1" data-selected="true" id="character-switch-option-1" role="option" tabindex="0" type="button">
+                <button aria-label="Switch to Fixture Ranger, Ranger / Mesmer, Level 15, Kamadan, Jewel of Istan, shortcut 2" aria-posinset="2" aria-selected="true" aria-setsize="6" class="character-switch-row" data-character-key="ranger" data-focus-key="character-switch-card:ranger" data-index="1" data-row="1" data-selected="true" id="character-switch-option-1" role="option" tabindex="0" type="button">
                   <span class="character-switch-key">
                     "2"
                   <img alt="" aria-hidden="true" src="app/shared/images/professions/2.png">
@@ -277,7 +277,7 @@
                     <span class="character-switch-meta" title="R/Me · Lv 15 · Kamadan">
                       "R/Me · Lv 15 · Kamadan"
               <li role="presentation">
-                <button aria-label="Switch to Fixture Mesmer, Mesmer, PvP character, Level 20, Lion's Arch, shortcut 3" aria-posinset="3" aria-selected="false" aria-setsize="6" class="character-switch-row" data-character-key="mesmer" data-focus-key="character-switch-option-2" data-index="2" data-row="2" data-selected="false" id="character-switch-option-2" role="option" tabindex="-1" type="button">
+                <button aria-label="Switch to Fixture Mesmer, Mesmer, PvP character, Level 20, Lion's Arch, shortcut 3" aria-posinset="3" aria-selected="false" aria-setsize="6" class="character-switch-row" data-character-key="mesmer" data-focus-key="character-switch-card:mesmer" data-index="2" data-row="2" data-selected="false" id="character-switch-option-2" role="option" tabindex="-1" type="button">
                   <span class="character-switch-key">
                     "3"
                   <img alt="" aria-hidden="true" src="app/shared/images/professions/5.png">
@@ -288,7 +288,7 @@
                     <span class="character-switch-meta" title="Me · PvP · Lv 20 · Lion's Arch">
                       "Me · PvP · Lv 20 · Lion's Arch"
               <li role="presentation">
-                <button aria-label="Switch to Toefte, Monk / Mesmer, Level 20, Kamadan, Jewel of Istan, shortcut 4" aria-posinset="4" aria-selected="false" aria-setsize="6" class="character-switch-row" data-character-key="toefte" data-focus-key="character-switch-option-3" data-index="3" data-row="3" data-selected="false" id="character-switch-option-3" role="option" tabindex="-1" type="button">
+                <button aria-label="Switch to Toefte, Monk / Mesmer, Level 20, Kamadan, Jewel of Istan, shortcut 4" aria-posinset="4" aria-selected="false" aria-setsize="6" class="character-switch-row" data-character-key="toefte" data-focus-key="character-switch-card:toefte" data-index="3" data-row="3" data-selected="false" id="character-switch-option-3" role="option" tabindex="-1" type="button">
                   <span class="character-switch-key">
                     "4"
                   <img alt="" aria-hidden="true" src="app/shared/images/professions/3.png">
@@ -299,7 +299,7 @@
                     <span class="character-switch-meta" title="Mo/Me · Lv 20 · Kamadan">
                       "Mo/Me · Lv 20 · Kamadan"
               <li role="presentation">
-                <button aria-label="Switch to Fixture Warrior, Warrior, Level 20, Lion's Arch, shortcut 5" aria-posinset="5" aria-selected="false" aria-setsize="6" class="character-switch-row" data-character-key="warrior" data-focus-key="character-switch-option-4" data-index="4" data-row="4" data-selected="false" id="character-switch-option-4" role="option" tabindex="-1" type="button">
+                <button aria-label="Switch to Fixture Warrior, Warrior, Level 20, Lion's Arch, shortcut 5" aria-posinset="5" aria-selected="false" aria-setsize="6" class="character-switch-row" data-character-key="warrior" data-focus-key="character-switch-card:warrior" data-index="4" data-row="4" data-selected="false" id="character-switch-option-4" role="option" tabindex="-1" type="button">
                   <span class="character-switch-key">
                     "5"
                   <img alt="" aria-hidden="true" src="app/shared/images/professions/1.png">
