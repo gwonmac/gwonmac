@@ -23,6 +23,33 @@ export type RoutePath = Readonly<{
 /** The target the player set: a point in game units on one map instance. */
 export type RouteTarget = Readonly<{ mapId: number; areaEpoch: number; x: number; y: number }>;
 
+/**
+ * The point the player set, in continent map units. Every map of a continent
+ * shares these units, so the target outlives travel to the next area.
+ */
+export type RouteGoal = Readonly<{ continent: number; x: number; y: number }>;
+
+/** Game units per continent map unit. */
+export const GAME_UNITS_PER_MAP_UNIT = 96;
+
+/** Where the player is: one area of one continent, and its anchor in map units. */
+export type RouteArea = Readonly<{
+  continent: number; mapId: number; areaEpoch: number; worldAnchor: Readonly<{ x: number; y: number }>;
+}>;
+
+/**
+ * The goal as this area's search target, or null when it no longer applies:
+ * another continent forgets it.
+ */
+export function routeTargetIn(goal: RouteGoal, area: RouteArea): RouteTarget | null {
+  if (goal.continent !== area.continent) return null;
+  return Object.freeze({
+    mapId: area.mapId, areaEpoch: area.areaEpoch,
+    x: (goal.x - area.worldAnchor.x) * GAME_UNITS_PER_MAP_UNIT,
+    y: (area.worldAnchor.y - goal.y) * GAME_UNITS_PER_MAP_UNIT,
+  });
+}
+
 /** A player this far from the line gets a new search. */
 export const ROUTE_STRAY_UNITS = 500;
 /** Gates and doors change the ground, so a standing route is searched again this often. */
