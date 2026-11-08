@@ -43,6 +43,37 @@ It must show the new `tag`.
 A failed run creates no draft. Fix the cause and run the workflow again with the
 same version. If a draft for that version exists, delete the draft first.
 
+## Fact-only release
+
+When client watch reports that a feature refuses on a new ArenaNet build and
+the recovery is only reviewed facts ([Recover certification](recertify.md)),
+release it as a patch of the last published release. Reviewing the facts is
+the only human step before the `release` approval.
+
+| Step | Who | What |
+| --- | --- | --- |
+| 1 | agent or maintainer | `git switch -c hotfix/1.4.1 v1.4.0`. Commit the facts, their tests, the release post for `1.4.1` with `draft: true`, and the player files `v1.4.0` writes (step 8 above) if `main` has them and the tag does not. |
+| 2 | agent or maintainer | `pnpm release:facts 1.4.1 --dry-run`, then `pnpm release:facts 1.4.1`. |
+| 3 | machines | Client watch runs the release battery and the real-client regression suite on the branch (`regression`). The release workflow runs `qualify` and waits at the `release` approval. |
+| 4 | maintainer | Review the facts in the pull request. Approve the `release` environment when the regression run passed. |
+| 5 | maintainer | Steps 5 to 8 above. Then merge the pull request, so `main` keeps the facts. |
+
+`pnpm release:facts` (`scripts/release.ts facts`) refuses unless:
+
+- it runs on `hotfix/<version>` with no local changes, and the version is the
+  next patch (or its Beta or RC) of a release tag that `HEAD` descends from;
+- every change since that tag is a `reviewed-client-*.ts` file, an entry in the
+  `reviewed-facts.ts` generation list, the detector record, a test, a doc, or
+  website content, and at least one `reviewed-client-*.ts` file changed;
+- exactly one post has the version's `launcherId`, its title, and `draft: true`;
+- `tests/fixtures/player-data/` holds the files the patched release writes.
+
+Then it pushes the branch, starts client watch with `regression` and the
+release workflow on it, and opens the pull request with a review checklist.
+`--dry-run` runs every check and prints those commands instead. It never
+tags or publishes: the draft job tags after the approval. A recovery that also
+needs code, such as a new Cartography layout, is a normal release.
+
 ## Testers and rollback
 
 - **Testers:** run the workflow with a pre-release version such as

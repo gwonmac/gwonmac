@@ -1,5 +1,13 @@
 // The release workflow's rules, in one place that `pnpm test` reaches.
 //
+// A maintainer or agent starts a fact-only release with one command:
+//
+//   facts <version> [--dry-run]   on hotfix/<version>: proves that everything
+//                                 since the release it patches is reviewed
+//                                 client facts, then pushes the branch, starts
+//                                 client watch with `regression` and the
+//                                 release workflow, and opens the PR
+//
 // .github/workflows/release.yml calls three commands, one per job:
 //
 //   prepare <version>             before approval: branch, version, and that
@@ -27,7 +35,7 @@ import {
 import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { releaseAssetUrl } from "../app/shared/project-identity.js";
+import { RELEASE_REPO, releaseAssetUrl } from "../app/shared/project-identity.js";
 import {
   formatReleaseVersion,
   isPrerelease,
@@ -250,22 +258,151 @@ export function draft(version: string, assets: string, dependencies: ReleaseDepe
   return release;
 }
 
+/**
+ * What a fact-only release may change since the release it patches. Shipped
+ * code changes only in the per-client reviewed-fact files; the registry may
+ * only gain or lose their entries (FACT_REGISTRY_LINE). The rest ships no
+ * code: tests, maintainer and player docs, and the detector record.
+ */
+const FACT_PATHS: readonly RegExp[] = [
+  /^app\/client\/certification\/reviewed-client-[\w.-]+\.ts$/u,
+  /^app\/client\/certification\/reviewed-facts\.ts$/u,
+  /^certificates\/certified-client\.json$/u,
+  /^tests\//u,
+  /^docs\//u,
+  /^website\/content\/.+\.md$/u,
+];
+const FACT_FILE = /^app\/client\/certification\/reviewed-client-[\w.-]+\.ts$/u;
+const FACT_REGISTRY = "app/client/certification/reviewed-facts.ts";
+const FACT_REGISTRY_LINE =
+  /^(?:import \{ [A-Z0-9_]+_FACTS \} from "\.\/reviewed-client-[\w.-]+\.js";| {2}[A-Z0-9_]+_FACTS,)$/u;
+
+export interface FactRelease extends Release {
+  /** The published release this one patches: the same version, one patch lower. */
+  readonly base: string;
+  readonly branch: string;
+  /** Every path that changed since `base`. */
+  readonly changed: readonly string[];
+  /** The GitHub writes, in order; a dry run returns them without running them. */
+  readonly actions: readonly (readonly string[])[];
+}
+
+/**
+ * A fact-only release: a patch whose whole difference from the release it
+ * patches is reviewed client facts, so the review of those facts is the one
+ * human decision before the `release` environment approval. It never tags or
+ * publishes; the release workflow's draft job tags after that approval.
+ */
+export function facts(
+  version: string,
+  root: string,
+  dependencies: ReleaseDependencies,
+  options: { readonly dryRun: boolean },
+): FactRelease {
+  const release = releaseOf(version);
+  const parsed = parseReleaseVersion(version);
+  if (!parsed || parsed.patch === 0) {
+    throw new Error(`A fact-only release is a patch of a published release, not ${version}.`);
+  }
+  const base = `v${parsed.major}.${parsed.minor}.${parsed.patch - 1}`;
+  const branch = `hotfix/${version}`;
+  const git = (...args: string[]) => dependencies.run("git", args, root);
+  const read = (...args: string[]) => succeed(dependencies, "git", args, root);
+
+  if (read("status", "--porcelain").trim() !== "") {
+    throw new Error("Commit or remove local changes first: the release is what HEAD holds.");
+  }
+  const current = read("rev-parse", "--abbrev-ref", "HEAD").trim();
+  if (current !== branch) {
+    throw new Error(`Run this on ${branch}, branched from ${base}, not on ${current}.`);
+  }
+  if (git("rev-parse", "--verify", "--quiet", `refs/tags/${base}^{commit}`).status !== 0
+    || git("merge-base", "--is-ancestor", base, "HEAD").status !== 0) {
+    throw new Error(`${version} patches ${base}: HEAD must descend from that release tag.`);
+  }
+  if (releaseExists(dependencies, release.tag)) {
+    throw new Error(`Release ${release.tag} exists. Choose a higher version.`);
+  }
+
+  const changed = read("diff", "--name-only", "--no-renames", base, "HEAD").split("\n").filter(Boolean);
+  const outside = changed.filter((file) => !FACT_PATHS.some((allowed) => allowed.test(file)));
+  if (outside.length > 0) {
+    throw new Error(`Not a fact-only release; these changed since ${base}:\n${outside.join("\n")}`);
+  }
+  if (!changed.some((file) => FACT_FILE.test(file))) {
+    throw new Error(`No reviewed-client file changed since ${base}: there are no facts to release.`);
+  }
+  const registryEdits = read("diff", "--unified=0", base, "HEAD", "--", FACT_REGISTRY)
+    .split("\n")
+    .filter((line) => /^[+-]/u.test(line) && !/^(?:\+\+\+|---) /u.test(line))
+    .filter((line) => !FACT_REGISTRY_LINE.test(line.slice(1)));
+  if (registryEdits.length > 0) {
+    throw new Error(`${FACT_REGISTRY} may only add or remove generation entries:\n${registryEdits.join("\n")}`);
+  }
+
+  // The player post the app bundles as this version's "What's new".
+  const launcherId = `gwonmac-${version.replaceAll(".", "-")}`;
+  const [post, ...others] = git("grep", "-l", "-e", `^launcherId: ${launcherId}$`, "HEAD", "--", "website/content")
+    .stdout.split("\n").filter(Boolean);
+  const frontmatter = post && others.length === 0 ? read("show", post).split(/^---$/mu)[1]?.split("\n") ?? [] : [];
+  if (!frontmatter.includes("draft: true") || !frontmatter.includes(`title: GWonMac ${version}`)) {
+    throw new Error(
+      `Add one release post with launcherId ${launcherId}, title "GWonMac ${version}" and draft: true (docs/launcher-news.md).`,
+    );
+  }
+  // Players upgrade from base, so this release must prove it reads what base wrote.
+  const fixtures = `tests/fixtures/player-data/${base}/`;
+  if (read("ls-tree", "-r", "--name-only", "HEAD", "--", fixtures).trim() === "") {
+    throw new Error(`${fixtures} is missing: generate the files ${base} writes first (docs/releasing.md, step 8).`);
+  }
+
+  const repository = dependencies.repository;
+  const dispatches: (readonly [string, ...string[]])[] = [
+    ["git", "push", "origin", `HEAD:refs/heads/${branch}`],
+    ["gh", "workflow", "run", "client-watch.yml", "--repo", repository, "--ref", branch, "-f", "regression=true"],
+    ["gh", "workflow", "run", "release.yml", "--repo", repository, "--ref", branch, "-f", `version=${version}`],
+  ];
+  // `gh workflow run` prints the URL of the run it started.
+  const [, regression = "the client watch run", releaseRun = "the release run"] = options.dryRun
+    ? []
+    : dispatches.map(([command, ...args]) => succeed(dependencies, command, args, root).trim());
+  const body = [
+    `Fact-only patch of ${base}: only reviewed client facts, tests and docs changed since that release.`,
+    "",
+    ...changed.map((file) => `- \`${file}\``),
+    "",
+    `- [ ] Review the facts. Real-client regression on this branch: ${regression}`,
+    `- [ ] Approve the \`release\` environment in ${releaseRun} once both are good.`,
+    `- [ ] \`pnpm release:test ${release.tag}\`, publish the draft, then steps 7 and 8 of docs/releasing.md.`,
+  ].join("\n");
+  const pullRequest: readonly [string, ...string[]] = [
+    "gh", "pr", "create", "--repo", repository, "--base", "main", "--head", branch,
+    "--title", `fix(certification): release reviewed client facts as ${release.tag}`, "--body", body,
+  ];
+  if (!options.dryRun) succeed(dependencies, pullRequest[0], pullRequest.slice(1), root);
+  return Object.freeze({
+    ...release,
+    base,
+    branch,
+    changed: Object.freeze(changed),
+    actions: Object.freeze([...dispatches, pullRequest]),
+  });
+}
+
 function required(name: string): string {
   const value = process.env[name];
   if (!value) throw new Error(`${name} is not set.`);
   return value;
 }
 
+function runCommand(command: string, args: readonly string[], cwd?: string): CommandResult {
+  const result = spawnSync(command, args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+  if (result.error) throw result.error;
+  return { status: result.status, stdout: result.stdout, stderr: result.stderr };
+}
+
 function workflowDependencies(): ReleaseDependencies {
-  return {
-    repository: required("GITHUB_REPOSITORY"),
-    sha: required("GITHUB_SHA"),
-    run: (command, args, cwd) => {
-      const result = spawnSync(command, args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
-      if (result.error) throw result.error;
-      return { status: result.status, stdout: result.stdout, stderr: result.stderr };
-    },
-  };
+  return { repository: required("GITHUB_REPOSITORY"), sha: required("GITHUB_SHA"), run: runCommand };
 }
 
 function main(): void {
@@ -283,8 +420,15 @@ function main(): void {
       required("GITHUB_STEP_SUMMARY"),
       `Draft ${release.tag} is ready. Run \`pnpm release:test ${release.tag}\`, then publish it.\n`,
     );
+  } else if (command === "facts" && version && (paths.length === 0 || (paths.length === 1 && paths[0] === "--dry-run"))) {
+    const head = runCommand("git", ["rev-parse", "HEAD"]).stdout.trim();
+    const release = facts(version, process.cwd(), { repository: RELEASE_REPO, sha: head, run: runCommand }, {
+      dryRun: paths.length === 1,
+    });
+    console.log(`${release.tag} patches ${release.base} with ${release.changed.length} fact-only changes.`);
+    for (const action of release.actions) console.log(`${paths.length === 1 ? "would run" : "ran"}: ${action.join(" ")}`);
   } else {
-    throw new Error("usage: release.ts prepare <version> | assets <version> <make-dir> <out-dir> | draft <version> <assets-dir>");
+    throw new Error("usage: release.ts facts <version> [--dry-run] | prepare <version> | assets <version> <make-dir> <out-dir> | draft <version> <assets-dir>");
   }
 }
 
