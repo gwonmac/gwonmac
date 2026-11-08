@@ -362,7 +362,7 @@ const PROOF = "tests/client-artifact/proof.test.ts";
 const PROOF_TEXT = 'import { roles } from "../fixtures/queue.js";\nconst kernel = "tests/fixtures/kernel.rs";\nassert.ok(roles && kernel);\n';
 /** A change value that sets the executable bit and leaves the content. */
 const EXECUTABLE = Symbol("executable");
-const POST = "website/content/en/2.blog/14.gwonmac-1-0-1.md";
+const POST = "website/content/posts/14.gwonmac-1-0-1.md";
 const POST_TEXT = "---\ntitle: GWonMac 1.0.1\ndraft: true\nlauncherId: gwonmac-1-0-1\n---\n\nTools work again on the new client.\n";
 
 /** A repository whose v1.0.0 tag is the published release and whose hotfix/1.0.1 adds facts. */

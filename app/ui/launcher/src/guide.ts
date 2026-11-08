@@ -15,26 +15,27 @@ const WEBSITE = "https://www.gwonmac.com";
 const IMAGE_DIRECTORY = "../../../../website/public";
 
 /**
- * The website pages the Guide shows, by their docs path, grouped as in Help's
- * sidebar. Install, mobile linking and the comparison pages stay on the website:
- * whoever reads this already has the app.
+ * The website pages the Guide shows, by their docs entry name (the file name in
+ * website/content/docs without number and extension, which is also the
+ * English slug), grouped as in Help's sidebar. Install, mobile linking and the
+ * comparison pages stay on the website: whoever reads this already has the app.
  */
-const PAGE_PATHS = {
-  "known-issues": "guides/known-issues",
-  troubleshooting: "guides/troubleshooting",
-  accounts: "features/accounts",
-  hub: "features/hub",
-  "travel-and-maps": "features/travel-and-maps",
-  "chat-and-trade": "features/chat-and-trade",
-  inventory: "features/inventory",
-  combat: "features/combat",
-  templates: "guides/templates",
-  appearance: "features/appearance",
-  performance: "guides/performance",
-  "game-files-and-updates": "features/game-files-and-updates",
+const PAGE_NAMES = {
+  "known-issues": "known-issues",
+  troubleshooting: "troubleshooting",
+  accounts: "accounts-and-launcher",
+  hub: "hub",
+  "travel-and-maps": "travel-and-maps",
+  "chat-and-trade": "chat-and-trade",
+  inventory: "inventory",
+  combat: "combat",
+  templates: "templates",
+  appearance: "appearance",
+  performance: "performance",
+  "game-files-and-updates": "game-files-and-updates",
 } as const;
-export type GuidePageId = keyof typeof PAGE_PATHS;
-export const GUIDE_PAGE_IDS = Object.keys(PAGE_PATHS) as GuidePageId[];
+export type GuidePageId = keyof typeof PAGE_NAMES;
+export const GUIDE_PAGE_IDS = Object.keys(PAGE_NAMES) as GuidePageId[];
 export const GUIDE_HELP_PAGES: readonly GuidePageId[] = ["known-issues", "troubleshooting"];
 
 export interface GuidePage {
@@ -49,7 +50,8 @@ export type GuideAction =
   | Readonly<{ kind: "settings"; target: SettingsTarget }>
   | Readonly<{ kind: "url"; url: string }>;
 
-const sources = import.meta.glob<string>("../../../../website/content/en/1.docs/*/*.md", { query: "?raw", import: "default", eager: true });
+// English only: `<n>.<name>.md`; a translation is `<n>.<name>.<locale>.md`.
+const sources = import.meta.glob<string>(["../../../../website/content/docs/*.md", "!../../../../website/content/docs/*.*.*.md"], { query: "?raw", import: "default", eager: true });
 const images = import.meta.glob<string>("../../../../website/public/docs/**/*.{webp,png,jpg}", { query: "?url", import: "default", eager: true });
 
 const isPage = (id: string): id is GuidePageId => (GUIDE_PAGE_IDS as readonly string[]).includes(id);
@@ -65,9 +67,9 @@ export function guideLink(href: string, page?: GuidePageId): string | null {
     } catch { return null; }
   }
   if (!path) return anchor && page ? `guide:${page}#${anchor}` : null;
-  const docs = /^\$docs\/(.+)$/u.exec(path);
+  const docs = /^\$docs\.(.+)$/u.exec(path);
   if (docs) {
-    const guide = GUIDE_PAGE_IDS.find((id) => PAGE_PATHS[id] === docs[1]);
+    const guide = GUIDE_PAGE_IDS.find((id) => PAGE_NAMES[id] === docs[1]);
     if (guide) return `guide:${guide}${anchor ? `#${anchor}` : ""}`;
     return `url:${WEBSITE}/docs/${docs[1]}${anchor ? `#${anchor}` : ""}`;
   }
@@ -88,8 +90,8 @@ export function parseGuideAction(actionId: string): GuideAction | null {
 
 /** The page's Markdown as the website stores it. */
 export function guideSource(id: GuidePageId): string {
-  // `features/hub` is 1.docs/<n>.features/<n>.hub.md: the website drops the order prefixes.
-  const path = Object.keys(sources).find((candidate) => candidate.replace(/^.*1\.docs\//u, "").replace(/(^|\/)\d+\./gu, "$1") === `${PAGE_PATHS[id]}.md`);
+  // `hub` is docs/<n>.hub.md: the website drops the order prefix.
+  const path = Object.keys(sources).find((candidate) => candidate.replace(/^.*\/(?:\d+\.)?/u, "") === `${PAGE_NAMES[id]}.md`);
   if (!path) throw new Error(`guide page ${id} is missing`);
   return sources[path]!;
 }
@@ -98,7 +100,7 @@ function page(id: GuidePageId): GuidePage {
   const { fields, body } = readFrontMatter(guideSource(id));
   return {
     id,
-    title: fields["navigation.title"] || fields.title!,
+    title: fields.navTitle || fields.title!,
     summary: fields.description ?? "",
     blocks: parseMarkdown(body, {
       link: (href) => guideLink(href, id),

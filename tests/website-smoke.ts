@@ -226,6 +226,7 @@ await once(probe, "listening");
 const address = probe.address();
 assert(address && typeof address !== "string");
 const port = address.port;
+const origin = `http://${host}:${port}`;
 probe.close();
 await once(probe, "close");
 
@@ -256,12 +257,17 @@ async function load(pathname: string): Promise<Response> {
   throw new Error(`website server did not start:\n${stderr}`);
 }
 
+const visibleText = (html: string) =>
+  html.replace(/<(script|style)\b[\s\S]*?<\/\1>|<[^>]*>/gi, " ");
+
 async function assertNoUnsupportedPerformancePromises(
   pathname: string,
 ): Promise<void> {
   const response = await load(pathname);
   assert.equal(response.status, 200, `${pathname} did not render`);
-  const html = await response.text();
+  // Visible text only: the page's script payload carries icon names such as
+  // `lucide:cpu`, which are no claims.
+  const html = visibleText(await response.text());
   assert.doesNotMatch(
     html,
     /\b\d+(?:[.,]\d+)?(?:\s*(?:–|-|to|bis)\s*\d+(?:[.,]\d+)?)?\s*FPS\b/i,
@@ -308,7 +314,7 @@ try {
   assert.match(html, /signed and notarized/i);
   // Claims are checked in visible text only: hashed asset names such as
   // `W5kLGFTm2.js` would otherwise match by chance.
-  const text = html.replace(/<(script|style)\b[\s\S]*?<\/\1>|<[^>]*>/gi, " ");
+  const text = visibleText(html);
   assert.doesNotMatch(text, /(?:60|120)\s*(?:–|-|to)?\s*(?:120\s*)?FPS/i);
   assert.doesNotMatch(text, /\b[45]K\b/i);
 
@@ -333,18 +339,130 @@ try {
   for (const href of downloadLinks(germanHtml)) {
     assert.match(href, /^\/(de\/)?download$/);
   }
+
+  // The head every page shares: icons and manifest (their files are checked by
+  // scripts/assert-release-output.mjs) and the Search Console verification.
+  for (const link of [
+    '<link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96">',
+    '<link rel="shortcut icon" href="/favicon.ico">',
+    '<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">',
+    '<link rel="manifest" href="/site.webmanifest">',
+    '<meta name="google-site-verification" content="mFA4hQqscVMdgB5EefYAjQxRZRBYMDJeJ7Rqbx76ewk">',
+  ]) {
+    assert.ok(html.includes(link), `/ is missing ${link}`);
+  }
+
+  // The pages the release depends on render in both languages.
+  for (const pathname of [
+    "/docs/install",
+    "/docs/play-guild-wars-on-mac",
+    "/docs/accounts",
+    "/docs/safety",
+    "/de/docs/installation",
+    "/de/docs/guild-wars-auf-dem-mac-spielen",
+    "/de/docs/konten",
+    "/de/docs/sicherheit",
+    "/blog",
+    "/llms.txt",
+    "/llms-full.txt",
+  ]) {
+    assert.equal((await load(pathname)).status, 200, `${pathname} did not render`);
+  }
+
+  // One sitemap lists both languages, each docs page with its alternates.
+  const sitemap = await (await load("/sitemap.xml")).text();
+  const locations = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map(
+    (match) => new URL(match[1]!).pathname,
+  );
+  assert.ok(locations.includes("/docs/install"));
+  assert.ok(locations.includes("/de/docs/installation"));
+  assert.ok(sitemap.includes('hreflang="en" href="https://www.gwonmac.com/docs/install"'));
+  assert.ok(sitemap.includes('hreflang="de" href="https://www.gwonmac.com/de/docs/installation"'));
+  assert.ok(!locations.includes("/download"), "/download is not a page");
+
+  // Every address the site had before the docs moved (website/redirects.ts)
+  // answers with one permanent redirect to a page that renders.
+  const MOVED: readonly (readonly [string, string])[] = [
+    ["/docs", "/docs/install"],
+    ["/de/dokumentation", "/de/docs/installation"],
+    ["/docs/guides/install", "/docs/install"],
+    ["/docs/guides/accounts", "/docs/accounts"],
+    ["/docs/guides/play-guild-wars-on-mac", "/docs/play-guild-wars-on-mac"],
+    ["/docs/guides/performance", "/docs/performance"],
+    ["/docs/guides/templates", "/docs/templates"],
+    ["/docs/guides/troubleshooting", "/docs/troubleshooting"],
+    ["/docs/guides/known-issues", "/docs/known-issues"],
+    ["/docs/project/safety", "/docs/safety"],
+    ["/docs/project/about", "/docs/about"],
+    ["/docs/upstream/introduction", "/docs/upstream-requests"],
+    ["/docs/upstream/request-summary", "/docs/request-summary"],
+    ["/docs/upstream/filesystem/unimplemented-routines", "/docs/unimplemented-routines"],
+    ["/docs/upstream/filesystem/path-remove-extension", "/docs/path-remove-extension"],
+    ["/docs/upstream/filesystem/file-open-mode", "/docs/file-open-mode"],
+    ["/docs/upstream/input/double-click-flag", "/docs/double-click-flag"],
+    ["/docs/upstream/input/key-labels", "/docs/key-labels"],
+    ["/docs/upstream/input/cursor-re-evaluation", "/docs/cursor-re-evaluation"],
+    ["/docs/upstream/runtime/heap-maximum", "/docs/heap-maximum"],
+    ["/docs/upstream/proposals/build-identification", "/docs/build-identification"],
+    ["/docs/upstream/proposals/platform-host-interface", "/docs/platform-host-interface"],
+    ["/docs/upstream/reference/our-workarounds", "/docs/our-workarounds"],
+    ["/docs/upstream/reference/verification-method", "/docs/verification-method"],
+    ["/docs/features/accounts", "/docs/accounts-and-launcher"],
+    ["/docs/features/hub", "/docs/hub"],
+    ["/docs/features/travel-and-maps", "/docs/travel-and-maps"],
+    ["/docs/features/chat-and-trade", "/docs/chat-and-trade"],
+    ["/docs/features/inventory", "/docs/inventory"],
+    ["/docs/features/combat", "/docs/combat"],
+    ["/docs/features/appearance", "/docs/appearance"],
+    ["/docs/features/game-files-and-updates", "/docs/game-files-and-updates"],
+    ["/de/dokumentation/anleitungen/installation", "/de/docs/installation"],
+    ["/de/dokumentation/anleitungen/konten", "/de/docs/konten"],
+    ["/de/dokumentation/anleitungen/guild-wars-auf-dem-mac-spielen", "/de/docs/guild-wars-auf-dem-mac-spielen"],
+    ["/de/dokumentation/anleitungen/leistung", "/de/docs/leistung"],
+    ["/de/dokumentation/anleitungen/templates", "/de/docs/templates"],
+    ["/de/dokumentation/anleitungen/fehlerbehebung", "/de/docs/fehlerbehebung"],
+    ["/de/dokumentation/projekt/sicherheit", "/de/docs/sicherheit"],
+    ["/de/dokumentation/projekt/ueber", "/de/docs/ueber"],
+    ["/de/dokumentation/guides/known-issues", "/docs/known-issues"],
+    ["/de/dokumentation/upstream/filesystem/file-open-mode", "/docs/file-open-mode"],
+    ["/de/dokumentation/upstream/filesystem/path-remove-extension", "/docs/path-remove-extension"],
+    ["/de/dokumentation/upstream/filesystem/unimplemented-routines", "/docs/unimplemented-routines"],
+    ["/de/dokumentation/upstream/input/cursor-re-evaluation", "/docs/cursor-re-evaluation"],
+    ["/de/dokumentation/upstream/input/double-click-flag", "/docs/double-click-flag"],
+    ["/de/dokumentation/upstream/input/key-labels", "/docs/key-labels"],
+    ["/de/dokumentation/upstream/introduction", "/docs/upstream-requests"],
+    ["/de/dokumentation/upstream/proposals/build-identification", "/docs/build-identification"],
+    ["/de/dokumentation/upstream/proposals/platform-host-interface", "/docs/platform-host-interface"],
+    ["/de/dokumentation/upstream/reference/our-workarounds", "/docs/our-workarounds"],
+    ["/de/dokumentation/upstream/reference/verification-method", "/docs/verification-method"],
+    ["/de/dokumentation/upstream/request-summary", "/docs/request-summary"],
+    ["/de/dokumentation/upstream/runtime/heap-maximum", "/docs/heap-maximum"],
+    ["/sitemap_index.xml", "/sitemap.xml"],
+    ["/__sitemap__/en-US.xml", "/sitemap.xml"],
+    ["/__sitemap__/de-DE.xml", "/sitemap.xml"],
+    ["/de/llms.txt", "/llms.txt"],
+    ["/de/llms-full.txt", "/llms-full.txt"],
+  ];
+  for (const [from, to] of MOVED) {
+    const moved = await globalThis.fetch(`${origin}${from}`, { redirect: "manual" });
+    assert.equal(moved.status, 301, `${from} does not redirect permanently`);
+    const target = new URL(moved.headers.get("location") ?? "", origin);
+    assert.equal(target.href, `${origin}${to}`, `${from} leads elsewhere`);
+    const landed = await globalThis.fetch(target, { redirect: "manual" });
+    assert.equal(landed.status, 200, `${from} takes more than one hop`);
+  }
   // Public performance-sensitive prose stays qualitative. Controlled, dated
   // measurements belong in docs/performance-electron.md, not in marketing
   // pages assembled from individual tester reports.
-  await assertNoUnsupportedPerformancePromises("/docs/guides/performance");
+  await assertNoUnsupportedPerformancePromises("/docs/performance");
   await assertNoUnsupportedPerformancePromises(
-    "/docs/guides/play-guild-wars-on-mac",
+    "/docs/play-guild-wars-on-mac",
   );
   await assertNoUnsupportedPerformancePromises(
-    "/de/dokumentation/anleitungen/leistung",
+    "/de/docs/leistung",
   );
   await assertNoUnsupportedPerformancePromises(
-    "/de/dokumentation/anleitungen/guild-wars-auf-dem-mac-spielen",
+    "/de/docs/guild-wars-auf-dem-mac-spielen",
   );
   await assertNoUnsupportedPerformancePromises(
     "/blog/guild-wars-native-on-apple-silicon",
@@ -352,7 +470,7 @@ try {
 
   // The install guide replaced the old /install page and still hands the
   // visitor the releases page.
-  const install = await load("/docs/guides/install");
+  const install = await load("/docs/install");
   assert.equal(install.status, 200);
   const installHtml = await install.text();
   assert.match(
@@ -385,7 +503,14 @@ try {
     redirect: "manual",
   });
   assert.equal(germanDownload.status, 302);
-  assert.equal(germanDownload.headers.get("location"), "/download");
+  assert.equal(
+    new URL(germanDownload.headers.get("location") ?? "", origin).href,
+    `${origin}/download`,
+  );
+  // German readers get the English posts: there are no German ones yet.
+  const germanBlog = await globalThis.fetch(`http://${host}:${port}/de/blog`, { redirect: "manual" });
+  assert.equal(germanBlog.status, 302);
+  assert.equal(new URL(germanBlog.headers.get("location") ?? "", origin).href, `${origin}/blog`);
 
   // The API route answers with the policy above whatever GitHub does: a direct
   // DMG when one is eligible, the releases page otherwise — always this repo.

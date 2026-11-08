@@ -1,26 +1,13 @@
-import { icons as lucideCollection } from "@iconify-json/lucide";
-import { useNuxt } from "nuxt/kit";
-import site from "./site.json" with { type: "json" };
+import ginko from "./ginko.config.ts";
 
+// The site is the Ginko Docs layer with its own frame (header, footer, search, language menu, light and dark): this
+// project brings the content (content/), the start page (app/pages/index.vue), the server routes (server/), the
+// texts of its own links (i18n/) and app/app.config.ts.
 export default defineNuxtConfig({
+  compatibilityDate: "2026-11-01",
   extends: ["@lupinum/ginko-docs"],
-  hooks: {
-    "modules:before"() {
-      const nuxt = useNuxt();
-      const icon = nuxt.options.icon;
-      if (!icon) throw new Error("Ginko Docs must enable Nuxt Icon");
-      const collections = icon.customCollections ?? [];
-      // Ginko 0.2.3 snapshots a pruned Lucide collection before it discovers
-      // consumer icons. Replace that collection before Nuxt installs modules.
-      icon.customCollections = [
-        lucideCollection,
-        ...collections.filter(
-          (collection: { prefix?: string }) => collection.prefix !== "lucide",
-        ),
-      ];
-    },
-  },
-  site: { url: site.url },
+  modules: ["@lupinum/ginko/nuxt"],
+  ginko,
   app: {
     head: {
       link: [
@@ -48,50 +35,11 @@ export default defineNuxtConfig({
       ],
     },
   },
-  // Follow the OS by default; dark is the brand's home ground, so it is also
-  // what a client without a match (or without JS) gets.
-  colorMode: { preference: "system", fallback: "dark" },
-  i18n: {
-    baseUrl: site.url,
-    defaultLocale: "en",
-    locales: [
-      { code: "en", language: "en-US", name: "English" },
-      { code: "de", language: "de-DE", name: "Deutsch" },
-    ],
-  },
-  content: {
-    // Registered in app/plugins/guide-components.ts. A mapped name must differ
-    // from its tag in kebab case, or ginko returns the tag unresolved.
-    markdown: {
-      tags: { "media-placeholder": "GuideMediaPlaceholder", setting: "GuideSetting" },
-    },
-    // The guide pages are also the launcher's built-in Guide, so they use two
-    // components of their own; the render policy refuses any undeclared tag.
-    componentPolicy: {
-      components: {
-        "media-placeholder": {
-          kind: "block",
-          props: { type: { type: "string", required: false } },
-          slots: ["default"],
-          media: null,
-        },
-        setting: {
-          kind: "inline",
-          props: { to: { type: "string", required: true } },
-          slots: ["default"],
-          media: null,
-        },
-      },
-    },
-    i18n: {
-      fallback: { de: ["en"] },
-    },
-  },
   routeRules: {
-    // /download must stay a live redirect to the newest DMG; prerendering it
-    // would bake the answer of one build-time GitHub call into the deploy.
-    // The layer locale-prefixes the German guide's link, hence the alias.
-    "/download": { prerender: false },
-    "/de/download": { redirect: { to: "/download", statusCode: 302 }, prerender: false },
+    // /download must stay a live redirect to the newest DMG: prerendering it
+    // would bake the answer of one build-time GitHub call into the deploy, and
+    // Ginko's site-wide ISR cache drops the query, so `?channel=beta` would get
+    // the Stable answer. The server route sets its own cache header.
+    "/download": { prerender: false, isr: false },
   },
 });

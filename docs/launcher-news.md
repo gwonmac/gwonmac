@@ -6,7 +6,7 @@ Keep the `news-v1.json` format unchanged: installed older apps read it, and it c
 
 ## Publish a GWonMac release note
 
-Every release gets one post in `website/content/en/2.blog`. That post is the changelog: the website shows it, the launcher shows it under **GWonMac** in the news list, and the Discord announcement is a copy of it. The GitHub release keeps only the technical record.
+Every release gets one post in `website/content/posts` (`<n>.gwonmac-<version>.md`; the file name without the number is the address, `/blog/gwonmac-<version>`). That post is the changelog: the website shows it, the launcher shows it under **GWonMac** in the news list, and the Discord announcement is a copy of it. The GitHub release keeps only the technical record.
 
 ### Frontmatter
 
@@ -14,10 +14,9 @@ Every release gets one post in `website/content/en/2.blog`. That post is the cha
 ---
 title: GWonMac 1.0.1
 description: Restores every GWonMac feature after the latest Guild Wars update. Nothing else changes.
-badge: Release
+tags: [Release]
 date: 2026-12-01
-readingTime: 1 min read
-author: authors/matamo
+authors: [authors/matamo]
 draft: true
 launcherId: gwonmac-1-0-1
 launcherSource: launcher
@@ -27,6 +26,8 @@ launcherFeatured: false
 ```
 
 - `title` is `GWonMac` and the version, nothing else.
+- Every key is a field of the `posts` brick in `website/ginko.config.ts`; the build refuses any other key. Write lists on one line (`[Release]`): the launcher's front matter reader (`app/shared/website-content.ts`) reads `key: value` lines only.
+- Link a docs page by its file name: `[Build templates]($docs.templates)`. In the news feed the generator writes the address the post had before the docs moved (`$docs/guides/templates`), so the feed stays the same for apps that already read it.
 - `launcherId` is `gwonmac-` and the version with dashes. The app bundles the post with this ID as its "What's new", and `app/ui/launcher/src/release-notes.test.ts` fails when the version in `package.json` has none.
 - Keep `draft: true` until the release is published (see [Releasing](releasing.md)).
 - `description` repeats the summary paragraph. The launcher shows it under the title, so it must stand alone. Keep it under 360 characters; the generator refuses longer text.
@@ -100,8 +101,8 @@ Commit the Markdown and regenerated JSON together. The generator runs every stor
 The launcher bundles two parts of the website at build time, so they work offline and match the installed version:
 
 - **What's new.** The release post whose `launcherId` is `gwonmac-<version with dashes>` is bundled with that version. After an update, the launcher opens it once as an article in **News**. Write the next release's post with `draft: true` in its frontmatter: the website and the news feed leave a draft out, but the app build includes it. Remove `draft: true` when you publish the release.
-- **Guide.** The pages listed in `PAGE_PATHS` (`app/ui/launcher/src/guide.ts`) become **Help**: the feature pages in `website/content/en/1.docs/4.features`, plus Build templates, Performance, Troubleshooting, and Known issues from `1.guides`. `7.known-issues.md` is also the Known issues list. Install and mobile linking stay on the website.
-- **Links.** `:setting[Label]{to="<section>/<control>"}` opens that setting in the launcher and shows as bold text on the website; the IDs come from `app/shared/settings-catalogue.ts`. It is an inline component, not a link: the website's render policy refuses any link that is not https, mailto, tel, or a relative path. `$docs/features/<page>` and `$docs/guides/<page>` open the Guide page when the Guide has it, otherwise the website.
+- **Guide.** The pages listed in `PAGE_NAMES` (`app/ui/launcher/src/guide.ts`) become **Help**: the English feature pages in `website/content/docs` (`23.accounts-and-launcher.md` to `30.game-files-and-updates.md`), plus Build templates, Performance, Troubleshooting, and Known issues. `7.known-issues.md` is also the Known issues list. Install and mobile linking stay on the website.
+- **Links.** `:setting[Label]{to="<section>/<control>"}` opens that setting in the launcher and shows as bold text on the website; the IDs come from `app/shared/settings-catalogue.ts`. It is an inline component, not a link: it has no web address to go to. `$docs.<page>` (the docs file name without number and extension) opens the Guide page when the Guide has it, otherwise the website. Both components are declared in `website/ginko.config.ts`, which refuses an undeclared tag or prop.
 - **Media.** Images must be under `website/public/docs` (Guide) or `website/public/blog` (release notes). A screenshot or video that is still to be made is written as a placeholder, shown as a dashed box in both places:
 
   ```md

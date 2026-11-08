@@ -9,16 +9,31 @@ import { readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { readFrontMatter } from "../../app/shared/website-content.ts";
 import { newestNewsFeed, parseNewsStory } from "../../app/shared/launcher-news-feed.ts";
+import { redirects } from "../redirects.ts";
 
 const root = path.resolve(import.meta.dirname, "..");
-const contentRoot = path.join(root, "content/en/2.blog");
+const contentRoot = path.join(root, "content/posts");
 const outputPath = path.join(root, "public/launcher/news-v1.json");
 const check = process.argv.includes("--check");
 const allowed = new Set([
-  "title", "description", "badge", "date", "readingTime", "author",
+  "title", "description", "tags", "date", "authors", "slug",
   "launcherId", "launcherSource", "launcherChannel", "launcherFeatured",
   "launcherExternalUrl", "launcherStartsAt", "launcherEndsAt",
 ]);
+
+// The feed keeps the link form it had before the docs moved (`$docs/guides/templates`): released apps read the
+// bodies as they are, and the feed must not change for the same posts. A post now names a docs page by its file
+// name (`$docs.templates`); the old path comes from the redirect that replaced it. A page that never had an old
+// path gets its plain address.
+const legacyDocsPath = new Map(
+  redirects.filter((rule) => rule.from.startsWith("/docs/")).map((rule) => [rule.to, rule.from.slice("/docs/".length)]),
+);
+function feedBody(body) {
+  return body.replace(/\]\(\$docs\.([a-z0-9-]+)/gu, (_, name) => {
+    const legacy = legacyDocsPath.get(`/docs/${name}`);
+    return legacy ? `]($docs/${legacy}` : `](/docs/${name}`;
+  });
+}
 
 function required(fields, key) {
   const value = fields[key];
@@ -36,7 +51,7 @@ function storyFrom(name, source) {
   if (fields.launcherFeatured && fields.launcherFeatured !== "true" && fields.launcherFeatured !== "false") {
     throw new Error("launcherFeatured must be true or false");
   }
-  const slug = name.replace(/\.md$/u, "").replace(/^\d+\./u, "");
+  const slug = fields.slug || name.replace(/\.md$/u, "").replace(/^\d+\./u, "");
   const story = {
     id: fields.launcherId,
     source: required(fields, "launcherSource"),
@@ -50,13 +65,16 @@ function storyFrom(name, source) {
     url: fields.launcherExternalUrl || `/blog/${slug}`,
     ...(fields.launcherStartsAt ? { startsAt: fields.launcherStartsAt } : {}),
     ...(fields.launcherEndsAt ? { endsAt: fields.launcherEndsAt } : {}),
-    body: body.trim(),
+    body: feedBody(body.trim()),
   };
   parseNewsStory(story);
   return story;
 }
 
-const names = (await readdir(contentRoot)).filter((name) => name.endsWith(".md")).sort();
+// The feed is English: a translation (`<n>.<name>.<locale>.md`) is not a story of its own.
+const names = (await readdir(contentRoot))
+  .filter((name) => /^(?:\d+\.)?[^.]+\.md$/u.test(name))
+  .sort();
 const stories = [];
 for (const name of names) {
   let story;
