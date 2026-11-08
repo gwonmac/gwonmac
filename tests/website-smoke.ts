@@ -363,7 +363,6 @@ try {
     "/de/docs/konten",
     "/de/docs/sicherheit",
     "/blog",
-    "/de/blog",
     "/llms.txt",
     "/llms-full.txt",
   ]) {
@@ -508,6 +507,10 @@ try {
     new URL(germanDownload.headers.get("location") ?? "", origin).href,
     `${origin}/download`,
   );
+  // German readers get the English posts: there are no German ones yet.
+  const germanBlog = await globalThis.fetch(`http://${host}:${port}/de/blog`, { redirect: "manual" });
+  assert.equal(germanBlog.status, 302);
+  assert.equal(new URL(germanBlog.headers.get("location") ?? "", origin).href, `${origin}/blog`);
 
   // The API route answers with the policy above whatever GitHub does: a direct
   // DMG when one is eligible, the releases page otherwise — always this repo.

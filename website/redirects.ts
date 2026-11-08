@@ -71,4 +71,7 @@ export const redirects: Redirect[] = [
   { from: '/de/llms-full.txt', to: '/llms-full.txt' },
   // Download buttons and links on German pages; /download stays a live redirect to the newest DMG.
   { from: '/de/download', to: '/download', status: 302 },
+  // The posts are English only and the layer lists a language's own posts, so the German header's Blog link would
+  // open an empty list. Temporary (302): delete this rule when the first German post exists.
+  { from: '/de/blog', to: '/blog', status: 302 },
 ]
