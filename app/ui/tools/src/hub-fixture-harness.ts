@@ -50,7 +50,7 @@ export function shown(element: Element) {
   for (let node: Element | null = element; node; node = node.parentElement) {
     if (node.hasAttribute('hidden') || (node instanceof HTMLElement && node.style.display === 'none')) return false;
     if (node instanceof HTMLDialogElement && !node.open) return false;
-    const parent = node.parentElement;
+    const parent: HTMLElement | null = node.parentElement;
     if (parent instanceof HTMLDetailsElement && !parent.open && node !== parent.querySelector(':scope > summary')) return false;
   }
   return element.isConnected;
