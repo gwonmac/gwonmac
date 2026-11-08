@@ -19,7 +19,7 @@ function mountView(overrides: Record<string, unknown> = {}, { snapshot = fixture
 }
 
 async function openSection(wrapper: ReturnType<typeof mount>, label: string) {
-  await wrapper.findAll(".settings-page aside button").find(button => button.text() === label)!.trigger("click");
+  await wrapper.findAll(".settings-page nav button").find(button => button.text() === label)!.trigger("click");
   await flushPromises();
 }
 
@@ -32,7 +32,7 @@ describe("Settings page", () => {
     const wrapper = mountView({}, { snapshot: allToolsOn });
     await flushPromises();
     const found = new Map<string, string[]>();
-    for (const button of wrapper.findAll(".settings-page aside button")) {
+    for (const button of wrapper.findAll(".settings-page nav button")) {
       await button.trigger("click");
       await flushPromises();
       for (const control of wrapper.findAll("[data-setting]")) {
@@ -206,6 +206,40 @@ describe("Settings page", () => {
     await openSection(wrapper, "Game files");
     expect(info).toHaveBeenCalledOnce();
     expect(wrapper.text()).toContain("1.0 GB of 2.0 GB verified");
+  });
+
+  it("on a narrow page, swaps the section tabs for search, and Escape or Cancel brings them back", async () => {
+    // The narrow page hides the field behind a button. A close that kept the
+    // query would leave results under the tabs; one that dropped focus would
+    // strand a keyboard player.
+    const wrapper = mountView({}, { attach: true });
+    await flushPromises();
+    const aside = wrapper.get(".settings-page aside");
+    const toggle = wrapper.get('button[aria-label="Search settings"]');
+    for (const close of [
+      () => wrapper.get('input[type="search"]').trigger("keydown", { key: "Escape" }),
+      () => wrapper.findAll("aside button").find(button => button.text() === "Cancel")!.trigger("click"),
+    ]) {
+      await toggle.trigger("click");
+      await flushPromises();
+      expect(aside.classes()).toContain("search-open");
+      expect(document.activeElement).toBe(wrapper.get('input[type="search"]').element);
+      await wrapper.get('input[type="search"]').setValue("compass");
+      expect(wrapper.get(".settings-content h1").text()).toBe("Results");
+      await close();
+      await flushPromises();
+      expect(aside.classes()).not.toContain("search-open");
+      expect(wrapper.get(".settings-content h1").text()).toBe("Tools");
+      expect(document.activeElement).toBe(toggle.element);
+    }
+    // Choosing a result goes to its section: the tabs come back to show where it landed.
+    await toggle.trigger("click");
+    await wrapper.get('input[type="search"]').setValue("compass");
+    await wrapper.get(".settings-results button").trigger("click");
+    await flushPromises();
+    expect(aside.classes()).not.toContain("search-open");
+    expect(wrapper.get(".settings-content h1").text()).not.toBe("Results");
+    wrapper.unmount();
   });
 
   it("keeps the keyboard on a clicked section button, moves with the arrow keys without wrapping, and forgets the saved note", async () => {
