@@ -23,10 +23,10 @@ macOS supplies interaction.
   `.settings-view`, never on the game's `:root`. In the Hub,
   `hub-settings.css` points every launcher colour the page reads at the Hub
   token for the same role, so the page and its dialogs follow the player's Hub
-  theme and accent; the radius and type scales stay the launcher's. The
-  Settings stylesheet declares no colour of its own. Everything else drawn in
-  the game reads `app/shared/ui/tokens.css`. Settings sets each property of a
-  selector in one rule.
+  theme and accent; radii and the small type sizes stay the launcher's; fonts
+  and body size follow the Hub. The Settings stylesheet declares no colour of
+  its own. Everything else drawn in the game reads `app/shared/ui/tokens.css`.
+  Settings sets each property of a selector in one rule.
   `tests/unit/the-ui-system-has-one-place-to-change-a-colour.test.ts` checks
   every stylesheet and `.vue` style block, found by glob: it rejects raw
   colours (hex, colour functions and named colours), tokens the file's system
