@@ -109,6 +109,16 @@ const APP_SHARED_ONLY = "website/** and app/ui/tools/** may only reach into app/
 const NO_FEATURE_INTERNALS =
   "app/renderer/** reaches a feature only through app/features/companion-parts.ts, its manifest (feature.ts), its renderer/host.ts, or its shared/ folder. Move the code into the feature, or export it from its host.";
 
+// Any `goto` whose URL spells `?hub`, in a literal or a template, however the call wraps it.
+const HUB_GOTO = {
+  selector: String.raw`CallExpression[callee.property.name="goto"] :matches(Literal[value=/\?hub/], TemplateElement[value.raw=/\?hub/])`,
+  message: "Open the Hub fixture with openHub(page, query) from tests/hub-page.ts. page.goto returns before the Hub can take input.",
+};
+const HUB_RELOAD = {
+  selector: `CallExpression[callee.property.name="reload"]`,
+  message: "Reload the Hub fixture with reloadHub(page) from tests/hub-page.ts. page.reload returns before the Hub can take input.",
+};
+
 export default tseslint.config(
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
@@ -279,6 +289,22 @@ export default tseslint.config(
         { patterns: [{ regex: INTO_APP, message: APP_SHARED_ONLY }] },
       ],
       "no-restricted-syntax": ["error", ...crossings(INTO_APP, APP_SHARED_ONLY)],
+    },
+  },
+  {
+    // `page.goto` returns at the load event, before the Hub fixture has mounted the Hub, so a
+    // key pressed at once can reach no Hub. The Hub specs open and reload the page through
+    // tests/hub-page.ts, which waits until the Hub can take input. Other workbench pages reload
+    // freely, so only the Hub specs lose `reload`.
+    files: ["app/ui/tools/tests/**/*.ts"],
+    rules: {
+      "no-restricted-syntax": ["error", ...crossings(INTO_APP, APP_SHARED_ONLY), HUB_GOTO],
+    },
+  },
+  {
+    files: ["app/ui/tools/tests/hub*.spec.ts", "app/ui/tools/tests/trade-popout.spec.ts"],
+    rules: {
+      "no-restricted-syntax": ["error", ...crossings(INTO_APP, APP_SHARED_ONLY), HUB_GOTO, HUB_RELOAD],
     },
   },
   {
