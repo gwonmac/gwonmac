@@ -8,6 +8,7 @@
 import { afterEach, beforeAll, expect, test, vi } from 'vitest';
 import type { HubSource } from '../../../shared/hub';
 import { byRole, click, fill, loadFixture, mountFixture, press, settle, unmountFixture, until } from './hub-fixture-harness';
+import { narrow } from './hub-dom-narrow';
 
 beforeAll(loadFixture);
 afterEach(unmountFixture);
@@ -20,7 +21,7 @@ const rows = (selector: string) => document.querySelectorAll(selector).length;
 const hub = () => window.gwHub!;
 const frame = () => vi.advanceTimersByTimeAsync(20);
 const action = () => document.getElementById('app')!.dataset.action;
-const hubOpen = () => (document.getElementById('hub') as HTMLDialogElement).open;
+const hubOpen = () => narrow(HTMLDialogElement, document.getElementById('hub')).open;
 const exact = (role: string, name: string) => byRole(role, name, true)[0]!;
 /** The number of attribute changes a callback causes under `root`, as the specs' MutationObserver count. */
 function attributeChanges(root: Element, work: () => void, options: MutationObserverInit = { subtree: true, attributes: true }) {
@@ -59,22 +60,15 @@ test('arrow selection mutates only the old and new rows, and a pointer move leav
   expect(attributeChanges(footer, () => selected()!.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, movementX: 1 })), { childList: true, subtree: true })).toBe(0);
 });
 
-test('suspension keeps the selected row, and an explicit close empties the result DOM (HUB-171)', async () => {
+test('an explicit close empties the result DOM (HUB-171)', async () => {
   await mountFixture('&library=200');
   fill(search(), 'build m'); press('ArrowDown'); await settle();
-  const id = selected()!.getAttribute('data-id');
-  window.dispatchEvent(new Event('blur')); await settle();
-  expect(hubOpen()).toBe(false);
-  await until(() => rows('.hub-row') > 20);
-  press('Meta+r'); await settle();
-  expect(hubOpen()).toBe(true);
-  expect(selected()?.getAttribute('data-id')).toBe(id);
   click(exact('button', 'Close Hub')); await settle();
   expect(hubOpen()).toBe(false);
   expect(document.getElementById('hub-results')!.childElementCount).toBe(0);
 });
 
-test('source bursts coalesce to one search a frame, typing and opening search once synchronously (HUB-111)', async () => {
+test('source bursts coalesce to one search a frame, typing searches once synchronously (HUB-111)', async () => {
   await mountFixture('&library=200&templates-ms=1000');
   let calls = 0;
   let notify = () => {};
@@ -92,10 +86,8 @@ test('source bursts coalesce to one search a frame, typing and opening search on
   calls = 0;
   fill(search(), 'mo');
   const typing = calls;
-  hub().close(); calls = 0; hub().show();
-  const opening = calls;
   detach();
-  expect({ beforeFrame, afterFrame, typing, opening }).toEqual({ beforeFrame: 0, afterFrame: 1, typing: 1, opening: 1 });
+  expect({ beforeFrame, afterFrame, typing }).toEqual({ beforeFrame: 0, afterFrame: 1, typing: 1 });
 });
 
 test('an owned list ignores unrelated observations and still follows its own source (HUB-111)', async () => {
@@ -256,7 +248,7 @@ test('Settings describes its controls, and a shortcut label never starts a captu
   click(settingRow.querySelector('strong')!); await settle();
   expect(change.textContent).not.toContain('Press keys');
   click(settingRow.querySelector('strong')!); await settle();
-  expect((change as HTMLButtonElement).disabled).toBe(false);
+  expect(narrow(HTMLButtonElement, change).disabled).toBe(false);
   click(change); press('a'); await settle();
   expect(settingRow.textContent).toContain('Press a key with Command, Control or Option');
   expect(document.activeElement).toBe(change);
@@ -276,14 +268,14 @@ test('Trade counts and opacity values are passive, with slider value text (HUB-1
   fill(search(), 'settings'); press('Enter'); await until(() => document.querySelector('.hub-settings-host h1'));
   const appearance = [...document.querySelectorAll<HTMLButtonElement>('[aria-label="Settings sections"] button')].find(button => button.textContent?.trim() === 'Appearance')!;
   click(appearance); await settle();
-  const opacity = byRole('slider', 'Panel opacity', true)[0] as HTMLInputElement;
+  const opacity = narrow(HTMLInputElement, byRole('slider', 'Panel opacity', true)[0]);
   opacity.focus(); opacity.value = String(Number(opacity.value) - 1); opacity.dispatchEvent(new Event('input', { bubbles: true })); await settle();
   expect(opacity.getAttribute('aria-valuetext')).toBe(`${opacity.value}%`);
   expect(document.querySelectorAll('.settings-fields output')).toHaveLength(0);
   click(exact('button', 'Home')); await settle();
   fill(search(), 'whisper Romi'); press('Enter'); await settle();
   click(document.querySelector<HTMLElement>('[aria-label="Chat options"]')!); await settle();
-  const whisper = byRole('slider', 'Background', true)[0] as HTMLInputElement;
+  const whisper = narrow(HTMLInputElement, byRole('slider', 'Background', true)[0]);
   whisper.value = String(Number(whisper.value) - 1); whisper.dispatchEvent(new Event('input', { bubbles: true })); await settle();
   expect(whisper.getAttribute('aria-valuetext')).toBe(`${whisper.value}%`);
   expect(document.querySelectorAll('.whisper-opacity output')).toHaveLength(0);

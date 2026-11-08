@@ -7,6 +7,7 @@
  */
 import { afterEach, beforeAll, expect, test, vi } from 'vitest';
 import { byRole, click, fill, loadFixture, mountFixture, press, settle, unmountFixture, until } from './hub-fixture-harness';
+import { narrow } from './hub-dom-narrow';
 
 process.env.TZ = 'UTC';
 beforeAll(loadFixture);
@@ -19,14 +20,19 @@ const conversion = () => document.querySelector('.hub-conversion');
 const status = () => document.querySelector('.hub-status')!.textContent;
 const viewStatus = () => document.querySelector('.hub-view [role=status]')?.textContent;
 const selectedId = () => document.querySelector('.hub-row[aria-selected=true]')?.getAttribute('data-id');
-const control = (role: string, name: string) => byRole(role, name, true)[0] as HTMLElement;
-const choose = (select: HTMLElement, value: string) => { (select as HTMLSelectElement).value = value; select.dispatchEvent(new Event('change', { bubbles: true })); };
+const control = (role: string, name: string) => narrow(HTMLElement, byRole(role, name, true)[0]);
+const input = (name: string) => narrow(HTMLInputElement, byRole('textbox', name, true)[0]);
+const enabled = (name: string) => byRole('button', name).some(candidate => candidate instanceof HTMLButtonElement && !candidate.disabled);
+const choose = (select: HTMLElement, value: string) => { narrow(HTMLSelectElement, select).value = value; select.dispatchEvent(new Event('change', { bubbles: true })); };
 const lastAction = () => app().dataset.action;
 const mount = async (query = '') => { await mountFixture(query); vi.setSystemTime(NOW); };
-type Native = { trade: { getTraderQuotes(): Promise<{ quotes: { price: number; timestamp: number }[] }> } };
-const native = () => window.gwNative as unknown as Native;
+const trade = () => {
+  const native = window.gwNative;
+  if (!('trade' in native)) throw new Error('The Hub fixture runs with Tools.');
+  return native.trade;
+};
 
-test('changing the price basis keeps the card and the picker focused, and Enter copies the re-priced card', async () => {
+test('changing the price basis keeps the card, and Enter copies the re-priced card', async () => {
   await mount();
   fill(search(), '1zkey in a'); await settle();
   const picker = control('combobox', 'Price basis');
@@ -34,14 +40,12 @@ test('changing the price basis keeps the card and the picker focused, and Enter 
   const copied: string[] = [];
   for (const side of ['wtb', 'wts']) {
     choose(picker, side); await settle();
-    expect(document.activeElement).toBe(picker);
     expect(selectedId()).toBe('market:result');
-    expect(byRole('button', 'Copy ~ ').some(button => !(button as HTMLButtonElement).disabled)).toBe(true);
+    expect(enabled('Copy ~ ')).toBe(true);
     delete app().dataset.action;
     press('Enter');
     await until(() => lastAction()?.startsWith('Copied 1 zkey = ~ '));
     copied.push(lastAction()!);
-    expect(document.activeElement).toBe(picker);
   }
   // Each basis prices the card on its own side of the market.
   expect(copied[0]).not.toBe(copied[1]);
@@ -67,7 +71,7 @@ test.each([
   await mount();
   await openRates();
   choose(control('combobox', 'Rate source'), 'manual'); await settle();
-  const field = control('textbox', label) as HTMLInputElement;
+  const field = input(label);
   fill(field, value);
   press('Meta+Enter'); await settle();
   expect(viewStatus()).toBe(`${label}: ${message}`);
@@ -79,9 +83,9 @@ test('trading shorthand rates save once on a double command-Enter and price the 
   await mount('&settings-ms=1000');
   await openRates();
   choose(control('combobox', 'Rate source'), 'manual'); await settle();
-  fill(control('textbox', 'Gold per ectoplasm') as HTMLInputElement, '5k');
-  fill(control('textbox', 'Ectoplasm per armbrace') as HTMLInputElement, '30');
-  const key = control('textbox', 'Ectoplasm per Zaishen key') as HTMLInputElement;
+  fill(input('Gold per ectoplasm'), '5k');
+  fill(input('Ectoplasm per armbrace'), '30');
+  const key = input('Ectoplasm per Zaishen key');
   fill(key, '.5');
   let saves = 0;
   const set = window.gwNative.settings.set;
@@ -105,12 +109,12 @@ test('trading shorthand rates save once on a double command-Enter and price the 
 test('a missing quote names its item and Enter retries the selected result once', async () => {
   await mount();
   let reads = 0;
-  const get = native().trade.getTraderQuotes;
-  native().trade.getTraderQuotes = async () => { reads++; return get(); };
+  const get = trade().getTraderQuotes;
+  trade().getTraderQuotes = async () => { reads++; return get(); };
   fill(search(), '1 iron in g'); await settle();
   const row = document.querySelector('.hub-row[aria-selected=true]');
   expect(row?.textContent).toContain('Iron Ingot');
-  expect(byRole('button', 'Retry').some(button => !(button as HTMLButtonElement).disabled)).toBe(true);
+  expect(enabled('Retry')).toBe(true);
   const before = reads;
   press('Enter'); await settle();
   expect(reads - before).toBe(1);
@@ -118,8 +122,8 @@ test('a missing quote names its item and Enter retries the selected result once'
 
 test('a loading refusal clears when the quotes arrive', async () => {
   await mount();
-  const get = native().trade.getTraderQuotes;
-  native().trade.getTraderQuotes = async () => { await new Promise(resolve => setTimeout(resolve, 200)); return get(); };
+  const get = trade().getTraderQuotes;
+  trade().getTraderQuotes = async () => { await new Promise(resolve => setTimeout(resolve, 200)); return get(); };
   fill(search(), '10e in p'); press('Enter');
   await until(() => status() === 'Loading trader quotes…');
   await until(() => conversion()?.textContent?.includes('60 platinum'));
@@ -137,7 +141,7 @@ test.each([
   fill(search(), query); await settle();
   expect(document.querySelectorAll('.hub-conversion')).toHaveLength(1);
   if (query === '2+2') expect(document.querySelector('.hub-conversion .hub-title')?.textContent).toBe('4');
-  expect(byRole('button', 'Copy').some(button => !(button as HTMLButtonElement).disabled)).toBe(true);
+  expect(enabled('Copy')).toBe(true);
   press('Enter'); await settle();
   expect(lastAction()).toBe(payload);
   if (query === '10e in p') expect(status()).toBe('Copied “60 platinum (sample)”');
@@ -146,8 +150,8 @@ test.each([
 test('a stale observed quote offers Refresh, which re-reads once and re-prices; price details label the median evidence', async () => {
   await mount();
   let count = 0;
-  const get = native().trade.getTraderQuotes;
-  native().trade.getTraderQuotes = async () => {
+  const get = trade().getTraderQuotes;
+  trade().getTraderQuotes = async () => {
     const result = await get(); count++;
     return { ...result, quotes: result.quotes.map(quote => ({ ...quote, price: count === 1 ? 6000 : 7000, timestamp: Date.now() - (count === 1 ? 3_600_000 : 0) })) };
   };
@@ -171,7 +175,7 @@ test('a default target names the copy action and a per-item question reads as on
   await mount();
   fill(search(), '1k'); await settle();
   expect(conversion()?.textContent).toContain('Default target');
-  expect(byRole('button', 'Copy 1,000 gold').some(button => !(button as HTMLButtonElement).disabled)).toBe(true);
+  expect(enabled('Copy 1,000 gold')).toBe(true);
   fill(search(), '14a per stack in e each'); await settle();
   expect(conversion()?.getAttribute('aria-label')).toMatch(/^14 a per stack each equals/u);
 });
@@ -181,7 +185,7 @@ test('a rate save refused after Back reports its named failure over the new page
   await openRates();
   window.gwNative.settings.set = async () => { await new Promise(resolve => setTimeout(resolve, 400)); throw new Error('Synthetic settings refusal'); };
   choose(control('combobox', 'Rate source'), 'manual'); await settle();
-  fill(control('textbox', 'Gold per ectoplasm') as HTMLInputElement, '5k');
+  fill(input('Gold per ectoplasm'), '5k');
   click(byRole('button', 'Use these rates')[0]!);
   click(control('button', 'Back')); fill(search(), '2+2');
   await vi.advanceTimersByTimeAsync(700); await settle();
@@ -200,15 +204,15 @@ test('switching the source with blank rates restores the named prompt on Back', 
   expect(viewStatus()).toContain('Your rates saved');
   click(control('button', 'Back')); await settle();
   expect(document.querySelector('.hub-row[aria-selected=true]')?.textContent).toContain('Set a rate for Glob of Ectoplasm');
-  expect(byRole('button', 'Set rates').some(button => !(button as HTMLButtonElement).disabled)).toBe(true);
+  expect(enabled('Set rates')).toBe(true);
   expect(status()).not.toContain('previous selection');
 });
 
 test('a resumed or rates-saved quote keeps its selection and empty status, and Enter copies it, reading quotes once', async () => {
   await mount();
   let reads = 0;
-  const get = native().trade.getTraderQuotes;
-  native().trade.getTraderQuotes = async () => { reads++; return get(); };
+  const get = trade().getTraderQuotes;
+  trade().getTraderQuotes = async () => { reads++; return get(); };
   fill(search(), '10e in p'); await settle();
   expect(selectedId()).toBe('quote:result');
   window.dispatchEvent(new Event('blur')); await settle();

@@ -48,6 +48,53 @@ test('root typing and complete library entry stay within the scale budget (HUB-1
   expect(timings.libraryLongTasks.filter(duration => duration > timeBudget(50))).toEqual([]);
 });
 
+test('suspension retains the selected row across a ⌘R reopen (HUB-171)', async ({ page }) => {
+  await page.goto('/?hub&library=1000');
+  await expect(page.locator('#app')).toHaveAttribute('data-ready', 'true');
+  const search = page.locator('.hub-search input');
+  await search.fill('build m');
+  await search.press('ArrowDown');
+  const selected = await page.locator('#hub [aria-selected="true"]').getAttribute('data-id');
+  await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+  await expect(page.locator('#hub')).toBeHidden();
+  await expect.poll(() => page.locator('.hub-row').count()).toBeGreaterThan(100);
+  await page.keyboard.press('Meta+r');
+  await expect(page.locator('#hub [aria-selected="true"]')).toHaveAttribute('data-id', selected!);
+});
+
+
+test('source bursts coalesce while typing stays synchronous and opening searches once (HUB-111)', async ({ page }) => {
+  await page.goto('/?hub&library=1000&templates-ms=1000');
+  await expect(page.locator('#app')).toHaveAttribute('data-ready', 'true');
+  const result = await page.evaluate(async () => {
+    const hub = window.gwHub!;
+    let calls = 0;
+    let notify = () => {};
+    const detach = hub.attach({
+      search() { calls++; return []; },
+      subscribe(listener) { notify = listener; return () => {}; },
+      setVisible(visible) { if (visible) { notify(); notify(); } },
+    });
+    await new Promise(requestAnimationFrame);
+    calls = 0;
+    for (let index = 0; index < 20; index++) notify();
+    const beforeFrame = calls;
+    await new Promise(requestAnimationFrame);
+    const afterFrame = calls;
+    calls = 0;
+    const input = document.querySelector<HTMLInputElement>('.hub-search input')!;
+    input.value = 'mo'; input.dispatchEvent(new Event('input', { bubbles: true }));
+    const typing = calls;
+    hub.close(); calls = 0; hub.show();
+    const opening = calls;
+    await new Promise(requestAnimationFrame);
+    const afterOpeningFrame = calls;
+    detach();
+    return { beforeFrame, afterFrame, typing, opening, afterOpeningFrame };
+  });
+  expect(result).toEqual({ beforeFrame: 0, afterFrame: 1, typing: 1, opening: 1, afterOpeningFrame: 1 });
+});
+
 test('End scrolls its row into view and Back restores the scroll in the 1000-build Library (HUB-112)', async ({ page }) => {
   await page.goto('/?hub&library=1000');
   await expect(page.locator('#app')).toHaveAttribute('data-ready', 'true');

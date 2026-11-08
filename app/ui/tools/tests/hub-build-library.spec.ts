@@ -81,6 +81,22 @@ test('a folder-qualified build keeps its path label inside its row at 320px', as
   await page.screenshot({ path: info.outputPath('hub-folder-search.png') });
 });
 
+test('nested folders browse one level at a time and use the same build filters', async ({ page }) => {
+  await page.goto('/?hub');
+  await page.getByRole('button', { name: 'Close Hub', exact: true }).click();
+  await page.getByLabel('Fixture scenario', { exact: true }).selectOption('folders');
+  const search = page.locator('.hub-search input');
+  await search.fill('build'); await search.press('Enter');
+  await search.fill('Guild Wars templates'); await search.press('Enter');
+  await search.fill('Team Builds'); await search.press('Enter');
+  await expect(page.locator('.hub-row')).toContainText(['Dungeons', 'Farming']);
+  await search.fill('Farming'); await search.press('Enter');
+  await expect(page.locator('.hub-breadcrumbs')).toContainText('Team Builds›Farming');
+  await search.fill('folder:"Team Builds/Farming" monk');
+  await expect(page.locator('.hub-build-row')).toHaveCount(1);
+  await expect(page.locator('.hub-build-row')).toContainText('Protection');
+});
+
 test('a blocked hero row inks its title like its detail', async ({ page }) => {
   await page.goto('/?hub');
   await page.getByRole('button', { name: 'Close Hub', exact: true }).click();

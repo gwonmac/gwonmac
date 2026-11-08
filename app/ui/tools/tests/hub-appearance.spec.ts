@@ -431,7 +431,7 @@ test.describe('custom theme with the Modern flat finish', () => {
     await page.screenshot({ path: info.outputPath('custom-modern-build-library.png') });
   });
 
-  test('choosing the saved theme in Hub Settings paints the Settings rows', async ({ page }, info) => {
+  test('choosing the saved theme in Hub Settings keeps focus on the select and paints the rows', async ({ page }, info) => {
     await page.goto('/?hub');
     const search = page.locator('.hub-search input');
     await expect(search).toBeFocused();
@@ -444,6 +444,7 @@ test.describe('custom theme with the Modern flat finish', () => {
     // the saved change re-renders the page and must keep focus on the control.
     await style.focus(); await style.selectOption('custom');
     await expect.poll(() => page.evaluate(() => document.documentElement.dataset.uiMaterial)).toBe('modern');
+    await expect(style).toBeFocused();
     const row = page.locator('[data-setting="uiStyle"]');
     let expectedPaint: number[] | undefined;
     for (const border of ['#D8D2BF', '#8A7F6A', '#1B1A18'] as const) {
@@ -453,5 +454,6 @@ test.describe('custom theme with the Modern flat finish', () => {
     await page.screenshot({ path: info.outputPath('custom-modern-settings.png') });
     await style.selectOption('guild-wars');
     await expect(page.locator('#hub > .hub-panel > .ui-frame-artwork')).toBeVisible();
+    await expect(style).toBeFocused();
   });
 });

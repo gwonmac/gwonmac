@@ -6,6 +6,19 @@ test.beforeEach(async ({ page }) => {
   await page.clock.setFixedTime(new Date('2026-09-30T12:00:00Z'));
 });
 
+test('the price-basis picker keeps keyboard focus through changes and Enter', async ({ page }) => {
+  await page.goto('/?hub');
+  await page.locator('.hub-search input').fill('1zkey in a');
+  const picker=page.getByRole('combobox',{name:'Price basis'});
+  await picker.focus();
+  for(const side of ['wtb','wts']){
+    await picker.selectOption(side);
+    await expect(picker).toBeFocused();
+    await picker.press('Enter');
+    await expect(picker).toBeFocused();
+  }
+});
+
 test('the rates a player saves survive a reload', async ({ page }) => {
   await page.goto('/?hub&settings-ms=1000');
   const search=page.locator('.hub-search input');

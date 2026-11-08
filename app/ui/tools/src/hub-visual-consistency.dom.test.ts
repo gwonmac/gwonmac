@@ -11,6 +11,7 @@ import { DEFAULT_SETTINGS } from '../../../shared/contracts';
 // eslint-disable-next-line no-restricted-imports
 import { applyAppearance } from '../../../renderer/appearance';
 import { byRole, click, fill, loadFixture, mountFixture, press, settle, unmountFixture } from './hub-fixture-harness';
+import { narrow } from './hub-dom-narrow';
 
 beforeAll(loadFixture);
 afterEach(unmountFixture);
@@ -22,7 +23,7 @@ const row = (id: string) => document.querySelector<HTMLElement>(`[data-id="${id}
 const rowWith = (text: string) => [...document.querySelectorAll<HTMLElement>('.hub-row')].find(candidate => candidate.textContent?.includes(text))!;
 const attribute = (selector: string, name: string) => document.querySelector(selector)?.getAttribute(name);
 const menuItem = (name: string) => byRole('menuitem', name)[0]!;
-const hubOpen = () => (document.getElementById('hub') as HTMLDialogElement).open;
+const hubOpen = () => narrow(HTMLDialogElement, document.getElementById('hub')).open;
 
 test('template folders draw a loaded folder glyph, never an image URL (HUB-089)', async () => {
   await mountFixture();
