@@ -9,6 +9,7 @@
 ## Adoption log
 
 - 2026-11-08 L1 started with the move to Ginko 0.16. This record written; `check-launch.mjs` ran only against the local build in preview mode: 16 pass, 3 fail, 1 warn, 6 skip. Open from that run: SEO-10 (the docs layer links `/blog/rss.xml`, which answers 404), SEO-01 (`/blog` and `/de/blog` share the title "Blog · GWonMac"), PERF-02 (images without width or height). SEO-04 listed all 55 sitemap pages, most likely because a preview answers every page with `x-robots-tag: noindex`; production must confirm it. Next: run it against production after the deploy and list its failed items as open here.
+- 2026-11-08 Ginko 0.16.4. In the local production build, `/blog/rss.xml` and `/de/blog/rss.xml` answer 200 with an RSS feed (the German one has no items, because there are no German posts), so SEO-10 should pass on the next production run. An old English path under `/de` (`/de/docs/guides/install`) now answers 404 instead of an empty page; the old German paths still redirect.
 
 ## Profile
 
