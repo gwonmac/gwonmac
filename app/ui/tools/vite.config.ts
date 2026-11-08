@@ -78,6 +78,9 @@ export default defineConfig(({ mode }) => {
       execArgv: ["--no-experimental-webstorage"],
       globals: true,
       include: ["src/**/*.test.ts"],
+      // Every run takes a new order, so a test that leans on the one before it fails; rerun a
+      // failure with the seed it prints (`--sequence.seed=<seed>`).
+      sequence: { shuffle: true },
     },
   };
 });
