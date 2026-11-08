@@ -13,6 +13,7 @@
  * forwarder hands the stub's arguments to `__syscall_newfstatat` behind a dirfd
  * that no real call can produce, where the renderer answers it.
  */
+import { ProofRefusal } from "./stage-refusal.js";
 import { createHash } from "node:crypto";
 // The dirfd markers are canonical in app/shared because the renderer half needs
 // the same values and cannot import from here; the Rollup-bundled preload
@@ -706,7 +707,7 @@ export const TEMPLATE_SAVE_BUILDS: readonly KnownTemplateSaveBuild[] =
   ]);
 
 function fail(message: string): never {
-  throw new Error(`template-save transform: ${message}`);
+  throw new ProofRefusal(`template-save transform: ${message}`);
 }
 
 function sha256(bytes: Uint8Array): string {
@@ -816,7 +817,7 @@ function transformTemplateSaveWasm(
 ): Readonly<{ bytes: Uint8Array; sha256: string }> {
   const inputHash = sha256(input);
   if (inputHash !== build.sha256) {
-    throw new Error(`template-save transform: unsupported input ${inputHash}`);
+    throw new ProofRefusal(`template-save transform: unsupported input ${inputHash}`);
   }
 
   const sections = splitSections(input);
@@ -897,11 +898,11 @@ export function certifyTemplateSaveRewrite(
   draft: KnownTemplateSaveBuild,
 ): Readonly<{ build: KnownTemplateSaveBuild; bytes: Uint8Array }> {
   if (draft.outputSha256 !== "") {
-    throw new Error("template-save transform: certification requires a draft");
+    throw new ProofRefusal("template-save transform: certification requires a draft");
   }
   const transformed = transformTemplateSaveWasm(input, draft);
   if (!WebAssembly.validate(transformed.bytes)) {
-    throw new Error("template-save transform: rewritten module is invalid");
+    throw new ProofRefusal("template-save transform: rewritten module is invalid");
   }
   return {
     build: { ...draft, outputSha256: transformed.sha256 },
@@ -916,10 +917,10 @@ export function rewriteTemplateSaveWasm(
   const transformed = transformTemplateSaveWasm(input, build);
   const output = transformed.bytes;
   if (transformed.sha256 !== build.outputSha256) {
-    throw new Error(`template-save transform: unexpected output ${transformed.sha256}`);
+    throw new ProofRefusal(`template-save transform: unexpected output ${transformed.sha256}`);
   }
   if (!WebAssembly.validate(output)) {
-    throw new Error("template-save transform: rewritten module is invalid");
+    throw new ProofRefusal("template-save transform: rewritten module is invalid");
   }
   return output;
 }

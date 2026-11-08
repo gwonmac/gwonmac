@@ -2,6 +2,7 @@
  * Produces and validates the closed friend-observer certificate used across verifier IPC.
  * Production must re-run the same structural inspectors before rewriting the certified bytes.
  */
+import { ProofRefusal } from "./stage-refusal.js";
 import { createHash } from "node:crypto";
 import { isDigest } from "../../shared/digest.js";
 import {
@@ -34,7 +35,7 @@ const derivedSemanticSha256 = createHash("sha256").update(JSON.stringify({
   contract: "isolated-input-bound-friend-observer-v1",
 })).digest("hex");
 if (derivedSemanticSha256 !== FRIEND_OBSERVER_SEMANTIC_SHA256) {
-  throw new Error("friend observer semantic contract digest is stale");
+  throw new ProofRefusal("friend observer semantic contract digest is stale");
 }
 export { FRIEND_OBSERVER_SEMANTIC_SHA256 };
 

@@ -21,6 +21,7 @@
  * host writes it; this file only carries it across.
  */
 import { createHash } from "node:crypto";
+import { ProofRefusal, refusedOrRethrow } from "./stage-refusal.js";
 import {
   concat,
   encodeCode,
@@ -102,7 +103,7 @@ export const NATIVE_DOUBLE_CLICK_BUILDS: readonly NativeDoubleClickBuild[] = [
 ];
 
 function fail(message: string): never {
-  throw new Error(`native double-click transform: ${message}`);
+  throw new ProofRefusal(`native double-click transform: ${message}`);
 }
 
 const sha256 = (bytes: Uint8Array): string =>
@@ -188,8 +189,8 @@ export function deriveNativeDoubleClickBuild(
       ...candidate,
       derivations: Object.freeze({ [inputSha256]: sha256(output) }),
     };
-  } catch {
-    return null;
+  } catch (error) {
+    return refusedOrRethrow(error);
   }
 }
 

@@ -1,21 +1,27 @@
 /**
  * Tells a stage that refused its input from a stage that failed to check it.
  *
- * A refusal is the proof's own answer about these exact bytes: the stage
- * throws a plain `Error` from its `fail()` helper, or the shared refusal
- * vocabulary (`EvidenceError`, `ProofLimitError`). It is deterministic, so a
- * complete pass may store it. Anything else (a `TypeError`, a `RangeError`
- * from a stack overflow or an allocation, a non-Error value) is a defect or a
- * resource failure, says nothing about the build, and must never be stored:
- * the next start checks again.
+ * A refusal is the proof's own answer about these exact bytes: a
+ * `ProofRefusal`, which every proof's `fail()` throws and which the shared
+ * refusal vocabulary (`EvidenceError`, `ProofLimitError`) extends, or the
+ * shared WASM codec's `WasmFormatError` for bytes it cannot read. It is
+ * deterministic, so a complete pass may store it. Anything else (a `TypeError`
+ * from a bug, a `RangeError` from a stack overflow or a failed allocation, a
+ * plain `Error`, a non-Error value) is a defect or a resource failure, says
+ * nothing about the build, and must never be stored: the next start checks
+ * again.
+ *
+ * Every catch under `app/client/certification/` decides through
+ * `refusedOrRethrow`; tests/policy/certification-catches-only-refusals.test.ts
+ * names the few that may not and why.
  */
-import { ProofLimitError } from "./semantic-proof.js";
-import { EvidenceError } from "./wasm-evidence-error.js";
+import { WasmFormatError } from "../../main/core/wasm-binary.js";
+
+/** A proof's refusal of the exact bytes it was given. */
+export class ProofRefusal extends Error {}
 
 export function isStageRefusal(error: unknown): boolean {
-  return error instanceof EvidenceError
-    || error instanceof ProofLimitError
-    || (error instanceof Error && Object.getPrototypeOf(error) === Error.prototype);
+  return error instanceof ProofRefusal || error instanceof WasmFormatError;
 }
 
 /** For a stage's catch block: a refusal is "no proof"; any other failure propagates. */

@@ -26,6 +26,7 @@ import type {
 import { decodeFunctions } from "./wasm-instruction-evidence.js";
 export { decodeFunctions } from "./wasm-instruction-evidence.js";
 import { EvidenceError } from "./wasm-evidence-error.js";
+import { refusedOrRethrow } from "./stage-refusal.js";
 import { dataEvidence, type WasmDataEvidence } from "./wasm-data-evidence.js";
 import { readonlyMapView } from "./readonly-map-view.js";
 import { cachedFor, moduleViews } from "./module-views.js";
@@ -153,7 +154,10 @@ function skipName(bytes: Uint8Array, cursor: Offset): string {
     return new TextDecoder("utf-8", { fatal: true }).decode(
       bytes.subarray(start, cursor.value),
     );
-  } catch {
+  } catch (error) {
+    // A fatal TextDecoder reports invalid UTF-8 as a TypeError: a fact about
+    // these bytes, so it alone is a refusal here.
+    if (!(error instanceof TypeError)) throw error;
     throw new EvidenceError("module-shape-unsupported");
   }
 }
@@ -245,7 +249,8 @@ function parseModule(input: Uint8Array): ModuleShape {
   let sections: Section[];
   try {
     sections = splitSections(input);
-  } catch {
+  } catch (error) {
+    refusedOrRethrow(error);
     throw new EvidenceError("module-shape-unsupported");
   }
   let types: FunctionType[];
@@ -256,6 +261,7 @@ function parseModule(input: Uint8Array): ModuleShape {
     definedTypeIndices = parseIndexVector(requiredSection(sections, 3));
     bodies = parseCode(requiredSection(sections, 10));
   } catch (error) {
+    refusedOrRethrow(error);
     if (error instanceof EvidenceError) throw error;
     throw new EvidenceError("module-shape-unsupported");
   }
@@ -337,8 +343,8 @@ function parseClient(bytes: Uint8Array, sha256: string): ParsedClient | null {
   let views: ParsedClient["views"];
   try {
     views = moduleViews(parseModule(bytes));
-  } catch {
-    return null;
+  } catch (error) {
+    return refusedOrRethrow(error);
   }
   let tableRelations: ReadonlyMap<number, readonly number[]> | undefined;
   return Object.freeze({
@@ -458,7 +464,8 @@ export function activeTableEvidence(
   let segments: number;
   try {
     segments = readUnsigned(bytes, cursor);
-  } catch {
+  } catch (error) {
+    refusedOrRethrow(error);
     throw new EvidenceError("active-table-unsupported");
   }
   if (segments > MAX_FUNCTIONS) {
@@ -508,10 +515,8 @@ export function activeTableEvidence(
       }
     }
   } catch (error) {
-    if (error instanceof EvidenceError) {
-      if (error.code === "analysis-limit-exceeded") throw error;
-      throw new EvidenceError("active-table-unsupported");
-    }
+    refusedOrRethrow(error);
+    if (error instanceof EvidenceError && error.code === "analysis-limit-exceeded") throw error;
     throw new EvidenceError("active-table-unsupported");
   }
   if (cursor.value !== bytes.byteLength) {
@@ -918,7 +923,7 @@ export function callsAt(
 export function isolatedProof<Value>(proof: () => Value | null): Value | null {
   try {
     return proof();
-  } catch {
-    return null;
+  } catch (error) {
+    return refusedOrRethrow(error);
   }
 }

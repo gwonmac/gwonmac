@@ -2,6 +2,7 @@
  * Feature-local structural authority for the native Guild Wars cursor.
  * It refuses changed or ambiguous event ownership.
  */
+import { refusedOrRethrow } from "./stage-refusal.js";
 import { verifyLayout } from "./semantic-proof.js";
 import { CLIENT_TICK_ROLE } from "./enhancement-client-hook-role.js";
 import { tickEvidence } from "./enhancement-tick-evidence.js";
@@ -313,7 +314,7 @@ export function locateAutomaticCursor(
     return matches.every((match) => identity(match) === identity(matches[0]!))
       ? matches[0]!
       : null;
-  } catch {
-    return null;
+  } catch (error) {
+    return refusedOrRethrow(error);
   }
 }

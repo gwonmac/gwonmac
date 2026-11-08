@@ -2,6 +2,7 @@
  * Attaches bounded skill and effect labels to native icon draw batches. The
  * original UI owns clipping and order; retained meshes avoid per-frame uploads.
  */
+import { ProofRefusal } from "./stage-refusal.js";
 import { concat, encodeCode, encodeIndexVector, encodeSection, parseCode, parseExports,
   parseIndexVector, sectionById, sleb, splitSections, uleb, vectorPayload, WASM_HEADER } from "../../main/core/wasm-binary.js";
 import { call, encodeName, f32Const, f32Load, f32Store, globalGet, globalSet, i32Const, i32Load, i32Store, localGet, localSet, op } from "./wasm-emit.js";
@@ -144,12 +145,12 @@ const STRIDE = 316;
 
 export function appendNativeHud(input: Uint8Array, skillBarGlobal: number,
   accepted?: Readonly<{ functionBodies: NativeRenderFunctionBodies }>): Uint8Array {
-  const evidence = wasmEvidence(input); if (!evidence) throw new Error("invalid native HUD input");
+  const evidence = wasmEvidence(input); if (!evidence) throw new ProofRefusal("invalid native HUD input");
   const module = evidence.moduleView();
   const bindings = resolveNativeRenderBindings(module, CHECKED);
   const derived = deriveNativeHudRendering(evidence);
   if (!bindings || !derived || (accepted !== undefined && !isDeepStrictEqual(derived, accepted))) {
-    throw new Error("native HUD rendering proof changed");
+    throw new ProofRefusal("native HUD rendering proof changed");
   }
   const sections = splitSections(input);
   const globals = vectorPayload(sectionById(sections, 6));
@@ -158,7 +159,7 @@ export function appendNativeHud(input: Uint8Array, skillBarGlobal: number,
   const names = parseExports(sectionById(sections, 7));
   const malloc = names.find((entry) => entry.name === "malloc")?.index;
   const free = names.find((entry) => entry.name === "free")?.index;
-  if (malloc === undefined || free === undefined) throw new Error("native HUD allocators missing");
+  if (malloc === undefined || free === undefined) throw new ProofRefusal("native HUD allocators missing");
   const bodies = parseCode(sectionById(sections, 10));
   const types = parseIndexVector(sectionById(sections, 3));
   const base = globals.count;
@@ -375,7 +376,7 @@ export function appendNativeHud(input: Uint8Array, skillBarGlobal: number,
   // collector so labels finish an icon subtree before later panels/tooltips.
   const cacheBody = bodies[bindings.functionIndex(6585) - module.functionImportCount]!;
   const cacheSite = evidence.decodeFunctions([]).find((row) => row.functionIndex === bindings.functionIndex(6585))?.callSites.get(bindings.functionIndex(6492));
-  if (cacheSite?.length !== 1) throw new Error("native HUD collection site changed");
+  if (cacheSite?.length !== 1) throw new ProofRefusal("native HUD collection site changed");
   const site = cacheSite[0]!;
   bodies[bindings.functionIndex(6585) - module.functionImportCount] = concat(cacheBody.slice(0, site.offset),
     add(localGet(2), 4), localGet(3), op(0x49, 0x04, 0x7f), localGet(2), i32Load(4), op(0x05), i32Const(0), op(0x0b), put(9),

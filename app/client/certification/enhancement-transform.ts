@@ -15,6 +15,7 @@
  * so no capability selection may inherit another's ordering.
  *
  */
+import { ProofRefusal } from "./stage-refusal.js";
 import { appendNativeHud } from "./native-hud-transform.js";
 import { createHash } from "node:crypto";
 import { isDeepStrictEqual } from "node:util";
@@ -95,6 +96,7 @@ export { ENHANCEMENT_MANIFEST_SECTION } from "./enhancement-transform-manifest.j
 declare const WebAssembly: {
   Module: new (bytes: Uint8Array) => unknown;
   validate(bytes: Uint8Array): boolean;
+  CompileError: new () => Error;
 };
 
 export const ENHANCEMENT_HOOK_EXPORT = "enhancement_hook_slot";
@@ -105,7 +107,7 @@ const COMMAND_PARAMS = 5;
 const COMMAND_ARGS = COMMAND_PARAMS - 1;
 
 function fail(message: string): never {
-  throw new Error(`enhancement transform: ${message}`);
+  throw new ProofRefusal(`enhancement transform: ${message}`);
 }
 
 function assertSignature(
@@ -996,6 +998,9 @@ function assembleEnhancementTransform(
     try {
       new WebAssembly.Module(output);
     } catch (error) {
+      // Only the compiler's reason belongs in the refusal; a RangeError from
+      // a failed allocation is a fault and propagates.
+      if (!(error instanceof WebAssembly.CompileError)) throw error;
       fail(`rewritten module failed validation: ${String(error)}`);
     }
     fail("rewritten module failed validation");

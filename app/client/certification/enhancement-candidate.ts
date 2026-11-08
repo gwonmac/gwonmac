@@ -2,6 +2,7 @@
  * Read-only reporting for a possible Enhancement client module. Inspection
  * describes structure for recertification tooling and grants no capability.
  */
+import { ProofRefusal, refusedOrRethrow } from "./stage-refusal.js";
 import { createHash } from "node:crypto";
 import { findEnhancementBuild } from "./enhancement-builds.js";
 import { parseEnhancementTable } from "./enhancement-table.js";
@@ -71,17 +72,18 @@ export function inspectEnhancementCandidate(
   }
   let table: EnhancementCandidateReport["table"];
   try {
-    if (!module.tableSection) throw new Error("missing table section");
+    if (!module.tableSection) throw new ProofRefusal("missing table section");
     const { min, max } = parseEnhancementTable(module.tableSection);
     const active = activeTableEvidence(module.elementSection);
-    if (active.overwrittenSlots.length > 0) throw new Error("overwritten table slot");
+    if (active.overwrittenSlots.length > 0) throw new ProofRefusal("overwritten table slot");
     const occupied = new Set([...active.relations.values()].flat());
     const firstEmptySlots: number[] = [];
     for (let slot = 0; slot < min && firstEmptySlots.length < 8; slot += 1) {
       if (!occupied.has(slot)) firstEmptySlots.push(slot);
     }
     table = { min, max, firstEmptySlots };
-  } catch {
+  } catch (error) {
+    refusedOrRethrow(error);
     table = null;
   }
   return {

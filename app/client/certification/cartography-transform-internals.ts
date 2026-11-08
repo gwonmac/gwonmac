@@ -2,6 +2,7 @@
  * Owns certified constants and bytecode emitters for native Cartography.
  * It does not choose a client or memory layout for a launch.
  */
+import { ProofRefusal } from "./stage-refusal.js";
 import {
   concat,
   readSleb,
@@ -97,7 +98,7 @@ export const WORLD_MAP_ANCHOR_CERTIFICATE = Object.freeze({
 });
 
 export function fail(message: string): never {
-  throw new Error(`pathing spike transform: ${message}`);
+  throw new ProofRefusal(`pathing spike transform: ${message}`);
 }
 
 export function encodeTypes(types: readonly FunctionType[]): Uint8Array {

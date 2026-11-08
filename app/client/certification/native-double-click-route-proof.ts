@@ -3,6 +3,7 @@
  * It locates the bounded callback-to-consumer graph without build-local indexes.
  */
 import { createHash } from "node:crypto";
+import { refusedOrRethrow } from "./stage-refusal.js";
 import { functionImportIndex } from "../../main/core/wasm-binary.js";
 import type {
   DecodedFunction,
@@ -446,7 +447,7 @@ export function locateNativeDoubleClickRoute(input: Uint8Array): NativeDoubleCli
       evidence.decodeFunctions([]).map((entry) => [entry.functionIndex, entry]),
     );
     return proveRoute({ evidence, module, decoded });
-  } catch {
-    return null;
+  } catch (error) {
+    return refusedOrRethrow(error);
   }
 }

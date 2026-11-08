@@ -3,6 +3,7 @@
  * These input-bound candidates never grant observation or command authority.
  */
 import { createHash } from "node:crypto";
+import { refusedOrRethrow } from "./stage-refusal.js";
 import type { DecodedFunction, ModuleShape } from "./enhancement-evidence-types.js";
 import { wasmEvidence, signatureMatches } from "./wasm-evidence.js";
 import { relocationAwareFingerprint, type RelocationSpan } from "./semantic-proof.js";
@@ -278,7 +279,8 @@ export function inspectFriendTable(input: Uint8Array): FriendTableEvidence {
         "reconnect-location-refresh",
       ],
     };
-  } catch {
+  } catch (error) {
+    refusedOrRethrow(error);
     return unavailable("bounded-analysis-refused");
   }
 }

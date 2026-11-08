@@ -19,6 +19,7 @@
  * which is just as well, because the most important call site here references
  * no source string at all.
  */
+import { ProofRefusal, refusedOrRethrow } from "./stage-refusal.js";
 import { createHash } from "node:crypto";
 import { isDeepStrictEqual } from "node:util";
 import {
@@ -92,7 +93,7 @@ export interface TemplateSaveAnalysis {
   readonly diagnostics: readonly string[];
 }
 
-class RecertError extends Error {
+class RecertError extends ProofRefusal {
   constructor(message: string) {
     super(`template-save recertify: ${message}`);
   }
@@ -146,7 +147,7 @@ interface Located {
  * The `not-applicable` signal: no function returns `i32.const 2` from a
  * `(i32,i32)->i32`, so this build has no create-directory stub to bridge.
  */
-class NotApplicableError extends Error {}
+class NotApplicableError extends ProofRefusal {}
 
 function locate(view: ModuleView): Located {
   const diagnostics: string[] = [];
@@ -353,7 +354,8 @@ function constantEndingAt(
     let value: number;
     try {
       value = readSleb(body, cursor);
-    } catch {
+    } catch (error) {
+      refusedOrRethrow(error);
       continue;
     }
     if (cursor.offset === end) return { value, start };
@@ -501,6 +503,7 @@ function analyzeTemplateSaveCandidateInternal(
   try {
     view = new ModuleView(input);
   } catch (error) {
+    refusedOrRethrow(error);
     return { ...empty, diagnostics: [String(error)] };
   }
 
@@ -546,6 +549,7 @@ function analyzeTemplateSaveCandidateInternal(
       ],
     };
   } catch (error) {
+    refusedOrRethrow(error);
     if (error instanceof NotApplicableError) {
       return {
         ...empty,

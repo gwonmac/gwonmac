@@ -78,6 +78,7 @@ import {
 declare const WebAssembly: {
   validate(bytes: Uint8Array): boolean;
   Module: new (bytes: Uint8Array) => object;
+  CompileError: new () => Error;
 };
 
 export { CARTOGRAPHY_SPIKE_TRANSFORM_ABI };
@@ -513,6 +514,9 @@ export function transformCartographySpikeWasm(
     try {
       new WebAssembly.Module(output);
     } catch (error) {
+      // Only the compiler's reason belongs in the refusal; a RangeError from
+      // a failed allocation is a fault and propagates.
+      if (!(error instanceof WebAssembly.CompileError)) throw error;
       fail(`rewritten module failed validation: ${String(error)}`);
     }
     fail("rewritten module failed validation");

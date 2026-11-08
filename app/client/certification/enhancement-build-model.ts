@@ -12,6 +12,7 @@
  * what the kernel reads and invalidates every `outputSha256` in the table, so
  * the two must be edited together or not at all.
  */
+import { ProofRefusal } from "./stage-refusal.js";
 import type { NATIVE_HUD_RENDERING_PROOF } from "./native-hud-transform.js";
 import {
   enhancementCapabilitiesForProfile,
@@ -181,26 +182,26 @@ export function enhancementConfigWords(
         return 0;
       }
       if (typeof value !== "number") {
-        throw new Error(`${field.owner} configuration is not certified`);
+        throw new ProofRefusal(`${field.owner} configuration is not certified`);
       }
       return value;
     }
     if (field.source === "dispatcher") {
       const dispatcher = build.uiDispatcher;
       if (!dispatcher) {
-        throw new Error("UI dispatcher configuration is not certified");
+        throw new ProofRefusal("UI dispatcher configuration is not certified");
       }
       return dispatcher[field.key];
     }
     if (field.source === "effect-dirty") {
       const effects = build.playerEffectObservation;
       if (!effects) {
-        throw new Error("player effect observation configuration is not certified");
+        throw new ProofRefusal("player effect observation configuration is not certified");
       }
       return effects.dirtyMessages[field.index] ?? 0;
     }
     const party = build.partyObservation;
-    if (!party) throw new Error("party observation configuration is not certified");
+    if (!party) throw new ProofRefusal("party observation configuration is not certified");
     return party.partyDirtyMessages[field.index] ?? 0;
   });
 }

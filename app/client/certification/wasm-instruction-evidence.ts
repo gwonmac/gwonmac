@@ -2,6 +2,7 @@
  * One bounded, anchor-independent instruction pass for shared WASM evidence.
  * Feature-specific constants are projected without rescanning function bodies.
  */
+import { refusedOrRethrow } from "./stage-refusal.js";
 import { readUleb } from "../../main/core/wasm-binary.js";
 import type {
   DecodedFunction,
@@ -35,7 +36,8 @@ const decodedCache = new WeakMap<ModuleShape, readonly RawDecodedFunction[]>();
 function unsigned(bytes: Uint8Array, cursor: { offset: number }): number {
   try {
     return readUleb(bytes, cursor);
-  } catch {
+  } catch (error) {
+    refusedOrRethrow(error);
     throw new EvidenceError("instruction-set-unsupported");
   }
 }

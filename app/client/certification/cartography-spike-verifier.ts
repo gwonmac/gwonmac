@@ -7,6 +7,7 @@
  * this bounded certificate and independently reproduces its exact output.
  */
 import { createHash } from "node:crypto";
+import { refusedOrRethrow } from "./stage-refusal.js";
 import { deriveCartographyLayout } from "./cartography-layout-proof.js";
 import {
   CARTOGRAPHY_SPIKE_TRANSFORM_ABI,
@@ -41,8 +42,8 @@ export function deriveCartographySpikeBuild(
       ...roots,
       outputSha256: sha256(transformCartographySpikeWasm(input, roots)),
     });
-  } catch {
-    return null;
+  } catch (error) {
+    return refusedOrRethrow(error);
   }
 }
 

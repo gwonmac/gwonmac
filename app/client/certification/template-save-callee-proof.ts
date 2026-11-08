@@ -3,6 +3,7 @@
  * bodies. Each call is normalized to the helper it calls, so a callee may move
  * only as the same independently identified helper.
  */
+import { ProofRefusal } from "./stage-refusal.js";
 import type { TemplateSaveModuleView } from "./template-save-module-view.js";
 import { perReviewedFacts } from "./reviewed-facts.js";
 import { reviewedBodyMatch } from "./wasm-evidence.js";
@@ -237,12 +238,12 @@ export function normalizeTemplateCalleeCalls(
   for (const [index, witness] of witnesses.entries()) {
     const site = calls.filter(({ offset }) => offset === witness.offset);
     if (site.length !== 1 || site[0]!.operandEnd !== witness.offset + 6) {
-      throw new Error(`template-save recertify: ${role} helper call changed`);
+      throw new ProofRefusal(`template-save recertify: ${role} helper call changed`);
     }
     const callee = site[0]!.target - view.importCount;
     if (!view.bodies[callee] || view.signatures[callee] !== witness.signature
       || reviewedBodyMatch(view.module, site[0]!.target, witness.bodyHashes) === null) {
-      throw new Error(`template-save recertify: ${role} helper identity changed`);
+      throw new ProofRefusal(`template-save recertify: ${role} helper identity changed`);
     }
     normalized.fill(0, witness.offset + 1, witness.offset + 6);
     normalized[witness.offset + 1] = 64 + index;
@@ -260,7 +261,7 @@ export function normalizeTemplateCalleeCalls(
       && reviewedBodyMatch(view.module, site.target, helper.bodyHashes) !== null);
     if (matches.length === 0) continue;
     if (matches.length !== 1 || site.operandEnd !== site.offset + 6) {
-      throw new Error(`template-save recertify: ${role} helper call changed`);
+      throw new ProofRefusal(`template-save recertify: ${role} helper call changed`);
     }
     normalized.fill(0, site.offset + 1, site.offset + 6);
     normalized[site.offset + 1] = 128 + matches[0]!.index;

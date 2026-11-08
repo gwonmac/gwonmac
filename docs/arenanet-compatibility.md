@@ -75,6 +75,15 @@ A refusal includes the feature-local invariant and, for ambiguity, the candidate
 count. A top-level successful verification means that at least one safe module
 can be built. It does not mean every requested feature proved.
 
+Only a proof's own answer about the bytes is a refusal: a `ProofRefusal`
+(every proof's `fail()`, `EvidenceError`, `ProofLimitError`) or the WASM
+codec's `WasmFormatError`. A verdict is stored per build, so anything else a
+proof throws (a `TypeError` from a defect, a `RangeError` from a failed
+allocation) is not a refusal: it propagates, the check reports
+`check-failed`, and the next start checks again. Every catch under
+`app/client/certification/` decides through `refusedOrRethrow`; the policy
+test `certification-catches-only-refusals` names the exceptions.
+
 Capability manifests compare every field in both directions. A requested
 capability that is missing from an otherwise valid exact regression record must
 still trigger local proof.
