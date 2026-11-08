@@ -208,6 +208,12 @@ export const byRole = (role: string, name: string, exact = false) =>
     return exact ? accessible === name : accessible.toLowerCase().includes(name.toLowerCase());
   });
 
+/** The element as the class a test expects, or a thrown error that names what was found. */
+export function narrow<T extends Element>(type: abstract new (...args: never[]) => T, element: Element | null | undefined): T {
+  if (!(element instanceof type)) throw new Error(`Expected ${type.name}, found ${element ? element.tagName : String(element)}`);
+  return element;
+}
+
 /** Waits, advancing the fake clock, until `check` holds: the specs' `expect(...).toBe...` retry. */
 export const until = (check: () => unknown) => vi.waitFor(() => { if (!check()) throw new Error('not yet'); }, { timeout: 5_000, interval: 20 });
 

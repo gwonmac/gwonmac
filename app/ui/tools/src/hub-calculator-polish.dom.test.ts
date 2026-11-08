@@ -6,8 +6,7 @@
  * styles and the reload round trip stay in Playwright.
  */
 import { afterEach, beforeAll, expect, test, vi } from 'vitest';
-import { byRole, click, fill, loadFixture, mountFixture, press, settle, unmountFixture, until } from './hub-fixture-harness';
-import { narrow } from './hub-dom-narrow';
+import { byRole, click, fill, loadFixture, mountFixture, narrow, press, settle, unmountFixture, until } from './hub-fixture-harness';
 
 process.env.TZ = 'UTC';
 beforeAll(loadFixture);

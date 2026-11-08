@@ -7,8 +7,7 @@
  */
 import { afterEach, beforeAll, expect, test, vi } from 'vitest';
 import type { HubSource } from '../../../shared/hub';
-import { byRole, click, fill, loadFixture, mountFixture, press, settle, unmountFixture, until } from './hub-fixture-harness';
-import { narrow } from './hub-dom-narrow';
+import { byRole, click, fill, loadFixture, mountFixture, narrow, press, settle, unmountFixture, until } from './hub-fixture-harness';
 
 beforeAll(loadFixture);
 afterEach(unmountFixture);

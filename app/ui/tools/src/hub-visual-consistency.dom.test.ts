@@ -10,8 +10,7 @@ import { DEFAULT_SETTINGS } from '../../../shared/contracts';
 // The test applies the real appearance projector, as the standalone fixture page does.
 // eslint-disable-next-line no-restricted-imports
 import { applyAppearance } from '../../../renderer/appearance';
-import { byRole, click, fill, loadFixture, mountFixture, press, settle, unmountFixture } from './hub-fixture-harness';
-import { narrow } from './hub-dom-narrow';
+import { byRole, click, fill, loadFixture, mountFixture, narrow, press, settle, unmountFixture } from './hub-fixture-harness';
 
 beforeAll(loadFixture);
 afterEach(unmountFixture);

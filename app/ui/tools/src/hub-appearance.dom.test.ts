@@ -7,8 +7,7 @@
  * hub-visual-consistency.dom.test.ts.
  */
 import { afterEach, beforeAll, expect, test } from 'vitest';
-import { byRole, click, fill, loadFixture, mountFixture, press, settle, unmountFixture, until } from './hub-fixture-harness';
-import { narrow } from './hub-dom-narrow';
+import { byRole, click, fill, loadFixture, mountFixture, narrow, press, settle, unmountFixture, until } from './hub-fixture-harness';
 
 beforeAll(loadFixture);
 afterEach(unmountFixture);
