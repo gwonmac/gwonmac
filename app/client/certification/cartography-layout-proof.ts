@@ -14,12 +14,11 @@ import {
   deriveObservationLayout,
   derivePlayRegionLayout,
 } from "./enhancement-target-proof.js";
-import { functionsWithIdentity } from "./relocation-identity.js";
-import { reviewedEntries, reviewedIdentities } from "./reviewed-facts.js";
+import { reviewedEntries } from "./reviewed-facts.js";
 import {
   enhancementProofContext,
-  functionMatchesReviewedBody,
   parseActiveTableRelations,
+  reviewedOwner,
 } from "./wasm-evidence.js";
 
 /** The two roots the derived client publishes for the reachability kernel. */
@@ -75,20 +74,9 @@ const BASE_SURFACES: readonly CartographySurfaces[] = Object.freeze([
 ]);
 const generationSurfaces = reviewedEntries((facts) => facts.cartographySurfaces);
 
-/**
- * The one owner of `role`: a reviewed owner at the index its review found, or
- * else the one function with a reviewed owner's relocation identity.
- */
+/** The one owner of `role` among its reviewed owners; see `reviewedOwner`. */
 function surfaceOwner(module: ModuleShape, role: CartographySurfaceRole): number | null {
-  const reviewed = [...BASE_SURFACES, ...generationSurfaces()].map((surfaces) => surfaces[role]);
-  const defined = (index: number) => index >= module.functionImportCount
-    && index < module.functionImportCount + module.bodies.length;
-  const atReviewedIndex = new Set(reviewed.flatMap(([index, bodySha256]) =>
-    defined(index) && functionMatchesReviewedBody(module, index, bodySha256) ? [index] : []));
-  const owners = atReviewedIndex.size > 0 ? atReviewedIndex : new Set(reviewed.flatMap(([, bodySha256]) =>
-    [...reviewedIdentities(bodySha256)].flatMap((identity) => functionsWithIdentity(module, identity))));
-  const [owner] = owners;
-  return owners.size === 1 && owner !== undefined ? owner : null;
+  return reviewedOwner(module, [...BASE_SURFACES, ...generationSurfaces()].map((surfaces) => surfaces[role]));
 }
 
 function onlySlot(module: ModuleShape, functionIndex: number): number | null {

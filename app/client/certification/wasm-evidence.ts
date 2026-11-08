@@ -29,7 +29,7 @@ import { EvidenceError } from "./wasm-evidence-error.js";
 import { dataEvidence, type WasmDataEvidence } from "./wasm-data-evidence.js";
 import { readonlyMapView } from "./readonly-map-view.js";
 import { cachedFor, moduleViews } from "./module-views.js";
-import { functionIdentity, functionRoleIdentity } from "./relocation-identity.js";
+import { functionIdentity, functionRoleIdentity, functionsWithIdentity } from "./relocation-identity.js";
 import {
   recordExactMatch,
   reviewedAlternatives,
@@ -630,20 +630,67 @@ export function recordReviewedLookup(lookup: ReviewedLookup, functionIndex: numb
   lookupRecorder?.(lookup, functionIndex);
 }
 
+/**
+ * How the body of `functionIndex` is the reviewed body `bodySha256`: by an
+ * exact reviewed digest, by a reviewed relocation identity, or not at all.
+ */
+export function reviewedBodyMatchKind(
+  module: ModuleShape,
+  functionIndex: number,
+  bodySha256: string,
+): "exact" | "identity" | null {
+  const accepted = [bodySha256, ...reviewedAlternatives(bodySha256).flatMap((alternative) =>
+    typeof alternative === "string" ? [alternative] : [])];
+  const measured = functionBodySha256(module, functionIndex);
+  const exact = accepted.includes(measured);
+  if (exact) recordExactMatch(measured, () => functionIdentity(module, functionIndex));
+  const match = exact ? "exact"
+    : identityReviewedFor(accepted, () => functionIdentity(module, functionIndex)) ? "identity" : null;
+  if (match) lookupRecorder?.({ kind: "body", literal: bodySha256 }, functionIndex);
+  return match;
+}
+
 /** The body of `functionIndex` is the reviewed body `bodySha256`. */
 export function functionMatchesReviewedBody(
   module: ModuleShape,
   functionIndex: number,
   bodySha256: string,
 ): boolean {
-  const accepted = [bodySha256, ...reviewedAlternatives(bodySha256).flatMap((alternative) =>
-    typeof alternative === "string" ? [alternative] : [])];
-  const measured = functionBodySha256(module, functionIndex);
-  const exact = accepted.includes(measured);
-  if (exact) recordExactMatch(measured, () => functionIdentity(module, functionIndex));
-  const matched = exact || identityReviewedFor(accepted, () => functionIdentity(module, functionIndex));
-  if (matched) lookupRecorder?.({ kind: "body", literal: bodySha256 }, functionIndex);
-  return matched;
+  return reviewedBodyMatchKind(module, functionIndex, bodySha256) !== null;
+}
+
+/**
+ * The body of `functionIndex` is the reviewed body `bodySha256` exactly, or by
+ * a relocation identity that no other function of `module` has.
+ */
+export function functionIsUniquelyReviewedBody(
+  module: ModuleShape,
+  functionIndex: number,
+  bodySha256: string,
+): boolean {
+  const match = reviewedBodyMatchKind(module, functionIndex, bodySha256);
+  return match === "exact" || (match === "identity"
+    && functionsWithIdentity(module, functionIdentity(module, functionIndex)).length === 1);
+}
+
+/**
+ * The one function reviewed `[index, body digest]` pairs name: a function with
+ * an exact reviewed digest at a reviewed index, else the only function with a
+ * reviewed body's relocation identity. A relocated body at a reviewed index
+ * counts only through that uniqueness.
+ */
+export function reviewedOwner(
+  module: ModuleShape,
+  reviewed: readonly (readonly [number, string])[],
+): number | null {
+  const defined = (index: number) => index >= module.functionImportCount
+    && index < module.functionImportCount + module.bodies.length;
+  const exact = new Set(reviewed.flatMap(([index, bodySha256]) =>
+    defined(index) && reviewedBodyMatchKind(module, index, bodySha256) === "exact" ? [index] : []));
+  const owners = exact.size > 0 ? exact : new Set(reviewed.flatMap(([, bodySha256]) =>
+    [...reviewedIdentities(bodySha256)].flatMap((identity) => functionsWithIdentity(module, identity))));
+  const [owner] = owners;
+  return owners.size === 1 && owner !== undefined ? owner : null;
 }
 
 /** The reviewed body digest among `bodySha256s` that names `functionIndex`. */

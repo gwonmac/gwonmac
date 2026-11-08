@@ -89,7 +89,7 @@ import { encodeName } from "./wasm-emit.js";
 import type { ModuleShape } from "./enhancement-evidence-types.js";
 import { deriveResignAction } from "./enhancement-resign-proof.js";
 import { deriveWhisperChat } from "./enhancement-whisper-proof.js";
-import { functionMatchesReviewedBody, wasmEvidence } from "./wasm-evidence.js";
+import { functionIsUniquelyReviewedBody, wasmEvidence } from "./wasm-evidence.js";
 export { ENHANCEMENT_MANIFEST_SECTION } from "./enhancement-transform-manifest.js";
 
 declare const WebAssembly: {
@@ -239,8 +239,9 @@ function resolveEnhancementTransform(
   let inputModule: ModuleShape | null = null;
   const clientModule = () =>
     inputModule ??= (wasmEvidence(input) ?? fail("input is not a supported module")).moduleView();
+  // A relocated body counts only when its identity is unique in the module.
   const isReviewedBody = (functionIndex: number, bodySha256: string): boolean =>
-    bodyHash(functionIndex) === bodySha256 || functionMatchesReviewedBody(clientModule(), functionIndex, bodySha256);
+    bodyHash(functionIndex) === bodySha256 || functionIsUniquelyReviewedBody(clientModule(), functionIndex, bodySha256);
   const skillResolution = resolveEnhancementSkillTransform({
     build,
     capabilities,
