@@ -5,6 +5,9 @@
 # certificate, or push: the isolated runtime verifier is the only launch
 # authority. docs/recertify.md owns the investigation.
 name: ArenaNet client watch
+# The release workflow's regression gate (scripts/release.ts regressionGate)
+# finds a regression run by this title: GitHub's run API shows no inputs.
+run-name: ${{ inputs.regression && 'Real-client regression' || 'ArenaNet client watch' }}
 
 on:
   schedule:
