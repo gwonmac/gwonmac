@@ -76,7 +76,7 @@ export type GenerationFacts = Readonly<{
   cartographyLayouts?: readonly CartographyMemoryLayoutId[];
   friendLifecycleRoles?: readonly FriendLifecycleRoleFamily[];
   guildHallAreaTypeFamilies?: readonly GuildHallAreaTypeFamily[];
-  /** Template-saving helper bodies, keyed by `<role>@<call offset>` or `moved:<callee>`. */
+  /** Template-saving helper bodies, keyed by `<role>@<call offset>` or `helper:<name>`. */
   templateCalleeBodies?: Readonly<Record<string, readonly string[]>>;
 }>;
 

@@ -297,10 +297,11 @@ so first check what still refuses.
 Anchor only the bytes a feature owns. A screenshot anchor that also covered
 neighbouring storage once refused template saving after an unrelated change.
 
-A relocation can reach code that never moved before. Template saving then needs
-a source change, not only a variant: `MOVED_CALLEES` in
-`template-save-callee-proof.ts` binds each moved helper call to its reviewed
-callee bodies.
+A relocation can reach code that never moved before. Template saving
+normalizes each call to a reviewed helper in `template-save-callee-proof.ts`
+(`HELPERS`, plus `helper:<name>` bodies in generation files) to that helper,
+wherever it is called. A call to a helper that is not reviewed keeps its callee
+index; when it moves, add the helper and its bodies there.
 
 ## Per-client records to update
 

@@ -201,9 +201,10 @@ locator already meets the final relocation-resistant bar. At verifier ABI 10:
     renderer pins `FRIEND_OBSERVER_SEMANTIC_SHA256`, which covers only what
     the certificate means (role names, signatures and the checked relations),
     so a new family changes the pin only when a role's meaning changes;
-  - template saving's `MOVED_CALLEES` (in `template-save-callee-proof.ts`)
-    names each helper call that has moved. A relink that moves another call
-    needs a new entry there.
+  - template saving normalizes every call to a reviewed helper (signature and
+    complete body, or its relocation identity) to that helper, wherever it is
+    called. A call to a helper that is not reviewed keeps its callee index, so
+    a relink that moves it refuses until the helper is reviewed.
 
 These checks fail closed. They can therefore disable a feature after an
 equivalent ArenaNet rebuild even when game behavior did not change. A refusal
