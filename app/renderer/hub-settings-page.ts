@@ -35,12 +35,11 @@ export function showHubSettings(hub: HubPresenter<HTMLElement>, target: Settings
     const document = host.ownerDocument;
     let page: SettingsPage | null = null;
     let disposed = false;
-    // Until the page loads, the Hub parks the keyboard on the view's first control, which may be
-    // Back. Only the player's own key or press since the page opened means they moved on.
-    let moved = false;
-    const moveOn = () => { moved = true; };
-    document.addEventListener('keydown', moveOn, true);
-    document.addEventListener('pointerdown', moveOn, true);
+    // The Hub places the keyboard once after the page opens: until the page loads, on the view's
+    // first control, which may be Back. Any later move is the player's: they moved on.
+    let moves = 0;
+    const moved = () => { moves += 1; };
+    document.addEventListener('focusin', moved, true);
     const refresh = () => page?.refresh();
     load(document).then(settings => {
       if (disposed) return;
@@ -49,8 +48,8 @@ export function showHubSettings(hub: HubPresenter<HTMLElement>, target: Settings
         target,
         extendedMemory: () => window.gwNative.client.session().then(session => session.extendedMemory),
         openInLauncher: next => window.gwNative.app.openSettings(next).catch(() => { throw new Error(LAUNCHER_UNAVAILABLE); }),
-        // A player who has not acted since the page opened is waiting for it; focus inside the page stays the page's.
-        mayTakeFocus: () => !moved || view.contains(document.activeElement),
+        // Focus still where the Hub put it means the player is waiting for this page; focus inside the page stays the page's.
+        mayTakeFocus: () => moves <= 1 || view.contains(document.activeElement),
       });
     }).catch(() => {
       if (!disposed) frame.update({ failed: true });
@@ -58,8 +57,7 @@ export function showHubSettings(hub: HubPresenter<HTMLElement>, target: Settings
     window.addEventListener('gw:tools-settings', refresh);
     return () => {
       disposed = true;
-      document.removeEventListener('keydown', moveOn, true);
-      document.removeEventListener('pointerdown', moveOn, true);
+      document.removeEventListener('focusin', moved, true);
       window.removeEventListener('gw:tools-settings', refresh);
       page?.dispose();
       if (shown === page) shown = null;
