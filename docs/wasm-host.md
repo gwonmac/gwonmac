@@ -151,21 +151,48 @@ IDBFS operations. It preserves the original routines for other callers.
 The transform validates each complete changed caller. A change to control flow,
 flags, path handling, or an unrelated call makes the proof refuse.
 
-For every selected hash, one isolated utility process re-reads and verifies the
-artifact. It writes no profile state. Known hashes take the same structural
-path as unknown hashes.
+Each official client generation is proved once, in one verifier pass. One
+isolated utility process reads the official WASM and JS once, checks both
+hashes, and walks the whole derived chain for every release launch profile
+(Core and Tools): template, Enhancement, friends, Cartography, native
+double-click and 4 GB, each stage on the previous stage's output. It reports
+the launch that is starting first, so Play waits only for that chain, and
+finishes the other profile in the background under the same time budget. The
+process writes nothing. Known hashes take the same structural path as unknown
+hashes.
 
-A crash, timeout, changed file, malformed result, ambiguous match, unexpected
-layout, or transform error means no proof. The app then serves the verified
-official module.
+Main keeps the complete pass in one record per install
+(`game/client-verdict.json`). The record is the verifier's own output plus its
+key: official WASM SHA-256, official JS SHA-256, verifier ABI, pass ABI and app
+version. Main signs it with HMAC-SHA256 under a per-install key in the
+Keychain. At launch, a record counts only when its MAC verifies with that key
+and its key equals the current one exactly; any mismatch, including an app
+update, means a new pass. A record that counts goes through the same
+acceptance boundary and per-stage guards as a fresh answer. A record that
+authenticates but fails that boundary is deleted and the build is proved
+again. Only a complete pass in which every launch was accepted is stored. A
+full reset deletes the record. Without a usable Keychain key, nothing is stored
+and every launch runs the pass.
+
+Switching Tools or 4 GB never needs a new pass: the record holds both release
+profiles, and the 4 GB proof is made for every chain whether or not it is
+requested. Core and Tools launches keep separate derived-module caches, so a
+switch rebuilds nothing once both have run. Main still repeats each transform
+and checks its output hash whenever it rebuilds a module.
+
+A crash, timeout, changed file or malformed answer is a failed check, not a
+verdict: nothing is stored, the features report `check-failed`, and the next
+start tries again. An ambiguous match, unexpected layout or transform error is
+a refusal, which a complete pass records like any other verdict. Either way the
+app serves the verified official module or the last stage that passed.
 
 ## Effective feature status
 
 Main reports the effective served status for file saving, native double-click,
 cursor, Target, Party, Team Apply, Travel, Xunlai, aliases, and 4 GB mode. Each
 optional feature is `available`, `off`, or `unavailable`; unavailable features
-also say whether a Guild Wars update or a preparation failure caused the
-refusal. The renderer never reconstructs these answers from settings, hashes,
+also say whether a Guild Wars update, a preparation failure, or a failed
+build check (`check-failed`) caused the refusal. The renderer never reconstructs these answers from settings, hashes,
 or another feature.
 
 The verifier returns independent feature facts. The runtime selects the largest

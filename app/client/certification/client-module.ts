@@ -121,8 +121,11 @@ function productCapabilityCount(capabilities: EnhancementCapabilities): number {
   );
 }
 
-/** Largest safe profiles first; read-only observations win ties over commands. */
-function enhancementCandidates(
+/**
+ * Largest safe profiles first; read-only observations win ties over commands.
+ * The verifier pass walks the same order, so it proves the module Main builds.
+ */
+export function enhancementCandidates(
   build: KnownEnhancementBuild,
   requested: EnhancementCapabilities,
 ): EnhancementCapabilities[] {

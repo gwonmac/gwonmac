@@ -53,6 +53,9 @@ test("saved login has exactly two Data Protection Keychain items", () => {
   }
   assert.equal((native.match(/@"arena-net-credentials"/gu) ?? []).length, 1);
   assert.equal((native.match(/@"steam-session"/gu) ?? []).length, 1);
+  // The install's client-verdict key is a third item beside them, never a
+  // second home for a login.
+  assert.equal((native.match(/@"client-verdict-key"/gu) ?? []).length, 1);
   assert.doesNotMatch(shippedApplication, /safeStorage|encryptString|decryptString/);
   assert.deepEqual(legacyFilenameOwners, [
     "app/main/core/legacy-secret-cleanup.ts",

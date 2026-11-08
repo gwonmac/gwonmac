@@ -51,6 +51,7 @@ function pathsWithMarkers(
     artifacts: path.join(root, "game", "artifacts"),
     previousArtifacts: path.join(root, "game", "artifacts-previous"),
     rejectedClient: path.join(root, "game", "rejected-client.json"),
+    clientVerdict: path.join(root, "game", "client-verdict.json"),
   } as GamePaths;
 }
 
@@ -83,6 +84,7 @@ test("a launcher full reset removes only global downloaded game data", async () 
     artifacts: path.join(fixture, "game", "artifacts"),
     previousArtifacts: path.join(fixture, "game", "artifacts-previous"),
     rejectedClient: path.join(fixture, "game", "rejected-client.json"),
+    clientVerdict: path.join(fixture, "game", "client-verdict.json"),
   } as GamePaths;
   const preserved = [
     path.join(fixture, "settings.json"),
@@ -99,6 +101,7 @@ test("a launcher full reset removes only global downloaded game data", async () 
       await writeFile(path.join(directory, "owned"), "remove");
     }
     await writeFile(paths.rejectedClient, "remove");
+    await writeFile(paths.clientVerdict, "remove");
     for (const file of preserved) {
       await mkdir(path.dirname(file), { recursive: true });
       await writeFile(file, "keep");
@@ -107,7 +110,7 @@ test("a launcher full reset removes only global downloaded game data", async () 
 
     await applyPendingCacheClear(paths);
 
-    for (const removed of [paths.chunks, paths.artifacts, paths.previousArtifacts, paths.rejectedClient, marker]) {
+    for (const removed of [paths.chunks, paths.artifacts, paths.previousArtifacts, paths.rejectedClient, paths.clientVerdict, marker]) {
       await assert.rejects(stat(removed), { code: "ENOENT" });
     }
     for (const file of preserved) assert.equal(await readFile(file, "utf8"), "keep");

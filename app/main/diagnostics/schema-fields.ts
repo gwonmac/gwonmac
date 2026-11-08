@@ -21,7 +21,9 @@ import {
   type SocketFailureCode,
 } from "../../shared/contracts.js";
 import {
+  isClientBuildId,
   isDigest,
+  type ClientBuildId,
   type Digest,
 } from "../../shared/digest.js";
 import {
@@ -207,6 +209,7 @@ export const invokeChannel = literal<InvokeChannel>(
 );
 export const code: FieldGuard<ErrorCode> = isErrorCode;
 export const digestOrNull = nullable<Digest>(isDigest);
+export const clientBuildId: FieldGuard<ClientBuildId> = isClientBuildId;
 export const rendererFingerprintOrNull =
   nullable<RendererFingerprint>(isRendererFingerprint);
 export const proxyRoute: FieldGuard<ProxyRoute> = (

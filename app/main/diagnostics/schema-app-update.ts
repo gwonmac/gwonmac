@@ -30,6 +30,7 @@ import {
   boolean,
   captureLevel,
   captureStopReason,
+  clientBuildId,
   code,
   digestOrNull,
   finiteNumber,
@@ -649,17 +650,24 @@ export const APP_AND_UPDATE_EVENT_SCHEMA = {
     level: "warn",
     fields: { code },
   },
-  "wasm.localVerificationCompleted": {
+  // Where this launch's certification came from. `build` is the first 12 hex
+  // digits of the public official WASM hash; nothing else names the client.
+  "wasm.clientVerdict": {
     scope: "app",
     subsystem: "wasm",
     level: "info",
-    fields: none,
+    fields: {
+      build: clientBuildId,
+      source: literal(["record", "pass"] as const),
+      outcome: literal(["accepted", "check-failed"] as const),
+      passMs: nullable(finiteNumber),
+    },
   },
-  "wasm.localVerificationUnavailable": {
+  "wasm.clientVerdictStored": {
     scope: "app",
     subsystem: "wasm",
-    level: "warn",
-    fields: none,
+    level: "info",
+    fields: { stored: boolean },
   },
   "wasm.templateSavePrepareFailed": {
     scope: "app",

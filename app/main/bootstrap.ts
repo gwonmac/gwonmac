@@ -100,6 +100,7 @@ export async function startApp(shell: AppShell, hostVersion: string): Promise<vo
     hostVersion,
     settings,
     launch,
+    keychain,
     onProgress: shell.setProgress,
   });
   const clientRuntime = client.runtime;

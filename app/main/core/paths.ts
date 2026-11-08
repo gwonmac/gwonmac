@@ -56,12 +56,16 @@ export interface GamePaths {
   artifacts: string;
   previousArtifacts: string;
   rejectedClient: string;
+  /** This install's signed record of the last complete verifier pass. */
+  clientVerdict: string;
   compatibility: string;
   enhancements: string;
   cartographySpike: string;
   friendObserver: string;
   nativeDoubleClick: string;
   extendedMemory: string;
+  /** Derived-module caches of Core launches; see `launchCacheRoots`. */
+  coreDerived: string;
   texturePacks: string;
   texturePackSelection: string;
   texturePackSources: string;
@@ -102,12 +106,14 @@ export function gamePaths(userData: string): GamePaths {
     artifacts,
     previousArtifacts: clientGenerationPaths(artifacts).previous,
     rejectedClient: path.join(game, "rejected-client.json"),
+    clientVerdict: path.join(game, "client-verdict.json"),
     compatibility: path.join(game, "compatibility"),
     enhancements: path.join(game, "enhancements"),
     cartographySpike: path.join(game, "cartography-spike"),
     friendObserver: path.join(game, "friend-observer"),
     nativeDoubleClick: path.join(game, "double-click"),
     extendedMemory: path.join(game, "extended-memory"),
+    coreDerived: path.join(game, "core"),
     texturePacks,
     texturePackSelection: path.join(texturePacks, "selection.json"),
     texturePackSources: path.join(texturePacks, "packs"),
@@ -165,8 +171,41 @@ export function documentDirectories(paths: GamePaths): string[] {
     paths.previousArtifacts,
     paths.compatibility,
     paths.enhancements,
+    launchCacheRoots(paths, "core").enhancements,
     paths.texturePacks,
   ];
+}
+
+/**
+ * The derived-module caches one launch profile uses for the stages whose
+ * output differs between Core and Tools. Each profile keeps its own, so
+ * switching Tools on or off rebuilds no module once both have run, and one
+ * profile never empties a cache the other needs. Tools keeps the original
+ * roots, so its existing entries stay valid.
+ */
+export function launchCacheRoots(
+  paths: GamePaths,
+  launch: "core" | "tools",
+): Readonly<{
+  enhancements: string;
+  friendObserver: string;
+  nativeDoubleClick: string;
+  extendedMemory: string;
+}> {
+  if (launch === "tools") {
+    return {
+      enhancements: paths.enhancements,
+      friendObserver: paths.friendObserver,
+      nativeDoubleClick: paths.nativeDoubleClick,
+      extendedMemory: paths.extendedMemory,
+    };
+  }
+  return {
+    enhancements: path.join(paths.coreDerived, "enhancements"),
+    friendObserver: path.join(paths.coreDerived, "friend-observer"),
+    nativeDoubleClick: path.join(paths.coreDerived, "double-click"),
+    extendedMemory: path.join(paths.coreDerived, "extended-memory"),
+  };
 }
 
 /** The published manifest of one client generation (installed, previous or stage). */
