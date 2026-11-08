@@ -31,10 +31,10 @@ macOS supplies interaction.
   every stylesheet and `.vue` style block, found by glob: it rejects raw
   colours (hex, colour functions and named colours), tokens the file's system
   does not declare, and corners or stacking orders that are not tokens. Files that cannot meet a rule yet are listed there with the reason.
-- The launcher has one button vocabulary: `.primary` (gold, one per view),
-  `.secondary`, `.quiet`, `.icon-button`, and `.small` for rows. Settings draws
-  the same classes in one dense size of its own, because the Hub has no
-  launcher stylesheet. Labels and
+- The launcher has one button set, in `controls.css`: `.primary` (gold, one
+  per view), `.secondary`, `.quiet`, `.danger-button`, `.icon-button`,
+  `.text-link`, and `.small` for dense rows. The Hub's Settings page loads the
+  same file. Settings rows use `.small`; dialogs use the full size. Labels and
   statuses use `.chip`. No eyebrows: no small uppercase label above a heading;
   put the source and date in a plain line under the title. Support is a quiet pill
   in the title bar, never a banner or a progress counter.

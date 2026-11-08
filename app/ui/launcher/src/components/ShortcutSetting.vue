@@ -79,22 +79,22 @@ async function capture() {
 <template>
   <div class="shortcut-setting" :aria-label="`${label} shortcut`" @keydown.esc="onEscape">
     <span class="visually-hidden">Shortcut</span>
-    <button ref="value" class="secondary shortcut-value" :disabled="disabled || capturing" :aria-label="`Change ${label} shortcut`" @click="capture"><span v-if="capturing">Press keys…</span><span v-else-if="!shortcuts[action]">Not set</span><span v-else class="shortcut-keycaps"><kbd v-for="cap in shortcutKeycaps(shortcuts[action])" :key="cap.name" :title="cap.name">{{ cap.label }}</kbd></span><span aria-hidden="true">Change</span></button>
+    <button ref="value" class="secondary small shortcut-value" :disabled="disabled || capturing" :aria-label="`Change ${label} shortcut`" @click="capture"><span v-if="capturing">Press keys…</span><span v-else-if="!shortcuts[action]">Not set</span><span v-else class="shortcut-keycaps"><kbd v-for="cap in shortcutKeycaps(shortcuts[action])" :key="cap.name" :title="cap.name">{{ cap.label }}</kbd></span><span aria-hidden="true">Change</span></button>
     <details class="shortcut-options" @keydown.esc.prevent="($event.currentTarget as HTMLDetailsElement).open = false"><summary :aria-label="`${label} shortcut options`" title="Shortcut options"><Ellipsis /></summary><div class="shortcut-actions">
       <button class="text-link" :disabled="disabled || capturing || !shortcuts[action]" :aria-label="`Clear ${label} shortcut`" @click="save(null)">Clear</button>
       <button class="text-link" :disabled="disabled || capturing" :aria-label="`Restore ${label} default shortcut`" @click="choose(DEFAULT_SHORTCUTS[action])">Restore default</button>
     </div></details>
     <p v-if="message" role="status" class="inline-message">{{ message }}</p>
     <div v-if="pending" class="shortcut-actions">
-      <button class="secondary" @click="cancelReplace">Cancel</button>
-      <button class="primary" :disabled="disabled" @click="save(pending.binding)">Replace shortcut</button>
+      <button class="secondary small" @click="cancelReplace">Cancel</button>
+      <button class="primary small" :disabled="disabled" @click="save(pending.binding)">Replace shortcut</button>
     </div>
   </div>
 </template>
 
 <style scoped>
 .shortcut-setting { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 6px; width: 172px; max-width: 100%; font-size: 13px; }
-.shortcut-value { display: inline-flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 132px; }
+.shortcut-setting .shortcut-value { display: inline-flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 132px; }
 .shortcut-value > span { font-size: 12px; color: var(--muted); }
 .shortcut-options { position: relative; margin: 0; }
 .shortcut-options summary { display: grid; place-items: center; width: 28px; height: 32px; padding: 0; list-style: none; border-radius: 5px; color: var(--muted); }

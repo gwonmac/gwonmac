@@ -43,7 +43,7 @@ async function capture(input: SkillKeyInput, event: KeyboardEvent | MouseEvent |
     <p>These labels do not change Guild Wars key bindings. Unset slots use 1–8. Set custom labels to match your game controls.</p>
     <div v-for="(binding, index) in bindings" :key="index" class="skill-label-row">
       <span>Skill {{ index + 1 }} · {{ binding ? skillKeyPresentation(binding).accessibleLabel : `${index + 1} (default)` }}</span>
-      <button class="secondary" :aria-label="`Set skill ${index + 1} label`" @click="start(index)">Set label</button>
+      <button class="secondary small" :aria-label="`Set skill ${index + 1} label`" @click="start(index)">Set label</button>
       <button class="text-link" :disabled="!binding" :aria-label="`Reset skill ${index + 1} label`" @click="clear(index)">Use default</button>
     </div>
     <template v-if="slot !== null">
@@ -54,7 +54,7 @@ async function capture(input: SkillKeyInput, event: KeyboardEvent | MouseEvent |
         @contextmenu.prevent>
         Skill {{ slot + 1 }}: press a key, click here, or scroll here. Modifiers are supported. Escape cancels.
       </div>
-      <button class="secondary" @click="stop">Cancel label capture</button>
+      <button class="secondary small" @click="stop">Cancel label capture</button>
     </template>
     <p v-if="message" role="status">{{ message }}</p>
   </div>

@@ -1,8 +1,9 @@
 /* The launcher's Settings page: search first, a section sidebar, one status line.
    The page is drawn in the launcher and inside the game's Hub (a different document with its own
    global CSS), so every selector is scoped under .settings-view and nothing relies on the host's
-   resets or element styles. Both hosts load tokens.css, so every colour here is a launcher token;
-   in the Hub, hub-settings.css points those tokens at the Hub's theme.
+   resets or element styles. Both hosts load tokens.css and controls.css, so every colour here is a
+   launcher token and every button is a launcher button; in the Hub, hub-settings.css points those
+   tokens at the Hub's theme.
    Element-level resets use :where(.settings-view) so they stay as weak as a global reset.
    Each selector sets a property in one rule; widths that change the layout are at the end. */
 
@@ -42,21 +43,9 @@
 :where(.settings-view) select option { color: var(--text); background: var(--surface-solid); }
 :where(.settings-view) textarea { resize: vertical; }
 @media (prefers-reduced-motion: no-preference) { :where(.settings-view) button { transition: transform .34s cubic-bezier(.2,.8,.2,1), opacity .25s ease, background-color .25s ease; } }
-/* :where keeps these at the launcher's original specificity: a component's own scoped style (Maps, Shortcut) must still win. */
-:where(.settings-view) .secondary { display: inline-flex; align-items: center; gap: 8px; }
 :where(.settings-view) .setting-row > span, :where(.settings-view) .setting-group > label > span { min-width: 0; }
 
-/* Controls: the launcher's button vocabulary and fields in the page's one dense size. The Hub
-   has no launcher stylesheet, so each class is complete here. */
-.settings-view .primary { display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 8px 12px; border-radius: 5px; color: var(--on-gold); font-size: 13px; font-weight: 750; background: var(--gold-gradient); box-shadow: var(--inset-highlight); }
-.settings-view .primary:disabled { opacity: .45; cursor: default; }
-.settings-view .secondary, .settings-view .danger-button { min-height: 32px; padding: 6px 10px; border-radius: 5px; font-size: 13px; }
-.settings-view .secondary { border: 1px solid var(--line); background: var(--control); }
-.settings-view .secondary:disabled { opacity: .45; }
-.settings-view .danger-button { color: var(--danger-text); background: var(--danger-tint); }
-.settings-view .recovery-card button, .settings-view .file-actions button, .settings-view .danger-button { display: inline-flex; align-items: center; gap: 8px; }
-.settings-view .text-link { display: inline-flex; align-items: center; gap: 8px; padding: 6px 0; border: 0; color: var(--gold-text); background: transparent; font-size: 13px; text-decoration: underline; text-underline-offset: 3px; }
-.settings-view .text-link svg { width: 16px; }
+/* Helpers and fields in the page's one dense size; buttons come from controls.css. */
 .settings-view .visually-hidden { position: fixed !important; width: 1px !important; height: 1px !important; padding: 0; margin: -1px; overflow: hidden !important; clip: rect(0 0 0 0) !important; clip-path: inset(50%) !important; white-space: nowrap !important; border: 0; }
 .settings-view .inline-message { margin: 8px 0; padding: 8px 10px; border-radius: 4px; font-size: 13px; background: var(--gold-tint); }
 .settings-view .good { color: var(--success); }
@@ -112,7 +101,6 @@
 .settings-view .setting-group small { color: var(--muted); font-size: 13px; line-height: 1.4; }
 .settings-view .setting-group input[type="checkbox"] { width: 18px; height: 18px; flex: 0 0 18px; margin: 0; accent-color: var(--gold); }
 .settings-view .setting-group select { width: 200px; max-width: 100%; flex-shrink: 0; }
-.settings-view .setting-group .primary { min-height: 34px; }
 .settings-view .setting-group > button, .settings-view .setting-group details { margin: 12px 0; }
 .settings-view .setting-group details p { max-width: 600px; }
 .settings-view .setting-group summary { padding-block: 6px; font-size: 13px; cursor: pointer; }
@@ -156,7 +144,6 @@
 .settings-view .tool-options[open] > summary { margin-bottom: 4px; }
 .settings-view .tool-options > :not(summary) { padding-left: 14px; border-left: 2px solid var(--line); }
 .settings-view .tool-link { margin: -4px 0 12px; }
-.settings-view .tool-link .text-link { padding: 0; color: var(--gold); text-decoration: none; }
 
 /* Game files: download, repair and file actions. */
 .settings-view .download-card { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 14px; border-bottom: 1px solid var(--line); }
@@ -207,14 +194,13 @@
 .settings-view .map-style-actions details > label { display: grid; gap: 8px; margin-block: 14px; }
 .settings-view .map-style-actions textarea { width: 100%; resize: vertical; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
 .settings-view .map-style-actions details p { color: var(--muted); font-size: 13px; }
-.settings-view .map-style-actions > .text-link { margin: 12px 18px; color: var(--danger); }
 .settings-view .map-style-editor { padding-top: 4px; }
 .settings-view .map-style-editor h2 { margin: 16px 0 4px; padding: 0; color: var(--muted); font-family: inherit; font-size: 13px; font-weight: 600; }
 .settings-view .map-style-editor > .setting-row:first-child { padding-top: 0; }
 .settings-view .map-line-editor { min-width: 0; margin: 16px 0 0; padding: 0; border: 0; }
 .settings-view .map-line-editor legend { padding: 0; color: var(--gold); font-size: 13px; font-weight: 600; }
 .settings-view .map-library { padding-top: 12px; border-top: 1px solid var(--line); }
-.settings-view .map-library > .text-link { color: var(--danger-text); }
+.settings-view .map-library > .text-link { color: var(--danger-text); border-bottom-color: currentColor; }
 .settings-view .map-library details > label { display: grid; gap: 6px; margin: 12px 0; }
 .settings-view .map-library textarea { width: 100%; resize: vertical; }
 .settings-view .map-library details > p { font-size: 13px; }

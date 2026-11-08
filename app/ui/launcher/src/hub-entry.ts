@@ -10,6 +10,7 @@ import type { ExtendedMemoryRuntimeStatus } from "@shared/contracts";
 import SettingsView from "./components/SettingsView.vue";
 import type { InGameNative } from "./settings-host";
 import "./tokens.css";
+import "./controls.css";
 import "./settings-view.css";
 import "./hub-settings.css";
 import type { EmbeddedSettings, HubSettingsChange, HubSettingsSnapshot } from "@shared/hub-settings";

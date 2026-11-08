@@ -30,6 +30,7 @@
   --gold-text: var(--ui-accent-text);
   --gold-tint: var(--ui-accent-soft-fill);
   --gold-tint-strong: var(--ui-selection-fill);
+  --gold-line: var(--ui-line);
   --gold-gradient: var(--ui-primary-fill);
   --on-gold: var(--ui-primary-ink);
   --nav-active-text: var(--ui-selection-ink);
@@ -40,7 +41,6 @@
   --scrollbar: var(--ui-scroll-thumb-color);
   /* Status. */
   --success: var(--ui-success);
-  --danger: var(--ui-danger);
   --danger-text: var(--ui-danger);
   --danger-tint: var(--ui-danger-soft-fill);
   /* Depth. */

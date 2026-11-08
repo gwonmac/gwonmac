@@ -40,7 +40,7 @@ function performAction(): Promise<void> {
       <span><strong>{{ presentation.title }}</strong><small>{{ presentation.detail }}</small></span>
       <button
         v-if="presentation.action !== 'none'"
-        :class="presentation.action === 'restart' ? 'primary' : 'secondary'"
+        class="small" :class="presentation.action === 'restart' ? 'primary' : 'secondary'"
         @click="performAction"
       >{{ presentation.actionLabel }}</button>
     </div>

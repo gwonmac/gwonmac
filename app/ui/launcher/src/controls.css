@@ -1,0 +1,27 @@
+/* The launcher's one button set: primary (gold), secondary (neutral), quiet (text only) and
+   danger, with .small for dense rows, plus icon buttons, text links and dialog actions.
+   The launcher window and the Hub's Settings page both load it, and each rule has one branch
+   for each. The launcher branch is one class, as weak as before, so a page's own rule for a
+   button wins. The .settings-view branch is as strong as the page's own rules and so beats the
+   game document's resets, such as `.tools-stage button { font: inherit; color: inherit }`;
+   settings-view.css loads after it and still wins a tie. The game document gets none of these
+   names outside .settings-view. */
+:where(:root[data-launcher]) :is(.primary, .secondary, .quiet, .danger-button), .settings-view :is(.primary, .secondary, .quiet, .danger-button) { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 9px 16px; border-radius: var(--radius-md); font-size: var(--fs-md); white-space: nowrap; }
+:where(:root[data-launcher]) :is(.primary, .secondary, .danger-button):disabled, .settings-view :is(.primary, .secondary, .danger-button):disabled { opacity: .45; cursor: default; }
+:where(:root[data-launcher]) .primary, .settings-view .primary { color: var(--on-gold); font-weight: 700; background: var(--gold-gradient); box-shadow: var(--inset-highlight); }
+:where(:root[data-launcher]) .primary:hover:not(:disabled), .settings-view .primary:hover:not(:disabled) { filter: brightness(1.05); }
+:where(:root[data-launcher]) .secondary, .settings-view .secondary { color: var(--text); border: 1px solid var(--line); background: var(--control); }
+:where(:root[data-launcher]) .secondary:hover:not(:disabled), .settings-view .secondary:hover:not(:disabled) { border-color: var(--line-strong); background: var(--surface-hover); }
+:where(:root[data-launcher]) .quiet, .settings-view .quiet { color: var(--muted); background: transparent; }
+:where(:root[data-launcher]) .quiet:hover, .settings-view .quiet:hover { color: var(--text); background: var(--surface-hover); }
+:where(:root[data-launcher]) .danger-button, .settings-view .danger-button { color: var(--danger-text); background: var(--danger-tint); }
+:where(:root[data-launcher]) :is(.primary, .secondary, .quiet, .danger-button) svg, .settings-view :is(.primary, .secondary, .quiet, .danger-button) svg { width: 16px; height: 16px; }
+:where(:root[data-launcher]) .small, .settings-view .small { min-height: 32px; padding: 6px 10px; border-radius: var(--radius-sm); font-size: var(--fs-xs); }
+:where(:root[data-launcher]) .icon-button, .settings-view .icon-button { min-width: 40px; min-height: 40px; display: grid; place-items: center; padding: 8px; border-radius: var(--radius-md); color: var(--muted); background: transparent; }
+:where(:root[data-launcher]) .icon-button:hover, .settings-view .icon-button:hover { color: var(--text); background: var(--surface-hover); }
+:where(:root[data-launcher]) .text-link, .settings-view .text-link { display: inline-flex; align-items: center; gap: 8px; padding: 9px 0; color: var(--gold-text); background: transparent; border-bottom: 1px solid var(--gold-line); }
+:where(:root[data-launcher]) .text-link:hover, .settings-view .text-link:hover { border-bottom-color: var(--gold); }
+:where(:root[data-launcher]) .text-link svg, .settings-view .text-link svg { width: 16px; }
+:where(:root[data-launcher]) .form-actions, .settings-view .form-actions { display: flex; justify-content: flex-end; gap: 10px; }
+:where(:root[data-launcher]) .form-actions.spread, .settings-view .form-actions.spread { justify-content: initial; }
+:where(:root[data-launcher]) .form-actions.spread > span, .settings-view .form-actions.spread > span { flex: 1; }

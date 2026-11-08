@@ -317,14 +317,14 @@ test("the Hub's Settings page loads the launcher tokens it reads", () => {
   // The Hub draws Settings without the launcher's stylesheet. Without tokens.css
   // on .settings-view there, every launcher colour on the page drops out.
   const hubEntry = readFileSync("app/ui/launcher/src/hub-entry.ts", "utf8");
-  assert.match(hubEntry, /import "\.\/tokens\.css";\s*import "\.\/settings-view\.css";/u);
+  assert.match(hubEntry, /import "\.\/tokens\.css";\s*import "\.\/controls\.css";\s*import "\.\/settings-view\.css";/u);
   assert.match(code(readFileSync(LAUNCHER_TOKENS, "utf8")), /^:root\[data-launcher\], \.settings-view \{/mu);
   // Only the launcher's own document carries the attribute, so the names never
   // reach the game document's :root.
   assert.match(readFileSync("app/ui/launcher/index.html", "utf8"), /<html [^>]*\bdata-launcher\b/u);
 });
 
-/** The stylesheets the Settings page draws with: its own and every component it renders. */
+/** The stylesheets the Settings page draws with: its own, the shared buttons, and every component it renders. */
 function settingsPageStyles(): string[] {
   const seen = new Set<string>();
   const visit = (path: string) => {
@@ -334,7 +334,7 @@ function settingsPageStyles(): string[] {
     for (const [, name] of source.matchAll(/from "\.\/([A-Za-z]+)\.vue"/gu)) visit(`app/ui/launcher/src/components/${name}.vue`);
   };
   visit("app/ui/launcher/src/components/SettingsView.vue");
-  return [SETTINGS, ...seen].map((path) => code(styleOf(path, readFileSync(path, "utf8"))));
+  return [SETTINGS, "app/ui/launcher/src/controls.css", ...seen].map((path) => code(styleOf(path, readFileSync(path, "utf8"))));
 }
 
 test("the Hub's Settings page takes every colour it reads from the Hub theme", () => {
