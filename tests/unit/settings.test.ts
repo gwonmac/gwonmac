@@ -18,6 +18,7 @@ import {
   parseSettingsPatch,
   parseRendererSettingsPatch,
   saveSettings,
+  type SettingsRecovery,
 } from "../../app/main/core/settings.js";
 
 describe("settings", () => {
@@ -598,8 +599,8 @@ describe("settings", () => {
     assert.equal(missing.renderScale, 2);
     await writeFile(path, "{not json");
     let backup = "";
-    const corrupt = await loadSettings(path, (value) => {
-      backup = value;
+    const corrupt = await loadSettings(path, ({ backupPath }) => {
+      backup = backupPath;
     });
     assert.deepEqual(corrupt, DEFAULT_SETTINGS);
     assert.equal(corrupt.renderScale, 2);
@@ -753,8 +754,8 @@ describe("settings", () => {
     await writeFile(path, JSON.stringify(alpha));
 
     let recovered = "";
-    const loaded = await loadSettings(path, (backup) => {
-      recovered = backup;
+    const loaded = await loadSettings(path, ({ backupPath }) => {
+      recovered = backupPath;
     });
     assert.equal(recovered, "", "an alpha profile must not be treated as corrupt");
     assert.equal("teamManagement" in loaded, false);
@@ -892,8 +893,8 @@ describe("settings", () => {
     await writeFile(path, "{not json");
 
     let backup = "";
-    await loadSettings(path, (value) => {
-      backup = value;
+    await loadSettings(path, ({ backupPath }) => {
+      backup = backupPath;
     });
     const kept = (await readdir(dir)).sort();
     assert.deepEqual(kept, [
@@ -908,6 +909,31 @@ describe("settings", () => {
     assert.equal(await readFile(backup, "utf8"), "{not json");
   });
 
+  it("resets only a value this build no longer accepts and keeps every other value", async (context) => {
+    const dir = await mkdtemp(join(tmpdir(), "gw-settings-"));
+    context.after(() => rm(dir, { recursive: true, force: true }));
+    const path = join(dir, "settings.json");
+    const released = JSON.parse(await readFile(
+      new URL("../fixtures/player-data/v2026.11.0/custom/settings.json", import.meta.url),
+      "utf8",
+    ));
+    // A value from a wider, older enum: "jade" was a theme before uiStyle narrowed.
+    const written = JSON.stringify({ ...released, uiStyle: "jade" });
+    await writeFile(path, written);
+
+    const recoveries: SettingsRecovery[] = [];
+    const loaded = await loadSettings(path, (recovery) => { recoveries.push(recovery); });
+
+    assert.deepEqual(loaded, { ...parseSettings(released), uiStyle: DEFAULT_SETTINGS.uiStyle });
+    const [recovery] = recoveries;
+    assert.ok(recoveries.length === 1 && recovery?.kind === "fields");
+    assert.deepEqual(recovery.fields, ["uiStyle"], "names only, never values");
+    assert.equal(await readFile(recovery.backupPath, "utf8"), written, "the original bytes are preserved");
+    // The repaired file is written, so the reset is reported once.
+    assert.deepEqual(await loadSettings(path, () => assert.fail("reported twice")), loaded);
+    assert.equal((await readdir(dir)).length, 2);
+  });
+
   it("moves aside a settings format this build cannot read", async () => {
     const dir = await mkdtemp(join(tmpdir(), "gw-settings-"));
     const path = join(dir, "settings.json");
@@ -917,8 +943,8 @@ describe("settings", () => {
 
     let backup = "";
     assert.deepEqual(
-      await loadSettings(path, (value) => {
-        backup = value;
+      await loadSettings(path, ({ backupPath }) => {
+        backup = backupPath;
       }),
       DEFAULT_SETTINGS,
     );

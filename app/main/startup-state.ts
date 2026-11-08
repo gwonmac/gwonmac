@@ -137,7 +137,18 @@ export async function openStartupState(): Promise<StartupState | null> {
     await clearBrowserNetworkCache();
   }
   logEvent({ k: "electron.ready" });
-  const settings = await loadSettings(paths.settings, async () => {
+  const settings = await loadSettings(paths.settings, async (recovery) => {
+    if (recovery.kind === "fields") {
+      logEvent({ k: "settings.fieldsReset", count: recovery.fields.length });
+      await dialog.showMessageBox({
+        type: "warning",
+        buttons: ["Continue"],
+        message: "Some settings were reset",
+        detail:
+          "This version could not read some saved settings. They were set back to their defaults, every other setting was kept, and a diagnostic copy was preserved.",
+      });
+      return;
+    }
     logEvent({ k: "settings.corruptRecovered" });
     await dialog.showMessageBox({
       type: "warning",

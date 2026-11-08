@@ -31,6 +31,7 @@ import {
   captureLevel,
   captureStopReason,
   code,
+  count,
   digestOrNull,
   finiteNumber,
   incompleteCommandOutcome,
@@ -425,6 +426,12 @@ export const APP_AND_UPDATE_EVENT_SCHEMA = {
     subsystem: "settings",
     level: "error",
     fields: none,
+  },
+  "settings.fieldsReset": {
+    scope: "app",
+    subsystem: "settings",
+    level: "warn",
+    fields: { count },
   },
   "travelPreferences.corruptRecovered": {
     scope: "app",

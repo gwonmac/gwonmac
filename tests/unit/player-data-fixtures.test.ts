@@ -61,9 +61,9 @@ interface Context {
 
 /** One current loader, called the way the app calls it. */
 const LOADERS: Record<string, (context: Context) => Promise<unknown>> = {
-  loadSettings: ({ file, recovered }) => loadSettings(file, (backup) => { recovered.push(backup); }),
+  loadSettings: ({ file, recovered }) => loadSettings(file, ({ backupPath }) => { recovered.push(backupPath); }),
   "travelShortcutsFromStored(loadSettings)": async ({ file, recovered }) =>
-    travelShortcutsFromStored((await loadSettings(file, (backup) => { recovered.push(backup); })).travelShortcuts),
+    travelShortcutsFromStored((await loadSettings(file, ({ backupPath }) => { recovered.push(backupPath); })).travelShortcuts),
   loadTravelPreferences: ({ file, recovered }) => loadTravelPreferences(file, (backup) => { recovered.push(backup); }),
   "TravelHistoryStore.get": async ({ file }) => {
     const store = new TravelHistoryStore(file);
