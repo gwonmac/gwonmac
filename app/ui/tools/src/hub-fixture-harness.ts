@@ -138,6 +138,22 @@ export function press(chord: string) {
 }
 
 /**
+ * A key-down without its key-up, as Playwright's `keyboard.down`: a key already down sends an
+ * auto-repeat (`repeat: true`), which the browser acts on as it does on the first press.
+ */
+export function keyDown(key: string, repeat = false) {
+  const none = new Set<Modifier>();
+  if (send('keydown', key, none, repeat)) defaultAction(key, none);
+}
+export const keyUp = (key: string) => send('keyup', key, new Set());
+
+/** Holds a key through `repeats` auto-repeats, then releases it. */
+export function hold(key: string, repeats = 3) {
+  for (let press = 0; press <= repeats; press++) keyDown(key, press > 0);
+  keyUp(key);
+}
+
+/**
  * Clicks an element as a mouse press does: the press focuses its nearest focusable ancestor
  * (or the body), then the click runs with `detail` as the click run's length.
  */
