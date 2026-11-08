@@ -70,12 +70,16 @@ export async function loadFixture() {
   await vi.dynamicImportSettled();
 }
 
-/** Mounts a fresh Hub fixture for `?hub<query>` and waits until it is ready, as the specs' `goto`. */
-export async function mountFixture(query = '') {
+/**
+ * Mounts a fresh Hub fixture for `?hub<query>` and waits until it is ready, as the specs' `goto`.
+ * `stored` is what the page finds in localStorage when it loads (a spec's `addInitScript`).
+ */
+export async function mountFixture(query = '', stored: Readonly<Record<string, string>> = {}) {
   release();
   vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date', 'requestAnimationFrame', 'cancelAnimationFrame'] });
   history.replaceState(null, '', `/?hub${query}`);
   localStorage.clear();
+  for (const [key, value] of Object.entries(stored)) localStorage.setItem(key, value);
   // happy-dom has neither popovers nor pointer lock; the Hub only needs them to exist.
   HTMLElement.prototype.showPopover ??= function () {};
   HTMLElement.prototype.hidePopover ??= function () {};
@@ -138,6 +142,22 @@ export function press(chord: string) {
 }
 
 /**
+ * A key-down without its key-up, as Playwright's `keyboard.down`: a key already down sends an
+ * auto-repeat (`repeat: true`), which the browser acts on as it does on the first press.
+ */
+export function keyDown(key: string, repeat = false) {
+  const none = new Set<Modifier>();
+  if (send('keydown', key, none, repeat)) defaultAction(key, none);
+}
+export const keyUp = (key: string) => send('keyup', key, new Set());
+
+/** Holds a key through `repeats` auto-repeats, then releases it. */
+export function hold(key: string, repeats = 3) {
+  for (let press = 0; press <= repeats; press++) keyDown(key, press > 0);
+  keyUp(key);
+}
+
+/**
  * Clicks an element as a mouse press does: the press focuses its nearest focusable ancestor
  * (or the body), then the click runs with `detail` as the click run's length.
  */
@@ -163,8 +183,19 @@ export function accessibleName(element: Element): string {
   const ids = element.getAttribute('aria-labelledby');
   if (ids) return ids.split(/\s+/u).map(id => document.getElementById(id)?.textContent?.trim() ?? '').join(' ').trim();
   const wrapping = element.closest('label') ?? (element.id ? document.querySelector(`label[for="${element.id}"]`) : null);
-  if (wrapping && wrapping !== element) return wrapping.textContent?.trim() ?? '';
-  return element.textContent?.replace(/\s+/gu, ' ').trim() ?? '';
+  if (wrapping && wrapping !== element) return visibleText(wrapping);
+  return visibleText(element);
+}
+/** Text a screen reader reads from content: aria-hidden parts (key caps, icons) left out. */
+function visibleText(element: Element): string {
+  const parts: string[] = [];
+  const walk = (node: Node) => {
+    if (node instanceof Element && node.getAttribute('aria-hidden') === 'true') return;
+    if (node.nodeType === Node.TEXT_NODE) parts.push(node.textContent ?? '');
+    node.childNodes.forEach(walk);
+  };
+  walk(element);
+  return parts.join('').replace(/\s+/gu, ' ').trim();
 }
 /**
  * The elements with this role whose accessible name contains `name` (ignoring case), like

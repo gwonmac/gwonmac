@@ -144,6 +144,17 @@ test('Back names its key and the page it returns to', async () => {
     .toEqual({ 'aria-label': 'Back', 'aria-keyshortcuts': 'Meta+Backspace', 'aria-description': 'Return to Home' });
 });
 
+// The window controls: the lock is a toggle that names its state and, unlocked, the move keys.
+test('the lock is a named toggle that describes the move keys once unlocked, and Close names the Hub', async () => {
+  hub().show(); await settle();
+  const lock = document.querySelector<HTMLButtonElement>('#hub .hub-lock')!;
+  const names = ['aria-label', 'aria-pressed', 'aria-describedby'];
+  expect(aria(lock, names)).toEqual({ 'aria-label': 'Lock Hub position', 'aria-pressed': 'true', 'aria-describedby': null });
+  lock.click();
+  expect([aria(lock, names), document.getElementById('hub-move-hint')?.hidden]).toEqual([{ 'aria-label': 'Lock Hub position', 'aria-pressed': 'false', 'aria-describedby': 'hub-move-hint' }, false]);
+  expect(document.querySelector('#hub .hub-close')?.getAttribute('aria-label')).toBe('Close Hub');
+});
+
 // Status, announcements and a receipt after the Hub closed are live regions, so they are read without focus.
 test('the status line, the announcer and a receipt after closing are live regions', async () => {
   const opened = hub();
