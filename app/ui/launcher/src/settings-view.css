@@ -234,9 +234,10 @@
   .settings-view .settings-content { padding-inline: 22px; }
 }
 @container settings (max-width: 600px) {
-  .settings-view .settings-page { grid-template-rows: auto minmax(0, 1fr); scroll-padding-top: 72px; }
+  .settings-view .settings-page { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); scroll-padding-top: 72px; }
   .settings-view .settings-page aside { position: static; top: 0; z-index: 4; flex-direction: row; gap: 4px; overflow-y: hidden; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--line); }
   .settings-view .settings-page aside h2, .settings-view .settings-nav-group h3 { display: none; }
+  .settings-view .settings-page aside nav { display: flex; gap: 4px; }
   .settings-view .settings-nav-group { display: contents; }
   .settings-view .settings-page aside button { width: auto; flex: 0 0 auto; padding: 8px 10px; font-size: 13px; white-space: nowrap; }
   .settings-view .setting-group { width: 100%; min-width: 0; }
