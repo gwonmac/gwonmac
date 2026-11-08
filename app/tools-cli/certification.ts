@@ -70,10 +70,12 @@ import { formatReviewPacket, reviewClient, type ReviewPacket } from "./fact-revi
 import {
   generationFile,
   isDraftedAlternatives,
+  isDraftedEffectBodies,
   newGenerationSource,
   registerGeneration,
   REVIEWED_FACTS_FILE,
   withDraftedAlternatives,
+  withDraftedEffectBodies,
 } from "./generation-file.js";
 import { REVIEWED_GENERATIONS } from "../client/certification/reviewed-facts.js";
 
@@ -444,7 +446,9 @@ async function review(argv: readonly string[]): Promise<void> {
   if (apply !== null) {
     const draft: unknown = JSON.parse(await readFile(path.join(apply, "draft.json"), "utf8"));
     if (!draft || typeof draft !== "object" || !("id" in draft) || typeof draft.id !== "string"
-      || !("alternatives" in draft) || !isDraftedAlternatives(draft.alternatives)) {
+      || !("alternatives" in draft) || !isDraftedAlternatives(draft.alternatives)
+      || !("playerEffectBodies" in draft)
+      || (draft.playerEffectBodies !== null && !isDraftedEffectBodies(draft.playerEffectBodies))) {
       process.stderr.write(`certification review: ${apply}/draft.json is not a review draft\n`);
       process.exitCode = 2;
       return;
@@ -460,14 +464,19 @@ async function review(argv: readonly string[]): Promise<void> {
     } catch {
       source = null;
     }
+    const effectBodies = draft.playerEffectBodies;
     if (source === null) {
-      await writeAtomic(file, newGenerationSource(draft.id, draft.alternatives, note));
+      await writeAtomic(file, newGenerationSource(draft.id, draft.alternatives, note, effectBodies));
       const facts = path.resolve(REVIEWED_FACTS_FILE);
       await writeAtomic(facts, registerGeneration(await readFile(facts, "utf8"), draft.id));
     } else {
-      await writeAtomic(file, withDraftedAlternatives(source, draft.alternatives, note));
+      let edited = source;
+      if (Object.keys(draft.alternatives).length > 0) edited = withDraftedAlternatives(edited, draft.alternatives, note);
+      if (effectBodies) edited = withDraftedEffectBodies(edited, effectBodies, note);
+      await writeAtomic(file, edited);
     }
-    process.stderr.write(`certification review: wrote ${Object.keys(draft.alternatives).length} alternatives to ${generationFile(draft.id)}; run the replay and \`pnpm check\` before committing\n`);
+    process.stderr.write(`certification review: wrote ${Object.keys(draft.alternatives).length} alternatives${
+      effectBodies ? " and playerEffectBodies" : ""} to ${generationFile(draft.id)}; run the replay and \`pnpm check\` before committing\n`);
     return;
   }
   const [bundle, ...extra] = argv.filter((argument, index) =>
@@ -501,6 +510,7 @@ async function review(argv: readonly string[]): Promise<void> {
     previousSha256: packet.previousSha256,
     features: draftFeatures(packet),
     alternatives: packet.alternatives,
+    playerEffectBodies: packet.playerEffectBodies,
   }, null, 2)}\n`);
   process.stdout.write(`${JSON.stringify(packet.features.map(({ feature, invariant, provesWithDraft }) =>
     ({ feature, invariant, provesWithDraft })))}\n`);

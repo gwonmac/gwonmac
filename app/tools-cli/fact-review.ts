@@ -7,8 +7,9 @@
  * that the candidate no longer holds. For each such body it pairs the previous
  * function with the candidate's corresponding one (by unchanged callers, then
  * callees, then signature and length), lists both side by side with every
- * relocatable operand normalised, and drafts the generation-file alternative
- * that would accept it.
+ * relocatable operand normalised, and drafts the generation-file entry that
+ * would accept it: an alternative for a reviewed literal, or for a
+ * player-effect body the generation's `playerEffectBodies` map.
  *
  * A draft grants nothing. It becomes a fact only when a maintainer approves it
  * and writes it into the generation file, and the verifier still has to prove
@@ -64,13 +65,15 @@ export type FunctionListing = Readonly<{
 export type MissingBody = Readonly<{
   /** The reviewed literal: a body digest, or a role's fingerprint. */
   literal: string;
-  kind: "body" | "role";
+  kind: ReviewedLookup["kind"];
+  /** For a player-effect body, the August reference digest its map entry is keyed by. */
+  reference: string | null;
   previous: FunctionListing;
   pairedBy: "callers" | "callees" | "signature-and-length" | "none";
   candidateCount: number;
   /** The first few candidates. */
   candidates: readonly FunctionListing[];
-  /** The alternative that accepts the one candidate, or null when there is not exactly one. */
+  /** The entry that accepts the one candidate, or null when there is not exactly one. */
   draft: ReviewedAlternative | null;
 }>;
 
@@ -90,18 +93,30 @@ export type ReviewPacket = Readonly<{
   features: readonly FeatureReview[];
   /** Every drafted alternative, keyed by its reviewed literal. */
   alternatives: Readonly<Record<string, readonly ReviewedAlternative[]>>;
+  /**
+   * The drafted `playerEffectBodies`: the family that named the previous
+   * client's effect bodies, with each changed body's entry replaced.
+   */
+  playerEffectBodies: Readonly<Record<string, string>> | null;
 }>;
 
 const ALL = ENHANCEMENT_CAPABILITY_PRESETS.all;
 const MAX_LISTED_CANDIDATES = 3;
 const MAX_FALLBACK_CANDIDATES = 8;
 
-/** A generation that holds only drafted alternatives, to judge a draft before it is written. */
+/** A generation that holds only drafted entries, to judge a draft before it is written. */
 export function draftGeneration(
   id: string,
   alternatives: Readonly<Record<string, readonly ReviewedAlternative[]>>,
+  playerEffectBodies: Readonly<Record<string, string>> | null = null,
 ): ClientGeneration {
-  return Object.freeze({ id, builds: Object.freeze([]), identities: Object.freeze({}), facts: Object.freeze({ alternatives }) });
+  return Object.freeze({
+    id,
+    builds: Object.freeze([]),
+    identities: Object.freeze({}),
+    ...playerEffectBodies ? { playerEffectBodies } : {},
+    facts: Object.freeze({ alternatives }),
+  });
 }
 
 function featureProves(verification: LocalClientVerification, feature: ReviewedFeature): boolean {
@@ -134,7 +149,8 @@ function lookupsWhileVerifying(
 ): ReadonlyMap<string, Lookup> {
   const found = new Map<string, Lookup>();
   withReviewedLookupRecorder((lookup, functionIndex) => {
-    const key = lookup.kind === "body" ? `body:${lookup.literal}` : `role:${lookup.role.fingerprint}`;
+    const key = lookup.kind === "role" ? `role:${lookup.role.fingerprint}`
+      : lookup.kind === "effect" ? `effect:${lookup.reference}:${lookup.literal}` : `body:${lookup.literal}`;
     if (!found.has(key)) found.set(key, { key, lookup, functionIndex });
   }, () => verifyLocalClientBytes(bytes, request, generations));
   return found;
@@ -255,9 +271,9 @@ function pair(previous: ModuleIndex, candidate: ModuleIndex, previousFunction: n
     : { pairedBy: "none", candidates: [] };
 }
 
-/** The alternative under which the proof accepts `functionIndex` for `lookup`. */
+/** The entry under which the proof accepts `functionIndex` for `lookup`. */
 function alternativeFor(module: ModuleShape, functionIndex: number, lookup: ReviewedLookup): ReviewedAlternative | null {
-  if (lookup.kind === "body") return functionBodySha256(module, functionIndex);
+  if (lookup.kind !== "role") return functionBodySha256(module, functionIndex);
   const role: SemanticRole = lookup.role;
   const body = module.bodies[functionIndex - module.functionImportCount]!;
   let fingerprint: string;
@@ -276,7 +292,7 @@ function alternativeFor(module: ModuleShape, functionIndex: number, lookup: Revi
  */
 function draftedLiteral(module: ModuleShape, functionIndex: number, gone: readonly Lookup[]): string | undefined {
   const literals = gone.flatMap(({ lookup, functionIndex: index }) =>
-    lookup.kind === "body" && index === functionIndex ? [lookup.literal] : []).sort();
+    lookup.kind !== "role" && index === functionIndex ? [lookup.literal] : []).sort();
   const own = functionBodySha256(module, functionIndex);
   return literals.includes(own) ? own : literals[0];
 }
@@ -314,6 +330,15 @@ export function reviewClient(input: Readonly<{
 
   const templateLookups = lookupsWhileVerifying(previous, NO_ENHANCEMENT_CAPABILITIES, generations);
   const alternatives = new Map<string, ReviewedAlternative[]>();
+  // Every changed effect body must come from one family, so one map holds them.
+  const effectDraft = new Map<string, string>();
+  const effectFamilies: Readonly<Record<string, string>>[] = [];
+  const draftEffectBody = (lookup: Extract<ReviewedLookup, { kind: "effect" }>, digest: string): boolean => {
+    if (effectFamilies.length === 0) effectFamilies.push(lookup.family);
+    if (!isDeepStrictEqual(effectFamilies[0], lookup.family)) return false;
+    effectDraft.set(lookup.reference, digest);
+    return true;
+  };
   const pairs = new Map<number, ReturnType<typeof pair>>();
   const reviews = refused.map((feature) => {
     const lookups = feature === TEMPLATE_SAVING
@@ -329,14 +354,17 @@ export function reviewClient(input: Readonly<{
     const missing = gone.map(({ lookup, functionIndex }): MissingBody => {
       const paired = pairs.get(functionIndex) ?? pair(previousIndex, candidateIndex, functionIndex);
       pairs.set(functionIndex, paired);
-      const literal = lookup.kind === "body" ? lookup.literal : lookup.role.fingerprint;
-      const draft = paired.candidates.length === 1
+      const literal = lookup.kind === "role" ? lookup.role.fingerprint : lookup.literal;
+      let draft = paired.candidates.length === 1
         && (lookup.kind === "role" || literal === draftedLiteral(previousModule, functionIndex, gone))
         ? alternativeFor(candidateModule, paired.candidates[0]!, lookup) : null;
-      if (draft !== null) addAlternative(alternatives, literal, draft);
+      if (draft !== null && lookup.kind === "effect") {
+        if (typeof draft !== "string" || !draftEffectBody(lookup, draft)) draft = null;
+      } else if (draft !== null) addAlternative(alternatives, literal, draft);
       return Object.freeze({
         literal,
         kind: lookup.kind,
+        reference: lookup.kind === "effect" ? lookup.reference : null,
         previous: normalisedListing(previousModule, functionIndex),
         pairedBy: paired.pairedBy,
         candidateCount: paired.candidates.length,
@@ -358,8 +386,10 @@ export function reviewClient(input: Readonly<{
 
   const drafted = Object.freeze(Object.fromEntries([...alternatives].map(([literal, entries]) =>
     [literal, Object.freeze(entries)])));
-  const withDraft = alternatives.size === 0 ? candidateResult
-    : verifyLocalClientBytes(candidate, ALL, [...generations, draftGeneration(input.id, drafted)]);
+  const effectBodies: Readonly<Record<string, string>> | null = effectDraft.size === 0 ? null
+    : Object.freeze({ ...effectFamilies[0], ...Object.fromEntries(effectDraft) });
+  const withDraft = alternatives.size === 0 && effectBodies === null ? candidateResult
+    : verifyLocalClientBytes(candidate, ALL, [...generations, draftGeneration(input.id, drafted, effectBodies)]);
   return Object.freeze({
     candidateSha256: candidateResult.officialSha256,
     previousSha256: previousResult.officialSha256,
@@ -368,6 +398,7 @@ export function reviewClient(input: Readonly<{
       provesWithDraft: featureProves(withDraft, review.feature),
     }))),
     alternatives: drafted,
+    playerEffectBodies: effectBodies,
   });
 }
 
@@ -445,7 +476,9 @@ export function formatReviewPacket(packet: ReviewPacket, id: string): string {
       if (body.candidateCount === 1 && only) {
         out.push("```text", formatSideBySide(body.previous, only), "```", "", body.draft === null
           ? "No draft: another reviewed literal for this body carries it."
-          : `Draft: \`alternatives["${body.literal}"]\` += \`${JSON.stringify(body.draft)}\``, "");
+          : body.reference !== null
+            ? `Draft: \`playerEffectBodies["${body.reference}"]\` = \`${JSON.stringify(body.draft)}\``
+            : `Draft: \`alternatives["${body.literal}"]\` += \`${JSON.stringify(body.draft)}\``, "");
       } else {
         out.push("No draft: pair this body by hand.", "");
       }

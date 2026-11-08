@@ -593,10 +593,20 @@ function identityReviewedFor(literals: readonly string[], identity: () => string
   return reviewed.some((identities) => identities.has(measured));
 }
 
-/** A reviewed literal a proof matched on a module: a body digest, or a semantic role. */
+/**
+ * A reviewed literal a proof matched on a module: a body digest, a semantic
+ * role, or a player-effect body (its digest in one generation's family, with
+ * the August reference digest it stands for and that family's whole map).
+ */
 export type ReviewedLookup =
   | Readonly<{ kind: "body"; literal: string }>
-  | Readonly<{ kind: "role"; role: SemanticRole }>;
+  | Readonly<{ kind: "role"; role: SemanticRole }>
+  | Readonly<{
+    kind: "effect";
+    literal: string;
+    reference: string;
+    family: Readonly<Record<string, string>>;
+  }>;
 type LookupRecorder = (lookup: ReviewedLookup, functionIndex: number) => void;
 let lookupRecorder: LookupRecorder | null = null;
 
@@ -613,6 +623,11 @@ export function withReviewedLookupRecorder<Value>(record: LookupRecorder, run: (
   } finally {
     lookupRecorder = previous;
   }
+}
+
+/** Reports a match by a proof that compares reviewed digests itself. */
+export function recordReviewedLookup(lookup: ReviewedLookup, functionIndex: number): void {
+  lookupRecorder?.(lookup, functionIndex);
 }
 
 /** The body of `functionIndex` is the reviewed body `bodySha256`. */

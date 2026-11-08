@@ -14,6 +14,7 @@ import {
   newGenerationSource,
   registerGeneration,
   withDraftedAlternatives,
+  withDraftedEffectBodies,
 } from "../../app/tools-cli/generation-file.js";
 
 const DIRECTORY = "app/client/certification";
@@ -23,6 +24,7 @@ const DRAFT = {
     { bodyLength: 40, fingerprint: "3333333333333333333333333333333333333333333333333333333333333333" }],
 };
 const NOTE = "Review 2099-01-01-000000000000: the same function in the same role.";
+const EFFECTS = { [LITERAL]: "4444444444444444444444444444444444444444444444444444444444444444" };
 
 function isGeneration(value: unknown): value is ClientGeneration {
   return !!value && typeof value === "object" && "id" in value && typeof value.id === "string"
@@ -68,13 +70,23 @@ for (const [name, file, edit, existing] of [
 test("review --apply refuses a literal the file already lists", async () => {
   const once = withDraftedAlternatives(await readFile(NOVEMBER_3, "utf8"), DRAFT, NOTE);
   assert.throws(() => withDraftedAlternatives(once, DRAFT, NOTE), /already lists alternatives for 1{64}/u);
+  assert.throws(() => withDraftedEffectBodies(once, EFFECTS, NOTE), /already lists playerEffectBodies/u);
+});
+
+test("review --apply adds player-effect bodies to a generation and keeps the rest", async () => {
+  const source = await readFile(`${DIRECTORY}/reviewed-client-2026-08-build-1eb07e32.ts`, "utf8");
+  const before = await generationIn(source);
+  const after = await generationIn(withDraftedEffectBodies(source, EFFECTS, NOTE));
+  assert.deepEqual(after, { ...before, playerEffectBodies: EFFECTS });
 });
 
 test("review --apply creates and registers a generation the client did not have", async () => {
-  const created = await generationIn(newGenerationSource("2099-01-01-000000000000", DRAFT, NOTE));
+  const created = await generationIn(newGenerationSource("2099-01-01-000000000000", DRAFT, NOTE, EFFECTS));
   assert.deepEqual(created, {
-    id: "2099-01-01-000000000000", builds: [], identities: {}, facts: { alternatives: DRAFT },
+    id: "2099-01-01-000000000000", builds: [], identities: {}, playerEffectBodies: EFFECTS, facts: { alternatives: DRAFT },
   });
+  const effectsOnly = await generationIn(newGenerationSource("2099-01-01-000000000000", {}, NOTE, EFFECTS));
+  assert.deepEqual(effectsOnly, { id: "2099-01-01-000000000000", builds: [], identities: {}, playerEffectBodies: EFFECTS });
   const registered = registerGeneration(await readFile(`${DIRECTORY}/reviewed-facts.ts`, "utf8"), "2099-01-01-000000000000");
   assert.match(registered,
     /import \{ NOVEMBER_3_FACTS \} from "\.\/reviewed-client-2026-11-03-f2a2b07c9c56\.js";\nimport \{ FACTS_2099_01_01_000000000000 \} from "\.\/reviewed-client-2099-01-01-000000000000\.js";\n/u);

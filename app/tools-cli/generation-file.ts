@@ -4,7 +4,8 @@
  * registering that file when the client has none yet.
  *
  * It edits source text, so it touches only the `alternatives` of the file's
- * `facts` and refuses anything it cannot place exactly. Writing a fact grants
+ * `facts` and its `playerEffectBodies`, writes only literals and
+ * `Object.freeze`, and refuses anything it cannot place exactly. Writing a fact grants
  * nothing: the verifier still proves every feature from the bytes with it.
  */
 import type { ReviewedAlternative } from "../client/certification/reviewed-facts.js";
@@ -16,6 +17,7 @@ const BUNDLE_ID = /^\d{4}-\d{2}-\d{2}-[0-9a-f]{12}$/u;
 const DIGEST = /^[0-9a-f]{64}$/u;
 
 export type DraftedAlternatives = Readonly<Record<string, readonly ReviewedAlternative[]>>;
+export type DraftedEffectBodies = Readonly<Record<string, string>>;
 
 export function generationFile(id: string): string {
   if (!BUNDLE_ID.test(id)) throw new Error(`review: ${id} is not a bundle reference YYYY-MM-DD-<generation-12>`);
@@ -31,6 +33,27 @@ export function isDraftedAlternatives(value: unknown): value is DraftedAlternati
       : !!entry && typeof entry === "object" && Object.keys(entry).sort().join() === "bodyLength,fingerprint"
         && "bodyLength" in entry && Number.isSafeInteger(entry.bodyLength)
         && "fingerprint" in entry && typeof entry.fingerprint === "string" && DIGEST.test(entry.fingerprint)));
+}
+
+export function isDraftedEffectBodies(value: unknown): value is DraftedEffectBodies {
+  return !!value && typeof value === "object" && !Array.isArray(value)
+    && Object.entries(value).every(([reference, body]) => DIGEST.test(reference)
+      && typeof body === "string" && DIGEST.test(body));
+}
+
+function effectBodyLines(bodies: DraftedEffectBodies, note: string): string {
+  return `  // ${note}\n  playerEffectBodies: Object.freeze({\n${Object.entries(bodies)
+    .map(([reference, body]) => `    "${reference}": "${body}",\n`).join("")}  }),\n`;
+}
+
+/** `source` with `playerEffectBodies` added to its generation. */
+export function withDraftedEffectBodies(source: string, bodies: DraftedEffectBodies, note: string): string {
+  if (source.includes("\n  playerEffectBodies:")) {
+    throw new Error("review: the generation file already lists playerEffectBodies; merge it by hand");
+  }
+  const close = source.lastIndexOf("\n});");
+  if (close < 0 || !source.includes("export const ")) throw new Error("review: the generation file has no export to extend");
+  return `${source.slice(0, close + 1)}${effectBodyLines(bodies, note)}${source.slice(close + 1)}`;
 }
 
 function formatAlternative(alternative: ReviewedAlternative): string {
@@ -82,28 +105,33 @@ export function generationConstant(id: string): string {
   return `FACTS_${id.replaceAll("-", "_").toUpperCase()}`;
 }
 
-/** A generation file that holds only reviewed alternatives. */
-export function newGenerationSource(id: string, alternatives: DraftedAlternatives, note: string): string {
+/** A generation file that holds only reviewed drafts. */
+export function newGenerationSource(
+  id: string,
+  alternatives: DraftedAlternatives,
+  note: string,
+  effectBodies: DraftedEffectBodies | null = null,
+): string {
+  const hasAlternatives = Object.keys(alternatives).length > 0;
   return `/**
  * Reviewed facts for one ArenaNet client generation. The ${id} client.
  * Runtime certification never grants a capability from these facts alone:
  * the isolated semantic verifier re-derives every fact from the bytes first.
  */
-import type { ClientGeneration, GenerationFacts } from "./reviewed-facts.js";
-
+import type { ClientGeneration${hasAlternatives ? ", GenerationFacts" : ""} } from "./reviewed-facts.js";
+${hasAlternatives ? `
 const FACTS: GenerationFacts = Object.freeze<GenerationFacts>({
   alternatives: {
 ${entryLines(alternatives, note, "    ")}  },
 });
-
+` : ""}
 export const ${generationConstant(id)}: ClientGeneration = Object.freeze({
   id: "${id}",
   // Add the Enhancement record, memoryCodeSha256 and identity table
   // (docs/recertify.md, "Recover a relocation rebuild").
   builds: Object.freeze([]),
   identities: Object.freeze({}),
-  facts: FACTS,
-});
+${effectBodies ? effectBodyLines(effectBodies, note) : ""}${hasAlternatives ? "  facts: FACTS,\n" : ""}});
 `;
 }
 

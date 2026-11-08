@@ -7,6 +7,7 @@
 import {
   functionBody,
   functionBodySha256,
+  recordReviewedLookup,
   signatureMatches,
   unsignedOperand,
 } from "./wasm-evidence.js";
@@ -26,6 +27,9 @@ type PlayerEffectProof = NonNullable<
 type EffectIconProof = NonNullable<KnownEnhancementBuild["effectIconGeometry"]>;
 
 type ExactRole = Readonly<{
+  /** The August reference digest this role stands for. */
+  reference: string;
+  /** This family's body digest for the reference. */
   hash: string;
   bodyLength: number;
   params: readonly string[];
@@ -35,28 +39,31 @@ type ExactRole = Readonly<{
 // A generation's `playerEffectBodies` maps each August reference digest to
 // that client's complete body; the boundary accepts only these digests.
 function effectProofFamily(bodies: Readonly<Record<string, string>> | undefined) {
-  const reviewedHash = (hash: string) => bodies?.[hash] ?? hash;
+  const reviewed = (reference: string) => ({ reference, hash: bodies?.[reference] ?? reference });
+  const record = (role: ExactRole, index: number) => recordReviewedLookup({
+    kind: "effect", literal: role.hash, reference: role.reference, family: bodies ?? {},
+  }, index);
   const ACCESSORS: readonly ExactRole[] = Object.freeze([
-    { hash: reviewedHash("7df2376537653cac9b32172fb51073fa57503b1a2bcceb317a6d282d1e13fb0b"), bodyLength: 30, params: ["i32", "i32", "i32", "i32", "i32"], results: [] },
-    { hash: reviewedHash("18899c4be6bf2fd51f6dbf6e52241456cdaed94d912ed23f307c95917bf615b8"), bodyLength: 24, params: ["i32", "i32"], results: [] },
-    { hash: reviewedHash("1f2d462100add0c160d62265d2eaf292a00bfd1cde84c38c1e51f2aac0a2cc57"), bodyLength: 30, params: ["i32", "i32", "i32", "i32", "i32"], results: [] },
-    { hash: reviewedHash("a560a223d9756fc3579f057137601853ec23c2b6bbd57248216b77ce550d29af"), bodyLength: 30, params: ["i32", "i32", "i32", "i32", "f32"], results: [] },
-    { hash: reviewedHash("ecfa62c1bfaaebe98c2047ad986e137e9695a3cf2f0f7d5f6367b6e44cc10894"), bodyLength: 28, params: ["i32", "i32", "i32", "f32"], results: [] },
-    { hash: reviewedHash("3fecf883ff7543db3cfdd8f3d77fc5cf3ef1e78282252f4f3caedbbe4f80bac0"), bodyLength: 24, params: ["i32", "i32"], results: [] },
+    { ...reviewed("7df2376537653cac9b32172fb51073fa57503b1a2bcceb317a6d282d1e13fb0b"), bodyLength: 30, params: ["i32", "i32", "i32", "i32", "i32"], results: [] },
+    { ...reviewed("18899c4be6bf2fd51f6dbf6e52241456cdaed94d912ed23f307c95917bf615b8"), bodyLength: 24, params: ["i32", "i32"], results: [] },
+    { ...reviewed("1f2d462100add0c160d62265d2eaf292a00bfd1cde84c38c1e51f2aac0a2cc57"), bodyLength: 30, params: ["i32", "i32", "i32", "i32", "i32"], results: [] },
+    { ...reviewed("a560a223d9756fc3579f057137601853ec23c2b6bbd57248216b77ce550d29af"), bodyLength: 30, params: ["i32", "i32", "i32", "i32", "f32"], results: [] },
+    { ...reviewed("ecfa62c1bfaaebe98c2047ad986e137e9695a3cf2f0f7d5f6367b6e44cc10894"), bodyLength: 28, params: ["i32", "i32", "i32", "f32"], results: [] },
+    { ...reviewed("3fecf883ff7543db3cfdd8f3d77fc5cf3ef1e78282252f4f3caedbbe4f80bac0"), bodyLength: 24, params: ["i32", "i32"], results: [] },
   ]);
-  const ADD_TIMED: ExactRole = { hash: reviewedHash("fe97a736b61e83cc5ea5a84f38aecedd384476339c5b02594fcefeebc5ce5203"), bodyLength: 758, params: ["i32", "i32", "i32", "i32", "i32", "f32"], results: [] };
-  const RENEW: ExactRole = { hash: reviewedHash("cafd172e56cbc1efcc64eb281fd8dadcfb6aa305eb4c165c0959f0903f98f769"), bodyLength: 442, params: ["i32", "i32", "i32", "i32", "f32"], results: [] };
-  const REMOVE: ExactRole = { hash: reviewedHash("5e0ab6365510501ff760de8c3bdfb8682bf918e092d9263441d8fc7f56403533"), bodyLength: 429, params: ["i32", "i32", "i32"], results: [] };
+  const ADD_TIMED: ExactRole = { ...reviewed("fe97a736b61e83cc5ea5a84f38aecedd384476339c5b02594fcefeebc5ce5203"), bodyLength: 758, params: ["i32", "i32", "i32", "i32", "i32", "f32"], results: [] };
+  const RENEW: ExactRole = { ...reviewed("cafd172e56cbc1efcc64eb281fd8dadcfb6aa305eb4c165c0959f0903f98f769"), bodyLength: 442, params: ["i32", "i32", "i32", "i32", "f32"], results: [] };
+  const REMOVE: ExactRole = { ...reviewed("5e0ab6365510501ff760de8c3bdfb8682bf918e092d9263441d8fc7f56403533"), bodyLength: 429, params: ["i32", "i32", "i32"], results: [] };
   const TIMERS: readonly ExactRole[] = Object.freeze([
-    { hash: reviewedHash("7340dbe70f3f4bf731d23f80882df99553e837f825d8bbebee7f8eac45d8ef58"), bodyLength: 80, params: [], results: ["i32"] },
-    { hash: reviewedHash("c1f93ac7e783305bff7d976dbf55365b67fa6696243305685aa1fb0fb7901030"), bodyLength: 80, params: [], results: ["i32"] },
+    { ...reviewed("7340dbe70f3f4bf731d23f80882df99553e837f825d8bbebee7f8eac45d8ef58"), bodyLength: 80, params: [], results: ["i32"] },
+    { ...reviewed("c1f93ac7e783305bff7d976dbf55365b67fa6696243305685aa1fb0fb7901030"), bodyLength: 80, params: [], results: ["i32"] },
   ]);
   const EFFECTS_INITIALIZER: ExactRole = {
-    hash: reviewedHash("9267c76c395a6ca5bc2efd0f9eb1cd3234feb5c95041a3e6230c98f23f9a4d60"),
+    ...reviewed("9267c76c395a6ca5bc2efd0f9eb1cd3234feb5c95041a3e6230c98f23f9a4d60"),
     bodyLength: 374, params: ["i32", "i32"], results: [],
   };
   const CHILD_BUILDER: ExactRole = {
-    hash: reviewedHash("d5e3a36c3336cf3e42867228919ae973072dc54fb442d80244067a3f308b5fd5"),
+    ...reviewed("d5e3a36c3336cf3e42867228919ae973072dc54fb442d80244067a3f308b5fd5"),
     bodyLength: 245, params: ["i32", "i32"], results: [],
   };
   const EFFECTS_FRAME_HASH = 0x66e6211f;
@@ -165,8 +172,10 @@ function effectProofFamily(bodies: Readonly<Record<string, string>> | undefined)
       if (matchingSignatures.length === 0) continue;
       const hash = functionBodySha256(module, index);
       for (const roleIndex of matchingSignatures) {
-        if (roles[roleIndex]?.hash !== hash) continue;
+        const role = roles[roleIndex];
+        if (role?.hash !== hash) continue;
         indices[roleIndex]?.add(index);
+        record(role, index);
         recordExactMatch(hash, () => functionIdentity(module, index));
       }
     }
@@ -174,7 +183,9 @@ function effectProofFamily(bodies: Readonly<Record<string, string>> | undefined)
       roles.forEach((role, roleIndex) => {
         for (const identity of reviewedIdentities(role.hash)) {
           for (const index of functionsWithIdentity(module, identity)) {
-            if (signatureMatches(module, index, role.params, role.results)) indices[roleIndex]?.add(index);
+            if (!signatureMatches(module, index, role.params, role.results)) continue;
+            indices[roleIndex]?.add(index);
+            record(role, index);
           }
         }
       });
