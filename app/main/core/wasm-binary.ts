@@ -231,7 +231,13 @@ export function encodeIndexVector(values: readonly number[]): Uint8Array {
   return concat(uleb(values.length), ...values.map(uleb));
 }
 
-export function parseCode(bytes: Uint8Array): Uint8Array[] {
+/**
+ * The function bodies of a code section. They are views into one private copy
+ * of the section: no body aliases the caller's bytes or another parse, bodies
+ * never overlap, and a client's 17 000 bodies cost one allocation, not 17 000.
+ */
+export function parseCode(section: Uint8Array): Uint8Array[] {
+  const bytes = new Uint8Array(section);
   const cursor = { offset: 0 };
   const count = readUleb(bytes, cursor);
   const bodies: Uint8Array[] = [];
@@ -239,7 +245,7 @@ export function parseCode(bytes: Uint8Array): Uint8Array[] {
     const size = readUleb(bytes, cursor);
     const end = cursor.offset + size;
     if (end > bytes.byteLength) fail("truncated function body");
-    bodies.push(copyRange(bytes, cursor.offset, end));
+    bodies.push(bytes.subarray(cursor.offset, end));
     cursor.offset = end;
   }
   if (cursor.offset !== bytes.byteLength) fail("malformed code section");

@@ -94,10 +94,14 @@ describe("wasm binary codec", () => {
 
   it("round-trips code bodies and index vectors", () => {
     const bodies = [bytes(0x00, 0x0b), bytes(0x00, 0x41, 0x02, 0x0b)];
-    assert.deepEqual(
-      parseCode(encodeCode(bodies)).map((body) => Array.from(body)),
-      bodies.map((body) => Array.from(body)),
-    );
+    const section = encodeCode(bodies);
+    const parsed = parseCode(section);
+    assert.deepEqual(parsed.map((body) => Array.from(body)), bodies.map((body) => Array.from(body)));
+    // A transform rewrites a parsed body in place: neither the caller's bytes
+    // (the official client) nor the next body may change with it.
+    parsed[0]!.fill(0xff);
+    assert.deepEqual(Array.from(section), Array.from(encodeCode(bodies)));
+    assert.deepEqual(Array.from(parsed[1]!), [0x00, 0x41, 0x02, 0x0b]);
     const indices = [0, 5, 200, 17_600];
     assert.deepEqual(parseIndexVector(encodeIndexVector(indices)), indices);
   });
