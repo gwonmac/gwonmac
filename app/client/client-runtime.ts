@@ -107,6 +107,10 @@ import {
   type ClientVerdict,
   type ClientVerdictOutcome,
 } from "./client-verdict.js";
+import {
+  enhancementCandidateProfile,
+  failedStagesField,
+} from "./certification/client-verification-pass.js";
 import { discardClientVerdictRecord } from "./client-verdict-record.js";
 import type {
   AnyLocalFeatureInvariant,
@@ -456,6 +460,7 @@ export class ClientRuntime {
       source: obtained?.source ?? "error",
       outcome: verdict ? "accepted" : "check-failed",
       passMs: obtained?.passMs ?? null,
+      failedStages: verdict ? failedStagesField(verdict.failedStages) : null,
     });
     if (local) recordFeatureVerdicts(local.featureVerdicts);
     const preparationFailed = prepared.failure?.stage === "enhancement";
@@ -548,7 +553,11 @@ export class ClientRuntime {
       servedCompatibility,
       extendedMemoryRuntimeStatus(prepared.extendedMemory),
       verdict ? verdict.failedStages : null,
-      prepared.failure?.stage === "enhancement",
+      // Main served another Enhancement candidate than the pass proved its
+      // later stages on: their misses are Main's, not the build's. When both
+      // fell back the same way, a refusal stays a refusal.
+      verdict !== null
+        && enhancementCandidateProfile(prepared.effectiveCapabilities) !== verdict.enhancementCandidate,
     );
     const extendedCap = extendedMemory.effectiveCapBytes;
     const fallbackReason = extendedMemory.fallbackReason;

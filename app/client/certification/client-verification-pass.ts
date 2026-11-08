@@ -21,6 +21,7 @@ import { createHash } from "node:crypto";
 import { isStageRefusal } from "./stage-refusal.js";
 import {
   enhancementCapabilitiesForProfile,
+  enhancementCapabilityProfile,
   enhancementCapabilitiesRequested,
   NO_ENHANCEMENT_CAPABILITIES,
   type EnhancementCapabilities,
@@ -72,7 +73,7 @@ import {
  * Bumped whenever the shape of a pass result changes, so a stored record from
  * an older shape is a key mismatch instead of a parse question.
  */
-export const CLIENT_VERIFICATION_PASS_ABI = 1;
+export const CLIENT_VERIFICATION_PASS_ABI = 2;
 
 /**
  * The ABI of every stage a pass proves. A stored pass made under any other
@@ -110,10 +111,48 @@ export const CLIENT_VERIFICATION_STAGES = [
 
 export type ClientVerificationStage = (typeof CLIENT_VERIFICATION_STAGES)[number];
 
+/**
+ * Failed stages as one diagnostic value: their names in chain order, joined
+ * by commas; "" when every stage answered. The names are a closed list, so
+ * the value can never carry a path or client data.
+ */
+export type FailedStagesField = string & { readonly __failedStages: unique symbol };
+
+function joinStages(stages: readonly ClientVerificationStage[]): string {
+  return CLIENT_VERIFICATION_STAGES.filter((stage) => stages.includes(stage)).join(",");
+}
+
+/** Whether `value` is exactly what `failedStagesField` can produce. */
+export function isFailedStagesField(value: unknown): value is FailedStagesField {
+  if (typeof value !== "string") return false;
+  if (value === "") return true;
+  const names = value.split(",");
+  const known = names.flatMap((name) =>
+    CLIENT_VERIFICATION_STAGES.filter((stage) => stage === name));
+  return known.length === names.length && joinStages(known) === value;
+}
+
+export function failedStagesField(stages: readonly ClientVerificationStage[]): FailedStagesField {
+  const field = joinStages(stages);
+  if (!isFailedStagesField(field)) throw new TypeError("unknown verification stage");
+  return field;
+}
+
+/**
+ * The Enhancement candidate a chain serves, as its capability profile; null
+ * when it serves none. The pass and Main name it the same way, so Main can
+ * tell its own fallback from the one the pass proved.
+ */
+export function enhancementCandidateProfile(candidate: EnhancementCapabilities): string | null {
+  return enhancementCapabilitiesRequested(candidate) ? enhancementCapabilityProfile(candidate) : null;
+}
+
 export interface ClientVerificationLaunchResult extends ClientVerificationLaunch {
   readonly verification: LocalClientVerification | null;
   /** Stages that failed to check rather than refused; empty when every stage answered. */
   readonly failedStages: readonly ClientVerificationStage[];
+  /** The Enhancement candidate this chain proved, or null when none passed. */
+  readonly enhancementCandidate: string | null;
 }
 
 /**
@@ -227,6 +266,7 @@ export async function runClientVerificationPass(
     }
 
     let travelAction = false;
+    let enhancementCandidate: string | null = null;
     const enhancement = verification?.enhancementBuild ?? null;
     if (
       capabilities
@@ -242,6 +282,7 @@ export async function runClientVerificationPass(
         );
         if (inputSha256 !== before) {
           travelAction = candidate.travelAction;
+          enhancementCandidate = enhancementCandidateProfile(candidate);
           break;
         }
       }
@@ -306,6 +347,7 @@ export async function runClientVerificationPass(
       ...launch,
       verification,
       failedStages: Object.freeze([...failedStages]),
+      enhancementCandidate,
     }));
     await report(last && !memoryLater);
     if (memoryLater) {
@@ -316,6 +358,7 @@ export async function runClientVerificationPass(
         ...launch,
         verification,
         failedStages: Object.freeze([...failedStages]),
+        enhancementCandidate,
       });
       if (last) await report(true);
     }

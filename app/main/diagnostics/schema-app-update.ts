@@ -19,6 +19,7 @@ import {
   isExtendedMemoryProfile,
   type ExtendedMemoryProfile,
 } from "../../client/certification/extended-memory.js";
+import { isFailedStagesField } from "../../client/certification/client-verification-pass.js";
 import {
   LOCAL_FEATURE_INVARIANTS,
   type AnyLocalFeatureInvariant,
@@ -663,6 +664,8 @@ export const APP_AND_UPDATE_EVENT_SCHEMA = {
       source: literal(["record", "pass", "error"] as const),
       outcome: literal(["accepted", "check-failed"] as const),
       passMs: nullable(finiteNumber),
+      // Stage names that failed to check, in chain order; null with no verdict.
+      failedStages: nullable(isFailedStagesField),
     },
   },
   "wasm.clientVerdictStored": {

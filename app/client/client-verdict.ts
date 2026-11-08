@@ -61,6 +61,7 @@ export interface UntrustedPassResult {
   readonly launches: readonly (ClientVerificationLaunch & {
     readonly verification: unknown;
     readonly failedStages: readonly ClientVerificationStage[];
+    readonly enhancementCandidate: string | null;
   })[];
   readonly friendObserver: readonly unknown[];
   readonly cartography: readonly unknown[];
@@ -93,6 +94,9 @@ export function readPassResult(value: unknown): UntrustedPassResult | null {
       || !("cartography" in launch) || typeof launch.cartography !== "boolean"
       || !("verification" in launch)
       || !("failedStages" in launch) || !boundedArray(launch.failedStages)
+      || !("enhancementCandidate" in launch)
+      || !(launch.enhancementCandidate === null
+        || (typeof launch.enhancementCandidate === "string" && launch.enhancementCandidate.length <= 64))
     ) return null;
     const failedStages: ClientVerificationStage[] = [];
     for (const stage of launch.failedStages) {
@@ -105,6 +109,7 @@ export function readPassResult(value: unknown): UntrustedPassResult | null {
       cartography: launch.cartography,
       verification: launch.verification,
       failedStages,
+      enhancementCandidate: launch.enhancementCandidate,
     });
   }
   return {
@@ -125,6 +130,8 @@ export interface ClientVerdict {
   readonly verification: LocalClientVerification;
   /** Stages of this launch that failed to check; they report `check-failed`. */
   readonly failedStages: readonly ClientVerificationStage[];
+  /** The Enhancement candidate the pass proved its later stages on, or null. */
+  readonly enhancementCandidate: string | null;
   readonly friendObserver: (inputSha256: string) => FriendObserverBuild | null;
   readonly cartography: (inputSha256: string) => CartographySpikeBuild | null;
   readonly nativeDoubleClick: (inputSha256: string) => NativeDoubleClickBuild | null;
@@ -176,6 +183,7 @@ export function acceptLaunchVerdict(
     return Object.freeze({
       verification,
       failedStages: entry.failedStages,
+      enhancementCandidate: entry.enhancementCandidate,
       friendObserver: find(result.friendObserver, isFriendObserverBuild),
       cartography: find(result.cartography, isCartographySpikeBuild),
       nativeDoubleClick: find(result.nativeDoubleClick, isDerivedNativeDoubleClickBuild),
@@ -281,6 +289,13 @@ export async function obtainClientVerdict(options: Readonly<{
     appVersion: options.appVersion,
   };
   const id = JSON.stringify(key);
+  const { slot } = options;
+  // A pass for another build is stale, even when this build is answered from
+  // its record (a rollback): it must not finish and overwrite that record.
+  if (slot.current && slot.current.id !== id) {
+    slot.current.pass.cancel();
+    slot.current = null;
+  }
   const installKey = await options.installKey().catch(() => null);
   if (installKey) {
     const stored = readPassResult(
@@ -297,13 +312,10 @@ export async function obtainClientVerdict(options: Readonly<{
   }
 
   const started = performance.now();
-  const { slot } = options;
-  // A pass for another build is stale; it must not finish and store.
-  if (slot.current && slot.current.id !== id) {
-    slot.current.pass.cancel();
-    slot.current = null;
-  }
   let running = slot.current;
+  // Joined: a pass for another launch of this build was already running, so
+  // its first report may not hold this launch.
+  const joined = running !== null;
   if (!running) {
     const pass = options.runPass({
       wasmPath: options.wasmPath,
@@ -329,8 +341,9 @@ export async function obtainClientVerdict(options: Readonly<{
     slot.current = running;
   }
 
-  // The first report answers a fresh pass. A pass already running for another
-  // launch of this build answers only once it completes.
+  // The first report answers a fresh pass: when it holds no verdict, nothing
+  // later will, so the launch plays at once. A joined pass answers only once
+  // it completes.
   const budget = options.launchBudgetMs ?? LAUNCH_BUDGET_MS;
   let timer: ReturnType<typeof setTimeout> | undefined;
   const expired = new Promise<null>((resolve) => { timer = setTimeout(() => resolve(null), budget); });
@@ -339,7 +352,7 @@ export async function obtainClientVerdict(options: Readonly<{
     return result ? acceptLaunchVerdict(result, options.launch, options.wasmSha256) : null;
   };
   const verdict = accept(await Promise.race([running.pass.requested, expired]))
-    ?? accept(await Promise.race([running.pass.complete, expired]));
+    ?? (joined ? accept(await Promise.race([running.pass.complete, expired])) : null);
   clearTimeout(timer);
   if (!verdict) running.pass.background();
   return {

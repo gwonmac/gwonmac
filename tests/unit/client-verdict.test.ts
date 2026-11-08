@@ -10,6 +10,10 @@ import {
   type ClientVerificationPassResult,
 } from "../../app/client/certification/client-verification-pass.js";
 import { isStageRefusal } from "../../app/client/certification/stage-refusal.js";
+import {
+  failedStagesField,
+  isFailedStagesField,
+} from "../../app/client/certification/client-verification-pass.js";
 import { ProofLimitError } from "../../app/client/certification/semantic-proof.js";
 import { EvidenceError } from "../../app/client/certification/wasm-evidence-error.js";
 import {
@@ -48,8 +52,11 @@ const INSTALL_KEY = Buffer.alloc(32, 1);
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-/** A pass whose answers the test controls. */
-function controlledPass() {
+/**
+ * A pass whose answers the test controls. `finishesAfterCancel` models a pass
+ * whose answer was already on its way when it was cancelled.
+ */
+function controlledPass(options: { finishesAfterCancel?: boolean } = {}) {
   let requested!: (value: unknown) => void;
   let complete!: (value: unknown) => void;
   const state = { backgrounded: false, cancelled: false };
@@ -59,6 +66,7 @@ function controlledPass() {
     background: () => { state.backgrounded = true; },
     cancel: () => {
       state.cancelled = true;
+      if (options.finishesAfterCancel) return;
       requested(null);
       complete(null);
     },
@@ -330,7 +338,7 @@ describe("client verdict", () => {
     // the record of the build that replaced it.
     await withRecordDir(async (recordPath) => {
       const slot = createVerifierPassSlot();
-      const older = controlledPass();
+      const older = controlledPass({ finishesAfterCancel: true });
       const olderLaunch = await launchOn(recordPath, () => older.pass, { slot, launchBudgetMs: 10 });
       assert.equal(olderLaunch.verdict, null);
 
@@ -346,9 +354,55 @@ describe("client verdict", () => {
       const next = await launchOn(recordPath, newer.run, { slot, wasm: WASM_NEXT });
       assert.equal(older.state.cancelled, true);
       assert.equal(await next.stored, "stored");
+      // The replaced pass still delivers a valid complete answer for its build.
+      older.answerComplete(await passResult(WASM, [TOOLS, CORE]));
       assert.equal(await olderLaunch.stored, "not-stored");
       const served = await launchOn(recordPath, failedPass, { slot, wasm: WASM_NEXT });
-      assert.equal(served.source, "record");
+      assert.equal(served.source, "record", "the record must still hold the newer build");
+    });
+  });
+
+  it("cancels another build's pass when this build is served from its record", async () => {
+    // Catches a rollback to a stored build while an update's pass runs: that
+    // pass must not finish later and overwrite the record of the build in use.
+    await withRecordDir(async (recordPath) => {
+      const slot = createVerifierPassSlot();
+      assert.equal(await (await launchOn(recordPath, realPass().run, { slot })).stored, "stored");
+      const update = controlledPass({ finishesAfterCancel: true });
+      const updateLaunch = await launchOn(recordPath, () => update.pass, {
+        slot, wasm: WASM_NEXT, launchBudgetMs: 10,
+      });
+      assert.equal(updateLaunch.verdict, null);
+
+      const rollback = await launchOn(recordPath, failedPass, { slot });
+      assert.equal(rollback.source, "record");
+      assert.equal(update.state.cancelled, true);
+      update.answerComplete(await passResult(WASM_NEXT, [TOOLS, CORE]));
+      assert.equal(await updateLaunch.stored, "not-stored");
+      const again = await launchOn(recordPath, failedPass, { slot });
+      assert.equal(again.source, "record", "the record must still hold the build in use");
+    });
+  });
+
+  it("plays at once when a fresh pass's report holds no verdict", async () => {
+    // Catches a launch that waits its whole budget for a complete report that
+    // cannot hold a verdict its own first report lacked.
+    await withRecordDir(async (recordPath) => {
+      const fresh = controlledPass();
+      const outcome = launchOn(recordPath, () => fresh.pass, { launchBudgetMs: 60_000 });
+      const report = await passResult(WASM, [TOOLS, CORE]);
+      fresh.answerRequested({
+        ...report,
+        launches: report.launches.map((launch) => ({ ...launch, verification: {} })),
+      });
+      const settled = await Promise.race([
+        outcome.then(() => "answered"),
+        delay(1_000).then(() => "waiting"),
+      ]);
+      assert.equal(settled, "answered");
+      assert.equal((await outcome).verdict, null);
+      assert.equal(fresh.state.backgrounded, true);
+      fresh.answerComplete(null);
     });
   });
 
@@ -401,5 +455,17 @@ describe("client verdict", () => {
       ["not an Error", "boom", false],
     ];
     for (const [name, error, refusal] of cases) assert.equal(isStageRefusal(error), refusal, name);
+  });
+  it("logs failed stages only as closed names in chain order", () => {
+    // Catches a diagnostics field that could carry a path or free text, and a
+    // producer whose value the export validator would refuse.
+    assert.equal(failedStagesField(["extendedMemory", "friendObserver"]), "friendObserver,extendedMemory");
+    assert.equal(failedStagesField([]), "");
+    for (const value of ["", "enhancement", "friendObserver,extendedMemory"]) {
+      assert.equal(isFailedStagesField(value), true, value);
+    }
+    for (const value of ["/Users/x/Gw.jspi.wasm", "extendedMemory,friendObserver", "enhancement,enhancement", "enhancement,", null]) {
+      assert.equal(isFailedStagesField(value), false, String(value));
+    }
   });
 });

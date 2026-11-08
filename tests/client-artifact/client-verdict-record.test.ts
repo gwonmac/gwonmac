@@ -13,6 +13,7 @@ import { certificationFromLocalVerification } from
   "../../app/client/certification/client-certification.js";
 import { prepareClientModule } from "../../app/client/certification/client-module.js";
 import {
+  enhancementCandidateProfile,
   runClientVerificationPass,
   type ClientVerificationLaunch,
 } from "../../app/client/certification/client-verification-pass.js";
@@ -130,7 +131,15 @@ test("a proved real client is served from its signed record with no pass", {
     assert.ok(toggled.verdict, "the record must hold the other release launch too");
     assert.deepEqual(again.verdict.failedStages, []);
 
-    const fromPass = served(await prepare(first.verdict, false, "pass"));
+    const passModule = await prepare(first.verdict, false, "pass");
+    // Main and the pass name the served candidate alike; otherwise every
+    // launch would read as a Main-side fallback.
+    assert.equal(
+      enhancementCandidateProfile(passModule.effectiveCapabilities),
+      first.verdict.enhancementCandidate,
+    );
+    assert.notEqual(first.verdict.enhancementCandidate, null);
+    const fromPass = served(passModule);
     const fromRecord = served(await prepare(again.verdict, false, "record"));
     assert.equal(fromPass.failure, null);
     assert.equal(fromPass.cartography, "active");

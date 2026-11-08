@@ -109,7 +109,7 @@ test("attributes later-stage refusals to the stage that failed or to the fallbac
     ["4 GB crashed", ["extendedMemory"], false, "game-update", "game-update", "check-failed"],
     ["Enhancement crashed", ["enhancement"], false, "check-failed", "check-failed", "check-failed"],
     ["friends crashed", ["friendObserver"], false, "check-failed", "check-failed", "check-failed"],
-    ["Main fell back", [], true, "preparation-failed", "game-update", "preparation-failed"],
+    ["Main served another candidate", [], true, "preparation-failed", "game-update", "preparation-failed"],
     ["clean verdict", [], false, "game-update", "game-update", "unsupported-client"],
   ];
   for (const [name, stages, fellBack, doubleClick, travel, fourGb] of cases) {

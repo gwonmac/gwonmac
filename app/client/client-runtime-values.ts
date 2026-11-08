@@ -111,15 +111,17 @@ export function withFailedCheck(
 
 /**
  * The reasons a launch serves. With no verdict the whole check failed; a
- * verdict may still name stages that failed to check. When Main fell back
- * from the Enhancement candidate the pass proved, the later stages were proved
- * for an output Main does not hold, so their misses are preparation failures.
+ * verdict may still name stages that failed to check. When Main served
+ * another Enhancement candidate than the pass proved (it fell back where the
+ * pass did not), the later stages were proved for an output Main does not
+ * hold, so their misses are preparation failures. A fallback both made is the
+ * build's own answer and keeps its reason.
  */
 export function servedReasons(
   compatibility: ClientCompatibility,
   extendedMemory: ExtendedMemoryRuntimeStatus,
   failedStages: readonly ClientVerificationStage[] | null,
-  enhancementFellBack: boolean,
+  enhancementDiverged: boolean,
 ): { compatibility: ClientCompatibility; extendedMemory: ExtendedMemoryRuntimeStatus } {
   if (failedStages === null) return withFailedCheck(compatibility, extendedMemory);
   const checked = withStageReason(
@@ -128,7 +130,7 @@ export function servedReasons(
     "check-failed",
     failedStageScope(failedStages),
   );
-  return enhancementFellBack
+  return enhancementDiverged
     ? withStageReason(checked.compatibility, checked.extendedMemory, "preparation-failed", {
         upstream: false,
         nativeDoubleClick: true,

@@ -201,9 +201,12 @@ caused it and serves the official module. Either way the app serves the
 verified official module or the last stage that passed, and activation never
 fails because of the check.
 
-When Enhancement falls back to its second candidate, a later stage whose proof
-was made for the first candidate cannot be used. Native double-click and 4 GB
-then report `preparation-failed`, not a Guild Wars update.
+The pass records which Enhancement candidate each chain proved. When Main
+serves a different one (it fell back where the pass did not), a later stage
+whose proof was made for the pass's candidate cannot be used, and native
+double-click and 4 GB report `preparation-failed`, not a Guild Wars update.
+When both fell back the same way, the later stages were proved on the served
+candidate, and a refusal keeps its reason.
 
 ## Effective feature status
 
