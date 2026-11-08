@@ -61,8 +61,8 @@ const NOT_YET_TOKENISED: Record<string, { rules: Rule[]; reason: string }> = {
     reason: "the boot screen is a plain <link> in index.html and paints before the bundle brings tokens.css",
   },
   "app/ui/tools/src/styles/elite-skills.css": {
-    rules: ["colour", "radius", "z-index"],
-    reason: "opaque panel fills are derived in place with rgb(from …), and its layers and image corners are literal",
+    rules: ["radius", "z-index"],
+    reason: "its layers and image corners are literal",
   },
   "app/ui/tools/src/WhispersApp.vue": {
     rules: ["colour", "z-index"],
