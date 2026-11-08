@@ -14,6 +14,7 @@ import progress from "./progress/feature.js";
 import quickItemMove from "./quick-item-move/feature.js";
 import reminders from "./reminders/feature.js";
 import resign from "./resign/feature.js";
+import scratchPad from "./scratch-pad/feature.js";
 import skillCooldowns from "./skill-cooldowns/feature.js";
 import skillKeyLabels from "./skill-key-labels/feature.js";
 import targetReadout from "./target-readout/feature.js";
@@ -38,6 +39,7 @@ export const FEATURES = [
   quickItemMove,
   tradeChat,
   cartography,
+  scratchPad,
   targetReadout,
   skillKeyLabels,
   skillCooldowns,

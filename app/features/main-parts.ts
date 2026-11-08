@@ -14,6 +14,7 @@ import buildLibrary from "./build-library/main.js";
 import cartography from "./cartography/main.js";
 import tradeChat from "./trade-chat/main.js";
 import travel from "./travel/main.js";
+import scratchPad from "./scratch-pad/main.js";
 
 type ContractKeys<Parts extends readonly unknown[]> = {
   [Index in keyof Parts]: Parts[Index] extends Readonly<{ contract: Readonly<{ channels: infer Table extends ChannelTable }> }>
@@ -26,4 +27,4 @@ const everyChannelOwnedOnce = <const Parts extends readonly AnyToolsMainPart[]>(
   parts: Parts & OwnershipError<InvokeKey<ToolsChannels>, ContractKeys<Parts>>,
 ): Parts => parts;
 
-export const MAIN_PARTS = everyChannelOwnedOnce([buildLibrary, travel, tradeChat, cartography]);
+export const MAIN_PARTS = everyChannelOwnedOnce([buildLibrary, travel, tradeChat, cartography, scratchPad]);

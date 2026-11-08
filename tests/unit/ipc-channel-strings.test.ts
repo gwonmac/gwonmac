@@ -77,6 +77,7 @@ const CASES = {
     "gw:eliteTracking:get",
     "gw:eliteTracking:update",
     "gw:eliteWiki:open",
+    "gw:scratchPad:echo",
     "gw:trade:event",
     "gw:trade:market-rates:get",
     "gw:trade:retry",
