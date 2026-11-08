@@ -6,8 +6,9 @@
  *
  * Isolation is the whole point. The verifier walks a multi-megabyte module this
  * project did not produce, so it runs where a crash or a runaway loop costs the
- * launch nothing. The host owns the time budget; this process holds no state
- * and writes no files.
+ * launch nothing. The host owns only the hard bound on the whole pass; how
+ * long a launch waits is its caller's budget. This process holds no state and
+ * writes no files.
  *
  * The first profile is the one this launch is waiting for. After reporting it,
  * the process lowers its own priority so the rest of the pass does not compete

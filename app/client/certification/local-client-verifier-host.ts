@@ -13,13 +13,15 @@
  * How long a launch waits is the caller's decision. This host bounds only the
  * whole pass, so a client this app did not produce can never keep a verifier
  * running: a crash, the hard bound or a malformed message ends the pass with
- * no answer, which callers report as a failed check and never store.
+ * no answer, which callers report as a failed check and never store. A child
+ * that ignores the stop is killed after a short grace period.
  */
 import { fileURLToPath } from "node:url";
 import { constants, setPriority } from "node:os";
 import { utilityProcess, type UtilityProcess } from "electron";
 import type { ClientVerificationLaunch } from "./client-verification-pass.js";
 import type { VerifierPass } from "../client-verdict.js";
+import { stoppableVerifierChild } from "./verifier-child-stop.js";
 
 /**
  * The hard bound on one pass, every launch profile included. It bounds a hung
@@ -67,12 +69,13 @@ export function runVerifierPass(options: Readonly<{
     resolveComplete(null);
     return none;
   }
+  const stop = stoppableVerifierChild(child);
   let settled = false;
   const finish = (value: unknown): void => {
     if (settled) return;
     settled = true;
     clearTimeout(bound);
-    child.kill();
+    stop();
     resolveRequested(null);
     resolveComplete(value);
   };

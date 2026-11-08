@@ -163,8 +163,10 @@ writes nothing. Known hashes take the same structural path as unknown hashes.
 Play waits at most 120 s for the requested report. When that runs out, this
 launch serves the official module with `check-failed`, but the pass is not
 stopped: it drops to low priority, finishes the other proofs while the game
-runs, and stores its record, so the next start reads the record. A hard bound
-of 10 minutes ends any pass. Only one pass runs per install. A launch of the
+runs, and stores its record, so the next start reads the record. Low priority
+is a nice value (below normal), a courtesy to the running game and not
+isolation: macOS background QoS is not used. A hard bound of 10 minutes ends
+any pass; a child that ignores the stop is killed 5 s later. Only one pass runs per install. A launch of the
 same build joins the running pass; a launch of another build cancels it, and a
 pass that was replaced never writes its record.
 
