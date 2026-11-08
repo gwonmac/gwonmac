@@ -21,11 +21,8 @@ import {
 import path from "node:path";
 import { promisify } from "node:util";
 import { app, dialog, type BrowserWindow } from "electron";
-import type {
-  AppSettings,
-  RuntimeDiagnosticState,
-  VisualProblemManifest,
-} from "../../shared/contracts.js";
+import type { RuntimeDiagnosticState, VisualProblemManifest } from "../../shared/contracts.js";
+import type { AppSettings } from "../../shared/settings/index.js";
 import type { CartographyEvidenceReport } from "../../shared/cartography-evidence.js";
 import {
   VISUAL_CAPTURE_STAGES,

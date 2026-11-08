@@ -5,12 +5,12 @@
  */
 import { app, powerMonitor, type BrowserWindow } from "electron";
 import type {
-  AppSettings,
   ClientSession,
   DiagnosticProfile,
   DownloadProgress,
   EnhancementRuntimeFeature,
 } from "../shared/contracts.js";
+import type { AppSettings } from "../shared/settings/index.js";
 import { diagnosticProfilePolicy } from "../shared/diagnostic-profile.js";
 import {
   NO_ENHANCEMENT_CAPABILITIES,

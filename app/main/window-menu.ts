@@ -19,11 +19,8 @@ import {
   type MenuItemConstructorOptions,
 } from "electron";
 import type { LauncherDestination, LauncherProfileSummary } from "../shared/launcher-contracts.js";
-import {
-  EXTERNAL_URLS,
-  type AppSettings,
-  type TextEditCommand,
-} from "../shared/contracts.js";
+import { EXTERNAL_URLS, type TextEditCommand } from "../shared/contracts.js";
+import type { AppSettings } from "../shared/settings/index.js";
 import { errorCode } from "../shared/errors.js";
 import { featureActivationRequested, type FeatureActivationSettings } from "../shared/feature-contracts.js";
 import { logEvent, reloadTranscriptForWindow } from "./diagnostics.js";

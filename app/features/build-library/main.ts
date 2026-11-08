@@ -5,11 +5,13 @@ import { channel } from "../../main/ipc-channel-registry.js";
 import { BuildLibraryCoordinator } from "./main/build-library-coordinator.js";
 import { nothing, one } from "../../main/ipc-values.js";
 import type { ToolsMainPart } from "../../main/tools-main-part.js";
+import contract from "./shared/ipc.js";
 import { parseBuildLibrary } from "../../shared/builds/parse-library.js";
 
 export default {
   feature: "buildLibrary",
   label: "build library",
+  contract,
   create({ accounts, run }) {
     const libraries = new BuildLibraryCoordinator();
     return {
@@ -23,4 +25,4 @@ export default {
       },
     };
   },
-} satisfies ToolsMainPart;
+} satisfies ToolsMainPart<typeof contract>;

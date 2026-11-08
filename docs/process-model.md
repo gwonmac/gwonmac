@@ -132,12 +132,12 @@ selection.
 | `app/main/core/` | Native storage, sockets, DNS, credentials, settings, and window state |
 | `app/client/certification/` | Client certification and deterministic WASM transforms |
 | `app/main/protocol.ts` | `gw://app` routing and range responses |
-| `app/main/ipc-channel-registry.ts` | One `register` for every invoke channel: sender role check and refused-argument reporting |
+| `app/shared/ipc/` | The channel tables, one per window role: each channel's string, argument tuple, and result, declared once (`game.ts` Core, `launcher.ts`, and `tools.ts` composed from each Tool's `shared/ipc.ts`) |
+| `app/main/ipc-channel-registry.ts` | The typed handler builder (`channel`), the exactly-one-owner check (`ownedOnce`), and one `register` for every invoke channel: sender role check and refused-argument reporting |
 | `app/main/ipc-values.ts` | The parser kit (`args`, `nothing`, `one`) and bounded IPC value validation |
-| `app/main/ipc.ts` | Game-window channels: sender, parser, and handler for each |
-| `app/main/core-ipc-wiring.ts` | Which service answers each validated game-window request |
-| `app/main/launcher-ipc.ts` | Launcher-only channels: sender, parser, and handler for each |
-| `app/main/launcher-service.ts` | What each validated launcher request does, with its native confirmations |
+| `app/main/game-ipc/` | Core game-window channels: one owner part per concern (client, network, secrets, settings, diagnostics, app, clipboard, templates); `register.ts` proves each channel has one owner |
+| `app/main/launcher-ipc.ts` | Launcher channels: one owner part per concern, each request's parser, action, and native confirmation |
+| `app/main/launcher-service.ts` | Builds the launcher orchestrator, publishes its snapshot, and registers the launcher channels |
 | `app/main/launcher-orchestrator.ts` | Revisioned launcher projection; decides when Play and client changes drain the launch queue |
 | `app/main/core/profile-runtime.ts` | Each profile's launch state, the one ordered launch queue, the Play rule, and the drain |
 | `app/main/core/launcher-state.ts` | Atomic presentation-only launcher preferences |
@@ -146,6 +146,7 @@ selection.
 | `app/main/diagnostics.ts` and `app/main/diagnostics/` | Diagnostics entry point and implementation |
 | `app/preload/launcher.ts` | Reduced sandboxed Vue-launcher preload |
 | `app/preload/game-bridge.ts`, `core.ts`, `tools.ts` | Sandboxed game preload, Core and Tools entries (Rollup bundles each into one CommonJS file) |
+| `app/preload/ipc-bridge.ts` | The preloads' one typed `invoke` and `listen` over a channel table |
 | `app/ui/launcher/` | Vue launcher shell and deterministic development fixtures |
 | `app/ui/tools/` | Vue Tools and Hub UI |
 | `app/renderer/` | Game host, input, shared in-game presentation, and diagnostics UI |
@@ -158,8 +159,16 @@ selection.
 
 Each preload is one self-contained CommonJS file. Electron's sandboxed preload
 loader does not load a local ESM dependency graph, so Rollup bundles each
-entry with the app/shared modules it imports, including the canonical channel
-constants (`scripts/build-renderer.mjs`).
+entry with the app/shared modules it imports, including the channel tables
+(`scripts/build-renderer.mjs`).
+
+A channel exists once, as a table entry in `app/shared/ipc/`. The preload's
+typed `invoke` takes that entry's arguments and answers its result; main's
+handler is a parser that must produce those arguments and a function that must
+answer that result. Each table has a compile-time check that every invoke
+channel has exactly one owner part. Parsers and the sender check stay in main:
+the types prove the two sides agree, and only main's parsers prove what a
+renderer actually sent.
 
 ## Protocol boundary
 

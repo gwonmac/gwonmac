@@ -15,10 +15,8 @@
 import { dialog, type BrowserWindow } from "electron";
 import path from "node:path";
 import { mkdir, writeFile } from "node:fs/promises";
-import {
-  type TemplateExportEntry,
-  type TemplateExportResult,
-} from "../shared/contracts.js";
+import type { TemplateExportResult } from "../shared/contracts.js";
+import type { TemplateExportEntry } from "../shared/template-contracts.js";
 import { AppError, type ErrorCode } from "../shared/errors.js";
 import { parseTemplateEntries } from "../shared/template-entries.js";
 

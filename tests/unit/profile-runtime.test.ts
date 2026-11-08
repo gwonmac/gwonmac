@@ -9,7 +9,7 @@ import {
   ProfileRuntimeStore,
   type ProfileRuntime,
 } from "../../app/main/core/profile-runtime.js";
-import type { MultiProfileRuntimeState } from "../../app/shared/contracts.js";
+import type { MultiProfileRuntimeState } from "../../app/shared/accounts-contracts.js";
 import type { ProfileId } from "../../app/shared/multiple-accounts.js";
 
 const id = (value: string) => value as ProfileId;

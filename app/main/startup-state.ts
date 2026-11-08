@@ -10,7 +10,7 @@
 import { app, dialog, net, session, shell } from "electron";
 import { access, mkdir, rm } from "node:fs/promises";
 import path from "node:path";
-import type { AppSettings } from "../shared/contracts.js";
+import type { AppSettings } from "../shared/settings/index.js";
 import {
   distributionCapabilities,
   type DistributionCapabilities,

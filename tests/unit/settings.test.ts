@@ -3,14 +3,11 @@ import assert from "node:assert/strict";
 import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import {
-  DEFAULT_SETTINGS,
-  LAST_UPDATE_CHECK_AT_MAX,
-  type RendererSettingsPatch,
-} from "../../app/shared/contracts.js";
+import type { RendererSettingsPatch } from "../../app/shared/contracts.js";
+import { DEFAULT_SETTINGS, TOOLS_SETTINGS, toolsSettings } from "../../app/shared/settings/index.js";
+import { LAST_UPDATE_CHECK_AT_MAX } from "../../app/shared/settings/core.js";
 import { DEFAULT_CUSTOM_UI_THEME } from "../../app/shared/ui-theme.js";
 import { AppError } from "../../app/shared/errors.js";
-import { TOOLS_SETTINGS, toolsSettings } from "../../app/shared/settings/index.js";
 import {
   CARTOGRAPHY_BUILTIN_PRESETS,
   type CartographyPresetRef,

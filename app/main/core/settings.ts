@@ -13,16 +13,16 @@
  * setting that did not stick.
  */
 import { readFile } from "node:fs/promises";
+import type { AppSettingsPatch, RendererSettingsPatch } from "../../shared/contracts.js";
 import {
   DEFAULT_SETTINGS,
   RENDERER_WRITABLE_SETTINGS,
+  SETTING_KEYS,
+  readSettings,
   type AppSettings,
-  type AppSettingsPatch,
-  type RendererSettingsPatch,
-} from "../../shared/contracts.js";
+} from "../../shared/settings/index.js";
 import { AppError } from "../../shared/errors.js";
 import { normaliseCartographyPresetRef } from "../../shared/cartography-overlay.js";
-import { SETTING_KEYS, readSettings } from "../../shared/settings/index.js";
 import { writeAtomicJson } from "./atomic-file.js";
 import { quarantineCorruptDocument } from "./corrupt-document.js";
 

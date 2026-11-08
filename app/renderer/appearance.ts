@@ -8,7 +8,7 @@
  * Presentation only. Nothing here reaches the game: no value changes what the
  * client renders, what it sends, or what it is permitted to do.
  */
-import type { AppSettings } from "../shared/contracts.js";
+import type { AppSettings } from "../shared/settings/index.js";
 import { defaultCustomUiTheme, type UiThemeColor, type UiThemeMaterial } from "../shared/ui-theme.js";
 import { parseRgb, compositeColor, accessibleForeground, accessibleTint, readableForeground, renderedCustomTheme } from "../shared/ui-color.js";
 

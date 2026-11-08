@@ -3,10 +3,8 @@
  * Renderer memory remains the only trace store.
  */
 import type { BrowserWindow } from 'electron';
-import {
-  IPC,
-  type RendererCommandOutcome,
-} from '../shared/contracts.js';
+import type { RendererCommandOutcome } from '../shared/contracts.js';
+import { GAME_CHANNELS } from '../shared/ipc/game.js';
 import type { MainInputTraceEntry } from '../shared/input-trace.js';
 
 type InputTraceCommandSender = (
@@ -64,7 +62,7 @@ export function recordMainInput(
     || win.webContents.isDestroyed()
   ) return;
   try {
-    win.webContents.send(IPC.inputTraceEvent, entry);
+    win.webContents.send(GAME_CHANNELS.inputTraceEvent.channel, entry);
   } catch {
     // A renderer may disappear between the checks and send. Tracing is an
     // observer and must never interrupt the input path it is observing.

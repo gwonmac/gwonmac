@@ -7,7 +7,6 @@
 // rather than carry a copy of them.
 import { contextBridge, ipcRenderer } from "electron";
 import {
-  type CORE_IPC,
   DIAGNOSTIC_PROFILES,
   RENDERER_INIT_ARGUMENT,
   WASM_BRIDGE_MARKERS,
@@ -15,21 +14,21 @@ import {
   type DiagnosticProfile,
   type RendererCommand,
   type RendererInit,
-  type ToolsNativeApiExtension,
 } from "../shared/contracts.js";
+import { GAME_CHANNELS } from "../shared/ipc/game.js";
+import type { ToolsNativeApiExtension } from "../shared/ipc/tools.js";
 import {
   ENHANCEMENTS,
   ENHANCEMENT_PROGRAMS,
   type EnhancementProgram,
   type EnhancementSelection,
 } from "../shared/enhancement-contracts.js";
+import { ipcBridge } from "./ipc-bridge.js";
 
 const MAX_SOCKET_PAYLOAD_BYTES = 4 * 1024 * 1024;
 
 /** The game bridge before it is frozen; the Tools preload adds its namespaces. */
 export type GameBridge = CoreGwNativeApiBase & Partial<ToolsNativeApiExtension>;
-
-export type Listen = <T>(channel: string, callback: (value: T) => void) => () => void;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -107,45 +106,33 @@ function rendererInit(): RendererInit {
   };
 }
 
-const listen: Listen = (eventChannel, callback) => {
-  const handler = (_event: unknown, value: Parameters<typeof callback>[0]) =>
-    callback(value);
-  ipcRenderer.on(eventChannel, handler);
-  let active = true;
-  return () => {
-    if (!active) return;
-    active = false;
-    ipcRenderer.removeListener(eventChannel, handler);
-  };
-};
+const invoke = ipcBridge.invoker(GAME_CHANNELS);
+const listen = ipcBridge.listener(GAME_CHANNELS);
 
 /**
- * Builds, freezes and exposes `window.gwNative`. `IPC` is `CORE_IPC` for the
- * Core preload and the complete `IPC` for the Tools preload; `extend` adds the
- * Tools namespaces before the bridge is frozen, and the Core preload has none.
+ * Builds, freezes and exposes `window.gwNative` on the Core game channels;
+ * `extend` adds the Tools namespaces before the bridge is frozen, and the Core
+ * preload has none.
  */
-export function exposeGameBridge(
-  IPC: typeof CORE_IPC,
-  extend?: (api: GameBridge, listen: Listen) => void,
-) {
+export function exposeGameBridge(extend?: (api: GameBridge) => void) {
   let rendererCommandHandler: ((
     command: RendererCommand,
   ) => void | "unhandled" | Promise<void | "unhandled">) | null = null;
-  ipcRenderer.on(IPC.rendererCommand, (_event, id: unknown, command: RendererCommand) => {
+  ipcRenderer.on(GAME_CHANNELS.rendererCommand.channel, (_event, id: unknown, command: RendererCommand) => {
     const handler = rendererCommandHandler;
     if (!handler) {
-      ipcRenderer.send(IPC.rendererCommandDone, id, "failed");
+      ipcRenderer.send(GAME_CHANNELS.rendererCommandDone.channel, id, "failed");
       return;
     }
     void Promise.resolve()
       .then(() => handler(command))
       .then(
         (result) => ipcRenderer.send(
-          IPC.rendererCommandDone,
+          GAME_CHANNELS.rendererCommandDone.channel,
           id,
           result === "unhandled" ? "unhandled" : "completed",
         ),
-        () => ipcRenderer.send(IPC.rendererCommandDone, id, "failed"),
+        () => ipcRenderer.send(GAME_CHANNELS.rendererCommandDone.channel, id, "failed"),
       );
   });
 
@@ -166,16 +153,16 @@ export function exposeGameBridge(
       },
     },
     inputTrace: {
-      onEntry: (callback) => listen(IPC.inputTraceEvent, callback),
+      onEntry: (callback) => listen("inputTraceEvent", callback),
     },
     snapshot: {
-      metadata: () => ipcRenderer.invoke(IPC.snapshotMetadata),
+      metadata: () => invoke("snapshotMetadata"),
     },
     dns: {
-      resolve: (name) => ipcRenderer.invoke(IPC.dnsResolve, name),
+      resolve: (name) => invoke("dnsResolve", name),
     },
     sockets: {
-      connect: (destination) => ipcRenderer.invoke(IPC.socketConnect, destination),
+      connect: (destination) => invoke("socketConnect", destination),
       send: (socketId, data) => {
         if (
           !data
@@ -185,89 +172,88 @@ export function exposeGameBridge(
         ) {
           return Promise.reject(new TypeError("invalid socket payload"));
         }
-        return ipcRenderer.invoke(IPC.socketSend, socketId, data);
+        return invoke("socketSend", socketId, data);
       },
-      close: (socketId) => ipcRenderer.invoke(IPC.socketClose, socketId),
-      onEvent: (callback) => listen(IPC.socketEvent, callback),
+      close: (socketId) => invoke("socketClose", socketId),
+      onEvent: (callback) => listen("socketEvent", callback),
     },
     settings: {
-      get: () => ipcRenderer.invoke(IPC.settingsGet),
-      set: (value) => ipcRenderer.invoke(IPC.settingsSet, value),
-      onChange: (callback) => listen(IPC.settingsEvent, callback),
+      get: () => invoke("settingsGet"),
+      set: (value) => invoke("settingsSet", value),
+      onChange: (callback) => listen("settingsEvent", callback),
     },
     credentials: {
-      load: () => ipcRenderer.invoke(IPC.credentialsLoad),
-      save: (value) => ipcRenderer.invoke(IPC.credentialsSave, value),
-      clear: () => ipcRenderer.invoke(IPC.credentialsClear),
+      load: () => invoke("credentialsLoad"),
+      save: (value) => invoke("credentialsSave", value),
+      clear: () => invoke("credentialsClear"),
     },
     steam: {
-      getToken: (silent) => ipcRenderer.invoke(IPC.steamToken, silent),
-      store: (token, expiry) => ipcRenderer.invoke(IPC.steamStore, token, expiry),
-      clear: () => ipcRenderer.invoke(IPC.steamClear),
+      getToken: (silent) => invoke("steamToken", silent),
+      store: (token, expiry) => invoke("steamStore", token, expiry),
+      clear: () => invoke("steamClear"),
     },
     diagnostics: {
       clockSync: (rendererNowUs) =>
-        ipcRenderer.invoke(IPC.diagnosticsClockSync, rendererNowUs),
+        invoke("diagnosticsClockSync", rendererNowUs),
       recordClockOffset: (offsetUs, rttUs) =>
-        ipcRenderer.invoke(IPC.diagnosticsClockResult, offsetUs, rttUs),
-      recordGraphics: (value) => ipcRenderer.invoke(IPC.diagnosticsGraphics, value),
+        invoke("diagnosticsClockResult", offsetUs, rttUs),
+      recordGraphics: (value) => invoke("diagnosticsGraphics", value),
       recordRendererMetrics: (value) =>
-        ipcRenderer.invoke(IPC.diagnosticsRendererMetrics, value),
+        invoke("diagnosticsRendererMetrics", value),
       recordRendererFrames: (value) =>
-        ipcRenderer.invoke(IPC.diagnosticsRendererFrames, value),
+        invoke("diagnosticsRendererFrames", value),
       recordRendererMilestone: (name, rendererTimestampUs, fields) =>
-        ipcRenderer.invoke(
-          IPC.diagnosticsRendererMilestone,
+        invoke("diagnosticsRendererMilestone",
           name,
           rendererTimestampUs,
           fields,
         ),
-      current: () => ipcRenderer.invoke(IPC.diagnosticsCurrent),
+      current: () => invoke("diagnosticsCurrent"),
       submitVisualCapture: (value) =>
-        ipcRenderer.invoke(IPC.diagnosticsVisualSubmit, value),
-      setProfile: (value) => ipcRenderer.invoke(IPC.diagnosticsProfileSet, value),
+        invoke("diagnosticsVisualSubmit", value),
+      setProfile: (value) => invoke("diagnosticsProfileSet", value),
     },
     accounts: {
-      get: () => ipcRenderer.invoke(IPC.hubAccountsGet),
-      open: (request) => ipcRenderer.invoke(IPC.hubAccountOpen, request),
+      get: () => invoke("hubAccountsGet"),
+      open: (request) => invoke("hubAccountOpen", request),
     },
     hubSettings: {
-      get: () => ipcRenderer.invoke(IPC.hubSettingsGet),
-      update: change => ipcRenderer.invoke(IPC.hubSettingsUpdate, change),
-      capture: action => ipcRenderer.invoke(IPC.hubShortcutCapture, action),
-      cancelCapture: () => ipcRenderer.invoke(IPC.hubShortcutCaptureCancel),
+      get: () => invoke("hubSettingsGet"),
+      update: change => invoke("hubSettingsUpdate", change),
+      capture: action => invoke("hubShortcutCapture", action),
+      cancelCapture: () => invoke("hubShortcutCaptureCancel"),
     },
     app: {
-      openExternal: (kind) => ipcRenderer.invoke(IPC.appOpenExternal, kind),
-      reveal: (kind) => ipcRenderer.invoke(IPC.appRevealPath, kind),
-      showLauncher: () => ipcRenderer.invoke(IPC.appShowLauncher),
-      openSettings: (...target) => ipcRenderer.invoke(IPC.appOpenSettings, ...target),
-      requestQuit: () => ipcRenderer.invoke(IPC.appRequestQuit),
-      showQuitOrReload: () => ipcRenderer.invoke(IPC.appShowQuitOrReload),
-      reloadGame: (cause) => ipcRenderer.invoke(IPC.appReloadGame, cause),
-      claimRelogIntent: () => ipcRenderer.invoke(IPC.appClaimRelogIntent),
+      openExternal: (kind) => invoke("appOpenExternal", kind),
+      reveal: (kind) => invoke("appRevealPath", kind),
+      showLauncher: () => invoke("appShowLauncher"),
+      openSettings: (...target) => invoke("appOpenSettings", ...target),
+      requestQuit: () => invoke("appRequestQuit"),
+      showQuitOrReload: () => invoke("appShowQuitOrReload"),
+      reloadGame: (cause) => invoke("appReloadGame", cause),
+      claimRelogIntent: () => invoke("appClaimRelogIntent"),
     },
     clipboard: {
-      writeText: (text) => ipcRenderer.invoke(IPC.clipboardWriteText, text),
-      readText: () => ipcRenderer.invoke(IPC.clipboardReadText),
-      edit: (request) => ipcRenderer.invoke(IPC.clipboardEdit, request),
+      writeText: (text) => invoke("clipboardWriteText", text),
+      readText: () => invoke("clipboardReadText"),
+      edit: (request) => invoke("clipboardEdit", request),
     },
     templates: {
-      export: (entries) => ipcRenderer.invoke(IPC.templatesExport, entries),
+      export: (entries) => invoke("templatesExport", entries),
     },
     client: {
-      healthy: (token) => ipcRenderer.invoke(IPC.clientHealthy, token),
-      session: () => ipcRenderer.invoke(IPC.clientSession),
+      healthy: (token) => invoke("clientHealthy", token),
+      session: () => invoke("clientSession"),
       featureFailure: (features) =>
-        ipcRenderer.invoke(IPC.clientFeatureFailure, features),
-      readyToPresent: () => ipcRenderer.invoke(IPC.gameReadyToPresent),
+        invoke("clientFeatureFailure", features),
+      readyToPresent: () => invoke("gameReadyToPresent"),
     },
     profileTemplates: {
-      loadTemplates: () => ipcRenderer.invoke(IPC.profileTemplatesLoad),
-      saveTemplates: (entries) => ipcRenderer.invoke(IPC.profileTemplatesSave, entries),
+      loadTemplates: () => invoke("profileTemplatesLoad"),
+      saveTemplates: (entries) => invoke("profileTemplatesSave", entries),
     },
   };
-  extend?.(api, listen);
+  extend?.(api);
   for (const namespace of Object.values(api)) Object.freeze(namespace);
   Object.freeze(api);
 

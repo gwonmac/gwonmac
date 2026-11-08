@@ -54,7 +54,8 @@ import { progressFixture } from './progress-fixture';
 import { createDemoTravelHost } from './travel-host';
 import { travelDestination } from '../../../shared/travel';
 import { estimateMarketRates } from '../../../shared/market-rates';
-import { DEFAULT_SETTINGS, WASM_HEAP_CAP_BYTES, type AppSettings, type RendererSettingsPatch } from '../../../shared/contracts';
+import { WASM_HEAP_CAP_BYTES, type RendererSettingsPatch } from '../../../shared/contracts';
+import { DEFAULT_SETTINGS, type AppSettings } from '../../../shared/settings/index';
 
 /** One input event that reached the synthetic game canvas. */
 export type FixtureCanvasEvent = Readonly<{ type: string; code?: string; repeat?: boolean; detail?: number; button?: number }>;

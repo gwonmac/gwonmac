@@ -8,7 +8,7 @@ import {
 } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { AppSettings } from "../../app/shared/contracts.js";
+import type { AppSettings } from "../../app/shared/settings/index.js";
 import type { PublishedClientManifest } from "../../app/client/published-client.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");

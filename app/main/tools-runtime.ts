@@ -8,7 +8,8 @@
  */
 import { MAIN_PARTS } from "../features/main-parts.js";
 import type { BrowserWindow } from "electron";
-import type { AppSettings, SettingsResetOutcome } from "../shared/contracts.js";
+import type { ClientSession, SettingsResetOutcome } from "../shared/contracts.js";
+import type { AppSettings } from "../shared/settings/index.js";
 import { featureActivationRequested } from "../shared/feature-contracts.js";
 import { AllowlistError } from "../shared/errors.js";
 import type { FeatureId } from "../features/index.js";
@@ -16,9 +17,8 @@ import type { PreferencesCoordinator } from "./core/preferences-coordinator.js";
 import type { MultipleAccountsController } from "./multiple-accounts-controller.js";
 import type { GamePaths } from "./paths.js";
 import type { WindowRegistry } from "./window-registry.js";
-import { registerToolsIpcHandlers } from "./tools-ipc.js";
-import type { ToolsMainSession } from "./tools-main-part.js";
-import type { ClientSession } from "../shared/contracts.js";
+import { register } from "./ipc-channel-registry.js";
+import type { AnyToolsMainPart } from "./tools-main-part.js";
 import { Mutex } from "./core/mutex.js";
 
 export interface ToolsRuntime {
@@ -39,10 +39,11 @@ export function createToolsRuntime(input: Readonly<{
   let settings = input.initialSettings;
   const isFeatureEnabled = (feature: FeatureId): boolean => featureActivationRequested(feature, settings);
   const fileGates: Mutex[] = [];
-  const sessions: readonly ToolsMainSession[] = MAIN_PARTS.map((part) => {
+  const parts: readonly AnyToolsMainPart[] = MAIN_PARTS;
+  const sessions = parts.map((part) => {
     const gate = new Mutex();
     fileGates.push(gate);
-    return part.create({
+    const session = part.create({
       paths: input.paths,
       accounts: input.accounts,
       preferences: input.preferences,
@@ -56,8 +57,9 @@ export function createToolsRuntime(input: Readonly<{
         return operation();
       }),
     });
+    register(input.windows, "game", part.contract.channels, session.channels);
+    return session;
   });
-  registerToolsIpcHandlers(input.windows, sessions);
   const drained = () => Promise.all(fileGates.map((gate) => gate.settled));
 
   return Object.freeze({

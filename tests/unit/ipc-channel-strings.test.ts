@@ -6,11 +6,16 @@
  */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { CORE_IPC, TOOLS_IPC } from "../../app/shared/contracts.ts";
-import { LAUNCHER_IPC } from "../../app/shared/launcher-contracts.ts";
+import type { ChannelTable } from "../../app/shared/ipc/channel-table.ts";
+import { GAME_CHANNELS } from "../../app/shared/ipc/game.ts";
+import { LAUNCHER_CHANNELS } from "../../app/shared/ipc/launcher.ts";
+import { TOOL_CONTRACTS } from "../../app/shared/ipc/tools.ts";
+
+const channelStrings = (tables: readonly ChannelTable[]) =>
+  tables.flatMap((table) => Object.values(table).map((spec) => spec.channel)).sort();
 
 const CASES = {
-  game: { table: CORE_IPC, strings: [
+  game: { actual: channelStrings([GAME_CHANNELS]), strings: [
     "gw:app:claimRelogIntent",
     "gw:app:openExternal",
     "gw:app:openSettings",
@@ -63,7 +68,7 @@ const CASES = {
     "gw:steam:token",
     "gw:templates:export",
   ] },
-  tools: { table: TOOLS_IPC, strings: [
+  tools: { actual: channelStrings(TOOL_CONTRACTS.map((contract) => contract.channels)), strings: [
     "gw:buildLibrary:get",
     "gw:buildLibrary:set",
     "gw:cartography:evidenceExport",
@@ -87,7 +92,7 @@ const CASES = {
     "gw:travelPreferences:get",
     "gw:travelPreferences:set",
   ] },
-  launcher: { table: LAUNCHER_IPC, strings: [
+  launcher: { actual: channelStrings([LAUNCHER_CHANNELS]), strings: [
     "gw:launcher:experience:completeSetup",
     "gw:launcher:experience:dismissMigration",
     "gw:launcher:experience:dismissPreferencesReset",
@@ -129,8 +134,8 @@ const CASES = {
   ] },
 };
 
-for (const [name, { table, strings }] of Object.entries(CASES)) {
+for (const [name, { actual, strings }] of Object.entries(CASES)) {
   test(`the ${name} channel table keeps every channel string`, () => {
-    assert.deepEqual(Object.values(table).sort(), strings);
+    assert.deepEqual(actual, strings);
   });
 }

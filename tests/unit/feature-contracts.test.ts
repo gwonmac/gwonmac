@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { parseSettings } from "../../app/main/core/settings.ts";
-import { DEFAULT_SETTINGS } from "../../app/shared/contracts.ts";
+import { DEFAULT_SETTINGS } from "../../app/shared/settings/index.ts";
 import {
   ENHANCEMENT_CAPABILITY_CONTRACTS,
   ENHANCEMENT_CAPABILITY_FIELDS,

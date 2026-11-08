@@ -1,7 +1,5 @@
-import type {
-  AppSettings,
-  GwNativeApi,
-} from "../../../shared/contracts";
+import type { GwNativeApi } from "../../../shared/contracts";
+import type { AppSettings } from "../../../shared/settings/index";
 import type { CustomUiTheme } from "../../../shared/ui-theme";
 import type { FixtureCanvasEvent } from "./hub-fixture";
 

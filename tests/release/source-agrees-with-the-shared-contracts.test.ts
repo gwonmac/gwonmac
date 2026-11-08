@@ -14,6 +14,7 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
+import type { ChannelTable } from "../../app/shared/ipc/channel-table.ts";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const read = (file: string) => readFileSync(path.join(root, file), "utf8");
@@ -58,16 +59,28 @@ test("renderer and main process use the same diagnostic event allowlist", async 
 test("every main→renderer event channel is named somewhere in main", async () => {
   // What used to be a 35-channel × 2 source scan. Both halves it policed are
   // now compile-time or executed facts:
-  //  - the preload imports `IPC` and is bundled with it, and
-  //    tests/release/preload-behaviour.test.ts calls every capability the
-  //    built bridge exposes;
-  //  - the handler registry is `satisfies Record<InvokeChannel, …>`, so
+  //  - the preloads build every capability from the channel tables
+  //    (app/shared/ipc/), and tests/release/preload-behaviour.test.ts calls
+  //    every capability the built bridge exposes;
+  //  - `ownedOnce` requires one handler per `invoke` entry of each table, so
   //    an `invoke` channel with no handler fails `tsc`.
-  // The event channels have neither a registry nor a caller to execute:
+  // The event channels have neither a handler nor a caller to execute:
   // main sends them, and a channel main never sends is dead weight nothing else
   // would notice.
-  const { EVENT_CHANNELS }: typeof import("../../app/shared/contracts.ts") =
-    await import(new URL("../../build/shared/contracts.js", import.meta.url).href);
+  const { GAME_CHANNELS }: typeof import("../../app/shared/ipc/game.ts") =
+    await import(new URL("../../build/shared/ipc/game.js", import.meta.url).href);
+  const { TOOL_CONTRACTS }: typeof import("../../app/shared/ipc/tools.ts") =
+    await import(new URL("../../build/shared/ipc/tools.js", import.meta.url).href);
+  const { LAUNCHER_CHANNELS }: typeof import("../../app/shared/ipc/launcher.ts") =
+    await import(new URL("../../build/shared/ipc/launcher.js", import.meta.url).href);
+  const tables: readonly ChannelTable[] = [
+    GAME_CHANNELS,
+    LAUNCHER_CHANNELS,
+    ...TOOL_CONTRACTS.map((contract) => contract.channels),
+  ];
+  const eventKeys = tables.flatMap((table) =>
+    Object.entries(table).filter(([, spec]) => spec.kind === "event").map(([key]) => key)
+  );
   // Main is app/main plus the main-process half of every feature folder.
   const main = execFileSync("git", ["ls-files", "--", "app/main", "app/features/*/main.ts", "app/features/*/main/**"], {
     cwd: root,
@@ -77,8 +90,8 @@ test("every main→renderer event channel is named somewhere in main", async () 
     .filter((file) => file && existsSync(path.join(root, file)))
     .map(read)
     .join("\n");
-  assert.ok(EVENT_CHANNELS.length > 0, "the main-to-renderer event vocabulary is empty");
-  for (const key of EVENT_CHANNELS) {
-    assert.match(main, new RegExp(`\\bIPC\\.${key}\\b`), `${key} is missing from main`);
+  assert.ok(eventKeys.length > 0, "the main-to-renderer event vocabulary is empty");
+  for (const key of eventKeys) {
+    assert.match(main, new RegExp(`\\.${key}\\b`), `${key} is missing from main`);
   }
 });

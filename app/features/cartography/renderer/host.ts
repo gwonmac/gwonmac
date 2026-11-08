@@ -6,7 +6,8 @@
  * launch (the separate cartography stage), whether or not a companion manifest
  * is certified, so it installs straight from the instantiated exports.
  */
-import type { AppSettings, ToolsGwNativeApi } from "../../../shared/contracts.js";
+import type { ToolsGwNativeApi } from "../../../shared/contracts.js";
+import type { AppSettings } from "../../../shared/settings/index.js";
 import { featureActivationRequested } from "../../../shared/feature-contracts.js";
 import { createCartographyLifecycle } from "./cartography-lifecycle.js";
 

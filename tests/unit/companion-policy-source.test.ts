@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { createCompanionPolicySource } from "../../app/renderer/companion-policy-source.js";
 import type { CompanionPlayRegionState } from "../../app/renderer/companion-play-region-snapshot.js";
-import { DEFAULT_SETTINGS } from "../../app/shared/contracts.js";
+import { DEFAULT_SETTINGS } from "../../app/shared/settings/index.js";
 
 function fixture() {
   const settingsEvents = new EventTarget();

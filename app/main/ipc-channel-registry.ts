@@ -1,13 +1,25 @@
 /**
  * Owns typed, authorized registration for every renderer-to-main invoke.
- * Channel handlers provide validation and behavior; this boundary proves the
- * sender and reports refused arguments.
+ *
+ * A handler pairs the parser that turns one invoke's arguments into the
+ * declared argument tuple with the function that answers it. `Handlers<Table>`
+ * ties both to a channel table (app/shared/ipc/), so a parser that produces
+ * other arguments, or a handler that answers another result shape, is a type
+ * error. Owners return their channels as parts; `ownedOnce` proves at compile
+ * time that every channel of a table has exactly one owner. This boundary
+ * proves the sender once, for every channel, and reports refused arguments.
  */
 import { ipcMain, type BrowserWindow } from "electron";
-import { IPC, type InvokeChannel } from "../shared/contracts.js";
+import type {
+  ArgsOf,
+  ChannelTable,
+  EventSpec,
+  InvokeKey,
+  ResultOf,
+} from "../shared/ipc/channel-table.js";
 import { AllowlistError, errorCode } from "../shared/errors.js";
-import { LAUNCHER_IPC, type LauncherInvokeChannel } from "../shared/launcher-contracts.js";
 import { logEvent } from "./diagnostics.js";
+import { invokeChannel } from "./diagnostics/schema-fields.js";
 import {
   isLauncherRendererUrl,
   isCanonicalRendererUrl,
@@ -15,86 +27,132 @@ import {
 import type { Parser } from "./ipc-values.js";
 import type { WindowRegistry } from "./window-registry.js";
 
-type Run<In, Out> = (win: BrowserWindow, input: In) => Out | Promise<Out>;
-
-export interface ChannelDef<In, Out> {
-  readonly parse: Parser<In>;
-  readonly run: Run<In, Out>;
+/** One channel's parser and answer; built only by `channel()`. */
+export interface ChannelDef<Args extends readonly unknown[], Result> {
+  readonly parse: Parser<Args>;
+  /** Parses `values`, reports a refusal through `refused`, then answers. */
+  readonly answer: (
+    win: BrowserWindow,
+    values: readonly unknown[],
+    refused: (error: unknown) => void,
+  ) => Result | Promise<Result>;
 }
 
-/** Erases the invariant input type only after `channel()` checked the pair. */
-export interface AnyChannelDef {
-  readonly parse: Parser<unknown>;
-  readonly run: Run<never, unknown>;
+// Not an inference site, so `channel()` takes its argument tuple from the
+// parser alone; a handler that ignores its arguments cannot widen it.
+type FromParser<Args> = Args extends unknown ? Args : never;
+
+/**
+ * Pairs a parser with the handler that receives exactly what it produced. The
+ * parser may produce a narrower tuple than the table declares; the handler
+ * then sees the narrower one.
+ */
+export function channel<Args extends readonly unknown[], Result>(
+  parse: Parser<Args>,
+  run: (win: BrowserWindow, ...args: FromParser<Args>) => Result | Promise<Result>,
+): ChannelDef<Args, Result> {
+  return {
+    parse,
+    answer: (win, values, refused) => {
+      let args: Args;
+      try {
+        args = parse(values);
+      } catch (error) {
+        refused(error);
+        throw error;
+      }
+      return run(win, ...args);
+    },
+  };
 }
 
-export function channel<In, Out>(
-  parse: Parser<In>,
-  run: Run<In, Out>,
-): ChannelDef<In, Out> {
-  return { parse, run };
-}
+/** What answers one table entry: its declared arguments in, its declared result out. */
+export type HandlerFor<Spec> = ChannelDef<ArgsOf<Spec>, ResultOf<Spec>>;
+
+/** One handler per channel main answers in `Table`. */
+export type Handlers<Table extends ChannelTable> = {
+  readonly [Key in InvokeKey<Table>]: HandlerFor<Table[Key]>;
+};
+
+/** The channels one owner answers: any subset of a table, each correctly typed. */
+export type HandlersPart<Table extends ChannelTable> = Readonly<Partial<Handlers<Table>>>;
+
+type KeysOf<Part> = Part extends Readonly<{ channels: infer Channels }> ? keyof Channels & string : never;
+
+/** The keys two or more of the key sets name. */
+type Overlap<KeySets extends readonly unknown[], Seen extends string = never> =
+  KeySets extends readonly [infer Head extends string, ...infer Tail]
+    ? (Head & Seen) | Overlap<Tail, Seen | Head>
+    : never;
+
+/**
+ * `unknown` when the key sets cover every `Key` exactly once; otherwise an
+ * object type naming the unowned or doubly owned channels, which the call
+ * that receives the parts cannot satisfy.
+ */
+export type OwnershipError<Key extends string, KeySets extends readonly string[]> =
+  [Exclude<Key, KeySets[number]>] extends [never]
+    ? [Overlap<KeySets>] extends [never]
+      ? unknown
+      : { channelsOwnedTwice: Overlap<KeySets> }
+    : { unownedChannels: Exclude<Key, KeySets[number]> };
+
+/**
+ * Accepts a list of parts only when every channel in `Key` is answered by
+ * exactly one of them; otherwise the call names the unowned or doubly owned
+ * channels in its type error.
+ */
+export const ownedOnce = <Key extends string>() =>
+  <const Parts extends readonly Readonly<{ channels: object }>[]>(
+    parts: Parts & OwnershipError<Key, { [Index in keyof Parts]: KeysOf<Parts[Index]> }>,
+  ): Parts => parts;
 
 /** The window role that may call a boundary's channels. */
 export type ChannelRole = "game" | "launcher";
 
-interface RoleChannel {
-  readonly game: InvokeChannel;
-  readonly launcher: LauncherInvokeChannel;
-}
-
-interface Boundary<Key extends string> {
-  readonly names: Readonly<Record<Key, string>>;
-  readonly rejected: (windows: WindowRegistry, win: BrowserWindow, channel: Key, error: unknown) => void;
-}
-
-const BOUNDARIES: { readonly [Role in ChannelRole]: Boundary<RoleChannel[Role]> } = {
-  game: {
-    names: IPC,
-    rejected: (windows, win, channelName, error) => logEvent(
-      { k: "ipc.rejected", channel: channelName, code: errorCode(error) },
+// The launcher window has no diagnostic owner; a rejection reaches its renderer.
+const REJECTED: Readonly<Record<ChannelRole, (windows: WindowRegistry, win: BrowserWindow, key: string, error: unknown) => void>> = {
+  game: (windows, win, key, error) => {
+    if (!invokeChannel(key)) return;
+    logEvent(
+      { k: "ipc.rejected", channel: key, code: errorCode(error) },
       windows.requireDiagnosticOwnerForWindow(win),
-    ),
+    );
   },
-  // The launcher window has no diagnostic owner; the rejection reaches its renderer.
-  launcher: { names: LAUNCHER_IPC, rejected: () => undefined },
+  launcher: () => undefined,
 };
 
-/**
- * Registers handlers for one window role. A boundary that owns every channel
- * of its role states that with `satisfies Record<…InvokeChannel, AnyChannelDef>`
- * at the call site, so a missing handler is a build error.
- */
-export function register<Role extends ChannelRole>(
+/** A handler with its types already checked against its table entry. */
+export type RegisteredHandler = Readonly<{
+  answer: (win: BrowserWindow, values: readonly unknown[], refused: (error: unknown) => void) => unknown;
+}>;
+
+/** Registers the handlers one part returned, for the windows of one role. */
+export function register(
   windows: WindowRegistry,
-  role: Role,
-  handlers: Readonly<Partial<Record<RoleChannel[Role], AnyChannelDef>>>,
+  role: ChannelRole,
+  table: ChannelTable,
+  handlers: Readonly<Record<string, RegisteredHandler | undefined>>,
 ): void {
-  const boundary = BOUNDARIES[role];
-  for (const [key, definition] of Object.entries(handlers) as [RoleChannel[Role], AnyChannelDef][]) {
-    const def = definition as ChannelDef<unknown, unknown>;
-    ipcMain.handle(boundary.names[key], async (event, ...args: unknown[]) => {
+  for (const [key, handler] of Object.entries(handlers)) {
+    const spec = table[key];
+    if (!handler || spec?.kind !== "invoke") throw new Error(`${key} is not an invoke channel of this table`);
+    ipcMain.handle(spec.channel, async (event, ...args: unknown[]) => {
       const win = assertSender(windows, event, role);
-      let input: unknown;
-      try {
-        input = def.parse(args);
-      } catch (error) {
-        boundary.rejected(windows, win, key, error);
-        throw error;
-      }
-      return def.run(win, input);
+      return handler.answer(win, args, (error) => REJECTED[role](windows, win, key, error));
     });
   }
 }
 
-export function sendIfLive(
+/** Sends one table event to a window that is still alive; false when it is gone. */
+export function emit<Payload extends readonly unknown[]>(
   win: BrowserWindow,
-  channelName: string,
-  value: unknown,
+  spec: EventSpec<Payload>,
+  ...payload: Payload
 ): boolean {
   if (win.isDestroyed() || win.webContents.isDestroyed()) return false;
   try {
-    win.webContents.send(channelName, value);
+    win.webContents.send(spec.channel, ...payload);
     return true;
   } catch {
     return false;

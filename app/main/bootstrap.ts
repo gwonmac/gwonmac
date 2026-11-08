@@ -14,7 +14,7 @@ import { createLauncherWindow, prepareLauncherWindowState } from "./accounts-win
 import type { AppShell } from "./app-shell.js";
 import { wireCaptureControl } from "./capture-control.js";
 import { createClientService, selectLaunch } from "./client-service.js";
-import { registerCoreIpc } from "./core-ipc-wiring.js";
+import { registerGameIpc } from "./game-ipc/register.js";
 import {
   VolatileNativeKeychain,
   type NativeKeychain,
@@ -181,8 +181,9 @@ export async function startApp(shell: AppShell, hostVersion: string): Promise<vo
     toolsRuntime,
     allowUnreadyLaunch,
   });
-  const ipcCleanup = registerCoreIpc({
+  const ipcCleanup = registerGameIpc({
     paths,
+    windows: windowRegistry,
     sockets,
     accounts,
     client,
