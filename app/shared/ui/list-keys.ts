@@ -34,6 +34,27 @@ export function listIndexAfter(index: number, count: number, step: number, usabl
   return fresh ? -1 : index;
 }
 
+/** Where an item is painted: the top of its row and its left edge. */
+export type PaintedBox = Readonly<{ top: number; left: number }>;
+
+/**
+ * Where ↑ (-1) or ↓ (1) lands in a painted grid: on the nearest row that way with a usable
+ * item, the usable item closest to the current column. Null when no row that way has one, so
+ * the caller decides whether the keyboard leaves the grid or holds.
+ */
+export function gridIndexAfter(boxes: readonly PaintedBox[], index: number, direction: 1 | -1, usable: (index: number) => boolean = () => true): number | null {
+  const from = boxes[index];
+  if (!from) return null;
+  let best: number | null = null;
+  for (const [candidate, box] of boxes.entries()) {
+    if (direction * (box.top - from.top) <= 0 || !usable(candidate)) continue;
+    const chosen = best === null ? null : boxes[best]!;
+    if (!chosen || direction * (box.top - chosen.top) < 0
+      || (box.top === chosen.top && Math.abs(box.left - from.left) < Math.abs(chosen.left - from.left))) best = candidate;
+  }
+  return best;
+}
+
 /** One page of a scrolled list: the rows that fit in its viewport, less one kept for context. */
 export function listPage(viewport: Readonly<{ clientHeight: number }> | null | undefined, row: Readonly<{ offsetHeight: number }> | null | undefined): number {
   const height = row?.offsetHeight || 40;
