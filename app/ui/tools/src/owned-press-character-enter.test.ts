@@ -5,7 +5,7 @@
  * repeat and not as the buffered synthetic Enter that presses Play. A fresh
  * physical Enter on the canvas is still buffered exactly once.
  */
-import { beforeAll, describe, expect, it } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 // The production owners, exercised with trusted-looking events.
 // eslint-disable-next-line no-restricted-imports
 import { installSurfaceController } from '../../../renderer/surface-controller';
@@ -43,6 +43,7 @@ function key(target: Element, type: 'keydown' | 'keyup', repeat = false) {
   Object.defineProperty(event, 'isTrusted', { value: true });
   target.dispatchEvent(event);
 }
+beforeEach(() => { reached.length = 0; });
 const afterBufferedEnter = () => new Promise(resolve => setTimeout(resolve, 260));
 
 describe('a held Enter at character selection', () => {
@@ -63,7 +64,6 @@ describe('a held Enter at character selection', () => {
   });
 
   it('never buffers a repeat of a press that started before the window opened', async () => {
-    reached.length = 0;
     canvas.focus();
     key(canvas, 'keydown');
     input.expectCharacterSelection();

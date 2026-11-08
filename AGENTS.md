@@ -38,8 +38,11 @@ from the person working on this Mac. CI runs them: `ci.yml` runs the Hub suite
 on Linux; `macos.yml` runs the `@macos` Hub specs and the Electron suite, all
 of it on main and the tests tagged `@journey` on PRs that change app, build, or
 test code (its `paths` filter). Tag an Electron test `@journey` only when it
-guards a path every player takes. Client-artifact tests need the official
-client and run in release qualification and client watch.
+guards a path every player takes. The Hub's keyboard, focus and DOM rules run
+in Node and vitest inside `pnpm check`; its Playwright suite keeps only what
+needs a real browser ([Hub tests](docs/hub-contract.md#tests)). Client-artifact
+tests need the official client and run in release qualification and client
+watch.
 
 ## Must stay
 

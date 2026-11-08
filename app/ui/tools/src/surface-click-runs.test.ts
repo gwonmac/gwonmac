@@ -135,6 +135,26 @@ describe('click runs', () => {
     expect(received).toEqual(['pointerdown:0', 'mousedown:1', 'click:1']);
   });
 
+  // hub-pointer.spec.ts ran each closing double-click at 0, 120 and 450 ms between its presses.
+  it.each([0, 120, 450])('keeps the trailing press of a closing run from the game at a %i ms gap', (gap) => {
+    const view = mount();
+    const at = (target: Element, detail: number, timeStamp: number) => {
+      for (const type of ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click']) {
+        const event = type.startsWith('pointer')
+          ? new PointerEvent(type, { bubbles: true, cancelable: true, button: 0, clientX: 40, clientY: 40 })
+          : new MouseEvent(type, { bubbles: true, cancelable: true, button: 0, clientX: 40, clientY: 40, detail });
+        Object.defineProperty(event, 'isTrusted', { value: true });
+        Object.defineProperty(event, 'timeStamp', { value: timeStamp });
+        target.dispatchEvent(event);
+      }
+    };
+    at(view.row, 1, 10_000);
+    view.surface.setOpen(false);
+    view.received.length = 0;
+    at(view.canvas, 2, 10_000 + gap);
+    expect(view.received).toEqual([]);
+  });
+
   it('leaves the game\'s own double-clicks and synthetic events alone', () => {
     const view = mount();
     press(view.canvas, 1);

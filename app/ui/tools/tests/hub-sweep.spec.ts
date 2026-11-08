@@ -1,15 +1,5 @@
 import { expect, test } from '@playwright/test';
 
-test('Tool results use their canonical names (HUB-180)', async ({page}) => {
-  await page.goto('/?hub'); await expect(page.locator('#app')).toHaveAttribute('data-ready', 'true');
-  const search = page.locator('.hub-search input');
-  for (const [query, name] of [['travel', 'Travel'], ['character', 'Switch Character'], ['storage', 'Xunlai Storage'], ['builds', 'Build Library'], ['trade', 'Trade Chat'], ['whispers', 'Whispers']]) {
-    await search.fill(query === 'builds' ? 'build library' : query!);
-    await expect(page.locator(`.hub-row[data-id="${query}"] .hub-title`)).toHaveText(name!);
-  }
-});
-
-
 test('reduced motion keeps every Hub transition and running progress static (VIS-33)', async ({page}) => {
   await page.emulateMedia({reducedMotion: 'reduce'});
   await page.goto('/?hub&slow-apply'); await expect(page.locator('#app')).toHaveAttribute('data-ready','true');

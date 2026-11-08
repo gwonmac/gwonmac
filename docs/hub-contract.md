@@ -94,3 +94,42 @@ Progress belongs to the page session that started it. Late outcomes show receipt
 and cannot navigate a newer session. A closed-Hub failure expires with the resume window.
 An observer clears only its matching resolved failure, never another outcome.
 Reduced motion keeps progress static.
+
+## Tests
+
+Each Hub rule is tested at the cheapest level that can fail when it breaks. A
+new Hub test starts in Node or vitest; it goes to Playwright only when no
+cheaper test fails if the rule breaks (try one product mutation to see).
+
+- **Node** (`pnpm test`): the engine's keys, pages, sessions, resume and
+  selection (`tests/unit/hub-engine.test.ts`), and the pure modules: ranking
+  (`tests/unit/hub.test.ts`, `hub-results.test.ts`), the status line, drafts,
+  the footer and its legend, the calculator and people.
+- **vitest with the real controller** (`pnpm --filter @gwonmac/tools-ui test`,
+  part of `pnpm check`), in happy-dom. `app/ui/tools/src/hub/hub-shell.dom.test.ts`
+  mounts `createHub` with hand-made rows and holds the accessibility contract:
+  the dialog's name, the search combobox and its listbox, options in named
+  groups, `aria-activedescendant`, the Actions menu, Back, the live regions and
+  where each page puts the keyboard. `app/ui/tools/src/hub-fixture-harness.ts`
+  mounts the fixture page that Playwright drives and presses keys as Playwright
+  does; the keyboard contract's DOM cells (`hub-keyboard-contract.*.dom.test.ts`),
+  the owned press and the other Hub behaviours that read only DOM, focus and the
+  fixture's game hooks run there (`app/ui/tools/src/hub-*.dom.test.ts`).
+- **Playwright** (`app/ui/tools/tests`, CI only): what only a real browser
+  answers. That is the browser's Tab traversal, PageDown's page size, layout and
+  geometry (the 340×380 minimum, no scrim), computed styles and contrast, native
+  text editing and composition, popovers in the top layer, and the `@macos`
+  timing budgets.
+
+The keyboard contract is one golden table,
+`app/ui/tools/tests/keyboard-contract.golden.json`: every key in every view.
+`app/ui/tools/tests/keyboard-contract-keys.ts` says which runner owns each cell,
+and a vitest test checks that the table holds every cell exactly once. A change
+to keyboard behaviour regenerates both halves and commits the table diff. Run
+the CI workflow by hand with **Update keyboard golden** checked
+(`gh workflow run ci.yml --ref <branch> -f update-keyboard-golden=true`): its
+`keyboard-golden` job updates the DOM cells in vitest and the browser cells in
+Chromium, then uploads the table as the `keyboard-contract-golden` artifact.
+Download it over the file and commit the diff. Locally,
+`KEYBOARD_GOLDEN=update pnpm --filter @gwonmac/tools-ui exec vitest run --no-file-parallelism hub-keyboard-contract`
+updates the DOM cells alone.

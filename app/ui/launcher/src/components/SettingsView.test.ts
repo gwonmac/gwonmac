@@ -266,6 +266,25 @@ describe("Settings page", () => {
     wrapper.unmount();
   });
 
+  it("in the Hub, the arrow keys move onto a launcher section without opening the launcher (HUB-054)", async () => {
+    const openInLauncher = vi.fn();
+    const { tools, shortcuts } = fixtureSnapshot;
+    const wrapper = mount(SettingsView, { props: { snapshot: { settings: fixtureSnapshot.settings, tools, shortcuts }, native: undefined, openInLauncher, target: { section: "game" } }, attachTo: document.body });
+    await flushPromises();
+    const nav = wrapper.get('nav[aria-label="Settings sections"]');
+    const button = (label: string) => nav.findAll("button").find(candidate => candidate.text() === label)!;
+    const press = async (from: string, key: string) => { await button(from).trigger("keydown", { key }); await flushPromises(); };
+    button("Game").element.focus();
+    await press("Game", "ArrowDown");
+    expect([document.activeElement, wrapper.get(".settings-fields h1").text()]).toEqual([button("Texture packs").element, "Game"]);
+    await press("Texture packs", "End");
+    expect(document.activeElement).toBe(button("Advanced").element);
+    await press("Advanced", "ArrowDown");
+    expect([document.activeElement, wrapper.get(".settings-fields h1").text()]).toEqual([button("Advanced").element, "Game"]);
+    expect(openInLauncher).not.toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
   it("names each tool's Options disclosure by its tool", async () => {
     const wrapper = mountView({}, { snapshot: allToolsOn });
     await flushPromises();
