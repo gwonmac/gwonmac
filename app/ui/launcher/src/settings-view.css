@@ -150,6 +150,8 @@
 .settings-view .tool-options[open] > summary { margin-bottom: 4px; }
 .settings-view .tool-options > :not(summary) { padding-left: 14px; border-left: 2px solid var(--line); }
 .settings-view .tool-link { margin: -4px 0 12px; }
+/* Compact and inline, like the Options summary beside it: not the underlined link used elsewhere. */
+.settings-view .tool-link .text-link { padding: 0; border: 0; color: var(--gold); font-size: 13px; }
 
 /* Game files: download, repair and file actions. */
 .settings-view .download-card { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 14px; border-bottom: 1px solid var(--line); }
