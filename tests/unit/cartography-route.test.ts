@@ -1,0 +1,90 @@
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+import type { CartographyRoute } from "../../app/features/cartography/renderer/reachability-kernel.js";
+import {
+  ROUTE_RETRY_MS,
+  ROUTE_STRAY_UNITS,
+  createRouteTracker,
+  pullRoute,
+  routeFrom,
+  routePath,
+  routeProgress,
+  type RouteTarget,
+} from "../../app/features/cartography/renderer/route-path.js";
+
+type Step = Readonly<{ centre: readonly [number, number]; edge?: readonly [number, number, number, number] }>;
+
+function route(start: readonly [number, number], end: readonly [number, number], steps: readonly Step[]): CartographyRoute {
+  return Object.freeze({
+    mapId: 200,
+    areaEpoch: 7,
+    reached: true,
+    start: { x: start[0], y: start[1] },
+    end: { x: end[0], y: end[1] },
+    centres: Float32Array.from(steps.flatMap(({ centre }) => centre)),
+    edges: Float32Array.from(steps.flatMap(({ edge = [0, 0, 0, 0] }) => edge)),
+  });
+}
+
+// East along y 0..10, then north along x 10..20.
+const L_CORRIDOR = route([2, 2], [12, 28], [
+  { centre: [5, 5] },
+  { centre: [15, 5], edge: [10, 0, 10, 10] },
+  { centre: [15, 15], edge: [10, 10, 20, 10] },
+  { centre: [15, 25], edge: [20, 20, 10, 20] },
+]);
+
+describe("the walking line", () => {
+  it("goes straight when nothing is in the way and bends only at the corner a wall forces", () => {
+    const straight = route([1, 5], [29, 5], [
+      { centre: [5, 5] },
+      { centre: [15, 5], edge: [10, 0, 10, 10] },
+      { centre: [25, 5], edge: [20, 10, 20, 0] },
+    ]);
+    assert.deepEqual([...pullRoute(straight)], [1, 5, 29, 5]);
+    // A line straight to (12, 28) would leave the corridor before x = 10.
+    assert.deepEqual([...pullRoute(L_CORRIDOR)], [2, 2, 10, 10, 12, 28]);
+  });
+
+  it("measures progress along the line and never moves the player back to an earlier stretch", () => {
+    const path = routePath(Float32Array.of(0, 0, 100, 0, 100, 100), true, 1);
+    assert.deepEqual(routeProgress(path, { x: 50, y: 10 }), { along: 50, away: 10 });
+    assert.deepEqual([...routeFrom(path, 50)], [50, 0, 100, 0, 100, 100]);
+    assert.deepEqual([...routeFrom(path, 150)], [100, 50, 100, 100]);
+    // Back near the first stretch, after having walked 150: the line keeps its place.
+    assert.equal(routeProgress(path, { x: 50, y: 0 }, 150).along, 150);
+  });
+});
+
+describe("the route tracker", () => {
+  const target: RouteTarget = Object.freeze({ mapId: 200, areaEpoch: 7, x: 12, y: 28 });
+  const frame = (now: number, player = { x: 2, y: 2 }, current: Partial<RouteTarget> = {}) => ({
+    now, target, mapId: current.mapId ?? 200, areaEpoch: current.areaEpoch ?? 7, player,
+  });
+
+  it("searches once, then again only when the player strays from the line", () => {
+    const searches: RouteTarget[] = [];
+    const tracker = createRouteTracker((asked) => { searches.push(asked); return L_CORRIDOR; });
+    const first = tracker.update(frame(0));
+    assert.equal(first?.path.version, 1);
+    for (let now = 16; now < 5_000; now += 16) tracker.update(frame(now, { x: 6, y: 6 }));
+    assert.equal(searches.length, 1, "walking along the line costs no search");
+    const strayed = tracker.update(frame(5_000, { x: 2 + ROUTE_STRAY_UNITS + 10, y: 2 }));
+    assert.equal(searches.length, 2);
+    assert.equal(strayed?.path.version, 2);
+  });
+
+  it("drops the line on another map or instance and waits after a failed search", () => {
+    let answer: CartographyRoute | null = null;
+    let searches = 0;
+    const tracker = createRouteTracker(() => { searches += 1; return answer; });
+    assert.equal(tracker.update(frame(0)), null);
+    assert.equal(tracker.update(frame(ROUTE_RETRY_MS - 1)), null);
+    assert.equal(searches, 1, "a failed search is not repeated at once");
+    answer = L_CORRIDOR;
+    assert.notEqual(tracker.update(frame(ROUTE_RETRY_MS)), null);
+    assert.equal(tracker.update(frame(ROUTE_RETRY_MS + 16, undefined, { areaEpoch: 8 })), null);
+    assert.equal(tracker.update(frame(ROUTE_RETRY_MS + 32, undefined, { mapId: 201 })), null);
+    assert.equal(searches, 2, "another map or instance never searches for this target");
+  });
+});

@@ -216,6 +216,11 @@ async function updateUnseen(patch: Partial<CartographyPresetStyle["grid"]["unsee
         <RangeControl :label="`${range.label} opacity`" :value="settings[range.opacitySetting]" :min="0" :max="100" unit="%" @change="setRangeOpacity(range, $event)" />
       </div>
     </details>
+    <div class="feature-heading" data-setting="cartographyRouteEnabled">
+      <label for="map-route"><strong>Walking route</strong><small id="map-route-help">Right-click the Mission Map or World Map to set a target. Right-click the target to remove it. A dotted end means no walkable way reaches it.</small></label>
+      <ShortcutSetting v-if="shortcuts" action="cartography.route.toggle" :shortcuts="shortcuts" :api="api" :perform-save="performSave" />
+      <input id="map-route" type="checkbox" aria-label="Walking route" aria-describedby="map-route-help" :checked="settings.cartographyRouteEnabled" @change="persist({ cartographyRouteEnabled: ($event.currentTarget as HTMLInputElement).checked })" />
+    </div>
     <div class="feature-heading" data-setting="cartographyOverlayEnabled">
       <label for="map-terrain"><strong>Walkable terrain</strong><small id="map-terrain-help">Shade areas you cannot walk on.</small></label>
       <ShortcutSetting v-if="shortcuts" action="cartography.walkability.toggle" :shortcuts="shortcuts" :api="api" :perform-save="performSave" />

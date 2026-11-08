@@ -3,7 +3,8 @@
  * cross this boundary are the two roots the derived client's manifest
  * publishes, installed once on the first classification under the client's
  * layout id (an opaque hash of both roots); callers receive one copied cell
- * bitset.
+ * bitset. A route search writes a second region, allocated on the first route,
+ * and callers receive copied step geometry in game units.
  */
 import {
   CARTOGRAPHY_REACHABILITY_ABI,
@@ -11,6 +12,8 @@ import {
   CARTOGRAPHY_REACHABILITY_IMPORTS,
   CARTOGRAPHY_REACHABILITY_MAX_CELLS,
   CARTOGRAPHY_REACHABILITY_REGION_BYTES,
+  CARTOGRAPHY_REACHABILITY_ROUTE_BYTES,
+  CARTOGRAPHY_REACHABILITY_ROUTE_MAX_STEPS,
   CARTOGRAPHY_REACHABILITY_RUNTIME_ALIGN,
   CARTOGRAPHY_REACHABILITY_RUNTIME_BYTES,
   cartographyReachabilitySignatureBytes,
@@ -27,6 +30,9 @@ const HEADER_BYTES = 72;
 const WALKABLE_TERRAIN_BITS_OFFSET = 552_008;
 const MAX_TERRAIN_RASTER_CELLS = 262_144;
 const READY = 1;
+const ROUTE_MAGIC = 0x5452_4347;
+const ROUTE_HEADER_BYTES = 64;
+const ROUTE_STEP_FLOATS = 6;
 
 export type CartographyReachabilitySnapshot = Readonly<{
   status: number;
@@ -69,6 +75,29 @@ export type CartographyReachabilityDiagnostic = Readonly<{
   terrainHeight: number;
 }>;
 
+/**
+ * One searched route in game units. `centres` holds x, y per step and `edges`
+ * the x0, y0, x1, y1 each later step enters through (the first step's is zero).
+ * `reached` is false when the route ends on the ground nearest an unreachable target.
+ */
+export type CartographyRoute = Readonly<{
+  mapId: number;
+  areaEpoch: number;
+  reached: boolean;
+  start: Readonly<{ x: number; y: number }>;
+  end: Readonly<{ x: number; y: number }>;
+  centres: Float32Array;
+  edges: Float32Array;
+}>;
+
+/** The last route search: its kernel status, size and time, for diagnostics. */
+export type CartographyRouteDiagnostic = Readonly<{
+  status: number;
+  steps: number;
+  expanded: number;
+  milliseconds: number;
+}>;
+
 export type CartographyReachabilityController = Readonly<{
   sha256: string | null;
   classify(input: Readonly<{
@@ -86,7 +115,16 @@ export type CartographyReachabilityController = Readonly<{
     mapMaxY: number;
     revealRadius: 1 | 3;
   }>): CartographyReachabilitySnapshot | null;
+  route(input: Readonly<{
+    layoutId: CartographyLayoutId;
+    mapId: number;
+    areaEpoch: number;
+    playerId: number;
+    targetX: number;
+    targetY: number;
+  }>): CartographyRoute | null;
   diagnostic(): CartographyReachabilityDiagnostic | null;
+  routeDiagnostic(): CartographyRouteDiagnostic | null;
   dispose(): void;
 }>;
 
@@ -98,6 +136,10 @@ type Classify = (
   revealRadius: number,
 ) => number;
 type Install = (layoutId: number, contextRoot: number, agentArray: number) => number;
+type Route = (
+  region: number, bytes: number, layoutId: number, mapId: number,
+  areaEpoch: number, playerId: number, targetX: number, targetY: number,
+) => number;
 
 const signatureModule = new WebAssembly.Module(
   cartographyReachabilitySignatureBytes(),
@@ -208,6 +250,45 @@ function decode(
   });
 }
 
+/** Copies a published route; null for a failed search or a torn read. */
+function decodeRoute(memory: WebAssembly.Memory, region: number): CartographyRoute | null {
+  if (region + CARTOGRAPHY_REACHABILITY_ROUTE_BYTES > memory.buffer.byteLength) return null;
+  const header = new DataView(memory.buffer, region, ROUTE_HEADER_BYTES);
+  const first = header.getUint32(12, true);
+  const steps = header.getUint32(32, true);
+  if (
+    (first & 1) !== 0
+    || header.getUint32(0, true) !== ROUTE_MAGIC
+    || header.getUint32(4, true) !== CARTOGRAPHY_REACHABILITY_ABI
+    || header.getUint32(8, true) !== CARTOGRAPHY_REACHABILITY_ROUTE_BYTES
+    || header.getUint32(16, true) !== READY
+    || steps < 1 || steps > CARTOGRAPHY_REACHABILITY_ROUTE_MAX_STEPS
+  ) return null;
+  const floats = new Float32Array(memory.buffer.slice(
+    region + ROUTE_HEADER_BYTES,
+    region + ROUTE_HEADER_BYTES + steps * ROUTE_STEP_FLOATS * 4,
+  ));
+  const points = [44, 48, 52, 56].map((offset) => header.getFloat32(offset, true));
+  const second = new DataView(memory.buffer, region, ROUTE_HEADER_BYTES).getUint32(12, true);
+  if (first !== second || !points.every(Number.isFinite) || !floats.every(Number.isFinite)) return null;
+  const centres = new Float32Array(steps * 2);
+  const edges = new Float32Array(steps * 4);
+  for (let step = 0; step < steps; step += 1) {
+    centres.set(floats.subarray(step * ROUTE_STEP_FLOATS, step * ROUTE_STEP_FLOATS + 2), step * 2);
+    edges.set(floats.subarray(step * ROUTE_STEP_FLOATS + 2, step * ROUTE_STEP_FLOATS + 6), step * 4);
+  }
+  const [startX = 0, startY = 0, endX = 0, endY = 0] = points;
+  return Object.freeze({
+    mapId: header.getUint32(20, true),
+    areaEpoch: header.getUint32(24, true),
+    reached: header.getUint32(36, true) === 1,
+    start: Object.freeze({ x: startX, y: startY }),
+    end: Object.freeze({ x: endX, y: endY }),
+    centres,
+    edges,
+  });
+}
+
 function diagnostic(
   memory: WebAssembly.Memory,
   region: number,
@@ -278,6 +359,7 @@ export async function installCartographyReachabilityKernel(
     CARTOGRAPHY_REACHABILITY_RUNTIME_ALIGN,
   );
   let region: ReturnType<typeof allocation> | null = null;
+  let routeRegion: ReturnType<typeof allocation> | null = null;
   let disposed = false;
   try {
     region = allocation(allocate, CARTOGRAPHY_REACHABILITY_REGION_BYTES, 4);
@@ -316,19 +398,23 @@ export async function installCartographyReachabilityKernel(
     ) throw new Error("Cartography reachability kernel rejected its ABI");
     const classify = instance.exports.cartography_reachability_classify as Classify;
     const install = instance.exports.cartography_reachability_install as Install;
+    const route = instance.exports.cartography_reachability_route as Route;
     let installed = false;
     let lastDiagnostic: CartographyReachabilityDiagnostic | null = null;
+    let lastRoute: CartographyRouteDiagnostic | null = null;
+    // The kernel keeps the manifest's roots under the client's layout id;
+    // it refuses a context that publishes any other id.
+    const ensureInstalled = (): boolean => {
+      if (!installed) {
+        const layoutId = cartographyLayoutId(manifest.contextRoot, manifest.agentArray);
+        installed = install(layoutId, manifest.contextRoot, manifest.agentArray) === 1;
+      }
+      return installed;
+    };
     return Object.freeze({
       sha256: kernelSha256,
       classify(input) {
-        if (disposed) return null;
-        // The kernel keeps the manifest's roots under the client's layout id;
-        // it refuses a context that publishes any other id.
-        if (!installed) {
-          const layoutId = cartographyLayoutId(manifest.contextRoot, manifest.agentArray);
-          installed = install(layoutId, manifest.contextRoot, manifest.agentArray) === 1;
-          if (!installed) return null;
-        }
+        if (disposed || !ensureInstalled()) return null;
         classify(
           output.pointer,
           CARTOGRAPHY_REACHABILITY_REGION_BYTES,
@@ -349,11 +435,40 @@ export async function installCartographyReachabilityKernel(
         lastDiagnostic = diagnostic(memory, output.pointer);
         return decode(memory, output.pointer, input.mapMinX, input.mapMinY);
       },
+      route(input) {
+        if (disposed || !ensureInstalled()) return null;
+        // Most sessions never set a target, so the route region waits for the first search.
+        if (routeRegion === null) {
+          const candidate = allocation(allocate, CARTOGRAPHY_REACHABILITY_ROUTE_BYTES, 4);
+          if (candidate.pointer + CARTOGRAPHY_REACHABILITY_ROUTE_BYTES > memory.buffer.byteLength) {
+            release(candidate.raw);
+            return null;
+          }
+          new Uint8Array(memory.buffer, candidate.pointer, ROUTE_HEADER_BYTES).fill(0);
+          routeRegion = candidate;
+        }
+        const began = performance.now();
+        const status = route(
+          routeRegion.pointer, CARTOGRAPHY_REACHABILITY_ROUTE_BYTES, input.layoutId,
+          input.mapId, input.areaEpoch, input.playerId, input.targetX, input.targetY,
+        );
+        const result = status === READY ? decodeRoute(memory, routeRegion.pointer) : null;
+        const header = new DataView(memory.buffer, routeRegion.pointer, ROUTE_HEADER_BYTES);
+        lastRoute = Object.freeze({
+          status,
+          steps: result === null ? 0 : result.centres.length / 2,
+          expanded: header.getUint32(40, true),
+          milliseconds: performance.now() - began,
+        });
+        return result;
+      },
       diagnostic: () => lastDiagnostic,
+      routeDiagnostic: () => lastRoute,
       dispose() {
         if (disposed) return;
         disposed = true;
         release(output.raw);
+        if (routeRegion !== null) release(routeRegion.raw);
         release(runtime.raw);
       },
     });

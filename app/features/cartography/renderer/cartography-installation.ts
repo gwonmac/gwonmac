@@ -108,7 +108,9 @@ export async function installCartography(options: Readonly<{
     kernel = Object.freeze({
       sha256: null,
       classify: () => null,
+      route: () => null,
       diagnostic: () => null,
+      routeDiagnostic: () => null,
       dispose: () => undefined,
     });
   }
