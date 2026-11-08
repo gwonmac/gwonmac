@@ -11,9 +11,9 @@ import { teamId, teamSlotsOf } from '../../app/shared/builds/library.js';
  * native-dialog priority. A canvas key recorder stands in for Guild Wars' canvas
  * listeners. A key can reach the game only while the canvas has focus, so each
  * release check sends the key-up after the press has moved focus back to the
- * canvas. The browser fixture's golden matrix
- * (`app/ui/tools/tests/hub-keyboard-contract.spec.ts`) covers the same keys
- * without the main process.
+ * canvas. The fixture's golden table
+ * (`app/ui/tools/tests/keyboard-contract.golden.json`, run by vitest and
+ * Playwright) covers the same keys without the main process.
  */
 type RecordingWindow = typeof window & { __hubContractKeys?: string[]; __hubContractPointer?: string[]; __hubContractTrips?: number[] };
 type DialogRecord = { __hubContractDialogs?: string[] };
