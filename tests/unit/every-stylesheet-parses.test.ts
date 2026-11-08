@@ -1,10 +1,10 @@
-// A syntax error in one stylesheet can break the next one. The Hub bundle joins
-// the Settings stylesheets before minifying, so one stray `}` at the end of
-// settings-view.css made the minifier drop the first rule of hub-settings.css.
-// The browser recovers from such errors without a word, so nothing else
-// notices. This parses every stylesheet and every `.vue` `<style>` block under
-// app/ with lightningcss, the parser Vite itself minifies with, and fails on
-// any error.
+// A syntax error in a stylesheet passes every unit test: the browser recovers
+// without a word. The Hub bundle joins the Settings stylesheets before
+// minifying, so one stray `}` at the end of settings-view.css failed the Hub
+// build, which the fast check does not run. This parses every stylesheet file
+// and every `.vue` `<style>` block under app/ with lightningcss, the parser
+// Vite itself minifies with, and fails on any error. CSS written as strings in
+// TypeScript is out of scope.
 //
 //   node --import ./scripts/ts-hook.mjs --test tests/unit/every-stylesheet-parses.test.ts
 import assert from "node:assert/strict";
