@@ -1,26 +1,18 @@
 <script setup lang="ts">
-// Fully custom marketing landing in the Reforged launcher chrome (the layer's
-// config-driven landing page is not used). Sections, per design exploration:
-// Shrine hero with fused stat band, panel-grid features, marching testimonial
-// strip, hairline FAQ, and the "Return to Tyria" closing call. (A screenshot
-// gallery and roadmap existed as parked sections; recover them from git
-// history if they return.) Copy is localized inline; testimonial quotes stay
-// in their original English. The global unofficial banner and header render
-// above this page as on every other page.
+// The landing page at / and /de: the site's own start page (it wins over the layer's), inside the layer's frame and
+// on its tokens. Sections: hero with the stat band, the features grid, what Mac players say, the FAQ, the Discord
+// line and the closing call. Copy is localized inline; testimonial quotes stay in their original English.
 import { computed } from "vue";
-import { useFetch, useI18n, useSeoMeta } from "#imports";
+import { useFetch, useGinkoSeo, useI18n } from "#imports";
 import { useTracking, type DownloadSource } from "../composables/useTracking";
 import type { LatestRelease } from "../../server/utils/release-select";
-import { getLocalizedSiteText } from "#ginko-docs/config/site.utils";
-import { useGinkoDocsConfig } from "#ginko-docs/composables/useGinkoDocsConfig";
-import { useSchemaJsonLd } from "#ginko-docs/composables/useSchemaJsonLd";
 import site from "../../site.json";
 
-const config = useGinkoDocsConfig();
 const { locale } = useI18n();
 
 type Localized = string | { en: string; de?: string };
-const localize = (value: Localized) => getLocalizedSiteText(value, locale.value);
+const localize = (value: Localized) =>
+  typeof value === "string" ? value : (locale.value === "de" ? value.de : undefined) ?? value.en;
 
 // The buttons link to /download, the site's live redirect to the newest DMG, so
 // the prerendered HTML carries the right target from the first paint. Resolving
@@ -39,19 +31,19 @@ function handleDownload(source: DownloadSource): void {
   trackDownload(source, latestRelease.value?.version ?? null);
 }
 
-const DOCS_PATH = { en: "/docs/guides/install", de: "/de/dokumentation/anleitungen/installation" };
+const DOCS_PATH = { en: "/docs/install", de: "/de/docs/installation" };
 const COMPARE_PATH = {
-  en: "/docs/guides/play-guild-wars-on-mac",
-  de: "/de/dokumentation/anleitungen/guild-wars-auf-dem-mac-spielen",
+  en: "/docs/play-guild-wars-on-mac",
+  de: "/de/docs/guild-wars-auf-dem-mac-spielen",
 };
 const ACCOUNTS_PATH = {
-  en: "/docs/guides/accounts",
-  de: "/de/dokumentation/anleitungen/konten",
+  en: "/docs/accounts",
+  de: "/de/docs/konten",
 };
-const SAFETY_PATH = { en: "/docs/project/safety", de: "/de/dokumentation/projekt/sicherheit" };
+const SAFETY_PATH = { en: "/docs/safety", de: "/de/docs/sicherheit" };
 const TROUBLE_PATH = {
-  en: "/docs/guides/troubleshooting",
-  de: "/de/dokumentation/anleitungen/fehlerbehebung",
+  en: "/docs/troubleshooting",
+  de: "/de/docs/fehlerbehebung",
 };
 
 // The head query this page exists to win: "play guild wars on mac".
@@ -150,10 +142,6 @@ const VOICES_HEADING = {
     de: "Erfahrungen von Spielern mit M1-, M2-, M4- und M5-Macs aus dem Guild-Wars-Subreddit.",
   },
 };
-
-// Avatar plate hues cycle per card: ember, gold, rust. The plates stay dark in
-// both color modes, so the initial on top keeps the fixed --gw-gold.
-const AVATAR_HUES = ["#8a2508", "#6d5222", "#45280f"];
 
 const TESTIMONIALS = [
   {
@@ -338,17 +326,13 @@ function handleFaqToggle(event: Event, question: Localized): void {
 }
 
 const DISCORD = {
-  url: "https://discord.gg/Z9ft52RBD3",
+  url: site.links.discord,
   text: {
     en: "Join Discord for release notes, known issues, and help.",
     de: "Auf Discord findest du Versionshinweise, bekannte Probleme und Hilfe.",
   },
   cta: { en: "Join the Discord", de: "Discord beitreten" },
 };
-
-// Discord brand mark — the bundled icon set has none (see SiteSocialLinks.vue).
-const DISCORD_PATH =
-  "M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z";
 
 const CTA = {
   title: { en: "Ready to play?", de: "Bereit zum Spielen?" },
@@ -362,162 +346,93 @@ const CTA = {
 
 const docsPath = computed(() => localize(DOCS_PATH));
 
-const seoTitle = computed(() => localize(SEO.title));
-const seoDescription = computed(() => localize(SEO.description));
-useSeoMeta({
-  title: seoTitle,
-  description: seoDescription,
-  ogTitle: seoTitle,
-  ogDescription: seoDescription,
-});
-
-// The layer's app.vue emits the WebSite node; the landing adds the publisher.
-useSchemaJsonLd(() => [
-  {
-    "@type": "Organization",
-    name: "GWonMac",
-    url: config.site.url,
-    logo: `${config.site.url}/reforged-logo.webp`,
-    sameAs: [site.links.github, site.links.discord],
-  },
-]);
+// The head query this page exists to win; the title already names the site, so no template is added.
+useGinkoSeo(() => ({
+  title: localize(SEO.title),
+  titleTemplate: false,
+  description: localize(SEO.description),
+  type: "website",
+}));
 </script>
 
 <template>
-  <div class="overflow-hidden">
-    <!-- Hero — "The Shrine": centered title-screen composition over key art. -->
-    <section class="relative border-b border-border bg-(--gw-art-base)">
-      <div class="absolute inset-0 overflow-hidden" aria-hidden="true">
-        <div class="gw-art gw-drift absolute inset-0 size-full bg-[position:center_30%]" />
-        <div class="gw-hero-scrim absolute inset-0" />
-      </div>
-      <div
-        class="relative mx-auto flex max-w-3xl flex-col items-center px-6 pt-20 pb-16 text-center sm:pt-24 sm:pb-20"
-      >
-        <img
-          src="/reforged-logo.webp"
-          alt="Guild Wars Reforged"
-          class="w-[min(430px,80vw)] drop-shadow-[0_4px_22px_var(--gw-art-halo)]"
-          loading="eager"
-        />
-        <h1
-          class="mt-8 font-(family-name:--font-display) text-4xl leading-[1.08] font-normal text-balance text-(--gw-art-ink) [text-shadow:0_2px_14px_var(--gw-art-halo)] sm:text-5xl"
-        >
+  <div class="landing">
+    <!-- Hero, with the stat band on its bottom edge -->
+    <section class="landing-hero">
+      <div class="landing-hero-inner">
+        <img src="/reforged-logo.webp" alt="Guild Wars Reforged" class="landing-logo" loading="eager" />
+        <h1 class="landing-title">
           {{ localize(HERO.title) }}
         </h1>
-        <div class="gw-rule mt-6 w-[min(420px,80%)]">◆</div>
-        <p
-          class="mt-6 max-w-[56ch] text-base leading-7 text-(--gw-art-ink-dim) [text-shadow:0_1px_8px_var(--gw-art-halo)] sm:text-lg sm:leading-8"
-        >
+        <p class="landing-lead">
           {{ localize(HERO.sub) }}
         </p>
-        <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
+        <div class="landing-actions">
           <NuxtLink
             :to="DOWNLOAD_PATH"
             target="_blank"
             rel="noopener noreferrer"
-            class="gw-btn-primary"
+            class="landing-button landing-button-primary"
             @click="handleDownload('hero')"
           >
-            <Icon name="lucide:download" class="size-4" aria-hidden="true" />
+            <Icon name="lucide:download" aria-hidden="true" />
             {{ localize(HERO.download) }}
           </NuxtLink>
-          <NuxtLink :to="docsPath" class="gw-btn-secondary">{{ localize(HERO.docs) }}</NuxtLink>
+          <NuxtLink :to="docsPath" class="landing-button">{{ localize(HERO.docs) }}</NuxtLink>
         </div>
-        <p class="mt-5 text-[12.5px] tracking-[0.04em] text-(--gw-art-ink-faint)">
+        <p class="landing-fine-print">
           <template v-if="latestRelease?.version">{{ latestRelease.version }} · </template>{{ localize(HERO.finePrint) }}
         </p>
       </div>
-      <!-- Stat band, fused into the hero's bottom edge -->
-      <dl class="gw-stat-band">
-        <div v-for="stat in STATS" :key="stat.value" class="gw-stat">
-          <dt class="sr-only">{{ localize(stat.label) }}</dt>
-          <dd class="gw-v">{{ stat.value }}</dd>
-          <dd class="gw-l">{{ localize(stat.label) }}</dd>
+      <dl class="landing-stats">
+        <div v-for="stat in STATS" :key="stat.value" class="landing-stat">
+          <dt class="landing-sr-only">{{ localize(stat.label) }}</dt>
+          <dd class="landing-stat-value">{{ stat.value }}</dd>
+          <dd class="landing-stat-label">{{ localize(stat.label) }}</dd>
         </div>
       </dl>
     </section>
 
-    <!-- Features — panel grid -->
-    <section class="mx-auto max-w-6xl px-5 py-20 sm:px-8 sm:py-24">
-      <div class="max-w-2xl">
-        <h2 class="font-(family-name:--font-display) text-3xl text-foreground sm:text-4xl">
-          {{ localize(FEATURES_HEADING.title) }}
-        </h2>
-        <p class="mt-3 text-base leading-7 text-muted-foreground">
-          {{ localize(FEATURES_HEADING.sub) }}
-        </p>
+    <!-- Features -->
+    <section class="landing-section">
+      <div class="landing-heading">
+        <h2>{{ localize(FEATURES_HEADING.title) }}</h2>
+        <p>{{ localize(FEATURES_HEADING.sub) }}</p>
       </div>
-      <div class="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <article
-          v-for="feature in FEATURES"
-          :key="feature.title.en"
-          class="gw-panel relative min-w-0 p-6"
-        >
-          <h3 class="font-(family-name:--font-display) text-xl text-(--gw-text)">
-            {{ localize(feature.title) }}
-          </h3>
-          <p class="mt-2 text-[13.5px] leading-relaxed text-(--gw-text-faint)">
-            {{ localize(feature.description) }}
-          </p>
+      <div class="landing-features">
+        <article v-for="feature in FEATURES" :key="feature.title.en" class="landing-card">
+          <h3>{{ localize(feature.title) }}</h3>
+          <p>{{ localize(feature.description) }}</p>
         </article>
       </div>
     </section>
 
-    <!-- Testimonials — masonry wall with bottom fade -->
-    <section class="mx-auto max-w-6xl px-5 py-20 sm:px-8 sm:py-24">
-      <div class="mx-auto flex max-w-2xl flex-col items-center text-center">
-        <h2 class="font-(family-name:--font-display) text-3xl text-foreground sm:text-4xl">
-          {{ localize(VOICES_HEADING.title) }}
-        </h2>
-        <p class="mt-3 text-base leading-7 text-muted-foreground">
-          {{ localize(VOICES_HEADING.sub) }}
-        </p>
+    <!-- What Mac players say -->
+    <section class="landing-section">
+      <div class="landing-heading landing-heading-center">
+        <h2>{{ localize(VOICES_HEADING.title) }}</h2>
+        <p>{{ localize(VOICES_HEADING.sub) }}</p>
       </div>
-      <div
-        class="relative mt-12 w-full after:pointer-events-none after:absolute after:inset-x-0 after:-bottom-2 after:h-56 after:bg-linear-to-t after:from-background"
-      >
-        <div class="columns-1 gap-4 md:columns-2 lg:columns-3">
-          <figure
-            v-for="(item, index) in TESTIMONIALS"
-            :key="item.href"
-            class="gw-panel mb-4 break-inside-avoid p-5"
-          >
-            <figcaption class="flex items-center gap-3.5">
-              <span
-                class="flex size-10 shrink-0 items-center justify-center rounded-full border border-[#67583e66] font-(family-name:--font-display) text-lg text-(--gw-gold)"
-                :style="{ background: AVATAR_HUES[index % AVATAR_HUES.length] }"
-                aria-hidden="true"
-              >
-                {{ item.user[0]!.toUpperCase() }}
-              </span>
-              <span class="min-w-0 text-sm leading-5">
-                <NuxtLink
-                  :to="item.href"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="block truncate font-semibold text-(--gw-accent-strong) hover:underline"
-                >
-                  u/{{ item.user }}
-                </NuxtLink>
-                <span class="text-(--gw-text-faint)">{{ item.device }}</span>
-              </span>
-            </figcaption>
-            <blockquote class="mt-4 text-sm leading-7 text-(--gw-text-dim)">
-              <q>{{ item.quote }}</q>
-            </blockquote>
-          </figure>
-        </div>
+      <div class="landing-voices">
+        <figure v-for="item in TESTIMONIALS" :key="item.href" class="landing-card landing-voice">
+          <figcaption>
+            <span class="landing-avatar" aria-hidden="true">{{ item.user[0]!.toUpperCase() }}</span>
+            <span class="landing-voice-who">
+              <NuxtLink :to="item.href" target="_blank" rel="noopener noreferrer">u/{{ item.user }}</NuxtLink>
+              <span>{{ item.device }}</span>
+            </span>
+          </figcaption>
+          <blockquote>
+            <q>{{ item.quote }}</q>
+          </blockquote>
+        </figure>
       </div>
     </section>
 
-
-    <!-- FAQ — hairline accordion -->
-    <section class="mx-auto max-w-3xl px-5 py-20 sm:px-8 sm:py-24">
-      <h2 class="font-(family-name:--font-display) text-3xl text-foreground sm:text-4xl">
-        {{ localize(FAQ_HEADING.title) }}
-      </h2>
-      <div class="gw-faq mt-10 border-t border-(--gw-hairline)">
+    <!-- FAQ -->
+    <section class="landing-section landing-section-narrow">
+      <h2 class="landing-faq-title">{{ localize(FAQ_HEADING.title) }}</h2>
+      <div class="landing-faq">
         <details
           v-for="(item, index) in FAQ"
           :key="localize(item.q)"
@@ -525,71 +440,415 @@ useSchemaJsonLd(() => [
           @toggle="handleFaqToggle($event, item.q)"
         >
           <summary>{{ localize(item.q) }}</summary>
-          <p class="max-w-[64ch] px-1 pb-5 pl-[27px] text-sm leading-6 text-(--gw-text-faint)">
+          <p>
             {{ localize(item.a) }}
-            <NuxtLink
-              v-if="item.link"
-              :to="localize(item.link.href)"
-              class="mt-1 block w-fit font-medium text-(--gw-accent) hover:text-(--gw-accent-strong) hover:underline"
-            >
+            <NuxtLink v-if="item.link" :to="localize(item.link.href)" class="landing-faq-link">
               {{ localize(item.link.label) }} →
             </NuxtLink>
           </p>
         </details>
       </div>
     </section>
-        <!-- Discord ribbon — one line, one button -->
-    <section class="bg-[#5865F2]">
-      <div
-        class="mx-auto flex min-h-16 max-w-6xl flex-wrap items-center justify-center gap-x-7 gap-y-3 px-5 py-3 sm:justify-between sm:px-8"
-      >
-        <p class="flex items-center gap-3 text-sm font-medium text-white">
-          <svg viewBox="0 0 24 24" class="size-5 shrink-0" fill="currentColor" aria-hidden="true">
-            <path :d="DISCORD_PATH" />
-          </svg>
+
+    <!-- Discord: one line, one button -->
+    <section class="landing-band">
+      <div class="landing-band-inner">
+        <p>
+          <Icon name="docs:discord" aria-hidden="true" />
           {{ localize(DISCORD.text) }}
         </p>
-        <NuxtLink
-          :to="DISCORD.url"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="inline-flex h-9 items-center rounded-[4px] border border-white/40 px-4 text-[13.5px] font-semibold text-white transition-colors hover:bg-white hover:text-[#5865F2]"
-        >
+        <NuxtLink :to="DISCORD.url" target="_blank" rel="noopener noreferrer" class="landing-button">
           {{ localize(DISCORD.cta) }}
         </NuxtLink>
       </div>
     </section>
 
-    <!-- Final CTA — return to Tyria -->
-    <section class="relative border-t border-border bg-(--gw-art-base)">
-      <div class="absolute inset-0 overflow-hidden" aria-hidden="true">
-        <div class="gw-art absolute inset-0 size-full bg-[position:center_70%]" />
-        <div class="gw-cta-scrim absolute inset-0" />
-      </div>
-      <div
-        class="relative mx-auto flex max-w-6xl flex-col items-center px-5 py-20 text-center sm:px-8 sm:py-28"
-      >
-        <h2
-          class="font-(family-name:--font-display) text-4xl text-balance text-(--gw-art-ink) [text-shadow:0_2px_14px_var(--gw-art-halo)] sm:text-5xl"
+    <!-- Closing call -->
+    <section class="landing-section landing-cta">
+      <h2>{{ localize(CTA.title) }}</h2>
+      <p>{{ localize(CTA.sub) }}</p>
+      <div class="landing-actions">
+        <NuxtLink
+          :to="DOWNLOAD_PATH"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="landing-button landing-button-primary"
+          @click="handleDownload('final-cta')"
         >
-          {{ localize(CTA.title) }}
-        </h2>
-        <p class="mt-3 text-base text-(--gw-art-ink-dim) sm:text-lg">{{ localize(CTA.sub) }}</p>
-        <div class="gw-rule mt-6 w-[min(360px,80%)] text-xs">◆</div>
-        <div class="mt-7 flex flex-wrap items-center justify-center gap-3">
-          <NuxtLink
-            :to="DOWNLOAD_PATH"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="gw-btn-primary"
-            @click="handleDownload('final-cta')"
-          >
-            <Icon name="lucide:download" class="size-4" aria-hidden="true" />
-            {{ localize(CTA.download) }}
-          </NuxtLink>
-          <NuxtLink :to="docsPath" class="gw-btn-secondary">{{ localize(CTA.docs) }}</NuxtLink>
-        </div>
+          <Icon name="lucide:download" aria-hidden="true" />
+          {{ localize(CTA.download) }}
+        </NuxtLink>
+        <NuxtLink :to="docsPath" class="landing-button">{{ localize(CTA.docs) }}</NuxtLink>
       </div>
     </section>
   </div>
 </template>
+
+<style scoped>
+/* Only the layer's tokens (README of @lupinum/ginko-docs, "Look and colours"), so the page follows its theme and the
+   light/dark switch. */
+.landing {
+  --landing-gutter: var(--docs-gutter, 1rem);
+  overflow-x: clip;
+}
+.landing-hero {
+  border-bottom: 1px solid var(--border);
+  background: var(--muted);
+}
+.landing-hero-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: 5rem var(--landing-gutter) 4rem;
+  text-align: center;
+}
+.landing-logo {
+  width: min(430px, 80vw);
+  height: auto;
+}
+.landing-title {
+  margin: 2rem 0 0;
+  font-size: clamp(2.25rem, 1.6rem + 2.6vw, 3rem);
+  line-height: 1.08;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+  color: var(--foreground);
+}
+.landing-lead {
+  max-width: 56ch;
+  margin: 1.5rem 0 0;
+  font-size: 1.125rem;
+  line-height: 1.75;
+  color: var(--muted-foreground);
+}
+.landing-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 2rem;
+}
+.landing-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.5rem;
+  padding: 0 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--background);
+  color: var(--foreground);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+.landing-button:hover {
+  background: var(--accent);
+}
+.landing-button-primary {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+.landing-button-primary:hover {
+  background: color-mix(in oklab, var(--primary) 88%, var(--foreground));
+}
+.landing-button:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.landing-fine-print {
+  margin: 1.25rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+}
+.landing-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 64rem;
+  margin: 0 auto;
+  border-top: 1px solid var(--border);
+}
+.landing-stat {
+  padding: 1.25rem var(--landing-gutter);
+  text-align: center;
+}
+.landing-stat + .landing-stat {
+  border-left: 1px solid var(--border);
+}
+.landing-stat:nth-child(3) {
+  border-left: 0;
+}
+.landing-stat:nth-child(n + 3) {
+  border-top: 1px solid var(--border);
+}
+.landing-stats dd {
+  margin: 0;
+}
+.landing-stat-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--foreground);
+}
+.landing-stat-label {
+  margin-top: 0.25rem;
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+}
+.landing-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.landing-section {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 5rem var(--landing-gutter);
+}
+.landing-section-narrow {
+  max-width: 48rem;
+}
+.landing-heading {
+  max-width: 42rem;
+}
+.landing-heading-center {
+  margin: 0 auto;
+  text-align: center;
+}
+.landing-section h2 {
+  margin: 0;
+  font-size: clamp(1.75rem, 1.4rem + 1.4vw, 2.25rem);
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: var(--foreground);
+}
+.landing-heading p {
+  margin: 0.75rem 0 0;
+  line-height: 1.75;
+  color: var(--muted-foreground);
+}
+.landing-card {
+  min-width: 0;
+  margin: 0;
+  padding: 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+.landing-features {
+  display: grid;
+  gap: 1rem;
+  margin-top: 2.5rem;
+}
+.landing-features h3 {
+  margin: 0;
+  font-size: 1.0625rem;
+  font-weight: 650;
+  color: var(--foreground);
+}
+.landing-features p {
+  margin: 0.5rem 0 0;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--muted-foreground);
+}
+.landing-voices {
+  columns: 1;
+  column-gap: 1rem;
+  margin-top: 3rem;
+}
+.landing-voice {
+  margin-bottom: 1rem;
+  padding: 1.25rem;
+  break-inside: avoid;
+}
+.landing-voice figcaption {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+}
+.landing-avatar {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--muted);
+  color: var(--foreground);
+  font-weight: 650;
+}
+.landing-voice-who {
+  min-width: 0;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--muted-foreground);
+}
+.landing-voice-who a {
+  display: block;
+  overflow: hidden;
+  font-weight: 600;
+  color: var(--primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.landing-voice-who a:hover {
+  text-decoration: underline;
+}
+.landing-voice blockquote {
+  margin: 1rem 0 0;
+  font-size: 0.875rem;
+  line-height: 1.75;
+  color: var(--foreground);
+}
+.landing-faq-title {
+  margin: 0;
+}
+.landing-faq {
+  margin-top: 2.5rem;
+  border-top: 1px solid var(--border);
+}
+.landing-faq details {
+  border-bottom: 1px solid var(--border);
+}
+.landing-faq summary {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 0.25rem;
+  font-weight: 600;
+  color: var(--foreground);
+  cursor: pointer;
+  list-style: none;
+}
+.landing-faq summary::-webkit-details-marker {
+  display: none;
+}
+.landing-faq summary::before {
+  content: "+";
+  flex-shrink: 0;
+  width: 1rem;
+  color: var(--primary);
+  font-weight: 700;
+  text-align: center;
+}
+.landing-faq details[open] summary::before {
+  content: "−";
+}
+.landing-faq summary:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.landing-faq p {
+  max-width: 64ch;
+  margin: 0;
+  padding: 0 0.25rem 1.25rem 2rem;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--muted-foreground);
+}
+.landing-faq-link {
+  display: block;
+  width: fit-content;
+  margin-top: 0.25rem;
+  font-weight: 500;
+  color: var(--primary);
+  text-decoration: none;
+}
+.landing-faq-link:hover {
+  text-decoration: underline;
+}
+.landing-band {
+  border-block: 1px solid var(--border);
+  background: var(--muted);
+}
+.landing-band-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem 1.75rem;
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 0.75rem var(--landing-gutter);
+}
+.landing-band p {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--foreground);
+}
+.landing-band p :deep(svg) {
+  flex-shrink: 0;
+  width: 1.25rem;
+  height: 1.25rem;
+}
+.landing-cta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.landing-cta > p {
+  margin: 0.75rem 0 0;
+  font-size: 1.125rem;
+  color: var(--muted-foreground);
+}
+@media (min-width: 40rem) {
+  .landing-hero-inner {
+    padding-top: 6rem;
+    padding-bottom: 5rem;
+  }
+  .landing-stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .landing-stat:nth-child(3) {
+    border-left: 1px solid var(--border);
+  }
+  .landing-stat:nth-child(n + 3) {
+    border-top: 0;
+  }
+  .landing-section {
+    padding-block: 6rem;
+  }
+  .landing-features {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .landing-band-inner {
+    justify-content: space-between;
+  }
+}
+@media (min-width: 48rem) {
+  .landing-voices {
+    columns: 2;
+  }
+}
+@media (min-width: 64rem) {
+  .landing-features {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .landing-voices {
+    columns: 3;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .landing-button {
+    transition: none;
+  }
+}
+</style>

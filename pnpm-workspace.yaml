@@ -1,18 +1,18 @@
 packages:
   - "app/ui/*"
   - "website"
-# Nuxt I18n resolves these declared dependencies from Nuxt Kit rather than from
-# its own package. Keep that compatibility surface exact; Forge also accepts
-# this narrow pattern as proof that pnpm packaging was configured intentionally.
-publicHoistPattern:
-  - "@intlify/core"
-  - "@intlify/core-base"
-  - "@intlify/message-compiler"
-  - "@intlify/shared"
-  - "@intlify/utils"
-  - "vue-i18n"
-  # Temporary (docs/migrations.md "Ginko Docs 0.2.3 icon hook types").
-  - "@nuxt/icon"
+# Nothing is hoisted publicly. Electron Forge's pnpm check accepts a declared
+# public-hoist-pattern (even an empty one) as proof that packaging under the
+# isolated linker was configured on purpose.
+publicHoistPattern: []
+# Quarantine (Lupinum website standard): new versions wait 24 hours, and a
+# version still inside the wait fails the install instead of being swapped.
+# Our own @lupinum packages are released and checked by us, so they may be
+# installed on the day they ship.
+minimumReleaseAge: 1440
+minimumReleaseAgeStrict: true
+minimumReleaseAgeExclude:
+  - "@lupinum/*"
 confirmModulesPurge: false
 blockExoticSubdeps: false
 overrides:
@@ -30,48 +30,10 @@ overrides:
   # Forge's Packager 18 still names the retired extractor. Electron's hardened
   # drop-in keeps that API while rejecting symlink escapes.
   extract-zip: "npm:@electron-internal/extract-zip@1.0.4"
-  # Fresh re-resolution rebinds part of the Nuxt graph to the unhead 2.x
-  # family, which mismatches the 3.x API and breaks the website build/server.
-  unhead: 3.2.3
-  "@unhead/vue": 3.2.3
-  # Website tooling advisories, October 2026.
-  seroval: 1.6.11
-  proxy-addr: 2.0.8
-  tinypool: 2.2.0
-  shell-quote: 1.12.0
-  sharp: 0.35.5
-  "@modelcontextprotocol/sdk": 1.32.2
-  source-map-js: 1.2.2
-  launch-editor: 2.14.2
-  devalue: 5.9.3
-  "vite@<8.3.6": 8.3.6
-  # Website tooling advisories, November 2026. Nuxt DevTools pins zod 4.4.3,
-  # and express keeps the lockfile on body-parser 2.3.0.
-  "zod@<4.6.6": 4.6.7
-  "body-parser@<2.4.0": 2.4.0
-  # Website and tooling advisories, 8 November 2026. Nuxt's dev-only MCP and
-  # DevTools graph reaches hono through @modelcontextprotocol/sdk; Forge and
-  # @vue/test-utils keep older glob and minimatch majors whose APIs the newer
-  # majors still export; fontless reaches esbuild 0.27 for transform only.
-  hono: 4.13.17
-  "@hono/node-server": 2.1.6
-  serialize-javascript: 7.1.4
-  postcss-selector-parser: 7.1.7
-  "esbuild@>=0.27.3 <0.28.1": 0.28.2
+  # Tooling advisories, 8 November 2026. Forge and @vue/test-utils keep older
+  # glob and minimatch majors whose APIs the newer majors still export.
   "glob@>=9.0.0 <14.0.2": 14.0.4
   "minimatch@>=7.0.0 <11.0.1": 11.0.5
-  "satori@<0.33.5": 0.33.5
-  "fflate@>=0.7.0 <0.7.5": 0.7.5
-  # DevTools 3.4.4 no longer depends on simple-git, whose 3.x line has no fix.
-  # Nuxt 4.6 asks for it itself; remove with the move to Ginko 0.16.
-  "@nuxt/devtools@<3.4.4": 3.4.4
-packageExtensions:
-  "@nuxt/scripts@0.13.4":
-    dependencies:
-      estree-walker: 3.0.3
-  "nuxt-define@1.0.0":
-    dependencies:
-      "@nuxt/kit": 4.5.1
 allowBuilds:
   electron: true
   esbuild: true
@@ -90,8 +52,8 @@ auditConfig:
     # No patch is published. Remove when a patched release becomes available,
     # or reassess before adding an authenticated shared-cache consumer.
     - GHSA-ch52-4w7c-c8xp
-    # braces receives repository-owned build glob patterns through Forge,
-    # Nuxt, and i18n tooling. Player input never becomes a glob pattern.
+    # braces receives repository-owned build glob patterns through Forge and
+    # Nuxt tooling. Player input never becomes a glob pattern.
     # No patch is published. Remove when a patched release becomes available,
     # or reassess before accepting untrusted glob patterns.
     - GHSA-vfj7-8cjw-p6xm
