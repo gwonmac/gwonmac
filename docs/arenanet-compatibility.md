@@ -264,7 +264,10 @@ binaries and cannot grant runtime authority.
     observation on its file-compatible module;
   - any other client gets the patch-day template verdict the test states for
     it. October 1 and October 22 refuse (`template-shape-changed`: each
-    changed a reviewed helper body); November 3 proves.
+    changed a reviewed helper body). November 3 proves every feature except
+    Quick Item Move, whose memory-code digest changed; native double-click
+    and Cartography prove, and friend observation refuses until its moved
+    assertion lines are reviewed.
 
   It prints each client's refused features and module stages, and skips
   without the maintainer evidence store. Retained clients without a reviewed

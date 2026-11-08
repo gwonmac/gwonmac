@@ -255,7 +255,9 @@ static data. The October 22 and November 3, 2026 clients refused almost every
 feature for that reason; only a few changes were real. Reviewed facts now
 match such a relink by relocation identity (see
 [ArenaNet compatibility](arenanet-compatibility.md#current-implementation-limits)),
-so first check what still refuses.
+so first check what still refuses. With only the older facts, November 3
+now refuses only Quick Item Move (its memory-code digest changed) and friend
+observation (moved assertion lines); both need a review.
 
 1. Run `tests/client-artifact/patch-day-replay.test.ts` with the new client in
    the evidence store. Its diagnostics list each feature that refuses with only
