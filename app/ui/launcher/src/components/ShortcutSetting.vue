@@ -95,17 +95,17 @@ async function capture() {
 <style scoped>
 .shortcut-setting { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 6px; width: 172px; max-width: 100%; font-size: 13px; }
 .shortcut-value { display: inline-flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 132px; }
-.shortcut-value > span { font-size: 12px; color: var(--settings-muted); }
+.shortcut-value > span { font-size: 12px; color: var(--muted); }
 .shortcut-options { position: relative; margin: 0; }
-.shortcut-options summary { display: grid; place-items: center; width: 28px; height: 32px; padding: 0; list-style: none; border-radius: 5px; color: var(--settings-muted); }
+.shortcut-options summary { display: grid; place-items: center; width: 28px; height: 32px; padding: 0; list-style: none; border-radius: 5px; color: var(--muted); }
 .shortcut-options summary::-webkit-details-marker { display: none; }
-.shortcut-options summary:hover, .shortcut-options[open] summary { background: var(--settings-control); color: inherit; }
+.shortcut-options summary:hover, .shortcut-options[open] summary { background: var(--control); color: inherit; }
 .shortcut-options summary svg { width: 18px; height: 18px; }
-.shortcut-options .shortcut-actions { position: absolute; top: calc(100% + 4px); right: 0; z-index: 4; width: 176px; display: grid; gap: 0; padding: 4px; border: 1px solid var(--settings-line-strong); border-radius: 6px; background: var(--settings-surface-solid); }
+.shortcut-options .shortcut-actions { position: absolute; top: calc(100% + 4px); right: 0; z-index: 4; width: 176px; display: grid; gap: 0; padding: 4px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--surface-solid); }
 .shortcut-options .text-link { padding: 8px; border: 0; text-align: left; color: inherit; }
-.shortcut-options .text-link:hover { background: var(--settings-hover); }
+.shortcut-options .text-link:hover { background: var(--surface-hover); }
 .shortcut-setting > .inline-message, .shortcut-setting > .shortcut-actions { flex-basis: 100%; }
 .shortcut-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .shortcut-keycaps { display:flex; gap:4px; }
-kbd { display:grid; place-items:center; min-width:23px; height:25px; border:1px solid var(--settings-line-strong); border-radius:5px; background:var(--settings-control); padding-inline:4px; font: inherit; font-variant-numeric: tabular-nums; }
+kbd { display:grid; place-items:center; min-width:23px; height:25px; border:1px solid var(--line-strong); border-radius:5px; background:var(--control); padding-inline:4px; font: inherit; font-variant-numeric: tabular-nums; }
 </style>

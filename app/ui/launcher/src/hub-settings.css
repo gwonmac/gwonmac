@@ -1,27 +1,59 @@
-/* The Settings page inside the Hub: the same page, in the Hub's theme (Classic or Modern).
-   Only tokens and the space the Hub panel gives it change; the page's own rules stay. */
+/* The Settings page inside the Hub: the same page, in the player's Hub theme (Classic, Modern or
+   their own colours). The page reads launcher tokens; here each one it reads points at the Hub
+   token for the same role, so its dialogs, buttons and links follow the theme too and no
+   launcher gold or red is left. Radii and the small type sizes stay the launcher's.
+   tests/unit/the-ui-system-has-one-place-to-change-a-colour.test.ts checks that every launcher
+   colour the page reads is listed here. Below the tokens: only the space the Hub panel gives. */
 .hub-settings-host { height: 100%; min-height: 0; }
 .hub-settings-host .settings-view {
-  --settings-font: var(--ui-font-interface);
-  --settings-heading-font: var(--ui-font-display, var(--ui-font-interface));
-  --settings-font-size: var(--ui-type-body-size);
-  --settings-text: var(--ui-text);
-  --settings-muted: var(--ui-text-muted);
-  --settings-accent: var(--ui-accent);
-  --settings-focus: var(--ui-focus);
-  --settings-line: var(--ui-line-soft);
-  --settings-line-strong: var(--ui-edge);
-  --settings-control: var(--ui-well-fill);
-  --settings-hover: var(--ui-selection-fill);
-  --settings-surface: transparent;
-  --settings-surface-solid: transparent;
-  --settings-aside: transparent;
+  /* Type. */
+  --font-ui: var(--ui-font-interface);
+  --font-display: var(--ui-font-display, var(--ui-font-interface));
+  --fs-md: var(--ui-type-body-size);
+  /* Surfaces and lines. */
+  --sunken: var(--ui-well);
+  --field: var(--ui-well-fill);
+  --control: var(--ui-well-fill);
+  --surface-solid: var(--ui-well);
+  --surface-raised: var(--ui-panel-fill);
+  --surface-hover: var(--ui-row-hover);
+  --picked-fill: var(--ui-selection-fill);
+  --line: var(--ui-line-soft);
+  --line-strong: var(--ui-edge);
+  --switch-track: var(--ui-line);
+  /* Text. */
+  --text: var(--ui-text);
+  --text-soft: var(--ui-text);
+  --muted: var(--ui-text-muted);
+  /* The accent, and what sits on it. */
+  --gold: var(--ui-accent);
+  --gold-text: var(--ui-accent-text);
+  --gold-tint: var(--ui-accent-soft-fill);
+  --gold-tint-strong: var(--ui-selection-fill);
+  --gold-gradient: var(--ui-primary-fill);
+  --on-gold: var(--ui-primary-ink);
+  --nav-active-text: var(--ui-selection-ink);
+  --selection-text: var(--ui-accent-ink);
+  --search-ring: var(--ui-accent-soft-fill);
+  --pack-accent: var(--ui-accent);
+  --focus: var(--ui-focus);
+  --scrollbar: var(--ui-scroll-thumb-color);
+  /* Status. */
+  --success: var(--ui-success);
+  --danger: var(--ui-danger);
+  --danger-text: var(--ui-danger);
+  --danger-tint: var(--ui-danger-soft-fill);
+  /* Depth. */
+  --inset-highlight: var(--ui-shadow-raised);
+  --switch-knob-shadow: var(--ui-shadow-raised);
+  --scrim: var(--ui-overlay-fill);
+  --shadow-pop: var(--ui-shadow);
   background: transparent;
 }
 /* The Hub panel is narrower than the launcher: a slimmer section list and tighter content. */
 .hub-settings-host .settings-view .settings-page { grid-template-columns: 196px minmax(0, 1fr); }
 .hub-settings-host .settings-view .settings-page aside button { white-space: nowrap; }
-.hub-settings-host .settings-view .settings-page aside { padding: 10px 8px; border-right: 1px solid var(--ui-line-soft); }
+.hub-settings-host .settings-view .settings-page aside { padding: 10px 8px; background: transparent; }
 .hub-settings-host .settings-view .settings-content { padding: 18px 22px 24px; }
 .hub-settings-host .settings-view .settings-content h1,
 .hub-settings-host .settings-view .settings-fields h1 { font-size: var(--ui-type-title-size, 20px); }

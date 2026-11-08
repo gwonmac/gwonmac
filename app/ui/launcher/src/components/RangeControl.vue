@@ -37,9 +37,9 @@ function commit(input: HTMLInputElement) {
 
 <style scoped>
 .range-control { display: grid; grid-template-columns: minmax(80px, 1fr) auto; align-items: center; gap: 12px; width: 264px; max-width: 100%; }
-.range-control input[type="range"] { width: 100%; min-width: 0; height: 34px; padding: 0; border: 0; background: transparent; accent-color: var(--settings-accent); }
+.range-control input[type="range"] { width: 100%; min-width: 0; height: 34px; padding: 0; border: 0; background: transparent; accent-color: var(--gold); }
 .range-value { display: flex; align-items: center; gap: 6px; }
 .range-value input { width: 60px; height: 34px; padding: 8px; font-variant-numeric: tabular-nums; }
-.range-value span { color: var(--settings-muted); }
+.range-value span { color: var(--muted); }
 .control-error { grid-column: 1 / -1; }
 </style>

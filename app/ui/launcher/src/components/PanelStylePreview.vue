@@ -36,7 +36,7 @@ const font = computed(() => ({ "guild-wars": 'Palatino, serif', inter: 'Inter, s
 .sample-body { display: grid; gap: 8px; padding: 12px; }
 .sample-selection, .sample-input { padding: 7px 10px; border-radius: 3px; }
 .sample-input { border: 1px solid; }
-figcaption { color: var(--settings-muted); font-size: 13px; line-height: 1.5; }
+figcaption { color: var(--muted); font-size: 13px; line-height: 1.5; }
 .contrast-note { padding: 0 16px 14px; margin: 0; font-size: 14px; }
 @container settings (max-width: 600px) { .panel-preview { grid-template-columns: 1fr; }.panel-sample { max-width: 300px; } }
 </style>

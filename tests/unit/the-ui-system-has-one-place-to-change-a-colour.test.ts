@@ -227,7 +227,6 @@ const IN_GAME_PROVIDED: Record<string, { setBy: string; reason: string }> = {
   "--character-cards": { setBy: "app/features/character-switch/hub-views/HubCharacters.vue", reason: "the carousel's card count" },
 };
 const launcherTokens = declared(readFileSync(LAUNCHER_TOKENS, "utf8"));
-const settingsTokens = declared(readFileSync(SETTINGS, "utf8"), "--settings-");
 
 test("the glob finds both systems and both token sources", () => {
   // A broken glob would pass every rule below by checking nothing.
@@ -325,6 +324,33 @@ test("the Hub's Settings page loads the launcher tokens it reads", () => {
   assert.match(readFileSync("app/ui/launcher/index.html", "utf8"), /<html [^>]*\bdata-launcher\b/u);
 });
 
+/** The stylesheets the Settings page draws with: its own and every component it renders. */
+function settingsPageStyles(): string[] {
+  const seen = new Set<string>();
+  const visit = (path: string) => {
+    if (seen.has(path)) return;
+    seen.add(path);
+    const source = readFileSync(path, "utf8");
+    for (const [, name] of source.matchAll(/from "\.\/([A-Za-z]+)\.vue"/gu)) visit(`app/ui/launcher/src/components/${name}.vue`);
+  };
+  visit("app/ui/launcher/src/components/SettingsView.vue");
+  return [SETTINGS, ...seen].map((path) => code(styleOf(path, readFileSync(path, "utf8"))));
+}
+
+test("the Hub's Settings page takes every colour it reads from the Hub theme", () => {
+  // A Settings rule or component that reads a launcher colour hub-settings.css
+  // does not re-point draws launcher gold or red inside a blue Hub, as the
+  // section list and the Delete style dialog once did. Radii and the type scale
+  // stay the launcher's on purpose.
+  const read = new Set(settingsPageStyles().flatMap((css) => [...referenced(css)].filter((name) => launcherTokens.has(name))));
+  const repointed = declared(readFileSync(HUB_SETTINGS, "utf8"));
+  const scale = (name: string) => /^--(?:radius|fs)-/u.test(name);
+  const missing = [...read].filter((name) => !scale(name) && !repointed.has(name));
+  assert.deepEqual(missing, [], `read by the Settings page but not re-pointed for the Hub: ${missing.join(", ")}`);
+  const stale = [...repointed].filter((name) => launcherTokens.has(name) && !read.has(name));
+  assert.deepEqual(stale, [], `re-pointed for the Hub but not read by the Settings page: ${stale.join(", ")}`);
+});
+
 /** Each rule as its at-rule context, its selectors and its property names. */
 function rules(css: string, context = ""): { context: string; selectors: string[]; properties: string[] }[] {
   const out: { context: string; selectors: string[]; properties: string[] }[] = [];
@@ -371,8 +397,7 @@ test("every token a stylesheet uses is actually declared", () => {
   // An undeclared token is a declaration the browser drops: the rule silently
   // loses its colour. In-game files read app/shared/ui/tokens.css and their
   // own names: a launcher name read there passes in the launcher's tests and
-  // paints nothing in the game. Launcher files read the launcher tokens and
-  // the `--settings-*` set.
+  // paints nothing in the game. Launcher files read the launcher tokens.
   const missing: string[] = [];
   for (const { path, system, css, source } of files) {
     const own = new Set([...declared(css), ...local(source)]);
@@ -383,7 +408,7 @@ test("every token a stylesheet uses is actually declared", () => {
       continue;
     }
     for (const name of referenced(css)) {
-      if (!launcherTokens.has(name) && !settingsTokens.has(name) && !own.has(name)) missing.push(`${path}: ${name}`);
+      if (!launcherTokens.has(name) && !own.has(name)) missing.push(`${path}: ${name}`);
     }
   }
   assert.deepEqual(missing, [], `undeclared tokens: ${missing.join(", ")}`);
