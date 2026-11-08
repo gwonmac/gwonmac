@@ -329,4 +329,27 @@ describe("panel text legibility over the game", () => {
       assert.equal(reduced["--ui-panel-opacity"], "0.65");
     }
   });
+
+  it("keeps every text role at 4.5:1 over a custom theme's selection fill, accent and window at every opacity", () => {
+    // The Hub's composed-pixel cases (hub-appearance.spec.ts) keep the extremes; the rest of
+    // that matrix is these themes, whose selection paint joins the worst-case backgrounds.
+    const blue = { material: "classic", window: "#0B0B0B", titlebar: "#292927", surface: "#202225", recessed: "#080807", selected: "#1B3554", accent: "#4A6FA5", text: "#F1EBDD", mutedText: "#B7B09F", border: "#D8D2BF", windowGradient: true } as const;
+    const themes = [
+      ["blue classic", blue], ["blue modern", { ...blue, material: "modern" }], ["red accent", { ...blue, accent: "#B03A2E" }],
+      ["white window", { ...blue, accent: "#E6C882", window: "#FFFFFF" }],
+    ] as const;
+    for (const [name, custom] of themes) {
+      for (const uiPanelOpacity of [65, 70, 80, 94, 100]) {
+        const theme = custom as unknown as AppSettings["uiCustomTheme"];
+        const inks = publishedInks({ ...DEFAULT_SETTINGS, uiStyle: "custom", uiPanelOpacity, uiCustomTheme: theme });
+        const rendered = renderedCustomTheme(theme);
+        const panels = (["#FFFFFF", "#000000"] as const).map((scene) => compositeColor(rendered.window, scene, uiPanelOpacity / 100));
+        const backgrounds = [...panels, ...panels.map((panel) => compositeColor(rendered.selected, panel, 0.84)), rendered.titlebar, rendered.surface];
+        for (const [token, ink] of Object.entries(inks)) {
+          if (token === "--ui-accent-text") continue;
+          for (const background of backgrounds) assert.ok(contrastRatio(ink, background) >= 4.5, `${name} ${uiPanelOpacity}% ${token} ${ink} on ${background}`);
+        }
+      }
+    }
+  });
 });
