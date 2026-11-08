@@ -271,8 +271,11 @@ review, so one command prepares it:
    It judges the client with only the older generations, as on its patch day,
    and always writes its review packet to `<bundle>/review/` (`--previous`
    names the client to compare with when the newest reviewed client's bundle
-   is elsewhere). For each feature the previous
-   client proves and the new one refuses, the packet names the first failing
+   is elsewhere). The packet covers template saving and every Enhancement
+   feature. The module stages (Cartography, native double-click, friend
+   observation) are not in it: review them through the patch-day replay in
+   step 5. For each feature the previous client proves and the new one
+   refuses, the packet names the first failing
    invariant, the reviewed bodies the feature lost, the old and new function
    side by side with call targets and static addresses normalised (changed
    lines carry `!`), the candidate count, and the drafted generation-file
@@ -298,18 +301,21 @@ review, so one command prepares it:
    pnpm certification review --apply "$STORE/<bundle-reference>/review"
    ```
 
-   It adds the entries to `facts.alternatives` in the new client's generation
-   file `reviewed-client-<bundle-reference>.ts`, and creates and registers
-   that file when it does not exist yet. A draft grants nothing: the verifier
-   still proves every feature from the bytes with it. Facts that are not
-   alternatives (a pinned per-proof slot, Quick Item Move's reviewed
-   `memoryCodeSha256`) are written by hand. Proof files keep only the August
+   It adds the entries to `facts.alternatives`, and drafted player-effect
+   bodies to `playerEffectBodies`, in the new client's generation file
+   `reviewed-client-<bundle-reference>.ts`, and creates and registers that
+   file in client order when it does not exist yet. It refuses a draft made
+   from a client the generation's builds do not list. An unapplied draft
+   grants nothing. An applied alternative is a reviewed fact: the verifier
+   accepts that body for that literal in every client, so review each pair.
+   Facts the packet does not draft (a pinned per-proof slot, Quick Item
+   Move's reviewed `memoryCodeSha256`) are written by hand. Proof files keep only the August
    and October 1 references. Keep the previous client proving.
 4. Complete the generation file: the Enhancement record, and from
    `pnpm certification reviewed-identities PATH/Gw.jspi.wasm` its
    `memoryCodeSha256` and the identity entries that no older generation
-   already lists. Add `playerEffectBodies` only when an effect body really
-   changed; a relink finds them by identity.
+   already lists. `playerEffectBodies` comes from the draft, and only when an
+   effect body really changed; a relink finds them by identity.
 5. Run `tests/client-artifact/patch-day-replay.test.ts`. It must pass, and the
    new client's record must prove every feature it supports with every
    generation. A client that is not a relink of the previous generation needs
@@ -337,8 +343,7 @@ A new client can need all of these:
 - the template-save record (`pnpm certification template --write`) and the
   Tools record in its generation file;
 - in its generation file's `facts`: alternatives, template-saving helper
-  bodies, the native render family, pathing families, the Guild Hall
-  area-type family, and, only when one's body really changed (a relink finds
+  bodies, the native render family, the Guild Hall area-type family, and, only when one's body really changed (a relink finds
   them by identity), the resign and whisper chat paths and the Cartography
   surface owners; and the friend lifecycle family (it changes
   `FRIEND_OBSERVER_SEMANTIC_SHA256` only when a role's signature changes);

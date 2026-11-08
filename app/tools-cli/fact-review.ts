@@ -11,10 +11,14 @@
  * would accept it: an alternative for a reviewed literal, or for a
  * player-effect body the generation's `playerEffectBodies` map.
  *
- * A draft grants nothing. It becomes a fact only when a maintainer approves it
- * and writes it into the generation file, and the verifier still has to prove
- * every feature from the bytes with it. The packet holds ArenaNet code, so it
- * stays in the private evidence store on the maintainer's Mac.
+ * It covers template saving and every Enhancement feature. The module stages
+ * (Cartography, native double-click, friend observation) are reviewed through
+ * the patch-day replay instead.
+ *
+ * An unapplied draft grants nothing. An applied alternative is a reviewed
+ * fact: the verifier accepts that body for that literal in every client, so
+ * review each pair. The packet holds ArenaNet code, so it stays in the
+ * private evidence store on the maintainer's Mac.
  */
 import { isDeepStrictEqual } from "node:util";
 import type { SemanticRole } from "../client/certification/enhancement-evidence-types.js";
@@ -455,7 +459,7 @@ export function formatReviewPacket(packet: ReviewPacket, id: string): string {
     `# Review packet ${id}`,
     "",
     `Candidate ${packet.candidateSha256}, judged with the generations older than it and compared with ${packet.previousSha256}.`,
-    "A draft grants nothing: approve it, write it with `pnpm certification review --apply`, and the verifier must still prove each feature.",
+    "An unapplied draft grants nothing. An applied alternative is a reviewed fact: the verifier accepts that body for that literal in every client, so review each pair before `pnpm certification review --apply`.",
     "",
   ];
   if (packet.features.length === 0) out.push("Every feature the previous client proves also proves on the candidate.", "");

@@ -273,11 +273,17 @@ binaries and cannot grant runtime authority.
   without the maintainer evidence store. Retained clients without a reviewed
   record, which includes every client before October 2026, are out of scope.
 - Review: `pnpm certification review` writes a local review packet for a
-  changed client (see [recertify.md](recertify.md#recover-a-relocation-rebuild)).
-  It drafts generation-file alternatives; it never grants authority. A
-  maintainer approves each one, a fact-only release ships it, and the verifier
-  still proves every feature from the bytes. There is no remote facts feed,
-  and the packet's ArenaNet code never leaves the maintainer's Mac.
+  changed client (see [recertify.md](recertify.md#recover-a-relocation-rebuild))
+  into its bundle in the evidence store. It covers template saving and every
+  Enhancement feature, and drafts generation-file alternatives and
+  player-effect bodies. The module stages (Cartography, native double-click,
+  friend observation) are reviewed through the patch-day replay instead. An
+  unapplied draft grants nothing. An applied alternative is a reviewed fact:
+  the verifier accepts that body for that literal in every client, so review
+  each pair. A fact-only release ships the approved facts, and the verifier
+  still proves every feature from the bytes with them. There is no remote
+  facts feed, and the packet's ArenaNet code never leaves the maintainer's
+  Mac.
 - Refusal: the official client stays playable and only the refusing feature
   and its declared dependants turn off. Automation opens one issue with one
   row per verdict: template saving, every Enhancement feature, native

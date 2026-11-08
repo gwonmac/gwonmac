@@ -12,8 +12,8 @@
  * a tracked file. They are manual developer tools; automation must never call
  * them or treat their output as launch authority. `template --write` refuses
  * every case but a new structurally derived build — including one already
- * certified. `review --apply` writes only the alternatives a maintainer
- * approved in a review packet.
+ * certified. `review --apply` writes only the alternatives and player-effect
+ * bodies a maintainer approved in a review packet.
  * It never touches `ENHANCEMENT_BUILDS`: those layout words are client-memory
  * addresses no structural anchor re-derives, so nothing may add them without a
  * person measuring them.

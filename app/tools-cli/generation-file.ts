@@ -9,6 +9,10 @@
  * place exactly. Before it writes, it checks that the draft is for the client
  * the generation's builds name and that every feature it names is one a review
  * judges, so the note comment holds only known words.
+ *
+ * An unapplied draft grants nothing. An applied alternative is a reviewed
+ * fact: the verifier accepts that body for that literal in every client, so
+ * review each pair before applying it.
  */
 import { fileURLToPath } from "node:url";
 import path from "node:path";
