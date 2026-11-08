@@ -10,7 +10,6 @@ import {
   uleb,
   type FunctionType,
 } from "../../main/core/wasm-binary.js";
-import { CARTOGRAPHY_LAYOUT_ROOTS, type CartographyLayoutId } from "../../shared/cartography-spike.js";
 import { call, f32Const, f32Load, globalGet, globalSet, i32Const, i32Load, localGet } from "./wasm-emit.js";
 
 // The Cartography tests import the shared name codec through this module.
@@ -32,10 +31,6 @@ const FRAME_LAYOUT = Object.freeze({
 export const COMPASS_CERTIFICATE = Object.freeze({
   ...FRAME_LAYOUT,
   labelHash: 3_268_554_015,
-  renderFunction: 14240,
-  renderBodySha256: "664c05367ef418fea33931d32dd7d6ff8b8469654453b0bb27cb7163c13e5492",
-  mapRenderFunction: 14179,
-  mapRenderBodySha256: "da8f05375c3989058277fe14200d57a9654bafdb1562cf215bff9b6130d2c678",
   mapRenderCallSiteOffset: 608,
   directionX: 0x00,
   directionY: 0x04,
@@ -44,11 +39,6 @@ export const COMPASS_CERTIFICATE = Object.freeze({
 export const MISSION_MAP_CERTIFICATE = Object.freeze({
   ...FRAME_LAYOUT,
   labelHash: 3_378_147_614,
-  eventDispatcherFunction: 16_136,
-  eventDispatcherBodySha256: "34712a34dc14537a423cedb253e07f1ed042edc3a989937bf51d47ca5e69e08f",
-  eventDispatcherTableSlot: 4_006,
-  gameplayContextFunction: 13_562,
-  gameplayContextBodySha256: "5628a0e15b94db0630b83ddf26824361a8f0a16f2015dffb58bf816da4cf959a",
   zoom: 0x4c,
   drawableWidth: 0x00,
   drawableHeight: 0x04,
@@ -65,9 +55,6 @@ export const MISSION_MAP_CERTIFICATE = Object.freeze({
 
 export const WORLD_MAP_CERTIFICATE = Object.freeze({
   ...FRAME_LAYOUT,
-  eventDispatcherFunction: 16_223,
-  eventDispatcherBodySha256: "8802b503fe9c637e4e7aee6381357e224f861d34081a1c9539dd919909f3a5e7",
-  eventDispatcherTableSlot: 4_152,
   ownerWindow: 0x08,
   ownerMap: 0x00,
   contextBytes: 0x224,
@@ -78,78 +65,6 @@ export const WORLD_MAP_CERTIFICATE = Object.freeze({
   topLeftY: 0x40,
   bottomRightX: 0x44,
   bottomRightY: 0x48,
-});
-
-// The current complete surface owners retain the native frame-field layouts.
-// Their callback slots come from the module's active table, not a slot delta.
-export const OCTOBER_COMPASS_CERTIFICATE = Object.freeze({
-  ...COMPASS_CERTIFICATE,
-  renderFunction: 14253,
-  renderBodySha256: "34ef07807120a3d28ca84b82553c51ed27e13145cdded2b2e6cae47cd8d66ae4",
-  mapRenderFunction: 14192,
-  mapRenderBodySha256: "7474e6aec1fed0244c9cb20d20b75dffa21ddf5f385e7ba63627561b736c2098",
-});
-export const OCTOBER_MISSION_MAP_CERTIFICATE = Object.freeze({
-  ...MISSION_MAP_CERTIFICATE,
-  eventDispatcherFunction: 16162,
-  eventDispatcherBodySha256: "683d70ac6bca6bd6284cff8fa8f1064874d5a663a6b334de5a53f5d56a1cea0f",
-  eventDispatcherTableSlot: 4020,
-  gameplayContextFunction: 13573,
-  gameplayContextBodySha256: "dd780c5268efe3915d0b925d6c587b7ba5bc5aef33789d58f70d483067a1309b",
-});
-export const OCTOBER_WORLD_MAP_CERTIFICATE = Object.freeze({
-  ...WORLD_MAP_CERTIFICATE,
-  eventDispatcherFunction: 16249,
-  eventDispatcherBodySha256: "4405773e239f4696393caf4af59abbb3f217581756ac4a6c6df5c82fc7d7bedb",
-  eventDispatcherTableSlot: 4166,
-});
-
-// October 22 renumbered these owners and their callees; bodies are otherwise
-// unchanged apart from moved static addresses.
-export const OCTOBER_22_COMPASS_CERTIFICATE = Object.freeze({
-  ...COMPASS_CERTIFICATE,
-  renderFunction: 14213,
-  renderBodySha256: "1082760d337d455ea976e2b6c9b99132e0e529417af2037e70ca08eeed819f0d",
-  mapRenderFunction: 14152,
-  mapRenderBodySha256: "9c5177d9ca50b7fe47f7ecf52a452e4eb793537066efd1110795dbd07b52bf26",
-});
-export const OCTOBER_22_MISSION_MAP_CERTIFICATE = Object.freeze({
-  ...MISSION_MAP_CERTIFICATE,
-  eventDispatcherFunction: 16123,
-  eventDispatcherBodySha256: "73c890f5440d0ee73e0b71408fc0b04cb728660f8d34e5c5cfbe2a94dd2b1667",
-  eventDispatcherTableSlot: 4004,
-  gameplayContextFunction: 13533,
-  gameplayContextBodySha256: "a7791775e7756465b85e9fde1f69dfdcfebc0004d3e9183421de2e1cb5f5e379",
-});
-export const OCTOBER_22_WORLD_MAP_CERTIFICATE = Object.freeze({
-  ...WORLD_MAP_CERTIFICATE,
-  eventDispatcherFunction: 16210,
-  eventDispatcherBodySha256: "3667feefe1f218d803112d8c3d2c3f7c60efdaba9694b80a0ed86fe1a849d646",
-  eventDispatcherTableSlot: 4150,
-});
-
-// November 3 renumbered the October 22 owners and their callees again;
-// bodies are otherwise unchanged apart from moved static addresses.
-export const NOVEMBER_3_COMPASS_CERTIFICATE = Object.freeze({
-  ...COMPASS_CERTIFICATE,
-  renderFunction: 14218,
-  renderBodySha256: "4e396c79daa5e7cda8b63cf8bdc22466e791bfeb7b3784749efbfed29a177321",
-  mapRenderFunction: 14157,
-  mapRenderBodySha256: "a8f76f3892254f91a364da37609373d80c436dc0eba5c20d91659ec253f6b331",
-});
-export const NOVEMBER_3_MISSION_MAP_CERTIFICATE = Object.freeze({
-  ...MISSION_MAP_CERTIFICATE,
-  eventDispatcherFunction: 16128,
-  eventDispatcherBodySha256: "95bd218acc4357157fda114932452986e9f43868ea8d3108c2921393b0962002",
-  eventDispatcherTableSlot: 4004,
-  gameplayContextFunction: 13538,
-  gameplayContextBodySha256: "ec7abc11398b79a64770a9594e58d7e934c300a844e29b35a52d0862acdbc770",
-});
-export const NOVEMBER_3_WORLD_MAP_CERTIFICATE = Object.freeze({
-  ...WORLD_MAP_CERTIFICATE,
-  eventDispatcherFunction: 16215,
-  eventDispatcherBodySha256: "583c263546baf00180e27fe15d08e79e2f37e9b2b84d65d64f017e2078901fd5",
-  eventDispatcherTableSlot: 4150,
 });
 
 export const EXPLORATION_CERTIFICATE = Object.freeze({
@@ -180,76 +95,6 @@ export const WORLD_MAP_ANCHOR_CERTIFICATE = Object.freeze({
   iconEndXDupe: 0x60,
   iconEndYDupe: 0x64,
 });
-
-/** A client's certificate: the reference fields, with per-client values. */
-type Certificate<T> = Readonly<{ [K in keyof T]: T[K] extends number ? number : string }>;
-type WorldMapCertificate = Certificate<typeof WORLD_MAP_CERTIFICATE>;
-
-export type CartographyMemoryLayout = Readonly<{
-  /** The id the derived client publishes; its roots come from CARTOGRAPHY_LAYOUT_ROOTS. */
-  layoutId: CartographyLayoutId;
-  compass: Certificate<typeof COMPASS_CERTIFICATE>;
-  missionMap: Certificate<typeof MISSION_MAP_CERTIFICATE>;
-  worldMap: WorldMapCertificate;
-  frameArray: number;
-  frameCount: number;
-  contextRoot: number;
-  areaInfo: number;
-  agentArray: number;
-}>;
-
-export const CARTOGRAPHY_MEMORY_LAYOUTS = Object.freeze({
-  official: Object.freeze({
-    layoutId: 1,
-    ...CARTOGRAPHY_LAYOUT_ROOTS[1],
-    compass: COMPASS_CERTIFICATE,
-    missionMap: MISSION_MAP_CERTIFICATE,
-    worldMap: WORLD_MAP_CERTIFICATE,
-    frameArray: 0x5a1fdc,
-    frameCount: 0x5a1fe4,
-    areaInfo: 0x1cc5c0,
-  }),
-  relocated: Object.freeze({
-    layoutId: 2,
-    ...CARTOGRAPHY_LAYOUT_ROOTS[2],
-    compass: COMPASS_CERTIFICATE,
-    missionMap: MISSION_MAP_CERTIFICATE,
-    worldMap: WORLD_MAP_CERTIFICATE,
-    frameArray: 0x5a3b1c,
-    frameCount: 0x5a3b24,
-    areaInfo: 0x1cc700,
-  }),
-  october: Object.freeze({
-    layoutId: 3,
-    ...CARTOGRAPHY_LAYOUT_ROOTS[3],
-    compass: OCTOBER_COMPASS_CERTIFICATE,
-    missionMap: OCTOBER_MISSION_MAP_CERTIFICATE,
-    worldMap: OCTOBER_WORLD_MAP_CERTIFICATE,
-    frameArray: 5923308,
-    frameCount: 5923316,
-    areaInfo: 1892352,
-  }),
-  october22: Object.freeze({
-    layoutId: 4,
-    ...CARTOGRAPHY_LAYOUT_ROOTS[4],
-    compass: OCTOBER_22_COMPASS_CERTIFICATE,
-    missionMap: OCTOBER_22_MISSION_MAP_CERTIFICATE,
-    worldMap: OCTOBER_22_WORLD_MAP_CERTIFICATE,
-    frameArray: 5923628,
-    frameCount: 5923636,
-    areaInfo: 1891136,
-  }),
-  november3: Object.freeze({
-    layoutId: 5,
-    ...CARTOGRAPHY_LAYOUT_ROOTS[5],
-    compass: NOVEMBER_3_COMPASS_CERTIFICATE,
-    missionMap: NOVEMBER_3_MISSION_MAP_CERTIFICATE,
-    worldMap: NOVEMBER_3_WORLD_MAP_CERTIFICATE,
-    frameArray: 5924028,
-    frameCount: 5924036,
-    areaInfo: 1891376,
-  }),
-} satisfies Readonly<Record<string, CartographyMemoryLayout>>);
 
 export function fail(message: string): never {
   throw new Error(`pathing spike transform: ${message}`);
@@ -283,7 +128,7 @@ export type CartographyContextCertificate = Readonly<{
   gameContextSlot: number;
   mapContext: number;
   mapId: number;
-  layoutId: CartographyLayoutId;
+  layoutId: number;
 }>;
 
 export type FrameGlobals = Readonly<{
@@ -354,11 +199,11 @@ export type WorldMapAnchorGlobals = Readonly<{
 
 type ExplorationCertificate = Readonly<
   Record<keyof typeof EXPLORATION_CERTIFICATE, number>
-  & Pick<CartographyMemoryLayout, "contextRoot">
+  & Readonly<{ contextRoot: number }>
 >;
 type WorldMapAnchorCertificate = Readonly<
   Record<keyof typeof WORLD_MAP_ANCHOR_CERTIFICATE, number>
-  & Pick<CartographyMemoryLayout, "contextRoot" | "areaInfo">
+  & Readonly<{ contextRoot: number; areaInfo: number }>
 >;
 
 type FrameCertificate = Readonly<{
@@ -575,7 +420,7 @@ export function missionMapEventWrapper(
   dispatcher: number,
   globals: MissionMapProjectionGlobals,
   pathingGeneration: number,
-  gameplayContextFunction = Number(MISSION_MAP_CERTIFICATE.gameplayContextFunction),
+  gameplayContextFunction: number,
 ): Uint8Array {
   const refuse = (status: number) => concat(
     i32Const(status), globalSet(globals.status), Uint8Array.of(0x0f),
@@ -654,8 +499,7 @@ export function worldMapEventWrapper(
   dispatcher: number,
   globals: WorldMapGlobals,
   areaEpoch: number,
-  certificate: WorldMapCertificate
-    & Pick<CartographyMemoryLayout, "frameArray" | "frameCount">,
+  certificate: typeof WORLD_MAP_CERTIFICATE & Readonly<{ frameArray: number; frameCount: number }>,
 ): Uint8Array {
   // The dispatcher carries events that do not all contain a usable World Map
   // context. Publish only a complete reading; a rejected event must not replace

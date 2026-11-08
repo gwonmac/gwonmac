@@ -1,9 +1,10 @@
 /** Fixed expectations for retained offline clients; these values grant no runtime authority. */
 import { createHash } from "node:crypto";
-import type { CartographyMemoryLayoutId } from "../../app/client/certification/pathing-spike-transform.js";
+import type { CartographyRoots } from "../../app/client/certification/cartography-layout-proof.js";
 
 type RetainedClient = Readonly<{
-  memoryLayout: CartographyMemoryLayoutId;
+  /** The roots the Cartography transform derives and publishes in its manifest. */
+  cartographyRoots: CartographyRoots;
   graphicsDevice: number;
   modelTypeOffset: number;
   underMouse: number;
@@ -25,7 +26,7 @@ type RetainedClient = Readonly<{
 }>;
 
 const AUGUST: RetainedClient = {
-  memoryLayout: "relocated",
+  cartographyRoots: { contextRoot: 0x5a29b0, agentArray: 0x5a6928 },
   graphicsDevice: 2734712, modelTypeOffset: 1341168, underMouse: 5911100,
   compassOwner: 15750, worldVisibilityOwner: 15919,
   missionDispatcher: 16136, missionTableSlot: 4006,
@@ -35,7 +36,7 @@ const AUGUST: RetainedClient = {
 };
 
 const OCTOBER_22: RetainedClient = {
-  memoryLayout: "october22",
+  cartographyRoots: { contextRoot: 5919152, agentArray: 5935416 },
   graphicsDevice: 2744952, modelTypeOffset: 1341088, underMouse: 5921340,
   compassOwner: 15736, worldVisibilityOwner: 15905,
   missionDispatcher: 16123, missionTableSlot: 4004,
@@ -79,7 +80,7 @@ const NOVEMBER_3_ADDRESSES: Readonly<Record<number, number>> = {
 };
 
 const NOVEMBER_3: RetainedClient = {
-  memoryLayout: "november3",
+  cartographyRoots: { contextRoot: 5919552, agentArray: 5935816 },
   graphicsDevice: 2745352, modelTypeOffset: 1341088, underMouse: 5921740,
   compassOwner: 15741, worldVisibilityOwner: 15910,
   missionDispatcher: 16128, missionTableSlot: 4004,
@@ -96,7 +97,7 @@ const NOVEMBER_3: RetainedClient = {
 
 const CLIENTS: Readonly<Record<string, RetainedClient>> = {
   "266b5a8aa88fe6440b10737d3eda27f4ceae2401d51d263debc0bca5c2075d87": {
-    memoryLayout: "october",
+    cartographyRoots: { contextRoot: 5918848, agentArray: 5935096 },
     graphicsDevice: 2744648, modelTypeOffset: 1341088, underMouse: 5921036,
     compassOwner: 15775, worldVisibilityOwner: 15944,
     missionDispatcher: 16162, missionTableSlot: 4020,

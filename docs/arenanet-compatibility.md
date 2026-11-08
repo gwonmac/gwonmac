@@ -196,11 +196,14 @@ locator already meets the final relocation-resistant bar. At verifier ABI 10:
     An owner whose body really changed still needs a new family;
   - pathing families bind function indices. Nothing in production consumes
     that shape proof, so it does not decide any feature on patch day;
-  - a Cartography layout's context root and agent array live in
-    `CARTOGRAPHY_LAYOUT_ROOTS` (`app/shared/cartography-spike.ts`), keyed by
-    the layout id the derived client publishes. The reachability kernel
-    receives them at install, so a new layout no longer changes the kernel,
-    but it still needs a new id and roots there, so a release;
+  - the Cartography layout is derived from the bytes: the roots come from the
+    play-region, observation and pre-game proofs, each surface owner is the
+    one function whose body a review accepted (exactly, or by relocation
+    identity on a relink), and each callback slot comes from the active table.
+    The derived client publishes its context root and agent array in its
+    manifest, and the kernel installs them from there. The process boundary
+    checks only the roots' shape; the transform derives them again and refuses
+    others. A surface owner whose body really changed still needs a review;
   - a friend lifecycle family whose role bodies changed needs a review. The
     renderer pins `FRIEND_OBSERVER_SEMANTIC_SHA256`, which covers only what
     the certificate means (role names, signatures and the checked relations),

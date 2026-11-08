@@ -20,7 +20,7 @@ import type { ResignChatPath } from "./enhancement-resign-proof.js";
 import type { WhisperPath } from "./enhancement-whisper-proof.js";
 import type { NativeRenderFamily } from "./native-render-reference.js";
 import type { PathingFamily } from "./pathing-spike-proof.js";
-import type { CartographyMemoryLayoutId } from "./pathing-spike-transform.js";
+import type { CartographySurfaces } from "./cartography-layout-proof.js";
 import type { FriendLifecycleRoleFamily } from "./friend-lifecycle-evidence.js";
 import type { GuildHallAreaTypeFamily } from "./enhancement-local-actions-proof.js";
 import { AUGUST_FACTS } from "./reviewed-client-2026-08-build-1eb07e32.js";
@@ -72,8 +72,8 @@ export type GenerationFacts = Readonly<{
   whisperPaths?: readonly WhisperPath[];
   nativeRenderFamilies?: readonly NativeRenderFamily[];
   pathingFamilies?: readonly PathingFamily[];
-  /** Cartography memory layouts (kernel layout ids) this client's review accepted. */
-  cartographyLayouts?: readonly CartographyMemoryLayoutId[];
+  /** Cartography surface owners this client's review accepted. */
+  cartographySurfaces?: readonly CartographySurfaces[];
   friendLifecycleRoles?: readonly FriendLifecycleRoleFamily[];
   guildHallAreaTypeFamilies?: readonly GuildHallAreaTypeFamily[];
   /** Template-saving helper bodies, keyed by `<role>@<call offset>` or `helper:<name>`. */

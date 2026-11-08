@@ -32,7 +32,7 @@ test("the certified context is added without intercepting native pathing", {
   const before = official.slice();
   const build = deriveCartographySpikeBuild(official);
   assert.ok(build, "the current client must prove its Cartography layout");
-  const transformed = transformCartographySpikeWasm(official, build.memoryLayout);
+  const transformed = transformCartographySpikeWasm(official, build);
   assert.equal(sha256(transformed), build.outputSha256);
   assert.deepEqual(official, before, "the predecessor module was mutated");
 

@@ -5,10 +5,17 @@ import {
   CARTOGRAPHY_REACHABILITY_REGION_BYTES,
   cartographyReachabilitySignatureBytes,
 } from "../../app/shared/cartography-reachability-kernel-contract.js";
-import {
-  CARTOGRAPHY_MEMORY_LAYOUTS,
-  type CartographyMemoryLayout,
-} from "../../app/client/certification/cartography-transform-internals.js";
+
+// The roots each retained client's manifest publishes; a derived client's
+// layout id is its context root.
+type Layout = Readonly<{ layoutId: number; contextRoot: number; agentArray: number }>;
+const retained = (contextRoot: number, agentArray: number): Layout =>
+  Object.freeze({ layoutId: contextRoot, contextRoot, agentArray });
+const OFFICIAL = retained(0x5a0e70, 0x5a4de8);
+const RELOCATED = retained(0x5a29b0, 0x5a6928);
+const LAYOUTS = [
+  OFFICIAL, RELOCATED, retained(5918848, 5935096), retained(5919152, 5935416), retained(5919552, 5935816),
+];
 
 const A = Object.freeze({
   contexts: 0x10_000,
@@ -91,7 +98,7 @@ function trap(
 }
 
 async function createKernel(
-  layout: CartographyMemoryLayout = CARTOGRAPHY_MEMORY_LAYOUTS.official,
+  layout: Layout = OFFICIAL,
   { installed = true }: { installed?: boolean } = {},
 ): Promise<Kernel> {
   const { layoutId } = layout;
@@ -251,8 +258,8 @@ function addTravelDoorway(kernel: Kernel, fileId = 0xa825): void {
 
 describe("Cartography reachability kernel", () => {
   it("installs one layout's roots once and reads only through them", async () => {
-    const { layoutId, contextRoot, agentArray } = CARTOGRAPHY_MEMORY_LAYOUTS.official;
-    const kernel = await createKernel(CARTOGRAPHY_MEMORY_LAYOUTS.official, { installed: false });
+    const { layoutId, contextRoot, agentArray } = OFFICIAL;
+    const kernel = await createKernel(OFFICIAL, { installed: false });
     assert.equal(kernel.classify(), 6, "no read before install");
     for (const [label, args] of [
       ["zero layout id", [0, contextRoot, agentArray]],
@@ -265,7 +272,7 @@ describe("Cartography reachability kernel", () => {
     ] as const) assert.equal(kernel.install(args[0], args[1], args[2]), 0, label);
     assert.equal(kernel.install(layoutId, contextRoot, agentArray), 1);
     assert.equal(kernel.classify(), 1);
-    const relocated = CARTOGRAPHY_MEMORY_LAYOUTS.relocated;
+    const relocated = RELOCATED;
     assert.equal(kernel.install(layoutId, contextRoot, agentArray), 0, "second install");
     assert.equal(kernel.install(relocated.layoutId, relocated.contextRoot, relocated.agentArray), 0);
     assert.equal(kernel.classifyLayout(relocated.layoutId), 6, "another layout id");
@@ -299,7 +306,7 @@ describe("Cartography reachability kernel", () => {
     assert.equal(kernel.view.getUint32(A.region + 36, true), 512);
   });
 
-  for (const layout of Object.values(CARTOGRAPHY_MEMORY_LAYOUTS)) it(`layout ${layout.layoutId} includes connected ground and excludes disconnected ground`, async () => {
+  for (const layout of LAYOUTS) it(`layout ${layout.layoutId} includes connected ground and excludes disconnected ground`, async () => {
     const kernel = await createKernel(layout);
     assert.equal(kernel.classify(), 1);
     const header = new DataView(kernel.memory.buffer, A.region, 72);

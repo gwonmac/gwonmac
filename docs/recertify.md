@@ -311,16 +311,15 @@ A new client can need all of these:
   Tools record in its generation file;
 - in its generation file's `facts`: alternatives, template-saving helper
   bodies, resign and whisper chat paths, the native render family, pathing
-  families, the Guild Hall area-type family, the accepted Cartography layout,
+  families, the Guild Hall area-type family, the Cartography surface owners
+  (only when one's body really changed; a relink finds them by identity),
   and the friend lifecycle family (it changes
   `FRIEND_OBSERVER_SEMANTIC_SHA256` only when a role's signature changes);
-- a Cartography memory layout with its Compass, Mission Map, and World Map
-  certificates, the World Map display owner in
-  `cartography-transform-internals.ts`, and its context root and agent array in
-  `CARTOGRAPHY_LAYOUT_ROOTS` (`app/shared/cartography-spike.ts`). The
-  reachability kernel receives those roots at install, so a new layout does
-  not change the kernel. Its integration test runs the compiled kernel for
-  every layout in `CARTOGRAPHY_MEMORY_LAYOUTS`;
+- nothing for the Cartography memory layout: the verifier derives its roots,
+  surface owners and callback slots from the bytes, and the derived client
+  publishes the roots the reachability kernel installs. Add the new client's
+  roots to `tests/fixtures/retained-client.ts` and the kernel's integration
+  test;
 - `tests/fixtures/retained-client.ts`, which maps retained function indices and
   static addresses for the real-client tests; and
 - `tests/fixtures/native-friend-queue.ts`, which lists the friend queue roles

@@ -20,8 +20,6 @@ import {
   LOCAL_FEATURE_INVARIANTS,
   LOCAL_VERIFICATION_REASONS,
 } from "../app/client/certification/local-client-verification-contract.js";
-import { CARTOGRAPHY_MEMORY_LAYOUTS } from
-  "../app/client/certification/cartography-transform-internals.js";
 import { SEMANTIC_VERIFIER_ABI } from
   "../app/client/certification/semantic-proof.js";
 import { isDigest } from "../app/shared/digest.js";
@@ -346,18 +344,10 @@ function cartographyEvidence(value: JsonRecord): JsonRecord {
       && !isEnhancementCapabilityProfile(profile)) {
       throw new Error("Cartography chain profile is not closed");
     }
-    const memoryLayout = string(
-      chain.memoryLayout,
-      `cartography.chains[${index}].memoryLayout`,
-    );
-    if (!Object.hasOwn(CARTOGRAPHY_MEMORY_LAYOUTS, memoryLayout)) {
-      throw new Error("Cartography memory layout is not closed");
-    }
     return Object.freeze({
       profile,
       inputSha256: digest(chain.inputSha256, "Cartography chain input"),
       outputSha256: digest(chain.outputSha256, "Cartography chain output"),
-      memoryLayout,
     });
   });
   if (new Set(chains.map(({ profile }) => profile)).size !== chains.length

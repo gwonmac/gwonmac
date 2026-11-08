@@ -88,6 +88,7 @@ test("failed Maps constructors release earlier native surfaces and detached pain
       }};
       // Deliberately incomplete DOM peer: construction fails before any game observation.
       await assert.rejects(installCartography({exports,
+        module: new WebAssembly.Module(Uint8Array.of(0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00)),
         parent: {ownerDocument: document} as unknown as HTMLElement, canvas: {} as HTMLCanvasElement,
         settings: () => { throw new Error("must not read settings"); },
         persist: async () => { throw new Error("must not save"); },

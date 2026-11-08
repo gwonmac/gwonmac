@@ -67,7 +67,10 @@ export async function prepareCartographySpike(
       wasmPath: await prepareDerivedWasm(
         wasmPath,
         cache,
-        (input) => transformCartographySpikeWasm(input, build.memoryLayout),
+        (input) => transformCartographySpikeWasm(input, {
+          contextRoot: build.contextRoot,
+          agentArray: build.agentArray,
+        }),
       ),
       wasmSha256: build.outputSha256,
     });

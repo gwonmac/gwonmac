@@ -891,10 +891,14 @@ const IDENTITIES: Readonly<Record<string, readonly string[]>> = Object.freeze({
     ["5209f3b6992c4cbbaea4c5440acfc63a39ed814e7844cc23bfd17639688a1657"],
   "4d3d76ce224db9ada9ffdf70b31e5d2fdc0b16e6e2ab2bad9f2a1d98600690c2":
     ["1c17a82e0f0ea622646fb812d17b689891b5ab959f3c114704b2edda11685356"],
+  "4e396c79daa5e7cda8b63cf8bdc22466e791bfeb7b3784749efbfed29a177321":
+    ["41b329f3d01e85baeeb28259af86deac2e0e800d8b1842c6105a5da7fd324812"],
   "4f5e46e89797a30c4270945ae2f5dbb0e601035a702523946e7603c995fc06cc":
     ["da15d36e7a5524d573f3b0fbc5abdce52c728c11a53dadb11044bb4801442f66"],
   "57974d4547c2931412c686c03ed73810688a1608b290e47fff10a717eaf6a87d":
     ["9c7c017d15e3ff2604f79676cd5250074283d6a25d07d434d4a336556af5e3bc"],
+  "583c263546baf00180e27fe15d08e79e2f37e9b2b84d65d64f017e2078901fd5":
+    ["f6e560c11c6c9c8de4eb24c0088e6efc9d0b972060caabf19a82ed62d113ad06"],
   "591a0df00c5b820fdba23ee622c2ead65cf27be2942bedf891c328f1b20c84f3":
     ["b9b44fa3ff0c3023555e9ccae5964a86e3a1bf44c882149e9f3e44af4aa7411b"],
   "5caccbd29c47d0b4b21773363d1ae25a5677d6a4a249d5dfdee580958c834e6b":
@@ -929,6 +933,8 @@ const IDENTITIES: Readonly<Record<string, readonly string[]>> = Object.freeze({
     ["7684f1ef3d5cdc3d6bb51369289352b315e1fb5b3049880818ae595fe5b060bc"],
   "a032a1d123be8dea68f425b063665c5bbfe56957de88214572fc3fcfc94b3b81":
     ["d438e020b37d029c98182336542074d09c6486f7875cae4598fc70ede2e69a80"],
+  "a8f76f3892254f91a364da37609373d80c436dc0eba5c20d91659ec253f6b331":
+    ["567edc769fa3812bcda6fc82531f1afda5dcfbe6ee993a5d8d33c9e39263cd9b"],
   "ab81c2000b9f41b99819c0ee2aaed8d993d23ffb2f096452d394de4393c13822":
     ["b18e69ded07b67e39ddedb75cfbdb43651e9e8de473f7b71498d847cb497ae92"],
   "adbba34c96c4a33047dbac1fa875c6d5af740ad26bc969517576134676f18b6e":
@@ -967,6 +973,8 @@ const IDENTITIES: Readonly<Record<string, readonly string[]>> = Object.freeze({
     ["7678af8aeaf2cf29c8721eeffd6698621fc400e0698455888ec4e7fb2a3daa85"],
   "ea76feee7b569ef8efb821578b9daa35596f90a8ed002acc77b93df62440d0fe":
     ["fcc6f1cbde9e050fc6cda5c5173f032b52ed8be03cb05aa5fb21026c40b5d573"],
+  "ec7abc11398b79a64770a9594e58d7e934c300a844e29b35a52d0862acdbc770":
+    ["700fe638f86f05d1b0217a41be746bc71699e2f2419fe9571bd05d95fa079694"],
   "ece875d8de34f7d77a9d1c81ad17604c0318424fce3650e9aeeec8d842f632ac":
     ["dda2994518aed06fbe0679c0f2aa2892c7d4151e4f91ece96c849ffc0b6d44ec"],
   "f23e956b8fcb72a5a05877690c69bed18e42bd358590433f5f182701b226f044":
@@ -1085,7 +1093,15 @@ const FACTS: GenerationFacts = Object.freeze<GenerationFacts>({
       builder: "0f1dfd8047975dd5e605a27fef529729a4b2f1dde78153897a79ad4fa8fcad2a",
     }],
   }]),
-  cartographyLayouts: Object.freeze(["november3"] as const),
+  // November 3 renumbered the Cartography surface owners again. A relink of
+  // the October 22 owners would derive them by identity without this entry.
+  cartographySurfaces: Object.freeze([Object.freeze({
+    compassRender: [14218, "4e396c79daa5e7cda8b63cf8bdc22466e791bfeb7b3784749efbfed29a177321"],
+    compassMapRender: [14157, "a8f76f3892254f91a364da37609373d80c436dc0eba5c20d91659ec253f6b331"],
+    missionMapDispatcher: [16128, "95bd218acc4357157fda114932452986e9f43868ea8d3108c2921393b0962002"],
+    missionMapGameplayContext: [13538, "ec7abc11398b79a64770a9594e58d7e934c300a844e29b35a52d0862acdbc770"],
+    worldMapDispatcher: [16215, "583c263546baf00180e27fe15d08e79e2f37e9b2b84d65d64f017e2078901fd5"],
+  } as const)]),
   friendLifecycleRoles: Object.freeze([Object.freeze({
     // Callees and static state moved again; the connection event and logout
     // handlers assert with GcAuthCmd.cpp source lines that moved by seven.

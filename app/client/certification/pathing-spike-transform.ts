@@ -1,14 +1,17 @@
 /**
  * Certified Cartography client transform.
  *
- * This transform publishes only bounded scalar observations. It never reads,
- * retains, or exports a native pathing graph; the sealed Rust kernel is the
- * sole owner of that job. Every observer is stamped with one area epoch from
+ * This transform publishes only bounded scalar observations, plus a manifest
+ * naming the two roots the sealed Rust kernel reads. It never reads, retains,
+ * or exports a native pathing graph; the kernel is the sole owner of that job. Every observer is stamped with one area epoch from
  * the certified context observer, so consumers can assemble an atomic model.
  */
+import { createHash } from "node:crypto";
 import {
   CARTOGRAPHY_CONTEXT_GLOBALS,
   CARTOGRAPHY_CONTEXT_SCALARS,
+  CARTOGRAPHY_MANIFEST_SECTION,
+  CARTOGRAPHY_SPIKE_TRANSFORM_ABI,
   COMPASS_FRAME_SPIKE_GLOBALS,
   COMPASS_FRAME_SPIKE_SCALARS,
   EXPLORATION_SPIKE_GLOBALS,
@@ -40,12 +43,15 @@ import {
 } from "../../main/core/wasm-binary.js";
 import { appendNativeMapGraphics } from "./native-map-graphics-transform.js";
 import { appendNativeCompassTerrain } from "./native-compass-terrain-transform.js";
-import { functionBodySha256, wasmEvidence } from "./wasm-evidence.js";
+import { deriveCartographyLayout, type CartographyRoots } from "./cartography-layout-proof.js";
+import { wasmEvidence } from "./wasm-evidence.js";
 import { worldMapDisplayStateAddress } from "./world-map-visibility-proof.js";
 import { encodeName } from "./wasm-emit.js";
 import {
-  CARTOGRAPHY_MEMORY_LAYOUTS,
+  COMPASS_CERTIFICATE,
   EXPLORATION_CERTIFICATE,
+  MISSION_MAP_CERTIFICATE,
+  WORLD_MAP_CERTIFICATE,
   WORLD_MAP_ANCHOR_CERTIFICATE,
   cartographyContextObserver,
   compassMapRenderWrapper,
@@ -60,7 +66,6 @@ import {
   worldMapEventWrapper,
   worldMapVisibilityObserver,
   type CartographyContextGlobals,
-  type CartographyMemoryLayout,
   type CompassGlobals,
   type ExplorationGlobals,
   type FrameGlobals,
@@ -74,8 +79,7 @@ declare const WebAssembly: {
   Module: new (bytes: Uint8Array) => object;
 };
 
-export const CARTOGRAPHY_SPIKE_TRANSFORM_ABI = 47;
-export type CartographyMemoryLayoutId = keyof typeof CARTOGRAPHY_MEMORY_LAYOUTS;
+export { CARTOGRAPHY_SPIKE_TRANSFORM_ABI };
 
 const mutableI32 = () => Uint8Array.of(0x7f, 0x01, 0x41, 0x00, 0x0b);
 const mutableF32 = () => Uint8Array.of(0x7d, 0x01, 0x43, 0, 0, 0, 0, 0x0b);
@@ -208,12 +212,50 @@ function globalsFor(
   });
 }
 
+/**
+ * The manifest names the roots the reachability kernel reads. They are the
+ * roots this transform derived from `input`, which equal the accepted ones.
+ */
+function manifest(input: Uint8Array, roots: CartographyRoots): Section {
+  const value = new TextEncoder().encode(JSON.stringify({
+    transformAbi: CARTOGRAPHY_SPIKE_TRANSFORM_ABI,
+    inputSha256: createHash("sha256").update(input).digest("hex"),
+    contextRoot: roots.contextRoot,
+    agentArray: roots.agentArray,
+  }));
+  return { id: 0, body: concat(encodeName(CARTOGRAPHY_MANIFEST_SECTION), value) };
+}
+
+/**
+ * Rewrites `input` with the Cartography observers. The roots arrive across a
+ * process boundary that checks only their shape, so the transform derives the
+ * layout from the bytes again and refuses roots that differ from it.
+ */
 export function transformCartographySpikeWasm(
   input: Uint8Array,
-  memoryLayoutId: CartographyMemoryLayoutId,
+  accepted: CartographyRoots,
 ): Uint8Array {
-  const memoryLayout: CartographyMemoryLayout = CARTOGRAPHY_MEMORY_LAYOUTS[memoryLayoutId];
-  const { compass: nativeCompass, missionMap: nativeMission, worldMap: nativeWorld, layoutId } = memoryLayout;
+  const memoryLayout = deriveCartographyLayout(input) ?? fail("Cartography layout is not proved");
+  if (memoryLayout.contextRoot !== accepted.contextRoot || memoryLayout.agentArray !== accepted.agentArray) {
+    fail("Cartography roots changed");
+  }
+  const owners = memoryLayout.surfaces;
+  const nativeCompass = Object.freeze({
+    ...COMPASS_CERTIFICATE,
+    renderFunction: owners.compassRender,
+    mapRenderFunction: owners.compassMapRender,
+  });
+  const nativeMission = Object.freeze({
+    ...MISSION_MAP_CERTIFICATE,
+    eventDispatcherFunction: owners.missionMapDispatcher,
+    eventDispatcherTableSlot: memoryLayout.missionMapDispatcherSlot,
+    gameplayContextFunction: owners.missionMapGameplayContext,
+  });
+  const nativeWorld = Object.freeze({
+    ...WORLD_MAP_CERTIFICATE,
+    eventDispatcherFunction: owners.worldMapDispatcher,
+    eventDispatcherTableSlot: memoryLayout.worldMapDispatcherSlot,
+  });
   const compassCertificate = Object.freeze({
     ...nativeCompass,
     frameArray: memoryLayout.frameArray,
@@ -243,24 +285,12 @@ export function transformCartographySpikeWasm(
     gameContextSlot: WORLD_MAP_ANCHOR_CERTIFICATE.gameContextSlot,
     mapContext: WORLD_MAP_ANCHOR_CERTIFICATE.mapContext,
     mapId: WORLD_MAP_ANCHOR_CERTIFICATE.mapId,
-    layoutId,
+    layoutId: memoryLayout.contextRoot,
   });
   const evidence = wasmEvidence(input) ?? fail("invalid WebAssembly input");
   const module = evidence.moduleView();
   const worldMapDisplayState = worldMapDisplayStateAddress(evidence)
     ?? fail("World Map display-state certificate changed");
-  if (
-    functionBodySha256(module, nativeCompass.renderFunction)
-      !== nativeCompass.renderBodySha256
-    || functionBodySha256(module, nativeCompass.mapRenderFunction)
-      !== nativeCompass.mapRenderBodySha256
-    || functionBodySha256(module, nativeMission.eventDispatcherFunction)
-      !== nativeMission.eventDispatcherBodySha256
-    || functionBodySha256(module, nativeMission.gameplayContextFunction)
-      !== nativeMission.gameplayContextBodySha256
-    || functionBodySha256(module, nativeWorld.eventDispatcherFunction)
-      !== nativeWorld.eventDispatcherBodySha256
-  ) fail("Cartography surface certificate changed");
 
   const sections = splitSections(input);
   const types = parseTypes(sectionById(sections, 1));
@@ -474,7 +504,10 @@ export function transformCartographySpikeWasm(
     if (section.id === 10) return { id: 10, body: encodeCode(nextBodies) };
     return section;
   });
-  const output = appendNativeMapGraphics(appendNativeCompassTerrain(concat(WASM_HEADER, ...rewritten.map(encodeSection))));
+  const output = concat(
+    appendNativeMapGraphics(appendNativeCompassTerrain(concat(WASM_HEADER, ...rewritten.map(encodeSection)))),
+    encodeSection(manifest(input, memoryLayout)),
+  );
   if (!WebAssembly.validate(output)) {
     try {
       new WebAssembly.Module(output);

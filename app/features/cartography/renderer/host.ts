@@ -4,7 +4,8 @@
  *
  * Maps is not a companion part: its certified hooks come with every Tools
  * launch (the separate cartography stage), whether or not a companion manifest
- * is certified, so it installs straight from the instantiated exports.
+ * is certified, so it installs straight from the instantiated exports and the
+ * module's Cartography manifest.
  */
 import type { AppSettings, ToolsGwNativeApi } from "../../../shared/contracts.js";
 import { featureActivationRequested } from "../../../shared/feature-contracts.js";
@@ -20,6 +21,7 @@ export type CartographyHost = Readonly<{
 
 export function installCartographyHost(options: Readonly<{
   exports: WebAssembly.Exports;
+  module: WebAssembly.Module;
   parent: HTMLElement;
   canvas: HTMLCanvasElement;
   api: Pick<ToolsGwNativeApi, "cartography" | "settings">;
@@ -37,6 +39,7 @@ export function installCartographyHost(options: Readonly<{
     const { installCartography } = await import("./cartography-installation.js");
     return installCartography({
       exports: options.exports,
+      module: options.module,
       parent: options.parent,
       canvas: options.canvas,
       settings,

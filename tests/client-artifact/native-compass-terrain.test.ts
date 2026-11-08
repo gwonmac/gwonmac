@@ -13,7 +13,7 @@ test("native terrain owns bounded resources, follows its Canvas and refuses inva
   assert.ok(process.env.GW_CLIENT_WASM);
   const input = new Uint8Array(await readFile(process.env.GW_CLIENT_WASM));
   const fixture = retainedClientFixture(input);
-  const output = transformCartographySpikeWasm(input, fixture.memoryLayout);
+  const output = transformCartographySpikeWasm(input, fixture.cartographyRoots);
   // Handlers are written against August indices; the fixture moves them.
   const clientImports = (handlers: Record<number, (...args: number[]) => unknown>): WebAssembly.ModuleImports =>
     Object.fromEntries(Object.entries(handlers).map(([index, handler]) =>
@@ -217,7 +217,7 @@ test("changed native cache invalidation refuses Compass drawing while maps remai
   bodies[local] = concat(original.slice(0, -1), Uint8Array.of(0x01, 0x0b));
   const changed = concat(WASM_HEADER, ...sections.map((section) => encodeSection(section.id === 10
     ? {id: 10, body: encodeCode(bodies)} : section)));
-  const output = transformCartographySpikeWasm(changed, fixture.memoryLayout);
+  const output = transformCartographySpikeWasm(changed, fixture.cartographyRoots);
   assert.ok(WebAssembly.validate(Uint8Array.from(output)));
   const exported = parseExports(sectionById(splitSections(output), 7));
   assert.equal(exported.some(entry => entry.name.startsWith("gwonmac_compass_terrain_")), false);
