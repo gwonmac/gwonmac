@@ -2,9 +2,13 @@
  * Defines the exact executable boundary for the private Cartography reachability module.
  * Changes to memory, imports, exports, or function types must update this one contract.
  */
-export const CARTOGRAPHY_REACHABILITY_ABI = 4;
+export const CARTOGRAPHY_REACHABILITY_ABI = 5;
 export const CARTOGRAPHY_REACHABILITY_MAX_CELLS = 131_072;
 export const CARTOGRAPHY_REACHABILITY_REGION_BYTES = 584_776;
+/** The separate region a route search writes; the host allocates it on the first route. */
+export const CARTOGRAPHY_REACHABILITY_ROUTE_BYTES = 1_698_880;
+/** The most trapezoids one route crosses. */
+export const CARTOGRAPHY_REACHABILITY_ROUTE_MAX_STEPS = 4_096;
 export const CARTOGRAPHY_REACHABILITY_RUNTIME_BYTES = 65_536;
 export const CARTOGRAPHY_REACHABILITY_RUNTIME_ALIGN = 16;
 
@@ -20,6 +24,8 @@ export const CARTOGRAPHY_REACHABILITY_SIGNATURES = Object.freeze([
   { name: "cartography_reachability_abi", typeIndex: 1 },
   { name: "cartography_reachability_region_bytes", typeIndex: 1 },
   { name: "cartography_reachability_install", typeIndex: 2 },
+  { name: "cartography_reachability_route", typeIndex: 3 },
+  { name: "cartography_reachability_route_bytes", typeIndex: 1 },
 ]);
 
 export const CARTOGRAPHY_REACHABILITY_EXPORTS = Object.freeze(
@@ -69,6 +75,7 @@ export function cartographyReachabilitySignatureBytes(): Uint8Array<ArrayBuffer>
     ]),
     functionType([]),
     functionType([0x7f, 0x7f, 0x7f]),
+    functionType([0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7f, 0x7d, 0x7d]),
   ];
   const typeSection = [...uleb(types.length), ...types.flat()];
   const importSection = [

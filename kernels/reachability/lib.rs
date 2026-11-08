@@ -7,6 +7,10 @@
 //! publishes only a fixed cell bitset. No native pointer or graph record
 //! crosses back into JavaScript.
 //!
+//! A route search shares the flood's neighbour rule: it answers the trapezoids
+//! from the player to one target point, with the edge each step crosses, in its
+//! own host-owned region, so it never disturbs the cached reachable component.
+//!
 //! The bounded graph flood, paired-portal traversal, blocked-plane rule, and
 //! travel-doorway test are ported from GWToolbox++ Pathing.cpp and
 //! CartographerWidget.cpp at baaaf0de574b02008baa57a574625a99009cd5ac
@@ -18,7 +22,7 @@
 use core::panic::PanicInfo;
 use core::ptr::{read_volatile, write_volatile};
 
-const ABI: u32 = 4;
+const ABI: u32 = 5;
 const MAGIC: u32 = 0x5257_4347; // GCWR
 const STATUS_READY: u32 = 1;
 const STATUS_INVALID_INPUT: u32 = 2;
@@ -55,6 +59,27 @@ const VISUAL_WORDS: u32 = MAX_VISUAL_RASTER_CELLS / 32;
 const REACHABLE_CELL_BITS: u32 = VISUAL_BITS;
 const NAVMESH_CELL_BITS: u32 = REACHABLE_CELL_BITS + CELL_WORDS * 4;
 const REGION_BYTES: u32 = VISUAL_BITS + VISUAL_WORDS * 4;
+
+// The route region: a header, the steps out, then the search's own scratch.
+const ROUTE_MAGIC: u32 = 0x5452_4347; // GCRT
+const ROUTE_HEADER_BYTES: u32 = 64;
+const MAX_ROUTE_STEPS: u32 = 4_096;
+// Per step: the trapezoid's centre, then the edge entered through (x0, y0, x1, y1).
+const ROUTE_STEP_BYTES: u32 = 24;
+const ROUTE_STEPS: u32 = ROUTE_HEADER_BYTES;
+const ROUTE_COSTS: u32 = ROUTE_STEPS + MAX_ROUTE_STEPS * ROUTE_STEP_BYTES;
+const ROUTE_PARENTS: u32 = ROUTE_COSTS + MAX_TRAPS * 4;
+const ROUTE_SEEN: u32 = ROUTE_PARENTS + MAX_TRAPS * 4;
+const ROUTE_CLOSED: u32 = ROUTE_SEEN + VISITED_WORDS * 4;
+const ROUTE_GOALS: u32 = ROUTE_CLOSED + VISITED_WORDS * 4;
+const ROUTE_DOORWAYS: u32 = ROUTE_GOALS + VISITED_WORDS * 4;
+const ROUTE_HEAP: u32 = ROUTE_DOORWAYS + MAX_DOORWAYS * DOORWAY_BYTES;
+// A* keeps stale heap entries instead of reordering them, so allow two per trapezoid.
+const MAX_ROUTE_HEAP: u32 = 2 * MAX_TRAPS;
+const ROUTE_BYTES: u32 = ROUTE_HEAP + MAX_ROUTE_HEAP * 8;
+const NO_PARENT: u32 = u32::MAX;
+// Adjacent trapezoid edges meet within float noise of each other.
+const EDGE_EPSILON: f32 = 1.0;
 
 const GAME_CONTEXT_SLOT: u32 = 6;
 const MAP_CONTEXT: u32 = 0x14;
@@ -449,7 +474,9 @@ fn travel_model(value: u32) -> bool {
     matches!(value, 0x4e6b2 | 0x3c5ac | 0xa825 | 0xe723 | 0x858b | 0x28da0 | 0x1c533 | 0x5e77a)
 }
 
-unsafe fn build_doorways(region: u32, context: Context) -> Result<u32, u32> {
+/// Writes the travel doorways the player is not standing in at `base`, one
+/// (x, y, radius²) record each, and returns how many it wrote.
+unsafe fn build_doorways(base: u32, context: Context) -> Result<u32, u32> {
     let Some(props_context) = (unsafe {
         pointer_at(add(context.map_context, PROPS_CONTEXT).ok_or(STATUS_UNAVAILABLE)?, 0x1a0)
     }) else {
@@ -496,7 +523,7 @@ unsafe fn build_doorways(region: u32, context: Context) -> Result<u32, u32> {
         if player_dx * player_dx + player_dy * player_dy < radius_sq {
             continue;
         }
-        let doorway = add(region, DOORWAYS + written * DOORWAY_BYTES).ok_or(STATUS_LIMIT)?;
+        let doorway = add(base, written * DOORWAY_BYTES).ok_or(STATUS_LIMIT)?;
         unsafe {
             write_volatile(doorway as *mut f32, x);
             write_volatile(add(doorway, 4).ok_or(STATUS_LIMIT)? as *mut f32, y);
@@ -512,12 +539,12 @@ unsafe fn centre(trap: u32) -> Option<(f32, f32)> {
     Some(((xtl + xtr + xbl + xbr) * 0.25, (yt + yb) * 0.5))
 }
 
-unsafe fn crosses_doorway(region: u32, count: u32, from: (f32, f32), to: (f32, f32)) -> bool {
+unsafe fn crosses_doorway(doorways: u32, count: u32, from: (f32, f32), to: (f32, f32)) -> bool {
     let dx = to.0 - from.0;
     let dy = to.1 - from.1;
     let length_sq = dx * dx + dy * dy;
     for index in 0..count {
-        let Some(address) = add(region, DOORWAYS + index * DOORWAY_BYTES) else {
+        let Some(address) = add(doorways, index * DOORWAY_BYTES) else {
             return true;
         };
         let (Some(x), Some(y), Some(radius_sq)) = (unsafe {
@@ -578,15 +605,48 @@ unsafe fn blocked(context: Context, plane: u32) -> Result<bool, u32> {
     Ok(unsafe { u32_at(indexed(buffer, plane, 4).ok_or(STATUS_UNAVAILABLE)?).ok_or(STATUS_UNAVAILABLE)? } & 1 != 0)
 }
 
-unsafe fn expand_portal(
-    region: u32,
+/// The ground one step from `trap`: its four adjacent trapezoids in the same
+/// plane, then the paired trapezoids behind its left and right portals in
+/// unblocked planes. A step whose straight line crosses a travel doorway is
+/// left out. The flood and the route search share this one rule.
+unsafe fn neighbours(
+    context: Context,
+    planes: &[Plane; MAX_PLANES],
+    doorways: u32,
+    doorway_count: u32,
+    trap: u32,
+    plane_index: u32,
+    visit: &mut impl FnMut(u32, u32) -> Result<(), u32>,
+) -> Result<(), u32> {
+    let from = unsafe { centre(trap).ok_or(STATUS_UNAVAILABLE)? };
+    for field in [0x04_u32, 0x08, 0x0c, 0x10] {
+        let Some(adjacent) = (unsafe { pointer_at(add(trap, field).ok_or(STATUS_UNAVAILABLE)?, TRAP_BYTES) }) else {
+            continue;
+        };
+        let to = unsafe { centre(adjacent).ok_or(STATUS_UNAVAILABLE)? };
+        if unsafe { crosses_doorway(doorways, doorway_count, from, to) } { continue; }
+        visit(adjacent, plane_index)?;
+    }
+    let left = unsafe { u16_at(add(trap, 0x14).ok_or(STATUS_UNAVAILABLE)?).ok_or(STATUS_UNAVAILABLE)? };
+    let right = unsafe { u16_at(add(trap, 0x16).ok_or(STATUS_UNAVAILABLE)?).ok_or(STATUS_UNAVAILABLE)? };
+    unsafe {
+        portal_neighbours(context, planes, plane_index, left, from, doorways, doorway_count, visit)?;
+        if right != left {
+            portal_neighbours(context, planes, plane_index, right, from, doorways, doorway_count, visit)?;
+        }
+    }
+    Ok(())
+}
+
+unsafe fn portal_neighbours(
     context: Context,
     planes: &[Plane; MAX_PLANES],
     plane_index: u32,
     portal_index: u16,
     from: (f32, f32),
+    doorways: u32,
     doorway_count: u32,
-    tail: &mut u32,
+    visit: &mut impl FnMut(u32, u32) -> Result<(), u32>,
 ) -> Result<(), u32> {
     let plane = unsafe { *planes.get_unchecked(plane_index as usize) };
     if portal_index as u32 >= plane.portal_count {
@@ -617,10 +677,10 @@ unsafe fn expand_portal(
             continue;
         };
         let to = unsafe { centre(trap).ok_or(STATUS_UNAVAILABLE)? };
-        if unsafe { crosses_doorway(region, doorway_count, from, to) } {
+        if unsafe { crosses_doorway(doorways, doorway_count, from, to) } {
             continue;
         }
-        unsafe { enqueue(region, planes, context.map_count, trap, target_plane, tail)? };
+        visit(trap, target_plane)?;
     }
     Ok(())
 }
@@ -1043,6 +1103,34 @@ unsafe fn publish(
     }
 }
 
+/// The player's trapezoid and plane: the player's own plane first, then every
+/// other plane. The sink must still belong to the certified plane array before
+/// it can enter a search.
+unsafe fn find_start(context: Context, planes: &[Plane; MAX_PLANES]) -> Result<Option<(u32, u32)>, u32> {
+    let has_player_plane = context.player_plane < context.map_count;
+    let passes = context.map_count + u32::from(has_player_plane);
+    for pass in 0..passes {
+        let plane_index = if has_player_plane && pass == 0 {
+            context.player_plane
+        } else if has_player_plane {
+            pass - 1
+        } else {
+            pass
+        };
+        if has_player_plane && pass > 0 && plane_index == context.player_plane { continue; }
+        let map = indexed(context.map_buffer, plane_index, PATHING_MAP_BYTES)
+            .ok_or(STATUS_UNAVAILABLE)?;
+        if let Some(trap) = unsafe { find_trapezoid(map, context.player_x, context.player_y) } {
+            if locate(planes, context.map_count, trap)
+                .is_some_and(|(actual_plane, _)| actual_plane == plane_index)
+            {
+                return Ok(Some((trap, plane_index)));
+            }
+        }
+    }
+    Ok(None)
+}
+
 unsafe fn classify(
     region: u32,
     layout_id: u32,
@@ -1068,33 +1156,7 @@ unsafe fn classify(
     }
     let (planes, total_traps) = unsafe { load_planes(context)? };
     let blocked_fingerprint = unsafe { blocked_fingerprint(context)? };
-    let mut start = None;
-    let has_player_plane = context.player_plane < context.map_count;
-    let passes = context.map_count + u32::from(has_player_plane);
-    for pass in 0..passes {
-        let plane_index = if has_player_plane && pass == 0 {
-            context.player_plane
-        } else if has_player_plane {
-            pass - 1
-        } else {
-            pass
-        };
-        if has_player_plane && pass > 0 && plane_index == context.player_plane { continue; }
-        let map = indexed(context.map_buffer, plane_index, PATHING_MAP_BYTES)
-            .ok_or(STATUS_UNAVAILABLE)?;
-        if let Some(trap) = unsafe {
-            find_trapezoid(map, context.player_x, context.player_y)
-        } {
-            // The sink must still belong to the certified plane array before
-            // it can enter the bounded flood queue.
-            if locate(&planes, context.map_count, trap)
-                .is_some_and(|(actual_plane, _)| actual_plane == plane_index)
-            {
-                start = Some((trap, plane_index));
-                break;
-            }
-        }
-    }
+    let start = unsafe { find_start(context, &planes)? };
     let cache = unsafe { REACHABILITY_CACHE };
     let cache_matches = cache.resource == context.resource
         && cache.map_id == map_id
@@ -1117,29 +1179,18 @@ unsafe fn classify(
         unsafe {
             clear_words(region, VISITED_BITS, VISITED_WORDS);
         }
-        let doorway_count = unsafe { build_doorways(region, context)? };
+        let doorways = add(region, DOORWAYS).ok_or(STATUS_LIMIT)?;
+        let doorway_count = unsafe { build_doorways(doorways, context)? };
         let mut tail = 0_u32;
         unsafe { enqueue(region, &planes, context.map_count, start_trap, start_plane, &mut tail)? };
         let mut head = 0_u32;
         while head < tail {
             let trap = unsafe { u32_at(add(region, QUEUE_POINTERS + head * 4).ok_or(STATUS_LIMIT)?).ok_or(STATUS_UNAVAILABLE)? };
             let plane_index = unsafe { u32_at(add(region, QUEUE_PLANES + head * 4).ok_or(STATUS_LIMIT)?).ok_or(STATUS_UNAVAILABLE)? };
-            let from = unsafe { centre(trap).ok_or(STATUS_UNAVAILABLE)? };
-            for field in [0x04_u32, 0x08, 0x0c, 0x10] {
-                let Some(adjacent) = (unsafe { pointer_at(add(trap, field).ok_or(STATUS_UNAVAILABLE)?, TRAP_BYTES) }) else {
-                    continue;
-                };
-                let to = unsafe { centre(adjacent).ok_or(STATUS_UNAVAILABLE)? };
-                if unsafe { crosses_doorway(region, doorway_count, from, to) } { continue; }
-                unsafe { enqueue(region, &planes, context.map_count, adjacent, plane_index, &mut tail)? };
-            }
-            let left = unsafe { u16_at(add(trap, 0x14).ok_or(STATUS_UNAVAILABLE)?).ok_or(STATUS_UNAVAILABLE)? };
-            let right = unsafe { u16_at(add(trap, 0x16).ok_or(STATUS_UNAVAILABLE)?).ok_or(STATUS_UNAVAILABLE)? };
             unsafe {
-                expand_portal(region, context, &planes, plane_index, left, from, doorway_count, &mut tail)?;
-                if right != left {
-                    expand_portal(region, context, &planes, plane_index, right, from, doorway_count, &mut tail)?;
-                }
+                neighbours(context, &planes, doorways, doorway_count, trap, plane_index, &mut |next, plane| {
+                    enqueue(region, &planes, context.map_count, next, plane, &mut tail)
+                })?;
             }
             head += 1;
         }
@@ -1299,3 +1350,340 @@ pub extern "C" fn cartography_reachability_abi() -> u32 { ABI }
 
 #[no_mangle]
 pub extern "C" fn cartography_reachability_region_bytes() -> u32 { REGION_BYTES }
+
+fn distance(from: (f32, f32), to: (f32, f32)) -> f32 {
+    let dx = to.0 - from.0;
+    let dy = to.1 - from.1;
+    square_root(dx * dx + dy * dy)
+}
+
+/// Newton's method from a bit-level first guess; three steps reach float precision.
+/// (`f32::sqrt` needs std, and the wasm32 intrinsic is not stable.)
+fn square_root(value: f32) -> f32 {
+    if !(value > 0.0) || !value.is_finite() { return if value.is_finite() { 0.0 } else { value }; }
+    let mut root = f32::from_bits((value.to_bits() >> 1) + 0x1fbd_1df5);
+    for _ in 0..3 { root = 0.5 * (root + value / root); }
+    root
+}
+
+fn absolute(value: f32) -> f32 {
+    if value < 0.0 { -value } else { value }
+}
+
+/// The point of a trapezoid nearest (x, y), clamped row by row: exact inside
+/// and close enough outside to end a route on the ground nearest its target.
+fn clamp_to_trap(values: [f32; 6], x: f32, y: f32) -> (f32, f32) {
+    let [xtl, xtr, yt, xbl, xbr, yb] = values;
+    // Never `clamp`: its min <= max assertion would link Rust's panic formatting.
+    let clamped_y = y.max(yb.min(yt)).min(yb.max(yt));
+    let t = if yt != yb { (clamped_y - yb) / (yt - yb) } else { 0.0 };
+    let left = xbl + (xtl - xbl) * t;
+    let right = xbr + (xtr - xbr) * t;
+    (x.max(left.min(right)).min(left.max(right)), clamped_y)
+}
+
+/// The edge two touching trapezoids share: a top or bottom edge, or a side
+/// both follow over their common rows. None when they only meet at a point or
+/// overlap across planes without a common edge.
+fn shared_edge(from: [f32; 6], to: [f32; 6]) -> Option<(f32, f32, f32, f32)> {
+    let [axtl, axtr, ayt, axbl, axbr, ayb] = from;
+    let [bxtl, bxtr, byt, bxbl, bxbr, byb] = to;
+    let overlap = |a0: f32, a1: f32, b0: f32, b1: f32| {
+        let low = a0.min(a1).max(b0.min(b1));
+        let high = a0.max(a1).min(b0.max(b1));
+        (high >= low).then_some((low, high))
+    };
+    if absolute(ayb - byt) <= EDGE_EPSILON {
+        if let Some((low, high)) = overlap(axbl, axbr, bxtl, bxtr) { return Some((low, ayb, high, ayb)); }
+    }
+    if absolute(ayt - byb) <= EDGE_EPSILON {
+        if let Some((low, high)) = overlap(axtl, axtr, bxbl, bxbr) { return Some((low, ayt, high, ayt)); }
+    }
+    let y0 = ayb.min(ayt).max(byb.min(byt));
+    let y1 = ayb.max(ayt).min(byb.max(byt));
+    if y1 <= y0 { return None; }
+    let side = |top: f32, bottom: f32, yt: f32, yb: f32, y: f32| {
+        if yt == yb { bottom } else { bottom + (top - bottom) * (y - yb) / (yt - yb) }
+    };
+    let (a_right0, a_right1) = (side(axtr, axbr, ayt, ayb, y0), side(axtr, axbr, ayt, ayb, y1));
+    let (b_left0, b_left1) = (side(bxtl, bxbl, byt, byb, y0), side(bxtl, bxbl, byt, byb, y1));
+    if absolute(a_right0 - b_left0) <= EDGE_EPSILON && absolute(a_right1 - b_left1) <= EDGE_EPSILON {
+        return Some((a_right0, y0, a_right1, y1));
+    }
+    let (a_left0, a_left1) = (side(axtl, axbl, ayt, ayb, y0), side(axtl, axbl, ayt, ayb, y1));
+    let (b_right0, b_right1) = (side(bxtr, bxbr, byt, byb, y0), side(bxtr, bxbr, byt, byb, y1));
+    if absolute(a_left0 - b_right0) <= EDGE_EPSILON && absolute(a_left1 - b_right1) <= EDGE_EPSILON {
+        return Some((a_left0, y0, a_left1, y1));
+    }
+    None
+}
+
+fn trap_pointer(planes: &[Plane; MAX_PLANES], plane_count: u32, global_index: u32) -> Option<u32> {
+    for plane_index in 0..plane_count {
+        let plane = unsafe { *planes.get_unchecked(plane_index as usize) };
+        if global_index >= plane.first_trap && global_index - plane.first_trap < plane.trap_count {
+            return indexed(plane.traps, global_index - plane.first_trap, TRAP_BYTES);
+        }
+    }
+    None
+}
+
+unsafe fn route_word(region: u32, base: u32, index: u32) -> Result<u32, u32> {
+    let address = add(region, base.checked_add(index.checked_mul(4).ok_or(STATUS_LIMIT)?).ok_or(STATUS_LIMIT)?)
+        .ok_or(STATUS_LIMIT)?;
+    unsafe { u32_at(address).ok_or(STATUS_UNAVAILABLE) }
+}
+
+unsafe fn store_route_word(region: u32, base: u32, index: u32, value: u32) -> Result<(), u32> {
+    let address = add(region, base.checked_add(index.checked_mul(4).ok_or(STATUS_LIMIT)?).ok_or(STATUS_LIMIT)?)
+        .ok_or(STATUS_LIMIT)?;
+    if !contains(address, 4) { return Err(STATUS_UNAVAILABLE); }
+    unsafe { store_u32(address, value) };
+    Ok(())
+}
+
+/// Pushes (priority, trapezoid) onto the binary min-heap at ROUTE_HEAP.
+unsafe fn heap_push(region: u32, size: &mut u32, priority: f32, index: u32) -> Result<(), u32> {
+    if *size >= MAX_ROUTE_HEAP { return Err(STATUS_LIMIT); }
+    let mut at = *size;
+    *size += 1;
+    while at > 0 {
+        let parent = (at - 1) / 2;
+        let above = f32::from_bits(unsafe { route_word(region, ROUTE_HEAP, parent * 2)? });
+        if above <= priority { break; }
+        let above_index = unsafe { route_word(region, ROUTE_HEAP, parent * 2 + 1)? };
+        unsafe {
+            store_route_word(region, ROUTE_HEAP, at * 2, above.to_bits())?;
+            store_route_word(region, ROUTE_HEAP, at * 2 + 1, above_index)?;
+        }
+        at = parent;
+    }
+    unsafe {
+        store_route_word(region, ROUTE_HEAP, at * 2, priority.to_bits())?;
+        store_route_word(region, ROUTE_HEAP, at * 2 + 1, index)
+    }
+}
+
+/// Pops the trapezoid with the lowest priority, or None when the heap is empty.
+unsafe fn heap_pop(region: u32, size: &mut u32) -> Result<Option<u32>, u32> {
+    if *size == 0 { return Ok(None); }
+    let top = unsafe { route_word(region, ROUTE_HEAP, 1)? };
+    *size -= 1;
+    if *size == 0 { return Ok(Some(top)); }
+    let last = f32::from_bits(unsafe { route_word(region, ROUTE_HEAP, *size * 2)? });
+    let last_index = unsafe { route_word(region, ROUTE_HEAP, *size * 2 + 1)? };
+    let mut at = 0_u32;
+    loop {
+        let left = at * 2 + 1;
+        if left >= *size { break; }
+        let mut child = left;
+        let mut child_priority = f32::from_bits(unsafe { route_word(region, ROUTE_HEAP, left * 2)? });
+        if left + 1 < *size {
+            let right = f32::from_bits(unsafe { route_word(region, ROUTE_HEAP, (left + 1) * 2)? });
+            if right < child_priority { child = left + 1; child_priority = right; }
+        }
+        if child_priority >= last { break; }
+        let child_index = unsafe { route_word(region, ROUTE_HEAP, child * 2 + 1)? };
+        unsafe {
+            store_route_word(region, ROUTE_HEAP, at * 2, child_priority.to_bits())?;
+            store_route_word(region, ROUTE_HEAP, at * 2 + 1, child_index)?;
+        }
+        at = child;
+    }
+    unsafe {
+        store_route_word(region, ROUTE_HEAP, at * 2, last.to_bits())?;
+        store_route_word(region, ROUTE_HEAP, at * 2 + 1, last_index)?;
+    }
+    Ok(Some(top))
+}
+
+struct RouteOutcome {
+    steps: u32,
+    reached: bool,
+    expanded: u32,
+    start: (f32, f32),
+    end: (f32, f32),
+}
+
+/// A* from the player's trapezoid to any trapezoid holding the target point,
+/// over the flood's neighbour rule, costed centre to centre. When no such
+/// trapezoid is reachable, the route ends on the reached ground nearest the
+/// target instead. Writes the steps in walking order.
+unsafe fn route(
+    region: u32,
+    layout_id: u32,
+    map_id: u32,
+    player_id: u32,
+    target: (f32, f32),
+) -> Result<RouteOutcome, u32> {
+    let context = unsafe { context(layout_id, map_id, player_id)? };
+    let (planes, _) = unsafe { load_planes(context)? };
+    let plane_count = context.map_count;
+    let (start_trap, _) = unsafe { find_start(context, &planes)? }.ok_or(STATUS_NO_START)?;
+    let (_, start) = locate(&planes, plane_count, start_trap).ok_or(STATUS_UNAVAILABLE)?;
+    unsafe { clear_words(region, ROUTE_SEEN, VISITED_WORDS * 3) };
+    for plane_index in 0..plane_count {
+        let map = indexed(context.map_buffer, plane_index, PATHING_MAP_BYTES).ok_or(STATUS_UNAVAILABLE)?;
+        let Some(trap) = (unsafe { find_trapezoid(map, target.0, target.1) }) else { continue };
+        // The partition tree answers a sink for points off the ground too; a
+        // goal must hold the target itself.
+        let values = unsafe { trap_values(trap).ok_or(STATUS_UNAVAILABLE)? };
+        if distance(clamp_to_trap(values, target.0, target.1), target) > EDGE_EPSILON { continue; }
+        if let Some((actual_plane, goal)) = locate(&planes, plane_count, trap) {
+            if actual_plane == plane_index {
+                unsafe { set_bit(region, ROUTE_GOALS, goal).ok_or(STATUS_UNAVAILABLE)? };
+            }
+        }
+    }
+    let doorways = add(region, ROUTE_DOORWAYS).ok_or(STATUS_LIMIT)?;
+    let doorway_count = unsafe { build_doorways(doorways, context)? };
+    let mut size = 0_u32;
+    unsafe {
+        store_route_word(region, ROUTE_COSTS, start, 0.0_f32.to_bits())?;
+        store_route_word(region, ROUTE_PARENTS, start, NO_PARENT)?;
+        set_bit(region, ROUTE_SEEN, start).ok_or(STATUS_UNAVAILABLE)?;
+        heap_push(region, &mut size, distance(centre(start_trap).ok_or(STATUS_UNAVAILABLE)?, target), start)?;
+    }
+    let mut found = None;
+    let mut best = start;
+    let mut best_distance = f32::INFINITY;
+    let mut expanded = 0_u32;
+    while let Some(current) = unsafe { heap_pop(region, &mut size)? } {
+        if unsafe { bit(region, ROUTE_CLOSED, current).ok_or(STATUS_UNAVAILABLE)? } { continue; }
+        unsafe { set_bit(region, ROUTE_CLOSED, current).ok_or(STATUS_UNAVAILABLE)? };
+        expanded += 1;
+        if unsafe { bit(region, ROUTE_GOALS, current).ok_or(STATUS_UNAVAILABLE)? } {
+            found = Some(current);
+            break;
+        }
+        let trap = trap_pointer(&planes, plane_count, current).ok_or(STATUS_UNAVAILABLE)?;
+        let values = unsafe { trap_values(trap).ok_or(STATUS_UNAVAILABLE)? };
+        let near = distance(clamp_to_trap(values, target.0, target.1), target);
+        if near < best_distance { best = current; best_distance = near; }
+        let (plane_index, _) = locate(&planes, plane_count, trap).ok_or(STATUS_UNAVAILABLE)?;
+        let cost = f32::from_bits(unsafe { route_word(region, ROUTE_COSTS, current)? });
+        let from = unsafe { centre(trap).ok_or(STATUS_UNAVAILABLE)? };
+        unsafe {
+            neighbours(context, &planes, doorways, doorway_count, trap, plane_index, &mut |next, plane| {
+                let (actual_plane, index) = locate(&planes, plane_count, next).ok_or(STATUS_UNAVAILABLE)?;
+                if actual_plane != plane { return Err(STATUS_UNAVAILABLE); }
+                if bit(region, ROUTE_CLOSED, index).ok_or(STATUS_UNAVAILABLE)? { return Ok(()); }
+                let to = centre(next).ok_or(STATUS_UNAVAILABLE)?;
+                let next_cost = cost + distance(from, to);
+                if bit(region, ROUTE_SEEN, index).ok_or(STATUS_UNAVAILABLE)?
+                    && next_cost >= f32::from_bits(route_word(region, ROUTE_COSTS, index)?) {
+                    return Ok(());
+                }
+                set_bit(region, ROUTE_SEEN, index).ok_or(STATUS_UNAVAILABLE)?;
+                store_route_word(region, ROUTE_COSTS, index, next_cost.to_bits())?;
+                store_route_word(region, ROUTE_PARENTS, index, current)?;
+                heap_push(region, &mut size, next_cost + distance(to, target), index)
+            })?;
+        }
+    }
+    let last = found.unwrap_or(best);
+    let mut steps = 1_u32;
+    let mut at = last;
+    loop {
+        let parent = unsafe { route_word(region, ROUTE_PARENTS, at)? };
+        if parent == NO_PARENT { break; }
+        steps += 1;
+        if steps > MAX_ROUTE_STEPS { return Err(STATUS_LIMIT); }
+        at = parent;
+    }
+    let mut index = steps;
+    at = last;
+    let mut end = target;
+    loop {
+        index -= 1;
+        let trap = trap_pointer(&planes, plane_count, at).ok_or(STATUS_UNAVAILABLE)?;
+        let values = unsafe { trap_values(trap).ok_or(STATUS_UNAVAILABLE)? };
+        if at == last && found.is_none() { end = clamp_to_trap(values, target.0, target.1); }
+        let centre_point = unsafe { centre(trap).ok_or(STATUS_UNAVAILABLE)? };
+        let parent = unsafe { route_word(region, ROUTE_PARENTS, at)? };
+        let edge = if parent == NO_PARENT {
+            (0.0, 0.0, 0.0, 0.0)
+        } else {
+            let previous = trap_pointer(&planes, plane_count, parent).ok_or(STATUS_UNAVAILABLE)?;
+            let previous_values = unsafe { trap_values(previous).ok_or(STATUS_UNAVAILABLE)? };
+            shared_edge(previous_values, values).unwrap_or_else(|| {
+                // No common edge (a portal between planes that only overlap):
+                // enter at the point of this trapezoid nearest the previous centre.
+                let from = unsafe { centre(previous) }.unwrap_or(centre_point);
+                let point = clamp_to_trap(values, from.0, from.1);
+                (point.0, point.1, point.0, point.1)
+            })
+        };
+        let step = ROUTE_STEPS + index * ROUTE_STEP_BYTES;
+        for (offset, value) in [centre_point.0, centre_point.1, edge.0, edge.1, edge.2, edge.3].into_iter().enumerate() {
+            let address = add(region, step + offset as u32 * 4).ok_or(STATUS_LIMIT)?;
+            unsafe { store_f32(address, value) };
+        }
+        if parent == NO_PARENT { break; }
+        at = parent;
+    }
+    Ok(RouteOutcome { steps, reached: found.is_some(), expanded, start: (context.player_x, context.player_y), end })
+}
+
+unsafe fn publish_route(region: u32, status: u32, map_id: u32, area_epoch: u32, layout_id: u32, outcome: Option<&RouteOutcome>) {
+    let previous = unsafe { u32_at(add(region, 12).unwrap_or(0)).unwrap_or(0) };
+    let writing = previous.wrapping_add(1) | 1;
+    let words = [
+        ROUTE_MAGIC, ABI, ROUTE_BYTES, writing, status, map_id, area_epoch, layout_id,
+        outcome.map_or(0, |value| value.steps),
+        outcome.map_or(0, |value| u32::from(value.reached)),
+        outcome.map_or(0, |value| value.expanded),
+    ];
+    unsafe {
+        store_u32(add(region, 12).unwrap_or(0), writing);
+        for (index, value) in words.into_iter().enumerate() {
+            if index != 3 { store_u32(add(region, index as u32 * 4).unwrap_or(0), value); }
+        }
+        let points = outcome.map_or([0.0; 4], |value| [value.start.0, value.start.1, value.end.0, value.end.1]);
+        for (index, value) in points.into_iter().enumerate() {
+            store_f32(add(region, 44 + index as u32 * 4).unwrap_or(0), value);
+        }
+        store_u32(add(region, 60).unwrap_or(0), 0);
+        store_u32(add(region, 12).unwrap_or(0), writing.wrapping_add(1));
+    }
+}
+
+/// Searches the walking route from the player to (target_x, target_y) on the
+/// current map and publishes it in the host-owned route region. The header
+/// says whether the route reaches the target or ends on the nearest reached ground.
+#[no_mangle]
+pub unsafe extern "C" fn cartography_reachability_route(
+    region: u32,
+    region_bytes: u32,
+    layout_id: u32,
+    map_id: u32,
+    area_epoch: u32,
+    player_id: u32,
+    target_x: f32,
+    target_y: f32,
+) -> u32 {
+    if region == 0 || region & 3 != 0 || region_bytes != ROUTE_BYTES
+        || !contains(region, ROUTE_BYTES)
+        || layout_id == 0 || map_id == 0 || map_id > 2_000 || area_epoch == 0 || player_id == 0
+        || !target_x.is_finite() || !target_y.is_finite()
+        || absolute(target_x) > 1_000_000.0 || absolute(target_y) > 1_000_000.0
+    {
+        if region != 0 && region & 3 == 0 && contains(region, ROUTE_HEADER_BYTES) {
+            unsafe { publish_route(region, STATUS_INVALID_INPUT, map_id, area_epoch, layout_id, None) };
+        }
+        return STATUS_INVALID_INPUT;
+    }
+    match unsafe { route(region, layout_id, map_id, player_id, (target_x, target_y)) } {
+        Ok(outcome) => {
+            unsafe { publish_route(region, STATUS_READY, map_id, area_epoch, layout_id, Some(&outcome)) };
+            STATUS_READY
+        }
+        Err(status) => {
+            unsafe { publish_route(region, status, map_id, area_epoch, layout_id, None) };
+            status
+        }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn cartography_reachability_route_bytes() -> u32 { ROUTE_BYTES }
