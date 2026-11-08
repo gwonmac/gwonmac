@@ -42,7 +42,7 @@ import { ensureToolsStylesheet } from "./tools-stylesheet.js";
 import { requireToolsApi } from "./tools-native-api.js";
 import { createTradeWhispers } from "./trade-whispers.js";
 import { featureActivationRequested } from "../shared/feature-contracts.js";
-import { BUILD_CHECK_FAILED } from "../shared/contracts.js";
+import { toolsUnavailableCopy } from "../shared/tools-unavailable-copy.js";
 
 /**
  * Writes one build where the game's own template dialog will find it.
@@ -78,25 +78,6 @@ async function publishTemplate(
     location: "Skills — press Refresh List in Guild Wars to see it",
   });
 }
-
-/**
- * Why applying a team cannot reach the running game, or `null` once it can.
- *
- * Applying means commanding the running game. A Core-only or developer module
- * has no command queue at all, so the panel must present that absence as a
- * refusal rather than as a successful Apply that made zero changes.
- *
- * It is a value rather than only a thrown message because the interface has to
- * say it *before* the click, not after. A button that looks ready and then
- * refuses has already cost the player the decision to press it — and it reads
- * as a bug in the panel rather than as a capability that does not exist yet.
- * One constant, so the disabled reason and the refusal cannot drift apart.
- */
-const APPLY_UNAVAILABLE =
-  "Apply team is unavailable after this Guild Wars update. Your saved team is unchanged.";
-const STORAGE_AFTER_UPDATE = "Storage is unavailable after this Guild Wars update.";
-const STORAGE_CHECK_FAILED =
-  "Storage is unavailable until GWonMac can check this Guild Wars build. It tries again at next start.";
 
 /**
  * Loads the Tools bundle and hands the overlay a handle to it.
@@ -135,40 +116,11 @@ export function mountToolsInto(
   const specifier = "./tools/tools-app.js";
   return Promise.all([import(specifier), native.client.session()])
     .then(([bundle, session]: [EmbeddedToolsBundle<HTMLElement>, Awaited<ReturnType<typeof window.gwNative.client.session>>]) => {
-      const applyStatus = session.compatibility?.features.teamApply;
-      const applyUnavailable = commands === null
-        ? applyStatus?.status === 'unavailable'
-          ? applyStatus.reason === 'preparation-failed'
-            ? 'Apply team didn’t start. Your saved team is unchanged. Restart GWonMac to try again.'
-            : applyStatus.reason === 'check-failed'
-              ? `${BUILD_CHECK_FAILED} Your saved team is unchanged.`
-              : APPLY_UNAVAILABLE
-          : 'Apply team is off. Your saved team is unchanged.'
-        : null;
-      const observationStatus = session.compatibility?.features.partyObservation;
-      const observationUnavailable = observationStatus?.status === 'unavailable'
-        ? observationStatus.reason === 'preparation-failed'
-          ? 'Live game information didn’t start. Saved builds and teams still work. Restart GWonMac to try again.'
-          : observationStatus.reason === 'check-failed'
-            ? `${BUILD_CHECK_FAILED} Saved builds and teams still work.`
-            : 'Live game information is temporarily unavailable. Saved builds and teams still work.'
-        : null;
-      const storageStatus = session.compatibility?.features.xunlaiAction;
-      const storageUnavailable = storage === null && storageStatus?.status === 'unavailable'
-        ? storageStatus.reason === 'check-failed'
-          ? STORAGE_CHECK_FAILED
-          : storageStatus.reason === 'preparation-failed'
-            ? 'Storage didn’t start. Restart GWonMac to try again.'
-            : STORAGE_AFTER_UPDATE
-        : null;
-      const publishStatus = session.compatibility?.features.gameFileSaving;
-      const publishUnavailable = !templatePublishingAvailable && publishStatus?.status === 'unavailable'
-        ? publishStatus.reason === 'check-failed'
-          ? 'GWonMac can’t add builds to Guild Wars until it can check this Guild Wars build. It tries again at next start. The build is still saved in your library.'
-          : publishStatus.reason === 'preparation-failed'
-            ? 'Adding builds to Guild Wars didn’t start. Restart GWonMac to try again. The build is still saved in your library.'
-            : null
-        : null;
+      const unavailable = toolsUnavailableCopy(session.compatibility?.features, {
+        teamApply: commands !== null,
+        storage: storage !== null,
+        publish: templatePublishingAvailable,
+      });
       const app = bundle.mountToolsApp(host, {
         ...(window.gwHub ? { hub: window.gwHub } : {}),
         nativeApi: native,
@@ -183,10 +135,10 @@ export function mountToolsInto(
           : null,
         commands,
         storage,
-        storageUnavailable,
-        publishUnavailable,
-        applyUnavailable,
-        observationUnavailable,
+        storageUnavailable: unavailable.storage,
+        publishUnavailable: unavailable.publish,
+        applyUnavailable: unavailable.apply,
+        observationUnavailable: unavailable.observation,
         development: window.gwNative.init.development,
       });
       return {
