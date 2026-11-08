@@ -267,6 +267,10 @@
   .settings-view .settings-content { overflow: visible; padding: 8px 16px 16px; }
   .settings-view .section-intro, .settings-view .settings-fields > p { margin-bottom: 10px; }
   .settings-view .settings-status { padding-inline: 16px; }
+  /* The status line ends the one scrolling page, so a failed save, which needs Retry or Revert,
+     pins to the bottom of the view instead of appearing below it. Idle and saved notes stay at
+     the end and keep the small Hub's rows free. */
+  .settings-view .settings-status.save-failed { position: sticky; bottom: 0; z-index: 3; background: linear-gradient(var(--danger-tint), var(--danger-tint)), var(--surface-solid); }
   .settings-view .setting-group { width: 100%; min-width: 0; }
   .settings-view .setting-group > label { align-items: flex-start; }
   .settings-view .download-card, .settings-view .recovery-card, .settings-view .restart-row { align-items: flex-start; flex-wrap: wrap; gap: 12px; }
