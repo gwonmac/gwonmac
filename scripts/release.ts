@@ -262,8 +262,8 @@ export function draft(version: string, assets: string, dependencies: ReleaseDepe
  * What a fact-only release may change since the release it patches. Shipped
  * code changes only in the per-client reviewed-fact files; the registry may
  * only gain or lose their entries (FACT_REGISTRY_LINE). The rest ships no
- * code: tests (the Must-stay certification tests only gain lines,
- * ADD_ONLY_TESTS), maintainer and player docs, and the detector record.
+ * code: tests (certification tests and what they read only gain files,
+ * GUARDED_TESTS), maintainer and player docs, and the detector record.
  */
 const FACT_PATHS: readonly RegExp[] = [
   /^app\/client\/certification\/reviewed-client-[\w.-]+\.ts$/u,
@@ -276,50 +276,44 @@ const FACT_PATHS: readonly RegExp[] = [
 const FACT_FILE = /^app\/client\/certification\/reviewed-client-[\w.-]+\.ts$/u;
 const FACT_REGISTRY = "app/client/certification/reviewed-facts.ts";
 /**
- * The Must-stay certification tests (AGENTS.md): a fact release may add to
- * them, never change or remove a line.
+ * The Must-stay certification tests (AGENTS.md) and the policy tests. In a
+ * fact release they, and every test file they import or name by path, only
+ * gain new files: an existing one stays byte-identical, mode included, so no
+ * added `return;` can switch a check off.
  */
-const ADD_ONLY_TESTS: readonly RegExp[] = [
+const GUARDED_TESTS: readonly RegExp[] = [
   /^tests\/unit\/client-certification/u,
   /^tests\/unit\/enhancement-/u,
   /^tests\/client-artifact\//u,
   /^tests\/policy\//u,
 ];
+/** A relative module specifier, or a repository path such as "tests/fixtures/x.rs". */
+const NAMED_FILE = /(?:from |import\(?)["'](\.{1,2}\/[^"']+)["']|["'](tests\/[^"'\s]+\.\w+)["']/gu;
 const FACT_REGISTRY_LINE =
   /^(?:import \{ [A-Z0-9_]+_FACTS \} from "\.\/reviewed-client-[\w.-]+\.js";| {2}[A-Z0-9_]+_FACTS,)$/u;
 
-interface DiffEdit {
-  readonly file: string;
-  /** "+" for an added line, "-" for a removed one, "binary" for a binary change to an existing file. */
-  readonly kind: "+" | "-" | "binary";
-  readonly line: string;
-}
-
 /**
- * Every added and removed line of `git diff --unified=0`, by file. A file's
- * header runs until its first `@@`, so a content line that starts with `+++`
- * or `---` is still an edit.
+ * The guarded tests at `revision` and every file under tests/ they reach: the
+ * modules they import (transitively, `.js` specifiers name `.ts` sources) and
+ * the files they name by path. A specifier that names no tracked file, such as
+ * one inside a test's own sample source, is ignored.
  */
-function diffEdits(diff: string): DiffEdit[] {
-  const edits: DiffEdit[] = [];
-  let file = "";
-  let created = false;
-  let inHunk = false;
-  for (const line of diff.split("\n")) {
-    const header = /^diff --git a\/.* b\/(.*)$/u.exec(line);
-    if (header) {
-      file = header[1] ?? "";
-      created = false;
-      inHunk = false;
-    } else if (!inHunk) {
-      if (line.startsWith("new file mode ")) created = true;
-      else if (line.startsWith("@@ ")) inHunk = true;
-      else if (line.startsWith("Binary files ") && !created) edits.push({ file, kind: "binary", line });
-    } else if (line.startsWith("+") || line.startsWith("-")) {
-      edits.push({ file, kind: line[0] === "+" ? "+" : "-", line: line.slice(1) });
+function guardedTestFiles(revision: string, read: (...args: string[]) => string): Set<string> {
+  const tracked = new Set(read("ls-tree", "-r", "--name-only", revision, "--", "tests").split("\n").filter(Boolean));
+  const guarded = new Set([...tracked].filter((file) => GUARDED_TESTS.some((pattern) => pattern.test(file))));
+  const pending = [...guarded];
+  for (let file = pending.pop(); file !== undefined; file = pending.pop()) {
+    if (!/\.[cm]?[jt]s$/u.test(file)) continue;
+    for (const [, relative, rooted] of read("show", `${revision}:${file}`).matchAll(NAMED_FILE)) {
+      const named = rooted ?? path.posix.join(path.posix.dirname(file), relative ?? "");
+      const found = [named, named.replace(/\.js$/u, ".ts")].find((candidate) => tracked.has(candidate));
+      if (found && !guarded.has(found)) {
+        guarded.add(found);
+        pending.push(found);
+      }
     }
   }
-  return edits;
+  return guarded;
 }
 
 export interface FactRelease extends Release {
@@ -376,7 +370,9 @@ export function facts(
     throw new Error(`${latest} is the latest published release; a fact release patches it, not ${base}.`);
   }
 
-  const changed = read("diff", "--name-only", "--no-renames", base, "HEAD").split("\n").filter(Boolean);
+  const statuses = read("diff", "--name-status", "--no-renames", base, "HEAD").split("\n").filter(Boolean)
+    .map((line) => line.split("\t"));
+  const changed = statuses.map(([, file]) => file ?? "");
   const outside = changed.filter((file) => !FACT_PATHS.some((allowed) => allowed.test(file)));
   if (outside.length > 0) {
     throw new Error(`Not a fact-only release; these changed since ${base}:\n${outside.join("\n")}`);
@@ -384,18 +380,20 @@ export function facts(
   if (!changed.some((file) => FACT_FILE.test(file))) {
     throw new Error(`No reviewed-client file changed since ${base}: there are no facts to release.`);
   }
-  const edits = diffEdits(read("diff", "--unified=0", "--no-renames", "--no-ext-diff", base, "HEAD"));
-  const registryEdits = edits
-    .filter((edit) => edit.file === FACT_REGISTRY && !(edit.kind !== "binary" && FACT_REGISTRY_LINE.test(edit.line)))
-    .map((edit) => `${edit.kind}${edit.line}`);
+  // The file's header runs until its first `@@`, so a content line that starts
+  // with `+++` or `---` is still an edit.
+  const registryDiff = read("diff", "--unified=0", "--no-ext-diff", base, "HEAD", "--", FACT_REGISTRY).split("\n");
+  const registryEdits = registryDiff.slice(Math.max(0, registryDiff.findIndex((line) => line.startsWith("@@ "))))
+    .filter((line) => (line.startsWith("+") || line.startsWith("-")) && !FACT_REGISTRY_LINE.test(line.slice(1)));
   if (registryEdits.length > 0) {
     throw new Error(`${FACT_REGISTRY} may only add or remove generation entries:\n${registryEdits.join("\n")}`);
   }
-  const rewritten = [...new Set(edits
-    .filter((edit) => edit.kind !== "+" && ADD_ONLY_TESTS.some((guarded) => guarded.test(edit.file)))
-    .map((edit) => edit.file))];
+  const guarded = new Set([...guardedTestFiles(base, read), ...guardedTestFiles("HEAD", read)]);
+  const rewritten = statuses.filter(([status, file]) => status !== "A" && guarded.has(file ?? "")).map(([, file]) => file);
   if (rewritten.length > 0) {
-    throw new Error(`A fact release only adds to the certification tests; these lose or change lines:\n${rewritten.join("\n")}`);
+    throw new Error(
+      `A fact release only adds files to the certification tests, their fixtures and the policy tests; these changed:\n${rewritten.join("\n")}`,
+    );
   }
 
   // The player post the app bundles as this version's "What's new".

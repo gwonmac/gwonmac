@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, it } from "node:test";
@@ -209,8 +209,13 @@ describe("release workflow", () => {
       ["a minor version", "1.1.0", {}, /patch of a published release, not 1\.1\.0/u],
       ["another version's branch", "1.0.2", {}, /Run this on hotfix\/1\.0\.2, branched from v1\.0\.1/u],
       ["a registry line that looks like a diff header", "1.0.1", { [REGISTRY]: `${FACTS_REGISTRY_TEXT}++ extra\n` }, /may only add or remove generation entries:\n\+\+\+ extra$/u],
-      ["a changed certification test line", "1.0.1", { [POLICY]: "assert.ok(false);\n" }, /lose or change lines:\ntests\/policy\/rule\.test\.ts$/u],
-      ["a removed certification test", "1.0.1", { [PROOF]: null }, /lose or change lines:\ntests\/client-artifact\/proof\.test\.ts$/u],
+      ["a changed certification test line", "1.0.1", { [POLICY]: "assert.ok(false);\n" }, /these changed:\ntests\/policy\/rule\.test\.ts$/u],
+      ["an added return in a certification test", "1.0.1", { [PROOF]: `return;\n${PROOF_TEXT}` }, /these changed:\ntests\/client-artifact\/proof\.test\.ts$/u],
+      ["a mode-only change to a certification test", "1.0.1", { [PROOF]: EXECUTABLE }, /these changed:\ntests\/client-artifact\/proof\.test\.ts$/u],
+      ["a removed certification test", "1.0.1", { [PROOF]: null }, /these changed:\ntests\/client-artifact\/proof\.test\.ts$/u],
+      ["a fixture a certification test imports", "1.0.1", { "tests/fixtures/queue.ts": "export const roles = 2;\n" }, /these changed:\ntests\/fixtures\/queue\.ts$/u],
+      ["a fixture that fixture imports", "1.0.1", { "tests/fixtures/client.ts": "export const client = 2;\n" }, /these changed:\ntests\/fixtures\/client\.ts$/u],
+      ["a fixture a certification test names by path", "1.0.1", { "tests/fixtures/kernel.rs": "fn main() { loop {} }\n" }, /these changed:\ntests\/fixtures\/kernel\.rs$/u],
     ] as const) {
       const repository = factRepository(change);
       try {
@@ -248,7 +253,10 @@ describe("release workflow", () => {
       const tags = () => spawnSync("git", ["tag", "--list"], { cwd: repository.root, encoding: "utf8" }).stdout;
       const dry = repository.github();
       const planned = facts("1.0.1", repository.root, dry.dependencies, { dryRun: true });
-      assert.deepEqual(planned.changed, [FACT, REGISTRY, POLICY, "tests/unit/free.test.ts", POST]);
+      assert.deepEqual(planned.changed, [
+        FACT, REGISTRY, "tests/client-artifact/new-client.test.ts", "tests/fixtures/free.json",
+        "tests/fixtures/new-client.ts", "tests/unit/free.test.ts", POST,
+      ]);
       assert.deepEqual(dry.writes, []);
 
       const live = repository.github();
@@ -288,18 +296,26 @@ const FACTS_REGISTRY_TEXT = REGISTRY_TEXT
 const FACT = "app/client/certification/reviewed-client-2026-12-01-bbbbbbbbbbbb.ts";
 const POLICY = "tests/policy/rule.test.ts";
 const PROOF = "tests/client-artifact/proof.test.ts";
+// It imports a fixture (which imports another) and reads one by path.
+const PROOF_TEXT = 'import { roles } from "../fixtures/queue.js";\nconst kernel = "tests/fixtures/kernel.rs";\nassert.ok(roles && kernel);\n';
+/** A change value that sets the executable bit and leaves the content. */
+const EXECUTABLE = Symbol("executable");
 const POST = "website/content/en/2.blog/14.gwonmac-1-0-1.md";
 const POST_TEXT = "---\ntitle: GWonMac 1.0.1\ndraft: true\nlauncherId: gwonmac-1-0-1\n---\n\nTools work again on the new client.\n";
 
 /** A repository whose v1.0.0 tag is the published release and whose hotfix/1.0.1 adds facts. */
-function factRepository(change: Readonly<Record<string, string | null>>, options = { facts: true }) {
+function factRepository(change: Readonly<Record<string, string | null | typeof EXECUTABLE>>, options = { facts: true }) {
   const root = mkdtempSync(path.join(os.tmpdir(), "release-facts-"));
   const git = (...args: string[]) => {
     const result = spawnSync("git", args, { cwd: root, encoding: "utf8" });
     assert.equal(result.status, 0, result.stderr);
   };
-  const write = (files: Readonly<Record<string, string | null>>) => {
+  const write = (files: Readonly<Record<string, string | null | typeof EXECUTABLE>>) => {
     for (const [file, text] of Object.entries(files)) {
+      if (text === EXECUTABLE) {
+        chmodSync(path.join(root, file), 0o755);
+        continue;
+      }
       if (text === null) {
         git("rm", "-q", file);
         continue;
@@ -318,18 +334,25 @@ function factRepository(change: Readonly<Record<string, string | null>>, options
     "app/client/certification/reviewed-client-2026-11-03-aaaaaaaaaaaa.ts": "export const OLD_FACTS = {};\n",
     "app/main/window.ts": "export {};\n",
     "tests/fixtures/player-data/v1.0.0/settings.json": "{}\n",
-    [POLICY]: "assert.ok(true);\n",
-    [PROOF]: "assert.ok(true);\n",
+    // A sample source inside a policy test names a module that does not exist.
+    [POLICY]: "assert.ok(true);\nconst sample = 'import { a } from \"./a.js\";';\n",
+    [PROOF]: PROOF_TEXT,
+    "tests/fixtures/queue.ts": 'import { client } from "./client.js";\nexport const roles = client;\n',
+    "tests/fixtures/client.ts": "export const client = 1;\n",
+    "tests/fixtures/kernel.rs": "fn main() {}\n",
+    "tests/fixtures/free.json": "{}\n",
     "tests/unit/free.test.ts": "assert.ok(true);\n",
   });
   git("tag", "v1.0.0");
   git("switch", "-q", "-c", "hotfix/1.0.1");
-  // Facts, plus an added line in a certification test and a rewritten free test.
+  // Facts, plus a new certification test and fixture, and a changed free test and fixture.
   write(options.facts ? {
     [FACT]: "export const NEW_FACTS = {};\n",
     [REGISTRY]: FACTS_REGISTRY_TEXT,
     [POST]: POST_TEXT,
-    [POLICY]: "assert.ok(true);\nassert.ok(1);\n",
+    "tests/client-artifact/new-client.test.ts": 'import { client } from "../fixtures/new-client.js";\nassert.ok(client);\n',
+    "tests/fixtures/new-client.ts": "export const client = 3;\n",
+    "tests/fixtures/free.json": "{ \"changed\": true }\n",
     "tests/unit/free.test.ts": "assert.equal(1, 1);\n",
   } : { [POST]: POST_TEXT, "docs/recertify.md": "notes\n" });
   write(change);
