@@ -15,7 +15,7 @@
   --field: var(--ui-well-fill);
   --control: var(--ui-well-fill);
   --surface-solid: var(--ui-well);
-  --surface-raised: var(--ui-panel-fill);
+  --surface-raised: var(--ui-panel-solid);
   --surface-hover: var(--ui-row-hover);
   --surface-selected: var(--ui-selection-fill);
   --line: var(--ui-line-soft);

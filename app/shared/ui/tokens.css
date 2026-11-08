@@ -217,6 +217,9 @@
   --ui-panel-opacity: 0.94;
   --ui-effective-panel-opacity: var(--ui-panel-opacity);
   --ui-panel-fill: rgb(var(--gw-panel-rgb) / var(--ui-effective-panel-opacity));
+  /* The panel colour at full strength, whatever the opacity setting, for a surface that must stay
+   * readable over others (a dialog). Derived here, so Modern and a custom window colour follow. */
+  --ui-panel-solid: rgb(from var(--ui-panel-fill) r g b / 1);
   /* Primary layout regions sit inside an already-painted panel. Giving them
    * another translucent black fill compounds opacity and makes the slider lie.
    * Controls and true recesses keep using --ui-well-fill. */
