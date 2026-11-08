@@ -7,6 +7,7 @@
  */
 import { afterEach, beforeAll, expect, test, vi } from 'vitest';
 import { byRole, click, fill, hold, keyDown, keyUp, loadFixture, mountFixture, narrow, press, settle, shown, type, unmountFixture } from './hub-fixture-harness';
+import { createDemoTravelHost } from './travel-host';
 
 beforeAll(loadFixture);
 afterEach(unmountFixture);
@@ -463,6 +464,15 @@ test('a Guild Hall is an outpost: no explorable label, no leaving line, and a fr
   expect([text('.hub-context'), shown($('.hub-lifecycle')!), selected()?.dataset.id]).toEqual(['Fixture Monk · Guild Hall', false, expect.stringMatching(/^place:/u)]);
   fill(search(), 'kamadan'); await flush();
   expect(primary().textContent).toMatch(/^Travel to Kamadan/u);
+});
+
+test('Home lists Continue in the travel history order, as the source gives it', async () => {
+  // A sort anywhere between the history and the list (the travel source, the result composer,
+  // rankHubRows) reorders these: the fixture's history is neither alphabetical nor by map id.
+  await mountFixture();
+  const continued = $$('.hub-results [role="group"]').find(group => norm(group.querySelector('.hub-group')?.textContent) === 'Continue');
+  const history = createDemoTravelHost().history.value.slice(0, 3).map(mapId => `place:${mapId}`);
+  expect([...continued?.querySelectorAll<HTMLElement>('.hub-row') ?? []].map(entry => entry.dataset.id)).toEqual(history);
 });
 
 test('bare whisper and trade scopes start on their first row; nothing consequential starts selected', async () => {
