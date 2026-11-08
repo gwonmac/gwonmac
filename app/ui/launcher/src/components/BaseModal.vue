@@ -75,7 +75,7 @@ onBeforeUnmount(() => {
 .modal > form { display: grid; gap: 16px; }
 /* Buttons that no longer fit side by side stack full width, the last (primary) action at the bottom. */
 .modal .form-actions { flex-wrap: wrap; }
-@container modal (max-width: 240px) {
+@container modal (width <= 240px) {
   .modal .form-actions { flex-direction: column; align-items: stretch; }
 }
 @media (max-width: 600px) {

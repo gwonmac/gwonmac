@@ -52,7 +52,7 @@
 }
 /* The Hub panel is narrower than the launcher: a slimmer section list and tighter content.
    Below 600px the page's own narrow layout applies unchanged. */
-@container settings (min-width: 601px) {
+@container settings (width > 600px) {
   .hub-settings-host .settings-view .settings-page { grid-template-columns: 196px minmax(0, 1fr); }
   .hub-settings-host .settings-view .settings-page aside { padding: 10px 8px; background: transparent; }
   .hub-settings-host .settings-view .settings-content { padding: 18px 22px 24px; }

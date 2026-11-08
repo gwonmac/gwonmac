@@ -226,24 +226,24 @@
 .settings-view .setting-focus::before { content: ""; position: absolute; inset: 0 -10px 0 -14px; border-left: 3px solid var(--gold); border-radius: 6px; background: var(--gold-tint); pointer-events: none; }
 
 /* Widths, widest first, so a narrower page's rule wins. */
-@container settings (min-width: 1150px) {
+@container settings (width >= 1150px) {
   .settings-view .map-appearance { display: grid; grid-template-columns: minmax(0, 1fr) 224px; column-gap: 28px; }
   .settings-view .map-style-choice { grid-column: 1 / -1; }
   .settings-view .map-appearance .map-preview { grid-template-columns: 1fr; align-content: start; padding-top: 16px; gap: 8px; }
   .settings-view .map-appearance .range-control { width: 224px; }
   .settings-view .map-appearance-controls .setting-row { display: grid; grid-template-columns: minmax(0, 1fr) 224px; }
 }
-@container settings (max-width: 1100px) {
+@container settings (width <= 1100px) {
   .settings-view .setting-row, .settings-view .setting-group > label { flex-wrap: wrap; }
   .settings-view .setting-group > label > span { flex: 1; }
 }
-@container settings (max-width: 820px) {
+@container settings (width <= 820px) {
   .settings-view .settings-page { grid-template-columns: 188px minmax(0, 1fr); }
   .settings-view .settings-content { padding-inline: 22px; }
 }
 /* Narrow: one scroll for the whole page under a pinned row of section tabs. The row starts with
    a search button that swaps the tabs for the field, and fades at an end that hides more tabs. */
-@container settings (max-width: 600px) {
+@container settings (width <= 600px) {
   .settings-view .settings-page { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto; align-content: start; overflow-y: auto; scroll-padding-top: 72px; }
   .settings-view .settings-page aside { position: sticky; top: 0; z-index: 4; flex-direction: row; align-items: center; gap: 4px; overflow: visible; padding: 4px 8px; border-right: 0; border-bottom: 1px solid var(--line); background: var(--surface-solid); }
   .settings-view .settings-page aside h2, .settings-view .settings-nav-group h3 { display: none; }
