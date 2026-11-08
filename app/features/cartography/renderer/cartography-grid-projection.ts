@@ -57,12 +57,12 @@ export function cartographyCellAt(mapX: number, mapY: number): CartographyCell |
     : null;
 }
 
-/** Resolve a passive screen-space hover through the current Mission Map transform. */
-export function cartographyCellAtScreenPoint(
+/** The map-unit point under a screen point on a Mission or World Map, or null outside it. */
+export function cartographyMapPointAtScreenPoint(
   projection: CartographyGridProjection,
   clientX: number,
   clientY: number,
-): CartographyCell | null {
+): Readonly<{ x: number; y: number }> | null {
   const { box, transform } = projection;
   if (
     projection.surface === "compass"
@@ -77,9 +77,20 @@ export function cartographyCellAtScreenPoint(
   if (!Number.isFinite(determinant) || Math.abs(determinant) < Number.EPSILON) return null;
   const localX = clientX - box.left - transform.e;
   const localY = clientY - box.top - transform.f;
-  const mapX = (transform.d * localX - transform.c * localY) / determinant;
-  const mapY = (-transform.b * localX + transform.a * localY) / determinant;
-  return cartographyCellAt(mapX, mapY);
+  return Object.freeze({
+    x: (transform.d * localX - transform.c * localY) / determinant,
+    y: (-transform.b * localX + transform.a * localY) / determinant,
+  });
+}
+
+/** Resolve a passive screen-space hover through the current Mission Map transform. */
+export function cartographyCellAtScreenPoint(
+  projection: CartographyGridProjection,
+  clientX: number,
+  clientY: number,
+): CartographyCell | null {
+  const point = cartographyMapPointAtScreenPoint(projection, clientX, clientY);
+  return point === null ? null : cartographyCellAt(point.x, point.y);
 }
 
 function validFrameProjection(frame: MissionMapFrameSnapshot): boolean {

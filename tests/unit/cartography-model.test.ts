@@ -137,6 +137,8 @@ function sources(
       terrainWidth: kernelResult.walkableTerrain.width,
       terrainHeight: kernelResult.walkableTerrain.height,
     }),
+    route: () => null,
+    routeDiagnostic: () => null,
     dispose: () => undefined,
   };
   return {
