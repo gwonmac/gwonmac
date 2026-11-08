@@ -7,7 +7,7 @@
  * Enter is released. Nothing here needs layout or the browser's own focus movement.
  */
 import { afterEach, beforeAll, expect, test, vi } from 'vitest';
-import { byRole, click, fill, loadFixture, mountFixture, press, settle, shown, unmountFixture, until } from './hub-fixture-harness';
+import { byRole, click, fill, loadFixture, mountFixture, narrow, press, settle, shown, unmountFixture, until } from './hub-fixture-harness';
 import type { HubFixtureWindow } from '../tests/fixture-window';
 
 // The workbench page sets the fixture hooks; a renamed or removed hook fails to type-check here.
@@ -17,7 +17,7 @@ beforeAll(loadFixture);
 afterEach(unmountFixture);
 
 const app = () => document.getElementById('app')!;
-const hub = () => document.getElementById('hub') as HTMLDialogElement;
+const hub = () => narrow(HTMLDialogElement, document.getElementById('hub'));
 const search = () => document.querySelector<HTMLInputElement>('.hub-search input')!;
 const text = (selector: string) => document.querySelector(selector)?.textContent?.trim();
 const action = () => app().dataset.action;
@@ -77,7 +77,7 @@ test('Characters list arrival focuses the current card instead of its prior disp
   await until(() => byRole('button', 'Character Switch settings', true)[0]);
   click(byRole('button', 'Character Switch settings', true)[0]!);
   await until(() => byRole('checkbox', 'Show profession')[0]);
-  const profession = byRole('checkbox', 'Show profession')[0] as HTMLInputElement;
+  const profession = narrow(HTMLInputElement, byRole('checkbox', 'Show profession')[0]);
   profession.focus();
   expect(document.activeElement).toBe(profession);
   const before = profession.checked;
@@ -117,14 +117,14 @@ test('Command-T finds a Travel page opened from Home, and a closed Hub starts Tr
   fill(search(), 'travel'); await settle();
   expect(text('.hub-primary')).toMatch(/^Browse travel/u);
   press('Enter'); await settle();
-  const travelSearch = byRole('combobox', 'Destination, phrase, or friend')[0] as HTMLInputElement;
+  const travelSearch = narrow(HTMLInputElement, byRole('combobox', 'Destination, phrase, or friend')[0]);
   fill(travelSearch, 'kamadan'); await settle();
   press('Meta+t'); await settle();
   expect(text('.hub-breadcrumbs')).toBe('Home›Travel');
   expect(travelSearch.value).toBe('kamadan');
   click(byRole('button', 'Close Hub', true)[0]!); await settle();
   press('Meta+t'); await settle();
-  const fresh = byRole('combobox', 'Destination, phrase, or friend')[0] as HTMLInputElement;
+  const fresh = narrow(HTMLInputElement, byRole('combobox', 'Destination, phrase, or friend')[0]);
   expect(document.activeElement).toBe(fresh);
   expect(fresh.value).toBe('');
 });

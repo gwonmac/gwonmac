@@ -5,7 +5,7 @@
  * the Actions slot) and the footer every view keeps. The click runs are in hub-pointer.dom.test.ts.
  */
 import { afterEach, beforeAll, describe, expect, test, vi } from 'vitest';
-import { byRole, click, fill, loadFixture, mountFixture, press, settle, shown, unmountFixture, until } from './hub-fixture-harness';
+import { byRole, click, fill, loadFixture, mountFixture, narrow, press, settle, shown, unmountFixture, until } from './hub-fixture-harness';
 
 beforeAll(loadFixture);
 afterEach(unmountFixture);
@@ -73,7 +73,7 @@ function rightClick(target: Element) {
   target.dispatchEvent(new PointerEvent('pointerdown', init));
   if (target.dispatchEvent(new MouseEvent('mousedown', init))) {
     const focusable = target.closest<HTMLElement>('button, a[href], input, select, textarea, summary, [tabindex]');
-    if (focusable) focusable.focus(); else (document.activeElement as HTMLElement | null)?.blur();
+    if (focusable) focusable.focus(); else if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
   }
   target.dispatchEvent(new PointerEvent('pointerup', init));
   target.dispatchEvent(new MouseEvent('mouseup', init));
@@ -131,7 +131,7 @@ describe('Hub preferences', () => {
   type Pin = { id: string; phrase: string; pinned: boolean };
   /** The main process holds the pins; the fixture writes them to localStorage as `settings.set` lands. */
   const withPins = async (pins: Pin[]) => { const set = window.gwNative.settings.set({ hubShortcuts: pins }); await vi.advanceTimersByTimeAsync(10); await set; await settle(); };
-  const saved = () => JSON.parse(localStorage.getItem('hub-fixture-shortcuts') ?? '[]') as Pin[];
+  const saved = (): Pin[] => JSON.parse(localStorage.getItem('hub-fixture-shortcuts') ?? '[]');
   const savedIds = () => saved().map(entry => entry.id);
   const pins = (...ids: string[]) => ids.map(id => ({ id, phrase: '', pinned: true }));
   const listbox = () => byRole('listbox', 'Pins and search phrases')[0]!;
@@ -139,7 +139,7 @@ describe('Hub preferences', () => {
   const texts = (items: Element[]) => items.map(item => item.textContent!.trim());
   const button = (name: string) => byRole('button', name, true)[0]!;
   const group = (name: string) => byRole('group', name, true)[0]!;
-  const focusedUsable = () => { const active = document.activeElement as HTMLElement; return !!active?.closest('.hub-view') && !(active as HTMLButtonElement).disabled && shown(active); };
+  const focusedUsable = () => { const active = document.activeElement; return active instanceof HTMLElement && !!active.closest('.hub-view') && !('disabled' in active && active.disabled) && shown(active); };
   const item = (name: string | RegExp) => byRole('menuitem', '').find(entry => (typeof name === 'string' ? entry.textContent!.trim() === name : name.test(entry.textContent!)))!;
 
   for (const count of [0, 1, 3]) {
@@ -148,7 +148,7 @@ describe('Hub preferences', () => {
       await withPins(pins('place:449', 'place:194', 'place:642').slice(0, count));
       await enter('hub preferences');
       expect(focusedUsable()).toBe(true);
-      (document.querySelector('.hub-back') as HTMLElement).focus(); press('ArrowDown');
+      (narrow(HTMLElement, document.querySelector('.hub-back'))).focus(); press('ArrowDown');
       expect(focusedUsable()).toBe(true);
       if (count) {
         listbox().focus();

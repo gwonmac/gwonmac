@@ -19,6 +19,7 @@ import type { CharacterSwitchActionState, CharacterSwitchContext, CharacterSwitc
 // eslint-disable-next-line no-restricted-imports
 import { installCharacterSwitchHost } from '../../../../../features/character-switch/renderer/host';
 import { mountHubView } from '../embedded';
+import { narrow } from '../../hub-fixture-harness';
 
 const text = (element: Element | null | undefined) => element?.textContent?.replace(/\s+/gu, ' ').trim() ?? null;
 const nameOf = (element: Element | null) => {
@@ -141,7 +142,7 @@ test('Characters opens as a page named by its caption, with the cards as a named
     panelName: text(document.getElementById(field('#character-switch-root').getAttribute('aria-labelledby')!)),
     list: [field('#character-switch-list').getAttribute('role'), field('#character-switch-list').getAttribute('aria-label'), field('#character-switch-list').getAttribute('aria-orientation')],
     search: [query().getAttribute('role'), nameOf(query()), query().getAttribute('aria-activedescendant'), query().getAttribute('aria-expanded')],
-    controls: [...document.querySelectorAll('.character-switch-head button, .character-switch-arrow')].map(button => [button.getAttribute('aria-label'), (button as HTMLButtonElement).disabled]),
+    controls: [...document.querySelectorAll('.character-switch-head button, .character-switch-arrow')].map(button => [button.getAttribute('aria-label'), (narrow(HTMLButtonElement, button)).disabled]),
     count: [count(), field('.character-switch-count').getAttribute('aria-live')],
     settingsPressed: field('.character-switch-settings-toggle').getAttribute('aria-pressed'),
     closedParts: ['.character-switch-settings', '.character-switch-confirm', '.character-switch-details'].map(hidden),

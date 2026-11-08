@@ -7,7 +7,7 @@
  * insertion and scrolling stay in Playwright.
  */
 import { afterEach, beforeAll, expect, test, vi } from 'vitest';
-import { byRole, click, fill, loadFixture, mountFixture, press, settle, shown, type, unmountFixture } from './hub-fixture-harness';
+import { byRole, click, fill, loadFixture, mountFixture, narrow, press, settle, shown, type, unmountFixture } from './hub-fixture-harness';
 import type { HubFixtureWindow } from '../tests/fixture-window';
 
 // The workbench page sets the fixture hooks; a renamed or removed hook fails to type-check here.
@@ -16,12 +16,12 @@ declare const window: HubFixtureWindow;
 beforeAll(loadFixture);
 afterEach(unmountFixture);
 
-const hub = () => document.getElementById('hub') as HTMLDialogElement;
+const hub = () => narrow(HTMLDialogElement, document.getElementById('hub'));
 const search = () => document.querySelector<HTMLInputElement>('.hub-search input')!;
 const text = (selector: string) => document.querySelector(selector)?.textContent?.trim();
 const hubOpen = () => hub().open && shown(hub());
 const canvasKeys = () => window.gwFixtureCanvas.events.filter(event => event.type.startsWith('key')).length;
-const travelSearch = () => byRole('combobox', 'Destination, phrase, or friend')[0] as HTMLInputElement;
+const travelSearch = () => narrow(HTMLInputElement, byRole('combobox', 'Destination, phrase, or friend')[0]);
 const keydown = (target: Element, init: KeyboardEventInit) => target.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ...init }));
 
 // HUB-005 and D-4: a page its shortcut opened has no Home step; Escape clears, then closes.
@@ -109,7 +109,7 @@ test('Characters: Escape during composition keeps the query (HUB-140)', async ()
   await mountFixture();
   press('Meta+e'); await settle();
   type('toe');
-  const query = document.getElementById('character-switch-query') as HTMLInputElement;
+  const query = narrow(HTMLInputElement, document.getElementById('character-switch-query'));
   expect(query.value).toBe('toe');
   expect(text('.hub-legend')).toContain('⎋ Clear');
   keydown(query, { key: 'Escape', isComposing: true });

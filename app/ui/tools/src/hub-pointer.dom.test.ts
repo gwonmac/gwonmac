@@ -9,7 +9,7 @@
  * resting pointer and scrolling stay in hub-pointer.spec.ts.
  */
 import { afterEach, beforeAll, describe, expect, test, vi } from 'vitest';
-import { byRole, click, fill, loadFixture, mountFixture, press, settle, type, unmountFixture, until } from './hub-fixture-harness';
+import { byRole, click, fill, loadFixture, mountFixture, narrow, press, settle, type, unmountFixture, until } from './hub-fixture-harness';
 
 beforeAll(loadFixture);
 afterEach(unmountFixture);
@@ -26,7 +26,7 @@ const byId = (id: string) => document.querySelector<HTMLElement>(`#hub .hub-row[
 const ledger = () => [...(window.gwFixtureActions ?? [])];
 const canvas = () => (window.gwFixtureCanvas?.events ?? []).filter(event => event.type !== 'keyup' || event.code).map(event => `${event.type}:${event.code ?? event.detail}`);
 const gameCanvas = () => document.getElementById('canvas')!;
-const hubOpen = () => (document.getElementById('hub') as HTMLDialogElement).open;
+const hubOpen = () => (narrow(HTMLDialogElement, document.getElementById('hub'))).open;
 async function enter(query: string) { fill(search(), query); await settle(); press('Enter'); await settle(); }
 
 /** The click clock: a run's presses carry the time of the fake clock, as Chromium stamps them. */
@@ -38,7 +38,7 @@ function dispatchPress(target: Element, detail: number, at = HERE) {
   send(new PointerEvent('pointerdown', { ...init, detail: 0 }));
   if (send(new MouseEvent('mousedown', init))) {
     const focusable = target.closest<HTMLElement>('button, a[href], input, select, textarea, summary, [tabindex]');
-    if (focusable) focusable.focus(); else (document.activeElement as HTMLElement | null)?.blur();
+    if (focusable) focusable.focus(); else if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
   }
   send(new PointerEvent('pointerup', { ...init, detail: 0 }));
   send(new MouseEvent('mouseup', init));
@@ -186,7 +186,7 @@ describe('trailing clicks never reach the game', () => {
       fill(search(), query); await settle();
       await clicks(pick ? byId(pick) : document.querySelector('#hub .hub-row')!, 2, 120, landsOnGame);
       type('w1 hi');
-      const active = document.activeElement as HTMLInputElement | null;
+      const active = document.activeElement instanceof HTMLInputElement ? document.activeElement : null;
       expect({ value: active?.value, inside: !!active?.closest(destination) }).toEqual({ value: expect.stringContaining('w1 hi'), inside: true });
       expect(canvas()).toEqual([]);
     });
@@ -329,7 +329,7 @@ describe('the footer primary', () => {
     lifecycle('pve-explorable');
     press('Meta+r'); await settle(); fill(search(), 'team gom afk'); await settle(); press('ArrowRight'); await settle();
     expect(document.querySelector('.hub-build-review [role=status]')!.textContent).toBe('Enter an outpost to apply this team.');
-    expect((document.activeElement as HTMLButtonElement).disabled).not.toBe(true);
+    expect(document.activeElement instanceof HTMLButtonElement && document.activeElement.disabled).not.toBe(true);
     expect(document.activeElement).toBe(document.querySelector('.hub-build-review'));
     expect(primary().hasAttribute('disabled')).toBe(true);
     lifecycle('outpost');
@@ -378,7 +378,7 @@ describe('other click runs', () => {
     await mountFixture();
     press('Meta+t'); await settle();
     await clicks(document.getElementById('travel-recent-194')!, 1);
-    const input = document.getElementById('travel-search-input') as HTMLInputElement;
+    const input = narrow(HTMLInputElement, document.getElementById('travel-search-input'));
     fill(input, 'zzzzqq'); await settle();
     // The second press of the double-click lands on the destination that comes back once the search is clear.
     await clicks(byRole('button', 'Clear search', true)[0]!, 2, 120, () => document.getElementById('travel-recent-194') ?? undefined);
@@ -429,7 +429,10 @@ describe('a press that ends on another element', () => {
 
 describe('Hub preferences', () => {
   const pins = ['place:449', 'place:194', 'place:642'];
-  const savedIds = () => (JSON.parse(localStorage.getItem('hub-fixture-shortcuts') ?? '[]') as { id: string }[]).map(entry => entry.id);
+  const savedIds = () => {
+    const saved: { id: string }[] = JSON.parse(localStorage.getItem('hub-fixture-shortcuts') ?? '[]');
+    return saved.map(entry => entry.id);
+  };
   const options = () => [...byRole('listbox', 'Pins and search phrases')[0]!.querySelectorAll<HTMLElement>('[role=option]')].map(option => option.textContent!.trim());
   test('a double-click on Move up moves the same pin twice and saves the order (PTR-12)', async () => {
     await mountFixture();

@@ -7,12 +7,12 @@
  * and the browser's own text editing stay in Playwright.
  */
 import { afterEach, beforeAll, expect, test, vi } from 'vitest';
-import { byRole, click, fill, loadFixture, mountFixture, press, settle, shown, unmountFixture, until } from './hub-fixture-harness';
+import { byRole, click, fill, loadFixture, mountFixture, narrow, press, settle, shown, unmountFixture, until } from './hub-fixture-harness';
 
 beforeAll(loadFixture);
 afterEach(unmountFixture);
 
-const hub = () => document.getElementById('hub') as HTMLDialogElement;
+const hub = () => narrow(HTMLDialogElement, document.getElementById('hub'));
 const search = () => document.querySelector<HTMLInputElement>('.hub-search input')!;
 const hubOpen = () => hub().open && shown(hub());
 const text = (selector: string) => document.querySelector(selector)?.textContent?.trim();
@@ -24,7 +24,7 @@ const selectedRow = () => document.querySelector<HTMLElement>('#hub .hub-row[ari
 const primary = () => text('.hub-primary') ?? '';
 const button = (name: string, exact = true) => byRole('button', name, exact)[0]!;
 const send = (name: string, detail?: unknown) => window.dispatchEvent(detail === undefined ? new Event(name) : new CustomEvent(name, { detail }));
-const choose = (field: Element, value: string) => { (field as HTMLSelectElement).value = value; field.dispatchEvent(new Event('change', { bubbles: true })); };
+const choose = (field: Element, value: string) => { (narrow(HTMLSelectElement, field)).value = value; field.dispatchEvent(new Event('change', { bubbles: true })); };
 /** A key whose effect lands after a render tick. */
 const tick = async (chord: string) => { press(chord); await vi.advanceTimersByTimeAsync(30); };
 const go = async (query: string) => { fill(search(), query); press('Enter'); await settle(); };
@@ -32,7 +32,10 @@ const actionsButton = () => document.querySelector<HTMLButtonElement>('.hub-acti
 const primaryButton = () => document.querySelector<HTMLButtonElement>('.hub-primary')!;
 /** A tool switched off through the fixture's settings event stays off for the next mount in this file, so each such test puts them back. */
 const restoreTools = () => send('hub-fixture-settings', { buildLibrary: true, tradeChat: true, whispersEnabled: true });
-const draft = (name: string) => byRole('textbox', `Message ${name}`, true)[0] as HTMLTextAreaElement | undefined;
+const draft = (name: string) => {
+  const found = byRole('textbox', `Message ${name}`, true)[0];
+  return found instanceof HTMLInputElement || found instanceof HTMLTextAreaElement ? found : undefined;
+};
 
 test('calculator retains labelled values when optional currency artwork fails', async () => {
   await mountFixture();
@@ -42,7 +45,7 @@ test('calculator retains labelled values when optional currency artwork fails', 
   await settle();
   expect(option(/1\.25 platinum/u)).toBeDefined();
   expect(document.querySelectorAll('#hub .hub-conversion-art').length).toBe(0);
-  expect((byRole('button', 'Copy 1.25 platinum')[0] as HTMLButtonElement).disabled).toBe(false);
+  expect((narrow(HTMLButtonElement, byRole('button', 'Copy 1.25 platinum')[0])).disabled).toBe(false);
 });
 
 test('Hub searches, restores the query after actions, and hands off explicitly', async () => {
@@ -173,7 +176,7 @@ test('exact build has a visible target and does not apply while typing', async (
   await mountFixture();
   fill(search(), 'build smiter'); await settle();
   expect(primary()).toContain('Choose target');
-  expect((document.querySelector('.hub-primary') as HTMLButtonElement).disabled).toBe(false);
+  expect((narrow(HTMLButtonElement, document.querySelector('.hub-primary'))).disabled).toBe(false);
   expect(document.querySelector('.hub-preview') === null || !shown(document.querySelector('.hub-preview')!)).toBe(true);
   expect(document.querySelector('.hub-build-row')!.textContent).not.toContain('Templates/Skills');
   expect(document.querySelector('.hub-build-row [alt="Healing Prayers 12"], .hub-build-row [aria-label="Healing Prayers 12"]')).not.toBeNull();
@@ -303,7 +306,7 @@ test('Maps controls save inline without navigating away', async () => {
   await go('maps');
   expect(caption()).toBe('Settings');
   click(byRole('checkbox', 'Exploration grid')[0]!); await settle();
-  const slider = () => byRole('slider', 'Grid opacity')[0] as HTMLInputElement;
+  const slider = () => narrow(HTMLInputElement, byRole('slider', 'Grid opacity')[0]);
   expect(slider()).toBeDefined();
   fill(slider(), '45'); slider().dispatchEvent(new Event('change', { bubbles: true })); await settle();
   expect(slider().value).toBe('45');
@@ -340,9 +343,9 @@ test('compact armbrace conversions use explicit manual rates', async () => {
   click(byRole('menuitem', 'Show price details')[0]!); await settle();
   click(button('Edit rates')); await settle();
   choose(byRole('combobox', 'Rate source')[0]!, 'manual'); await settle();
-  fill(byRole('textbox', 'Gold per ectoplasm')[0] as HTMLInputElement, '5000');
-  fill(byRole('textbox', 'Ectoplasm per armbrace')[0] as HTMLInputElement, '30');
-  fill(byRole('textbox', 'Ectoplasm per Zaishen key')[0] as HTMLInputElement, '0.5');
+  fill(narrow(HTMLInputElement, byRole('textbox', 'Gold per ectoplasm')[0]), '5000');
+  fill(narrow(HTMLInputElement, byRole('textbox', 'Ectoplasm per armbrace')[0]), '30');
+  fill(narrow(HTMLInputElement, byRole('textbox', 'Ectoplasm per Zaishen key')[0]), '0.5');
   click(button('Use these rates', false)); await settle();
   click(button('Back')); await settle(); click(button('Back')); await settle();
   expect(card()).toContain('0.006667 armbrace');
@@ -396,7 +399,7 @@ test.each([
   await mountFixture();
   if (route === 'shortcut') press('Meta+t'); else await go('travel');
   await settle();
-  const travel = () => document.getElementById('travel-search-input') as HTMLInputElement;
+  const travel = () => narrow(HTMLInputElement, document.getElementById('travel-search-input'));
   expect(document.activeElement).toBe(travel());
   if (route === 'search') fill(travel(), 'kamadan');
   if (route === 'recent') press('ArrowDown');
@@ -438,7 +441,7 @@ test('exact team applies through the observed runner, prefixes only review', asy
 test('Travel empty-query arrows, favorites and settings by keyboard (Hub typography stays in the browser)', async () => {
   await mountFixture();
   await go('travel');
-  const travel = () => byRole('combobox', 'Destination, phrase, or friend')[0] as HTMLInputElement;
+  const travel = () => narrow(HTMLInputElement, byRole('combobox', 'Destination, phrase, or friend')[0]);
   expect(document.activeElement).toBe(travel());
   const selectedId = () => document.querySelector('.travel-history [aria-selected=true]')?.id;
   expect(document.getElementById('travel-recent-449')!.getAttribute('aria-selected')).toBe('true');
@@ -459,7 +462,7 @@ test('Travel empty-query arrows, favorites and settings by keyboard (Hub typogra
 test('Travel names where you are and shows the destination the keys chose (HUB-190, HUB-070)', async () => {
   await mountFixture();
   press('Meta+t'); await settle();
-  const travel = () => byRole('combobox', 'Destination, phrase, or friend')[0] as HTMLInputElement;
+  const travel = () => narrow(HTMLInputElement, byRole('combobox', 'Destination, phrase, or friend')[0]);
   expect(document.activeElement).toBe(travel());
   expect(text('.hub-context')).toBe("Fixture Monk · Lion's Arch");
   for (const [query, key, destination] of [['', 'Home', 'Kamadan, Jewel of Istan'], ['rata', '', 'Rata Sum'], ['', '3', 'Kamadan, Jewel of Istan']] as const) {
@@ -474,7 +477,7 @@ test('Travel names where you are and shows the destination the keys chose (HUB-1
 test('Travel carousel arrows browse without executing and preserve query caret editing', async () => {
   await mountFixture();
   await go('travel');
-  const travel = () => byRole('combobox', 'Destination, phrase, or friend')[0] as HTMLInputElement;
+  const travel = () => narrow(HTMLInputElement, byRole('combobox', 'Destination, phrase, or friend')[0]);
   expect(document.activeElement).toBe(travel());
   fill(travel(), 'kamadan');
   // With a query the arrows are the text caret's: the carousel never claims them.
@@ -554,7 +557,7 @@ test('in-game settings stay in Hub and Show Launcher remains explicit', async ()
   // The Settings page keeps the section last opened (Maps, in the test before) across fixture mounts; a page load starts on Tools.
   const section = (name: string) => [...document.querySelectorAll<HTMLElement>('nav[aria-label="Settings sections"] button')].find(candidate => candidate.textContent?.trim() === name)!;
   click(section('Tools')); await settle();
-  const whispers = () => byRole('checkbox', 'Whispers', true)[0] as HTMLInputElement;
+  const whispers = () => narrow(HTMLInputElement, byRole('checkbox', 'Whispers', true)[0]);
   click(whispers()); await settle();
   expect(document.querySelector('nav[aria-label="Settings sections"]')).not.toBeNull();
   expect(whispers().checked).toBe(false);
@@ -568,7 +571,7 @@ test('in-game settings stay in Hub and Show Launcher remains explicit', async ()
   click(whispers()); await settle();
   expect(whispers().checked).toBe(true);
   click(button('Appearance')); await settle();
-  const style = () => byRole('combobox', 'Panel style')[0] as HTMLSelectElement;
+  const style = () => narrow(HTMLSelectElement, byRole('combobox', 'Panel style')[0]);
   choose(style(), 'obsidian'); await settle();
   expect(style().value).toBe('obsidian');
   click(button('Back')); await settle();
@@ -586,7 +589,7 @@ test('floating chat keeps its draft and appearance when reopened', async () => {
   expect(hubOpen()).toBe(false);
   expect(document.querySelectorAll('.whisper-popout-host').length).toBe(1);
   click(byRole('button', 'Chat options', true)[0]!); await settle();
-  fill(byRole('slider', 'Background')[0] as HTMLInputElement, '60'); await settle();
+  fill(narrow(HTMLInputElement, byRole('slider', 'Background')[0]), '60'); await settle();
   click(button('Hide Whispers')); await settle();
   press('Meta+d'); await settle();
   expect(hubOpen()).toBe(false);

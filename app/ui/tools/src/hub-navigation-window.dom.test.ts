@@ -8,7 +8,7 @@
  * Back, the browser's own Tab order and reloads stay in Playwright.
  */
 import { afterEach, beforeAll, expect, test, vi } from 'vitest';
-import { byRole, click, fill, loadFixture, mountFixture, press, settle, shown, type, unmountFixture } from './hub-fixture-harness';
+import { byRole, click, fill, loadFixture, mountFixture, narrow, press, settle, shown, type, unmountFixture } from './hub-fixture-harness';
 import type { HubFixtureWindow } from '../tests/fixture-window';
 
 // The workbench page sets the fixture hooks; a renamed or removed hook fails to type-check here.
@@ -17,7 +17,7 @@ declare const window: HubFixtureWindow;
 beforeAll(loadFixture);
 afterEach(unmountFixture);
 
-const hub = () => document.getElementById('hub') as HTMLDialogElement;
+const hub = () => narrow(HTMLDialogElement, document.getElementById('hub'));
 const search = () => document.querySelector<HTMLInputElement>('.hub-search input')!;
 const text = (selector: string) => document.querySelector(selector)?.textContent?.trim();
 const caption = () => text('.hub-caption');
@@ -35,7 +35,7 @@ const keydown = (target: Element, init: KeyboardEventInit) => target.dispatchEve
  * default (delete one character) only when nothing prevented the key-down.
  */
 function hold(key: string, repeats: number, modifiers: KeyboardEventInit = {}) {
-  const field = document.activeElement as HTMLInputElement;
+  const field = narrow(HTMLInputElement, document.activeElement);
   for (let presses = 0; presses <= repeats; presses++) {
     const allowed = keydown(document.activeElement!, { key, code: key, repeat: presses > 0, ...modifiers });
     if (allowed && key === 'Backspace' && !modifiers.metaKey && field instanceof HTMLInputElement && field.value) {
@@ -163,13 +163,16 @@ test('the Characters carousel takes the same list move and never wraps', async (
   await mountFixture();
   press('Meta+e'); await settle();
   const cards = () => [...document.querySelectorAll<HTMLElement>('.character-switch-list button[data-row]')];
-  const focusedRow = () => Number((document.activeElement as HTMLElement | null)?.dataset.row ?? -1);
+  const focusedRow = () => {
+    const active = document.activeElement;
+    return active instanceof HTMLElement ? Number(active.dataset.row ?? -1) : -1;
+  };
   const state = window.gwCharacterSwitch?.characters;
   const count = state?.status === 'ready' ? state.characters.length : 0;
   expect(count).toBeGreaterThan(5);
   expect(document.activeElement).toBe(cards()[0]);
-  const previous = byRole('button', 'Previous character')[0] as HTMLButtonElement;
-  const next = byRole('button', 'Next character')[0] as HTMLButtonElement;
+  const previous = narrow(HTMLButtonElement, byRole('button', 'Previous character')[0]);
+  const next = narrow(HTMLButtonElement, byRole('button', 'Next character')[0]);
   expect(previous.disabled).toBe(true);
   // Up leaves the cards for the character search (plan §3), so it is no list step here.
   for (const key of ['ArrowLeft', 'Home', 'PageUp', 'Control+p']) { await tick(key); expect(focusedRow(), key).toBe(0); }
@@ -202,7 +205,7 @@ test('a view whose first buttons are disabled still takes focus, and Command-Bac
   keydown(search(), { key: 'Enter', code: 'Enter' }); await settle();
   expect(caption()).toBe('Hub preferences');
   // Nothing is pinned, so Remove all search phrases is disabled; focus goes to the first usable control.
-  expect((byRole('button', 'Remove all search phrases…', true)[0] as HTMLButtonElement).disabled).toBe(true);
+  expect((narrow(HTMLButtonElement, byRole('button', 'Remove all search phrases…', true)[0])).disabled).toBe(true);
   expect(document.activeElement).toBe(byRole('button', 'Reset Hub position', true)[0]);
   document.activeElement!.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter', code: 'Enter', bubbles: true }));
   expect(document.activeElement).not.toBe(document.body);
@@ -455,7 +458,7 @@ test('a held Backspace empties Travel\'s search and leaves Travel, its picker an
   expect(selectedRow()!.dataset.id).toBe('travel');
   press('Enter'); await settle();
   expect(caption()).toBe('Travel');
-  const travelSearch = document.getElementById('travel-search-input') as HTMLInputElement;
+  const travelSearch = narrow(HTMLInputElement, document.getElementById('travel-search-input'));
   fill(travelSearch, 'kam'); await settle();
   hold('Backspace', 6); await settle();
   expect(caption()).toBe('Travel');
