@@ -64,10 +64,7 @@ import { pruneUnreferencedChunks } from "../main/core/chunk-cache.js";
 import { readClientCacheInfo } from "../main/core/client-cache-info.js";
 import { encodedChunkLimit } from "../main/core/chunk-format.js";
 import { ChunkStore } from "./chunk-store.js";
-import {
-  prepareClientModule,
-  type ClientCertification,
-} from "./certification/client-module.js";
+import { prepareClientModule } from "./certification/client-module.js";
 import {
   clearRejectedClient,
   confirmClientCandidate,
@@ -381,7 +378,7 @@ export class ClientRuntime {
     };
     // Nothing in obtaining a verdict may fail activation: any error is a
     // failed check, and the launch plays the official module.
-    let obtained: ClientVerdictOutcome | null = null;
+    let obtained: ClientVerdictOutcome | null;
     try {
       const jsSha256 = await sha256File(officialJs);
       obtained = await obtainClientVerdict({
