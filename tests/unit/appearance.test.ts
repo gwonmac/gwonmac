@@ -12,7 +12,7 @@ import {
   DEFAULT_SETTINGS,
   type AppSettings,
 } from "../../app/shared/contracts.js";
-import { defaultCustomUiTheme, type UiThemeColor } from "../../app/shared/ui-theme.js";
+import { defaultCustomUiTheme, type CustomUiTheme, type UiThemeColor } from "../../app/shared/ui-theme.js";
 
 /* Where text sits over the game: the panel over snow and over a black scene,
  * each with and without the accent hover layer. */
@@ -333,18 +333,24 @@ describe("panel text legibility over the game", () => {
   it("keeps every text role at 4.5:1 over a custom theme's selection fill, accent and window at every opacity", () => {
     // The Hub's composed-pixel cases (hub-appearance.spec.ts) keep the extremes; the rest of
     // that matrix is these themes, whose selection paint joins the worst-case backgrounds.
-    const blue = { material: "classic", window: "#0B0B0B", titlebar: "#292927", surface: "#202225", recessed: "#080807", selected: "#1B3554", accent: "#4A6FA5", text: "#F1EBDD", mutedText: "#B7B09F", border: "#D8D2BF", windowGradient: true } as const;
-    const themes = [
+    const blue: CustomUiTheme = { material: "classic", window: "#0B0B0B", titlebar: "#292927", surface: "#202225", recessed: "#080807", selected: "#1B3554", accent: "#4A6FA5", text: "#F1EBDD", mutedText: "#B7B09F", border: "#D8D2BF", windowGradient: true };
+    const themes: readonly (readonly [string, CustomUiTheme])[] = [
       ["blue classic", blue], ["blue modern", { ...blue, material: "modern" }], ["red accent", { ...blue, accent: "#B03A2E" }],
       ["white window", { ...blue, accent: "#E6C882", window: "#FFFFFF" }],
-    ] as const;
-    for (const [name, custom] of themes) {
+    ];
+    // The selection fill's lightest stop mixes the selected colour with transparency. The app
+    // publishes it only for a recoloured selection, so read its share from such a theme.
+    const recoloured: AppSettings = { ...DEFAULT_SETTINGS, uiStyle: "custom", uiCustomTheme: { ...blue, selected: "#2A4A70" } };
+    const stop = /color-mix\(in srgb, \S+ (\d+)%, transparent\)/u.exec(appearanceVariables(recoloured)["--ui-selection-fill"] ?? "");
+    assert.ok(stop, "a recoloured selection publishes a fill that starts with a translucent stop");
+    const selectionAlpha = Number(stop[1]) / 100;
+    for (const [name, theme] of themes) {
       for (const uiPanelOpacity of [65, 70, 80, 94, 100]) {
-        const theme = custom as unknown as AppSettings["uiCustomTheme"];
-        const inks = publishedInks({ ...DEFAULT_SETTINGS, uiStyle: "custom", uiPanelOpacity, uiCustomTheme: theme });
+        const settings: AppSettings = { ...DEFAULT_SETTINGS, uiStyle: "custom", uiPanelOpacity, uiCustomTheme: theme };
+        const inks = publishedInks(settings);
         const rendered = renderedCustomTheme(theme);
         const panels = (["#FFFFFF", "#000000"] as const).map((scene) => compositeColor(rendered.window, scene, uiPanelOpacity / 100));
-        const backgrounds = [...panels, ...panels.map((panel) => compositeColor(rendered.selected, panel, 0.84)), rendered.titlebar, rendered.surface];
+        const backgrounds = [...panels, ...panels.map((panel) => compositeColor(rendered.selected, panel, selectionAlpha)), rendered.titlebar, rendered.surface];
         for (const [token, ink] of Object.entries(inks)) {
           if (token === "--ui-accent-text") continue;
           for (const background of backgrounds) assert.ok(contrastRatio(ink, background) >= 4.5, `${name} ${uiPanelOpacity}% ${token} ${ink} on ${background}`);
