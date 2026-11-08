@@ -19,6 +19,7 @@ import {
   isExtendedMemoryProfile,
   type ExtendedMemoryProfile,
 } from "../../client/certification/extended-memory.js";
+import { isFailedStagesField } from "../../client/certification/client-verification-pass.js";
 import {
   LOCAL_FEATURE_INVARIANTS,
   type AnyLocalFeatureInvariant,
@@ -30,6 +31,7 @@ import {
   boolean,
   captureLevel,
   captureStopReason,
+  clientBuildId,
   code,
   count,
   digestOrNull,
@@ -656,17 +658,28 @@ export const APP_AND_UPDATE_EVENT_SCHEMA = {
     level: "warn",
     fields: { code },
   },
-  "wasm.localVerificationCompleted": {
+  // Where this launch's certification came from: the stored record, a pass,
+  // or `error` when no check could start (hashing the official JS failed).
+  // `build` is the first 12 hex digits of the public official WASM hash;
+  // nothing else names the client.
+  "wasm.clientVerdict": {
     scope: "app",
     subsystem: "wasm",
     level: "info",
-    fields: none,
+    fields: {
+      build: clientBuildId,
+      source: literal(["record", "pass", "error"] as const),
+      outcome: literal(["accepted", "check-failed"] as const),
+      passMs: nullable(finiteNumber),
+      // Stage names that failed to check, in chain order; null with no verdict.
+      failedStages: nullable(isFailedStagesField),
+    },
   },
-  "wasm.localVerificationUnavailable": {
+  "wasm.clientVerdictStored": {
     scope: "app",
     subsystem: "wasm",
-    level: "warn",
-    fields: none,
+    level: "info",
+    fields: { stored: boolean },
   },
   "wasm.templateSavePrepareFailed": {
     scope: "app",
@@ -717,6 +730,7 @@ export const APP_AND_UPDATE_EVENT_SCHEMA = {
         "none",
         "unsupported-client",
         "preparation-failed",
+        "check-failed",
         "diagnostic-profile",
       ] as const),
     },

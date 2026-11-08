@@ -1,43 +1,28 @@
 /**
- * The utility process the local client proof runs inside: read the module,
- * confirm it is the one that was asked for, verify it, answer once.
+ * The utility process the local client proof runs inside: read the official
+ * WebAssembly and JavaScript once, confirm they are the ones that were asked
+ * for, run one verifier pass over every launch profile, and report after each
+ * profile.
  *
  * Isolation is the whole point. The verifier walks a multi-megabyte module this
  * project did not produce, so it runs where a crash or a runaway loop costs the
- * launch nothing. The host owns the timeout; this process holds no state and
+ * launch nothing. The host owns only the hard bound on the whole pass; how
+ * long a launch waits is its caller's budget. This process holds no state and
  * writes no files.
  *
- * Every refusal is its own exit code and posts `null` before returning. That
- * closes the parent's wait immediately; the parent still validates every
- * non-null result and owns the timeout for a crash or a hung parser.
+ * The first profile is the one this launch is waiting for. After reporting it,
+ * the process lowers its own priority so the rest of the pass does not compete
+ * with the game starting. Every refusal posts `null` and sets its own exit
+ * code, which closes the parent's wait at once; the parent still validates
+ * every non-null message.
  */
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
+import { constants, setPriority } from "node:os";
 import {
-  acceptLocalClientVerification,
-  verifyLocalClientBytes,
-} from "./local-client-verifier.js";
-import {
-  deriveNativeDoubleClickBuild,
-  isDerivedNativeDoubleClickBuild,
-} from "./native-double-click.js";
-import {
-  enhancementCapabilitiesForProfile,
-  NO_ENHANCEMENT_CAPABILITIES,
-  type EnhancementCapabilities,
-} from "../../shared/enhancement-contracts.js";
-import {
-  deriveExtendedMemoryStructuralProof,
-  isExtendedMemoryStructuralProof,
-} from "./extended-memory.js";
-import {
-  deriveCartographySpikeBuild,
-  isCartographySpikeBuild,
-} from "./cartography-spike-verifier.js";
-import {
-  deriveFriendObserverBuild,
-  isFriendObserverBuild,
-} from "./friend-observer-transform.js";
+  runClientVerificationPass,
+  type ClientVerificationLaunch,
+} from "./client-verification-pass.js";
 
 interface ParentPort {
   postMessage(value: unknown): void;
@@ -47,108 +32,60 @@ const parentPort = (
   process as NodeJS.Process & { parentPort?: ParentPort }
 ).parentPort;
 
+const sha256 = (bytes: Uint8Array | string): string =>
+  createHash("sha256").update(bytes).digest("hex");
+
+function parseLaunches(value: string): ClientVerificationLaunch[] | null {
+  try {
+    const parsed: unknown = JSON.parse(value);
+    if (!Array.isArray(parsed) || parsed.length === 0 || parsed.length > 8) return null;
+    const launches: ClientVerificationLaunch[] = [];
+    const items: readonly unknown[] = parsed;
+    for (const item of items) {
+      if (
+        !item || typeof item !== "object"
+        || !("requestedProfile" in item) || typeof item.requestedProfile !== "string"
+        || !("cartography" in item) || typeof item.cartography !== "boolean"
+      ) return null;
+      launches.push({ requestedProfile: item.requestedProfile, cartography: item.cartography });
+    }
+    return launches;
+  } catch {
+    return null;
+  }
+}
+
 async function main(): Promise<void> {
-  const [mode, firstPath, firstSha256, secondPath, secondSha256] =
+  const [mode, wasmPath, wasmSha256, jsPath, jsSha256, launchesJson, memory] =
     process.argv.slice(2);
-  if (!parentPort || !mode || !firstPath || !firstSha256) {
+  const launches = launchesJson ? parseLaunches(launchesJson) : null;
+  if (
+    !parentPort || mode !== "pass"
+    || !wasmPath || !wasmSha256 || !jsPath || !jsSha256 || !launches
+    || (memory !== "memory-first" && memory !== "memory-later")
+  ) {
+    parentPort?.postMessage(null);
     process.exitCode = 2;
     return;
   }
-
-  if (mode === "extended-memory") {
-    if (!secondPath || !secondSha256) {
-      process.exitCode = 2;
-      return;
-    }
-    const [jsInput, wasmInput] = await Promise.all([
-      readFile(firstPath, "utf8"),
-      readFile(secondPath),
-    ]);
-    const actualJsSha256 = createHash("sha256").update(jsInput).digest("hex");
-    const actualWasmSha256 = createHash("sha256").update(wasmInput).digest("hex");
-    if (actualJsSha256 !== firstSha256 || actualWasmSha256 !== secondSha256) {
-      parentPort.postMessage(null);
-      process.exitCode = 3;
-      return;
-    }
-    const result = deriveExtendedMemoryStructuralProof(jsInput, wasmInput);
-    if (!isExtendedMemoryStructuralProof(result, firstSha256, secondSha256)) {
-      parentPort.postMessage(null);
-      process.exitCode = 4;
-      return;
-    }
-    parentPort.postMessage(result);
-    return;
-  }
-
-  const wasmPath = firstPath;
-  const expectedSha256 = firstSha256;
-  const requestedProfile = secondPath;
-
-  const bytes = await readFile(wasmPath);
-  const actualSha256 = createHash("sha256").update(bytes).digest("hex");
-  if (actualSha256 !== expectedSha256) {
+  const [wasm, js] = await Promise.all([readFile(wasmPath), readFile(jsPath, "utf8")]);
+  if (sha256(wasm) !== wasmSha256 || sha256(js) !== jsSha256) {
     parentPort.postMessage(null);
     process.exitCode = 3;
     return;
   }
-
-  if (mode === "client") {
-    const requestedCapabilities: EnhancementCapabilities | null = requestedProfile === "none"
-      ? NO_ENHANCEMENT_CAPABILITIES
-      : requestedProfile
-        ? enhancementCapabilitiesForProfile(requestedProfile)
-        : null;
-    if (!requestedCapabilities) {
-      parentPort.postMessage(null);
-      process.exitCode = 2;
-      return;
+  const port = parentPort;
+  let reported = false;
+  await runClientVerificationPass(wasm, js, launches, (result, complete) => {
+    port.postMessage({ complete, result });
+    if (reported) return;
+    reported = true;
+    try {
+      setPriority(constants.priority.PRIORITY_BELOW_NORMAL);
+    } catch {
+      // Priority is a courtesy to the starting game, not a requirement.
     }
-    const result = acceptLocalClientVerification(
-      verifyLocalClientBytes(bytes, requestedCapabilities),
-      expectedSha256,
-      requestedCapabilities,
-    );
-    if (result === null) {
-      parentPort.postMessage(null);
-      process.exitCode = 4;
-      return;
-    }
-    parentPort.postMessage(result);
-    return;
-  }
-  if (mode === "native-double-click") {
-    const result = deriveNativeDoubleClickBuild(bytes);
-    if (!isDerivedNativeDoubleClickBuild(result, expectedSha256)) {
-      parentPort.postMessage(null);
-      process.exitCode = 4;
-      return;
-    }
-    parentPort.postMessage(result);
-    return;
-  }
-  if (mode === "cartography") {
-    const result = deriveCartographySpikeBuild(bytes);
-    if (!isCartographySpikeBuild(result, expectedSha256)) {
-      parentPort.postMessage(null);
-      process.exitCode = 4;
-      return;
-    }
-    parentPort.postMessage(result);
-    return;
-  }
-  if (mode === "friend-observer") {
-    const result = deriveFriendObserverBuild(bytes);
-    if (!isFriendObserverBuild(result, expectedSha256)) {
-      parentPort.postMessage(null);
-      process.exitCode = 4;
-      return;
-    }
-    parentPort.postMessage(result);
-    return;
-  }
-  parentPort.postMessage(null);
-  process.exitCode = 2;
+  }, { extendedMemoryFirst: memory === "memory-first" });
 }
 
 await main().catch(() => {

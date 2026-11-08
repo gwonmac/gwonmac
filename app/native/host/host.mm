@@ -209,9 +209,11 @@ napi_value MonitorCommandKeyUpsCallback(napi_env env, napi_callback_info info) {
 
 constexpr char kCredentialsSlot[] = "arenaNetCredentials";
 constexpr char kSteamSlot[] = "steamSession";
+constexpr char kClientVerdictKeySlot[] = "clientVerdictKey";
 constexpr char kMultiPrefix[] = "multi.";
 NSString *const kCredentialsAccount = @"arena-net-credentials";
 NSString *const kSteamAccount = @"steam-session";
+NSString *const kClientVerdictKeyAccount = @"client-verdict-key";
 NSString *const kReleaseBundle = @"io.github.mat4m0.gwonmac";
 NSString *const kPreviewBundle = @"io.github.mat4m0.gwonmac.preview";
 NSString *const kDevelopmentBundle = @"io.github.mat4m0.gwonmac.dev";
@@ -267,6 +269,8 @@ NSString *AccountForSlot(const std::string &slot) {
     return kCredentialsAccount;
   if (slot == kSteamSlot)
     return kSteamAccount;
+  if (slot == kClientVerdictKeySlot)
+    return kClientVerdictKeyAccount;
   const std::string prefix = kMultiPrefix;
   if (slot.rfind(prefix, 0) != 0)
     return nil;
@@ -292,12 +296,13 @@ NSString *ServiceForHostBundle() {
   return nil;
 }
 
-NSString *LabelForService(NSString *service) {
+NSString *LabelForItem(NSString *service, const std::string &slot) {
+  NSString *kind = slot == kClientVerdictKeySlot ? @"build check key" : @"saved login";
   if ([service isEqualToString:kReleaseBundle])
-    return @"Guild Wars Reforged saved login";
+    return [@"Guild Wars Reforged " stringByAppendingString:kind];
   if ([service isEqualToString:kPreviewBundle])
-    return @"Guild Wars Reforged Preview saved login";
-  return @"Guild Wars Reforged Dev saved login";
+    return [@"Guild Wars Reforged Preview " stringByAppendingString:kind];
+  return [@"Guild Wars Reforged Dev " stringByAppendingString:kind];
 }
 
 NSMutableDictionary *QueryForSlot(const std::string &slot) {
@@ -374,7 +379,7 @@ Result Save(Work &work) {
   item[(__bridge id)kSecAttrAccessible] =
       (__bridge id)kSecAttrAccessibleWhenUnlockedThisDeviceOnly;
   item[(__bridge id)kSecAttrLabel] =
-      LabelForService(item[(__bridge id)kSecAttrService]);
+      LabelForItem(item[(__bridge id)kSecAttrService], work.slot);
   item[(__bridge id)kSecValueData] = data;
   status = SecItemAdd((__bridge CFDictionaryRef)item, nullptr);
   if (status != errSecDuplicateItem)

@@ -469,8 +469,16 @@ export type SettingsPane =
   | "updates"
   | "advanced";
 
-/** Why a selected or required feature is absent from the served session. */
-export type UnavailableReason = "game-update" | "preparation-failed";
+/**
+ * Why a selected or required feature is absent from the served session:
+ * the verifier refused this Guild Wars build, a proved module could not be
+ * prepared, or the build could not be checked at all (the verifier timed out,
+ * crashed or answered malformed; the next start checks again).
+ */
+export type UnavailableReason = "game-update" | "preparation-failed" | "check-failed";
+
+/** What a player reads when this build could not be checked (`check-failed`). */
+export const BUILD_CHECK_FAILED = "Couldn’t check this Guild Wars build. Trying again at next start.";
 
 export type RequiredFeatureStatus =
   | Readonly<{ status: "available" }>
@@ -521,6 +529,7 @@ export type ExtendedMemoryRuntimeStatus =
       fallbackReason:
         | "unsupported-client"
         | "preparation-failed"
+        | "check-failed"
         | "diagnostic-profile";
     }>;
 

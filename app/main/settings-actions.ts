@@ -47,6 +47,7 @@ export async function applyPendingCacheClear(paths: GamePaths): Promise<void> {
     await rm(paths.artifacts, { recursive: true, force: true });
     await rm(paths.previousArtifacts, { recursive: true, force: true });
     await rm(paths.rejectedClient, { force: true });
+    await rm(paths.clientVerdict, { force: true });
   }
   await rm(paths.cacheClearRequest, { force: true });
   logEvent({ k: "cache.clearedAtStartup" });

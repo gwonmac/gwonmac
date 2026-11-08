@@ -13,29 +13,18 @@ const verifier = await import(hostUrl.href);
 const contracts = await import(new URL(
   "../../../../build/shared/enhancement-contracts.js", import.meta.url,
 ).href);
-const {
-  verifyCartographyLocally,
-  verifyClientLocally,
-  verifyExtendedMemoryLocally,
-  verifyNativeDoubleClickLocally,
-} = verifier;
 
-const extendedArgs = process.argv.slice(-5);
-const compactArgs = process.argv.slice(-3);
-/** @param {number} index */
-function extendedArgument(index) {
-  const value = extendedArgs[index];
-  if (!value) throw new Error("extended-memory fixture requires paths and hashes");
+const [wasmPath, wasmSha256, jsPath, jsSha256] = process.argv.slice(-4);
+if (!wasmPath || !wasmSha256 || !jsPath || !jsSha256) {
+  throw new Error("local verifier fixture requires wasm, js and their hashes");
+}
+const profile = (/** @type {keyof typeof contracts.RELEASE_ENHANCEMENT_CAPABILITIES} */ name) => {
+  const value = contracts.enhancementCapabilityProfile(
+    contracts.RELEASE_ENHANCEMENT_CAPABILITIES[name],
+  );
+  if (!value) throw new Error(`no ${name} profile`);
   return value;
-}
-const mode = extendedArgs[0] === "extended-memory"
-  ? extendedArgs[0]
-  : compactArgs[0];
-const officialWasmPath = compactArgs[1];
-const officialSha256 = compactArgs[2];
-if (!mode || !officialWasmPath || !officialSha256) {
-  throw new Error("local verifier fixture requires wasm and hash");
-}
+};
 
 const state = /** @type {{
  *   localVerifierCompleted?: boolean;
@@ -44,38 +33,20 @@ const state = /** @type {{
 state.localVerifierCompleted = false;
 state.localVerifierOutcome = null;
 void app.whenReady().then(async () => {
-  state.localVerifierOutcome = mode === "extended-memory"
-    ? await verifyExtendedMemoryLocally({
-        jsPath: extendedArgument(1),
-        jsInputSha256: extendedArgument(2),
-        wasmPath: extendedArgument(3),
-        wasmInputSha256: extendedArgument(4),
-      })
-    : mode === "native-double-click"
-    ? await verifyNativeDoubleClickLocally({
-        wasmPath: officialWasmPath,
-        inputSha256: officialSha256,
-      })
-    : mode === "cartography"
-    ? await verifyCartographyLocally({
-        wasmPath: officialWasmPath,
-        inputSha256: officialSha256,
-      })
-    : await verifyClientLocally({
-        officialWasmPath,
-        officialSha256,
-        requestedCapabilities: {
-          ...contracts.NO_ENHANCEMENT_CAPABILITIES,
-          nativeCursor: true,
-          targetObservation: true,
-          partyObservation: true,
-          teamApply: true,
-          travelAction: true,
-          xunlaiAction: true,
-          chatAliases: true,
-          playRegionObservation: true,
-        },
-      });
+  // Both release launches, Tools first, as a launch with Tools on asks for them.
+  const pass = verifier.runVerifierPass({
+    wasmPath,
+    wasmSha256,
+    jsPath,
+    jsSha256,
+    launches: [
+      { requestedProfile: profile("tools"), cartography: true },
+      { requestedProfile: profile("core"), cartography: false },
+    ],
+    extendedMemoryFirst: false,
+  });
+  const [requested, complete] = await Promise.all([pass.requested, pass.complete]);
+  state.localVerifierOutcome = { requested, complete };
   state.localVerifierCompleted = true;
   const window = new BrowserWindow({ show: false });
   await window.loadURL("data:text/html,local-verifier-complete");

@@ -3,6 +3,7 @@
  * The game still owns every operation; the companion receives bounded lifecycle facts only.
  */
 import { createHash } from "node:crypto";
+import { refusedOrRethrow } from "./stage-refusal.js";
 import { isDigest } from "../../shared/digest.js";
 import {
   concat,
@@ -257,20 +258,34 @@ function manifest(certificate: FriendObserverCertificate): Section {
   return { id: 0, body: concat(encodeName(FRIEND_OBSERVER_MANIFEST_SECTION), value) };
 }
 
-/** Re-run the proof and derive the exact output identity for one predecessor. */
-export function deriveFriendObserverBuild(input: Uint8Array): FriendObserverBuild | null {
+/**
+ * Re-run the proof and derive the exact output for one predecessor. The
+ * verifier pass continues the chain on `output`, so it is returned rather than
+ * derived a second time.
+ */
+export function deriveFriendObserverStage(
+  input: Uint8Array,
+): Readonly<{ build: FriendObserverBuild; output: Uint8Array }> | null {
   try {
     const certificate = deriveFriendObserverCertificate(input);
     if (!certificate) return null;
     const output = rewriteFriendObserverWasm(input, certificate);
     return Object.freeze({
-      transformAbi: FRIEND_OBSERVER_TRANSFORM_ABI,
-      certificate,
-      outputSha256: sha256(output),
+      build: Object.freeze({
+        transformAbi: FRIEND_OBSERVER_TRANSFORM_ABI,
+        certificate,
+        outputSha256: sha256(output),
+      }),
+      output,
     });
-  } catch {
-    return null;
+  } catch (error) {
+    return refusedOrRethrow(error);
   }
+}
+
+/** Re-run the proof and derive the exact output identity for one predecessor. */
+export function deriveFriendObserverBuild(input: Uint8Array): FriendObserverBuild | null {
+  return deriveFriendObserverStage(input)?.build ?? null;
 }
 
 /** Validate the isolated-process result before production consumes it. */

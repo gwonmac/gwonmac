@@ -25,7 +25,9 @@ import {
   enhancementSelectionFor,
   requestedEnhancementCapabilities,
 } from "../client/certification/enhancement-policy.js";
+import { clientVerdictKey } from "./core/client-verdict-key.js";
 import { loadDiagnosticProfile } from "./core/diagnostic-profile.js";
+import type { NativeKeychain } from "./core/native-keychain.js";
 import { logEvent } from "./diagnostics.js";
 import type { GamePaths } from "./paths.js";
 import { RendererClientSessions } from "./renderer-client-sessions.js";
@@ -83,6 +85,7 @@ export function createClientService(input: Readonly<{
   hostVersion: string;
   settings: AppSettings;
   launch: LaunchSelection;
+  keychain: NativeKeychain;
   onProgress: (next: DownloadProgress) => void;
 }>): ClientService {
   const { launch } = input;
@@ -96,6 +99,7 @@ export function createClientService(input: Readonly<{
     cartographySpike: launch.enhancementSelection.tools,
     extendedMemoryEnabled: input.settings.extendedMemoryEnabled,
     diagnosticProfile: launch.diagnosticProfile,
+    clientVerdictKey: clientVerdictKey(input.keychain),
     onProgress: input.onProgress,
   });
   const rendererClientSessions = new RendererClientSessions<BrowserWindow>();
