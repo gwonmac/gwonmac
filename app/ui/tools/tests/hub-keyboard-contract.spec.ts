@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
 import type { HubFixtureWindow } from './fixture-window.js';
 import { browserCell, BROWSER_KEYS, DOM_KEYS, type KeyboardView } from './keyboard-contract-keys.js';
+import { openHub } from './hub-page.js';
 // The workbench page this spec drives sets the fixture hooks; they are required here.
 declare const window: HubFixtureWindow;
 
@@ -107,8 +108,7 @@ test.describe('keyboard contract', () => {
   for (const [view, setup] of Object.entries(VIEWS) as [KeyboardView, typeof VIEWS[KeyboardView]][]) {
     for (const key of [...BROWSER_KEYS, ...DOM_KEYS].filter(key => browserCell(view, key))) {
       test(`${view} × ${key}`, async ({ page }) => {
-        await page.goto(`/?hub${setup.query ?? ''}`);
-        await expect(page.locator('#app')).toHaveAttribute('data-ready', 'true');
+        await openHub(page, setup.query);
         await setup.open(page);
         await settle(page);
         await page.evaluate(() => window.gwFixtureCanvas.clear());

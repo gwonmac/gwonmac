@@ -119,7 +119,11 @@ cheaper test fails if the rule breaks (try one product mutation to see).
   answers. That is the browser's Tab traversal, PageDown's page size, layout and
   geometry (the 340×380 minimum, no scrim), computed styles and contrast, native
   text editing and composition, popovers in the top layer, and the `@macos`
-  timing budgets.
+  timing budgets. A spec opens the fixture page with `openHub(page, query)`
+  and reloads it with `reloadHub(page)` (`app/ui/tools/tests/hub-page.ts`).
+  `page.goto` returns before the fixture has mounted the Hub, so a key pressed
+  at once can miss it; the helpers wait for the fixture's `#app[data-ready]`
+  mark, the same mark the vitest mount waits for. ESLint rejects any other way.
 
 The keyboard contract is one golden table,
 `app/ui/tools/tests/keyboard-contract.golden.json`: every key in every view.

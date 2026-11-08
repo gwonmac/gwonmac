@@ -345,6 +345,10 @@ export function mountHubFixture(target: HTMLElement) {
   const label = document.createElement('span'); label.textContent = `Synthetic game · sample prices${game.librarySize ? ` · ${game.librarySize} builds` : ''}`;
   controls.append(open, theme, scenario, lifecycleSelect, partyToggle, reset, canvasCount, label); target.append(controls);
   // The game has keyboard focus before the player summons the Hub.
-  canvas.focus(); hub.show(); target.dataset.ready = 'true';
+  canvas.focus(); hub.show();
+  // The Hub can take input: `createHub` has no loading state, and `show` returns with the Hub
+  // drawn and its search focused. Specs wait for this mark (tests/hub-page.ts), as does the
+  // vitest mount (hub-fixture-harness.ts); the page's load event comes before this import.
+  target.dataset.ready = 'true';
   return hub;
 }

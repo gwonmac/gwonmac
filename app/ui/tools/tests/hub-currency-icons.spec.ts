@@ -4,13 +4,14 @@ import { expect, test } from '@playwright/test';
 // Which currency art the calculation layer shows, and its freeze during composition, are held in
 // src/hub-polish.dom.test.ts.
 import type { HubFixtureWindow } from './fixture-window.js';
+import { openHub } from './hub-page.js';
 // The workbench page this spec drives sets the fixture hooks; they are required here.
 declare const window: HubFixtureWindow;
 
 for (const style of ['guild-wars', 'obsidian'] as const) {
   test(`native currency input keeps text and caret boundaries in ${style}`, async ({ page }) => {
     test.setTimeout(45_000);
-    await page.goto('/?hub');
+    await openHub(page);
     const input = page.locator('.hub-search input');
     for (const font of ['guild-wars', 'inter', 'system', 'avenir', 'georgia', 'palatino'] as const) {
       await page.evaluate(({ style, font }) => window.gwApplyFixtureAppearance({ uiStyle: style, uiFont: font, uiPanelOpacity: 100 }), { style, font });
@@ -49,7 +50,7 @@ for (const style of ['guild-wars', 'obsidian'] as const) {
 }
 
 test('native undo restores exact text with its artwork, and the layer follows the input scroll', async ({ page }) => {
-  await page.goto('/?hub');
+  await openHub(page);
   const input=page.locator('.hub-search input'),overlay=page.locator('.hub-search-glyphs');
   await input.pressSequentially('10 ectos in p');
   await expect(overlay).toHaveCSS('text-shadow','none');

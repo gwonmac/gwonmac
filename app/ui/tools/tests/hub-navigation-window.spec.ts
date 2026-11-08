@@ -1,7 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openHub, reloadHub } from './hub-page.js';
 
 test('the smallest Hub keeps room for three results (HUB-238)', async ({ page }) => {
-  await page.goto('/?hub');
+  await openHub(page);
   await page.getByRole('button', { name: 'Lock Hub position', exact: true }).click();
   const corner = (await page.getByRole('button', { name: 'Resize Hub', exact: true }).boundingBox())!;
   await page.mouse.move(corner.x + 10, corner.y + 10);
@@ -11,7 +12,7 @@ test('the smallest Hub keeps room for three results (HUB-238)', async ({ page })
 });
 
 test('Hub has a locked frame, invisible corner hit area and bounded movable geometry', async ({ page }, info) => {
-  await page.goto('/?hub');
+  await openHub(page);
   const panel = page.locator('.hub-panel');
   const head = page.locator('.hub-heading');
   const grip = page.getByRole('button', { name: 'Resize Hub', exact: true });
@@ -43,7 +44,7 @@ test('Hub has a locked frame, invisible corner hit area and bounded movable geom
 });
 
 for (const material of ['Guild Wars', 'Modern']) test(`floating Whispers paints one complete ${material} frame and preserves a draft across hide/show`, async ({ page }, info) => {
-  await page.goto('/?hub');
+  await openHub(page);
   const search = page.locator('.hub-search input');
   await search.fill('settings'); await search.press('Enter');
   await page.getByRole('button', { name: 'Appearance', exact: true }).click();
@@ -71,7 +72,7 @@ for (const material of ['Guild Wars', 'Modern']) test(`floating Whispers paints 
 });
 
 test('End in the Hub results scrolls the last result into view while search keeps focus (HUB-044)', async ({ page }) => {
-  await page.goto('/?hub');
+  await openHub(page);
   const search = page.locator('.hub-search input');
   const rows = page.locator('.hub-row');
   await expect(rows.first()).toBeVisible();
@@ -88,7 +89,7 @@ test('End in the Hub results scrolls the last result into view while search keep
 });
 
 test('list keys without results keep the caret and the text selection in search', async ({ page }) => {
-  await page.goto('/?hub');
+  await openHub(page);
   const search = page.locator('.hub-search input');
   await search.fill('qqqzzz');
   await expect(page.locator('.hub-empty')).toBeVisible();
@@ -102,7 +103,7 @@ test('list keys without results keep the caret and the text selection in search'
 });
 
 test('Backspace on a focused footer button edits the search and returns focus to it', async ({ page }) => {
-  await page.goto('/?hub');
+  await openHub(page);
   const search = page.locator('.hub-search input');
   await search.fill('kam'); await page.keyboard.press('Tab');
   await expect(page.locator('.hub-primary')).toBeFocused();
@@ -115,15 +116,13 @@ test('Backspace on a focused footer button edits the search and returns focus to
 const selectedRow = (page: Page) => page.locator('#hub .hub-row[aria-selected="true"]');
 
 test('Backspace on a selected pinned build only edits the search and keeps the pin (BLD-25)', async ({ page }) => {
-  await page.goto('/?hub');
-  await expect(page.locator('#app')).toHaveAttribute('data-ready', 'true');
+  await openHub(page);
   await page.evaluate(() => localStorage.removeItem('hub-fixture-library'));
   const search = page.locator('.hub-search input');
   await search.fill('build smiter');
   await page.getByRole('button', { name: 'Actions', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Pin to Hub' }).click();
-  await page.reload();
-  await expect(page.locator('#app')).toHaveAttribute('data-ready', 'true');
+  await reloadHub(page);
   await expect(search).toHaveValue('');
   const pinned = page.locator('#hub .hub-group', { hasText: 'Pinned' });
   await expect(pinned).toBeVisible();
@@ -138,22 +137,19 @@ test('Backspace on a selected pinned build only edits the search and keeps the p
   await expect(search).toHaveValue('');
   await expect(pinned).toBeVisible();
   await expect(pin).toBeVisible();
-  await page.reload();
-  await expect(page.locator('#app')).toHaveAttribute('data-ready', 'true');
+  await reloadHub(page);
   await expect(page.locator('#hub .hub-group', { hasText: 'Pinned' })).toBeVisible();
   await expect(page.locator('#hub .hub-row[data-id="build:hub-smiter"]').first()).toBeVisible();
 });
 
 test('Hub and Whispers restore bottom-right placement after shrinking without storage writes (HUB-109)', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
-  await page.goto('/?hub');
-  await expect(page.locator('#app')).toHaveAttribute('data-ready', 'true');
+  await openHub(page);
   await page.evaluate(() => {
     localStorage.setItem('gwonmac.hub-window-placement', JSON.stringify({ formatVersion: 1, left: 1, top: 1, width: 500 / 1264, height: 450 / 784 }));
     localStorage.setItem('gwonmac.whispers-window-placement', JSON.stringify({ formatVersion: 1, left: 1, top: 1, width: 350 / 1264, height: 400 / 784 }));
   });
-  await page.reload();
-  await expect(page.locator('#app')).toHaveAttribute('data-ready', 'true');
+  await reloadHub(page);
   await page.locator('.hub-search input').fill('whisper Romi'); await page.keyboard.press('Enter');
   await expect(page.locator('#whisper-window')).toBeVisible();
   await page.keyboard.press('Meta+r');

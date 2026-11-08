@@ -1,8 +1,9 @@
 import { expect, test } from '@playwright/test';
+import { openHub, reloadHub } from './hub-page.js';
 
 test('the Hub stays inside a narrow viewport', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 650 });
-  await page.goto('/?hub');
+  await openHub(page);
   await page.locator('.hub-search input').fill('build');
   await expect(page.locator('#hub').getByRole('option').first()).toContainText('Build Library');
   const panel = await page.locator('.hub-panel').boundingBox();
@@ -12,7 +13,7 @@ test('the Hub stays inside a narrow viewport', async ({ page }) => {
 });
 
 test('preview pane is reserved only when a row can fill it', async ({ page }) => {
-  await page.goto('/?hub');
+  await openHub(page);
   const search = page.locator('.hub-search input');
   const preview = page.locator('.hub-preview');
   const previewHeight = () => preview.evaluate(element => Math.round(element.getBoundingClientRect().height));
@@ -30,7 +31,7 @@ test('preview pane is reserved only when a row can fill it', async ({ page }) =>
 });
 
 test('a saved search phrase and pin survive reload and resolve the original item', async ({ page }) => {
-  await page.goto('/?hub');
+  await openHub(page);
   const search = page.locator('.hub-search input');
   await search.fill('team gom afk');
   await page.getByRole('button', { name: 'Actions', exact: true }).click();
@@ -40,7 +41,7 @@ test('a saved search phrase and pin survive reload and resolve the original item
   await page.getByRole('textbox', { name: 'Search phrase' }).fill('evening team');
   await page.getByRole('button', { name: 'Save phrase' }).click();
   await expect(page.locator('#hub .hub-status')).toHaveText('“evening team” now finds GOM AFK.');
-  await page.reload();
+  await reloadHub(page);
   await expect(page.locator('#hub').getByRole('option', { name: /GOM AFK/ })).toBeVisible();
   await search.fill('evening team');
   await expect(page.locator('#hub').getByRole('option')).toContainText('GOM AFK');
@@ -56,8 +57,7 @@ test('a saved search phrase and pin survive reload and resolve the original item
 });
 
 test('a pinned Travel or team row is the row search shows, and → opens it (HUB-177)', async ({ page }) => {
-  await page.goto('/?hub');
-  await expect(page.locator('#app')).toHaveAttribute('data-ready', 'true');
+  await openHub(page);
   const search = page.locator('.hub-search input');
   const row = (id: string) => page.locator(`#hub .hub-row[data-id="${id}"]`).first();
   const found: Record<string, string | null> = {};
@@ -69,8 +69,7 @@ test('a pinned Travel or team row is the row search shows, and → opens it (HUB
     await page.getByRole('menuitem', { name: 'Pin to Hub' }).click();
   }
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('hub-fixture-shortcuts') ?? '[]').map((entry: { id: string }) => entry.id))).toEqual(['travel', 'commands', 'settings', 'accounts']);
-  await page.reload();
-  await expect(page.locator('#app')).toHaveAttribute('data-ready', 'true');
+  await reloadHub(page);
   await search.fill('');
   await expect(page.locator('#hub .hub-group').first()).toHaveText('Pinned');
   for (const [index, [id, caption]] of ([['travel', 'Travel'], ['commands', 'Commands'], ['settings', 'Settings'], ['accounts', 'Accounts'], ['team:hub-gom-afk', 'GOM AFK']] as const).entries()) {
@@ -90,14 +89,14 @@ test('a pinned Travel or team row is the row search shows, and → opens it (HUB
 
 
 test('conversion currency art decodes', async ({ page }) => {
-  await page.goto('/?hub');
+  await openHub(page);
   await page.locator('.hub-search input').fill('1p in a');
   await expect(page.locator('.hub-conversion-art')).toHaveCount(2);
   await expect.poll(() => page.locator('.hub-conversion-art').evaluateAll(images => images.every(image => image instanceof HTMLImageElement && image.complete && image.naturalWidth > 0))).toBe(true);
 });
 
 test('Travel uses the Hub typography and Tab from its search reaches Customize',async({page})=>{
-  await page.goto('/?hub');
+  await openHub(page);
   const hubSearch=page.locator('.hub-search input');
   const font=await hubSearch.evaluate(element=>getComputedStyle(element).fontFamily);
   await hubSearch.fill('travel');await hubSearch.press('Enter');
@@ -109,9 +108,7 @@ test('Travel uses the Hub typography and Tab from its search reaches Customize',
 });
 
 test('Tab from Travel leaves its search for Customize, then the first shortcut number, not the Hub footer (HUB-070)',async({page})=>{
-  await page.goto('/?hub');
-  // A shortcut before the Hub has loaded reaches nothing; wait as a player waits for the search.
-  await expect(page.getByRole('combobox',{name:'Search people, places, builds'})).toBeFocused();
+  await openHub(page);
   await page.keyboard.press('Meta+t');
   const search=page.getByRole('combobox',{name:'Destination, phrase, or friend'});
   await expect(search).toBeFocused();
@@ -127,7 +124,7 @@ test('Tab from Travel leaves its search for Customize, then the first shortcut n
 });
 
 test('build previews decode their skill icons', async ({ page }) => {
-  await page.goto('/?hub');
+  await openHub(page);
   await page.locator('.hub-search input').fill('build monk');
   await expect(page.locator('.hub-skill')).toHaveCount(32);
   await expect.poll(() => page.locator('.hub-skill img').evaluateAll(images => images.every(image => image instanceof HTMLImageElement && image.complete && image.naturalWidth > 0))).toBe(true);
@@ -135,7 +132,7 @@ test('build previews decode their skill icons', async ({ page }) => {
 
 
 test('Hub keeps its geometry across results and compact carousels', async ({ page }) => {
-  await page.goto('/?hub');
+  await openHub(page);
   const search = page.locator('.hub-search input');
   const panel = page.locator('.hub-panel');
   const size = await panel.boundingBox();
@@ -161,7 +158,7 @@ test('Hub keeps its geometry across results and compact carousels', async ({ pag
 
 
 test('character cards start at the left edge without leading empty slots', async ({ page }) => {
-  await page.goto('/?hub');
+  await openHub(page);
   const search = page.locator('.hub-search input');
   await search.fill('switch character'); await search.press('Enter');
   await expect(page.locator('.character-switch-list > li').first().locator('button')).toContainText('Fixture Monk');
@@ -173,7 +170,7 @@ test('character cards start at the left edge without leading empty slots', async
 
 
 test('the Appearance settings stay usable in a narrow viewport', async ({ page }) => {
-  await page.goto('/?hub');
+  await openHub(page);
   const search = page.locator('.hub-search input');
   await search.fill('settings'); await search.press('Enter');
   await page.getByRole('button', { name: 'Appearance', exact: true }).click();
@@ -183,7 +180,7 @@ test('the Appearance settings stay usable in a narrow viewport', async ({ page }
 
 
 test('typing after result navigation resumes the search at its caret without running a command', async ({ page }) => {
-  await page.goto('/?hub');
+  await openHub(page);
   const search = page.locator('.hub-search input');
   await search.press('ArrowDown');
   await expect(page.locator('.hub-row[aria-selected="true"]')).toHaveCount(1);

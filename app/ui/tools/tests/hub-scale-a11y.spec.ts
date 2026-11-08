@@ -2,10 +2,10 @@ import { writeFile } from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
 import { timeBudget } from './performance-budget.js';
 import type { HubSource } from '../../../shared/hub.js';
+import { openHub } from './hub-page.js';
 
 test('root typing and complete library entry stay within the scale budget (HUB-110, 112, 169)', { tag: '@macos' }, async ({ page }, info) => {
-  await page.goto('/?hub&library=1000');
-  await expect(page.locator('#app')).toHaveAttribute('data-ready', 'true');
+  await openHub(page, '&library=1000');
   const timings = await page.evaluate(async () => {
     const input = document.querySelector<HTMLInputElement>('.hub-search input')!;
     const longTasks: number[] = [];
@@ -49,8 +49,7 @@ test('root typing and complete library entry stay within the scale budget (HUB-1
 });
 
 test('suspension retains the selected row across a ⌘R reopen (HUB-171)', async ({ page }) => {
-  await page.goto('/?hub&library=1000');
-  await expect(page.locator('#app')).toHaveAttribute('data-ready', 'true');
+  await openHub(page, '&library=1000');
   const search = page.locator('.hub-search input');
   await search.fill('build m');
   await search.press('ArrowDown');
@@ -64,8 +63,7 @@ test('suspension retains the selected row across a ⌘R reopen (HUB-171)', async
 
 
 test('source bursts coalesce while typing stays synchronous and opening searches once (HUB-111)', async ({ page }) => {
-  await page.goto('/?hub&library=1000&templates-ms=1000');
-  await expect(page.locator('#app')).toHaveAttribute('data-ready', 'true');
+  await openHub(page, '&library=1000&templates-ms=1000');
   const result = await page.evaluate(async () => {
     const hub = window.gwHub!;
     let calls = 0;
@@ -96,8 +94,7 @@ test('source bursts coalesce while typing stays synchronous and opening searches
 });
 
 test('End scrolls its row into view and Back restores the scroll in the 1000-build Library (HUB-112)', async ({ page }) => {
-  await page.goto('/?hub&library=1000');
-  await expect(page.locator('#app')).toHaveAttribute('data-ready', 'true');
+  await openHub(page, '&library=1000');
   // Entry and End in one task: later frames cannot have painted the last row yet.
   const end = await page.evaluate(() => {
     window.gwHub!.openRow('builds', 'builds', 'Build Library is unavailable.');
@@ -130,8 +127,7 @@ test('End scrolls its row into view and Back restores the scroll in the 1000-bui
 });
 
 test('placement moves 48px with Shift and 16px without, and the footer keeps its height (HUB-164)', async ({ page }) => {
-  await page.goto('/?hub');
-  await expect(page.locator('#app')).toHaveAttribute('data-ready', 'true');
+  await openHub(page);
   const lock = page.getByRole('button', { name: 'Lock Hub position', exact: true });
   const panel = page.locator('.hub-panel');
   const footer = page.locator('.hub-footer');
@@ -146,7 +142,7 @@ test('placement moves 48px with Shift and 16px without, and the footer keeps its
 });
 
 test('breadcrumb focus leaves space around its text and outline (HUB-165)', async ({ page }) => {
-  await page.goto('/?hub');
+  await openHub(page);
   const search = page.locator('.hub-search input');
   await search.fill('settings'); await search.press('Enter');
   const home = page.getByRole('button', { name: 'Home', exact: true });
@@ -164,8 +160,7 @@ test('breadcrumb focus leaves space around its text and outline (HUB-165)', asyn
 
 
 test('twenty opens and resumes stay within the time budget (HUB-111, 171)', { tag: '@macos' }, async ({ page }, info) => {
-  await page.goto('/?hub&library=1000&templates-ms=1000');
-  await expect(page.locator('#app')).toHaveAttribute('data-ready', 'true');
+  await openHub(page, '&library=1000&templates-ms=1000');
   const result = await page.evaluate(async () => {
     const hub = window.gwHub!;
     let calls = 0;
@@ -192,8 +187,7 @@ test('twenty opens and resumes stay within the time budget (HUB-111, 171)', { ta
 
 
 test('incoming bursts keep a deep build scrolled and cause no long task (HUB-111, 112)', { tag: '@macos' }, async ({ page }, info) => {
-  await page.goto('/?hub&library=1000');
-  await expect(page.locator('#app')).toHaveAttribute('data-ready', 'true');
+  await openHub(page, '&library=1000');
   const search = page.locator('.hub-search input');
   await search.fill('build library'); await search.press('Enter');
   const deep = page.locator('.hub-row[data-id="build:scale-500"]');

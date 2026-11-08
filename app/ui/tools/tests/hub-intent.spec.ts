@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import type { HubFixtureWindow } from './fixture-window.js';
+import { openHub, reloadHub } from './hub-page.js';
 // The workbench page this spec drives sets the fixture hooks; they are required here.
 declare const window: HubFixtureWindow;
 
@@ -12,7 +13,7 @@ const searchName = /^Search (?:people, places, builds|in .+)…$/u;
 // coordinates, and native macOS editing.
 
 test('native editing shortcuts from results return to the same search', { tag: '@macos' }, async ({ page }) => {
-  await page.goto('/?hub');
+  await openHub(page);
   const search = page.locator('.hub-search input');
   await search.fill('build monk'); await search.press('ArrowDown');
   await page.keyboard.press('Meta+a'); await expect(search).toBeFocused();
@@ -22,13 +23,13 @@ test('native editing shortcuts from results return to the same search', { tag: '
 });
 
 test('Hub placement survives reload, stays locked, and resets durably', async ({ page }) => {
-  await page.goto('/?hub');
+  await openHub(page);
   const panel = page.locator('.hub-panel');
   await page.getByRole('button', { name: 'Lock Hub position', exact: true }).click();
   await page.getByRole('button', { name: 'Lock Hub position', exact: true }).press('Alt+ArrowRight');
   await page.getByRole('button', { name: 'Resize Hub', exact: true }).press('ArrowLeft');
   const placed = (await panel.boundingBox())!;
-  await page.reload();
+  await reloadHub(page);
   const restored = (await panel.boundingBox())!;
   for (const key of ['x', 'y', 'width', 'height'] as const) expect(Math.abs(restored[key] - placed[key])).toBeLessThanOrEqual(1);
   await expect(panel).toHaveAttribute('data-locked', 'true');
@@ -38,11 +39,11 @@ test('Hub placement survives reload, stays locked, and resets durably', async ({
   await search.fill('hub preferences'); await search.press('Enter');
   await page.getByRole('button', { name: 'Reset Hub position', exact: true }).click();
   expect(await page.evaluate(() => localStorage.getItem('gwonmac.hub-window-placement'))).toBeNull();
-  await page.reload(); await expect(panel).not.toHaveAttribute('style', /transform: none/);
+  await reloadHub(page); await expect(panel).not.toHaveAttribute('style', /transform: none/);
 });
 
 test('the phrase form stacks its label above its field', async ({ page }) => {
-  await page.goto('/?hub');
+  await openHub(page);
   const search = page.locator('.hub-search input');
   await search.fill('team gom afk');
   await page.keyboard.press('Meta+j');
@@ -54,8 +55,7 @@ test('the phrase form stacks its label above its field', async ({ page }) => {
 });
 
 test('a task report takes the one status line from the lifecycle line while it shows', async ({ page }) => {
-  await page.goto('/?hub&lifecycle=map-loading');
-  await expect(page.locator('#app')).toHaveAttribute('data-ready', 'true');
+  await openHub(page, '&lifecycle=map-loading');
   await expect(page.locator('.hub-lifecycle')).toHaveText('Map loading — Travel returns when the map has loaded');
   const search = page.locator('.hub-search input');
   await search.fill('invite romi'); await search.press('Enter');
@@ -64,7 +64,7 @@ test('a task report takes the one status line from the lifecycle line while it s
 });
 
 test('an invite receipt stands in the closed Hub\u2019s footprint, not over the window', async ({ page }) => {
-  await page.goto('/?hub&party');
+  await openHub(page, '&party');
   const search = page.locator('.hub-search input');
   await search.fill('invite Mo Kai'); await search.press('Enter');
   await expect(page.locator('.hub-receipt')).toHaveText('Sent /invite Mo Kai. Guild Wars answers in chat.');
@@ -77,7 +77,7 @@ test('an invite receipt stands in the closed Hub\u2019s footprint, not over the 
 });
 
 test('a press on a disabled primary or blank panel space keeps the keyboard in search', async ({ page }) => {
-  await page.goto('/?hub&party');
+  await openHub(page, '&party');
   const search = page.locator('.hub-search input');
   await search.fill('zed alpha'); await search.press('Enter');
   await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown');
@@ -95,8 +95,7 @@ test.describe('Characters', () => {
 
   // HUB-009: the click that closes the Hub lands on the backdrop by its coordinates.
   test('a backdrop click closes Characters, and the next open focuses the current character', async ({ page }) => {
-    await page.goto('/?hub');
-    await expect(page.locator('#app')).toHaveAttribute('data-ready', 'true');
+    await openHub(page);
     await page.keyboard.press('Escape');
     await page.keyboard.press('Meta+e');
     await expect(card(page, 'monk')).toBeFocused();
@@ -111,8 +110,7 @@ test.describe('Characters', () => {
 
   // D-30: the veil covers the game, so a click at the game's pixels never reaches it.
   test('a running switch keeps clicks from the game', async ({ page }) => {
-    await page.goto('/?hub&switch-fail=selector-timeout&switch-ms=4000');
-    await expect(page.locator('#app')).toHaveAttribute('data-ready', 'true');
+    await openHub(page, '&switch-fail=selector-timeout&switch-ms=4000');
     const search = page.locator('.hub-search input');
     await search.fill('char toefte'); await search.press('Enter');
     await expect(page.locator('.character-switch-veil')).toHaveText('Switching to Toefte…');
@@ -123,8 +121,7 @@ test.describe('Characters', () => {
 
   // HUB-195, HUB-194: a search hides the number badges (an empty badge has no box) instead of drawing empty squares.
   test('a search hides the number badges instead of drawing empty squares', async ({ page }) => {
-    await page.goto('/?hub&characters-extra');
-    await expect(page.locator('#app')).toHaveAttribute('data-ready', 'true');
+    await openHub(page, '&characters-extra');
     await page.keyboard.press('Escape');
     await page.keyboard.press('Meta+e');
     await page.keyboard.press('3');
@@ -145,8 +142,7 @@ test.describe('Characters', () => {
   // HUB-076: a narrow Hub shows fewer, wider cards instead of five squeezed ones.
   test('a narrow Hub shows at most three cards, each at least 100 px wide', async ({ page }) => {
     for (const width of [340, 380, 420]) {
-      await page.goto('/?hub');
-      await expect(page.locator('#app')).toHaveAttribute('data-ready', 'true');
+      await openHub(page);
       await page.getByRole('button', { name: 'Lock Hub position', exact: true }).click();
       const grip = page.getByRole('button', { name: 'Resize Hub', exact: true });
       const corner = (await grip.boundingBox())!;
@@ -176,8 +172,7 @@ test.describe('Characters', () => {
   // HUB-198: the cards sit within 48 px of the panel's bottom edge.
   test('Characters keeps its card band close to the panel bottom', async ({ page }) => {
     await page.setViewportSize({ width: 500, height: 396 });
-    await page.goto('/?hub');
-    await expect(page.locator('#app')).toHaveAttribute('data-ready', 'true');
+    await openHub(page);
     await page.keyboard.press('Escape');
     await page.keyboard.press('Meta+e');
     await expect(page.locator('.hub-caption')).toHaveText('Characters');
@@ -192,9 +187,8 @@ test.describe('Characters', () => {
 
 // D-5, HUB-003: a Travel digit selects its favourite; a held digit repeats nothing.
 test('Travel keeps selection under a still pointer and changes it only on real movement (HUB-012)', async ({ page }) => {
-  await page.goto('/?hub');
+  await openHub(page);
   await page.mouse.move(0, 0);
-  await expect(page.locator('#app')).toHaveAttribute('data-ready', 'true');
   await page.keyboard.press('Meta+t');
   const search = page.locator('#travel-search-input');
   const eye = page.locator('#travel-favorite-4');
@@ -222,9 +216,8 @@ test('Travel keeps selection under a still pointer and changes it only on real m
     ['', 250, 0, 'travel-recent-449', 'Kamadan, Jewel of Istan'],
     ['a', 0, 120, 'travel-map-109', 'The Amnoon Oasis'],
   ] as const) {
-    await page.goto('/?hub');
+    await openHub(page);
     await page.mouse.move(0, 0);
-    await expect(page.locator('#app')).toHaveAttribute('data-ready', 'true');
     await page.keyboard.press('Meta+t');
     await search.fill(query);
     const target = page.locator(query ? '.travel-result' : '.travel-recent').first();
@@ -251,8 +244,7 @@ test('Travel keeps selection under a still pointer and changes it only on real m
 });
 
 test('Travel favourite arrows follow the painted columns and hold at the ends (HUB-069)', async ({ page }) => {
-  await page.goto('/?hub');
-  await expect(page.locator('#app')).toHaveAttribute('data-ready', 'true');
+  await openHub(page);
   await page.keyboard.press('Meta+t');
   const search = page.locator('#travel-search-input');
   await expect(search).toBeFocused();
@@ -277,8 +269,7 @@ test('Travel favourite arrows follow the painted columns and hold at the ends (H
 
 // HUB-130: a held Enter activates a surface control once; its repeats never toggle it back.
 test('holding Enter on Trade\'s Save offer or Follow player toggles once', async ({ page }) => {
-  await page.goto('/?hub');
-  await expect(page.locator('#app')).toHaveAttribute('data-ready', 'true');
+  await openHub(page);
   await page.keyboard.press('Escape');
   await page.keyboard.press('Meta+k');
   const trade = page.locator('#toolbox-trade .trade-window');
@@ -302,8 +293,7 @@ test('holding Enter on Trade\'s Save offer or Follow player toggles once', async
 test('a stored place phrase resolves in Home, its travel scope and detailed Travel without moving its data (HUB-061)', async ({ page }) => {
   const stored = [{ id: 'place:194', phrase: 'home', pinned: true }];
   await page.addInitScript(value => localStorage.setItem('hub-fixture-shortcuts', JSON.stringify(value)), stored);
-  await page.goto('/?hub');
-  await expect(page.locator('#app')).toHaveAttribute('data-ready', 'true');
+  await openHub(page);
   const search = page.getByRole('combobox', { name: searchName });
   for (const query of ['home', 'travel home']) {
     await search.fill(query);

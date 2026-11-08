@@ -1,11 +1,12 @@
 import { expect, test } from '@playwright/test';
+import { openHub } from './hub-page.js';
 
 // The preview's content (heroes named, no template paths) is held in src/hub-polish.dom.test.ts.
 
 for (const viewport of [{ width: 1280, height: 720 }, { width: 390, height: 650 }, { width: 640, height: 480 }]) {
   test(`full team preview stays readable inside the frame at ${viewport.width}×${viewport.height}`, async ({ page }, info) => {
     await page.setViewportSize(viewport);
-    await page.goto('/?hub');
+    await openHub(page);
     const search = page.locator('.hub-search input');
     await search.fill('team gom afk');
     const preview = page.locator('.hub-preview');

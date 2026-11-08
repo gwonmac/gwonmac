@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import type { HubFixtureWindow } from './fixture-window.js';
+import { openHub } from './hub-page.js';
 // The workbench page this spec drives sets the fixture hooks; they are required here.
 declare const window: HubFixtureWindow;
 
@@ -14,8 +15,7 @@ declare const window: HubFixtureWindow;
 const GAPS = [0, 120, 450] as const;
 
 async function open(page: Page, query = '') {
-  await page.goto(`/?hub${query}`);
-  await expect(page.locator('#app')).toHaveAttribute('data-ready', 'true');
+  await openHub(page, query);
   // Every game action in order, including repeats of the same action.
   await page.evaluate(() => {
     const app = document.getElementById('app')!;
@@ -302,8 +302,7 @@ test('Accounts: a double-click on an account opens its page on Open Second and r
 
 test('Hub preferences: Move up and Remove keep focus on a visible, enabled element (PTR-12)', async ({ page }) => {
   for (const pins of [[], ['place:449'], ['place:449', 'place:194', 'place:642']]) {
-    await page.goto('/?hub');
-    await expect(page.locator('#app')).toHaveAttribute('data-ready', 'true');
+    await openHub(page);
     await page.evaluate(pins => localStorage.setItem('hub-fixture-shortcuts', JSON.stringify(pins.map(id => ({ id, phrase: '', pinned: true })))), pins);
     await open(page); await enter(page, 'hub preferences');
     const active = page.locator('.hub-view :focus');
