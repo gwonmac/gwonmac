@@ -1,6 +1,7 @@
 /**
  * The Hub's keyboard and navigation contract, held by its pure engine (app/renderer/hub-engine.ts).
- * Each case names the Playwright spec (app/ui/tools/tests) whose behaviour it ports.
+ * Each case names the Playwright spec (app/ui/tools/tests), or the vitest DOM test (app/ui/tools/src)
+ * that replaced it, whose behaviour it ports.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -43,7 +44,7 @@ const view = (facts: Partial<Extract<HubKeyPlace, { at: 'view' }>> = {}): HubKey
 const opened = (...events: Event[]) => run([{ type: 'show' }, ...events]);
 
 // hub-keyboard-model.spec.ts 'consecutive Escapes pop one level each and never close the Hub early (HUB-005)'
-// hub.spec.ts 'Esc clears the query, then goes back, then closes onto the game, never <body>'
+// app/ui/tools/src/hub.dom.test.ts 'Esc clears the query, then goes back, then closes onto the game, never <body>'
 test('Escape closes the menu, then clears the query, then pops one page, then closes the Hub', () => {
   let result = opened(enter({ scope: travel, view: null }), { type: 'type', query: 'kamadan' }, { type: 'menu', row: 'a' });
   const steps: [string, Event, string[], string, string | null][] = [
@@ -61,7 +62,7 @@ test('Escape closes the menu, then clears the query, then pops one page, then cl
   assert.equal(result.state.menu, null);
 });
 
-// hub-keyboard-model.spec.ts 'Escape and Command-Backspace close an open disclosure before they leave its page'
+// (the Playwright test 'Escape and Command-Backspace close an open disclosure before they leave its page' was deleted; this test is its guard)
 // trade-popout.spec.ts 'Actions is a keyboard menu: ⌘J opens it on its first item and ⌘⌫ closes only the menu (HUB-131)'
 test('Command-Backspace closes the menu, then a disclosure, then goes back; Escape in the menu stops there', () => {
   const back = key('Backspace', { meta: true });
@@ -87,8 +88,8 @@ test('Command-Backspace closes the menu, then a disclosure, then goes back; Esca
   assert.deepEqual([types(tab), tab.state.menu, tab.claim], [[], null, undefined]);
 });
 
-// hub-navigation-window.spec.ts 'Command-Backspace and breadcrumb ancestors restore history; Backspace only edits text'
-// hub-keyboard-model.spec.ts 'Hub Back follows the named key and composition never navigates (KEY-24)'
+// app/ui/tools/src/hub-navigation-window.dom.test.ts 'Command-Backspace and breadcrumb ancestors restore history; Backspace only edits text'
+// app/ui/tools/src/hub-keyboard-model.dom.test.ts 'Hub Back follows the named key and composition never navigates (KEY-24)'
 test('only an unmodified Command-Backspace goes back, from any focus; plain Backspace edits text', () => {
   const page = opened(enter({ scope: travel, view: null })).state;
   const cases: [string, HubKey, boolean][] = [
@@ -106,8 +107,8 @@ test('only an unmodified Command-Backspace goes back, from any focus; plain Back
   }
 });
 
-// hub-navigation-window.spec.ts 'a page opened directly returns to the real Home, and Home ignores Command-Backspace'
-// hub-navigation-window.spec.ts 'the mouse back button at Home does nothing and never closes the Hub (PTR-34)'
+// app/ui/tools/src/hub-navigation-window.dom.test.ts 'a page opened directly returns to the real Home, and Home ignores Command-Backspace'
+// app/ui/tools/src/hub-navigation-window.dom.test.ts 'the mouse back button at Home does nothing and never closes the Hub (PTR-34)'
 test('Back at Home does nothing and never closes; a page opened on a closed Hub goes back to Home', () => {
   const home = opened();
   assert.deepEqual(types(reduce(home.state, { type: 'back' })), []);
@@ -167,8 +168,8 @@ test('Right Arrow at the end of the query opens a result page, and nothing else'
   for (const [name, from, pressed, where, effects] of cases) assert.deepEqual(types(reduce(from, press(pressed, where))), effects, name);
 });
 
-// hub-navigation-window.spec.ts 'one list move keeps focus in search: arrows, Control-N/P, pages and ends never wrap'
-// hub-keyboard-model.spec.ts 'Travel moves one selection with the shared list keys and never wraps (HUB-044, HUB-137)'
+// app/ui/tools/src/hub-navigation-window.dom.test.ts 'one list move keeps focus in search: arrows, Control-N/P, pages and ends never wrap'
+// app/ui/tools/src/hub-keyboard-model.dom.test.ts 'Travel moves one selection with the shared list keys and never wraps (HUB-044, HUB-137)'
 test('list movement holds at both ends and never wraps', () => {
   const list = rows('a', 'b', 'c', 'd');
   const cases: [string, string | null, HubKey, number, string][] = [
@@ -220,7 +221,7 @@ test('a consequential row runs only on an explicit activation: a click selects, 
   for (const [name, result, effects] of cases) assert.deepEqual(types(result), effects, name);
 });
 
-// hub-navigation-window.spec.ts 'the mouse back button goes back one level, restores the parent exactly and never runs a row (PTR-33, KEY-26)'
+// app/ui/tools/src/hub-navigation-window.dom.test.ts 'the mouse back button goes back one level, restores the parent exactly and never runs a row (PTR-33, KEY-26)'
 // hub-intent.spec.ts 'temporary blur resumes the stage and focus while explicit close starts fresh'
 test('back restores the page with its query, selection, scroll and focus; close starts fresh at Home', () => {
   const left = opened(enter({ scope: travel, view: null }, 'lion'), { type: 'select', id: 'lions-arch' }, enter({ scope: builds, view: null }));
@@ -373,4 +374,34 @@ test('a failure while the Hub is closed is named on the next opening, within the
     assert.equal(shown.effects.some(effect => JSON.stringify(effect) === JSON.stringify(failure)), named, name);
     assert.equal(shown.state.carried, null, name);
   }
+});
+
+// app/ui/tools/src/hub-fixture-lifecycle.dom.test.ts 'Command-T on Travel keeps Travel and its search, the way the renderer command does' (HUB-172)
+// app/ui/tools/src/hub-fixture-lifecycle.dom.test.ts 'Command-T finds a Travel page opened from Home, and a closed Hub starts Travel fresh'
+// app/ui/tools/src/hub.dom.test.ts 'Build shortcut browses inside Hub and opens the authoring window outside Hub'
+test('a direct shortcut focuses the page on top, returns to one in history, or opens it; a closed Hub opens fresh', () => {
+  const library: Scope = { title: 'Build Library', destination: 'builds' };
+  const onTravel = opened(enter({ scope: travel, view: null }, 'kamadan'));
+  const deep = opened(enter({ scope: travel, view: null }, 'kamadan'), enter({ scope: library, view: null }));
+  const closed = reduce(onTravel.state, { type: 'close' }).state;
+  const cases: [string, State, HubDestination, string[], string, number][] = [
+    ['the page on top is focused, nothing stacks', onTravel.state, 'travel', ['focus-page'], 'Travel', 1],
+    ['a page in history is returned to, the pages above it leave', deep.state, 'travel', ['restore', 'announce'], 'Travel', 1],
+    ['a destination no page holds opens as a new page', onTravel.state, 'builds', ['open'], 'Travel', 1],
+    ['a view that holds the destination counts', opened(enter({ scope: travel, view: settings })).state, 'settings', ['focus-page'], 'Settings', 1],
+    ['a closed Hub opens the destination fresh', closed, 'travel', ['open'], 'Home', 0],
+  ];
+  for (const [name, state, destination, effects, landed, depth] of cases) {
+    const result = reduce(state, { type: 'direct', destination });
+    assert.deepEqual(types(result), effects, name);
+    assert.equal(title(result.state), landed, name);
+    assert.equal(result.state.history.length, depth, name);
+  }
+  // Three presses on the page already on top still leave one page, its query and its history alone.
+  let page = deep;
+  for (let press = 0; press < 3; press++) page = reduce(page.state, { type: 'direct', destination: 'builds' });
+  assert.deepEqual(types(page), ['focus-page']);
+  assert.equal(page.state.history.length, 2);
+  // Back from a page found in history lands on its own query, not an empty one.
+  assert.equal(reduce(deep.state, { type: 'direct', destination: 'travel' }).state.query, 'kamadan');
 });
