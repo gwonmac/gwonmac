@@ -8,6 +8,7 @@ import {
   pullRoute,
   routeFrom,
   routePath,
+  routeInMapUnits,
   routeProgress,
   routeTargetIn,
   type RouteTarget,
@@ -59,11 +60,9 @@ describe("the walking line", () => {
 
 describe("the route tracker", () => {
   const target: RouteTarget = Object.freeze({ mapId: 200, areaEpoch: 7, x: 12, y: 28 });
-  const frame = (now: number, player = { x: 2, y: 2 }, current: Partial<RouteTarget> = {}) => ({
-    now, target, mapId: current.mapId ?? 200, areaEpoch: current.areaEpoch ?? 7, player,
-  });
+  const frame = (now: number, player = { x: 2, y: 2 }, asked: RouteTarget | null = target) => ({ now, target: asked, player });
 
-  it("searches once, then again only when the player strays from the line", () => {
+  it("searches once, then again only when the player strays, and a refresh with the same line repaints nothing", () => {
     const searches: RouteTarget[] = [];
     const tracker = createRouteTracker((asked) => { searches.push(asked); return L_CORRIDOR; });
     const first = tracker.update(frame(0));
@@ -72,21 +71,24 @@ describe("the route tracker", () => {
     assert.equal(searches.length, 1, "walking along the line costs no search");
     const strayed = tracker.update(frame(5_000, { x: 2 + ROUTE_STRAY_UNITS + 10, y: 2 }));
     assert.equal(searches.length, 2);
-    assert.equal(strayed?.path.version, 2);
+    assert.equal(strayed?.path.version, 1, "the kernel found the same line, so the version stays");
   });
 
-  it("drops the line on another map or instance and waits after a failed search", () => {
+  it("waits after a failed search, searches at once for the next area and drops the line without a target", () => {
     let answer: CartographyRoute | null = null;
-    let searches = 0;
-    const tracker = createRouteTracker(() => { searches += 1; return answer; });
+    const searches: RouteTarget[] = [];
+    const tracker = createRouteTracker((asked) => { searches.push(asked); return answer; });
     assert.equal(tracker.update(frame(0)), null);
     assert.equal(tracker.update(frame(ROUTE_RETRY_MS - 1)), null);
-    assert.equal(searches, 1, "a failed search is not repeated at once");
+    assert.equal(searches.length, 1, "a failed search is not repeated at once");
     answer = L_CORRIDOR;
     assert.notEqual(tracker.update(frame(ROUTE_RETRY_MS)), null);
-    assert.equal(tracker.update(frame(ROUTE_RETRY_MS + 16, undefined, { areaEpoch: 8 })), null);
-    assert.equal(tracker.update(frame(ROUTE_RETRY_MS + 32, undefined, { mapId: 201 })), null);
-    assert.equal(searches, 2, "another map or instance never searches for this target");
+    // The same goal in the next area: the kernel still answers for map 200, so the line is refused.
+    const next = { ...target, mapId: 201, areaEpoch: 8 };
+    assert.equal(tracker.update(frame(ROUTE_RETRY_MS + 16, undefined, next)), null);
+    assert.deepEqual(searches.at(-1), next, "a new area searches without waiting");
+    assert.equal(tracker.update(frame(ROUTE_RETRY_MS + 32, undefined, null)), null);
+    assert.equal(searches.length, 3);
   });
 });
 
@@ -95,6 +97,8 @@ describe("the route target", () => {
     const goal = { continent: 1, x: 1_010, y: 2_020 };
     const here = { continent: 1, mapId: 200, areaEpoch: 7, worldAnchor: { x: 1_000, y: 2_000 } };
     assert.deepEqual(routeTargetIn(goal, here), { mapId: 200, areaEpoch: 7, x: 960, y: -1_920 });
+    // The line comes back to the same map point, so it ends on the ring the player set.
+    assert.deepEqual([...routeInMapUnits(Float32Array.of(960, -1_920), here.worldAnchor)], [1_010, 2_020]);
     // The next area of the continent has its own anchor: the same point, in its own game units.
     const next = { continent: 1, mapId: 201, areaEpoch: 8, worldAnchor: { x: 1_020, y: 2_000 } };
     assert.deepEqual(routeTargetIn(goal, next), { mapId: 201, areaEpoch: 8, x: -960, y: -1_920 });
