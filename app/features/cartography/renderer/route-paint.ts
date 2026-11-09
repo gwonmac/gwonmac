@@ -1,12 +1,14 @@
 /**
- * Owns how the walking route looks on every Maps surface: one dashed line with a
- * dark casing to the player's target, and a ring on the target. When the target
- * cannot be reached, the line ends on the nearest ground and a dotted line shows
- * the rest of the way. The Compass texture paints it through `paintRoute`; the
- * Mission Map and World Map compose the canvas of `createRouteLayer`.
+ * Owns how the walking route looks on every Maps surface: one line with a dark
+ * casing and a ring on the target, dashed to the player's own target and solid
+ * to the active quest's marker. When the target cannot be reached, the line
+ * ends on the nearest ground and a dotted line shows the rest of the way. The
+ * Compass texture paints it through `paintRoute`; the Mission Map and World Map
+ * compose the canvas of `createRouteLayer`.
  */
 import type { CartographyGridProjection } from "./cartography-grid-projection.js";
 import type { MapPainterImage } from "./native-map-graphics-layer.js";
+import type { RouteKind } from "./route-path.js";
 
 // Okabe-Ito yellow: apart from the Compass range colours (the rest of that
 // palette), the amber and orange exploration markers, and the cyan and magenta
@@ -17,10 +19,11 @@ export const ROUTE_CASING_COLOR = "#050709";
 
 /** What one surface draws, in continent map units, with the version that names it. */
 export type RouteDrawing = Readonly<{
+  kind: RouteKind;
   version: string;
   /** x, y per corner from where the player is to where the line ends. */
   points: Float32Array;
-  /** The point the player set. */
+  /** The point the route leads to. */
   target: Readonly<{ x: number; y: number }>;
   reached: boolean;
 }>;
@@ -55,7 +58,7 @@ export function paintRoute(context: CanvasRenderingContext2D, drawing: RouteDraw
   context.lineWidth = width * 2.5; context.stroke();
   context.strokeStyle = ROUTE_LINE_COLOR;
   context.lineWidth = width;
-  context.setLineDash([width * 3, width * 2]);
+  context.setLineDash(drawing.kind === "own" ? [width * 3, width * 2] : []);
   context.stroke(line);
   if (!drawing.reached) {
     // The part the route cannot walk: dotted, so it reads as "no way through here".

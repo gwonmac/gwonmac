@@ -267,6 +267,16 @@ turning the layer off forgets it. The target lives in the game window only and
 is not saved. When the target lies in another area, the route ends on the
 ground of this area nearest it, which is not always the exit that leads there.
 
+Without the player's own target, the route leads to the active quest (the
+`cartographyQuestRouteEnabled` sub-option, on by default). Progress's part hands
+the quest marker to Maps through `cartography-player-state.ts`, with the map its
+snapshot was read on. The client sets that marker in the game units of the map
+the player is in, and points at the exit when the quest ends elsewhere, so the
+marker is the search target as it is, and it counts only on that map. The
+Progress feed runs while this route wants it, even with Travel off. A client
+without a reviewed quest lookup has no marker and draws no quest line. The
+player's own target always wins; the quest line is solid, the own one dashed.
+
 The reachability kernel searches the route (`cartography_reachability_route`)
 over the same trapezoids, portals, blocked planes, and doorway rule as the
 reachable-area flood. It is an A* search bounded by the trapezoid count and a
@@ -285,8 +295,9 @@ opened gates, never more than once a second and three seconds after a failed
 search. The line is composed into the existing Compass, Mission Map, and World
 Map textures; it adds no native slot. A surface redraws it only for a new line
 or after the player has walked a set distance, because each redraw uploads that
-surface's whole texture; a refresh that finds the same line redraws nothing. The line is Okabe–Ito yellow on the Compass ranges' dark casing,
-so it stays apart from the grid, terrain, and range colours.
+surface's whole texture; a refresh that finds the same line redraws nothing.
+The line is Okabe–Ito yellow on the Compass ranges' dark casing, so it stays
+apart from the grid, terrain, and range colours.
 
 The `gwCartographyRouteStats()` diagnostic reports the last search's status,
 step count, expanded trapezoids, and milliseconds.

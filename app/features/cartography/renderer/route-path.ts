@@ -48,7 +48,43 @@ export function routeTargetIn(goal: RouteGoal, area: RouteArea): RouteTarget | n
   });
 }
 
-/** A line in this area's game units as continent map units, the inverse of `routeTargetIn`. */
+/** A point in this area's game units as a goal in continent map units, the inverse of `routeTargetIn`. */
+export function routeGoalAt(point: Point, area: RouteArea): RouteGoal {
+  return Object.freeze({
+    continent: area.continent,
+    x: area.worldAnchor.x + point.x / GAME_UNITS_PER_MAP_UNIT,
+    y: area.worldAnchor.y - point.y / GAME_UNITS_PER_MAP_UNIT,
+  });
+}
+
+/** Whose target the route leads to: the point the player set, or the quest marker. */
+export type RouteKind = "own" | "quest";
+
+/** What the route leads to in one area, in both units. */
+export type RouteChoice = Readonly<{ target: RouteTarget; goal: RouteGoal; kind: RouteKind }>;
+
+/**
+ * The player's own goal while it applies here; otherwise the quest marker,
+ * which the client sets in the game units of the map the player is in, so it
+ * counts only in that map. `own` is the goal to keep: another continent
+ * forgets it.
+ */
+export function routeChoice(
+  own: RouteGoal | null,
+  quest: Readonly<{ mapId: number; x: number; y: number }> | null,
+  area: RouteArea,
+): Readonly<{ own: RouteGoal | null; route: RouteChoice | null }> {
+  const target = own === null ? null : routeTargetIn(own, area);
+  if (own !== null && target !== null) return { own, route: Object.freeze({ target, goal: own, kind: "own" }) };
+  if (quest === null || quest.mapId !== area.mapId) return { own: null, route: null };
+  return { own: null, route: Object.freeze({
+    target: Object.freeze({ mapId: area.mapId, areaEpoch: area.areaEpoch, x: quest.x, y: quest.y }),
+    goal: routeGoalAt(quest, area),
+    kind: "quest",
+  }) };
+}
+
+/** A line in this area's game units as continent map units, like `routeGoalAt` for each corner. */
 export function routeInMapUnits(points: Float32Array, worldAnchor: Readonly<{ x: number; y: number }>): Float32Array {
   const map = new Float32Array(points.length);
   for (let at = 0; at < points.length; at += 2) {
