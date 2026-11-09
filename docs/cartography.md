@@ -283,9 +283,9 @@ kernel work. It searches again only when the target or instance changes, when
 the player strays more than 500 units from the line, and every 30 seconds for
 opened gates, never more than once a second and three seconds after a failed
 search. The line is composed into the existing Compass, Mission Map, and World
-Map textures; it adds no native slot. A surface redraws it only after the
-player has walked a set distance, because each redraw uploads that surface's
-whole texture. The line is Okabe–Ito yellow on the Compass ranges' dark casing,
+Map textures; it adds no native slot. A surface redraws it only for a new line
+or after the player has walked a set distance, because each redraw uploads that
+surface's whole texture; a refresh that finds the same line redraws nothing. The line is Okabe–Ito yellow on the Compass ranges' dark casing,
 so it stays apart from the grid, terrain, and range colours.
 
 The `gwCartographyRouteStats()` diagnostic reports the last search's status,

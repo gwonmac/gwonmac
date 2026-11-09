@@ -4,6 +4,7 @@
  * decides when the kernel must search again. Pure and in game units; the
  * painters only draw what this returns.
  */
+import { GAME_UNITS_PER_MAP_UNIT } from "./map-projections.js";
 import type { CartographyRoute } from "./reachability-kernel.js";
 
 type Point = Readonly<{ x: number; y: number }>;
@@ -29,9 +30,6 @@ export type RouteTarget = Readonly<{ mapId: number; areaEpoch: number; x: number
  */
 export type RouteGoal = Readonly<{ continent: number; x: number; y: number }>;
 
-/** Game units per continent map unit. */
-export const GAME_UNITS_PER_MAP_UNIT = 96;
-
 /** Where the player is: one area of one continent, and its anchor in map units. */
 export type RouteArea = Readonly<{
   continent: number; mapId: number; areaEpoch: number; worldAnchor: Readonly<{ x: number; y: number }>;
@@ -48,6 +46,16 @@ export function routeTargetIn(goal: RouteGoal, area: RouteArea): RouteTarget | n
     x: (goal.x - area.worldAnchor.x) * GAME_UNITS_PER_MAP_UNIT,
     y: (area.worldAnchor.y - goal.y) * GAME_UNITS_PER_MAP_UNIT,
   });
+}
+
+/** A line in this area's game units as continent map units, the inverse of `routeTargetIn`. */
+export function routeInMapUnits(points: Float32Array, worldAnchor: Readonly<{ x: number; y: number }>): Float32Array {
+  const map = new Float32Array(points.length);
+  for (let at = 0; at < points.length; at += 2) {
+    map[at] = worldAnchor.x + points[at]! / GAME_UNITS_PER_MAP_UNIT;
+    map[at + 1] = worldAnchor.y - points[at + 1]! / GAME_UNITS_PER_MAP_UNIT;
+  }
+  return map;
 }
 
 /** A player this far from the line gets a new search. */
@@ -183,11 +191,16 @@ export function routeFrom(path: RoutePath, along: number): Float32Array {
 /** What a frame draws: the line, and how far along it the player has walked. */
 export type RouteView = Readonly<{ path: RoutePath; along: number }>;
 
+function sameLine(a: RoutePath, points: Float32Array, reached: boolean): boolean {
+  return a.reached === reached && a.points.length === points.length && a.points.every((value, index) => value === points[index]);
+}
+
 /**
- * Keeps one route current for one target. It searches when the target, map or
- * instance changes, when the player strays from the line, and on a slow
- * refresh; never more often than ROUTE_MIN_SEARCH_MS. Between searches it only
- * measures progress, which costs no kernel work.
+ * Keeps one route current for one target. It searches when the target changes
+ * (a new point, or the next area), when the player strays from the line, and on
+ * a slow refresh; never more often than ROUTE_MIN_SEARCH_MS. Between searches it
+ * only measures progress, which costs no kernel work. A refresh that finds the
+ * same line keeps its version, so no surface repaints for it.
  */
 export function createRouteTracker(search: (target: RouteTarget) => CartographyRoute | null) {
   let key = "";
@@ -201,12 +214,9 @@ export function createRouteTracker(search: (target: RouteTarget) => CartographyR
     searchedAt = Number.NEGATIVE_INFINITY; failedAt = Number.NEGATIVE_INFINITY;
   };
   return Object.freeze({
-    update(input: Readonly<{ now: number; target: RouteTarget | null; mapId: number; areaEpoch: number; player: Point }>): RouteView | null {
+    update(input: Readonly<{ now: number; target: RouteTarget | null; player: Point }>): RouteView | null {
       const { target } = input;
-      if (target === null || target.mapId !== input.mapId || target.areaEpoch !== input.areaEpoch) {
-        reset();
-        return null;
-      }
+      if (target === null) { reset(); return null; }
       const nextKey = `${target.mapId}:${target.areaEpoch}:${target.x}:${target.y}`;
       if (nextKey !== key) { reset(); key = nextKey; }
       const progress = path === null ? null : routeProgress(path, input.player, along);
@@ -216,12 +226,16 @@ export function createRouteTracker(search: (target: RouteTarget) => CartographyR
       if (due && input.now - searchedAt >= ROUTE_MIN_SEARCH_MS) {
         searchedAt = input.now;
         const route = search(target);
+        // The kernel reads the live game, which may already be in another area.
         if (route === null || route.mapId !== target.mapId || route.areaEpoch !== target.areaEpoch) {
           path = null; along = 0; failedAt = input.now;
           return null;
         }
-        version += 1;
-        path = routePath(pullRoute(route), route.reached, version);
+        const points = pullRoute(route);
+        if (path === null || !sameLine(path, points, route.reached)) {
+          version += 1;
+          path = routePath(points, route.reached, version);
+        }
         along = routeProgress(path, input.player).along;
         return Object.freeze({ path, along });
       }
@@ -229,6 +243,5 @@ export function createRouteTracker(search: (target: RouteTarget) => CartographyR
       along = progress.along;
       return Object.freeze({ path, along });
     },
-    reset,
   });
 }

@@ -33,7 +33,7 @@ import {
   projectCartographyGridToWorldMap,
   type CartographyGridProjection,
 } from "./cartography-grid-projection.js";
-import { GAME_UNITS_PER_MAP_UNIT, createRouteTracker, routeFrom, routeTargetIn, type RouteGoal, type RouteView } from "./route-path.js";
+import { createRouteTracker, routeFrom, routeInMapUnits, routeTargetIn, type RouteGoal, type RouteView } from "./route-path.js";
 import { createRouteLayer, type RouteDrawing } from "./route-paint.js";
 import { cartographyHoverRevealRadius } from "./cartography-paint.js";
 import { projectMissionMapFrame, projectNativeFrame } from "./frame-placement.js";
@@ -258,7 +258,7 @@ export function mountCartographyOverlay(options: Readonly<{
     // The walking route: the point the player set, in continent map units so it
     // outlives travel to the next area, and the map projections a right-click is
     // resolved through.
-    let routeTarget: RouteGoal | null = null;
+    let routeGoal: RouteGoal | null = null;
     let routeView: RouteView | null = null;
     const routeDrawings = new Map<number, RouteDrawing>();
     let missionPointProjection: CartographyGridProjection | null = null;
@@ -292,10 +292,9 @@ export function mountCartographyOverlay(options: Readonly<{
       if (document.visibilityState === "hidden") forgetPointer();
     };
     // A right-click on the Mission Map or World Map sets the route target; one on
-    // the target removes it. The listener is passive: Guild Wars gets every click.
-    // A right-drag over a map pans it, and elsewhere turns the camera, so only a short
-    // right click that stays in place sets a target, at the place it was pressed. Both
-    // listeners are passive: the game still gets every press and release.
+    // the target removes it. A right-drag over a map pans it, and elsewhere turns the
+    // camera, so only a short right click that stays in place counts, at the place it
+    // was pressed. Both listeners are passive: the game still gets every press and release.
     let rightPress: Readonly<{ x: number; y: number; at: number }> | null = null;
     const rememberRightPress = (event: PointerEvent): void => {
       rightPress = event.button === 2 ? { x: event.clientX, y: event.clientY, at: event.timeStamp } : null;
@@ -313,16 +312,17 @@ export function mountCartographyOverlay(options: Readonly<{
         candidate !== null && cartographyMapPointAtScreenPoint(candidate, press.x, press.y) !== null) ?? null;
       const point = projection === null ? null : cartographyMapPointAtScreenPoint(projection, press.x, press.y);
       if (projection === null || point === null) return;
-      if (routeTarget !== null) {
+      if (routeGoal !== null) {
+        // Mission and World Map transforms never rotate (b = c = 0).
         const { box, transform } = projection;
-        const x = box.left + transform.a * routeTarget.x + transform.e;
-        const y = box.top + transform.d * routeTarget.y + transform.f;
+        const x = box.left + transform.a * routeGoal.x + transform.e;
+        const y = box.top + transform.d * routeGoal.y + transform.f;
         if (Math.hypot(x - press.x, y - press.y) <= ROUTE_TARGET_HIT_PIXELS) {
-          routeTarget = null;
+          routeGoal = null;
           return;
         }
       }
-      routeTarget = Object.freeze({ continent: current.continent, x: point.x, y: point.y });
+      routeGoal = Object.freeze({ continent: current.continent, x: point.x, y: point.y });
     };
     view.addEventListener("pointerdown", rememberRightPress, { capture: true, passive: true });
     view.addEventListener("pointerup", placeRouteTarget, { capture: true, passive: true });
@@ -431,20 +431,15 @@ export function mountCartographyOverlay(options: Readonly<{
      */
     const routeDrawing = (quantum: number): RouteDrawing | undefined => {
       const current = state.currentInstance;
-      if (routeTarget === null || current.status !== "ready") return undefined;
-      const anchor = current.worldAnchor;
-      const toMap = (x: number, y: number) => [anchor.x + x / GAME_UNITS_PER_MAP_UNIT, anchor.y - y / GAME_UNITS_PER_MAP_UNIT] as const;
-      const { x: targetX, y: targetY } = routeTarget;
+      if (routeGoal === null || current.status !== "ready") return undefined;
+      const { x: targetX, y: targetY } = routeGoal;
       const step = routeView === null ? -1 : Math.floor(routeView.along / quantum);
       const version = [routeView?.path.version ?? "none", step, targetX, targetY].join(":");
       const cached = routeDrawings.get(quantum);
       if (cached?.version === version) return cached;
-      const game = routeView === null ? new Float32Array(0) : routeFrom(routeView.path, step * quantum);
-      const points = new Float32Array(game.length);
-      for (let at = 0; at < game.length; at += 2) {
-        const [x, y] = toMap(game[at]!, game[at + 1]!);
-        points[at] = x; points[at + 1] = y;
-      }
+      const points = routeView === null
+        ? new Float32Array(0)
+        : routeInMapUnits(routeFrom(routeView.path, step * quantum), current.worldAnchor);
       const drawing = Object.freeze({
         version, points, reached: routeView?.path.reached ?? true, target: Object.freeze({ x: targetX, y: targetY }),
       });
@@ -592,19 +587,15 @@ export function mountCartographyOverlay(options: Readonly<{
       const currentInstance = state.currentInstance;
       // Turning the route off forgets the target; so does another continent. Travel
       // within the continent keeps it, and the next area searches toward it again.
-      if (!settings.cartographyRouteEnabled) routeTarget = null;
+      if (!settings.cartographyRouteEnabled) routeGoal = null;
       let target = null;
-      if (routeTarget !== null && currentInstance.status === "ready") {
-        const area = { mapId: currentInstance.epoch.mapId, areaEpoch: currentInstance.epoch.area,
-          continent: currentInstance.continent, worldAnchor: currentInstance.worldAnchor };
-        target = routeTargetIn(routeTarget, area);
-        if (target === null) routeTarget = null;
+      if (routeGoal !== null && currentInstance.status === "ready") {
+        target = routeTargetIn(routeGoal, { mapId: currentInstance.epoch.mapId, areaEpoch: currentInstance.epoch.area,
+          continent: currentInstance.continent, worldAnchor: currentInstance.worldAnchor });
+        if (target === null) routeGoal = null;
       }
       routeView = currentInstance.status === "ready" && presentation.player !== null
-        ? routeTracker.update({
-            now, target, mapId: currentInstance.epoch.mapId, areaEpoch: currentInstance.epoch.area,
-            player: presentation.player,
-          })
+        ? routeTracker.update({ now, target, player: presentation.player })
         : null;
       const gridOpacity = previewGridOpacity ?? settings.cartographyGridOpacity;
       const walkabilityOpacity = previewWalkabilityOpacity
