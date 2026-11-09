@@ -8,11 +8,17 @@ import {
   pullRoute,
   routeFrom,
   routePath,
+  routeChoice,
   routeInMapUnits,
   routeProgress,
   routeTargetIn,
   type RouteTarget,
 } from "../../app/features/cartography/renderer/route-path.js";
+
+import {
+  readCartographyQuestMarker,
+  updateCartographyQuest,
+} from "../../app/features/cartography/renderer/cartography-player-state.js";
 
 type Step = Readonly<{ centre: readonly [number, number]; edge?: readonly [number, number, number, number] }>;
 
@@ -103,5 +109,36 @@ describe("the route target", () => {
     const next = { continent: 1, mapId: 201, areaEpoch: 8, worldAnchor: { x: 1_020, y: 2_000 } };
     assert.deepEqual(routeTargetIn(goal, next), { mapId: 201, areaEpoch: 8, x: -960, y: -1_920 });
     assert.equal(routeTargetIn(goal, { ...next, continent: 2 }), null);
+  });
+
+  it("leads to the quest marker on its own map unless the player set a target", () => {
+    const here = { continent: 1, mapId: 200, areaEpoch: 7, worldAnchor: { x: 1_000, y: 2_000 } };
+    const quest = { mapId: 200, x: 960, y: -1_920 };
+    // The marker is the search target as it is, and its ring sits on the same map point.
+    assert.deepEqual(routeChoice(null, quest, here), { own: null, route: {
+      target: { mapId: 200, areaEpoch: 7, x: 960, y: -1_920 }, goal: { continent: 1, x: 1_010, y: 2_020 }, kind: "quest",
+    } });
+    const own = { continent: 1, x: 1_100, y: 2_000 };
+    assert.deepEqual(routeChoice(own, quest, here).route?.kind, "own");
+    // A marker read on another map is in that map's units: no line until Progress reads this one.
+    assert.deepEqual(routeChoice(null, { ...quest, mapId: 201 }, here), { own: null, route: null });
+    // Another continent forgets the player's target; the quest line takes over.
+    assert.deepEqual(routeChoice({ ...own, continent: 2 }, quest, here).own, null);
+    assert.equal(routeChoice({ ...own, continent: 2 }, quest, here).route?.kind, "quest");
+  });
+});
+
+describe("the quest marker Maps receives", () => {
+  it("belongs to the map Progress read it on, and goes away at a loading screen", () => {
+    const ready = { status: "ready", sequence: 1, mapId: 13, characterKey: "00000000000000aa", missions: null,
+      vanquished: null, cartographer: null, areas: [], quest: { id: 31, mapId: 81, marker: { x: -1_250.5, y: 3_400 } } } as const;
+    updateCartographyQuest(ready);
+    // The marker is where the client points in map 13 (the exit toward map 81), so it carries map 13.
+    assert.deepEqual(readCartographyQuestMarker(), { mapId: 13, x: -1_250.5, y: 3_400 });
+    updateCartographyQuest({ ...ready, quest: { ...ready.quest, marker: null } });
+    assert.equal(readCartographyQuestMarker(), null);
+    updateCartographyQuest(ready);
+    updateCartographyQuest({ status: "waiting", reason: "loading" });
+    assert.equal(readCartographyQuestMarker(), null);
   });
 });
