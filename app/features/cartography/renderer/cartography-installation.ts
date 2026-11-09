@@ -20,7 +20,7 @@ import type {
   WorldMapFrameDiagnostic,
 } from "../../../shared/cartography-spike.js";
 import { disposeCartographyResources } from "./cartography-lifecycle.js";
-import { readCartographyPlayRegion, readCartographyPlayerState } from "./cartography-player-state.js";
+import { readCartographyPlayRegion, readCartographyPlayerState, readCartographyQuestMarker } from "./cartography-player-state.js";
 import { createCartographyContextReader } from "./context-observer.js";
 import { createExplorationReader } from "./exploration-observer.js";
 import {
@@ -161,6 +161,7 @@ export async function installCartography(options: Readonly<{
         revealRadius: () => options.settings().cartographyRevealMode === "birds-eye" ? 3 : 1,
       },
       playRegion: readCartographyPlayRegion,
+      questMarker: readCartographyQuestMarker,
       settings: options.settings,
       persist: options.persist,
       exportEvidence: options.exportEvidence,
