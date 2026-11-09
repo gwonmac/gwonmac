@@ -267,7 +267,8 @@ names where progress stopped for eight seconds. Steam refusal and automatic
 return share one status owner, so only the newest message can dismiss itself.
 
 Right-drag uses pointer lock and a virtual cursor. The host bounds drag
-recycling so camera movement can continue. The host normalizes supported
+recycling so camera movement can continue. The Maps route listens to right
+presses passively to set its target and never consumes them. The host normalizes supported
 physical keyboard positions before the official client receives them. Text
 fields still use the active macOS input source.
 

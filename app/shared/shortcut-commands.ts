@@ -14,6 +14,7 @@ import type { ShortcutAction } from "../features/index.js";
 export const SHORTCUT_MAP_LAYERS = {
   "cartography.grid.toggle": "cartographyGridEnabled",
   "cartography.walkability.toggle": "cartographyOverlayEnabled",
+  "cartography.route.toggle": "cartographyRouteEnabled",
 } as const satisfies Partial<Record<ShortcutAction, keyof AppSettings>>;
 
 export type ShortcutCommandAction = Exclude<ShortcutAction, keyof typeof SHORTCUT_MAP_LAYERS>;

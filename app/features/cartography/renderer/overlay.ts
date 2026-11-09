@@ -28,9 +28,13 @@ import {
 } from "./cartography-grid-layer.js";
 import {
   cartographyCellAtScreenPoint,
+  cartographyMapPointAtScreenPoint,
   projectCartographyGridToMissionMap,
   projectCartographyGridToWorldMap,
+  type CartographyGridProjection,
 } from "./cartography-grid-projection.js";
+import { createRouteTracker, routeFrom, routeInMapUnits, routeTargetIn, type RouteGoal, type RouteView } from "./route-path.js";
+import { createRouteLayer, type RouteDrawing } from "./route-paint.js";
 import { cartographyHoverRevealRadius } from "./cartography-paint.js";
 import { projectMissionMapFrame, projectNativeFrame } from "./frame-placement.js";
 import { createInverseMaskLayer } from "./inverse-mask-layer.js";
@@ -65,6 +69,17 @@ import {
 } from "./map-knowledge.js";
 
 const MODEL_POLL_MS = 200;
+/**
+ * Game units walked before a surface redraws the route from the player's place
+ * on it. Each redraw uploads that surface's whole texture, so the larger maps
+ * redraw less often; the line behind the player stays shorter than this.
+ */
+const ROUTE_REDRAW_UNITS = Object.freeze({ compass: 400, missionMap: 1_000, worldMap: 4_000 });
+/** A right-click this close to the target, in screen pixels, removes it. */
+const ROUTE_TARGET_HIT_PIXELS = 14;
+/** A right press held longer than this, or moved further, is a drag, not a target. */
+const ROUTE_CLICK_MS = 400;
+const ROUTE_CLICK_SLOP_PIXELS = 5;
 
 export type CartographyGridStats = Readonly<{
   compass: CartographyGridLayerSnapshot | null;
@@ -169,6 +184,10 @@ export function mountCartographyOverlay(options: Readonly<{
     cleanup.push(() => missionHoverLayer.dispose());
     const worldHoverLayer = createCartographyGridLayer(document, true);
     cleanup.push(() => worldHoverLayer.dispose());
+    const missionRouteLayer = createRouteLayer(document);
+    cleanup.push(() => missionRouteLayer.dispose());
+    const worldRouteLayer = createRouteLayer(document);
+    cleanup.push(() => worldRouteLayer.dispose());
     const compassRangeLayer = createCompassRangeLayer(options.parent);
     cleanup.push(() => compassRangeLayer.dispose());
     const previewRangeOpacity = new Map<CompassRangeId, number>();
@@ -236,6 +255,22 @@ export function mountCartographyOverlay(options: Readonly<{
     let pointerY = Number.NaN;
     let shiftHeld = false;
     let optionHeld = false;
+    // The walking route: the point the player set, in continent map units so it
+    // outlives travel to the next area, and the map projections a right-click is
+    // resolved through.
+    let routeGoal: RouteGoal | null = null;
+    let routeView: RouteView | null = null;
+    const routeDrawings = new Map<number, RouteDrawing>();
+    let missionPointProjection: CartographyGridProjection | null = null;
+    let worldPointProjection: CartographyGridProjection | null = null;
+    const routeTracker = createRouteTracker((target) => {
+      const companion = options.modelSources.companion();
+      if (state.context === null || companion?.status !== "ready") return null;
+      return options.modelSources.kernel.route({
+        layoutId: state.context.layoutId, mapId: target.mapId, areaEpoch: target.areaEpoch,
+        playerId: companion.playerId, targetX: target.x, targetY: target.y,
+      });
+    });
 
     const rememberPointer = (event: PointerEvent): void => {
       pointerX = event.clientX;
@@ -256,6 +291,41 @@ export function mountCartographyOverlay(options: Readonly<{
     const forgetHiddenPointer = (): void => {
       if (document.visibilityState === "hidden") forgetPointer();
     };
+    // A right-click on the Mission Map or World Map sets the route target; one on
+    // the target removes it. A right-drag over a map pans it, and elsewhere turns the
+    // camera, so only a short right click that stays in place counts, at the place it
+    // was pressed. Both listeners are passive: the game still gets every press and release.
+    let rightPress: Readonly<{ x: number; y: number; at: number }> | null = null;
+    const rememberRightPress = (event: PointerEvent): void => {
+      rightPress = event.button === 2 ? { x: event.clientX, y: event.clientY, at: event.timeStamp } : null;
+    };
+    const placeRouteTarget = (event: PointerEvent): void => {
+      const press = rightPress;
+      rightPress = null;
+      if (event.button !== 2 || press === null || !options.settings().cartographyRouteEnabled) return;
+      if (event.timeStamp - press.at > ROUTE_CLICK_MS) return;
+      if (Math.hypot(event.clientX - press.x, event.clientY - press.y) > ROUTE_CLICK_SLOP_PIXELS) return;
+      const current = state.currentInstance;
+      if (current.status !== "ready") return;
+      // The World Map opens over the Mission Map, so it answers first.
+      const projection = [worldPointProjection, missionPointProjection].find((candidate) =>
+        candidate !== null && cartographyMapPointAtScreenPoint(candidate, press.x, press.y) !== null) ?? null;
+      const point = projection === null ? null : cartographyMapPointAtScreenPoint(projection, press.x, press.y);
+      if (projection === null || point === null) return;
+      if (routeGoal !== null) {
+        // Mission and World Map transforms never rotate (b = c = 0).
+        const { box, transform } = projection;
+        const x = box.left + transform.a * routeGoal.x + transform.e;
+        const y = box.top + transform.d * routeGoal.y + transform.f;
+        if (Math.hypot(x - press.x, y - press.y) <= ROUTE_TARGET_HIT_PIXELS) {
+          routeGoal = null;
+          return;
+        }
+      }
+      routeGoal = Object.freeze({ continent: current.continent, x: point.x, y: point.y });
+    };
+    view.addEventListener("pointerdown", rememberRightPress, { capture: true, passive: true });
+    view.addEventListener("pointerup", placeRouteTarget, { capture: true, passive: true });
     view.addEventListener("pointermove", rememberPointer, { capture: true, passive: true });
     view.addEventListener("keydown", rememberModifiers, true);
     view.addEventListener("keyup", rememberModifiers, true);
@@ -263,6 +333,8 @@ export function mountCartographyOverlay(options: Readonly<{
     document.addEventListener("visibilitychange", forgetHiddenPointer);
 
     cleanup.push(() => {
+      view.removeEventListener("pointerdown", rememberRightPress, true);
+      view.removeEventListener("pointerup", placeRouteTarget, true);
       view.removeEventListener("pointermove", rememberPointer, true);
       view.removeEventListener("keydown", rememberModifiers, true);
       view.removeEventListener("keyup", rememberModifiers, true);
@@ -279,12 +351,16 @@ export function mountCartographyOverlay(options: Readonly<{
       missionHoverLayer.hide();
       missionGridLayer.hide();
       missionTerrainLayer.hide();
+      missionRouteLayer.hide();
+      missionPointProjection = null;
     };
     const hideWorld = (): void => {
       options.nativeMapGraphics.hide("world");
       options.nativeMapGraphics.hide("world_hover");
       worldHoverLayer.hide();
       worldGridLayer.hide();
+      worldRouteLayer.hide();
+      worldPointProjection = null;
     };
     const hideAllLayers = (): void => {
       hideCompassLayers();
@@ -344,6 +420,32 @@ export function mountCartographyOverlay(options: Readonly<{
     });
     view.gwCartographyModelStats = modelStats;
     cleanup.push(() => { if (view.gwCartographyModelStats === modelStats) delete view.gwCartographyModelStats; });
+    const routeStats = () => options.modelSources.kernel.routeDiagnostic();
+    view.gwCartographyRouteStats = routeStats;
+    cleanup.push(() => { if (view.gwCartographyRouteStats === routeStats) delete view.gwCartographyRouteStats; });
+
+    /**
+     * What one surface draws of the route, in map units: the line from the
+     * player's place on it, moved forward in steps of `quantum` game units, and
+     * the target. Without a searched line the target still shows.
+     */
+    const routeDrawing = (quantum: number): RouteDrawing | undefined => {
+      const current = state.currentInstance;
+      if (routeGoal === null || current.status !== "ready") return undefined;
+      const { x: targetX, y: targetY } = routeGoal;
+      const step = routeView === null ? -1 : Math.floor(routeView.along / quantum);
+      const version = [routeView?.path.version ?? "none", step, targetX, targetY].join(":");
+      const cached = routeDrawings.get(quantum);
+      if (cached?.version === version) return cached;
+      const points = routeView === null
+        ? new Float32Array(0)
+        : routeInMapUnits(routeFrom(routeView.path, step * quantum), current.worldAnchor);
+      const drawing = Object.freeze({
+        version, points, reached: routeView?.path.reached ?? true, target: Object.freeze({ x: targetX, y: targetY }),
+      });
+      routeDrawings.set(quantum, drawing);
+      return drawing;
+    };
 
     const safe = (surface: "compass" | "mission-map" | "world-map", render: () => void): void => {
       try {
@@ -482,6 +584,19 @@ export function mountCartographyOverlay(options: Readonly<{
         hideAllLayers();
         return;
       }
+      const currentInstance = state.currentInstance;
+      // Turning the route off forgets the target; so does another continent. Travel
+      // within the continent keeps it, and the next area searches toward it again.
+      if (!settings.cartographyRouteEnabled) routeGoal = null;
+      let target = null;
+      if (routeGoal !== null && currentInstance.status === "ready") {
+        target = routeTargetIn(routeGoal, { mapId: currentInstance.epoch.mapId, areaEpoch: currentInstance.epoch.area,
+          continent: currentInstance.continent, worldAnchor: currentInstance.worldAnchor });
+        if (target === null) routeGoal = null;
+      }
+      routeView = currentInstance.status === "ready" && presentation.player !== null
+        ? routeTracker.update({ now, target, player: presentation.player })
+        : null;
       const gridOpacity = previewGridOpacity ?? settings.cartographyGridOpacity;
       const walkabilityOpacity = previewWalkabilityOpacity
         ?? settings.cartographyWalkabilityOpacity;
@@ -575,7 +690,8 @@ export function mountCartographyOverlay(options: Readonly<{
             style: style.grid, opacity: gridOpacity, explorationVersion: explorationKey,
             isExplored, isRemaining, revealabilityVersion: actionabilityKey, canCurrentMapReveal, canVisitedMapReveal,
           } : undefined;
-        if ((settings.cartographyOverlayEnabled && terrain !== null) || cartography) {
+        const route = routeDrawing(ROUTE_REDRAW_UNITS.compass);
+        if ((settings.cartographyOverlayEnabled && terrain !== null) || cartography || route) {
           compassTerrainLayer.update({
             area: state.currentInstance.epoch.area,
             version: nextTerrainKey, terrain: settings.cartographyOverlayEnabled ? terrain : null,
@@ -586,6 +702,7 @@ export function mountCartographyOverlay(options: Readonly<{
             style: style.walkability,
             opacity: settings.cartographyOverlayEnabled ? walkabilityOpacity : 0,
             ...(cartography ? {cartography, inspectionRadius: reachRadius} : {}),
+            ...(route ? { route } : {}),
           });
         } else compassTerrainLayer.hide();
       });
@@ -612,6 +729,7 @@ export function mountCartographyOverlay(options: Readonly<{
         }
         const mapProjection = projectCartographyGridToMissionMap({ frame: mission, box });
         const tileProjection = mapProjection === null ? null : nativeMapTileProjection(mapProjection);
+        missionPointProjection = mapProjection;
         if (settings.cartographyGridEnabled && state.continent.status === "ready") {
           if (mapProjection === null || tileProjection === null) {
             missionGridLayer.hide();
@@ -660,10 +778,13 @@ export function mountCartographyOverlay(options: Readonly<{
             opacity: walkabilityOpacity,
           });
         } else missionTerrainLayer.hide();
+        const missionRoute = routeDrawing(ROUTE_REDRAW_UNITS.missionMap);
+        if (missionRoute && tileProjection !== null) missionRouteLayer.update({ projection: tileProjection, drawing: missionRoute });
+        else missionRouteLayer.hide();
         if (tileProjection === null) options.nativeMapGraphics.hide("mission");
         else options.nativeMapGraphics.update("mission", {
           area: mission.generation, continent: state.continent.status === "ready" ? state.continent.continent : 0,
-          projection: tileProjection, images: [missionTerrainLayer.image(), missionGridLayer.image()],
+          projection: tileProjection, images: [missionTerrainLayer.image(), missionGridLayer.image(), missionRouteLayer.image()],
         });
       });
 
@@ -683,13 +804,20 @@ export function mountCartographyOverlay(options: Readonly<{
         const mapProjection = box === null
           ? null
           : projectCartographyGridToWorldMap({ frame: world, box });
-        if (!settings.cartographyGridEnabled || mapProjection === null) {
+        // The route shows on the World Map with or without the exploration grid.
+        const worldRoute = routeDrawing(ROUTE_REDRAW_UNITS.worldMap);
+        if ((!settings.cartographyGridEnabled && !worldRoute) || mapProjection === null) {
           hideWorld();
+          // Nothing to draw yet, but a right-click must still find the map to set the first target.
+          if (settings.cartographyRouteEnabled) worldPointProjection = mapProjection;
           return;
         }
-        const hoveredCell = cartographyCellAtScreenPoint(mapProjection, pointerX, pointerY);
+        worldPointProjection = mapProjection;
+        const hoveredCell = settings.cartographyGridEnabled
+          ? cartographyCellAtScreenPoint(mapProjection, pointerX, pointerY)
+          : null;
         const tileProjection = nativeMapTileProjection(mapProjection);
-        worldGridLayer.update({
+        if (settings.cartographyGridEnabled) worldGridLayer.update({
           projection: tileProjection,
           style: style.grid,
           opacity: gridOpacity,
@@ -701,8 +829,11 @@ export function mountCartographyOverlay(options: Readonly<{
           canVisitedMapReveal,
           hoveredCell: null, revealRadius: 0, reachRadius,
         });
+        else worldGridLayer.hide();
+        if (worldRoute) worldRouteLayer.update({ projection: tileProjection, drawing: worldRoute });
+        else worldRouteLayer.hide();
         options.nativeMapGraphics.update("world", { area: world.generation, continent: world.continent,
-          projection: tileProjection, images: [worldGridLayer.image()],
+          projection: tileProjection, images: [worldGridLayer.image(), worldRouteLayer.image()],
         });
         if (hoveredCell && options.nativeMapGraphics.available("world_hover")) {
           const hoverProjection = nativeMapHoverProjection(mapProjection, hoveredCell, cartographyHoverRevealRadius(shiftHeld, optionHeld));

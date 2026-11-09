@@ -1,6 +1,6 @@
 /**
  * Owns one nearby terrain bitmap for the native Compass Canvas.
- * Native camera motion changes UVs; map, tile, style and scale changes repaint.
+ * Native camera motion changes UVs; map, tile, style, scale and route changes repaint.
  */
 import type { CartographyWalkabilityStyle } from "../../../shared/cartography-overlay.js";
 import { NATIVE_PUBLISH_BUSY } from "../../../shared/native-publish.js";
@@ -15,6 +15,7 @@ import { createCartographyGridLayer, type CartographyGridLayer, type Cartography
 import { cartographyCellAt } from "./cartography-grid-projection.js";
 import { cartographyGridStyleFingerprint } from "./cartography-paint.js";
 import type { WalkableTerrainSurface } from "./walkable-terrain-surface.js";
+import { paintRoute, type RouteDrawing } from "./route-paint.js";
 
 export type NativeCompassTerrainInput = Readonly<{
   area: number;
@@ -22,6 +23,8 @@ export type NativeCompassTerrainInput = Readonly<{
   terrain: WalkableTerrainSurface | null;
   cartography?: Omit<Parameters<CartographyGridLayer["update"]>[0], "projection" | "hoveredCell" | "revealRadius" | "reachRadius">;
   inspectionRadius?: 0 | 1 | 3;
+  /** The walking route, in map units; its version names each repaint. */
+  route?: RouteDrawing;
   anchorX: number;
   anchorY: number;
   scaleX: number;
@@ -89,7 +92,7 @@ export function createNativeCompassTerrainLayer(exports: WebAssembly.Exports, do
     available: () => !disposed,
     update(input) {
       if (disposed) return;
-      if ((input.opacity <= 0 && !input.cartography) || !Number.isInteger(input.area) || input.area <= 0 || input.area > 0x7fffffff) { hide(); return; }
+      if ((input.opacity <= 0 && !input.cartography && !input.route) || !Number.isInteger(input.area) || input.area <= 0 || input.area > 0x7fffffff) { hide(); return; }
       const tile = nativeCompassTerrainTile({ cameraX: Number(cameraX.value), cameraY: Number(cameraY.value),
         width: Number(width.value), height: Number(height.value), scaleX: input.scaleX, scaleY: input.scaleY,
         dpr: document.defaultView?.devicePixelRatio ?? 1 });
@@ -100,7 +103,8 @@ export function createNativeCompassTerrainLayer(exports: WebAssembly.Exports, do
       const key = [inspectionKey, input.area, input.version, tile.left, tile.top, tile.size, tile.cssWorldScale,
         input.anchorX, input.anchorY, cartographyWalkabilityStyleFingerprint(input.style), input.opacity,
         input.cartography ? [input.cartography.explorationVersion, input.cartography.revealabilityVersion,
-          cartographyGridStyleFingerprint(input.cartography.style), input.cartography.opacity].join(":") : "no-grid"].join(":");
+          cartographyGridStyleFingerprint(input.cartography.style), input.cartography.opacity].join(":") : "no-grid",
+        input.route?.version ?? "no-route"].join(":");
       if (key === version && Number(serial.value) === nextSerial && Number(area.value) === input.area) return;
       const mapLeft = input.anchorX + tile.left / 96;
       const mapTop = input.anchorY - tile.top / 96;
@@ -138,6 +142,12 @@ export function createNativeCompassTerrainLayer(exports: WebAssembly.Exports, do
       }
       const context = canvas?.getContext("2d");
       if (!canvas || !context) { hide(); outcome = "unavailable"; return; }
+      if (input.route) {
+        const scale = mapScale * tile.paintScale;
+        context.save(); context.setTransform(1, 0, 0, 1, 0, 0);
+        paintRoute(context, input.route, { a: scale, d: scale, e: -mapLeft * scale, f: -mapTop * scale }, 2 * tile.paintScale);
+        context.restore();
+      }
       const pixels = context.getImageData(0, 0, tile.size, tile.size).data;
       const bytes = NATIVE_COMPASS_TERRAIN_HEADER_BYTES + pixels.length;
       // The existing native allocator and copied GrTex input remain private to

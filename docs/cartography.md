@@ -254,6 +254,43 @@ The Cartography and Compass-range controls form one centred stack. A lone
 available control remains centred by itself. Both menus use the same size,
 spacing, idle visibility, and outward-facing placement.
 
+## Walking route
+
+The route layer draws a walking line from the player to a point the player
+sets. A short right-click on the Mission Map or World Map sets the target; a
+right-click on the target removes it. A press that is held or moves is a pan
+or camera turn and sets nothing. The listeners are passive, so the game still
+receives every press. The target is a point in continent map units, which
+every map of a continent shares, so it stays through travel and loading; each
+new area searches toward it in its own game units. Another continent or
+turning the layer off forgets it. The target lives in the game window only and
+is not saved. When the target lies in another area, the route ends on the
+ground of this area nearest it, which is not always the exit that leads there.
+
+The reachability kernel searches the route (`cartography_reachability_route`)
+over the same trapezoids, portals, blocked planes, and doorway rule as the
+reachable-area flood. It is an A* search bounded by the trapezoid count and a
+4,096-step answer. It writes into its own region, allocated on the first route,
+so a route search never clears the cached reachable area. The answer holds
+only geometry: each trapezoid's centre and the edge the line enters it by.
+When the target is off the ground or no walkable way reaches it, the route
+ends on the reached ground nearest the target and reports `reached = 0`; the
+painter then draws the rest of the way dotted.
+
+The renderer pulls the line tight through those edges (the funnel algorithm
+described by Mikko Mononen) and trims it at the player each frame without new
+kernel work. It searches again only when the target or instance changes, when
+the player strays more than 500 units from the line, and every 30 seconds for
+opened gates, never more than once a second and three seconds after a failed
+search. The line is composed into the existing Compass, Mission Map, and World
+Map textures; it adds no native slot. A surface redraws it only for a new line
+or after the player has walked a set distance, because each redraw uploads that
+surface's whole texture; a refresh that finds the same line redraws nothing. The line is Okabe–Ito yellow on the Compass ranges' dark casing,
+so it stays apart from the grid, terrain, and range colours.
+
+The `gwCartographyRouteStats()` diagnostic reports the last search's status,
+step count, expanded trapezoids, and milliseconds.
+
 ## Safety and lifecycle
 
 Raw WASM addresses never reach the renderer. A generation mismatch, loading,

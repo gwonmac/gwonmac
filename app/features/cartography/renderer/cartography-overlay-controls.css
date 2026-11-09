@@ -85,14 +85,14 @@
 
 .cartography-overlay-layers {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: var(--ui-space-1);
   margin-bottom: var(--ui-space-2);
 }
 
 .cartography-overlay-layer {
   height: var(--ui-control-height-compact);
-  padding: 0 var(--ui-space-2);
+  padding: 0 var(--ui-space-1);
   color: var(--ui-text-muted);
   background: var(--ui-well-fill);
   border: var(--ui-frame-width) solid var(--ui-edge);
