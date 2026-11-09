@@ -69,11 +69,11 @@ test("the Tools companion allocates the same regions in the same order", async (
     ["skill slots", 28352, 164, 4],
     ["skill cooldowns", 28528, 60, 4],
     ["alcohol", 28592, 32, 4],
-    ["progress", 28624, 18616, 4],
-    ["player effects", 47248, 1572, 4],
-    ["effect icons", 48832, 1340, 4],
-    ["storage payload", 50176, 12, 4],
-    ["travel payload", 50192, 16, 4],
+    ["progress", 28624, 18632, 4],
+    ["player effects", 47264, 1572, 4],
+    ["effect icons", 48848, 1340, 4],
+    ["storage payload", 50192, 12, 4],
+    ["travel payload", 50208, 16, 4],
   ]);
   assert.deepEqual(Object.keys(extension.kernelRegions), [
     "friendRoot", "friends", "whispers", "skillSlots", "skillCooldowns", "alcohol", "progress",

@@ -4,7 +4,8 @@
 //! The Hub derives every list and count from these words; the kernel copies
 //! certified fields and decides nothing about titles or catalogues. Progress
 //! is published only in PvE with a known character, so a loading screen or a
-//! PvP map can never look like an empty record.
+//! PvP map can never look like an empty record. The active quest rides along:
+//! its id, destination map and marker, copied from its quest-log record.
 
 use core::ptr::{addr_of_mut, write_volatile};
 
@@ -27,6 +28,7 @@ struct Progress {
     missions: [Words; PROGRESS_MISSION_SETS],
     vanquished: Words,
     titles: [[u32; 2]; 3],
+    quest: [u32; PROGRESS_QUEST_WORDS],
 }
 
 const EMPTY: Progress = Progress {
@@ -36,6 +38,7 @@ const EMPTY: Progress = Progress {
     missions: [[0; TRAVEL_UNLOCK_WORDS]; PROGRESS_MISSION_SETS],
     vanquished: [0; TRAVEL_UNLOCK_WORDS],
     titles: [[0; 2]; 3],
+    quest: [0; PROGRESS_QUEST_WORDS],
 };
 
 unsafe fn snapshot() -> *mut ProgressSnapshot {
@@ -171,6 +174,48 @@ unsafe fn read_titles(layout: Layout, world: u32) -> Option<[[u32; 2]; 3]> {
     Some(titles)
 }
 
+/// Larger than any real quest log; a bigger size is a torn or foreign array.
+const MAX_QUESTS: u32 = 512;
+/// The client's "no active quest" id.
+const NO_QUEST: u32 = u32::MAX;
+
+/// Copies the active quest's id, destination map and marker x, y from its
+/// quest-log record, as the client's own lookup does. `None` means no active
+/// quest, no reviewed lookup, or an unreadable log.
+unsafe fn read_quest(layout: Layout, world: u32) -> Option<[u32; PROGRESS_QUEST_WORDS]> {
+    if layout.world_quest_log == 0
+        || layout.quest_marker == 0
+        || layout.quest_marker.saturating_add(8) > layout.quest_stride
+        || layout.quest_map_to.saturating_add(4) > layout.quest_stride
+    {
+        return None;
+    }
+    let active = unsafe { read_u32(offset(world, layout.world_active_quest_id)?)? };
+    if active == 0 || active == NO_QUEST {
+        return None;
+    }
+    let array = offset(world, layout.world_quest_log)?;
+    let buffer = unsafe { read_u32(array) }?;
+    let size = offset(array, 8).and_then(|at| unsafe { read_u32(at) })?;
+    if buffer == 0 || buffer & 3 != 0 || size > MAX_QUESTS || !contains(buffer, checked_mul(size, layout.quest_stride)?) {
+        return None;
+    }
+    for index in 0..size {
+        let record = indexed(buffer, index, layout.quest_stride)?;
+        if unsafe { read_u32(record)? } != active {
+            continue;
+        }
+        let marker = offset(record, layout.quest_marker)?;
+        return Some([
+            active,
+            unsafe { read_u32(offset(record, layout.quest_map_to)?)? },
+            unsafe { read_u32(marker)? },
+            unsafe { read_u32(offset(marker, 4)?)? },
+        ]);
+    }
+    None
+}
+
 unsafe fn observe(layout: Layout, game: u32, map_id: u32) -> Progress {
     let Some(key) = (unsafe { current_character_key(layout, game) }) else {
         return EMPTY;
@@ -183,6 +228,8 @@ unsafe fn observe(layout: Layout, game: u32, map_id: u32) -> Progress {
         layout.world_missions_bonus_hm,
         layout.world_vanquished_areas,
         layout.world_titles,
+        layout.world_active_quest_id,
+        layout.world_quest_log,
     ];
     if layout.world_context == 0 {
         return progress;
@@ -214,6 +261,10 @@ unsafe fn observe(layout: Layout, game: u32, map_id: u32) -> Progress {
         progress.titles = titles;
         progress.flags |= FLAG_PROGRESS_TITLES;
     }
+    if let Some(quest) = unsafe { read_quest(layout, world) } {
+        progress.quest = quest;
+        progress.flags |= FLAG_PROGRESS_QUEST;
+    }
     progress
 }
 
@@ -230,6 +281,7 @@ unsafe fn publish(progress: Progress, area_count: u32) {
             write_volatile(&mut (*target).missions, progress.missions);
             write_volatile(&mut (*target).vanquished, progress.vanquished);
             write_volatile(&mut (*target).titles, progress.titles);
+            write_volatile(&mut (*target).quest, progress.quest);
         });
     }
 }

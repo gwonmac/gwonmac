@@ -35,6 +35,19 @@ export type AreaRow = Readonly<{
   y: number;
 }>;
 
+/** The quest selected in the quest log: the map it leads to and its marker there. */
+export type ActiveQuest = Readonly<{
+  id: number;
+  /** The map the quest leads to. */
+  mapId: number;
+  /**
+   * Where the client points on the map the player is in (the state's `mapId`),
+   * in its game units: the exit toward the quest when it ends elsewhere. Null
+   * when the quest has no marker.
+   */
+  marker: Readonly<{ x: number; y: number }> | null;
+}>;
+
 export type GameProgressState =
   | Readonly<{ status: "waiting"; reason: "loading" | "unavailable" | "snapshot" }>
   | Readonly<{
@@ -53,6 +66,8 @@ export type GameProgressState =
     /** Cartographer percent for Tyria, Cantha and Elona; null when unknown. */
     cartographer: readonly (number | null)[] | null;
     areas: readonly AreaRow[];
+    /** Null when no quest is active or the client has no reviewed quest lookup. */
+    quest: ActiveQuest | null;
   }>;
 
 export type ProgressCampaignId = "prophecies" | "factions" | "nightfall" | "eotn";
@@ -140,6 +155,21 @@ function displayName(mapId: number): string {
     ?? guildWarsMapName(mapId).replace(/ (outpost|mission)$/iu, "");
 }
 
+function progressItem(
+  row: AreaRow | undefined, mapId: number, kind: ProgressItemKind, campaign: ProgressCampaignId, name = displayName(mapId),
+): ProgressItem {
+  return Object.freeze({
+    mapId,
+    name,
+    kind,
+    campaign,
+    region: row ? REGION_NAMES[row.region] ?? "Other" : "Other",
+    position: row && (row.flags & AREA.notOnWorldMap) === 0 && (row.x !== 0 || row.y !== 0)
+      ? Object.freeze({ continent: row.continent, x: row.x, y: row.y })
+      : null,
+  });
+}
+
 const catalogues = new WeakMap<readonly AreaRow[], ProgressCatalogue>();
 
 /** Derives the catalogue once per AreaInfo table. */
@@ -147,19 +177,8 @@ export function progressCatalogue(rows: readonly AreaRow[]): ProgressCatalogue {
   const cached = catalogues.get(rows);
   if (cached) return cached;
   const byMap = new Map(rows.map((row) => [row.mapId, row]));
-  const item = (mapId: number, kind: ProgressItemKind, campaign: ProgressCampaign, name = displayName(mapId)): ProgressItem => {
-    const row = byMap.get(mapId);
-    return Object.freeze({
-      mapId,
-      name,
-      kind,
-      campaign: campaign.id,
-      region: row ? REGION_NAMES[row.region] ?? "Other" : "Other",
-      position: row && (row.flags & AREA.notOnWorldMap) === 0 && (row.x !== 0 || row.y !== 0)
-        ? Object.freeze({ continent: row.continent, x: row.x, y: row.y })
-        : null,
-    });
-  };
+  const item = (mapId: number, kind: ProgressItemKind, campaign: ProgressCampaign, name?: string): ProgressItem =>
+    progressItem(byMap.get(mapId), mapId, kind, campaign.id, name);
   const entries = PROGRESS_CAMPAIGNS.map((campaign) => {
     const seen = new Set<number>();
     const missions: ProgressItem[] = [];
@@ -355,6 +374,22 @@ export function progressTravelTarget(item: ProgressItem, inputs: ProgressInputs)
   return best === null ? null : Object.freeze({
     mapId: best.mapId, name: best.name, nearest: true, here: best.mapId === current,
   });
+}
+
+/**
+ * Where the active quest's trip goes: its own outpost when the quest leads to
+ * an unlocked one, otherwise the unlocked outpost nearest its map.
+ */
+export function questTravelTarget(quest: ActiveQuest, inputs: ProgressInputs): ProgressTravelTarget | null {
+  const row = inputs.progress.areas.find((candidate) => candidate.mapId === quest.mapId);
+  const campaign = PROGRESS_CAMPAIGNS.find((candidate) => candidate.gameCampaign === row?.campaign)?.id ?? "prophecies";
+  const kind = travelDestination(quest.mapId) === null ? "area" : "outpost";
+  return progressTravelTarget(progressItem(row, quest.mapId, kind, campaign), inputs);
+}
+
+/** The quest's map by name, as Travel and Progress name it. */
+export function questMapName(quest: ActiveQuest): string {
+  return displayName(quest.mapId);
 }
 
 /**

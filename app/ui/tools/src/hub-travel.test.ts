@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createHubTravel } from './hub-travel';
-import { TRAVEL_DESTINATIONS } from '../../../shared/travel';
+import { TRAVEL_DESTINATIONS, travelDestination } from '../../../shared/travel';
 import { travelDestinationAvailability } from '../../../shared/travel-command';
 import { searchTravelDestinations } from '../../../shared/travel-search';
 import { createDemoTravelHost } from './travel-host';
@@ -170,6 +170,27 @@ it('offers Progress once the reader publishes, opens a goal by its word and trav
     expect(hub.close).toHaveBeenCalledOnce();
     unmount();
   } finally { target.remove(); travel.dispose(); }
+});
+
+it('puts Travel to quest first on Home and travels to the unlocked outpost nearest the quest', async () => {
+  const host = createDemoTravelHost();
+  const trip = vi.spyOn(host, 'travel');
+  const travel = createHubTravel(host, {showView: vi.fn(), showRows: vi.fn(), attach: vi.fn(), close: vi.fn(), notify: vi.fn()}, async (_place, leave) => leave(), () => true);
+  try {
+    expect(travel.source.search('').map(row => row.id)).not.toContain('quest');
+    // The quest leads into Old Ascalon, an explorable area nobody can travel to, so the trip picks an outpost.
+    const explorable = 33;
+    expect(travelDestination(explorable)).toBeNull();
+    travel.updateProgress(progressFixture(55, {id: 101, mapId: explorable, marker: {x: 0, y: 0}}));
+    const row = travel.source.search('')[0];
+    expect(row).toMatchObject({id: 'quest', title: 'Travel to quest', group: 'Continue', consequential: true});
+    expect(row!.detail).toMatch(/ · nearest outpost /);
+    expect(travel.source.search('quest').map(entry => entry.id)).toContain('quest');
+    await row!.run({live: () => true, progress() {}, done() {}});
+    const [{mapId}] = trip.mock.calls.at(-1)!;
+    expect(mapId).not.toBe(explorable);
+    expect(row!.action).toBe(`Travel to ${travelDestination(mapId)?.name}`);
+  } finally {travel.dispose();}
 });
 
 it('keeps Progress hidden until the reader publishes a ready state, then through a map load', () => {

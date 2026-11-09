@@ -465,6 +465,8 @@ function resolveEnhancementTransform(
     for (const [name, fact] of Object.entries(build.progressObservation!.accessors)) {
       resolveCertifiedHook(`progress ${name} accessor`, fact, "certified identity");
     }
+    const quest = build.progressObservation!.quest;
+    if (quest) resolveCertifiedHook("progress active quest lookup", quest.lookup, "certified identity");
   }
   const packetSender = capabilities.teamApply
     ? resolveHook(

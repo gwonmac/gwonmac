@@ -5,7 +5,7 @@
  */
 import { guildWarsMapName } from '../../../shared/guild-wars-map-names';
 import { TRAVEL_DESTINATIONS } from '../../../shared/travel';
-import type { AreaRow, GameProgressState, ProgressBits } from '../../../shared/game-progress';
+import type { ActiveQuest, AreaRow, GameProgressState, ProgressBits } from '../../../shared/game-progress';
 
 const MISSION = 5;
 const EXPLORABLE = 2;
@@ -73,7 +73,7 @@ function bits(mapIds: Iterable<number>): ProgressBits {
 }
 
 /** A character about halfway through Tyria and Cantha and early in Elona. */
-export function progressFixture(mapId: number): GameProgressState {
+export function progressFixture(mapId: number, quest: ActiveQuest | null = null): GameProgressState {
   const areas = rows();
   const of = (game: number, type: number) => areas.filter(row => row.campaign === game && row.type === type).map(row => row.mapId);
   const every = (list: readonly number[], keep: number) => list.filter((_, index) => index % keep !== keep - 1);
@@ -89,5 +89,6 @@ export function progressFixture(mapId: number): GameProgressState {
     vanquished: bits(vanquished),
     cartographer: [72.4, 41.5, 18.9],
     areas,
+    quest,
   };
 }

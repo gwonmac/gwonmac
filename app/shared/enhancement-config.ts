@@ -133,6 +133,13 @@ export interface EnhancementLayout {
   areaInfoY: number;
   areaInfoName: number;
   areaInfoIcon: number;
+  /** WorldContext's active quest id and its `Array<Quest>` quest log. */
+  worldActiveQuestId: number;
+  worldQuestLog: number;
+  questStride: number;
+  /** The marker's x; its y follows (f32 each, +inf without a marker). */
+  questMarker: number;
+  questMapTo: number;
 }
 
 export type EnhancementPlayRegionLayout = Pick<EnhancementLayout,
@@ -180,6 +187,10 @@ export type EnhancementProgressLayout = Pick<EnhancementLayout,
   | "areaInfoName"
   | "areaInfoIcon"
 >;
+/** The active quest's record; optional within progress observation. */
+export type EnhancementQuestLayout = Pick<EnhancementLayout,
+  "worldActiveQuestId" | "worldQuestLog" | "questStride" | "questMarker" | "questMapTo"
+>;
 export type EnhancementSkillSlotGeometryLayout = Pick<EnhancementLayout,
   | "frameArray" | "frameCount" | "frameBytes" | "frameChildOffsetId"
   | "frameId" | "framePositionFlags" | "frameViewportWidth"
@@ -221,7 +232,7 @@ export type EnhancementPartyLayout = Pick<EnhancementLayout,
 
 type Owner = "play-region" | "observation" | "target" | "cursor" | "party" | "storage"
   | "travel" | "player-skillbar" | "party-skillbar" | "skill-slots" | "skill-cooldown"
-  | "character-list" | "player-effects" | "progress";
+  | "character-list" | "player-effects" | "progress" | "quest";
 type ConfigField =
   | Readonly<{
     source: "layout";
@@ -269,6 +280,7 @@ type ConfigField =
     key: keyof EnhancementPlayerEffectLayout;
   }>
   | Readonly<{ source: "layout"; owner: "progress"; key: keyof EnhancementProgressLayout }>
+  | Readonly<{ source: "layout"; owner: "quest"; key: keyof EnhancementQuestLayout }>
   | Readonly<{
     source: "dispatcher";
     key: "playerChatMessage" | "hideHeroPanelMessage" | "showHeroPanelMessage";
@@ -332,6 +344,9 @@ const characterList = (
 const progress = (
   ...keys: readonly (keyof EnhancementProgressLayout)[]
 ): readonly ConfigField[] => keys.map((key) => ({ source: "layout", key, owner: "progress" }));
+const quest = (
+  ...keys: readonly (keyof EnhancementQuestLayout)[]
+): readonly ConfigField[] => keys.map((key) => ({ source: "layout", key, owner: "quest" }));
 const playerEffects = (
   ...keys: readonly (keyof EnhancementPlayerEffectLayout)[]
 ): readonly ConfigField[] => keys.map((key) => ({
@@ -395,6 +410,7 @@ export const ENHANCEMENT_CONFIG_FIELDS = Object.freeze([
     "titleProps", "titlePoints", "areaInfoThumbnail", "areaInfoX", "areaInfoY",
     "areaInfoName", "areaInfoIcon",
   ),
+  ...quest("worldActiveQuestId", "worldQuestLog", "questStride", "questMarker", "questMapTo"),
 ] as const satisfies readonly ConfigField[]);
 
 export const ENHANCEMENT_LAYOUT_FIELDS = Object.freeze(
