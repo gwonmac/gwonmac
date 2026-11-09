@@ -2,19 +2,19 @@
  * Strict decoder for the companion's bounded progress publication.
  *
  * The static AreaInfo rows are decoded once per installation and reused; the
- * per-character bitsets are decoded on every accepted publication. A torn,
+ * per-character bitsets and the active quest are decoded on every accepted publication. A torn,
  * malformed or non-PvE publication withdraws progress instead of showing
  * an empty record.
  */
 import { COMPANION_ABI } from "../../../shared/companion-abi.js";
-import type { AreaRow, GameProgressState, ProgressBits } from "../../../shared/game-progress.js";
+import type { ActiveQuest, AreaRow, GameProgressState, ProgressBits } from "../../../shared/game-progress.js";
 import { createCompanionRegionInstallation } from "../../../renderer/companion-region-installation.js";
 import { CONTINUOUS_COMPANION_FRESHNESS } from "../../../renderer/companion-sequence-feed.js";
 
 const ABI = COMPANION_ABI.progress;
 const MAGIC = 0x5047_5747;
 const FLAGS = Object.freeze({
-  ready: 1, loading: 2, missions: 4, vanquishes: 8, titles: 16, areas: 32,
+  ready: 1, loading: 2, missions: 4, vanquishes: 8, titles: 16, areas: 32, quest: 64,
 });
 const KNOWN_FLAGS = Object.values(FLAGS).reduce((all, flag) => all | flag, 0);
 const WORDS = COMPANION_ABI.travelUnlockWords;
@@ -22,6 +22,7 @@ const MISSIONS_AT = 32;
 const VANQUISHED_AT = MISSIONS_AT + ABI.missionSets * WORDS * 4;
 const TITLES_AT = VANQUISHED_AT + WORDS * 4;
 const AREAS_AT = TITLES_AT + ABI.titles * 8;
+const QUEST_AT = AREAS_AT + ABI.areaRows * ABI.areaWords * 4;
 const ROW_READ = 1 << 31;
 const ROW_THUMBNAIL = 1 << 30;
 
@@ -59,6 +60,18 @@ function areaRows(view: DataView, count: number): readonly AreaRow[] {
     }));
   }
   return Object.freeze(rows);
+}
+
+/** The quest log's own record; the client marks a quest without a marker with infinite coordinates. */
+function activeQuest(view: DataView): ActiveQuest | null {
+  const id = view.getUint32(QUEST_AT, true);
+  const mapId = view.getUint32(QUEST_AT + 4, true);
+  if (id === 0 || mapId === 0) return null;
+  const x = view.getFloat32(QUEST_AT + 8, true);
+  const y = view.getFloat32(QUEST_AT + 12, true);
+  return Object.freeze({
+    id, mapId, marker: Number.isFinite(x) && Number.isFinite(y) ? Object.freeze({ x, y }) : null,
+  });
 }
 
 /**
@@ -107,6 +120,7 @@ export function createCompanionProgressReader() {
         return (props & 1) === 1 && points <= 1_000 ? points / 10 : null;
       }),
     );
+    const quest = (flags & FLAGS.quest) === 0 ? null : activeQuest(view);
     if (view.getUint32(8, true) !== sequence) return waiting("snapshot");
     return Object.freeze({
       status: "ready",
@@ -117,9 +131,14 @@ export function createCompanionProgressReader() {
       vanquished,
       cartographer,
       areas: areas?.rows ?? NO_AREAS,
+      quest,
     });
   };
 }
+
+const sameQuest = (left: ActiveQuest | null, right: ActiveQuest | null) =>
+  left === right || (left !== null && right !== null && left.id === right.id && left.mapId === right.mapId
+    && left.marker?.x === right.marker?.x && left.marker?.y === right.marker?.y);
 
 const sameWords = (left: ProgressBits | null, right: ProgressBits | null) =>
   left === right || (left !== null && right !== null && left.every((word, index) => word === right[index]));
@@ -129,6 +148,7 @@ export function sameGameProgress(previous: GameProgressState, next: GameProgress
   if (previous.status !== "ready" || next.status !== "ready") return previous === next;
   return previous.mapId === next.mapId && previous.characterKey === next.characterKey
     && previous.areas === next.areas
+    && sameQuest(previous.quest, next.quest)
     && sameWords(previous.vanquished, next.vanquished)
     && (previous.missions === next.missions || (previous.missions !== null && next.missions !== null
       && sameWords(previous.missions.completed, next.missions.completed)

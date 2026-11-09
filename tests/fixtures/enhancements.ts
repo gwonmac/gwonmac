@@ -665,6 +665,12 @@ export async function createKernel(
     areaInfoY: 0x44,
     areaInfoName: 0x74,
     areaInfoIcon: 0x48,
+    // The quest words certified for the November 3 build.
+    worldActiveQuestId: 0x528,
+    worldQuestLog: 0x52c,
+    questStride: 0x34,
+    questMarker: 0x18,
+    questMapTo: 0x28,
   } as const)) {
     setConfigField(
       config,

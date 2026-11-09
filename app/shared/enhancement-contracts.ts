@@ -204,7 +204,7 @@ const CAPABILITY_DEFINITIONS = Object.freeze([
     id: "progressObservation",
     requiresAll: ["playRegionObservation"],
     requiresAny: [],
-    configOwners: ["observation", "progress"],
+    configOwners: ["observation", "progress", "quest"],
     hooks: [],
   },
 ] as const);
@@ -363,7 +363,7 @@ export {
   ENHANCEMENT_LAYOUT_WORD_COUNT,
   ENHANCEMENT_PARTY_DIRTY_MESSAGE_COUNT,
 } from "./enhancement-config.js";
-export const ENHANCEMENT_TRANSFORM_ABI = 74;
+export const ENHANCEMENT_TRANSFORM_ABI = 75;
 
 export const ENHANCEMENT_CHAT_FILTER_MASKS = Object.freeze({
   allyDrops: 1,
