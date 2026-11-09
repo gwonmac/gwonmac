@@ -11,7 +11,7 @@ import { guildWarsMapName } from '../../../shared/guild-wars-map-names';
 import { travelContextRefusal, travelDestinationAvailability } from '../../../shared/travel-command';
 import TravelPalette from './components/TravelPalette.vue';
 import ProgressView, { type ProgressViewResume } from './components/ProgressView.vue';
-import { PROGRESS_GOAL_WORDS, currentProgressCampaign, progressGoalLeft, progressGoals, type GameProgressState, type ProgressCampaignId, type ProgressGoalId } from '../../../shared/game-progress';
+import { PROGRESS_GOAL_WORDS, currentProgressCampaign, progressGoalLeft, progressGoals, questMapName, questTravelTarget, type GameProgressState, type ProgressCampaignId, type ProgressGoalId } from '../../../shared/game-progress';
 import type { TravelHost } from './travel-host';
 import { useTravelPreferences } from './travel-preferences';
 
@@ -136,6 +136,25 @@ export function createHubTravel(host: TravelHost, hub: HubPresenter<HTMLElement>
       return hubTier(row, query) === null ? [] : [row];
     });
   }
+  /**
+   * The active quest's trip: its outpost, or the unlocked outpost nearest the map it leads to.
+   * Home offers it first when it can go, so one Enter starts the trip; "quest" finds it from
+   * search with the reason when it cannot.
+   */
+  function questRow(home: boolean): HubRow | null {
+    const state = progress.value;
+    if (state.status !== 'ready' || state.quest === null) return null;
+    const travelState = host.state.value;
+    const target = questTravelTarget(state.quest, { progress: state, unlockedMapWords: travelState.status === 'ready' ? travelState.unlockedMapWords : null });
+    const map = questMapName(state.quest);
+    const base = { id: 'quest', iconKind: 'travel' as const, title: 'Travel to quest', aliases: ['quest', 'active quest'], group: 'Continue' };
+    if (target === null) return home ? null : { ...base, detail: map, action: 'Travel to quest', unavailable: 'No unlocked outpost near this quest', run: () => undefined };
+    const reason = target.here ? `You are already in ${target.name}` : refusal(target.mapId);
+    if (home && reason) return null;
+    return { ...base, detail: target.nearest ? `${map} · nearest outpost ${target.name}` : target.name,
+      action: `Travel to ${target.name}`, consequential: true, leavesArea: explorable(),
+      ...(reason ? { unavailable: reason } : {}), run: async (task: HubTask) => { await travel(target.mapId); task.done(); } };
+  }
   const source: HubSource = {
     feature: 'travelPalette',
     context() {
@@ -156,6 +175,7 @@ export function createHubTravel(host: TravelHost, hub: HubPresenter<HTMLElement>
     lookup(id) {
       if (id === 'travel') return toolRow();
       if (id === 'progress') return progressReader ? progressRow() : undefined;
+      if (id === 'quest') return questRow(false) ?? undefined;
       const place = travelDestination(Number(id.replace('place:', '')));
       return place ? source.search(place.name).find(row => row.id === id) : undefined;
     },
@@ -190,7 +210,9 @@ export function createHubTravel(host: TravelHost, hub: HubPresenter<HTMLElement>
       // The rest stay one step away, in Travel with the same search.
       const more: HubRow[] = matches.length > PLACES_SHOWN ? [{ id: 'places:more', iconKind: 'travel', title: `All ${matches.length} places`, detail: 'Open Travel with this search', group: 'Places', action: 'Show in Travel',
         navigate: () => hub.showView('Travel', page(parsed.text), available, 'travel'), run: () => hub.showView('Travel', page(parsed.text), available, 'travel') }] : [];
-      return [...[...guildHall, ...destinations.map(destination => {
+      const quest = questRow(!query.trim());
+      const quests = quest && (!query.trim() || hubTier(quest, query) !== null) ? [quest] : [];
+      return [...quests, ...[...guildHall, ...destinations.map(destination => {
         const reason = refusal(destination.mapId);
         // The aliases travel with the row, so Home ranks it by them as this list did.
         return { id: `place:${destination.mapId}`, iconKind: 'travel' as const, title: destination.name, aliases: aliasesOf(destination),
@@ -205,7 +227,7 @@ export function createHubTravel(host: TravelHost, hub: HubPresenter<HTMLElement>
    * The Travel row stays through a map load, character select or PvP and says why it waits, so a
    * fresh Home never starts on it and Enter never runs a dead row (HUB-135).
    */
-  const withReason = (row: HubRow): HubRow => (row.id === 'travel' || row.id.startsWith('progress')) && host.unavailable ? { ...row, unavailable: host.unavailable } : row;
+  const withReason = (row: HubRow): HubRow => (row.id === 'travel' || row.id === 'quest' || row.id.startsWith('progress')) && host.unavailable ? { ...row, unavailable: host.unavailable } : row;
   return { source: { ...source, search: (query: string) => source.search(query).map(withReason) }, open, page, travel, get active() { return active; },
     update: host.updateGameState, updateFriends: host.updateFriends, updateProgress(next: GameProgressState) { if (next.status === 'ready') progressReader = true; progress.value = next; },
     dispose() { disposed = true; stop(); stopNotice(); listeners.clear(); host.dispose(); },

@@ -8,6 +8,7 @@ import { ADDRESSES, POLICY_CONFIG_START, createKernel, installGameGraph } from "
 const FEATURES = COMPANION_FEATURE_BITS.playRegionObservation | COMPANION_FEATURE_BITS.progressObservation;
 const BITS = 0x1_9000;
 const TITLES = 0x1_a000;
+const QUESTS = 0x1_b000;
 
 /** WorldContext `Array<u32>`: buffer, capacity, size. */
 function array(view: DataView, field: number, buffer: number, words: readonly number[]) {
@@ -32,6 +33,18 @@ function installProgress(view: DataView) {
   for (const [id, points] of [[1, 724], [2, 415], [18, 189]] as const) {
     view.setUint32(TITLES + id * 0x2c, 1, true);
     view.setUint32(TITLES + id * 0x2c + 4, points, true);
+  }
+  // Three quests, sorted by id as the client keeps them; quest 31 is active.
+  view.setUint32(ADDRESSES.world + 0x528, 31, true);
+  view.setUint32(ADDRESSES.world + 0x52c, QUESTS, true);
+  view.setUint32(ADDRESSES.world + 0x530, 3, true);
+  view.setUint32(ADDRESSES.world + 0x534, 3, true);
+  for (const [index, id, mapTo, x, y] of [[0, 12, 10, 1, 2], [1, 31, 13, -1250.5, 3400], [2, 77, 14, 5, 6]] as const) {
+    const record = QUESTS + index * 0x34;
+    view.setUint32(record, id, true);
+    view.setFloat32(record + 0x18, x, true);
+    view.setFloat32(record + 0x1c, y, true);
+    view.setUint32(record + 0x28, mapTo, true);
   }
   // A mission with a map point, and two explorable areas with only icon rectangles.
   area(view, 10, { 0x00: 1, 0x08: 1, 0x0c: 5, 0x14: 7, 0x40: 500, 0x44: 600, 0x74: 77 });
@@ -129,4 +142,24 @@ test("an area type that would overflow its six bits leaves the row unread", asyn
   const rows = new Map(ready.areas.map((row) => [row.mapId, row]));
   assert.equal(rows.has(14), false);
   assert.equal(rows.get(10)?.type, 5);
+});
+
+test("progress carries the active quest's map and marker, and never invents one", async () => {
+  const { kernel, state } = await fixture();
+  const quest = () => { kernel.tick(); const ready = state(); return ready.status === "ready" ? ready.quest : "waiting"; };
+  assert.deepEqual(quest(), { id: 31, mapId: 13, marker: { x: -1250.5, y: 3400 } });
+  // A quest without a marker keeps its map; the client marks that with infinity.
+  kernel.view.setFloat32(QUESTS + 0x34 + 0x18, Infinity, true);
+  assert.deepEqual(quest(), { id: 31, mapId: 13, marker: null });
+  const cases: readonly [string, number, number][] = [
+    ["the client's \"no active quest\" id", 0x528, 0xffff_ffff],
+    ["an active id the log does not hold", 0x528, 40],
+    ["a size beyond any real quest log", 0x534, 100_000],
+  ];
+  for (const [label, field, value] of cases) {
+    const before = kernel.view.getUint32(ADDRESSES.world + field, true);
+    kernel.view.setUint32(ADDRESSES.world + field, value, true);
+    assert.equal(quest(), null, label);
+    kernel.view.setUint32(ADDRESSES.world + field, before, true);
+  }
 });

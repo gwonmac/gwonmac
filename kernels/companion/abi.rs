@@ -92,6 +92,7 @@ pub(crate) const FLAG_PROGRESS_MISSIONS: u32 = 1 << 2;
 pub(crate) const FLAG_PROGRESS_VANQUISHES: u32 = 1 << 3;
 pub(crate) const FLAG_PROGRESS_TITLES: u32 = 1 << 4;
 pub(crate) const FLAG_PROGRESS_AREAS: u32 = 1 << 5;
+pub(crate) const FLAG_PROGRESS_QUEST: u32 = 1 << 6;
 /// Completed, bonus, hard-mode completed, hard-mode bonus.
 pub(crate) const PROGRESS_MISSION_SETS: usize = 4;
 /// Cartographer of Tyria, Cantha and Elona, in that order.
@@ -99,6 +100,8 @@ pub(crate) const PROGRESS_TITLE_IDS: [u32; 3] = [1, 2, 18];
 /// Covers every AreaInfo row the October client defines (898).
 pub(crate) const PROGRESS_AREA_ROWS: usize = 900;
 pub(crate) const PROGRESS_AREA_WORDS: usize = 5;
+/// The active quest's id, destination map, and marker x and y (f32 bits).
+pub(crate) const PROGRESS_QUEST_WORDS: usize = 4;
 
 pub(crate) const SKILL_SLOT_BYTES: u32 = size_of::<SkillSlotSnapshot>() as u32;
 pub(crate) const SKILL_SLOT_MAGIC: u32 = 0x534b_5747;
@@ -382,6 +385,14 @@ pub(crate) struct Layout {
     /// Two world-map icon rectangles (left, top, right, bottom), the second
     /// directly after the first. Explorable areas have only these, no point.
     pub(crate) area_info_icon: u32,
+    /// WorldContext's active quest id and its `Array<Quest>` quest log, the
+    /// record stride, and the marker (x, then y) and destination map offsets
+    /// in a record. Zero when the build has no reviewed quest lookup.
+    pub(crate) world_active_quest_id: u32,
+    pub(crate) world_quest_log: u32,
+    pub(crate) quest_stride: u32,
+    pub(crate) quest_marker: u32,
+    pub(crate) quest_map_to: u32,
 }
 
 impl Layout {
@@ -521,6 +532,11 @@ impl Layout {
         area_info_y: 0,
         area_info_name: 0,
         area_info_icon: 0,
+        world_active_quest_id: 0,
+        world_quest_log: 0,
+        quest_stride: 0,
+        quest_marker: 0,
+        quest_map_to: 0,
     };
 }
 
@@ -642,6 +658,8 @@ pub(crate) struct ProgressSnapshot {
     /// `props, points` per Cartographer title.
     pub(crate) titles: [[u32; 2]; 3],
     pub(crate) areas: [[u32; PROGRESS_AREA_WORDS]; PROGRESS_AREA_ROWS],
+    /// Valid only with `FLAG_PROGRESS_QUEST`.
+    pub(crate) quest: [u32; PROGRESS_QUEST_WORDS],
 }
 
 #[repr(C)]
@@ -814,11 +832,11 @@ const _: () = assert!(
         && offset_of!(SnapshotHeader, abi_and_size) == 4
         && offset_of!(SnapshotHeader, sequence) == 8
 );
-const _: [(); 588] = [(); size_of::<Layout>()];
+const _: [(); 608] = [(); size_of::<Layout>()];
 const _: [(); 96] = [(); size_of::<FriendRecord>()];
 const _: [(); 12_312] = [(); size_of::<FriendSnapshot>()];
 const _: [(); 32] = [(); size_of::<AlcoholSnapshot>()];
-const _: [(); 18616] = [(); size_of::<ProgressSnapshot>()];
+const _: [(); 18632] = [(); size_of::<ProgressSnapshot>()];
 const _: [(); 72] = [(); size_of::<CharacterRecord>()];
 const _: [(); 4632] = [(); size_of::<CharacterListSnapshot>()];
 const _: [(); 96] = [(); size_of::<PartySlot>()];

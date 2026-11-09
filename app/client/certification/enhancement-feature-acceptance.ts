@@ -497,6 +497,17 @@ function matchesProgressAccessors(candidate: ProgressAccessors, expected: Progre
   });
 }
 
+type ProgressQuest = NonNullable<NonNullable<KnownEnhancementBuild["progressObservation"]>["quest"]>;
+
+/** No quest, or one that a reviewed record holds with the same layout and lookup body. */
+function matchesProgressQuest(candidate: ProgressQuest | undefined): boolean {
+  return candidate === undefined || reviewedBuilds().some((baseline) => {
+    const reviewed = baseline.progressObservation?.quest;
+    return reviewed !== undefined && isDeepStrictEqual(candidate.layout, reviewed.layout)
+      && matchesDerivedFunction(candidate.lookup, reviewed.lookup);
+  });
+}
+
 type OptionalKeys<Value> = {
   [Key in keyof Value]-?: object extends Pick<Value, Key> ? Key : never;
 }[keyof Value];
@@ -552,7 +563,8 @@ const FACT_RULES: Readonly<Record<EnhancementFact, FactRule>> = Object.freeze({
         && matchesDerivedFunction(validator, baseline.chatPrint.validator));
     },
   },
-  // The verifier proves each accessor's body; the layout may not move.
+  // The verifier proves each accessor's body; the layout may not move. The
+  // quest may come from another record than the accessors.
   progressObservation: {
     independent: (build) => reviewedBuilds().some((baseline) =>
       baseline.progressObservation !== undefined
@@ -561,7 +573,8 @@ const FACT_RULES: Readonly<Record<EnhancementFact, FactRule>> = Object.freeze({
       && matchesProgressAccessors(
         build.progressObservation.accessors,
         baseline.progressObservation.accessors,
-      )),
+      ))
+      && matchesProgressQuest(build.progressObservation?.quest),
   },
   // The verifier proves the module's memory-accessing code equals the
   // reviewed module's; the reviewed fields may not move.
