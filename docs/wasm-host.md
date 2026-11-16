@@ -120,6 +120,22 @@ The official client restores a large `Gw.dat` file into this synchronous
 filesystem. Do not remove it or bypass IDBFS to reduce a memory chart. Measure a
 proven filesystem replacement with [Diagnostics and performance](diagnostics.md).
 
+## Sound decode leak repair
+
+The official client's MP3 decode task (`Engine/Sound/SndThread.cpp`) opens a minimp3
+decoder for each sound and never closes it. Each decode leaks the decoder's 64 KiB seek
+index, so a sound-dense fight grows the heap by about 2 GB an hour until the client aborts.
+
+The renderer rewrites the module it is about to instantiate, in memory:
+`fixDecoderIndexLeak` (`app/shared/decoder-index-fix.ts`) makes both destructors of the task
+free the index first. It finds them by shape, changes only those two function bodies, and
+returns nothing for a module it does not know; that module then runs as served. The served
+file and the derived chain below are not changed.
+
+This repair is not a certified transform. It runs after the chain, on whatever module the
+session selected, and has no proof or expected hash. Moving it into the chain is open work.
+The streaming-sound task leaks the same way at a much lower rate and is not repaired.
+
 ## Derived client chain
 
 The downloaded official module is always canonical. The app can create
