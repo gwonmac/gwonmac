@@ -182,7 +182,16 @@ locator already meets the final relocation-resistant bar. At verifier ABI 10:
   the input's reviewed generation. The digest covers the relocation identity
   of every function that reads or writes memory, so equal digests mean the
   structure offsets did not move. Its native move-message identifier belongs
-  to that certificate, not to a shared constant; and
+  to that certificate, not to a shared constant. It stays exact on purpose:
+  its transform reaches the item and trade contexts through the play-region
+  context root, and no native code witnesses that this root holds the same
+  game context as the native context table its item and trade readers use.
+  Moving the transform to that table would change its proved output for every
+  retained client, and the trade item list, its count and the UI frame and
+  mouse-action constants have no native reader that names them. So a client
+  whose memory code changed refuses Quick Item Move until a fact-only release
+  records its digest. Its Feature page will say it may need an update
+  (feature platform plan 7.1). Decided after a spike on 2026-11-21; and
 - friend observation accepts relocated functions and static addresses when all
   semantic relationships still reproduce. A role whose only other change is an
   assertion source line (the constant between a source-file string and a
