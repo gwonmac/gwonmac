@@ -41,6 +41,10 @@ All work happens on this Mac, by us.
   their own worktrees on this Mac. Update **Status** and **Rounds** here when a step moves.
 - A step is done only when every line of its **Done when** is true and CI is green. "You play"
   checks need you in the real game; nobody claims feel or frame time from tests.
+- PR CI runs only the Electron tests tagged `@journey`; main runs the whole suite. Before a PR
+  that touches app or test code merges, dispatch the whole suite on its branch
+  (`gh workflow run macos.yml --ref <branch>`) and link the green run in the PR. (Learned
+  2026-11-21: #26, #30 and #31 merged green and turned main red.)
 - Never run Electron or Playwright UI suites locally; CI runs them. Client-artifact tests and
   proof work use the official client on this Mac; no ArenaNet bytes leave it.
 - The "Must stay" list in AGENTS.md is never touched: bundle ID, data files, `news-v1.json`,
@@ -79,17 +83,22 @@ the two new events and two new `v-if` cases came with the PR #24 options (#26–
 | 0.3 | Record the decisions: Character Switch is a Feature; plain game replaces Tools Beta; ⌘R always Home; memory panel stays; player word **Features**; grouping settled later by 6.4 | – | – | Written in "Decisions" above | done | 0 |
 | 0.4 | Keep this plan safe: commit it as `docs/feature-platform-plan.md` (same PR as 0.1) | Approve the merge | 0.3 | Plan lives on main | done (#25) | 1 |
 
-## Phase 1 · Proofs: survive ArenaNet updates (L, runs alongside everything)
+## Phase 1 · Proofs: close the two patch-day gaps (S–M, runs alongside everything)
 
-Bottom layer. Each capability's proof finds its code by meaning, not exact bytes, so a harmless
-ArenaNet rebuild needs no release. Highest risk area: changes here touch Must-stay files only by
-adding, never by changing proved outputs.
+Most of this already exists: since the October 22 client, reviewed bodies match a relink by their
+relocation identity, and `tests/client-artifact/patch-day-replay.test.ts` replays real patch days.
+On November 3 every feature proved except Quick Item Move, and friend observation refused until its
+moved assertion lines were reviewed (`docs/arenanet-compatibility.md`, "Current implementation
+limits" and "Patch day"). Decided 2026-11-21: fix only those two now. The other exact bindings
+(native double-click bodies, Cartography pathing indices, raw digests in Core/Tools candidate
+selection) never refused a real patch day; take each on when one does. A body ArenaNet truly
+changes still needs a review and a fact-only release by design. Changes here touch Must-stay files
+only by adding, never by changing proved outputs.
 
 | ID | Step | You | Depends | Done when | Status | Rounds |
 |---|---|---|---|---|---|---|
-| 1.1 | Inventory: per capability, which proof still binds exact bytes/indexes (from `docs/arenanet-compatibility.md` "Current implementation limits") | – | – | Table capability → binding type → planned locator, added to that doc | todo | 0 |
-| 1.2 | One capability per PR: replace exact bindings with semantic locators (start with party/target observation, skill slots, chat) | – | 1.1 | `patch-day-replay.test.ts` proves that capability on every retained client it should; "limits" list shrinks by that item; verifier outputs for proved clients unchanged | todo | 0 |
-| 1.3 | Quick Item Move and Maps locators (hardest) | Decide if they stay exact | 1.2 | Same as 1.2, or a written decision why they stay exact (shown as "may need an update" on their Feature page) | todo | 0 |
+| 1.1 | Quick Item Move: accept a relink whose memory-code digest changed when its reviewed item and trade fields still reproduce semantically | Decide if it stays exact, if the locator is not sound | – | Replay: November 3 proves Quick Item Move (or a written decision why it stays exact); proved outputs of every other retained client unchanged; adversarial tests (changed field, duplicate, ambiguity) refuse; "limits" entry updated | todo | 0 |
+| 1.2 | Friend observation: role shapes survive an equivalent compiler rewrite (relations checked, not exact shapes) | – | – | Replay: November 3 friend observation proves without its own facts; `FRIEND_OBSERVER_SEMANTIC_SHA256` unchanged unless a role's meaning changed; adversarial tests refuse; "limits" entry updated | todo | 0 |
 
 ## Phase 2 · Readers: one layout source (S–M)
 
@@ -181,7 +190,7 @@ Per-feature checklist (the **Done when** of every 5.x row):
 ```
 Phase 0 ──► 4.1, 4.2 ─────┐
         └─► 3.1 ──────────┼─► 5.1 ─► G1 ─► 4.3–4.7 ─► G2 ─► 5.2–5.5 ─► G3 ─► 8
-Phase 1 (alongside)        6.1 ─► 6.2 ─► 6.3, 6.4, 6.5 ─► 7
+Phase 1 (2 steps, alongside) 6.1 ─► 6.2 ─► 6.3, 6.4, 6.5 ─► 7
 Phase 2 (small)
 ```
 
