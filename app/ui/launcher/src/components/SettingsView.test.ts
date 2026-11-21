@@ -50,13 +50,13 @@ describe("Settings page", () => {
   it("finds a setting by its words and focuses its control", async () => {
     const wrapper = mountView({}, { attach: true });
     await flushPromises();
-    await wrapper.get('input[type="search"]').setValue("memory");
-    const result = wrapper.findAll(".settings-results button").find(button => button.text().includes("Extended memory"));
+    await wrapper.get('input[type="search"]').setValue("relog");
+    const result = wrapper.findAll(".settings-results button").find(button => button.text().includes("Return to character after reload"));
     expect(result).toBeDefined();
     await result!.trigger("click");
     await flushPromises();
     expect(wrapper.get(".settings-fields h1").text()).toBe("Game");
-    const row = wrapper.get('[data-setting="extendedMemoryEnabled"]');
+    const row = wrapper.get('[data-setting="autoRelogAfterReload"]');
     expect(row.classes()).toContain("setting-focus");
     expect(document.activeElement).toBe(row.get('input[type="checkbox"]').element);
     wrapper.unmount();
@@ -75,10 +75,10 @@ describe("Settings page", () => {
     const update = vi.fn(async () => undefined);
     const wrapper = mountView({ settings: { update } }, { target: { section: "game" } });
     await flushPromises();
-    await wrapper.get('[data-setting="extendedMemoryEnabled"] input').setValue(true);
+    await wrapper.get('[data-setting="controllerPromptStyle"] select').setValue("playstation");
     await flushPromises();
-    expect(update).toHaveBeenCalledWith({ extendedMemoryEnabled: true });
-    expect(wrapper.get(".settings-status").text()).toBe("Saved: Extended memory. Applies after you restart GWonMac.");
+    expect(update).toHaveBeenCalledWith({ controllerPromptStyle: "playstation" });
+    expect(wrapper.get(".settings-status").text()).toBe("Saved: Controller symbols. Applies when you next open or reload a game window.");
     wrapper.unmount();
   });
 
@@ -295,13 +295,11 @@ describe("Settings page", () => {
     wrapper.unmount();
   });
 
-  it("in the Hub, says so when the launcher cannot be opened and shows this session's memory state", async () => {
+  it("in the Hub, says so when the launcher cannot be opened", async () => {
     const openInLauncher = vi.fn(async () => { throw new Error("ipc"); });
     const { tools, shortcuts } = fixtureSnapshot;
-    const extendedMemory = { requestedAtLaunch: true, status: "standard", effectiveCapBytes: 2 ** 31, fallbackReason: "unsupported" } as unknown as NonNullable<LauncherSnapshot["extendedMemory"]>;
-    const wrapper = mount(SettingsView, { props: { snapshot: { settings: fixtureSnapshot.settings, tools, shortcuts }, native: undefined, openInLauncher, extendedMemory, target: { section: "game" } } });
+    const wrapper = mount(SettingsView, { props: { snapshot: { settings: fixtureSnapshot.settings, tools, shortcuts }, native: undefined, openInLauncher, target: { section: "game" } } });
     await flushPromises();
-    expect(wrapper.find('[data-setting="extendedMemoryEnabled"] .setting-state').exists()).toBe(true);
     await openSection(wrapper, "Updates");
     expect(wrapper.get('p[role="alert"]').text()).toBe("The launcher could not open. Use Window › Show Launcher.");
   });

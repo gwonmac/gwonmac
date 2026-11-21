@@ -85,7 +85,7 @@ pnpm certification template "/absolute/path/Gw.jspi.wasm"
 pnpm certification template "/absolute/path/Gw.jspi.wasm" --emit-ts
 pnpm certification recertify "/absolute/path/Gw.jspi.wasm"
 pnpm certification double-click "/absolute/path/Gw.jspi.wasm"
-pnpm certification qualify "/absolute/path/Gw.jspi.wasm" "/absolute/path/Gw.jspi.js" "/absolute/path/out"
+pnpm certification qualify "/absolute/path/Gw.jspi.wasm" "/absolute/path/out"
 ```
 
 `qualify` runs the release battery and writes one record per check into the

@@ -10,7 +10,6 @@
 import type {
   ClientTransforms,
   ClientCompatibility,
-  ExtendedMemoryRuntimeStatus,
   RuntimeEnhancementVerification,
 } from "../shared/contracts.js";
 import type { ChunkStore } from "./chunk-store.js";
@@ -23,7 +22,6 @@ export interface ActiveClient {
   readonly wasmPath: string;
   readonly jsPath: string;
   readonly compatibility: ClientCompatibility | null;
-  readonly extendedMemory: ExtendedMemoryRuntimeStatus;
   readonly transforms: ClientTransforms;
   readonly enhancementVerification: RuntimeEnhancementVerification;
 }

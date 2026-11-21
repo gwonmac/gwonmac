@@ -12,7 +12,6 @@
  * it downstream.
  */
 import {
-  enhancementCapabilityProfile,
   enhancementCapabilitiesRequested,
   NO_ENHANCEMENT_CAPABILITIES,
   ENHANCEMENT_TRANSFORM_ABI,
@@ -59,12 +58,6 @@ import {
   SOUND_DECODE_REPAIR_TRANSFORM_ABI,
   type SoundDecodeRepairBuild,
 } from "./sound-decode-repair.js";
-import {
-  EXTENDED_MEMORY_MAX_BYTES,
-  prepareExtendedMemoryArtifacts,
-  type ExtendedMemoryProfile,
-  type ExtendedMemoryStructuralProof,
-} from "./extended-memory.js";
 
 /**
  * The exact records matched while certifying the official client hash. The
@@ -95,7 +88,7 @@ export type FriendObserverPreparationMode =
   | { readonly status: "active" }
   | { readonly status: "unavailable"; readonly error: unknown };
 
-interface PreparedWasmClientModule {
+export interface PreparedClientModule {
   readonly wasmPath: string;
   /** Authoritative output hash of the last certified stage, never re-derived from the cache. */
   readonly wasmSha256: string;
@@ -117,31 +110,8 @@ interface PreparedWasmClientModule {
   readonly friendObserver: FriendObserverPreparationMode;
 }
 
-export type ExtendedMemoryMode =
-  | { readonly status: "disabled" }
-  | {
-      readonly status: "active";
-      readonly profile: ExtendedMemoryProfile;
-      readonly effectiveCapBytes: typeof EXTENDED_MEMORY_MAX_BYTES;
-    }
-  | {
-      readonly status: "unavailable";
-      readonly reason: "unsupported-client";
-    }
-  | {
-      readonly status: "unavailable";
-      readonly reason: "preparation-failed";
-      readonly error: unknown;
-    };
-
-export interface PreparedClientModule extends PreparedWasmClientModule {
-  readonly jsPath: string;
-  readonly extendedMemory: ExtendedMemoryMode;
-}
-
 export interface PrepareClientModuleOptions {
   readonly officialWasmPath: string;
-  readonly officialJsPath: string;
   readonly officialSha256: string;
   readonly certification: ClientCertification;
   readonly enhancementCapabilities: EnhancementCapabilities;
@@ -171,8 +141,6 @@ export interface PrepareClientModuleOptions {
       inputSha256: string;
     }) => Promise<SoundDecodeRepairBuild | null>;
   }>;
-  readonly extendedMemoryCacheRoot: string;
-  readonly extendedMemoryEnabled: boolean;
 }
 
 function templateSaveCache(
@@ -261,13 +229,13 @@ async function discardEnhancementCache(
  * client remains playable, but no synthetic input path is substituted.
  */
 async function withNativeDoubleClick(
-  prepared: PreparedWasmClientModule,
+  prepared: PreparedClientModule,
   cacheRoot: string,
   verifyLocally: (options: {
     wasmPath: string;
     inputSha256: string;
   }) => Promise<NativeDoubleClickBuild | null>,
-): Promise<PreparedWasmClientModule> {
+): Promise<PreparedClientModule> {
   try {
     const inputSha256 = await sha256File(prepared.wasmPath);
     if (inputSha256 !== prepared.wasmSha256) {
@@ -314,9 +282,9 @@ async function withNativeDoubleClick(
  * the previous stage produced it, and the client keeps its leak.
  */
 async function withSoundDecodeRepair(
-  prepared: PreparedWasmClientModule,
+  prepared: PreparedClientModule,
   options: PrepareClientModuleOptions["soundDecodeRepair"],
-): Promise<PreparedWasmClientModule> {
+): Promise<PreparedClientModule> {
   try {
     const inputSha256 = await sha256File(prepared.wasmPath);
     if (inputSha256 !== prepared.wasmSha256) {
@@ -353,9 +321,9 @@ async function withSoundDecodeRepair(
 }
 
 async function withFriendObserver(
-  prepared: PreparedWasmClientModule,
+  prepared: PreparedClientModule,
   options: PrepareClientModuleOptions["friendObserver"],
-): Promise<PreparedWasmClientModule> {
+): Promise<PreparedClientModule> {
   if (!options) return prepared;
   if (!prepared.effectiveCapabilities.travelAction) {
     await discardDerivedWasm(options.cacheRoot).catch(() => undefined);
@@ -395,12 +363,6 @@ export async function prepareClientModule(
     wasmPath: string;
     inputSha256: string;
   }) => Promise<NativeDoubleClickBuild | null> = async () => null,
-  verifyExtendedMemory: (options: {
-    jsPath: string;
-    jsInputSha256: string;
-    wasmPath: string;
-    wasmInputSha256: string;
-  }) => Promise<ExtendedMemoryStructuralProof | null> = async () => null,
 ): Promise<PreparedClientModule> {
   const certified = await prepareCertifiedChain(options);
   const friendsPrepared = await withFriendObserver(certified, options.friendObserver);
@@ -412,7 +374,7 @@ export async function prepareClientModule(
         options.cartographySpike.verifyLocally,
       )
     : null;
-  let cartographyPrepared: PreparedWasmClientModule = friendsPrepared;
+  let cartographyPrepared: PreparedClientModule = friendsPrepared;
   if (cartography?.status === "active") {
     cartographyPrepared = {
       ...friendsPrepared,
@@ -426,7 +388,7 @@ export async function prepareClientModule(
       cartography: { status: "unavailable", error: cartography.error },
     };
   }
-  const prepared = await withSoundDecodeRepair(
+  return withSoundDecodeRepair(
     await withNativeDoubleClick(
       cartographyPrepared,
       options.nativeDoubleClickCacheRoot,
@@ -434,54 +396,6 @@ export async function prepareClientModule(
     ),
     options.soundDecodeRepair,
   );
-  if (!options.extendedMemoryEnabled) {
-    return {
-      ...prepared,
-      jsPath: options.officialJsPath,
-      extendedMemory: { status: "disabled" },
-    };
-  }
-  try {
-    const extended = await prepareExtendedMemoryArtifacts(
-      options.officialJsPath,
-      options.officialWasmPath,
-      prepared.wasmPath,
-      prepared.wasmSha256,
-      enhancementCapabilityProfile(prepared.effectiveCapabilities) ?? "off",
-      options.extendedMemoryCacheRoot,
-      verifyExtendedMemory,
-    );
-    return extended
-      ? {
-          ...prepared,
-          jsPath: extended.jsPath,
-          wasmPath: extended.wasmPath,
-          wasmSha256: extended.wasmSha256,
-          extendedMemory: {
-            status: "active",
-            profile: extended.profile,
-            effectiveCapBytes: EXTENDED_MEMORY_MAX_BYTES,
-          },
-        }
-      : {
-          ...prepared,
-          jsPath: options.officialJsPath,
-          extendedMemory: {
-            status: "unavailable",
-            reason: "unsupported-client",
-          },
-        };
-  } catch (error) {
-    return {
-      ...prepared,
-      jsPath: options.officialJsPath,
-      extendedMemory: {
-        status: "unavailable",
-        reason: "preparation-failed",
-        error,
-      },
-    };
-  }
 }
 
 /**
@@ -495,7 +409,7 @@ export async function prepareClientModule(
  */
 async function prepareCertifiedChain(
   options: PrepareClientModuleOptions,
-): Promise<PreparedWasmClientModule> {
+): Promise<PreparedClientModule> {
   const {
     officialWasmPath,
     officialSha256,
@@ -509,11 +423,11 @@ async function prepareCertifiedChain(
   const templateSaveBuild = certification.templateSaveBuild;
   let enhancementInputPath = officialWasmPath;
   let enhancementInputSha256 = officialSha256;
-  let gameFileSaving: PreparedWasmClientModule["gameFileSaving"] = {
+  let gameFileSaving: PreparedClientModule["gameFileSaving"] = {
     status: "unavailable",
     reason: "game-update",
   };
-  let fileFailure: PreparedWasmClientModule["failure"] = null;
+  let fileFailure: PreparedClientModule["failure"] = null;
   if (templateSaveBuild === null) {
     await discardDerivedWasm(compatibilityCacheRoot).catch(() => undefined);
   } else if (templateSaveBuild.sha256 !== officialSha256) {

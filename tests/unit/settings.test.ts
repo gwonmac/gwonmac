@@ -102,7 +102,6 @@ describe("settings", () => {
       reminderSound: false,
       alcoholTimerPosition: { corner: "top-left", x: 4, y: 58, locked: true },
       skillCooldownColor: { kind: "preset", preset: "red" },
-      extendedMemoryEnabled: false,
       autoRelogAfterReload: false,
       memoryWarningPosition: null,
       showDiagnostics: false,
@@ -241,7 +240,6 @@ describe("settings", () => {
       reminderSound: false,
       alcoholTimerPosition: { corner: "top-left", x: 4, y: 58, locked: true },
       skillCooldownColor: { kind: "preset", preset: "red" },
-      extendedMemoryEnabled: false,
       autoRelogAfterReload: false,
       memoryWarningPosition: null,
       showDiagnostics: true,
@@ -529,9 +527,6 @@ describe("settings", () => {
     assert.deepEqual(parseSettingsPatch({ targetReadout: true }), {
       targetReadout: true,
     });
-    assert.deepEqual(parseSettingsPatch({ extendedMemoryEnabled: true }), {
-      extendedMemoryEnabled: true,
-    });
     assert.deepEqual(parseSettingsPatch({ autoRelogAfterReload: true }), {
       autoRelogAfterReload: true,
     });
@@ -673,7 +668,6 @@ describe("settings", () => {
       "effectTimersEnabled",
       "eliteMissionMapMarkers",
       "eliteSkillsEnabled",
-      "extendedMemoryEnabled",
       "formatVersion",
       "gwonmacTools",
       "hubShortcuts",
@@ -824,7 +818,6 @@ describe("settings", () => {
       reminderSound: false,
       alcoholTimerPosition: { corner: "top-left", x: 4, y: 58, locked: true },
       skillCooldownColor: { kind: "preset", preset: "red" },
-      extendedMemoryEnabled: false,
       autoRelogAfterReload: false,
       memoryWarningPosition: null,
       showDiagnostics: true,

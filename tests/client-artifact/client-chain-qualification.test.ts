@@ -25,15 +25,9 @@ import {
 import {
   deriveNativeDoubleClickBuild,
   isDerivedNativeDoubleClickBuild,
-  rewriteNativeDoubleClickWasm,
 } from "../../app/client/certification/native-double-click.js";
 import { deriveCartographySpikeBuild } from
   "../../app/client/certification/cartography-spike-verifier.js";
-import {
-  deriveExtendedMemoryStructuralProof,
-  rewriteExtendedMemoryWasm,
-} from
-  "../../app/client/certification/extended-memory.js";
 import { rewriteTemplateSaveWasm } from
   "../../app/client/certification/template-save-compat.js";
 import {
@@ -48,9 +42,7 @@ test("every shipped runtime profile reproduces the real client chain", {
   timeout: 120_000,
 }, async () => {
   const artifact = process.env.GW_CLIENT_WASM;
-  const glue = process.env.GW_CLIENT_JS;
   assert.ok(artifact, "GW_CLIENT_WASM must name the real Gw.jspi.wasm artifact");
-  assert.ok(glue, "GW_CLIENT_JS must name the matching real Gw.jspi.js artifact");
   const official = new Uint8Array(await readFile(artifact));
   const verified = verifyLocalClientBytes(official);
   assert.equal(isLocalClientVerification(verified, sha256(official)), true);
@@ -69,7 +61,6 @@ test("every shipped runtime profile reproduces the real client chain", {
     isDerivedNativeDoubleClickBuild(templateDoubleClick, sha256(template)),
     true,
   );
-  rewriteExtendedMemoryWasm(rewriteNativeDoubleClickWasm(template));
   for (const [launch, capabilities] of Object.entries(
     RELEASE_ENHANCEMENT_CAPABILITIES,
   )) {
@@ -104,12 +95,10 @@ test("every shipped runtime profile reproduces the real client chain", {
       true,
       `profile ${profile} must independently prove native double-click`,
     );
-    rewriteExtendedMemoryWasm(rewriteNativeDoubleClickWasm(enhanced));
 
     const cacheRoot = await mkdtemp(join(tmpdir(), `gwonmac-${launch}-chain-`));
     const prepare = async (friendProof = true): Promise<PreparedClientModule> => prepareClientModule({
       officialWasmPath: artifact,
-      officialJsPath: glue,
       officialSha256: sha256(official),
       certification: {
         templateSaveBuild: profileVerification.templateSaveBuild,
@@ -144,20 +133,10 @@ test("every shipped runtime profile reproduces the real client chain", {
           return deriveSoundDecodeRepairStage(input)?.build ?? null;
         },
       },
-      extendedMemoryCacheRoot: join(cacheRoot, "memory"),
-      extendedMemoryEnabled: true,
     }, async ({ wasmPath, inputSha256 }) => {
       const input = new Uint8Array(await readFile(wasmPath));
       assert.equal(sha256(input), inputSha256);
       return deriveNativeDoubleClickBuild(input);
-    }, async ({ jsPath, jsInputSha256, wasmPath, wasmInputSha256 }) => {
-      const [jsInput, wasmInput] = await Promise.all([
-        readFile(jsPath, "utf8"),
-        readFile(wasmPath),
-      ]);
-      assert.equal(sha256(jsInput), jsInputSha256);
-      assert.equal(sha256(wasmInput), wasmInputSha256);
-      return deriveExtendedMemoryStructuralProof(jsInput, wasmInput);
     });
     try {
       const prepared = await prepare();
@@ -169,7 +148,6 @@ test("every shipped runtime profile reproduces the real client chain", {
         "Core must serve no optional Maps native hooks");
       assert.equal(prepared.nativeDoubleClick, true);
       assert.equal(prepared.soundDecodeRepair, true, `the ${launch} launch must serve the sound decode repair`);
-      assert.equal(prepared.extendedMemory.status, "active");
       assert.deepEqual(prepared.effectiveCapabilities, capabilities);
       assert.equal(sha256(await readFile(prepared.wasmPath)), prepared.wasmSha256);
 
@@ -181,7 +159,6 @@ test("every shipped runtime profile reproduces the real client chain", {
       assert.deepEqual(rebuilt.cartography, { status: launch === "tools" ? "active" : "disabled" });
       assert.equal(rebuilt.nativeDoubleClick, true);
       assert.equal(rebuilt.soundDecodeRepair, true);
-      assert.equal(rebuilt.extendedMemory.status, "active");
       assert.equal(rebuilt.wasmSha256, prepared.wasmSha256);
       assert.equal(sha256(await readFile(rebuilt.wasmPath)), rebuilt.wasmSha256);
       if (capabilities.travelAction) {
@@ -190,7 +167,6 @@ test("every shipped runtime profile reproduces the real client chain", {
         assert.equal(refused.failure, null);
         assert.deepEqual(refused.effectiveCapabilities, capabilities);
         assert.equal(refused.nativeDoubleClick, true);
-        assert.equal(refused.extendedMemory.status, "active");
       }
     } finally {
       await rm(cacheRoot, { recursive: true, force: true });

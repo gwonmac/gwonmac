@@ -84,7 +84,6 @@ describe("resolved profile paths", () => {
       friendObserver: `${root}/game/friend-observer`,
       nativeDoubleClick: `${root}/game/double-click`,
       soundDecodeRepair: `${root}/game/sound-decode-repair`,
-      extendedMemory: `${root}/game/extended-memory`,
       coreDerived: `${root}/game/core`,
       texturePacks: `${root}/texture-packs`,
       texturePackSelection: `${root}/texture-packs/selection.json`,
@@ -141,14 +140,12 @@ describe("resolved profile paths", () => {
       friendObserver: `${root}/game/friend-observer`,
       nativeDoubleClick: `${root}/game/double-click`,
       soundDecodeRepair: `${root}/game/sound-decode-repair`,
-      extendedMemory: `${root}/game/extended-memory`,
     });
     assert.deepEqual(launchCacheRoots(gamePaths(root), "core"), {
       enhancements: `${root}/game/core/enhancements`,
       friendObserver: `${root}/game/core/friend-observer`,
       nativeDoubleClick: `${root}/game/core/double-click`,
       soundDecodeRepair: `${root}/game/core/sound-decode-repair`,
-      extendedMemory: `${root}/game/core/extended-memory`,
     });
   });
 

@@ -176,7 +176,7 @@ The player must choose **Include Images**, **Diagnostics Only**, or
 command outcome, open game-window count, included and missing stages, and the
 privacy class. `visual-capture.json` records the frame sequence, original
 dimensions, device-pixel ratio, and capture geometry. `runtime-state.json`
-records the effective client hashes, 4 GB result, enhancements, diagnostic
+records the effective client hashes, transforms, enhancements, diagnostic
 profile, presentation path, GL observers, and snapshot shape.
 
 This report can distinguish a lost WebGL context, a failed presentation path,
@@ -277,9 +277,9 @@ Advanced settings provides restart-required profiles for long-session
 reproduction: Standard, No GL overrides, Untouched official client, and
 Untouched official client with direct canvas presentation. Nonstandard
 profiles remain selected across restarts and show a visible banner. They do
-not change the player's ordinary Tools or 4 GB preference. The untouched
-profiles intentionally run the official 2 GB client even when 4 GB is enabled,
-so support can compare that baseline with a Standard-profile 4 GB capture.
+not change the player's ordinary Tools preference. The untouched profiles
+intentionally run the official client, so support can compare that baseline
+with a Standard-profile capture.
 Direct canvas is a presentation comparison and cannot produce synchronized
 stage images; its report records that limitation instead of substituting a
 different frame.
@@ -348,9 +348,7 @@ A failed growth request at the compiled limit proves that the official client
 requested more memory than that module permits. It does not identify which
 client subsystem retained the earlier allocations.
 
-Function indices apply only to the exact captured module. The 4 GB option
-records requested and effective state. An unavailable certified profile falls
-back to the ordinary module with a closed reason.
+Function indices apply only to the exact captured module.
 
 ## Performance measurement rule
 

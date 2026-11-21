@@ -22,9 +22,6 @@ export type MemoryWarningActions = Readonly<{
   autoRelogAfterReload: boolean;
   saveAutoRelog(enabled: boolean): Promise<void>;
   reload(): void | Promise<void>;
-  /** Opens Hub Settings at a control; the warning uses it for Extended memory. */
-  /** Opens Settings at Extended memory. */
-  openSettings?(): void;
 }>;
 
 /** One non-modal warning surface. The estimator owns urgency; this owns DOM. */
@@ -49,12 +46,6 @@ export function bindMemoryWarning(
     !root || !live || !label || !detail || !explanation || !details
     || !reloadButton || !laterButton || !autoRelog
   ) return null;
-  const settingsButton = document.getElementById("memory-notice-settings");
-  // The explanation names the 4 GB option, so the setting is one click away.
-  if (settingsButton && actions.openSettings) {
-    settingsButton.hidden = false;
-    settingsButton.addEventListener("click", () => actions.openSettings?.());
-  }
   let savedAutoRelog = actions.autoRelogAfterReload;
   let pendingPreferenceSave = Promise.resolve();
   autoRelog.checked = savedAutoRelog;

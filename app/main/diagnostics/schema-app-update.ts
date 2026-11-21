@@ -15,10 +15,6 @@ import {
   type EnhancementCapabilityProfile,
   type EnhancementProgram,
 } from "../../shared/enhancement-contracts.js";
-import {
-  isExtendedMemoryProfile,
-  type ExtendedMemoryProfile,
-} from "../../client/certification/extended-memory.js";
 import { isFailedStagesField } from "../../client/certification/client-verification-pass.js";
 import {
   LOCAL_FEATURE_INVARIANTS,
@@ -50,10 +46,6 @@ import {
   type FieldGuard,
 } from "./schema-fields.js";
 
-const extendedMemoryProfile: FieldGuard<"none" | ExtendedMemoryProfile> = (
-  value,
-): value is "none" | ExtendedMemoryProfile =>
-  value === "none" || isExtendedMemoryProfile(value);
 const localFeatureInvariants = new Set<AnyLocalFeatureInvariant>(
   Object.values(LOCAL_FEATURE_INVARIANTS).flat(),
 );
@@ -722,30 +714,6 @@ export const APP_AND_UPDATE_EVENT_SCHEMA = {
     subsystem: "wasm",
     level: "info",
     fields: none,
-  },
-  "wasm.extendedMemory": {
-    scope: "app",
-    subsystem: "wasm",
-    level: "info",
-    fields: {
-      mode: literal(["disabled", "unavailable", "active"] as const),
-      requested: boolean,
-      profile: extendedMemoryProfile,
-      capBytes: finiteNumber,
-      fallbackReason: literal([
-        "none",
-        "unsupported-client",
-        "preparation-failed",
-        "check-failed",
-        "diagnostic-profile",
-      ] as const),
-    },
-  },
-  "wasm.extendedMemoryPrepareFailed": {
-    scope: "app",
-    subsystem: "wasm",
-    level: "warn",
-    fields: { code },
   },
   "enhancement.prepareFailed": {
     scope: "app",

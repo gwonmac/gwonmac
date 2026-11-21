@@ -88,7 +88,6 @@ export const SETTINGS: readonly SettingEntry[] = [
   { id: "uiPanelOpacity", section: "appearance", label: "Panel opacity", keywords: "transparency" },
 
   game("renderScale"),
-  game("extendedMemoryEnabled"),
   game("autoRelogAfterReload"),
   game("controllerPromptStyle"),
   game("showDiagnostics"),

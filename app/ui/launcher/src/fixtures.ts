@@ -23,7 +23,6 @@ export const fixtureSnapshot: LauncherSnapshot = {
     },
   },
   appUpdate: { phase: "idle", currentVersion: "2026.8.10" },
-  extendedMemory: null,
   tools: {
     configured: false,
     loaded: false,
@@ -74,7 +73,6 @@ export const fixtureSnapshot: LauncherSnapshot = {
     reminderSound: DEFAULT_SETTINGS.reminderSound,
     autoCheckUpdates: true,
     renderScale: 2,
-    extendedMemoryEnabled: false,
     showDiagnostics: false,
     cartographyOverlayEnabled: false,
     cartographyGridEnabled: false,

@@ -22,7 +22,6 @@ test("retains bounded generation evidence without paths or raw addresses", async
   const wasm = Uint8Array.of(0, 97, 115, 109, 1, 0, 0, 0);
   const js = "const client = true;";
   const wasmDigest = sha256(wasm);
-  const jsDigest = sha256(js);
   const outputDigest = sha256("output");
   const fileOutputDigest = sha256("file-output");
   const feature601Input = sha256("features-e01-input");
@@ -38,7 +37,6 @@ test("retains bounded generation evidence without paths or raw addresses", async
     qualification: path.join(root, "qualification.json"),
     doubleClick: path.join(root, "double-click.json"),
     cartography: path.join(root, "cartography.json"),
-    extendedMemory: path.join(root, "extended-memory.json"),
   };
   const doubleClick = {
     status: "proved",
@@ -61,31 +59,6 @@ test("retains bounded generation evidence without paths or raw addresses", async
     }],
     completeRouteProved: true,
     callbackFunctionIndex: 2448,
-  };
-  const extendedMemory = {
-    status: "proved",
-    exitCode: 0,
-    jsInputSha256: jsDigest,
-    jsOutputSha256: outputDigest,
-    normalizedJsSha256: sha256("normalized"),
-    variants: [{
-      profile: "off",
-      inputSha256: outputDigest,
-      outputSha256: outputDigest,
-      pointerAddress: 0x1234,
-    }, {
-      profile: "features-e01",
-      inputSha256: feature601DoubleClick,
-      outputSha256: outputDigest,
-    }, {
-      profile: "features-3fffff",
-      inputSha256: featureAllDoubleClick,
-      outputSha256: outputDigest,
-    }],
-    heapBytes: 3_529_244_672,
-    highPointerUnsigned: 2_522_561_552,
-    crossed3GiB: true,
-    freedBlockReusedWithoutGrowth: true,
   };
   const cartography = {
     status: "proved",
@@ -114,7 +87,6 @@ test("retains bounded generation evidence without paths or raw addresses", async
     files.qualification,
     files.doubleClick,
     files.cartography,
-    files.extendedMemory,
   ];
   const environment = {
     GITHUB_REPOSITORY: "lupinum-dev/gwonmac",
@@ -160,7 +132,6 @@ test("retains bounded generation evidence without paths or raw addresses", async
       })),
       writeFile(files.doubleClick, JSON.stringify(doubleClick)),
       writeFile(files.cartography, JSON.stringify(cartography)),
-      writeFile(files.extendedMemory, JSON.stringify(extendedMemory)),
     ]);
     const evidence = await createClientRecertificationEvidence(args, environment);
     const serialized = JSON.stringify(evidence);
@@ -183,25 +154,13 @@ test("retains bounded generation evidence without paths or raw addresses", async
         ...doubleClick,
         chains: doubleClick.chains.slice(1),
       },
-      extendedMemory,
       reason: "base-profile-missing",
     }, {
-      doubleClick,
-      extendedMemory: {
-        ...extendedMemory,
-        variants: extendedMemory.variants.slice(1),
+      doubleClick: {
+        ...doubleClick,
+        chains: doubleClick.chains.filter((chain) => chain.profile !== "features-e01"),
       },
-      reason: "base-profile-missing",
-    }, {
-      doubleClick,
-      extendedMemory: {
-        ...extendedMemory,
-        variants: extendedMemory.variants.map((variant) =>
-          variant.profile === "features-e01"
-            ? { ...variant, inputSha256: sha256("wrong-chain") }
-            : variant),
-      },
-      reason: "transform-chain-mismatch",
+      reason: "profile-set-mismatch",
     }, {
       doubleClick: {
         ...doubleClick,
@@ -210,7 +169,6 @@ test("retains bounded generation evidence without paths or raw addresses", async
             ? { ...chain, enhancementInputSha256: sha256("wrong-enhancement-input") }
             : chain),
       },
-      extendedMemory,
       reason: "enhancement-input-mismatch",
     }, {
       doubleClick: {
@@ -220,13 +178,11 @@ test("retains bounded generation evidence without paths or raw addresses", async
             ? { ...chain, inputSha256: sha256("wrong-selected-input") }
             : chain),
       },
-      extendedMemory,
       reason: "selected-input-mismatch",
     }];
     for (const refusal of refusalCases) {
       await Promise.all([
         writeFile(files.doubleClick, JSON.stringify(refusal.doubleClick)),
-        writeFile(files.extendedMemory, JSON.stringify(refusal.extendedMemory)),
       ]);
       const rejected = await createClientRecertificationEvidence(args, environment);
       assert.deepEqual(rejected.outcome, {
@@ -253,7 +209,6 @@ test("retains bounded generation evidence without paths or raw addresses", async
     }]) {
       await Promise.all([
         writeFile(files.doubleClick, JSON.stringify(invalidDoubleClick)),
-        writeFile(files.extendedMemory, JSON.stringify(extendedMemory)),
       ]);
       const rejected = await createClientRecertificationEvidence(args, environment);
       assert.deepEqual(rejected.nativeDoubleClick, {
@@ -324,7 +279,6 @@ test("retains bounded generation evidence without paths or raw addresses", async
           templateSaving: true,
         })),
         writeFile(files.doubleClick, JSON.stringify(doubleClick)),
-        writeFile(files.extendedMemory, JSON.stringify(extendedMemory)),
       ]);
       const rejected = await createClientRecertificationEvidence(args, environment);
       assert.deepEqual(rejected.runtime, {
@@ -356,7 +310,6 @@ test("rejects poison strings and contradictory proved states", async () => {
   const wasm = Uint8Array.of(0, 97, 115, 109, 1, 0, 0, 0);
   const js = "const client = true;";
   const wasmDigest = sha256(wasm);
-  const jsDigest = sha256(js);
   const outputDigest = sha256("output");
   const poison = "/Users/private/0x5a0ee0";
   const files = {
@@ -366,7 +319,6 @@ test("rejects poison strings and contradictory proved states", async () => {
     qualification: path.join(root, "qualification.json"),
     doubleClick: path.join(root, "double-click.json"),
     cartography: path.join(root, "cartography.json"),
-    extendedMemory: path.join(root, "extended-memory.json"),
   };
   try {
     await Promise.all([
@@ -416,21 +368,6 @@ test("rejects poison strings and contradictory proved states", async () => {
         }],
         completeProof: false,
       })),
-      writeFile(files.extendedMemory, JSON.stringify({
-        status: "proved",
-        exitCode: 0,
-        jsInputSha256: jsDigest,
-        jsOutputSha256: outputDigest,
-        normalizedJsSha256: sha256("normalized"),
-        variants: [{
-          profile: poison,
-          inputSha256: wasmDigest,
-          outputSha256: outputDigest,
-        }],
-        heapBytes: 3_529_244_672,
-        crossed3GiB: false,
-        freedBlockReusedWithoutGrowth: false,
-      })),
     ]);
     const evidence = await createClientRecertificationEvidence([
       sha256("generation"),
@@ -440,7 +377,6 @@ test("rejects poison strings and contradictory proved states", async () => {
       files.qualification,
       files.doubleClick,
       files.cartography,
-      files.extendedMemory,
     ], {
       GITHUB_REPOSITORY: "lupinum-dev/gwonmac",
       GITHUB_RUN_ID: "123",
@@ -454,7 +390,6 @@ test("rejects poison strings and contradictory proved states", async () => {
       evidence.qualification,
       evidence.nativeDoubleClick,
       evidence.cartography,
-      evidence.extendedMemory,
     ]) {
       assert.deepEqual(section, {
         status: "unavailable",
@@ -475,7 +410,7 @@ test("retains artifact identities when a detailed evidence tool crashes", async 
   const wasm = Uint8Array.of(0, 97, 115, 109, 1, 0, 0, 0);
   const js = "const client = true;";
   const paths = [
-    "runtime", "qualification", "double-click", "cartography", "extended-memory",
+    "runtime", "qualification", "double-click", "cartography",
   ]
     .map((name) => path.join(root, `${name}.json`));
   try {

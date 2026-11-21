@@ -5,7 +5,7 @@
  * MultipleAccountsController; this module only projects them and never moves
  * launch decisions into the renderer.
  */
-import type { AppUpdateState, DownloadProgress, ExtendedMemoryRuntimeStatus } from "../shared/contracts.js";
+import type { AppUpdateState, DownloadProgress } from "../shared/contracts.js";
 import type { AccountsState } from "../shared/accounts-contracts.js";
 import type { AppSettings } from "../shared/settings/index.js";
 import {
@@ -42,7 +42,6 @@ export interface LauncherOrchestratorOptions {
   readonly getNews: (preferences: LauncherSnapshot["preferences"]) => LauncherSnapshot["news"];
   readonly toolsLoaded: () => boolean;
   readonly getTexturePacks?: () => TexturePackSnapshot;
-  readonly getExtendedMemory?: () => ExtendedMemoryRuntimeStatus | null;
   /** Unpackaged Electron tests only: lets renderer-focused suites bypass client preparation. */
   readonly allowUnreadyLaunch?: boolean;
   readonly publish: (snapshot: LauncherSnapshot) => void;
@@ -90,7 +89,6 @@ export class LauncherOrchestrator {
         selectedPackId: null,
         packs: [],
       },
-      extendedMemory: this.options.getExtendedMemory?.() ?? null,
       profiles: accounts.profiles.map((profile) => ({
         id: profile.id,
         name: profile.name,

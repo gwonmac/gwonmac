@@ -154,13 +154,12 @@ The transform validates each complete changed caller. A change to control flow,
 flags, path handling, or an unrelated call makes the proof refuse.
 
 Each official client generation is proved once, in one verifier pass. One
-isolated utility process reads the official WASM and JS once, checks both
-hashes, and walks the whole derived chain for every release launch profile
-(Core and Tools): template, Enhancement, friends, Cartography, native
-double-click and 4 GB, each stage on the previous stage's output. It reports
-the launch that is starting first, so Play waits only for that chain. Its 4 GB
-proof comes after that report unless this launch asked for 4 GB. The process
-writes nothing. Known hashes take the same structural path as unknown hashes.
+isolated utility process reads the official WASM once, checks its hash, and
+walks the whole derived chain for every release launch profile (Core and
+Tools): template, Enhancement, friends, Cartography, native double-click and
+the sound decode repair, each stage on the previous stage's output. It reports
+the launch that is starting first, so Play waits only for that chain. The
+process writes nothing. Known hashes take the same structural path as unknown hashes.
 
 Play waits at most 120 s for the requested report. When that runs out, this
 launch serves the official module with `check-failed`, but the pass is not
@@ -185,9 +184,8 @@ again. Only a complete pass in which every launch was accepted is stored. A
 full reset deletes the record. Without a usable Keychain key, nothing is stored
 and every launch runs the pass.
 
-Switching Tools or 4 GB never needs a new pass: the record holds both release
-profiles, and the 4 GB proof is made for every chain whether or not it is
-requested. Core and Tools launches keep separate derived-module caches, so a
+Switching Tools never needs a new pass: the record holds both release
+profiles. Core and Tools launches keep separate derived-module caches, so a
 switch rebuilds nothing once both have run. Main still repeats each transform
 and checks its output hash whenever it rebuilds a module.
 
@@ -209,7 +207,7 @@ fails because of the check.
 The pass records which Enhancement candidate each chain proved. When Main
 serves a different one (it fell back where the pass did not), a later stage
 whose proof was made for the pass's candidate cannot be used, and native
-double-click and 4 GB report `preparation-failed`, not a Guild Wars update.
+double-click reports `preparation-failed`, not a Guild Wars update.
 When both fell back the same way, the later stages were proved on the served
 candidate, and a refusal keeps its reason.
 
@@ -241,7 +239,7 @@ repaired yet.
 ## Effective feature status
 
 Main reports the effective served status for file saving, native double-click,
-cursor, Target, Party, Team Apply, Travel, Xunlai, aliases, and 4 GB mode. Each
+cursor, Target, Party, Team Apply, Travel, Xunlai, and aliases. Each
 optional feature is `available`, `off`, or `unavailable`; unavailable features
 also say whether a Guild Wars update, a preparation failure, or a failed
 build check (`check-failed`) caused the refusal. The renderer never reconstructs these answers from settings, hashes,

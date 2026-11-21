@@ -33,7 +33,6 @@ test.describe("client generation coordination", () => {
             paths,
             hostVersion: "test",
             cachedOnly: true,
-            extendedMemoryEnabled: false,
             enhancementCapabilities: {
               nativeCursor: false,
               targetObservation: false,
@@ -75,12 +74,6 @@ test.describe("client generation coordination", () => {
             wasmPath: "/active/Gw.jspi.wasm",
             jsPath: "/active/Gw.jspi.js",
             compatibility: null,
-            extendedMemory: {
-              requestedAtLaunch: false,
-              status: "standard",
-              effectiveCapBytes: 2_147_483_648,
-              fallbackReason: null,
-            },
           });
           runtime.clientReady(active);
           while (runtime.fullDownload) await runtime.fullDownload.promise;
@@ -137,7 +130,6 @@ test.describe("client generation coordination", () => {
             paths,
             hostVersion: "test",
             cachedOnly: true,
-            extendedMemoryEnabled: false,
             enhancementCapabilities: {
               nativeCursor: false,
               targetObservation: false,
@@ -161,12 +153,6 @@ test.describe("client generation coordination", () => {
             wasmPath: "/active/Gw.jspi.wasm",
             jsPath: "/active/Gw.jspi.js",
             compatibility: null,
-            extendedMemory: {
-              requestedAtLaunch: false,
-              status: "standard",
-              effectiveCapBytes: 2_147_483_648,
-              fallbackReason: null,
-            },
           });
           const [metadata, info] = await Promise.all([
             runtime.snapshotMetadata(),
@@ -266,7 +252,6 @@ test.describe("client generation coordination", () => {
             paths,
             hostVersion: "test",
             cachedOnly: true,
-            extendedMemoryEnabled: false,
             enhancementCapabilities: {
               nativeCursor: false,
               targetObservation: false,
@@ -300,12 +285,6 @@ test.describe("client generation coordination", () => {
             wasmPath: "/active/Gw.jspi.wasm",
             jsPath: "/active/Gw.jspi.js",
             compatibility: null,
-            extendedMemory: {
-              requestedAtLaunch: false,
-              status: "standard",
-              effectiveCapBytes: 2_147_483_648,
-              fallbackReason: null,
-            },
           });
           runtime.candidateHealthToken = Object.freeze({
             generation: active.generation,
@@ -330,18 +309,11 @@ test.describe("client generation coordination", () => {
         preparingSession: {
           appVersion: "test-app",
           compatibility: null,
-          extendedMemory: null,
           healthToken: null,
         },
         activeSession: {
           appVersion: "test-app",
           compatibility: null,
-          extendedMemory: {
-            requestedAtLaunch: false,
-            status: "standard",
-            effectiveCapBytes: 2_147_483_648,
-            fallbackReason: null,
-          },
           healthToken: {
             generation: 1,
             fingerprint: "f".repeat(64),
@@ -376,7 +348,6 @@ test.describe("client generation coordination", () => {
             paths,
             hostVersion: "test",
             cachedOnly: false,
-            extendedMemoryEnabled: false,
             enhancementCapabilities: {
               nativeCursor: false,
               targetObservation: false,
@@ -471,7 +442,6 @@ test.describe("client generation coordination", () => {
             paths,
             hostVersion: "test",
             cachedOnly: false,
-            extendedMemoryEnabled: false,
             enhancementCapabilities: {
               nativeCursor: false,
               targetObservation: false,
@@ -561,7 +531,6 @@ test.describe("client generation coordination", () => {
             paths,
             hostVersion: "test",
             cachedOnly: false,
-            extendedMemoryEnabled: false,
             enhancementCapabilities: {
               nativeCursor: false,
               targetObservation: false,
@@ -636,7 +605,6 @@ test.describe("client generation coordination", () => {
             paths,
             hostVersion: "test",
             cachedOnly: false,
-            extendedMemoryEnabled: false,
             enhancementCapabilities: {
               nativeCursor: false,
               targetObservation: false,
@@ -661,12 +629,6 @@ test.describe("client generation coordination", () => {
                 partyObservation: { status: "off" },
                 teamApply: { status: "off" },
               },
-            },
-            extendedMemory: {
-              requestedAtLaunch: false,
-              status: "standard",
-              effectiveCapBytes: 2_147_483_648,
-              fallbackReason: null,
             },
           });
 
@@ -746,7 +708,6 @@ test.describe("client generation coordination", () => {
             paths,
             hostVersion: "test",
             cachedOnly: false,
-            extendedMemoryEnabled: false,
             enhancementCapabilities: {
               nativeCursor: false,
               targetObservation: false,
@@ -839,7 +800,6 @@ test.describe("client generation coordination", () => {
             paths,
             hostVersion: "test",
             cachedOnly: true,
-            extendedMemoryEnabled: false,
             enhancementCapabilities: {
               nativeCursor: false,
               targetObservation: false,
@@ -865,20 +825,12 @@ test.describe("client generation coordination", () => {
                 teamApply: { status: "available" },
               },
             },
-            extendedMemory: {
-              requestedAtLaunch: true,
-              status: "active",
-              effectiveCapBytes: 4_294_967_296,
-              fallbackReason: null,
-            },
           });
 
           const prepared = await runtime.selectClientWasm();
           const outcome = {
             preparedCompatibility: prepared.compatibility,
-            preparedExtendedMemory: prepared.extendedMemory,
             activeCompatibility: runtime.compatibility,
-            activeExtendedMemory: runtime.extendedMemory,
             session: runtime.session("test-app"),
           };
           await runtime.shutdown();
@@ -892,23 +844,14 @@ test.describe("client generation coordination", () => {
       );
 
       expect(result.preparedCompatibility).toBeNull();
-      expect(result.preparedExtendedMemory.status).toBe("standard");
       expect(result.activeCompatibility).toMatchObject({
         clientSha256: "a".repeat(64),
         features: { teamApply: { status: "available" } },
-      });
-      expect(result.activeExtendedMemory).toMatchObject({
-        status: "active",
-        effectiveCapBytes: 4_294_967_296,
       });
       expect(result.session).toMatchObject({
         appVersion: "test-app",
         compatibility: {
           clientSha256: "a".repeat(64),
-        },
-        extendedMemory: {
-          status: "active",
-          effectiveCapBytes: 4_294_967_296,
         },
         healthToken: null,
       });
@@ -952,7 +895,6 @@ test.describe("client generation coordination", () => {
             paths,
             hostVersion: "test",
             cachedOnly: false,
-            extendedMemoryEnabled: false,
             enhancementCapabilities: {
               nativeCursor: false,
               targetObservation: false,
@@ -977,12 +919,6 @@ test.describe("client generation coordination", () => {
                 partyObservation: { status: "off" },
                 teamApply: { status: "off" },
               },
-            },
-            extendedMemory: {
-              requestedAtLaunch: false,
-              status: "standard",
-              effectiveCapBytes: 2_147_483_648,
-              fallbackReason: null,
             },
           });
           const token = Object.freeze({
@@ -1020,12 +956,6 @@ test.describe("client generation coordination", () => {
                 partyObservation: { status: "off" },
                 teamApply: { status: "off" },
               },
-            },
-            extendedMemory: {
-              requestedAtLaunch: true,
-              status: "unavailable",
-              effectiveCapBytes: 2_147_483_648,
-              fallbackReason: "unsupported-client",
             },
           });
           await fs.writeFile(
@@ -1117,7 +1047,6 @@ test.describe("client generation coordination", () => {
             paths,
             hostVersion: "test",
             cachedOnly: false,
-            extendedMemoryEnabled: false,
             enhancementCapabilities: {
               nativeCursor: false,
               targetObservation: false,
@@ -1142,12 +1071,6 @@ test.describe("client generation coordination", () => {
                 partyObservation: { status: "off" },
                 teamApply: { status: "off" },
               },
-            },
-            extendedMemory: {
-              requestedAtLaunch: false,
-              status: "standard",
-              effectiveCapBytes: 2_147_483_648,
-              fallbackReason: null,
             },
           });
           const token = Object.freeze({

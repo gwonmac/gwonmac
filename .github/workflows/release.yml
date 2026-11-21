@@ -64,11 +64,10 @@ jobs:
       # suite runs in client-watch.yml, which a certification PR can dispatch.
       - name: Qualify the exact client
         env:
-          GW_CLIENT_JS: ${{ steps.client.outputs.js }}
           GW_CLIENT_WASM: ${{ steps.client.outputs.wasm }}
         run: |
           node build/tools-cli/certification.js qualify \
-            "$GW_CLIENT_WASM" "$GW_CLIENT_JS" "$RUNNER_TEMP/qualification"
+            "$GW_CLIENT_WASM" "$RUNNER_TEMP/qualification"
 
   build:
     needs: prepare

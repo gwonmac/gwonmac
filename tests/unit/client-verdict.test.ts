@@ -86,7 +86,7 @@ async function passResult(
   launches: readonly ClientVerificationLaunch[],
 ): Promise<ClientVerificationPassResult> {
   const reports: ClientVerificationPassResult[] = [];
-  await runClientVerificationPass(bytes, JS, launches, (result) => {
+  await runClientVerificationPass(bytes, launches, (result) => {
     reports.push(structuredClone(result));
   });
   const last = reports.at(-1);
@@ -97,13 +97,13 @@ async function passResult(
 /** The real pass, in this process, answering through a structured-clone copy. */
 function realPass(bytes: Uint8Array = WASM) {
   const calls: (readonly ClientVerificationLaunch[])[] = [];
-  const run: RunVerifierPass = ({ launches, extendedMemoryFirst }) => {
+  const run: RunVerifierPass = ({ launches }) => {
     calls.push(launches);
     const control = controlledPass();
-    void runClientVerificationPass(bytes, JS, launches, (result, done) => {
+    void runClientVerificationPass(bytes, launches, (result, done) => {
       control.answerRequested(structuredClone(result));
       if (done) control.answerComplete(structuredClone(result));
-    }, { extendedMemoryFirst });
+    });
     return control.pass;
   };
   return { run, calls };
@@ -142,11 +142,9 @@ function launchOn(
     installKey: async () => overrides.installKey === undefined ? INSTALL_KEY : overrides.installKey,
     wasmPath: "/official/Gw.jspi.wasm",
     wasmSha256: sha256(overrides.wasm ?? WASM),
-    jsPath: "/official/Gw.jspi.js",
     jsSha256: sha256(JS),
     launch: overrides.launch ?? TOOLS,
     releaseLaunches: [CORE, TOOLS],
-    extendedMemoryRequested: false,
     runPass,
     slot: overrides.slot ?? createVerifierPassSlot(),
     ...(overrides.launchBudgetMs === undefined ? {} : { launchBudgetMs: overrides.launchBudgetMs }),
@@ -448,7 +446,7 @@ describe("client verdict", () => {
     // Catches a crash classified as a refusal (stored forever) or a refusal
     // classified as a crash (re-proved on every launch).
     const cases: [string, unknown, boolean][] = [
-      ["fail() refusal", new ProofRefusal("extended-memory transform: glue changed"), true],
+      ["fail() refusal", new ProofRefusal("native double-click: route changed"), true],
       ["unreadable bytes", new WasmFormatError("wasm: truncated LEB128"), true],
       ["plain Error", new Error("from a library"), false],
       ["evidence refusal", new EvidenceError("invalid-wasm"), true],
@@ -462,12 +460,12 @@ describe("client verdict", () => {
   it("logs failed stages only as closed names in chain order", () => {
     // Catches a diagnostics field that could carry a path or free text, and a
     // producer whose value the export validator would refuse.
-    assert.equal(failedStagesField(["extendedMemory", "friendObserver"]), "friendObserver,extendedMemory");
+    assert.equal(failedStagesField(["soundDecodeRepair", "friendObserver"]), "friendObserver,soundDecodeRepair");
     assert.equal(failedStagesField([]), "");
-    for (const value of ["", "enhancement", "friendObserver,extendedMemory"]) {
+    for (const value of ["", "enhancement", "friendObserver,soundDecodeRepair"]) {
       assert.equal(isFailedStagesField(value), true, value);
     }
-    for (const value of ["/Users/x/Gw.jspi.wasm", "extendedMemory,friendObserver", "enhancement,enhancement", "enhancement,", null]) {
+    for (const value of ["/Users/x/Gw.jspi.wasm", "soundDecodeRepair,friendObserver", "extendedMemory", "enhancement,enhancement", "enhancement,", null]) {
       assert.equal(isFailedStagesField(value), false, String(value));
     }
   });

@@ -6,7 +6,6 @@
  * open the launcher.
  */
 import { createApp, h, shallowRef } from "vue";
-import type { ExtendedMemoryRuntimeStatus } from "@shared/contracts";
 import SettingsView from "./components/SettingsView.vue";
 export { resetSettingsNavigation } from "./components/SettingsView.vue";
 import type { InGameNative } from "./settings-host";
@@ -17,11 +16,10 @@ import "./hub-settings.css";
 import type { EmbeddedSettings, HubSettingsChange, HubSettingsSnapshot } from "@shared/hub-settings";
 import type { SettingsTarget } from "@shared/settings-catalogue";
 
-export const mountSettings: EmbeddedSettings<HTMLElement>["mountSettings"] = (target, { api, target: initial, extendedMemory, openInLauncher, mayTakeFocus }) => {
+export const mountSettings: EmbeddedSettings<HTMLElement>["mountSettings"] = (target, { api, target: initial, openInLauncher, mayTakeFocus }) => {
   const snapshot = shallowRef<HubSettingsSnapshot | null>(null);
   const place = shallowRef<SettingsTarget | null>(initial);
   let disposed = false;
-  const memory = shallowRef<ExtendedMemoryRuntimeStatus | null>(null);
   const loadFailed = shallowRef(false);
   /** Reads the stored settings. A failure keeps the last snapshot; with none yet, the page offers Retry. */
   const refresh = async () => {
@@ -31,8 +29,6 @@ export const mountSettings: EmbeddedSettings<HTMLElement>["mountSettings"] = (ta
       snapshot.value = next; loadFailed.value = false;
     } catch { if (!disposed && !snapshot.value) loadFailed.value = true; }
   };
-  // The saved choice applies at the next start; the Game section also says what this session uses.
-  extendedMemory().then(status => { if (!disposed) memory.value = status; }, () => { /* The row shows the saved choice only. */ });
   // A failed re-read after a save does not undo the save: only the write's own failure reaches the page.
   const change = async (request: HubSettingsChange) => { await api.update(request); await refresh(); };
   const native: InGameNative = {
@@ -46,7 +42,7 @@ export const mountSettings: EmbeddedSettings<HTMLElement>["mountSettings"] = (ta
   };
   const app = createApp({
     setup: () => () => snapshot.value
-      ? h(SettingsView, { snapshot: snapshot.value, native, target: place.value, openInLauncher, extendedMemory: memory.value, mayTakeFocus })
+      ? h(SettingsView, { snapshot: snapshot.value, native, target: place.value, openInLauncher, mayTakeFocus })
       : loadFailed.value
         ? h("div", { class: "settings-load-error" }, [
           h("p", { role: "alert" }, "Settings could not load. Try again."),

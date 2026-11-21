@@ -20,6 +20,16 @@ their data.
   the fixed Keychain items into a normal profile partition. Remove the storage
   adapter, the additive marker, and their tests.
 
+## Removed 4 GB mode caches
+
+- Why: 4 GB mode wrote derived modules to `game/extended-memory` and
+  `game/core/extended-memory`. Nothing reads them after its removal, so
+  startup deletes both folders (`ensureDirs` in `app/main/startup-state.ts`).
+- Introduced: 2026-11-21 with the removal of 4 GB mode.
+- Depends on it: installations that turned 4 GB mode on before its removal.
+- Remove when: two Stable releases after the removal have shipped. Delete the
+  two paths from `ensureDirs` and this entry.
+
 ## Read aliases for old player data
 
 These are permanent readers, not migrations. Keep them.

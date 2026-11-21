@@ -504,35 +504,6 @@ export interface ClientCompatibility {
 export const ENHANCEMENT_RUNTIME_FEATURES = ENHANCEMENT_CAPABILITY_FIELDS;
 export type EnhancementRuntimeFeature = EnhancementCapability;
 
-/**
- * The memory module selected for this running client. Saved intent is kept
- * separate in AppSettings; this is the launch result and therefore the only
- * source for claims about what the current session is actually using.
- */
-export type ExtendedMemoryRuntimeStatus =
-  | Readonly<{
-      requestedAtLaunch: false;
-      status: "standard";
-      effectiveCapBytes: typeof WASM_HEAP_CAP_BYTES;
-      fallbackReason: null;
-    }>
-  | Readonly<{
-      requestedAtLaunch: true;
-      status: "active";
-      effectiveCapBytes: number;
-      fallbackReason: null;
-    }>
-  | Readonly<{
-      requestedAtLaunch: true;
-      status: "unavailable";
-      effectiveCapBytes: typeof WASM_HEAP_CAP_BYTES;
-      fallbackReason:
-        | "unsupported-client"
-        | "preparation-failed"
-        | "check-failed"
-        | "diagnostic-profile";
-    }>;
-
 export type ClientTransforms = Readonly<{
   templateSave: boolean;
   cartography: boolean;
@@ -569,7 +540,6 @@ export type RuntimeDiagnosticState =
       status: "preparing";
       diagnosticProfile: DiagnosticProfile;
       enhancementProgram: EnhancementProgram;
-      extendedMemoryRequested: boolean;
       enhancementCapabilitiesRequested: EnhancementCapabilities;
     }>
   | Readonly<{
@@ -583,8 +553,6 @@ export type RuntimeDiagnosticState =
       officialJsSha256: string | null;
       selectedWasmSha256: string | null;
       selectedJsSha256: string | null;
-      extendedMemoryRequested: boolean;
-      extendedMemoryEffective: ExtendedMemoryRuntimeStatus;
       enhancementCapabilitiesRequested: EnhancementCapabilities;
       enhancementFeaturesEffective: ClientCompatibility["features"] | null;
       enhancementVerification: RuntimeEnhancementVerification;
@@ -613,26 +581,17 @@ export interface ClientHealthToken {
 }
 
 /**
- * What this session is running. A `null` memory result identifies preparation;
- * an active client always carries the selected memory result. Compatibility
- * may still be `null` for the official fallback when its hash cannot be read.
+ * What this session is running. Compatibility is `null` while the client is
+ * prepared, and for the official fallback when its hash cannot be read.
  * `appVersion` is always known, because a user filing a bug should not have to
  * hunt through the menu bar for it. `healthToken` exists only while the active
  * generation is awaiting renderer health evidence.
  */
-export type ClientSession =
-  | {
-      appVersion: string;
-      compatibility: null;
-      extendedMemory: null;
-      healthToken: null;
-    }
-  | {
-      appVersion: string;
-      compatibility: ClientCompatibility | null;
-      extendedMemory: ExtendedMemoryRuntimeStatus;
-      healthToken: ClientHealthToken | null;
-    };
+export type ClientSession = {
+  appVersion: string;
+  compatibility: ClientCompatibility | null;
+  healthToken: ClientHealthToken | null;
+};
 
 /**
  * Everything the renderer must know before its first script runs. It used to

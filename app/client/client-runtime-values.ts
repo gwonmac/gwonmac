@@ -4,7 +4,6 @@
  */
 import type {
   ClientCompatibility,
-  ExtendedMemoryRuntimeStatus,
   OptionalFeatureStatus,
   RuntimeEnhancementVerification,
 } from "../shared/contracts.js";
@@ -41,15 +40,14 @@ export function optionalFeatureStatus(
   };
 }
 
-/** Which served features a reason replaces: the upstream chain, or single later stages. */
+/** Which served features a reason replaces: the upstream chain, or native double-click alone. */
 export interface StageScope {
   /** Any stage before native double-click: file saving and every capability. */
   readonly upstream: boolean;
   readonly nativeDoubleClick: boolean;
-  readonly extendedMemory: boolean;
 }
 
-const WHOLE_CHAIN: StageScope = { upstream: true, nativeDoubleClick: true, extendedMemory: true };
+const WHOLE_CHAIN: StageScope = { upstream: true, nativeDoubleClick: true };
 
 /**
  * The features of a launch whose named stages failed to check. A later stage
@@ -61,9 +59,8 @@ export function failedStageScope(stages: readonly ClientVerificationStage[]): St
   return {
     // The sound decode repair reports no feature, so its failure re-attributes nothing.
     upstream: stages.some((stage) =>
-      stage !== "nativeDoubleClick" && stage !== "soundDecodeRepair" && stage !== "extendedMemory"),
+      stage !== "nativeDoubleClick" && stage !== "soundDecodeRepair"),
     nativeDoubleClick: stages.includes("nativeDoubleClick"),
-    extendedMemory: stages.includes("extendedMemory"),
   };
 }
 
@@ -75,39 +72,28 @@ export function failedStageScope(stages: readonly ClientVerificationStage[]): St
  */
 export function withStageReason(
   compatibility: ClientCompatibility,
-  extendedMemory: ExtendedMemoryRuntimeStatus,
   reason: "check-failed" | "preparation-failed",
   scope: StageScope = WHOLE_CHAIN,
-): { compatibility: ClientCompatibility; extendedMemory: ExtendedMemoryRuntimeStatus } {
+): ClientCompatibility {
   const { features } = compatibility;
   const replace = <Status extends OptionalFeatureStatus>(status: Status, inScope: boolean) =>
     inScope ? withReason(status, reason) : status;
   return {
-    compatibility: {
-      ...compatibility,
-      features: {
-        gameFileSaving: replace(features.gameFileSaving, scope.upstream),
-        nativeDoubleClick: replace(
-          features.nativeDoubleClick,
-          scope.upstream || scope.nativeDoubleClick,
-        ),
-        ...capabilityRecord((capability) => replace(features[capability], scope.upstream)),
-      },
+    ...compatibility,
+    features: {
+      gameFileSaving: replace(features.gameFileSaving, scope.upstream),
+      nativeDoubleClick: replace(
+        features.nativeDoubleClick,
+        scope.upstream || scope.nativeDoubleClick,
+      ),
+      ...capabilityRecord((capability) => replace(features[capability], scope.upstream)),
     },
-    extendedMemory: (scope.upstream || scope.extendedMemory)
-      && extendedMemory.status === "unavailable"
-      && extendedMemory.fallbackReason === "unsupported-client"
-      ? { ...extendedMemory, fallbackReason: reason }
-      : extendedMemory,
   };
 }
 
 /** When the build could not be checked at all, every update-style refusal is the failed check. */
-export function withFailedCheck(
-  compatibility: ClientCompatibility,
-  extendedMemory: ExtendedMemoryRuntimeStatus,
-): { compatibility: ClientCompatibility; extendedMemory: ExtendedMemoryRuntimeStatus } {
-  return withStageReason(compatibility, extendedMemory, "check-failed");
+export function withFailedCheck(compatibility: ClientCompatibility): ClientCompatibility {
+  return withStageReason(compatibility, "check-failed");
 }
 
 /**
@@ -120,23 +106,13 @@ export function withFailedCheck(
  */
 export function servedReasons(
   compatibility: ClientCompatibility,
-  extendedMemory: ExtendedMemoryRuntimeStatus,
   failedStages: readonly ClientVerificationStage[] | null,
   enhancementDiverged: boolean,
-): { compatibility: ClientCompatibility; extendedMemory: ExtendedMemoryRuntimeStatus } {
-  if (failedStages === null) return withFailedCheck(compatibility, extendedMemory);
-  const checked = withStageReason(
-    compatibility,
-    extendedMemory,
-    "check-failed",
-    failedStageScope(failedStages),
-  );
+): ClientCompatibility {
+  if (failedStages === null) return withFailedCheck(compatibility);
+  const checked = withStageReason(compatibility, "check-failed", failedStageScope(failedStages));
   return enhancementDiverged
-    ? withStageReason(checked.compatibility, checked.extendedMemory, "preparation-failed", {
-        upstream: false,
-        nativeDoubleClick: true,
-        extendedMemory: true,
-      })
+    ? withStageReason(checked, "preparation-failed", { upstream: false, nativeDoubleClick: true })
     : checked;
 }
 

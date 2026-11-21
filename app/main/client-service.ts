@@ -97,7 +97,6 @@ export function createClientService(input: Readonly<{
     enhancementProgram: launch.enhancementProgram,
     // Maps native hooks belong to the selected Tools launch, even when hidden.
     cartographySpike: launch.enhancementSelection.tools,
-    extendedMemoryEnabled: input.settings.extendedMemoryEnabled,
     diagnosticProfile: launch.diagnosticProfile,
     clientVerdictKey: clientVerdictKey(input.keychain),
     onProgress: input.onProgress,

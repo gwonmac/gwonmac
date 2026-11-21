@@ -2,9 +2,8 @@
  * Runs the one verifier pass and owns everything the proof itself may not:
  * the bounded child process, its hard time bound and its priority.
  *
- * The child gets only the official artifact paths, their hashes, the launch
- * profiles to prove (requested launch first) and whether that launch waits
- * for its 4 GB proof. It reports after each profile; this host hands on the
+ * The child gets only the official WebAssembly path, its hash and the launch
+ * profiles to prove (requested launch first). It reports after each profile; this host hands on the
  * first report, which holds the requested launch, and the final complete one,
  * and nothing else. Every value stays untrusted until the caller passes it
  * through the acceptance boundary, which also refuses a report that lacks the
@@ -34,10 +33,7 @@ export const VERIFIER_PASS_BOUND_MS = 10 * 60_000;
 export function runVerifierPass(options: Readonly<{
   wasmPath: string;
   wasmSha256: string;
-  jsPath: string;
-  jsSha256: string;
   launches: readonly ClientVerificationLaunch[];
-  extendedMemoryFirst: boolean;
 }>): VerifierPass {
   let resolveRequested!: (value: unknown) => void;
   let resolveComplete!: (value: unknown) => void;
@@ -58,11 +54,8 @@ export function runVerifierPass(options: Readonly<{
       "pass",
       options.wasmPath,
       options.wasmSha256,
-      options.jsPath,
-      options.jsSha256,
       JSON.stringify(options.launches.map(({ requestedProfile, cartography }) =>
         ({ requestedProfile, cartography }))),
-      options.extendedMemoryFirst ? "memory-first" : "memory-later",
     ], { serviceName: "Guild Wars client compatibility verifier" });
   } catch {
     resolveRequested(null);

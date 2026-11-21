@@ -465,7 +465,6 @@ function visualCapture(): Capture {
     status: "active",
     diagnosticProfile: "official-baseline",
     enhancementProgram: "none",
-    extendedMemoryRequested: true,
     enhancementCapabilitiesRequested: NO_ENHANCEMENT_CAPABILITIES,
     enhancementFeaturesEffective: null,
     enhancementVerification: {
@@ -481,7 +480,6 @@ function visualCapture(): Capture {
     generation: 1,
     presentationPath: "offscreen-imagebitmap",
     artifactKind: "official",
-    extendedMemoryEffective: {},
     transforms: {},
     observers: {},
     snapshot: {},

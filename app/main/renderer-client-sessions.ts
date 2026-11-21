@@ -64,7 +64,7 @@ export class RendererClientSessions<Owner extends object> {
     identity: RendererClientIdentity<Owner>,
     base: ClientSession,
   ): ClientSession {
-    if (base.extendedMemory === null || base.compatibility === null) return base;
+    if (base.compatibility === null) return base;
     const failed = this.#state(identity).failed;
     return failed.size === 0
       ? base
@@ -76,7 +76,7 @@ export class RendererClientSessions<Owner extends object> {
     base: ClientSession,
     features: readonly EnhancementRuntimeFeature[],
   ): void {
-    if (base.extendedMemory === null || base.compatibility === null) return;
+    if (base.compatibility === null) return;
     const failed = this.#state(identity).failed;
     for (const feature of features) {
       if (base.compatibility.features[feature].status === "available") {

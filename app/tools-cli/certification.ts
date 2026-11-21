@@ -77,7 +77,7 @@ const USAGE =
   + "  doctor [--profile PATH]              why Enhancement is or is not running here\n"
   + "  recertify [PATH/Gw.jspi.wasm]        draft an Enhancement build entry, with evidence\n"
   + "  verify [PATH/Gw.jspi.wasm]           run the exact runtime feature verifier\n"
-  + "  qualify WASM JS OUTPUT_DIR           run the release battery on one exact client\n"
+  + "  qualify WASM OUTPUT_DIR              run the release battery on one exact client\n"
   + "  watch-report GENERATION.json         render the client-watch issue table\n"
   + "  reviewed-identities [PATH/Gw.jspi.wasm]\n"
   + "                                       print a reviewed client's identity table and memory-code digest\n"
@@ -202,13 +202,13 @@ async function verify(argv: readonly string[]): Promise<void> {
  * `runtime-verdicts.json`. Exits 1 when any check refused.
  */
 async function qualify(argv: readonly string[]): Promise<void> {
-  const [wasmPath, jsPath, outputDirectory, ...extra] = positionalArguments(argv);
-  if (!wasmPath || !jsPath || !outputDirectory || extra.length > 0) {
+  const [wasmPath, outputDirectory, ...extra] = positionalArguments(argv);
+  if (!wasmPath || !outputDirectory || extra.length > 0) {
     process.stderr.write(USAGE);
     process.exitCode = 2;
     return;
   }
-  const records = await qualifyClient(wasmPath, jsPath);
+  const records = await qualifyClient(wasmPath);
   const directory = path.resolve(outputDirectory);
   await mkdir(directory, { recursive: true });
   for (const check of QUALIFICATION_CHECKS) {

@@ -34,12 +34,6 @@ const base: ClientSession = {
         quickItemMove: { status: "off" },
     },
   },
-  extendedMemory: {
-    requestedAtLaunch: false,
-    status: "standard",
-    effectiveCapBytes: 2_147_483_648,
-    fallbackReason: null,
-  },
   healthToken: null,
 };
 

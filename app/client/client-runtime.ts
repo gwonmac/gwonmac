@@ -29,7 +29,6 @@ import {
   type ClientSession,
   type DownloadActivity,
   type DownloadFailure,
-  type ExtendedMemoryRuntimeStatus,
   type DownloadProgress,
   type DiagnosticProfile,
   type FullDownloadOutcome,
@@ -116,7 +115,6 @@ import type {
   AnyLocalFeatureInvariant,
   LocalFeatureVerdicts,
 } from "./certification/local-client-verification-contract.js";
-import { extendedMemoryRuntimeStatus } from "../main/extended-memory-runtime.js";
 import { supportedEnhancementCapabilities } from "./certification/enhancement-builds.js";
 import { readClientRuntimeDiagnosticState } from "./client-runtime-diagnostics.js";
 import { selectOfficialDiagnosticClient } from "../main/client-diagnostic-selection.js";
@@ -151,7 +149,6 @@ interface ClientRuntimeOptions {
   enhancementCapabilities: EnhancementCapabilities;
   enhancementProgram?: EnhancementProgram;
   cartographySpike?: boolean;
-  extendedMemoryEnabled: boolean;
   diagnosticProfile: DiagnosticProfile;
   /** This install's key for the signed verifier record; null when unusable. */
   clientVerdictKey: () => Promise<Uint8Array | null>;
@@ -206,26 +203,10 @@ export class ClientRuntime {
     return this.candidateHealthToken;
   }
 
-  get extendedMemory(): ExtendedMemoryRuntimeStatus | null {
-    return this.activeSlot.current?.extendedMemory ?? null;
-  }
-
   session(appVersion: string): ClientSession {
-    const active = this.activeSlot.current;
-    if (!active) {
-      return {
-        appVersion,
-        compatibility: null,
-        extendedMemory: null,
-        healthToken: null,
-      };
-    }
-    return {
-      appVersion,
-      compatibility: this.compatibility,
-      extendedMemory: active.extendedMemory,
-      healthToken: this.candidateHealthToken,
-    };
+    return this.activeSlot.current
+      ? { appVersion, compatibility: this.compatibility, healthToken: this.candidateHealthToken }
+      : { appVersion, compatibility: null, healthToken: null };
   }
 
   get progress(): DownloadProgress {
@@ -241,7 +222,6 @@ export class ClientRuntime {
       active: this.activeSlot.current,
       paths: this.options.paths,
       diagnosticProfile: this.options.diagnosticProfile,
-      extendedMemoryEnabled: this.options.extendedMemoryEnabled,
       enhancementCapabilities: this.options.enhancementCapabilities,
       enhancementProgram: this.options.enhancementProgram ?? "none",
     });
@@ -320,7 +300,6 @@ export class ClientRuntime {
     wasmPath: string;
     jsPath: string;
     compatibility: ClientCompatibility | null;
-    extendedMemory: ExtendedMemoryRuntimeStatus;
     transforms: ActiveClient["transforms"];
     enhancementVerification: ActiveClient["enhancementVerification"];
   }> {
@@ -328,6 +307,8 @@ export class ClientRuntime {
       this.options.paths.artifacts,
       "Gw.jspi.wasm",
     );
+    // The official glue is always served; no stage derives JavaScript.
+    const officialJs = clientArtifactPath(this.options.paths.artifacts, "Gw.jspi.js");
     let officialSha256: string;
     try {
       officialSha256 = await sha256File(officialWasm);
@@ -338,16 +319,10 @@ export class ClientRuntime {
       logEvent({ k: "wasm.clientHashUnavailable",
         code: errorCode(error),
       });
-      const extendedMemory = extendedMemoryRuntimeStatus(
-        this.options.extendedMemoryEnabled
-          ? { status: "unavailable", reason: "unsupported-client" }
-          : { status: "disabled" },
-      );
       return {
         wasmPath: officialWasm,
-        jsPath: clientArtifactPath(this.options.paths.artifacts, "Gw.jspi.js"),
+        jsPath: officialJs,
         compatibility: null,
-        extendedMemory,
         transforms: { templateSave: false, cartography: false, nativeDoubleClick: false, soundDecodeRepair: false },
         enhancementVerification: {
           requestedProfile: enhancementCapabilityProfile(this.options.enhancementCapabilities),
@@ -361,7 +336,6 @@ export class ClientRuntime {
     const officialDiagnosticClient = selectOfficialDiagnosticClient({
       paths: this.options.paths,
       profile: this.options.diagnosticProfile,
-      extendedMemoryEnabled: this.options.extendedMemoryEnabled,
     });
     if (officialDiagnosticClient) {
       return {
@@ -375,7 +349,6 @@ export class ClientRuntime {
       };
     }
 
-    const officialJs = clientArtifactPath(this.options.paths.artifacts, "Gw.jspi.js");
     const requestedLaunch = {
       requestedProfile: enhancementCapabilityProfile(this.options.enhancementCapabilities) ?? "none",
       cartography: this.options.cartographySpike === true,
@@ -391,11 +364,9 @@ export class ClientRuntime {
         installKey: this.options.clientVerdictKey,
         wasmPath: officialWasm,
         wasmSha256: officialSha256,
-        jsPath: officialJs,
         jsSha256,
         launch: requestedLaunch,
         releaseLaunches: RELEASE_LAUNCHES,
-        extendedMemoryRequested: this.options.extendedMemoryEnabled,
         runPass: runVerifierPass,
         slot: this.verifierPasses,
       });
@@ -416,7 +387,6 @@ export class ClientRuntime {
       const local = verdict?.verification ?? null;
       return prepareClientModule({
         officialWasmPath: officialWasm,
-        officialJsPath: officialJs,
         officialSha256,
         certification: local
           ? certificationFromLocalVerification(local)
@@ -441,10 +411,7 @@ export class ClientRuntime {
           cacheRoot: roots.soundDecodeRepair,
           verifyLocally: lookup(verdict?.soundDecodeRepair),
         },
-        extendedMemoryCacheRoot: roots.extendedMemory,
-        extendedMemoryEnabled: this.options.extendedMemoryEnabled,
-      }, lookup(verdict?.nativeDoubleClick), async ({ jsInputSha256, wasmInputSha256 }) =>
-        verdict?.extendedMemory(jsInputSha256, wasmInputSha256) ?? null);
+      }, lookup(verdict?.nativeDoubleClick));
     };
     let verdict: ClientVerdict | null = obtained?.verdict ?? null;
     let prepared = await prepareWith(verdict);
@@ -559,9 +526,8 @@ export class ClientRuntime {
       logEvent({ k: "enhancement.uncertifiedClientBlocked" });
     }
     gauge("enhancement.supportedBuild", prepared.enhancementBuild !== null);
-    const { compatibility, extendedMemory } = servedReasons(
+    const compatibility = servedReasons(
       servedCompatibility,
-      extendedMemoryRuntimeStatus(prepared.extendedMemory),
       verdict ? verdict.failedStages : null,
       // Main served another Enhancement candidate than the pass proved its
       // later stages on: their misses are Main's, not the build's. When both
@@ -569,34 +535,10 @@ export class ClientRuntime {
       verdict !== null
         && enhancementCandidateProfile(prepared.effectiveCapabilities) !== verdict.enhancementCandidate,
     );
-    const extendedCap = extendedMemory.effectiveCapBytes;
-    const fallbackReason = extendedMemory.fallbackReason;
-    gauge("wasm.extendedMemoryMode", prepared.extendedMemory.status);
-    gauge("wasm.heapCapBytes", extendedCap);
-    logEvent({
-      k: "wasm.extendedMemory",
-      mode: prepared.extendedMemory.status,
-      requested: this.options.extendedMemoryEnabled,
-      profile: prepared.extendedMemory.status === "active"
-        ? prepared.extendedMemory.profile
-        : "none",
-      capBytes: extendedCap,
-      fallbackReason: fallbackReason ?? "none",
-    });
-    if (
-      prepared.extendedMemory.status === "unavailable"
-      && prepared.extendedMemory.reason === "preparation-failed"
-    ) {
-      logEvent({
-        k: "wasm.extendedMemoryPrepareFailed",
-        code: errorCode(prepared.extendedMemory.error),
-      });
-    }
     return {
       wasmPath: prepared.wasmPath,
-      jsPath: prepared.jsPath,
+      jsPath: officialJs,
       compatibility,
-      extendedMemory,
       transforms: {
         templateSave: prepared.gameFileSaving.status === "available",
         cartography: cartographyPrepared,
@@ -651,7 +593,6 @@ export class ClientRuntime {
       wasmPath: enhancement.wasmPath,
       jsPath: enhancement.jsPath,
       compatibility: enhancement.compatibility,
-      extendedMemory: enhancement.extendedMemory,
       transforms: enhancement.transforms,
       enhancementVerification: enhancement.enhancementVerification,
     });
