@@ -9,6 +9,7 @@ export default defineFeature({
   },
   activation: { kind: "setting", setting: "resignEnabled", master: "gwonmacTools" },
   region: "pve",
+  capabilities: ["resignAction"],
   tool: {
     id: "resign",
     label: "Resign",

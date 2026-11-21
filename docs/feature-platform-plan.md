@@ -127,7 +127,7 @@ over today's substrates gives ~80% of this, take the helper and simplify Phase 3
 
 | ID | Step | You | Depends | Done when | Status | Rounds |
 |---|---|---|---|---|---|---|
-| 4.1 | `resolve(feature, state) → on \| reason` (pure, `app/shared`) | – | 0.3 | Table test: every feature × state equals today's activation, or each difference is filed as a bug; reasons cover plain game, off, needs X, not proven, needs update, wrong area | todo | 0 |
+| 4.1 | `resolve(feature, state) → on \| reason` (pure, `app/shared`) | – | 0.3 | Table test: every feature × state equals today's activation, or each difference is filed as a bug; reasons cover plain game, off, needs X, not proven, needs update, wrong area | review: `app/shared/feature-resolve.ts`; one difference (Call Target before restart) listed in the PR | 1 |
 | 4.2 | Generic "stop leaves nothing" test (listeners, timers, DOM, subscriptions) | – | – | Catches a planted leak; runs for every feature part; failures fixed or listed | todo | 0 |
 | 4.3 | Manifest v2: one id (folder = id = key), `name`, `summary`, `kind`, `icon`, `uses`, `requires`, `network`, typed `settings` with label/help (incl. `position`), `shortcuts`, `hub`, `shots`, `parts`; README.md, CHANGELOG.md, media/ | Review names and copy | 4.1 | Contract checks in `pnpm check` (labels, shots per caption, README subset, no `requires` cycles, known `uses`, `## Unreleased`) each catch a planted error with a clear message | todo | 0 |
 | 4.4 | Settings keys: convert (`whispersEnabled` → `features.whispers`) vs keep by rule (`<id>Enabled`); pick the one that passes with less code | – | 4.3 | Player-data fixture test loads every old file identically; any conversion listed in `docs/migrations.md` with removal condition | todo | 0 |

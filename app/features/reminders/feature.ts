@@ -16,6 +16,7 @@ export default defineFeature({
   },
   activation: { kind: "setting", setting: "remindersEnabled", master: "gwonmacTools" },
   region: "pve",
+  capabilities: ["chatPrint"],
   tool: {
     id: "reminders",
     label: "Reminders",

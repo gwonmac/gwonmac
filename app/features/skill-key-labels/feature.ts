@@ -26,6 +26,7 @@ export default defineFeature({
   },
   activation: { kind: "setting", setting: "skillKeyLabelsEnabled", master: "gwonmacTools" },
   region: "pve",
+  capabilities: ["nativeHudRendering", "skillSlotGeometry"],
   tool: {
     id: "skill-key-labels",
     label: "Skill Key Labels",

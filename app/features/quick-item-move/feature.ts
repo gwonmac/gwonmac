@@ -9,6 +9,7 @@ export default defineFeature({
   },
   activation: { kind: "setting", setting: "quickItemMove", master: "gwonmacTools" },
   region: "non-pvp",
+  capabilities: ["quickItemMove"],
   tool: {
     id: "quick-item-move",
     label: "Quick Item Move",

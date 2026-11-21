@@ -17,6 +17,7 @@ export default defineFeature({
   },
   activation: { kind: "setting", setting: "targetReadout", master: "gwonmacTools" },
   region: "pve",
+  capabilities: ["targetObservation"],
   programs: ["target-observer"],
   tool: {
     id: "target-readout",

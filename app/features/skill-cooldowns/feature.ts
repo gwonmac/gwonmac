@@ -26,6 +26,7 @@ export default defineFeature({
   },
   activation: { kind: "setting", setting: "skillCooldownOverlayEnabled", master: "gwonmacTools" },
   region: "pve",
+  capabilities: ["nativeHudRendering", "skillSlotGeometry", "skillCooldownObservation"],
   tool: {
     id: "skill-cooldowns",
     label: "Skill Cooldowns",
