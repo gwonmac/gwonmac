@@ -67,6 +67,7 @@ export const SETTINGS: readonly SettingEntry[] = [
   ...option("reminders", [...REMINDER_GROUPS, ...REMINDER_TIMING, REMINDER_SOUND], "reminder"),
   { id: "skillCooldownColor", section: "tools", label: "Timer color", tool: "skill-cooldowns", keywords: "skill cooldown colour" },
   { id: "alcoholTimerPosition", section: "tools", label: "Alcohol Timer position", tool: "alcohol-timer", keywords: "move reset position" },
+  { id: "targetReadoutPosition", section: "tools", label: "Target Distance position", tool: "target-readout", keywords: "move drag reset position" },
   { id: "skillKeyBindings", section: "tools", label: "Skill labels", tool: "skill-key-labels", keywords: "skill key labels bindings" },
 
   { id: "cartographyGridEnabled", section: "maps", label: "Exploration grid", detail: "Shows remaining exploration on the Mission Map and World Map.", keywords: `cartographer explore ${KEYS}` },
@@ -80,6 +81,8 @@ export const SETTINGS: readonly SettingEntry[] = [
   { id: "cartographyGridOpacity", section: "maps", label: "Grid opacity", keywords: "transparency" },
   { id: "cartographyRevealMode", section: "maps", label: "Reveal range", keywords: "explore stand diamonds" },
   { id: "cartographyWalkabilityOpacity", section: "maps", label: "Walkable terrain opacity", keywords: "transparency" },
+  { id: "compassButtonsShown", section: "maps", label: "Show compass buttons", keywords: "hide compass buttons controls map" },
+  { id: "compassButtonsOffset", section: "maps", label: "Compass buttons position", keywords: "move drag reset compass buttons" },
   { id: "cartographyControlIdleOpacity", section: "maps", label: "Compass control visibility", keywords: "compass opacity idle" },
 
   { id: "uiStyle", section: "appearance", label: "Panel style", keywords: "theme modern classic look custom colors colours" },

@@ -258,6 +258,8 @@ async function updateUnseen(patch: Partial<CartographyPresetStyle["grid"]["unsee
     </details>
   </div>
   <details class="setting-group compass-options"><summary>Compass controls</summary>
+    <label class="setting-row" data-setting="compassButtonsShown"><span><strong>Show compass buttons</strong><small>The two buttons beside the Compass. Everything they change is also on this page.</small></span><input type="checkbox" :checked="settings.compassButtonsShown" @change="persist({ compassButtonsShown: ($event.currentTarget as HTMLInputElement).checked })" /></label>
+    <div class="setting-row" data-setting="compassButtonsOffset"><span><strong>Compass buttons position</strong><small>Drag either button in a game window to move both. They keep following the Compass.</small></span><button class="secondary small" :disabled="settings.compassButtonsOffset.x === 0 && settings.compassButtonsOffset.y === 0" @click="persist({ compassButtonsOffset: { x: 0, y: 0 } })">Reset position</button></div>
     <div class="setting-row" data-setting="cartographyControlIdleOpacity"><span><strong>Compass control visibility</strong><small>Visibility while the control is idle.</small></span><RangeControl label="Compass control visibility" :value="settings.cartographyControlIdleOpacity" :min="15" :max="100" unit="%" @change="persist({ cartographyControlIdleOpacity: $event })" /></div>
   </details>
 

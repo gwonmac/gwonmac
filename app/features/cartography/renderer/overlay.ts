@@ -51,6 +51,8 @@ import {
   visibleCompassRanges,
 } from "./compass-range-controls.js";
 import type { CompassRangeId } from "../../../shared/compass-ranges.js";
+import type { OverlayOffset } from "../../../shared/overlay-placement.js";
+import { installOverlayDrag } from "../../../renderer/overlay-drag.js";
 import {
   createCompassRangeLayer,
   type CompassRangeLayerSnapshot,
@@ -196,6 +198,28 @@ export function mountCartographyOverlay(options: Readonly<{
     });
 
     cleanup.push(() => controls.dispose());
+    // A drag shows its offset before the saved setting catches up with it.
+    let previewButtonsOffset: OverlayOffset | null = null;
+    const buttonsOffset = () => previewButtonsOffset ?? options.settings().compassButtonsOffset;
+    // Either Compass button moves both: a press that travels is a drag, one that does not is its click.
+    for (const trigger of [controls.trigger, compassRangeControls.trigger]) {
+      let start: Readonly<{ offset: OverlayOffset; left: number; top: number }> | null = null;
+      cleanup.push(installOverlayDrag(trigger, {
+        origin() {
+          const box = trigger.getBoundingClientRect();
+          start = { offset: buttonsOffset(), left: box.left, top: box.top };
+          return { left: box.left, top: box.top };
+        },
+        move(left, top) {
+          if (start) previewButtonsOffset = { x: Math.round(start.offset.x + left - start.left), y: Math.round(start.offset.y + top - start.top) };
+        },
+        commit() {
+          if (previewButtonsOffset) void options.persist({ compassButtonsOffset: previewButtonsOffset }).catch(() => { previewButtonsOffset = null; });
+          start = null;
+        },
+        cancel() { start = null; previewButtonsOffset = null; },
+      }));
+    }
 
     let animationFrame = 0;
     let startupTimer = 0;
@@ -459,16 +483,22 @@ export function mountCartographyOverlay(options: Readonly<{
         (id) => previewRangeOpacity.get(id) ?? null,
       ), settings.compassRangeTheme);
       safe("compass", () => options.nativeCompassRanges.update(compassRangeLayer.image(), compass?.generation ?? 0));
-      if (controlBox === null) {
+      const savedOffset = settings.compassButtonsOffset;
+      if (previewButtonsOffset?.x === savedOffset.x && previewButtonsOffset.y === savedOffset.y) previewButtonsOffset = null;
+      const offset = buttonsOffset();
+      // The buttons follow the Compass at the player's offset; the range rings stay on the Compass.
+      const buttonBox = controlBox === null || !settings.compassButtonsShown ? null
+        : { ...controlBox, left: controlBox.left + offset.x, top: controlBox.top + offset.y };
+      if (buttonBox === null) {
         controls.hide();
         compassRangeControls.hide();
       } else if (style === null || !mapsAvailable) {
         controls.hide();
-        if (rangesAvailable) compassRangeControls.update(controlBox, settings, { index: 0, count: 1 });
+        if (rangesAvailable) compassRangeControls.update(buttonBox, settings, { index: 0, count: 1 });
         else compassRangeControls.hide();
       } else {
-        controls.update(controlBox, settings, { index: 0, count: rangesAvailable ? 2 : 1 });
-        if (rangesAvailable) compassRangeControls.update(controlBox, settings, { index: 1, count: 2 });
+        controls.update(buttonBox, settings, { index: 0, count: rangesAvailable ? 2 : 1 });
+        if (rangesAvailable) compassRangeControls.update(buttonBox, settings, { index: 1, count: 2 });
         else compassRangeControls.hide();
       }
       const disposition = cartographyOverlayDisposition(state, playRegion);

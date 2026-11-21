@@ -15,6 +15,7 @@ import {
   DEFAULT_COMPASS_RANGE_OPACITY,
 } from "../../shared/compass-ranges.js";
 import { isEliteMissionMapMarkers, type EliteMissionMapMarkers } from "../../shared/elite-map-settings.js";
+import { NO_OVERLAY_OFFSET, readOverlayOffset, type OverlayOffset } from "../../shared/overlay-placement.js";
 import { setting } from "../../shared/settings/define.js";
 import { defineFeature } from "../define.js";
 
@@ -76,6 +77,14 @@ export default defineFeature({
       35,
       { min: CARTOGRAPHY_CONTROL_IDLE_OPACITY_MIN, max: CARTOGRAPHY_CONTROL_IDLE_OPACITY_MAX },
       { hub: true },
+    ),
+    /** Draw the two buttons beside the Compass; every choice they offer is also in Settings › Maps. */
+    compassButtonsShown: setting.boolean(true, { hub: true }),
+    /** How far the player dragged the Compass buttons from their place beside the Compass, in pixels. */
+    compassButtonsOffset: setting.value(
+      NO_OVERLAY_OFFSET,
+      (value): OverlayOffset | undefined => readOverlayOffset(value),
+      { ...MAP_LAYER, error: "Compass buttons position is invalid", launcherError: "Compass buttons position is invalid" },
     ),
     /** Show the Elite Skills planner and its map markers while Maps are on. */
     eliteSkillsEnabled: setting.boolean(true, { ...MAP_LAYER, tools: true }),

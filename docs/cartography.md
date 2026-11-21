@@ -253,6 +253,11 @@ choices. Settings → Maps provides the same durable controls.
 The Cartography and Compass-range controls form one centred stack. A lone
 available control remains centred by itself. Both menus use the same size,
 spacing, idle visibility, and outward-facing placement.
+The player can hide the stack (`compassButtonsShown`) or drag either control to
+move both (`compassButtonsOffset`, a pixel offset from the stack's place beside
+the Compass). The stack keeps following the Compass at that offset; the range
+rings stay on the Compass. A drag of a few pixels or more is not a click, so it
+never opens a menu.
 
 ## Safety and lifecycle
 

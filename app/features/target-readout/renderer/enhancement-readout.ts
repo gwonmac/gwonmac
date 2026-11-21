@@ -6,13 +6,20 @@
  *
  * There is deliberately no widget registry, event bus or command framework
  * behind it. A second feature can add one when it exists and needs it.
+ *
+ * It also owns its place on screen: top centre by default, or the corner
+ * distance a player dragged it to. It can be dragged whenever it shows.
  */
+import { captureCornerPosition, restoreCornerPosition, type CornerPosition } from "../../../shared/corner-position.js";
+import { installOverlayDrag } from "../../../renderer/overlay-drag.js";
+import { isolateFromGame } from "../../../renderer/non-activating-surface.js";
 
 /*
  * Top centre: the two other fixed overlays own the top corners (`#capture-status`
  * left, `#diagnostics` right), and the game's own target bar is up there, so
- * the number sits where the eye already is. Below both in the stack, and never
- * a pointer target — a HUD that can eat a click on the game surface is a bug.
+ * the number sits where the eye already is. Below both in the stack. A host
+ * that stores its place makes it draggable; a press on it then never reaches
+ * the game, so it stays small. Without one it is never a pointer target.
  */
 const ROOT_STYLE = [
   "position:fixed",
@@ -64,11 +71,16 @@ export function targetReadout(state: SnapshotState) {
   });
 }
 
+export type TargetReadoutPlacement = Readonly<{
+  /** Saves the place the player dragged the readout to. */
+  savePosition(position: CornerPosition): void;
+}>;
+
 /**
  * Mounts the readout and keeps it in step with the snapshot. Owns its own
  * element, so nothing else in the page has to know it exists.
  */
-export function createTargetReadout(parent: HTMLElement) {
+export function createTargetReadout(parent: HTMLElement, placement?: TargetReadoutPlacement) {
   const document = parent.ownerDocument;
   const root = document.createElement("div");
   root.id = "enhancement-target";
@@ -90,6 +102,35 @@ export function createTargetReadout(parent: HTMLElement) {
 
   /** The rendered line, or the empty string while nothing is shown. */
   let rendered = "";
+  /** The saved or dragged place; null is the top centre. */
+  let position: CornerPosition | null = null;
+  const view = document.defaultView;
+  const viewport = () => ({ width: view?.innerWidth ?? 0, height: view?.innerHeight ?? 0, margin: 0 });
+  const place = () => {
+    const point = position === null ? null : restoreCornerPosition(position, viewport(), root.getBoundingClientRect());
+    if (point === null) {
+      root.style.left = "50%"; root.style.top = "12px"; root.style.transform = "translateX(-50%)";
+      return;
+    }
+    root.style.left = `${point.left}px`; root.style.top = `${point.top}px`; root.style.transform = "none";
+  };
+  const movable = placement === undefined ? null : (() => {
+    let beforeDrag: CornerPosition | null = null;
+    const disposeDrag = installOverlayDrag(root, {
+      origin: () => { beforeDrag = position; const box = root.getBoundingClientRect(); return { left: box.left, top: box.top }; },
+      move(left, top) {
+        const next = captureCornerPosition({ left, top }, viewport(), root.getBoundingClientRect());
+        if (next) { position = next; place(); }
+      },
+      commit() { if (position) placement.savePosition(position); },
+      cancel() { position = beforeDrag; place(); },
+    });
+    const disposeIsolation = isolateFromGame(root);
+    root.style.pointerEvents = "auto";
+    root.style.cursor = "grab";
+    view?.addEventListener("resize", place);
+    return { dispose() { disposeDrag(); disposeIsolation(); view?.removeEventListener("resize", place); } };
+  })();
 
   return {
     /**
@@ -108,11 +149,18 @@ export function createTargetReadout(parent: HTMLElement) {
       distance.textContent = next.distance;
       range.textContent = next.range;
       root.style.display = "flex";
+      place();
+    },
+    /** The saved place; null is the top centre. */
+    setPosition(next: CornerPosition | null) {
+      position = next;
+      if (rendered !== "") place();
     },
     get state() {
       return Object.freeze({ visible: rendered !== "", line: rendered });
     },
     dispose() {
+      movable?.dispose();
       root.remove();
     },
   };

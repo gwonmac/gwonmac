@@ -50,6 +50,9 @@ export const fixtureSnapshot: LauncherSnapshot = {
   shortcuts: resolveShortcuts({}),
   settings: {
     alcoholTimerPosition: { corner: "top-left", x: 4, y: 58, locked: true },
+    targetReadoutPosition: null,
+    compassButtonsShown: true,
+    compassButtonsOffset: { x: 0, y: 0 },
     uiStyle: DEFAULT_SETTINGS.uiStyle,
     uiFont: DEFAULT_SETTINGS.uiFont,
     uiCustomTheme: DEFAULT_SETTINGS.uiCustomTheme,

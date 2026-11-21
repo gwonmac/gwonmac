@@ -171,6 +171,8 @@ export function describeCartographyQaStatus(status: CartographyQaStatus): QaPres
 }
 
 export type CartographyOverlayControls = Readonly<{
+  /** The button beside the Compass; dragging it moves the Compass buttons. */
+  trigger: HTMLButtonElement;
   update(
     box: ScreenBox,
     settings: AppSettings,
@@ -522,6 +524,7 @@ export function createCartographyOverlayControls(options: Readonly<{
   view.addEventListener("resize", viewportResize);
 
   return Object.freeze({
+    trigger,
     update(box, settings, placement) {
       if (resolveCartographyPreset(settings.cartographyPresetLibrary) === null) {
         hide();

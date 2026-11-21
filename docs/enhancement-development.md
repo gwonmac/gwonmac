@@ -399,7 +399,9 @@ Choose the smallest path:
 - A host-only feature needs Settings and a domain owner. It does not need a
   native capability, companion region, or live play-region gate.
 - A display-only native feature adds a certified bounded observation and a
-  pointer-transparent presentation owner. It never needs a command surface.
+  presentation owner that is pointer-transparent, or only draggable to move it
+  (`app/renderer/overlay-drag.ts`, place stored in settings). It never needs a
+  command surface.
 - A named command adds a separate certified action, fresh runtime preconditions,
   bounded arguments, explicit refusal, and observed confirmation.
 - A feature that reuses an existing certified fact subscribes to that domain's

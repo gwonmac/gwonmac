@@ -29,7 +29,7 @@ async function perform(action: () => Promise<unknown> | undefined, nativeSave = 
   catch { message.value = "This setting could not be saved. Try again."; }
 }
 /** Tools whose options open under their row; closed by default so the list stays short. */
-const OPTION_TOOLS: readonly GlobalTool[] = ["character-switch", "alcohol-timer", "skill-key-labels", "chat-filters", "reminders", "skill-cooldowns"];
+const OPTION_TOOLS: readonly GlobalTool[] = ["character-switch", "alcohol-timer", "target-readout", "skill-key-labels", "chat-filters", "reminders", "skill-cooldowns"];
 const hasOptions = (tool: GlobalTool) => OPTION_TOOLS.includes(tool);
 const openOptions = ref(new Set<GlobalTool>());
 function toggleOptions(tool: GlobalTool, event: Event) {
@@ -73,7 +73,8 @@ function customColor(value: string) {
         <div v-if="tool === 'character-switch'" class="character-details">
           <label v-for="detail in CHARACTER_DETAILS" :key="detail.key" :data-setting="detail.key"><span>{{ detail.label }}</span><input type="checkbox" :checked="snapshot.settings[detail.key]" @change="perform(() => save({ [detail.key]: ($event.target as HTMLInputElement).checked }))" /></label>
         </div>
-        <div v-if="tool === 'alcohol-timer'" class="feature-details" role="group" aria-label="Alcohol Timer position" data-setting="alcoholTimerPosition"><button class="secondary small" @click="perform(() => save({ alcoholTimerPosition: { ...snapshot.settings.alcoholTimerPosition, locked: false } }))">Adjust position</button><button class="secondary small" @click="perform(() => save({ alcoholTimerPosition: DEFAULT_ALCOHOL_TIMER_POSITION }))">Reset position</button><p>Drag the timer in a game window, then select its lock. Position stays fixed to the nearest game-window corner.</p></div>
+        <div v-if="tool === 'alcohol-timer'" class="feature-details" role="group" aria-label="Alcohol Timer position" data-setting="alcoholTimerPosition"><button class="secondary small" @click="perform(() => save({ alcoholTimerPosition: { ...snapshot.settings.alcoholTimerPosition, locked: false } }))">Show to place</button><button class="secondary small" @click="perform(() => save({ alcoholTimerPosition: DEFAULT_ALCOHOL_TIMER_POSITION }))">Reset position</button><p>Drag the timer in a game window at any time. Show to place keeps it on screen while you are sober, until you select its lock. It stays at the same distance from the nearest game-window corner.</p></div>
+        <div v-if="tool === 'target-readout'" class="feature-details" role="group" aria-label="Target Distance position" data-setting="targetReadoutPosition"><button class="secondary small" :disabled="snapshot.settings.targetReadoutPosition === null" @click="perform(() => save({ targetReadoutPosition: null }))">Reset position</button><p>Drag Target Distance in a game window at any time. It stays at the same distance from the nearest game-window corner.</p></div>
         <SkillLabelsSettings v-if="tool === 'skill-key-labels'" role="group" aria-label="Skill labels" data-setting="skillKeyBindings" :bindings="snapshot.settings.skillKeyBindings" :save="save" />
         <div v-if="tool === 'chat-filters'" class="chat-filter-details">
           <label v-for="filter in CHAT_FILTERS" :key="filter.key" :data-setting="filter.key"><span>{{ filter.label }}</span><input type="checkbox" :checked="snapshot.settings[filter.key]" @change="perform(() => save({ [filter.key]: ($event.target as HTMLInputElement).checked }))" /></label>
