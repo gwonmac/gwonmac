@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
+import { CLIENT_CURSOR_HIDDEN_EVENT } from "../../app/renderer/cursor-refresh.js";
 import { closeOffline, launchPlayableClient } from "./fixtures.mjs";
 import { boxOf, startGameInput } from "./input-helpers.js";
 
@@ -330,7 +331,7 @@ test.describe("renderer camera input", () => {
       const box = await boxOf(page.locator("#canvas"));
       await page.mouse.move(box.x + 100, box.y + 100);
       await page.mouse.down({ button: "right" });
-      // Long enough for several mode-watch samples to have asked the client.
+      // Long enough for the client to have entered mouse-look had it meant to.
       await page.waitForTimeout(300);
       await page.mouse.move(box.x + 60, box.y + 100);
       await page.mouse.up({ button: "right" });
@@ -359,20 +360,18 @@ test.describe("renderer camera input", () => {
           () => (window as CameraInputWindow).__lockRequests,
         ),
       ).toBe(0);
-      // The client enters mouse-look a tick after the press; the held drag's
-      // mode watch must escalate to the lock on its own.
-      await page.evaluate(() => {
+      // The client enters mouse-look a tick after the press. The cursor
+      // consumer reads the hide and the cursor installation announces it on
+      // `window`; the held drag takes the lock from that announcement.
+      await page.evaluate((hiddenEvent) => {
         (window as CameraInputWindow).__cursorHidden = true;
-      });
-      await expect
-        .poll(
-          () =>
-            page.evaluate(() => (window as CameraInputWindow).__lockRequests),
-          // The mode watch samples every 50 ms, but a loaded machine running
-          // the whole suite can throttle background timers well past that.
-          { timeout: 15_000 },
-        )
-        .toBe(1);
+        window.dispatchEvent(new Event(hiddenEvent));
+      }, CLIENT_CURSOR_HIDDEN_EVENT);
+      expect(
+        await page.evaluate(
+          () => (window as CameraInputWindow).__lockRequests,
+        ),
+      ).toBe(1);
       await page.mouse.up({ button: "right" });
     } finally {
       await closeOffline(fixture);
