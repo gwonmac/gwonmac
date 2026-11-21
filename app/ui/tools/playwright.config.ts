@@ -12,6 +12,10 @@ export default defineConfig({
   // competing test workloads. Every spec that uses one carries @macos, and only
   // macOS runs @macos, so Linux runs two workers.
   workers: process.platform === "darwin" ? 1 : 2,
+  // A hosted macOS runner sometimes stalls for a few hundred milliseconds, and a
+  // stall lands in one sample of one budget. One retry absorbs it; a regression
+  // slows every attempt and still fails. The report lists a retried pass as flaky.
+  retries: process.env.CI && process.platform === "darwin" ? 1 : 0,
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   reporter: process.env.CI ? [["github"], ["line"]] : "list",
