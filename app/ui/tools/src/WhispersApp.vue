@@ -542,6 +542,7 @@ useClassicFrame(panel);
 .whisper-icon { width: 30px; height: 30px; min-height: 30px; padding: 0; flex-shrink: 0; position: relative; line-height: 0; }
 .ui-reading-surface .whisper-icon svg { display: block; width: 18px; height: 18px; }
 .ui-reading-surface .whisper-icon-dot { fill: currentColor; stroke: none; }
+[data-icon-hidden] .whisper-launcher { display: none; }
 .whisper-launcher { position: fixed; width: 36px; height: 36px; min-height: 36px; border-radius: var(--ui-radius-pill); pointer-events: auto; touch-action: none; padding: 8px; }
 .ui-reading-surface.whisper-launcher svg { width: 19px; height: 19px; fill: currentColor; stroke: none; }
 .whisper-badge, .whisper-count { min-width: 20px; padding: 1px 5px; border-radius: var(--ui-radius-lg); background: var(--ui-chat-incoming-accent); color: var(--ui-accent-ink); font: 600 12px/18px var(--ui-font-reading); text-align: center; box-shadow: 0 0 0 1px color-mix(in srgb, var(--ui-chat-incoming-accent) 36%, var(--ui-outline)); }

@@ -16,6 +16,7 @@ export default defineFeature({
   optInWithTools: true,
   tool: {
     id: "xunlai-storage",
+    kind: "keys",
     label: "Xunlai Storage",
     event: "gw:storage-open",
     description: "Open storage in supported outposts.",

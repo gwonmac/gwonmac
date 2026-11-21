@@ -470,7 +470,7 @@ test("Show never duplicates a game and companion close policy stays profile-loca
     await fixture.app.evaluate(({ Menu }) => {
       Menu.getApplicationMenu()?.getMenuItemById("show-settings")?.click();
     });
-    await expect(fixture.page.locator(".settings-content h1")).toHaveText("Tools");
+    await expect(fixture.page.locator(".settings-content h1")).toHaveText("Features");
 
     const profileId = await fixture.page.evaluate(() =>
       window.launcherNative.state.get().then((snapshot) => snapshot.profiles[0]!.id));

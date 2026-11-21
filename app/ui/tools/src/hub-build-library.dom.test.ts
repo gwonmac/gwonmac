@@ -273,7 +273,7 @@ test('turning a Tool off in Settings keeps the Settings page and section', async
   await submit('accounts');
   expect(caption()).toBe('Accounts');
   window.gwHub!.openSettings({ section: 'tools' }); await settle();
-  const tools = [...document.querySelectorAll<HTMLButtonElement>('[aria-label="Settings sections"] button')].find(item => item.textContent?.trim() === 'Tools')!;
+  const tools = [...document.querySelectorAll<HTMLButtonElement>('[aria-label="Settings sections"] button')].find(item => item.textContent?.trim() === 'Features')!;
   click(tools); await settle();
   const travel = narrow(HTMLInputElement, byRole('checkbox', 'Travel', true)[0]);
   click(travel); await settle();

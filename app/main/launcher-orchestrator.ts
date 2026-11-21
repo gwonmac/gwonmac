@@ -82,6 +82,7 @@ export class LauncherOrchestrator {
         loaded: this.options.toolsLoaded(),
         restartRequired: settings.gwonmacTools !== this.options.toolsLoaded(),
         features: launcherToolSettings(settings),
+        plainGame: settings.plainGame !== null,
       },
       settings: launcherSettings(settings),
       shortcuts: resolveShortcuts(settings.shortcutOverrides),

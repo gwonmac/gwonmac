@@ -139,15 +139,6 @@ type GwClientRuntime = GwGameModule & {
 const clientRuntime = () => Module as GwClientRuntime;
 
 /**
- * The one federated provider this host answers for. The client probes
- * Apple and Google too; neither has an acquisition surface here, so both are
- * answered no rather than advertised and then failed.
- */
-const STEAM_PROVIDER = 'steam';
-const isSteamProvider = (name: unknown): boolean =>
-  typeof name === 'string' && name.toLowerCase() === STEAM_PROVIDER;
-
-/**
  * `userId` as the client's local profile index. The captured `login.xml`
  * exchange sends `<LoginName>1</LoginName>` and the account service answers
  * with the real `<steamid>@steam`, so this is a slot number, not an identity.
@@ -580,6 +571,8 @@ let texturePack: import('./texture-pack.js').PreparedTexturePack | null = null;
 // them here: `instantiateWasm` and `loadGlue` are called synchronously by the
 // glue and cannot await. Reading `host` before boot() assigns it is a
 // TypeError, not a silently skipped installation.
+// Which login providers the client is told exist; assigned by boot() with the host modules.
+let offersLoginProvider: typeof import('../shared/login-provider.js').offersLoginProvider;
 let host: typeof import('./graphics.js') &
   typeof import('./client-exit.js') &
   typeof import('./wasm-memory-attribution.js') &
@@ -854,12 +847,13 @@ Module = {
     },
   },
 
-  // Steam is the one federated provider this host answers for. Saying yes is
-  // what makes the client offer its account-provider chooser; choosing the
-  // ArenaNet path then opens the client's unchanged email/password form.
+  // Steam is the one federated provider this host can answer for, unless Disable Steam login
+  // is on (src/shared/login-provider.ts). Saying yes is what makes the client
+  // offer its account-provider chooser; choosing the ArenaNet path then opens the client's
+  // unchanged email/password form.
   login: {
     hasProvider(name) {
-      const offered = isSteamProvider(name);
+      const offered = offersLoginProvider(name, appSettings);
       log(`login.hasProvider(${name}) -> ${offered}`);
       return offered;
     },
@@ -881,7 +875,7 @@ Module = {
      * gwonmac does not own and must not draw over.
      */
     async getAuthToken(name, options) {
-      if (!isSteamProvider(name)) {
+      if (!offersLoginProvider(name, appSettings)) {
         log(`login.getAuthToken(${name}) -> refused, provider not offered`);
         throw new Error('provider not offered');
       }
@@ -1327,6 +1321,7 @@ function loadGlue(isProxyRouteLabel: (route: string) => boolean) {
       clientHealth,
       appearance,
       proxyRoutes,
+      loginProvider,
       virtualGamepad,
       controllerPromptTexture,
       texturePackModule,
@@ -1351,6 +1346,7 @@ function loadGlue(isProxyRouteLabel: (route: string) => boolean) {
       import('./client-health.js'),
       import('./appearance.js'),
       import('../shared/proxy-routes.js'),
+      import('../shared/login-provider.js'),
       import('./virtual-gamepad.js'),
       import('./controller-prompt-texture.js'),
       import('./texture-pack.js'),
@@ -1388,6 +1384,7 @@ function loadGlue(isProxyRouteLabel: (route: string) => boolean) {
       clientHealth.createClientHealthConfirmation;
     applyAppearance = appearance.applyAppearance;
     isProxyRouteLabel = proxyRoutes.isProxyRouteName;
+    offersLoginProvider = loginProvider.offersLoginProvider;
     if (window.gwNative.init.development) {
       window.gwVirtualGamepad = virtualGamepad.installVirtualGamepad({ log });
     }

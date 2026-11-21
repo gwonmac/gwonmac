@@ -26,6 +26,7 @@ export default defineFeature({
   optInWithTools: true,
   tool: {
     id: "quick-travel",
+    kind: "hub-page",
     label: "Travel",
     event: "gw:travel-toggle",
     description: "Search destinations and travel between outposts.",

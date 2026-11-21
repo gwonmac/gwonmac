@@ -17,6 +17,7 @@ export default defineFeature({
   region: "any",
   tool: {
     id: "character-switch",
+    kind: "hub-page",
     label: "Switch Character",
     event: "gw:character-toggle",
     description: "Search and browse every character. Available without optional Tools.",

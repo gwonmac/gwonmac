@@ -21,6 +21,14 @@ import type { HubIconKind } from "../shared/ui/hub-icon.js";
  * opens through its own `event`, asked to `show` (never to close), as a Hub page (`page`, so
  * Right Arrow opens it too) or after the Hub closes (`closesHub`); or at a Settings section.
  */
+/**
+ * The kinds of tool, in the order Settings lists them: a page reached from the Hub, a key
+ * or a modified click that acts in the game, something drawn over the game, or something
+ * in the player's own chat.
+ */
+export const TOOL_KINDS = ["hub-page", "keys", "screen", "chat"] as const;
+export type ToolKind = (typeof TOOL_KINDS)[number];
+
 export type HubToolRow = Readonly<{
   detail: string;
   iconKind: HubIconKind;
@@ -49,9 +57,11 @@ export type FeatureDefinition = Readonly<{
   programs?: readonly EnhancementProgram[];
   /** Enabling Tools in first-run setup also turns this feature's setting on. */
   optInWithTools?: true;
-  /** The feature's switch in Settings › Tools; GLOBAL_TOOLS keeps FEATURES order. */
+  /** The feature's switch in Settings › Features; GLOBAL_TOOLS keeps FEATURES order. */
   tool?: Readonly<{
     id: string;
+    /** What kind of thing the tool is; Settings › Features lists tools under their kind. */
+    kind: ToolKind;
     label: string;
     description: string;
     /** Extra words Settings search and the tool's Hub row match. */

@@ -13,7 +13,7 @@ import { currencyIcon } from '../shared/currency-assets.js';
 import type { HubPageFocus, HubRatesProps } from '../shared/ui/hub-pages.js';
 export const HUB_QUOTE_FRESH_MS = 5 * 60_000;
 export function createHubCalculator(options: {
-  copy(value:string,label?:string):Promise<void>; settings?():CalculatorRates; saveRates?(value:CalculatorRates):Promise<void>; marketEnabled():boolean; quotes():Promise<TraderQuoteSnapshot>; market?():Promise<MarketSnapshot>; hub?:HubPresenter<HTMLElement>;
+  copy(value:string,label?:string):Promise<void>; settings?():CalculatorRates; saveRates?(value:CalculatorRates):Promise<void>; marketEnabled():boolean; /** Whether the calculators are on; absent means on. */ enabled?():boolean; quotes():Promise<TraderQuoteSnapshot>; market?():Promise<MarketSnapshot>; hub?:HubPresenter<HTMLElement>;
 }):HubSource {
   let visible=false, generation=0, queryKey='', failed=false;
   let marketSnapshot:MarketSnapshot|null=null;
@@ -87,6 +87,8 @@ export function createHubCalculator(options: {
     subscribe(listener){listeners.add(listener);return()=>listeners.delete(listener);},
     setVisible(next){visible=next;if(!next)clear();},
     search(query){
+      // Turned off in Settings › Game, the calculators answer nothing and offer no row.
+      if(options.enabled&&!options.enabled()){clear();return [];}
       const saved=settings(),manual=saved.mode==='manual',rates={ecto:saved.ecto,armbrace:saved.armbrace,zkey:saved.zkey};
       const term=query.toLowerCase().trim().replace(/\s+/gu,' ');
       if(!term){clear();return [{id:'title:help',iconKind:'title' as const,title:'Title calculator',detail:'Points, items needed and offer comparisons',group:'Commands',action:'Open calculator',searchQuery:'titles',run(){}}];}

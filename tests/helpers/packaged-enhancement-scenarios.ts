@@ -455,6 +455,10 @@ export async function assertCleanupSafetyGates() {
           window.gwSurfaces = installSurfaceController(document);
           window.gwToolsSettings = () => Object.freeze({
             gwonmacTools: true,
+            hubCalculators: true,
+            whispersIcon: true,
+            overlayPlacement: { compassButtons: true, compassOffset: { x: 0, y: 0 }, targetDistance: null, adjusting: false },
+            plainGame: null,
             buildLibrary: true,
             tradeChat: true,
             xunlaiStorage: true,
@@ -866,6 +870,10 @@ export async function assertToolboxFoundationLifecycle() {
       globalThis.dispatchEvent(new Event("pagehide"));
       window.gwToolsSettings = () => Object.freeze({
         gwonmacTools: true,
+        hubCalculators: true,
+        whispersIcon: true,
+        overlayPlacement: { compassButtons: true, compassOffset: { x: 0, y: 0 }, targetDistance: null, adjusting: false },
+        plainGame: null,
         buildLibrary: true,
         tradeChat: true,
       xunlaiStorage: true,
@@ -1461,6 +1469,10 @@ export async function assertRollbackAfterTablePublication() {
         globalThis.dispatchEvent(new Event("pagehide"));
         window.gwToolsSettings = () => Object.freeze({
           gwonmacTools: true,
+          hubCalculators: true,
+          whispersIcon: true,
+          overlayPlacement: { compassButtons: true, compassOffset: { x: 0, y: 0 }, targetDistance: null, adjusting: false },
+          plainGame: null,
           buildLibrary: true,
           tradeChat: true,
       xunlaiStorage: true,

@@ -112,6 +112,8 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
   let awaitingResults = false;
   const sources = new Map<HubSource, () => void>();
   /** A source counts while its feature is turned on, by the feature's own activation rule (app/features). */
+  /** The plain game is the official client with nothing added, so the Hub never opens (docs/settings.md). */
+  const plainGame = () => (window.gwToolsSettings?.().plainGame ?? null) !== null;
   const sourceEnabled = (source: HubSource) => {
     if (!source.feature) return true;
     const feature = FEATURES.find(candidate => candidate.activation.setting === source.feature);
@@ -617,7 +619,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
    * page of a fresh Hub, with no artificial parent. A repeated shortcut never stacks history and
    * never closes the Hub (HUB-049, HUB-172).
    */
-  const direct = (destination: HubDestination, open: () => void) => send({ type: 'direct', destination }, { open });
+  const direct = (destination: HubDestination, open: () => void) => { if (!plainGame()) send({ type: 'direct', destination }, { open }); };
   const modal = window.gwSurfaces.registerDialog({ root, priority: 6, transient: true,
     dismiss,
     // A backdrop click keeps the task for the next ⌘R, like a trip to another window (HUB-052).
@@ -634,6 +636,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
   const show = () => openHub(false);
   /** Opens the Hub; `fresh` drops a suspended page, for a page that opens a closed Hub itself. */
   function openHub(fresh: boolean) {
+    if (plainGame()) return;
     // Home's search takes the keyboard with the query kept there selected.
     if (root.open) { send({ type: 'show' }); requestFocus({ zone: 'search' }, { select: true }); return; }
     previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -753,12 +756,15 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
   root.addEventListener('close', entry(() => { if (!root.open && !state.suspended) close(); }));
   const onBlur = entry(() => suspend());
   const onSettings = entry(() => {
+    // The plain game turned on in the launcher closes a Hub that is still open.
+    if (plainGame() && root.open) { close(); return; }
     for (const source of sources.keys()) source.setVisible(root.open && sourceEnabled(source));
     withdrawPages();
   });
   window.addEventListener('blur', onBlur); window.addEventListener('gw:tools-settings', onSettings);
   /** A new page starts over the open Hub's page, which Back returns to, or as the only page of a fresh Hub. */
   function enterPage(place: (current: Place) => Place, query?: string) {
+    if (plainGame()) return;
     const fromOpenHub = root.open;
     if (!fromOpenHub) openHub(true);
     step({ type: 'enter', place: place(state.place), ...(query === undefined ? {} : { query }), remember: fromOpenHub,

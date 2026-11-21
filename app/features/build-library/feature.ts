@@ -18,6 +18,7 @@ export default defineFeature({
   optInWithTools: true,
   tool: {
     id: "build-management",
+    kind: "hub-page",
     label: "Build Library",
     event: "gw:tools-toggle",
     description: "Save and load skill builds.",

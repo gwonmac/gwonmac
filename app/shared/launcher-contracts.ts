@@ -53,6 +53,8 @@ export interface LauncherPreferences {
     reforgedNews: boolean;
     eventNews: boolean;
     autoRotateNews: boolean;
+    /** Simple launcher: open on Accounts and leave Home, News and Help out of the navigation. */
+    simple?: boolean;
   }>;
 }
 
@@ -112,7 +114,7 @@ export function parseLauncherProfileAppearance(value: unknown): LauncherProfileA
 
 const toolFeatures = FEATURES.flatMap((feature) => "tool" in feature ? [[feature.tool.id, feature.id] as const] : []);
 
-/** Every feature's switch in Settings › Tools, in FEATURES order. */
+/** Every feature's switch in Settings › Features, in FEATURES order. */
 export const GLOBAL_TOOLS: readonly GlobalTool[] = Object.freeze(toolFeatures.map(([tool]) => tool));
 export type { GlobalTool };
 export const GLOBAL_TOOL_FEATURES: Readonly<Record<GlobalTool, FeatureId>> = Object.freeze(Object.fromEntries(toolFeatures) as Record<GlobalTool, FeatureId>);
@@ -151,6 +153,11 @@ export interface ShortcutReplacement {
  * game window sends `renderer`; menus and main's own bookkeeping send
  * `settings`. Main applies every one through the same dispatch.
  */
+/** What Paste settings did: nothing (cancelled), or applied, with the names it left out. */
+export type LauncherSettingsPasteOutcome =
+  | Readonly<{ status: "cancelled" }>
+  | Readonly<{ status: "applied"; skipped: readonly string[] }>;
+
 export type SettingsWrite =
   | Readonly<{ kind: "settings"; patch: AppSettingsPatch }>
   | Readonly<{ kind: "renderer"; patch: RendererSettingsPatch }>
@@ -214,6 +221,8 @@ export interface LauncherSnapshot {
     loaded: boolean;
     restartRequired: boolean;
     features: GlobalToolSettings;
+    /** The plain game is on: no gwonmac feature, and the feature switches wait. */
+    plainGame: boolean;
   }>;
   readonly settings: LauncherSettings;
   readonly shortcuts: Readonly<Record<ShortcutAction, ShortcutBinding | null>>;
@@ -256,6 +265,12 @@ export interface LauncherNativeApi {
   readonly settings: {
     update: Invoke<C["settingsUpdate"]>;
     reset: Invoke<C["settingsReset"]>;
+    /** Turns the plain game on or off: the official client with no gwonmac feature, Hub included. */
+    setPlainGame: Invoke<C["settingsPlainGame"]>;
+    /** Puts the settings on the clipboard as text, to carry to another Mac. */
+    copy: Invoke<C["settingsCopy"]>;
+    /** Replaces the settings with the copied ones on the clipboard, after a confirmation. */
+    paste: Invoke<C["settingsPaste"]>;
   };
   readonly tools: {
     setMasterEnabled: Invoke<C["toolsSetMasterEnabled"]>;
@@ -407,7 +422,7 @@ export function parseLauncherPreferencesPatch(value: unknown): LauncherPreferenc
   if (source.content === undefined) return page;
   const content = exactObject(
     source.content,
-    ["news", "dailies", "first", "officialNews", "reforgedNews", "eventNews", "autoRotateNews"],
+    ["news", "dailies", "first", "officialNews", "reforgedNews", "eventNews", "autoRotateNews", "simple"],
     "launcher content patch",
   );
   const patch: {
@@ -418,8 +433,9 @@ export function parseLauncherPreferencesPatch(value: unknown): LauncherPreferenc
     reforgedNews?: boolean;
     eventNews?: boolean;
     autoRotateNews?: boolean;
+    simple?: boolean;
   } = {};
-  for (const field of ["news", "dailies", "officialNews", "reforgedNews", "eventNews", "autoRotateNews"] as const) {
+  for (const field of ["news", "dailies", "officialNews", "reforgedNews", "eventNews", "autoRotateNews", "simple"] as const) {
     const candidate = content[field];
     if (candidate === undefined) continue;
     if (typeof candidate !== "boolean") throw new Error(`${field} must be a boolean`);

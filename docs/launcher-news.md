@@ -39,7 +39,7 @@ launcherFeatured: false
 Restores every GWonMac feature after the latest Guild Wars update. Nothing else changes.
 
 - **Compatibility:** Tools, Quick Travel, Xunlai Chest and the skill overlays work again with the new client.
-- **Settings → Tools:** a new option is named in bold, with where to find it and what it does.
+- **Settings → Features:** a new option is named in bold, with where to find it and what it does.
 
 ## Known issues
 

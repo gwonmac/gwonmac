@@ -65,7 +65,7 @@ test("settings navigation has one scroll owner and compact controls at supported
         const win = BrowserWindow.getAllWindows().find(win => win.webContents.getURL().endsWith("launcher/index.html"))!;
         win.setSize(size.width, size.height); win.webContents.setZoomFactor(size.zoom);
       }, size);
-      for (const section of ["Tools", "Maps", "Appearance", "Game", "Texture packs", "Game files", "Updates", "Home screen", "Advanced"]) {
+      for (const section of ["Features", "Maps", "Appearance", "Game", "Texture packs", "Game files", "Updates", "Home screen", "Advanced"]) {
         await settings.locator(".settings-page aside").getByRole("button", { name: section, exact: true }).click();
         await expect.poll(() => settings.locator(".settings-content").evaluate(el => el.scrollTop)).toBe(0);
         const heading = settings.locator(".settings-content h1");
@@ -73,7 +73,7 @@ test("settings navigation has one scroll owner and compact controls at supported
         await expect(settings.locator(".settings-page aside").getByRole("button", { name: section, exact: true })).toBeFocused();
         expect(await heading.evaluate(el => { const r = el.getBoundingClientRect(); const p = el.closest(".settings-content")!.getBoundingClientRect(); return r.top >= p.top && r.bottom <= p.bottom; })).toBe(true);
         expect(await settings.locator("main").evaluate(el => el.scrollHeight > el.clientHeight + 1)).toBe(false);
-        if (section === "Maps" || section === "Tools") {
+        if (section === "Maps" || section === "Features") {
           const control = settings.locator('.settings-fields input[type="checkbox"]').first();
           await control.scrollIntoViewIfNeeded();
           expect(await control.evaluate(el => { const r=el.getBoundingClientRect(); return document.elementFromPoint(r.x+r.width/2,r.y+r.height/2) === el; })).toBe(true);
@@ -83,7 +83,7 @@ test("settings navigation has one scroll owner and compact controls at supported
           return (await win.webContents.capturePage()).toPNG().toString("base64");
         });
         await writeFile(test.info().outputPath(`${section.replaceAll(" ", "-")}-${size.width}-${size.zoom}.png`), Buffer.from(png,"base64"));
-        if (section === "Tools" && size.width === 1180 && size.zoom === 1) {
+        if (section === "Features" && size.width === 1180 && size.zoom === 1) {
           await settings.locator('.tool-options > summary').first().click();
           const options = settings.locator('.feature-setting .shortcut-options').first();
           await options.locator('summary').click();

@@ -25,6 +25,7 @@ export function withHubBuiltins(hub: Hub) {
     // A copy names what it put on the clipboard in the status line (D-8); it is never silent.
     copy: async (value, label = value) => { await window.gwNative.clipboard.writeText(value); hub.notify(`Copied “${label}”`); },
     marketEnabled: () => featureActivationRequested('tradeChat', window.gwToolsSettings?.() ?? {}),
+    enabled: () => window.gwToolsSettings?.().hubCalculators !== false,
     market: () => 'trade' in window.gwNative ? window.gwNative.trade.getMarketRates() : Promise.reject(new Error('Rate unavailable')),
     quotes: () => 'trade' in window.gwNative ? window.gwNative.trade.getTraderQuotes() : Promise.reject(new Error('Rate unavailable')),
   }));

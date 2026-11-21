@@ -12,6 +12,7 @@ export default defineFeature({
   programs: ["toolbox-foundation", "toolbox-commands", "xunlai-storage"],
   tool: {
     id: "trade-chat",
+    kind: "hub-page",
     label: "Trade Chat",
     event: "gw:trade-toggle",
     description: "Browse the trade feed.",

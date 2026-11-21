@@ -38,6 +38,9 @@ const launcherApi: LauncherNativeApi = {
   settings: {
     update: (patch) => invoke("settingsUpdate", patch),
     reset: () => invoke("settingsReset"),
+    setPlainGame: (enabled) => invoke("settingsPlainGame", enabled),
+    copy: () => invoke("settingsCopy"),
+    paste: () => invoke("settingsPaste"),
   },
   tools: {
     setMasterEnabled: (enabled) => invoke("toolsSetMasterEnabled", enabled),

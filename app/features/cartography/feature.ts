@@ -90,6 +90,7 @@ export default defineFeature({
   region: "pve",
   tool: {
     id: "maps",
+    kind: "screen",
     label: "Maps",
     description: "Exploration grid and walkable terrain on supported PvE maps.",
     keywords: "grid terrain compass opacity",

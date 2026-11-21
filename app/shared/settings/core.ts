@@ -7,6 +7,7 @@ import { isDigest } from "../digest.js";
 import { DEFAULT_CALCULATOR_RATES, parseCalculatorRates, type CalculatorRates } from "../hub-calculator.js";
 import { isHubShortcuts, type HubShortcut } from "../hub-preferences.js";
 import { isShortcutOverrides, type ShortcutOverrides } from "../keyboard-shortcuts.js";
+import { copyOverlayPlacement, DEFAULT_OVERLAY_PLACEMENT, isOverlayPlacement, type OverlayPlacement } from "../overlay-placement.js";
 import { DEFAULT_CUSTOM_UI_THEME, normaliseCustomUiTheme } from "../ui-theme.js";
 import { setting } from "./define.js";
 
@@ -92,6 +93,30 @@ export const CORE_SETTINGS = {
     },
     { rendererWritable: true, tools: true },
   ),
+  /** Where Target Distance and the compass buttons sit, and whether the buttons are drawn. */
+  overlayPlacement: setting.value(
+    DEFAULT_OVERLAY_PLACEMENT,
+    (value): OverlayPlacement | undefined => isOverlayPlacement(value) ? copyOverlayPlacement(value) : undefined,
+    { hub: true, rendererWritable: true, tools: true, error: "Overlay placement is invalid", launcherError: "Overlay placement is invalid" },
+  ),
+  /**
+   * Plain game: the official client with nothing added. Non-null while it is on, and it then
+   * holds the two master switches as they were, so turning it off restores them. While it is
+   * on, both masters are stored off and the Hub does not open. No settings page can patch it:
+   * it changes only through the launcher's own command.
+   */
+  plainGame: setting.value(
+    null,
+    (value): Readonly<{ gwonmacTools: boolean; characterSwitchEnabled: boolean }> | null | undefined => {
+      if (value === null) return null;
+      if (!value || typeof value !== "object" || Array.isArray(value)
+        || Object.keys(value).sort().join(",") !== "characterSwitchEnabled,gwonmacTools") return undefined;
+      const { gwonmacTools, characterSwitchEnabled } = value as { gwonmacTools: unknown; characterSwitchEnabled: unknown };
+      return typeof gwonmacTools === "boolean" && typeof characterSwitchEnabled === "boolean"
+        ? { gwonmacTools, characterSwitchEnabled } : undefined;
+    },
+    { tools: true, error: "Plain game setting is invalid" },
+  ),
   /** Return toward the current character after an explicit game reload. */
   autoRelogAfterReload: setting.boolean(false, { hub: true, rendererWritable: true }),
   /** Warning position within the available viewport space; null keeps the default. */
@@ -110,6 +135,12 @@ export const CORE_SETTINGS = {
     { rendererWritable: true, error: "settings.memoryWarningPosition must contain x and y between 0 and 1" },
   ),
   showDiagnostics: setting.boolean(false, { hub: true }),
+  /** Tell the client that no login provider exists, so it shows only the email and password form. */
+  disableSteamLogin: setting.boolean(false, { hub: true }),
+  /** Remove invisible characters and outer spaces from text pasted into a game text field. */
+  pasteCleanup: setting.boolean(true, { hub: true }),
+  /** Offer the currency and title calculators in the Hub. */
+  hubCalculators: setting.boolean(true, { hub: true, tools: true }),
   /**
    * Automatic release checks: one static channel request when no settled
    * attempt was recorded in the previous six hours, including across app

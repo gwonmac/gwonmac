@@ -121,7 +121,7 @@ test("launcher enables the timer and exposes adjust and reset", async () => {
     const checkbox = settings.getByRole("checkbox", { name: "Alcohol Timer", exact: true });
     await expect(checkbox).not.toBeChecked(); await checkbox.check();
     await settings.locator("details.tool-options", { has: settings.getByRole("group", { name: "Alcohol Timer position", includeHidden: true }) }).getByText("Options", { exact: true }).click();
-    await settings.getByRole("button", { name: "Adjust position", exact: true }).click();
+    await settings.getByRole("button", { name: "Show to place", exact: true }).click();
     await expect.poll(async () => (await page.evaluate(() => window.launcherNative.state.get())).settings.alcoholTimerPosition.locked).toBe(false);
     await settings.screenshot({ path: test.info().outputPath("alcohol-settings.png") });
     await settings.getByRole("button", { name: "Reset position", exact: true }).click();

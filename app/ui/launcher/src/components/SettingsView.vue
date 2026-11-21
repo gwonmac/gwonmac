@@ -154,6 +154,22 @@ async function saveContent(content: NonNullable<LauncherPreferencesPatch["conten
 }
 
 const actionError = ref("");
+const transferNote = ref("");
+/** Copy settings and Paste settings say what happened in their own line; a failure uses the page's alert. */
+async function transfer(kind: "copy" | "paste") {
+  transferNote.value = "";
+  if (kind === "copy") {
+    if (await run("Settings could not be copied.", () => launcherNative?.settings.copy())) transferNote.value = "Settings copied. Paste them into a message or a file, or straight into Paste settings on the other Mac.";
+    return;
+  }
+  let outcome: Awaited<ReturnType<NonNullable<typeof launcherNative>["settings"]["paste"]>> | undefined;
+  const ok = await run("The clipboard does not hold copied gwonmac settings.", async () => { outcome = await launcherNative?.settings.paste(); });
+  if (!ok || outcome?.status !== "applied") return;
+  transferNote.value = outcome.skipped.length
+    ? `Settings replaced. ${outcome.skipped.length} ${outcome.skipped.length === 1 ? "entry this version does not use was" : "entries this version does not use were"} left out.`
+    : "Settings replaced.";
+}
+
 async function run(message: string, action: () => Promise<unknown> | undefined) {
   actionError.value = "";
   try { await action(); return true; }
@@ -338,6 +354,7 @@ onBeforeUnmount(() => {
           <button v-for="item in group.items" :key="item.id" :data-section="item.id" :aria-current="!query && section === item.id ? 'page' : undefined" :class="{ active: !query && section === item.id }" @click="select(item.id)"><component :is="icons[item.id]" aria-hidden="true" />{{ item.label }}<ArrowUpRight v-if="inLauncher(item.id)" class="opens-launcher" aria-label="opens the launcher" /></button>
         </div>
         </nav>
+        <p class="settings-scope">Settings apply to every account on this Mac. Logins, builds, templates and chat logs are kept per account.</p>
       </aside>
       <div class="settings-main">
         <div id="settings-content" ref="content" class="settings-content">
@@ -351,7 +368,7 @@ onBeforeUnmount(() => {
           </template>
           <fieldset v-else :key="`${section}:${formVersion}`" class="settings-fields" :disabled="locked" :aria-busy="saveState === 'saving'" @change.capture="identifySetting" @click.capture="identifySetting">
             <legend class="visually-hidden">Settings for every account</legend>
-            <ToolsSettings v-if="section === 'tools'" :snapshot="snapshot" :api="native" :profiles="launcher?.snapshot.profiles" :save="saveSettings" :perform-save="performSave" @maps="select('maps', true)" />
+            <ToolsSettings v-if="section === 'tools'" :snapshot="snapshot" :api="native" :profiles="launcher?.snapshot.profiles" :set-plain-game="launcher ? enabled => launcherNative?.settings.setPlainGame(enabled) : undefined" :save="saveSettings" :perform-save="performSave" @maps="select('maps', true)" />
             <MapsSettings v-else-if="section === 'maps'" :settings="snapshot.settings" :shortcuts="snapshot.shortcuts" :tools="snapshot.tools" :api="native?.tools" :save="saveSettings" :perform-save="performSave" @tools="select('tools', true)" />
             <template v-else-if="section === 'appearance'"><h1>Appearance</h1><AppearanceSettings :settings="snapshot.settings" :save="saveSettings" /></template>
             <GameSettings v-else-if="section === 'game'" :snapshot="snapshot" :save="quietSave" />
@@ -380,6 +397,12 @@ onBeforeUnmount(() => {
               <h1>Advanced</h1>
               <div class="setting-group">
                 <div class="setting-row" data-setting="openLogs"><span><strong>Open logs</strong><small>Show the log folder in Finder, for a bug report.</small></span><button class="secondary small" @click="run('Logs could not be opened.', () => launcherNative?.external.revealLogs())"><FileText />Open logs</button></div>
+              </div>
+              <h2 class="settings-subheading">Move settings to another Mac</h2>
+              <div class="setting-group">
+                <div class="setting-row" data-setting="copySettings"><span><strong>Copy settings</strong><small>Put all your settings on the clipboard as text. Accounts and saved logins are not included.</small></span><button class="secondary" @click="transfer('copy')">Copy settings</button></div>
+                <div class="setting-row" data-setting="pasteSettings"><span><strong>Paste settings</strong><small>Replace your settings with copied ones from the clipboard. You confirm before anything changes.</small></span><button class="secondary" @click="transfer('paste')">Paste settings</button></div>
+                <p v-if="transferNote" class="inline-message" role="status">{{ transferNote }}</p>
               </div>
               <details class="settings-reset" data-setting="resetAllSettings"><summary>Reset all app settings</summary><p>Restores launcher and game preferences, Tools, shortcuts, custom map styles and panel colors. Original textures will be selected. Accounts and game files are kept.</p><button class="danger-button small" @click="run('Settings could not be reset.', () => launcherNative?.settings.reset())">Reset all app settings…</button></details>
             </template>

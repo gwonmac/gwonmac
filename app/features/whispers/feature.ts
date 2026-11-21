@@ -5,11 +5,14 @@ export default defineFeature({
   id: "whispers",
   settings: {
     whispersEnabled: setting.boolean(false, { tools: true }),
+    /** Whether the small unread icon is drawn; the panel still opens from its shortcut and the Hub. */
+    whispersIcon: setting.boolean(true, { hub: true, tools: true }),
   },
   activation: { kind: "setting", setting: "whispersEnabled", master: "gwonmacTools" },
   region: "pve",
   tool: {
     id: "whispers",
+    kind: "hub-page",
     label: "Whispers",
     event: "gw:whispers-toggle",
     description: "A movable whisper panel alongside original chat. Conversations last for this session only.",
