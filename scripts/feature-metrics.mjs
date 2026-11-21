@@ -11,35 +11,49 @@ import { execFileSync } from "node:child_process";
 const revision = process.argv[2] ?? "HEAD";
 const NOT_TESTS = [":!*.test.ts", ":!*.spec.ts", ":!*.golden.json"];
 
+/** @param {string[]} args */
 function git(args) {
   try {
     return execFileSync("git", args, { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
   } catch (error) {
     // git grep exits 1 when nothing matches; that is a count of 0, not a failure.
-    if (error.status === 1 && args[0] === "grep") return "";
+    if (error instanceof Error && "status" in error && error.status === 1 && args[0] === "grep") return "";
     throw error;
   }
 }
 
+/** @param {string} text */
 const lines = (text) => text.split("\n").filter(Boolean);
 
-/** Number of matching lines for an extended regex under the given paths. */
+/**
+ * Number of matching lines for an extended regex under the given paths.
+ * @param {string} pattern
+ * @param {string[]} paths
+ */
 function countLines(pattern, paths) {
   return lines(git(["grep", "-hE", pattern, revision, "--", ...paths])).length;
 }
 
-/** Number of distinct matched strings for an extended regex under the given paths. */
+/**
+ * Number of distinct matched strings for an extended regex under the given paths.
+ * @param {string} pattern
+ * @param {string[]} paths
+ */
 function countDistinct(pattern, paths) {
   return new Set(lines(git(["grep", "-ohE", pattern, revision, "--", ...paths]))).size;
 }
 
+/**
+ * @param {string} pattern
+ * @param {string[]} paths
+ */
 function filesMatching(pattern, paths) {
   return lines(git(["grep", "-lE", pattern, revision, "--", ...paths]));
 }
 
 const featureFolders = lines(git(["ls-tree", "-r", "--name-only", revision, "app/features"]))
   .map((path) => path.match(/^app\/features\/([^/]+)\/feature\.ts$/)?.[1])
-  .filter(Boolean)
+  .filter(/** @returns {folder is string} */ (folder) => folder !== undefined)
   // "tools" is the Tools master switch (the launch mode), not a feature of its own.
   .filter((folder) => folder !== "tools")
   .sort();
