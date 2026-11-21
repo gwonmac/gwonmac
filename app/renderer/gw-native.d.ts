@@ -305,6 +305,8 @@ declare global {
     gwCartographyModelStats?(): CartographyModelStats;
     gwSurfaces: GwonmacSurfaceController;
     gwHub?: GameHub;
+    /** Shows the in-game quit-or-reload panel; false while it cannot be shown. */
+    gwQuitPanel?(): boolean;
     /**
      * The Tools settings (app/shared/settings); it throws until boot() has loaded them.
      * The Hub's own fields stay optional, as before, for page-side test doubles.

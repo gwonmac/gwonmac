@@ -173,8 +173,16 @@ function withGameOwner(
   };
 }
 
-/** Whether this game window keeps playing after the Quit-or-Reload sheet. */
-export type QuitOrReloadOutcome = "stayed" | "left";
+/**
+ * Whether this game window keeps playing after the Quit-or-Reload sheet. "panel": the game
+ * window took the question to its own in-game panel, which acts from there.
+ */
+export type QuitOrReloadOutcome = "stayed" | "left" | "panel";
+/**
+ * How long the game window has to show its panel. A window that is frozen, crashed or still
+ * loading does not answer, and the native dialog, which needs nothing from it, appears instead.
+ */
+const QUIT_PANEL_WAIT_MS = 1_000;
 const activeQuitOrReloadDialogs = new WeakMap<BrowserWindow, Promise<unknown>>();
 const AUTO_RELOG_LABEL = "Return to my character automatically";
 
@@ -299,6 +307,13 @@ async function showQuitOrReloadGameOnce(
   host: WindowHost,
   win: BrowserWindow,
 ): Promise<QuitOrReloadOutcome> {
+  // The in-game panel shows the memory figure and the same actions. The native dialog below
+  // is the answer only when the window cannot show it.
+  const shown = await Promise.race([
+    sendRendererCommand(win, { type: "quit.panel" }),
+    new Promise<"timed-out">((resolve) => setTimeout(() => resolve("timed-out"), QUIT_PANEL_WAIT_MS)),
+  ]);
+  if (shown === "completed") return "panel";
   const ownerId = windowRegistry.requireDiagnosticOwnerForWindow(win);
   const recordDialog = (
     phase: "requested" | "opened" | "settled",
