@@ -3,6 +3,7 @@
  * glue loads; native interruptions all converge on releaseAll().
  */
 import { featureActivationRequested } from '../shared/feature-contracts.js';
+import { CLIENT_CURSOR_HIDDEN_EVENT } from './cursor-refresh.js';
 import {
   dispatchHeldKeyRelease,
   HeldKeys,
@@ -132,9 +133,6 @@ type GameInputOptions = {
   log(...values: unknown[]): void;
 };
 
-// How often a held right-drag re-asks the client whether it entered
-// mouse-look, matching the cursor observer's own sampling cadence.
-const POINTER_MODE_INTERVAL_MS = 50;
 
 // The provider chooser is laid out in the client's fixed 600-unit-tall login
 // coordinate system. These are the centres of its two buttons, measured from
@@ -187,7 +185,9 @@ export const installGameInput = ({
   };
   let virtualCursor: { x: number; y: number } | null = null;
   let pointerWanted = false;
-  let modeWatch: ReturnType<typeof setInterval> | null = null;
+  // A right press the client has not yet classified: true until the cursor
+  // consumer reports the hide that marks mouse-look, or the button comes up.
+  let modeWatch = false;
   // The lock state the trace last reported, which is not the same as the lock
   // state. A right-click shorter than the lock's round trip resolves its
   // request after the button is already up, so the exit below runs before the
@@ -198,8 +198,7 @@ export const installGameInput = ({
   let lockTraced = false;
 
   function stopModeWatch() {
-    if (modeWatch !== null) clearInterval(modeWatch);
-    modeWatch = null;
+    modeWatch = false;
   }
   let releasing = false;
   let wheelRemainder = 0;
@@ -915,18 +914,18 @@ export const installGameInput = ({
       engagePointerLock();
       return;
     }
-    stopModeWatch();
-    modeWatch = setInterval(() => {
-      if (!pointerWanted || !heldButtons.has(2)) {
-        stopModeWatch();
-        return;
-      }
-      if (clientCursorHidden?.() === true) {
-        stopModeWatch();
-        engagePointerLock();
-      }
-    }, POINTER_MODE_INTERVAL_MS);
+    modeWatch = true;
   }, true);
+
+  // The cursor consumer announces the hide on the frame it reads it. Polling
+  // for it on a timer of our own put a second, unsynchronised wait behind the
+  // consumer's, and a short drag could end before that timer fired: the lock
+  // was never taken and the pointer travelled across the screen.
+  window.addEventListener(CLIENT_CURSOR_HIDDEN_EVENT, () => {
+    if (!modeWatch) return;
+    stopModeWatch();
+    if (pointerWanted && heldButtons.has(2)) engagePointerLock();
+  });
 
   document.addEventListener('mousemove', (event) => {
     if (

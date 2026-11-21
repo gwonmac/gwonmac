@@ -20,6 +20,7 @@ import { validateCompanionOwnedRegions } from "./companion-owned-regions.js";
 import { observeCompanion, recordCompanionLifecycle } from "./companion-observer.js";
 import { createCursorConsumer } from "./enhancement-cursor.js";
 import {
+  CLIENT_CURSOR_HIDDEN_EVENT,
   createHiddenCursorRetry,
   installCursorRefresh,
   type HiddenCursorRetry,
@@ -354,6 +355,7 @@ export async function installCoreCertifiedCompanion(
         cursorPointer: core.cursor.pointer,
         fallback: "",
         transitionHold: () => !hiddenRetry!.expired && refresh.armed(),
+        onHide: () => window.dispatchEvent(new Event(CLIENT_CURSOR_HIDDEN_EVENT)),
       });
       disposeCursor = cursor.dispose;
       installedCursorState = () => cursor?.state ?? null;
