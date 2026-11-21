@@ -4,6 +4,7 @@ import {
   CARTOGRAPHY_REACHABILITY_EXPORTS,
   CARTOGRAPHY_REACHABILITY_IMPORTS,
   CARTOGRAPHY_REACHABILITY_REGION_BYTES,
+  CARTOGRAPHY_REACHABILITY_ROUTE_BYTES,
   cartographyReachabilitySignatureBytes,
 } from "../app/shared/cartography-reachability-kernel-contract.ts";
 
@@ -66,5 +67,9 @@ export function validateCartographyReachabilityKernelContract(binary) {
     regionBytes(),
     CARTOGRAPHY_REACHABILITY_REGION_BYTES,
   );
+  const routeBytes = /** @type {() => number} */ (
+    instance.exports.cartography_reachability_route_bytes
+  );
+  assert.equal(routeBytes(), CARTOGRAPHY_REACHABILITY_ROUTE_BYTES);
   return module;
 }

@@ -24,6 +24,7 @@ describe("keyboard shortcuts", () => {
     }), {
       "cartography.grid.toggle": null,
       "cartography.walkability.toggle": null,
+      "cartography.route.toggle": null,
       "game.call-target": DEFAULT_SHORTCUTS["game.call-target"],
       "game.resign": DEFAULT_SHORTCUTS["game.resign"],
       "character.switch": DEFAULT_SHORTCUTS["character.switch"],

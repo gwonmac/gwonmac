@@ -13,6 +13,7 @@ import { featureActivationRequested } from "../../../shared/feature-contracts.js
 import { createCartographyLifecycle } from "./cartography-lifecycle.js";
 
 export type { CartographyGridStats, CartographyModelStats, CompassRangeStats } from "./overlay.js";
+export type { CartographyRouteDiagnostic } from "./reachability-kernel.js";
 
 export type CartographyHost = Readonly<{
   /** Reads the settings again; Maps installs or withdraws to match its switch. */

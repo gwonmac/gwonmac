@@ -39,6 +39,9 @@ export default defineFeature({
     cartographyOverlayEnabled: setting.boolean(false, { ...MAP_LAYER, tools: true }),
     /** Draw the game's fixed cartography cells over both native map surfaces. */
     cartographyGridEnabled: setting.boolean(false, { ...MAP_LAYER, tools: true }),
+    /** Draw the walking route to the point the player sets on the Mission Map or World Map. On by
+     * default: nothing draws until the player sets a target. */
+    cartographyRouteEnabled: setting.boolean(true, { ...MAP_LAYER, tools: true }),
     /** Include the Compass in exploration-grid presentation; off by default. */
     cartographyCompassGridEnabled: setting.boolean(false, { hub: true }),
     /** Draw standard Guild Wars ranges around the player on the Compass. */
@@ -95,11 +98,12 @@ export default defineFeature({
     keywords: "grid terrain compass opacity",
     hub: {
       command: "maps", order: 6,
-      row: { detail: "Exploration grid, walkable terrain and compass ranges", iconKind: "maps", action: "Adjust maps", open: { settings: "maps" } },
+      row: { detail: "Exploration grid, walkable terrain, walking route and compass ranges", iconKind: "maps", action: "Adjust maps", open: { settings: "maps" } },
     },
   },
   shortcuts: [
     { action: "cartography.grid.toggle", binding: null, label: "Exploration grid" },
     { action: "cartography.walkability.toggle", binding: null, label: "Walkable terrain" },
+    { action: "cartography.route.toggle", binding: null, label: "Walking route" },
   ],
 });

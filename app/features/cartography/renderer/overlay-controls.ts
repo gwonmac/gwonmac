@@ -242,7 +242,10 @@ export function createCartographyOverlayControls(options: Readonly<{
   };
   const gridButton = layerButton("Grid");
   const walkabilityButton = layerButton("Walkable");
-  layers.append(gridButton, walkabilityButton);
+  const routeButton = layerButton("Route");
+  // The panel stays compact, so how to set a target lives in the button's tooltip.
+  routeButton.title = "Walking route: right-click the Mission Map or World Map to set a target";
+  layers.append(gridButton, walkabilityButton, routeButton);
   const fields = document.createElement("div");
   fields.className = "cartography-overlay-fields";
   const makeSlider = (labelText: string) => {
@@ -333,7 +336,7 @@ export function createCartographyOverlayControls(options: Readonly<{
     gridButton.disabled = saving || !gridAvailable;
     gridOpacity.input.disabled = saving || !gridAvailable;
     reach.disabled = saving || !gridAvailable;
-    for (const control of [walkabilityButton, walkabilityOpacity.input, preset]) {
+    for (const control of [walkabilityButton, routeButton, walkabilityOpacity.input, preset]) {
       control.disabled = saving;
     }
   };
@@ -352,6 +355,7 @@ export function createCartographyOverlayControls(options: Readonly<{
     renderedSettings = settings;
     gridButton.setAttribute("aria-pressed", String(settings.cartographyGridEnabled));
     walkabilityButton.setAttribute("aria-pressed", String(settings.cartographyOverlayEnabled));
+    routeButton.setAttribute("aria-pressed", String(settings.cartographyRouteEnabled));
     if (document.activeElement !== gridOpacity.input) gridOpacity.input.value = String(settings.cartographyGridOpacity);
     if (document.activeElement !== walkabilityOpacity.input) walkabilityOpacity.input.value = String(settings.cartographyWalkabilityOpacity);
     gridOpacity.output.value = `${gridOpacity.input.value}%`;
@@ -447,6 +451,10 @@ export function createCartographyOverlayControls(options: Readonly<{
   walkabilityButton.addEventListener("click", () => {
     const settings = currentSettings();
     if (settings !== null) apply({ cartographyOverlayEnabled: !settings.cartographyOverlayEnabled });
+  });
+  routeButton.addEventListener("click", () => {
+    const settings = currentSettings();
+    if (settings !== null) apply({ cartographyRouteEnabled: !settings.cartographyRouteEnabled });
   });
   const bindSlider = (layer: Layer, controls: ReturnType<typeof makeSlider>, key: "cartographyGridOpacity" | "cartographyWalkabilityOpacity") => {
     controls.input.addEventListener("input", () => {

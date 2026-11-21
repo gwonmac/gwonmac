@@ -30,6 +30,7 @@ import type { ControllerPromptTextureStats } from "./controller-prompt-texture.j
 import type {
   CartographyGridStats,
   CartographyModelStats,
+  CartographyRouteDiagnostic,
   CompassRangeStats,
 } from "../features/cartography/renderer/host.js";
 import type {
@@ -303,6 +304,8 @@ declare global {
     gwNativeCompassTerrainStats?(): Readonly<{ status: "hidden" | "ready" | "unavailable"; area: number; updates: number; uploads: number; created: number; destroyed: number; textureSize: number }>;
     /** Pointer-free atomic epoch and classification diagnostics; development only. */
     gwCartographyModelStats?(): CartographyModelStats;
+    /** The last walking-route search: kernel status, steps, trapezoids expanded, milliseconds. */
+    gwCartographyRouteStats?(): CartographyRouteDiagnostic | null;
     gwSurfaces: GwonmacSurfaceController;
     gwHub?: GameHub;
     /**

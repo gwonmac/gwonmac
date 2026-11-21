@@ -76,6 +76,7 @@ export const fixtureSnapshot: LauncherSnapshot = {
     showDiagnostics: false,
     cartographyOverlayEnabled: false,
     cartographyGridEnabled: false,
+    cartographyRouteEnabled: true,
     cartographyCompassGridEnabled: false,
     compassRangeIndicatorsEnabled: false,
     compassRangeEarshotEnabled: true,
