@@ -1,6 +1,7 @@
 /**
  * Locates the complete friend-session notification graph without granting runtime authority.
  * It refuses missing roles, changed call relationships, and incomplete connection-store coverage.
+ * A reviewed family may also match with its assertion source lines erased.
  */
 import { createHash } from "node:crypto";
 import { refusedOrRethrow } from "./stage-refusal.js";
@@ -46,11 +47,17 @@ const OCTOBER_ROLE_SPECS = Object.freeze({
   disconnect: [70, ["i32"], [], "6f0532c66baf13c8fd305ae99973c0e528647a896c59f82263faef2b63255e1c"],
   connected: [342, ["i32", "i32"], ["i32"], "a98901c58036ff36cd4281829bd04b2bfd045f36dde2d87b6393bf6f1a47bf27"],
 } as const);
-/** One reviewed client's complete friend-lifecycle role family. */
+/**
+ * One reviewed client's complete friend-lifecycle role family: each role's body
+ * length, signature and shape. `sourceLinesErased` holds each role's shape with
+ * its assertion source lines erased (see `friendSemanticBodyShape`), so a later
+ * client whose only change in a role is a moved line still matches the family.
+ * Every relation `inspectFriendLifecycle` checks still decides.
+ */
 export type FriendLifecycleRoleFamily = Readonly<Record<
   keyof typeof ROLE_SPECS,
   readonly [number, readonly string[], readonly string[], string]
->>;
+>> & Readonly<{ sourceLinesErased?: Readonly<Record<keyof typeof ROLE_SPECS, string>> }>;
 
 const BASE_FAMILIES: readonly FriendLifecycleRoleFamily[] = Object.freeze([ROLE_SPECS, OCTOBER_ROLE_SPECS]);
 const familiesOf = (generations: readonly ClientGeneration[]): readonly FriendLifecycleRoleFamily[] =>
@@ -107,13 +114,15 @@ function uniqueRole(
   data: WasmDataEvidence,
   functions: readonly DecodedFunction[],
   role: FriendLifecycleRole,
-  specs: Readonly<Record<FriendLifecycleRole, readonly [number, readonly string[], readonly string[], string]>>,
+  family: FriendLifecycleRoleFamily,
 ): DecodedFunction | null {
-  const [bytes, params, results, fingerprint] = specs[role];
+  const [bytes, params, results, fingerprint] = family[role];
+  const lineFree = family.sourceLinesErased?.[role];
   const matches = functions.filter((fn) =>
     module.bodies[fn.functionIndex - module.functionImportCount]?.byteLength === bytes
     && signatureMatches(module, fn.functionIndex, params, results)
-    && friendSemanticBodyShape(module, data, fn) === fingerprint
+    && (friendSemanticBodyShape(module, data, fn) === fingerprint
+      || (lineFree !== undefined && friendSemanticBodyShape(module, data, fn, "erased") === lineFree))
   );
   return matches.length === 1 ? matches[0]! : null;
 }
@@ -135,12 +144,16 @@ export function inspectFriendLifecycle(input: Uint8Array): FriendLifecycleEviden
     if (table.status !== "candidate") return unavailable("friend-record-proof-unavailable");
     const module = evidence.moduleView();
     const functions = evidence.decodeFunctions([]);
-    const families = activeFamilies().map(specs => Object.fromEntries(
+    const families = activeFamilies().map(family => Object.fromEntries(
       (Object.keys(ROLE_SPECS) as FriendLifecycleRole[]).map(role =>
-        [role, uniqueRole(module, evidence.data, functions, role, specs)])) as Record<
+        [role, uniqueRole(module, evidence.data, functions, role, family)])) as Record<
         FriendLifecycleRole, DecodedFunction | null
       >).filter(found => Object.values(found).every(fn => fn !== null));
-    if (families.length !== 1) return unavailable("complete-friend-lifecycle-roles-not-found");
+    // Several families may match one client (exactly, or one with its lines
+    // erased) only when they locate the same functions.
+    const located = new Set(families.map((found) => JSON.stringify(
+      Object.values(found).map((fn) => fn?.functionIndex))));
+    if (located.size !== 1) return unavailable("complete-friend-lifecycle-roles-not-found");
     const found = families[0]!;
     const roles = found as Record<FriendLifecycleRole, DecodedFunction>;
     const records = table.candidates[0]!.recordRoles;

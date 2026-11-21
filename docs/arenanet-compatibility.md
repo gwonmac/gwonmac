@@ -184,8 +184,11 @@ locator already meets the final relocation-resistant bar. At verifier ABI 10:
   structure offsets did not move. Its native move-message identifier belongs
   to that certificate, not to a shared constant; and
 - friend observation accepts relocated functions and static addresses when all
-  semantic relationships still reproduce, but its exact role shapes can refuse
-  after an equivalent compiler rewrite; and
+  semantic relationships still reproduce. A role whose only other change is an
+  assertion source line (the constant between a source-file string and a
+  call) that moved within its encoded width also matches, when its reviewed
+  family carries line-free shapes (`sourceLinesErased`). Any other body change
+  still refuses until reviewed, even after an equivalent compiler rewrite; and
 - a reviewed body digest or role fingerprint matches a relocated body only
   through a generation's identity table. The relocation identity names each
   callee by its body up to the callee's own call targets, and each padded
@@ -235,7 +238,8 @@ locator already meets the final relocation-resistant bar. At verifier ABI 10:
     manifest, and the kernel installs them from there. The process boundary
     checks only the roots' shape; the transform derives them again and refuses
     others. A surface owner whose body really changed still needs a review;
-  - a friend lifecycle family whose role bodies changed needs a review. The
+  - a friend lifecycle family whose role bodies changed beyond moved
+    assertion lines needs a review; record its line-free shapes too. The
     renderer pins `FRIEND_OBSERVER_SEMANTIC_SHA256`, which covers only what
     the certificate means (role names, signatures and the checked relations),
     so a new family changes the pin only when a role's meaning changes;
@@ -288,9 +292,9 @@ binaries and cannot grant runtime authority.
   - any other client gets the patch-day template verdict the test states for
     it. October 1 and October 22 refuse (`template-shape-changed`: each
     changed a reviewed helper body). November 3 proves every feature except
-    Quick Item Move, whose memory-code digest changed; native double-click
-    and Cartography prove, and friend observation refuses until its moved
-    assertion lines are reviewed.
+    Quick Item Move, whose memory-code digest changed; native double-click,
+    Cartography and friend observation prove (its roles changed only by
+    moved assertion lines).
 
   It prints each client's refused features and module stages, and skips
   without the maintainer evidence store. Retained clients without a reviewed

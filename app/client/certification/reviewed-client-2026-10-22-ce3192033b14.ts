@@ -1507,6 +1507,31 @@ const FACTS: GenerationFacts = Object.freeze<GenerationFacts>({
     disconnect: [70, ["i32"], [], "6af541a904883bfec8e0ae09525157f10819c96ced8b11d48acf273f0b25e0c1"],
     logout: [206, ["i32"], [], "951991fe548dc3f2a0929f8e044fb72986e79c33230ff37faa50a022e1664643"],
     connected: [342, ["i32", "i32"], ["i32"], "b5258d2937ae73dcacc82e55cd94868b2085bfa2749d9b3ffcde3f0cbd2eb879"],
+    // The same shapes with assertion source lines erased: a later client
+    // whose roles differ from these only by moved lines matches this family.
+    sourceLinesErased: Object.freeze({
+      eventDispatcher: "1c4d11800f3a5610044e845a205a8af682223be7a8be106f72d146ccfd525ee8",
+      callbackListInsert: "0a3f3850d535b482e611d36aa033d7c90c992aebff4ceac39a767d819f624d68",
+      eventRegistration: "66bcfae7f114d7a29e46524d37668888e127a152ebc7c4b19e182b6ffda53dd7",
+      rosterRegistration: "cbc2d5efbb269fcb74411a2ff4e0e6b7cd18cecf0d17e08efd7fa872da648029",
+      queueDispatcher: "5f4b679e850cdbf5273bdcd51b73e4f0a0397b5465faf1747b90b99bf8839963",
+      queueDrain: "7f75809bb1414cfbdfc9aa39218133cf48428088fb6f11712fd6432ed60ba521",
+      queueAppend: "b2de9a79109bc541aa65cce69e94011789826c92ae1d471f6edf2123b333d691",
+      queueFacade: "1a288859fb6c2d577ab77e7a761528c444db4dfe4f1ba021bbbd58accad994c6",
+      rosterCallback: "6660fdb5b02f1dc6c3a235b6be081bb52f2e148a60ddedb377cdd88153d0a4e2",
+      clear: "d94f5f3480655bff618e0a910472d906ab7e9ec2264a85d2e8a469c896113a6a",
+      teardown: "bb72f6d7d931afb794beddaca7e0f8854433d0724845849b601c816e246c52b6",
+      requestPump: "dc60c4b98483b9d8e23c1a25a3d056868735c07b30409aee95af3251291dab2e",
+      requestSent: "2aeb4477289e781fb3aa57e4f7cae5aca872536b5229d15cd81553b2709905a9",
+      requestCompleted: "7e80d653d1077f72f868789973010da5b011c2728c6d43ad9554e53cd11fd720",
+      rosterEntry: "47a667d21f1c472ebb462d6253440b7efccd3f9257425689f6635c6008708d19",
+      loginCompleted: "f166597da2f9f126edc642f0d8993adf8e7c5ddb09b5dcbd6b316cbc607a857b",
+      loginStart: "3924464319cf59baecbeb4c78d3c31f144bff9ada16cd2ec5c6e6907ef2cd3a7",
+      connectionEvent: "eaad167a99cb9d27a67c430021830b51597baeaadd9cb426e467eff13aafd985",
+      disconnect: "6af541a904883bfec8e0ae09525157f10819c96ced8b11d48acf273f0b25e0c1",
+      logout: "8b652e8daeee2dbabc457eb6e55838083ff85c33d829d44ddf05fddc948ab725",
+      connected: "b5258d2937ae73dcacc82e55cd94868b2085bfa2749d9b3ffcde3f0cbd2eb879",
+    }),
   } as const)]),
   templateCalleeBodies: Object.freeze({
     "screenshot-initializer@145": [

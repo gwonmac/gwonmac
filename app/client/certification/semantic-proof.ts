@@ -31,7 +31,10 @@ export type ProofVerdict<Value> =
 export type AddressClass =
   | "function-index"
   | "immutable-data"
-  | "mutable-static";
+  | "mutable-static"
+  // Not an address: the line argument an assertion passes after its source
+  // file path. A proof erases it only where it names that relation itself.
+  | "source-line";
 
 export type FieldWitness = Readonly<{
   sourceRole: string;

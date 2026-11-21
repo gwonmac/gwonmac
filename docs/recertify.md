@@ -256,8 +256,8 @@ feature for that reason; only a few changes were real. Reviewed facts now
 match such a relink by relocation identity (see
 [ArenaNet compatibility](arenanet-compatibility.md#current-implementation-limits)),
 so first check what still refuses. With only the older facts, November 3
-now refuses only Quick Item Move (its memory-code digest changed) and friend
-observation (moved assertion lines); both need a review.
+now refuses only Quick Item Move (its memory-code digest changed), which needs
+a review.
 
 Real ArenaNet changes ship as a fact-only release. The slow part is the human
 review, so one command prepares it:
@@ -345,7 +345,8 @@ A new client can need all of these:
 - in its generation file's `facts`: alternatives, template-saving helper
   bodies, the native render family, the Guild Hall area-type family, and, only when one's body really changed (a relink finds
   them by identity), the resign and whisper chat paths and the Cartography
-  surface owners; and the friend lifecycle family (it changes
+  surface owners; and the friend lifecycle family, only when a role changed
+  beyond moved assertion lines, with its `sourceLinesErased` shapes (it changes
   `FRIEND_OBSERVER_SEMANTIC_SHA256` only when a role's signature changes);
 - nothing for the Cartography memory layout: the verifier derives its roots,
   surface owners and callback slots from the bytes, and the derived client
