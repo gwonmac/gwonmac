@@ -27,6 +27,13 @@
  * deadline is treated as the game hiding the cursor on purpose, and the
  * pointer is left alone.
  */
+/**
+ * Dispatched on `window` by the cursor installation on the frame the client's
+ * cursor goes from shown to hidden. The input controller takes the pointer
+ * lock for mouse-look from it.
+ */
+export const CLIENT_CURSOR_HIDDEN_EVENT = "gwonmac:client-cursor-hidden";
+
 const RETEST_INTERVAL_MS = 150;
 const RETEST_DEADLINE_MS = 2500;
 /** A stored click older than this cannot have started the current transition. */

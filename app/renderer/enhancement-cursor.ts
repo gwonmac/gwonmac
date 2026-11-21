@@ -85,6 +85,7 @@ export function createCursorConsumer({
   cursorPointer,
   fallback = "",
   transitionHold = () => false,
+  onHide = () => {},
 }: {
   element: HTMLElement;
   memory: WebAssembly.Memory;
@@ -98,6 +99,11 @@ export function createCursorConsumer({
    * ends is settled on the next poll, republish or not.
    */
   transitionHold?: () => boolean;
+  /**
+   * Called once each time the client's cursor goes from shown to hidden, on
+   * the poll that reads it and whether or not the hide is being held.
+   */
+  onHide?: () => void;
 }) {
   let applied = fallback;
   let generation = -1;
@@ -169,11 +175,13 @@ export function createCursorConsumer({
         css = cached;
       }
     }
+    const hid = header.hidden && !hidden;
     generation = header.generation;
     flags = header.flags;
     pixelHash = header.pixelHash;
     hidden = header.hidden;
     valid = true;
+    if (hid) onHide();
     if (header.hidden && transitionHold()) {
       withheld = true;
       return;
