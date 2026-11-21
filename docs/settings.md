@@ -36,9 +36,14 @@ is briefly highlighted. Hub search does not change a setting in place.
    texture packs, reset, logs, and copy and paste of settings run only from the
    launcher. The Hub page never
    offers them.
-6. **Tools on or off needs a restart of the launcher.** The Tools section says
-   "Restart the launcher". Only the launcher offers the restart button.
-   Restarting only a game window does not load or unload Tools.
+6. **The plain game is the launch mode.** **Play the plain game** (stored as
+   `gwonmacTools` off) stops every Feature, Character Switch included, at once,
+   and the next launch is a Core launch. It writes only `gwonmacTools`, so turning
+   it off brings back every Feature switch as it was. Loading or unloading
+   Features needs a restart of the launcher: the section says "Restart the
+   launcher" and only the launcher offers the button. Restarting only a game
+   window does not load or unload them. `resolve` (`app/shared/feature-resolve.ts`)
+   reports `plain-game` for every Feature; nothing else reads the mode.
 
 ## Moving settings to another Mac
 
@@ -56,7 +61,7 @@ launcher state.
   own validation.
 - **Lenient age.** A setting or Home choice this build does not know, from a
   newer or older app, is left out; the launcher reports how many.
-- **Stays on this Mac.** The launch mode (`gwonmacTools`, Enable Tools), the
+- **Stays on this Mac.** The launch mode (`gwonmacTools`, Play the plain game), the
   last update check, the client compatibility notice and the stored Travel
   shortcuts (`NOT_TRANSFERRED`) are neither copied nor applied. The text carries
   choices, not the mode. Travel shortcuts change only through Travel's own compare-and-refuse

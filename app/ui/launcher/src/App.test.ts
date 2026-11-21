@@ -257,7 +257,7 @@ describe("unified launcher shell", () => {
     expect(wrapper.get('.titlebar button[aria-label="Open GitHub"]').attributes("title")).toBe("GitHub");
   });
 
-  it("opens the launcher after setup and keeps Tools off unless explicitly enabled", async () => {
+  it("opens the launcher after setup and stays in the plain game unless Features are turned on", async () => {
     let publish: (snapshot: LauncherSnapshot) => void = () => undefined;
     const completeSetup = vi.fn(async () => {
       publish({ ...fresh, revision: fresh.revision + 1, experience: { ...fresh.experience, setup: "complete" } });
@@ -280,7 +280,7 @@ describe("unified launcher shell", () => {
     expect(document.body.textContent).toContain("Welcome to Guild Wars Reforged");
     document.querySelector<HTMLButtonElement>(".setup-card .primary")!.click();
     await wrapper.vm.$nextTick();
-    expect(document.body.textContent).toContain("Tools apply to every account");
+    expect(document.body.textContent).toContain("Features apply to every account");
     document.querySelectorAll<HTMLButtonElement>(".setup-card .secondary")[1]!.click();
     await flushPromises();
     expect(completeSetup).toHaveBeenCalledWith({ enableTools: false });

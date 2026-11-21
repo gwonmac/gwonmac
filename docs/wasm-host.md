@@ -270,10 +270,11 @@ transform restores persistent template operations. Certified Core adds the
 Guild Wars cursor and native double-click, and every launch gets the sound
 decode repair. These behaviors have no player switch when their proof passes.
 
-Optional Tools are off by default. The master **Enable Tools Beta**
-setting selects a commands-capable derived module on the next start. The first
-enable therefore requires a restart. Every tool also has an individual switch.
-The master setting must remain on for any tool surface, shortcut, or alias.
+Optional Features are off by default: new players start in the plain game.
+Turning off **Play the plain game** (`gwonmacTools` on) selects a
+commands-capable derived module on the next start, so it requires a restart.
+Every Feature also has an individual switch. The plain game stops every Feature
+surface, shortcut, and alias, Character Switch included.
 
 The persisted `gwonmacTools` value is desired state. The launch-time
 `enhancementSelection.tools` value is the authoritative statement of what this
@@ -309,8 +310,8 @@ but keeps Guild Halls as an explicit gwonmac exception. PvP outposts close Tools
 and Xunlai storage. Stricter live features also withdraw during transitions and
 unknown regions.
 
-If live integration is unavailable while Tools Beta and Build Library remain
-enabled, the host can still mount the saved-library part of Tools. Players can
+If live integration is unavailable while the plain game is off and Build Library
+remains enabled, the host can still mount the saved-library part of Tools. Players can
 edit, import, and export builds and teams. Live party observation, storage
 opening, and Apply remain unavailable. This host-only surface does not become
 certification authority.

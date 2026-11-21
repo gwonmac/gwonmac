@@ -130,7 +130,7 @@ export function createHubCalculator(options: {
           try{return [card('manual-conversion',relative?relativeRate:rate,`Your rates · ${Object.entries(rates).filter(([,value])=>value).map(([unit,value])=>`1 ${unit} = ${value} ${unit==='ecto'?'g':'e'}`).join(' · ')}`)];}
           catch(error){return [{id:'missing-manual-rate',title:error instanceof Error?error.message:'Set conversion rates',detail:'Your rates · No value invented',group:'Calculator',action:'Set rates',run:()=>editRates()}];}
         }
-        if(!options.marketEnabled()){clear();return [{id:'quote-disabled',title:'Use your conversion rates',detail:'Enable Tools and Trade Chat for automatic observed prices, or use your rates.',group:'Calculator',action:'Choose rates',run:()=>editRates(true)}];}
+        if(!options.marketEnabled()){clear();return [{id:'quote-disabled',title:'Use your conversion rates',detail:'Turn on Trade Chat for automatic observed prices, or use your rates.',group:'Calculator',action:'Choose rates',run:()=>editRates(true)}];}
         const unquoted=units.find(unit=>unit==='armbrace'||unit==='zkey');
         if(unquoted){
           const unsupported=units.find(unit=>unit.startsWith('item:'));

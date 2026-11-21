@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { parseSettingsTarget } from "../../app/shared/settings-catalogue.js";
+import { parseSettingsTarget, searchSettings } from "../../app/shared/settings-catalogue.js";
 
 describe("Settings deep-link targets", () => {
   it("accepts a section, or a control inside its own section", () => {
@@ -23,6 +23,14 @@ describe("Settings deep-link targets", () => {
       { section: "game", url: "https://example.com" },
     ]) {
       assert.throws(() => parseSettingsTarget(value), JSON.stringify(value));
+    }
+  });
+});
+
+describe("Settings search", () => {
+  it("finds the plain game switch by its own words and by the words of the switch it replaced", () => {
+    for (const query of ["plain game", "vanilla", "enable tools", "tools beta"]) {
+      assert.equal(searchSettings(query)[0]?.id, "gwonmacTools", query);
     }
   });
 });

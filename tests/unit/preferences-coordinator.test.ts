@@ -14,6 +14,9 @@ import {
 import { CARTOGRAPHY_BUILTIN_PRESETS } from "../../app/shared/cartography-overlay.js";
 import { resolveShortcuts } from "../../app/shared/keyboard-shortcuts.js";
 import { launcherToolSettings, type SettingsWrite } from "../../app/shared/launcher-contracts.js";
+import { capabilityRecord } from "../../app/shared/enhancement-contracts.js";
+import { FEATURES } from "../../app/shared/feature-contracts.js";
+import { resolve, type FeatureState } from "../../app/shared/feature-resolve.js";
 
 type ResetOutcome = Awaited<ReturnType<PreferencesCoordinator["resetSettings"]>>;
 
@@ -106,6 +109,34 @@ it("applies each settings write kind the launcher and the Hub send", async () =>
     await coordinator.write(change);
     assert.deepEqual(read(await coordinator.getSettings()), expected, change.kind);
   }
+});
+
+it("the plain game stops every feature, and turning it off brings back each one as it was", async () => {
+  const { coordinator } = await fixture();
+  // Every feature's own switch gets a choice, half of them away from its default.
+  const switches = [...new Set(FEATURES.flatMap((feature) => feature.activation.kind === "setting" ? [feature.activation.setting] : []))];
+  await coordinator.write({ kind: "settings", patch: {
+    gwonmacTools: true,
+    ...Object.fromEntries(switches.map((key, index) => [key, index % 2 === 0 ? !DEFAULT_SETTINGS[key] : DEFAULT_SETTINGS[key]])),
+  } });
+  const chosen = await coordinator.getSettings();
+  const playing = (settings: AppSettings): FeatureState => ({
+    toolsAtLaunch: true, settings, program: "none", playRegion: "pve",
+    features: { gameFileSaving: { status: "available" }, nativeDoubleClick: { status: "available" }, ...capabilityRecord(() => ({ status: "available" as const })) },
+  });
+  const before = FEATURES.map((feature) => resolve(feature, playing(chosen)));
+  assert.ok(before.some((resolution) => resolution.on), "some features run before the plain game");
+
+  await coordinator.write({ kind: "master", enabled: false });
+  const plain = await coordinator.getSettings();
+  for (const feature of FEATURES) {
+    assert.deepEqual(resolve(feature, playing(plain)), { on: false, reason: "plain-game" }, feature.id);
+  }
+
+  await coordinator.write({ kind: "master", enabled: true });
+  const after = await coordinator.getSettings();
+  assert.deepEqual(after, chosen);
+  assert.deepEqual(FEATURES.map((feature) => resolve(feature, playing(after))), before);
 });
 
 async function seedNonDefaultPreferences(

@@ -262,9 +262,10 @@ test("feature selection policies are deeply immutable", () => {
   }
 });
 
-test("Core Character Switch is independent while Maps follows its master and feature switch", () => {
-  assert.equal(featureActivationRequested("characterSwitch", DEFAULT_SETTINGS), true);
-  assert.equal(featureActivationRequested("characterSwitch", { ...DEFAULT_SETTINGS, characterSwitchEnabled: false }), false);
+test("Character Switch and Maps follow the plain game and their own switch", () => {
+  assert.equal(featureActivationRequested("characterSwitch", DEFAULT_SETTINGS), false);
+  assert.equal(featureActivationRequested("characterSwitch", { ...DEFAULT_SETTINGS, gwonmacTools: true }), true);
+  assert.equal(featureActivationRequested("characterSwitch", { ...DEFAULT_SETTINGS, gwonmacTools: true, characterSwitchEnabled: false }), false);
   assert.equal(featureActivationRequested("cartography", DEFAULT_SETTINGS), false);
   assert.equal(featureActivationRequested("cartography", { ...DEFAULT_SETTINGS, gwonmacTools: true }), true);
   assert.equal(featureActivationRequested("cartography", { ...DEFAULT_SETTINGS, gwonmacTools: true, cartographyEnabled: false }), false);

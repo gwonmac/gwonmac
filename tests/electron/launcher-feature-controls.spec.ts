@@ -13,7 +13,9 @@ test("feature controls preserve preferences and validate native commands", async
     const settings = await openSettings(fixture);
     const nav = (name: string) => settings.locator(".settings-page aside").getByRole("button", { name, exact: true });
     await nav("Tools").click();
-    await expect(settings.getByRole("checkbox", { name: "Switch Character", exact: true })).toBeEnabled();
+    // The plain game holds every Feature switch, Switch Character included, until it is turned off.
+    await expect(settings.getByRole("checkbox", { name: /^Play the plain game/ })).toBeChecked();
+    await expect(settings.getByRole("checkbox", { name: "Switch Character", exact: true })).toBeDisabled();
     await expect(nav("Maps")).toHaveCount(1);
     await settings.evaluate(() => window.launcherNative.tools.setFeature({ tool: "character-switch", enabled: false }));
     await expect.poll(() => page.evaluate(async () => (await window.launcherNative.state.get()).tools.features["character-switch"].enabled)).toBe(false);
@@ -23,6 +25,8 @@ test("feature controls preserve preferences and validate native commands", async
     });
     await expect(settings.getByText("⌘J", { exact: true })).toBeVisible();
     await settings.evaluate(() => window.launcherNative.tools.setMasterEnabled(true));
+    await expect(settings.getByRole("checkbox", { name: /^Play the plain game/ })).not.toBeChecked();
+    await expect(settings.getByRole("checkbox", { name: "Switch Character", exact: true })).toBeEnabled();
     const resign = settings.getByRole("checkbox", { name: "Resign", exact: true });
     await expect(resign).not.toBeChecked();
     await resign.check();
@@ -54,7 +58,7 @@ test("feature controls preserve preferences and validate native commands", async
   } finally { await closeOffline(fixture); }
 });
 
-test("the game menu follows saved Character Switch enablement and bindings", async () => {
+test("the game menu follows the plain game, saved Character Switch enablement and bindings", async () => {
   const fixture = await launchOffline("gw-feature-menu-");
   try {
     const launcher = fixture.app.windows().find(page => page.url().endsWith("launcher/index.html"));
@@ -63,6 +67,9 @@ test("the game menu follows saved Character Switch enablement and bindings", asy
       const item = Menu.getApplicationMenu()?.getMenuItemById("switch-character");
       return item ? { enabled: item.enabled, accelerator: item.accelerator ?? null } : null;
     });
+    // The plain game is the default and stops Character Switch with every other Feature.
+    await expect.poll(menu).toEqual({ enabled: false, accelerator: "Command+E" });
+    await launcher.evaluate(() => window.launcherNative.tools.setMasterEnabled(true));
     await expect.poll(menu).toEqual({ enabled: true, accelerator: "Command+E" });
     await launcher.evaluate(async () => {
       await window.launcherNative.tools.setFeature({ tool: "character-switch", enabled: false });

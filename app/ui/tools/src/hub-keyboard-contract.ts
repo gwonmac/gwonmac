@@ -45,7 +45,7 @@ const VIEWS: Record<KeyboardView, { query?: string; open(): Promise<void> | void
     fill(search(), 'team gom afk'); await settle(); press('ArrowRight'); await settle();
     click(document.querySelector('#hub details summary')!);
   } },
-  'settings-body': { open: async () => { await openSettings(); byRole('checkbox', 'Enable Tools')[0]!.focus(); } },
+  'settings-body': { open: async () => { await openSettings(); byRole('checkbox', 'Play the plain game')[0]!.focus(); } },
 };
 
 const visible = (selector: string) => [...document.querySelectorAll(selector)].some(shown);

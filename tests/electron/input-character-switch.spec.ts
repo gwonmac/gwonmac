@@ -13,7 +13,9 @@ import {
 import { startGameInput } from "./input-helpers.js";
 
 test("a 27-character account uses the Hub carousel and preserves search, identity and preferences", async () => {
-  const fixture = await launchPlayableClient("gw-character-switch-e2e-");
+  // Character Switch is a Feature: the plain game (the default) leaves it off.
+  const fixture = await launchPlayableClient("gw-character-switch-e2e-", {}, (userData) =>
+    writeFile(path.join(userData, "settings.json"), JSON.stringify({ gwonmacTools: true })));
   try {
     const { app, page } = fixture;
     await startGameInput(page);

@@ -31,11 +31,9 @@ export type HubToolRow = Readonly<{
 
 /** What selects a feature, before its region and any live-state gate. */
 export type FeatureActivation =
-  /** The master switch itself: optional Tools. */
+  /** The master switch itself: on loads Features at launch, off is the plain game. */
   | Readonly<{ kind: "master"; setting: string }>
-  /** Selected by its own setting, with or without the master switch. */
-  | Readonly<{ kind: "independent"; setting: string }>
-  /** Selected by its own setting while the master switch is on. */
+  /** Selected by its own setting while the master switch is on (not in the plain game). */
   | Readonly<{ kind: "setting"; setting: string; master: string }>;
 
 export type FeatureDefinition = Readonly<{

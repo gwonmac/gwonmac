@@ -18,8 +18,8 @@ const emit = defineEmits<{ maps: [] }>();
 const message = ref("");
 // In a game window (no profiles) a game is running by definition.
 const hasActiveGames = computed(() => !props.profiles || props.profiles.some(profile => profile.state !== "ready" && profile.state !== "failed"));
-const enabled = (tool: GlobalTool) => props.snapshot.tools.features[tool].enabled
-  && (tool === "character-switch" || props.snapshot.tools.configured);
+/** `configured` false is the plain game: every Feature is off and its switch waits as stored. */
+const enabled = (tool: GlobalTool) => props.snapshot.tools.features[tool].enabled && props.snapshot.tools.configured;
 async function perform(action: () => Promise<unknown> | undefined, nativeSave = false) {
   message.value = "";
   try {
@@ -50,22 +50,22 @@ function customColor(value: string) {
   <p>Choose the features you use. Each shortcut sits next to its tool. Everything applies to every account.</p>
     <div class="setting-group hub-setting">
       <div class="feature-heading" data-setting="hub">
-        <span><strong>Hub</strong><small>Search everything in game. Always on, even with Tools off.</small></span>
+        <span><strong>Hub</strong><small>Search everything in game. Always on, also in the plain game.</small></span>
         <span class="shortcut-keycaps" aria-label="Command R"><kbd v-for="cap in shortcutKeycaps(HUB_SHORTCUT)" :key="cap.name" :title="cap.name">{{ cap.label }}</kbd></span>
         <span class="built-in">Built in</span>
       </div>
     </div>
     <div class="setting-group tools-master">
-      <label data-setting="gwonmacTools"><span><strong>Enable Tools</strong><small>Optional game features. Character Switch works independently.</small></span><input type="checkbox" :checked="snapshot.tools.configured" @change="perform(() => api?.tools.setMasterEnabled(($event.target as HTMLInputElement).checked), true)" /></label>
-      <div v-if="snapshot.tools.restartRequired" class="restart-row"><span><strong>Restart the launcher</strong><small>{{ snapshot.tools.configured ? 'Your selection is saved. Restart the launcher to load Tools. Restarting only a game window will not enable them.' : 'Tools are off in every game window. Restart the launcher to finish unloading them.' }}</small><small v-if="hasActiveGames">Close every game window before restarting the launcher.</small></span><button v-if="api?.tools.restartToApply" class="primary small" :disabled="hasActiveGames" @click="perform(() => api?.tools.restartToApply?.())">Restart launcher</button></div>
-      <p v-else class="tools-state">{{ snapshot.tools.configured ? 'Tools are loaded. Feature switches apply immediately in supported game areas.' : 'Tools are off. Your feature preferences are kept.' }}</p>
+      <label data-setting="gwonmacTools"><span><strong>Play the plain game</strong><small>Turns off every Feature. Your Feature choices stay saved.</small></span><input type="checkbox" :checked="!snapshot.tools.configured" @change="perform(() => api?.tools.setMasterEnabled(!($event.target as HTMLInputElement).checked), true)" /></label>
+      <div v-if="snapshot.tools.restartRequired" class="restart-row"><span><strong>Restart the launcher</strong><small>{{ !snapshot.tools.configured ? 'Features are off in every game window. Restart the launcher to unload them completely.' : 'Your choices are saved. Restart the launcher to load Features. Restarting only a game window does not load them.' }}</small><small v-if="hasActiveGames">Close every game window before restarting the launcher.</small></span><button v-if="api?.tools.restartToApply" class="primary small" :disabled="hasActiveGames" @click="perform(() => api?.tools.restartToApply?.())">Restart launcher</button></div>
+      <p v-else class="tools-state">{{ !snapshot.tools.configured ? 'Every Feature is off. Turn off the plain game to get each one back as it was.' : 'Features are loaded. Each switch below works at once in supported game areas.' }}</p>
     </div>
   <template v-for="tool in GLOBAL_TOOLS" :key="tool">
     <div class="setting-group feature-setting" :data-setting="`tool:${tool}`">
       <div class="feature-heading">
         <label :for="`tool-${tool}`"><strong>{{ features[tool].label }}</strong><small :id="`tool-${tool}-help`">{{ features[tool].description }}</small></label>
         <ShortcutSetting v-if="features[tool].action" :action="features[tool].action!" :shortcuts="snapshot.shortcuts" :api="api?.tools" :perform-save="performSave" :disabled="!enabled(tool)" />
-        <input :id="`tool-${tool}`" type="checkbox" :aria-label="features[tool].label" :aria-describedby="`tool-${tool}-help`" :checked="snapshot.tools.features[tool].enabled" :disabled="tool !== 'character-switch' && !snapshot.tools.configured" @change="perform(() => api?.tools.setFeature({ tool, enabled: ($event.target as HTMLInputElement).checked }), true)" />
+        <input :id="`tool-${tool}`" type="checkbox" :aria-label="features[tool].label" :aria-describedby="`tool-${tool}-help`" :checked="snapshot.tools.features[tool].enabled" :disabled="!snapshot.tools.configured" @change="perform(() => api?.tools.setFeature({ tool, enabled: ($event.target as HTMLInputElement).checked }), true)" />
       </div>
       <p v-if="tool === 'maps' && enabled(tool)" class="tool-link"><button class="text-link" @click="emit('maps')">Layers, styles and map shortcuts in Maps settings</button></p>
       <details v-else-if="enabled(tool) && hasOptions(tool)" class="tool-options" :open="openOptions.has(tool)" @toggle="toggleOptions(tool, $event)">

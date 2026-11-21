@@ -200,7 +200,7 @@ function settings(input: LauncherIpcInput) {
           defaultId: 1,
           cancelId: 1,
           message: "Replace your settings with the copied ones?",
-          detail: "This replaces launcher and game preferences, the choices for each Tool, shortcuts, custom map styles, custom panel colors and the launcher's Home choices. Enable Tools stays as it is on this Mac. Accounts, saved logins, game files, texture packs and Travel favourites are kept.",
+          detail: "This replaces launcher and game preferences, the choices for each Tool, shortcuts, custom map styles, custom panel colors and the launcher's Home choices. The plain game switch stays as it is on this Mac. Accounts, saved logins, game files, texture packs and Travel favourites are kept.",
         });
         if (response !== 0) return { status: "cancelled" } as const;
         const { settings, launcherContent, skipped } = read.transfer;

@@ -3,7 +3,7 @@
  * settings accepts, so a player can carry their setup to another Mac.
  *
  * The text holds the stored settings and the launcher's Home choices. It carries
- * choices, not the mode: Enable Tools stays as it is on each Mac. It never holds what
+ * choices, not the mode: the plain game switch stays as it is on each Mac. It never holds what
  * belongs to one machine or one moment either: the last update check, the client
  * compatibility notice, and the stored Travel shortcuts, which only Travel's own
  * compare-and-refuse path writes. Credentials, accounts, game files and texture packs
