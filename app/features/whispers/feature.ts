@@ -5,6 +5,8 @@ export default defineFeature({
   id: "whispers",
   settings: {
     whispersEnabled: setting.boolean(false, { tools: true }),
+    /** Draw the small unread icon; the panel still opens from its shortcut and the Hub. */
+    whispersIcon: setting.boolean(true, { hub: true, tools: true }),
   },
   activation: { kind: "setting", setting: "whispersEnabled", master: "gwonmacTools" },
   region: "pve",

@@ -51,6 +51,7 @@ export default {
             if (context.policy().whispers && capabilities.whisperChat) {
               surface ??= createWhisperSurface(document.body, session);
               surface.setEnabled(true);
+              surface.setIconShown(context.snapshot().settings.whispersIcon);
               session.setAvailable(true);
             } else {
               surface?.setEnabled(false);

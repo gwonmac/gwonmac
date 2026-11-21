@@ -109,6 +109,9 @@ describe("settings", () => {
       memoryWarningPosition: null,
       showDiagnostics: false,
       disableSteamLogin: false,
+      pasteCleanup: true,
+      hubCalculators: true,
+      whispersIcon: true,
       // Automatic app-update checks remain a separate preference from the
       // required ArenaNet game-data download.
       autoCheckUpdates: true,
@@ -251,6 +254,9 @@ describe("settings", () => {
       memoryWarningPosition: null,
       showDiagnostics: true,
       disableSteamLogin: false,
+      pasteCleanup: true,
+      hubCalculators: true,
+      whispersIcon: true,
       autoCheckUpdates: true,
       lastUpdateCheckAt: null,
       compatibilityNoticeSeenFor: null,
@@ -681,9 +687,11 @@ describe("settings", () => {
       "eliteSkillsEnabled",
       "formatVersion",
       "gwonmacTools",
+      "hubCalculators",
       "hubShortcuts",
       "lastUpdateCheckAt",
       "memoryWarningPosition",
+      "pasteCleanup",
       "quickItemMove",
       "reminderAlcohol",
       "reminderAtEnd",
@@ -711,6 +719,7 @@ describe("settings", () => {
       "uiStyle",
       "uiTextSize",
       "whispersEnabled",
+      "whispersIcon",
       "xunlaiStorage",
     ]);
     assert.equal(disk.formatVersion, 1);
@@ -837,6 +846,9 @@ describe("settings", () => {
       memoryWarningPosition: null,
       showDiagnostics: true,
       disableSteamLogin: false,
+      pasteCleanup: true,
+      hubCalculators: true,
+      whispersIcon: true,
       // Fields that alpha never wrote arrive at their defaults — deliberately
       // including the update check, which defaults on. A profile that never
       // stored the setting inherits the current default; an explicit opt-out

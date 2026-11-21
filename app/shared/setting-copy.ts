@@ -32,6 +32,8 @@ export const GAME_SETTINGS = {
   autoRelogAfterReload: { label: "Return to character after reload", detail: "Sign in and return to the last character after reloading the game.", applies: "now", keywords: "relog login reload automatic" },
   controllerPromptStyle: { label: "Controller symbols", detail: "Button symbols shown for a game controller.", applies: "next-game", keywords: "gamepad playstation xbox buttons" },
   disableSteamLogin: { label: "Disable Steam login", detail: "Do not offer Steam as a way to sign in. The login screen then shows only the ArenaNet email and password form.", applies: "next-login", keywords: "steam login sign in account provider password email" },
+  pasteCleanup: { label: "Clean pasted text", detail: "Remove invisible characters and outer spaces from text you paste into a game text field, so a copied name works like a typed one. Password and email fields are never changed.", applies: "now", keywords: "paste clipboard name discord invisible spaces trim" },
+  hubCalculators: { label: "Hub calculators", detail: "Currency conversions, conversion rates and the title calculator in Hub search.", applies: "now", keywords: "calculator disable hide conversions currency" },
   showDiagnostics: { label: "Diagnostics overlay", detail: "Show frame and memory diagnostics in open game windows.", applies: "now", keywords: "fps debug performance" },
 } as const satisfies Readonly<Record<string, Copy>>;
 

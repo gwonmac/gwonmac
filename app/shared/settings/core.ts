@@ -112,6 +112,10 @@ export const CORE_SETTINGS = {
   showDiagnostics: setting.boolean(false, { hub: true }),
   /** Tell the client that no login provider exists, so its login screen is only the email and password form. */
   disableSteamLogin: setting.boolean(false, { hub: true }),
+  /** Remove invisible characters and outer spaces from text pasted into a game text field. */
+  pasteCleanup: setting.boolean(true, { hub: true }),
+  /** Offer the currency and title calculators in Hub search. */
+  hubCalculators: setting.boolean(true, { hub: true, tools: true }),
   /**
    * Automatic release checks: one static channel request when no settled
    * attempt was recorded in the previous six hours, including across app

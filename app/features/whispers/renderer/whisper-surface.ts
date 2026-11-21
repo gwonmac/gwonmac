@@ -67,6 +67,8 @@ export function createWhisperSurface(parent: HTMLElement, session: WhisperSessio
       enabled = next; root.hidden = !next; surface.setOpen(next && session.state.visible);
       if (!next && root.contains(document.activeElement)) nonActivating.releaseKeyboard();
     },
+    /** Draws or hides the unread icon; the panel is unaffected. */
+    setIconShown(shown: boolean) { root.toggleAttribute("data-icon-hidden", !shown); },
     dispose() {
       if (disposed) return;
       window.removeEventListener("gw:whispers-toggle", toggle);

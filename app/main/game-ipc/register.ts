@@ -26,7 +26,7 @@ export function registerGameIpc(input: GameIpcInput): { drainSecrets(): Promise<
     settings(input),
     diagnostics(input),
     app(input),
-    clipboard(),
+    clipboard(input),
     templates(input),
   ]);
   for (const part of parts) register(input.windows, "game", part.channels);

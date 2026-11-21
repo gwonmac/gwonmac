@@ -15,7 +15,9 @@ game messages.
 
 The default **Command-D** shortcut opens the floating Whispers surface. Existing
 custom bindings and cleared shortcuts are preserved. Person search, the shortcut
-and the unread launcher use the same mounted Vue conversation component.
+and the unread launcher use the same mounted Vue conversation component. The
+launcher icon can be hidden (`whispersIcon`); the shortcut and Hub still open
+the surface.
 Opening it from Hub suspends the Hub page. Returning to Hub resumes that page.
 The session and transcript have one owner; there is no separate quick composer.
 

@@ -68,6 +68,7 @@ export const SETTINGS: readonly SettingEntry[] = [
   { id: "skillCooldownColor", section: "tools", label: "Timer color", tool: "skill-cooldowns", keywords: "skill cooldown colour" },
   { id: "alcoholTimerPosition", section: "tools", label: "Alcohol Timer position", tool: "alcohol-timer", keywords: "move reset position" },
   { id: "targetReadoutPosition", section: "tools", label: "Target Distance position", tool: "target-readout", keywords: "move drag reset position" },
+  { id: "whispersIcon", section: "tools", label: "Show the Whispers icon", tool: "whispers", keywords: "hide whisper button icon unread" },
   { id: "skillKeyBindings", section: "tools", label: "Skill labels", tool: "skill-key-labels", keywords: "skill key labels bindings" },
 
   { id: "cartographyGridEnabled", section: "maps", label: "Exploration grid", detail: "Shows remaining exploration on the Mission Map and World Map.", keywords: `cartographer explore ${KEYS}` },
@@ -94,6 +95,8 @@ export const SETTINGS: readonly SettingEntry[] = [
   game("autoRelogAfterReload"),
   game("controllerPromptStyle"),
   game("disableSteamLogin"),
+  game("pasteCleanup"),
+  game("hubCalculators"),
   game("showDiagnostics"),
 
   { id: "autoCheckUpdates", section: "updates", label: "Automatically check for launcher updates", keywords: "automatic update" },
