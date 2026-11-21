@@ -117,11 +117,24 @@ Wrap the existing substrates; do not move memory. Heap layout and proofs stay id
 | 3.2 | `game.session`: character changed / left game, once for everyone | – | 3.1 | Table test of login, relog, character select, zone change; Whispers and party-invite tracking deletable in 5.x | todo | 0 |
 | 3.3 | `game.chat.messages` + `game.chat.send(line)`: the chat send slot moves out of Whispers into a block | Play: invite with Whispers off | 3.1 | Party invite works with Whispers off (unit test + you play); send slot memory layout unchanged | todo | 0 |
 | 3.4 | `game.friends` without `attachWhispers` / `attachTravel`; links become typed feature links (4.5) | – | 3.1, 4.5 | 0 feature names in `tools-companion-substrates.ts` | todo | 0 |
-| 3.5 | Remaining blocks: `skillbar`, `effects`, `party`, `alcohol`, `progress`; `ui.overlay`, `ui.hudLayer`, `ui.position`, `hub.row`, `commands` | – | 3.1 | Every group A feature's needs covered (list in this file); no block exposes memory, pointers or untyped calls | todo | 0 |
+| 3.5 | Remaining blocks: `skillbar`, `effects`, `party`, `alcohol`, `progress`; `ui.overlay`, `ui.hudLayer`, `ui.position`, `hub.row`, `commands` | – | 3.1 | Every group A feature's needs covered (list in this file); no block exposes memory, pointers or untyped calls | todo (`skillbar` and `ui.skillLabels` came with 5.1) | 0 |
 
 **G1 (after 3.1 + 5.1):** Target Distance and Skill Cooldowns on blocks are ≤ 15 lines of logic each,
 touch 0 shared files, 4.2 passes, and you see no frame-time change in a busy fight. If a small helper
 over today's substrates gives ~80% of this, take the helper and simplify Phase 3.
+
+G1 evidence (5.1, 2026-11-21; your play check and decision still open):
+
+| Check | Result |
+|---|---|
+| Logic lines (non-blank, non-comment, non-import) | Target Distance 10 (was 29 in `companion.ts`); Skill Cooldowns 11 (was 73 in the overlay consumer plus its wiring in `skill-overlays-installation.ts`, all in `app/renderer/`) |
+| Shared files | The feature folders hold all feature logic. A one-time platform change came with it: `game-blocks.ts` (+`game.skillbar`, +`ui.skillLabels`), `tools-companion-part.ts` (+`featurePart`, the start → stop adapter that 4.5 formalises), the installer (passes the skill feeds and `context.ui`, runs `FEATURE_PARTS`), the skill substrate (feeds run on demand; the cooldown consumer is deleted), `skill-slot-projection.ts` (takes any element with a rect). The next block-only feature needs none of these when its blocks exist |
+| Why `FEATURE_PARTS` | The heap-layout test pins the exact `COMPANION_PARTS` id list; a block-only part owns no memory, so it goes in a second list that runs after it. Target Distance keeps its pinned line |
+| 4.2 (PR #42, run against this branch) | passes; a planted missing stop in either feature fails it |
+| Heap layout | `the-companion-heap-layout-stays-fixed.test.ts` unchanged and green |
+| Metrics (main `3d2916bc` → branch) | `policy().` reads in app/features 30 → 28; feature-domain files under `app/renderer/` 14 → 13; the rest unchanged. Files outside the folder naming the id: skill-cooldowns 6, target-readout 3, unchanged: settings catalogue and launcher UI (4.3–6.3), and the kernel region named `skillCooldowns` (a name clash, not a feature reference) |
+| Helper instead of blocks? | Target Distance: yes. `game.target` already existed, so `featurePart` alone gives all of it. Skill Cooldowns: no. A helper over the existing feeds leaves the projection, the frame ids and the repaint check in the feature, about 70 lines, so it fails the 15-line bar. The blocks cost about 105 new platform lines (`skillbar` 15, `skillLabels` 54, `featurePart` 37; app/ is +305 −217 in total). They pay back only if 5.2 reuses `featurePart` (all five features) and a sibling of `skillLabels` (Skill Key Labels, Effect Timers) |
+| Frame time | Not measured; needs your busy-fight check with each feature on |
 
 ## Phase 4 · Feature contract and decision (M)
 
@@ -149,7 +162,7 @@ Per-feature checklist (the **Done when** of every 5.x row):
 
 | ID | Group | Features (in order) | Status | Rounds |
 |---|---|---|---|---|
-| 5.1 | A (proof of concept, feeds G1) | Target Distance, Skill Cooldowns (pull out of `app/renderer/skill-cooldown-overlay-consumer.ts`) | todo | 0 |
+| 5.1 | A (proof of concept, feeds G1) | Target Distance, Skill Cooldowns (pull out of `app/renderer/skill-cooldown-overlay-consumer.ts`) | in review: both are one `featurePart(id, start)` in their folder (10 and 11 logic lines), no `policy()` or `featureActivationRequested`; new blocks `game.skillbar`, `ui.skillLabels`; block-only parts listed in `FEATURE_PARTS` so the pinned heap layout is unchanged; manifest v2 and settings stay for 4.3/4.4; Matthias play check pending (G1 evidence under Phase 3) | 1 |
 | 5.2 | A | Skill Key Labels (out of `skill-key-overlay-consumer.ts`), Effect Timers, Alcohol Timer, Reminders, Progress | todo | 0 |
 | 5.3 | B (proof of concept, feeds G3) | Whispers: session + window parts, typed `open` link, drop own session tracking, placement in settings | todo | 0 |
 | 5.4 | B | Trade Chat (declares `network`), Travel (hub page + main + action), Build Library (window + files) | todo | 0 |
