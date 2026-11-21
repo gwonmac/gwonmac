@@ -15,12 +15,14 @@ import type {
   PreparedCompanionExtension,
 } from "./certified-companion-extension.js";
 import * as observerReaders from "./companion-tools-observer-readers.js";
+import { createGameBlocks } from "./game-blocks.js";
 import { type PreparedToolsPart, type ToolsActivation, type ToolsCompanionPart, type ToolsPartSession } from "./tools-companion-part.js";
 import {
   createPolicyTrace,
   createToolsHud,
   createToolsPolicySource,
   createToolsSubstrates,
+  type ToolsSubstrates,
 } from "./tools-companion-substrates.js";
 
 type Free = (pointer: number) => void;
@@ -106,7 +108,12 @@ export async function prepareToolsCompanionExtension(
 type ObserverSlot = "state" | "toolbox" | "skillSlots" | "skillCooldowns" | "playerEffects" | "effectIcons";
 
 function activateParts(
-  input: Readonly<{ exports: WebAssembly.Exports; capabilities: EnhancementCapabilities; program: EnhancementProgram }>,
+  input: Readonly<{
+    exports: WebAssembly.Exports;
+    capabilities: EnhancementCapabilities;
+    program: EnhancementProgram;
+    substrates: ToolsSubstrates;
+  }>,
   context: CompanionExtensionActivation,
   prepared: ReadonlyMap<ToolsCompanionPart, PreparedToolsPart>,
 ): CompanionExtensionSession {
@@ -153,6 +160,13 @@ function activateParts(
       policy: () => snapshot().policy,
       playRegion: () => snapshot().playRegion,
       hud,
+      game: createGameBlocks({
+        capabilities,
+        observation: input.substrates.observation,
+        playRegions: context.playRegions,
+        // A block's demand can end after teardown, when a late stop runs; the kernel is gone then.
+        syncObservers: () => { if (!context.isCleaned()) syncObservers(); },
+      }),
       syncObservers,
       // The map holds each part's own prepare result, so the key fixes the value's type.
       prepared: <Prepared extends PreparedToolsPart>(part: ToolsCompanionPart<Prepared>) =>

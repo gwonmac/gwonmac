@@ -113,7 +113,7 @@ Wrap the existing substrates; do not move memory. Heap layout and proofs stay id
 
 | ID | Step | You | Depends | Done when | Status | Rounds |
 |---|---|---|---|---|---|---|
-| 3.1 | Block interface: `subscribe(cb) → stop`, `available` + reason; first blocks `game.target`, `game.region` | Review the API shape | 0.3 | Companion memory regions and part order identical before/after (test compares the list); all existing tests unchanged | todo | 0 |
+| 3.1 | Block interface: `subscribe(cb) → stop`, `available` + reason; first blocks `game.target`, `game.region` | Review the API shape | 0.3 | Companion memory regions and part order identical before/after (test compares the list); all existing tests unchanged | in review: `app/renderer/game-blocks.ts` on `context.game`; layout pinned by `the-companion-heap-layout-stays-fixed.test.ts` (unchanged before/after; catches a planted part swap); no feature moved yet (5.1) | 1 |
 | 3.2 | `game.session`: character changed / left game, once for everyone | – | 3.1 | Table test of login, relog, character select, zone change; Whispers and party-invite tracking deletable in 5.x | todo | 0 |
 | 3.3 | `game.chat.messages` + `game.chat.send(line)`: the chat send slot moves out of Whispers into a block | Play: invite with Whispers off | 3.1 | Party invite works with Whispers off (unit test + you play); send slot memory layout unchanged | todo | 0 |
 | 3.4 | `game.friends` without `attachWhispers` / `attachTravel`; links become typed feature links (4.5) | – | 3.1, 4.5 | 0 feature names in `tools-companion-substrates.ts` | todo | 0 |

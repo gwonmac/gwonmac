@@ -31,7 +31,7 @@ const RANGE_NAMES = Object.freeze([
   "Spirit",
   "Compass",
   "Beyond compass",
-]);
+] as const);
 const FLAGS = Object.freeze({
   ready: 1 << 0,
   player: 1 << 1,
@@ -187,6 +187,9 @@ export function readCompanionSnapshot(buffer: ArrayBuffer, pointer: number) {
     rangeName: RANGE_NAMES[state.rangeBand] ?? "None",
   });
 }
+
+/** The game's range band names, in band order. */
+export type CompanionRangeName = typeof RANGE_NAMES[number];
 
 /** The decoder-owned, discriminated game-state contract used by consumers. */
 export type CompanionSnapshot = ReturnType<typeof readCompanionSnapshot>;
