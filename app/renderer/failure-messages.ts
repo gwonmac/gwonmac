@@ -265,9 +265,7 @@ export function memoryWarningCopy(
     explanation:
       `This session can use up to ${capGb} GB. Reloading starts Guild Wars `
       + 'with fresh memory. With automatic return enabled, gwonmac signs in '
-      + 'and returns to the selected character. The experimental '
-      + '4 GB limit provides more headroom, but it cannot stop continued '
-      + 'memory growth.',
+      + 'and returns to the selected character.',
   };
 }
 

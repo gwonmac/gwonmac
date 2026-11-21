@@ -27,14 +27,6 @@ const KEPT: readonly Kept[] = [
     reason: "only the compiler's reason is a refusal; any other error propagates" },
   { file: "client-verification-pass.ts", snippet: "if (!isStageRefusal(error)) failedStages.add(stage);",
     reason: "the pass records a fault as a stage it could not check instead of rethrowing it" },
-  { file: "extended-memory.ts", snippet: "wasmHash === proof.wasmOutputSha256",
-    reason: "a cached 4 GB module that cannot be read is rebuilt; no verdict" },
-  { file: "extended-memory.ts", snippet: "verifyPublishedClientArtifacts(artifactsDir, manifest)",
-    reason: "an unreadable published client is not used; no verdict" },
-  { file: "extended-memory.ts", snippet: "verifyChunkHash(hash",
-    reason: "an unreadable chunk is not used; no verdict" },
-  { file: "extended-memory.ts", snippet: "wasmOutput = rewriteExtendedMemoryWasm(wasmInput);",
-    reason: "launch preparation: the launch serves the official module and stores nothing" },
 ];
 
 /** Whole files whose catches are not proof verdicts. */
@@ -119,9 +111,9 @@ for (const [name, file, source, expected] of [
     "try { f(); } catch (error: unknown) { return null; }", ["proof.ts:1"]],
   ["a helper call behind a condition", "proof.ts",
     "try { f(); } catch (error) { if (x) refusedOrRethrow(error); return null; }", ["proof.ts:1"]],
-  ["a bare catch right after a kept one", "extended-memory.ts",
-    "try { verifyChunkHash(hash, bytes); } catch { return false; }\ntry { g(); } catch { return null; }",
-    ["extended-memory.ts:2"]],
+  ["a bare catch right after a kept one", "wasm-evidence.ts",
+    "try { f(); } catch (error) { if (error instanceof TypeError) return null; throw error; }\ntry { g(); } catch { return null; }",
+    ["wasm-evidence.ts:2"]],
   ["a promise handler that swallows", "proof.ts", "await f().catch(() => null);", ["proof.ts:1"]],
   ["a typed binding that decides first", "proof.ts",
     "try { f(); } catch (error: unknown) {\n  // a refusal is no proof\n  return refusedOrRethrow(error);\n}", []],

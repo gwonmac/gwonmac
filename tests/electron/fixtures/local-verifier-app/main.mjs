@@ -14,9 +14,9 @@ const contracts = await import(new URL(
   "../../../../build/shared/enhancement-contracts.js", import.meta.url,
 ).href);
 
-const [wasmPath, wasmSha256, jsPath, jsSha256] = process.argv.slice(-4);
-if (!wasmPath || !wasmSha256 || !jsPath || !jsSha256) {
-  throw new Error("local verifier fixture requires wasm, js and their hashes");
+const [wasmPath, wasmSha256] = process.argv.slice(-2);
+if (!wasmPath || !wasmSha256) {
+  throw new Error("local verifier fixture requires the wasm and its hash");
 }
 const profile = (/** @type {keyof typeof contracts.RELEASE_ENHANCEMENT_CAPABILITIES} */ name) => {
   const value = contracts.enhancementCapabilityProfile(
@@ -37,13 +37,10 @@ void app.whenReady().then(async () => {
   const pass = verifier.runVerifierPass({
     wasmPath,
     wasmSha256,
-    jsPath,
-    jsSha256,
     launches: [
       { requestedProfile: profile("tools"), cartography: true },
       { requestedProfile: profile("core"), cartography: false },
     ],
-    extendedMemoryFirst: false,
   });
   const [requested, complete] = await Promise.all([pass.requested, pass.complete]);
   state.localVerifierOutcome = { requested, complete };

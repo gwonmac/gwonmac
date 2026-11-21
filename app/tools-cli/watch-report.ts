@@ -58,7 +58,6 @@ export function formatWatchReport(generation: unknown): string {
     ...featureRows(runtime),
     checkRow("native double-click", field(generation, "nativeDoubleClick")),
     checkRow("Cartography", field(generation, "cartography")),
-    checkRow("4 GB mode", field(generation, "extendedMemory")),
     checkRow("real-client regression suite", field(generation, "qualification")),
   ];
   return [

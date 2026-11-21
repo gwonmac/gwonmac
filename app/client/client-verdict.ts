@@ -50,10 +50,6 @@ import {
   type SoundDecodeRepairBuild,
 } from "./certification/sound-decode-repair.js";
 import {
-  isExtendedMemoryStructuralProof,
-  type ExtendedMemoryStructuralProof,
-} from "./certification/extended-memory.js";
-import {
   discardClientVerdictRecord,
   readClientVerdictRecord,
   writeClientVerdictRecord,
@@ -71,7 +67,6 @@ export interface UntrustedPassResult {
   readonly cartography: readonly unknown[];
   readonly nativeDoubleClick: readonly unknown[];
   readonly soundDecodeRepair: readonly unknown[];
-  readonly extendedMemory: readonly unknown[];
 }
 
 /** Bounds a hostile or corrupt answer before anything iterates it. */
@@ -90,7 +85,6 @@ export function readPassResult(value: unknown): UntrustedPassResult | null {
     || !("cartography" in value) || !boundedArray(value.cartography)
     || !("nativeDoubleClick" in value) || !boundedArray(value.nativeDoubleClick)
     || !("soundDecodeRepair" in value) || !boundedArray(value.soundDecodeRepair)
-    || !("extendedMemory" in value) || !boundedArray(value.extendedMemory)
   ) return null;
   const launches: UntrustedPassResult["launches"][number][] = [];
   for (const launch of value.launches) {
@@ -124,7 +118,6 @@ export function readPassResult(value: unknown): UntrustedPassResult | null {
     cartography: value.cartography,
     nativeDoubleClick: value.nativeDoubleClick,
     soundDecodeRepair: value.soundDecodeRepair,
-    extendedMemory: value.extendedMemory,
   };
 }
 
@@ -143,10 +136,6 @@ export interface ClientVerdict {
   readonly cartography: (inputSha256: string) => CartographySpikeBuild | null;
   readonly nativeDoubleClick: (inputSha256: string) => NativeDoubleClickBuild | null;
   readonly soundDecodeRepair: (inputSha256: string) => SoundDecodeRepairBuild | null;
-  readonly extendedMemory: (
-    jsInputSha256: string,
-    wasmInputSha256: string,
-  ) => ExtendedMemoryStructuralProof | null;
   /**
    * True once a stage guard threw on this answer. The answer is malformed, so
    * the caller serves the official module with `check-failed` instead.
@@ -196,9 +185,6 @@ export function acceptLaunchVerdict(
       cartography: find(result.cartography, isCartographySpikeBuild),
       nativeDoubleClick: find(result.nativeDoubleClick, isDerivedNativeDoubleClickBuild),
       soundDecodeRepair: find(result.soundDecodeRepair, isSoundDecodeRepairBuild),
-      extendedMemory: (jsInputSha256: string, wasmInputSha256: string) =>
-        guarded(() => result.extendedMemory.find((proof): proof is ExtendedMemoryStructuralProof =>
-          isExtendedMemoryStructuralProof(proof, jsInputSha256, wasmInputSha256))),
       guardFailed: () => guardFailed,
     });
   } catch {
@@ -228,11 +214,7 @@ export interface VerifierPass {
 export type RunVerifierPass = (options: Readonly<{
   wasmPath: string;
   wasmSha256: string;
-  jsPath: string;
-  jsSha256: string;
   launches: readonly ClientVerificationLaunch[];
-  /** False lets the requested launch report before its 4 GB proof. */
-  extendedMemoryFirst: boolean;
 }>) => VerifierPass;
 
 /** How long a launch waits for its own report before it plays unchecked. */
@@ -279,12 +261,10 @@ export async function obtainClientVerdict(options: Readonly<{
   installKey: () => Promise<Uint8Array | null>;
   wasmPath: string;
   wasmSha256: string;
-  jsPath: string;
+  /** Part of the record key only: the official glue names the client generation. */
   jsSha256: string;
   launch: ClientVerificationLaunch;
   releaseLaunches: readonly ClientVerificationLaunch[];
-  /** Whether this launch uses 4 GB, so its report waits for that proof. */
-  extendedMemoryRequested: boolean;
   runPass: RunVerifierPass;
   slot: VerifierPassSlot;
   launchBudgetMs?: number;
@@ -329,10 +309,7 @@ export async function obtainClientVerdict(options: Readonly<{
     const pass = options.runPass({
       wasmPath: options.wasmPath,
       wasmSha256: options.wasmSha256,
-      jsPath: options.jsPath,
-      jsSha256: options.jsSha256,
       launches: passLaunches(options.launch, options.releaseLaunches),
-      extendedMemoryFirst: options.extendedMemoryRequested,
     });
     const entry: { current: RunningPass | null } = { current: null };
     const stored = pass.complete.then(async (value): Promise<"stored" | "not-stored"> => {

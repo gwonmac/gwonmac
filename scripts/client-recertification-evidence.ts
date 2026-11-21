@@ -74,11 +74,6 @@ function integer(value: unknown, name: string): number {
   return value as number;
 }
 
-function boolean(value: unknown, name: string): boolean {
-  if (typeof value !== "boolean") throw new Error(`${name} must be boolean`);
-  return value;
-}
-
 function exactKeys(value: JsonRecord, expected: readonly string[], name: string): void {
   const actual = Object.keys(value).sort();
   const canonical = [...expected].sort();
@@ -363,61 +358,6 @@ function cartographyEvidence(value: JsonRecord): JsonRecord {
   });
 }
 
-function extendedMemoryEvidence(value: JsonRecord): JsonRecord {
-  const status = string(value.status, "extendedMemory.status");
-  const exitCode = integer(value.exitCode, "extendedMemory.exitCode");
-  if (value.status === "refused") {
-    if (exitCode === 0) throw new Error("extended-memory refusal must fail");
-    return Object.freeze({
-      status: "refused",
-      exitCode,
-    });
-  }
-  if (status !== "proved" || exitCode !== 0) {
-    throw new Error("extended-memory status is not closed");
-  }
-  const variants = value.variants;
-  if (!Array.isArray(variants) || variants.length === 0) {
-    throw new Error("extendedMemory.variants must be non-empty");
-  }
-  const profiles = variants.map((raw, index) => string(
-    record(raw, `extendedMemory.variants[${index}]`).profile,
-    `extendedMemory.variants[${index}].profile`,
-  ));
-  if (profiles.some((profile) => profile !== "off"
-      && !isEnhancementCapabilityProfile(profile))
-    || new Set(profiles).size !== profiles.length) {
-    throw new Error("extendedMemory profiles must use unique closed labels");
-  }
-  if (value.crossed3GiB !== true || value.freedBlockReusedWithoutGrowth !== true) {
-    throw new Error("extended-memory proved status requires allocator invariants");
-  }
-  return Object.freeze({
-    status: "proved",
-    exitCode,
-    jsInputSha256: digest(value.jsInputSha256, "extendedMemory.jsInputSha256"),
-    jsOutputSha256: digest(value.jsOutputSha256, "extendedMemory.jsOutputSha256"),
-    normalizedJsSha256: digest(
-      value.normalizedJsSha256,
-      "extendedMemory.normalizedJsSha256",
-    ),
-    variants: Object.freeze(variants.map((raw, index) => {
-      const variant = record(raw, `extendedMemory.variants[${index}]`);
-      return Object.freeze({
-        profile: string(variant.profile, `extendedMemory.variants[${index}].profile`),
-        inputSha256: digest(variant.inputSha256, "extendedMemory variant input"),
-        outputSha256: digest(variant.outputSha256, "extendedMemory variant output"),
-      });
-    })),
-    heapBytes: integer(value.heapBytes, "extendedMemory.heapBytes"),
-    crossed3GiB: boolean(value.crossed3GiB, "extendedMemory.crossed3GiB"),
-    freedBlockReusedWithoutGrowth: boolean(
-      value.freedBlockReusedWithoutGrowth,
-      "extendedMemory.freedBlockReusedWithoutGrowth",
-    ),
-  });
-}
-
 function unavailable(value: JsonRecord): boolean {
   return value.status === "unavailable";
 }
@@ -427,9 +367,8 @@ function generationOutcome(
   qualification: JsonRecord,
   doubleClick: JsonRecord,
   cartography: JsonRecord,
-  extendedMemory: JsonRecord,
 ): JsonRecord {
-  if ([runtime, qualification, doubleClick, cartography, extendedMemory].some(unavailable)) {
+  if ([runtime, qualification, doubleClick, cartography].some(unavailable)) {
     return Object.freeze({ status: "investigation", reason: "evidence-collection-failed" });
   }
   const features = runtime.features;
@@ -457,15 +396,10 @@ function generationOutcome(
   if (cartography.status !== "proved") {
     return Object.freeze({ status: "investigation", reason: "cartography-refused" });
   }
-  if (extendedMemory.status !== "proved") {
-    return Object.freeze({ status: "investigation", reason: "extended-memory-refused" });
-  }
   const doubleClickChains = doubleClick.chains as readonly JsonRecord[];
-  const memoryVariants = extendedMemory.variants as readonly JsonRecord[];
   const baseChains = doubleClickChains.filter((chain) =>
     chain.profile === "file-compatible");
-  const offVariants = memoryVariants.filter((variant) => variant.profile === "off");
-  if (baseChains.length !== 1 || offVariants.length !== 1) {
+  if (baseChains.length !== 1) {
     return Object.freeze({ status: "investigation", reason: "base-profile-missing" });
   }
   const fileVerdict = record(runtime.fileVerdict, "runtime.fileVerdict");
@@ -482,33 +416,13 @@ function generationOutcome(
     .map((chain) => chain.profile)
     .filter(isEnhancementCapabilityProfile)
     .sort();
-  const memoryProfiles = memoryVariants
-    .map((variant) => variant.profile)
-    .filter(isEnhancementCapabilityProfile)
-    .sort();
   const expectedProfiles = Object.values(RELEASE_ENHANCEMENT_CAPABILITIES)
     .map(enhancementCapabilityProfile)
     .filter((profile): profile is NonNullable<typeof profile> => profile !== null)
     .sort();
-  const matchesExpectedProfiles = expectedProfiles.length === doubleClickProfiles.length
-    && expectedProfiles.every(
-      (profile, index) => profile === doubleClickProfiles[index],
-    );
-  if (doubleClickProfiles.length !== memoryProfiles.length
-    || doubleClickProfiles.some((profile, index) => profile !== memoryProfiles[index])
-    || !matchesExpectedProfiles) {
+  if (expectedProfiles.length !== doubleClickProfiles.length
+    || expectedProfiles.some((profile, index) => profile !== doubleClickProfiles[index])) {
     return Object.freeze({ status: "investigation", reason: "profile-set-mismatch" });
-  }
-  const memoryByProfile = new Map(memoryVariants.map((variant) => [
-    variant.profile,
-    variant.inputSha256,
-  ]));
-  if (doubleClickChains.some((chain) => {
-    const memoryProfile = chain.profile === "official"
-      || chain.profile === "file-compatible" ? "off" : chain.profile;
-    return memoryByProfile.get(memoryProfile) !== chain.outputSha256;
-  })) {
-    return Object.freeze({ status: "investigation", reason: "transform-chain-mismatch" });
   }
   return Object.freeze({ status: "ready", reason: "all-required-evidence-proved" });
 }
@@ -518,14 +432,13 @@ export async function createClientRecertificationEvidence(
   environment: NodeJS.ProcessEnv = process.env,
 ): Promise<JsonRecord> {
   const [generation, wasmPath, jsPath, runtimePath, qualificationPath,
-    doubleClickPath, cartographyPath, extendedMemoryPath] = argv;
+    doubleClickPath, cartographyPath] = argv;
   if (!generation || !wasmPath || !jsPath || !runtimePath || !qualificationPath
-    || !doubleClickPath || !cartographyPath || !extendedMemoryPath
-    || argv.length !== 8) {
-    throw new Error("usage: client-recertification-evidence GENERATION WASM JS RUNTIME QUALIFICATION DOUBLE_CLICK CARTOGRAPHY EXTENDED_MEMORY");
+    || !doubleClickPath || !cartographyPath
+    || argv.length !== 7) {
+    throw new Error("usage: client-recertification-evidence GENERATION WASM JS RUNTIME QUALIFICATION DOUBLE_CLICK CARTOGRAPHY");
   }
-  const [wasm, js, safeRuntime, safeQualification, safeDoubleClick, safeCartography,
-    safeExtendedMemory] =
+  const [wasm, js, safeRuntime, safeQualification, safeDoubleClick, safeCartography] =
     await Promise.all([
       artifact(wasmPath),
       artifact(jsPath),
@@ -537,11 +450,6 @@ export async function createClientRecertificationEvidence(
       ),
       collectedEvidence(doubleClickPath, "doubleClick", doubleClickEvidence),
       collectedEvidence(cartographyPath, "cartography", cartographyEvidence),
-      collectedEvidence(
-        extendedMemoryPath,
-        "extendedMemory",
-        extendedMemoryEvidence,
-      ),
     ]);
   if ((safeRuntime.status !== "unavailable"
       && safeRuntime.officialSha256 !== wasm.sha256)
@@ -550,9 +458,7 @@ export async function createClientRecertificationEvidence(
     || (safeDoubleClick.status === "proved"
       && safeDoubleClick.officialSha256 !== wasm.sha256)
     || (safeCartography.status === "proved"
-      && safeCartography.officialSha256 !== wasm.sha256)
-    || (safeExtendedMemory.status === "proved"
-      && safeExtendedMemory.jsInputSha256 !== js.sha256)) {
+      && safeCartography.officialSha256 !== wasm.sha256)) {
     throw new Error("evidence files do not describe the supplied official artifacts");
   }
   const repository = githubRepository(environment.GITHUB_REPOSITORY);
@@ -575,13 +481,11 @@ export async function createClientRecertificationEvidence(
       safeQualification,
       safeDoubleClick,
       safeCartography,
-      safeExtendedMemory,
     ),
     runtime: safeRuntime,
     qualification: safeQualification,
     nativeDoubleClick: safeDoubleClick,
     cartography: safeCartography,
-    extendedMemory: safeExtendedMemory,
   });
 }
 

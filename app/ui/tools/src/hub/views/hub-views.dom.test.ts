@@ -70,7 +70,7 @@ beforeEach(() => {
       app: { showLauncher: async () => {}, openSettings: async () => {}, openExternal: async () => {}, showQuitOrReload: async () => 'stayed' },
       settings: { set: async (patch: Partial<AppSettings>) => { settings = { ...settings, ...patch }; return settings; } },
       clipboard: { writeText: async () => {} },
-      client: { session: async () => ({ extendedMemory: null }) },
+      client: { session: async () => ({ compatibility: null }) },
       trade: { getMarketRates: async () => estimateMarketRates(market), getTraderQuotes: async () => ({ updatedAt: Date.now(), quotes: [] }) },
     },
   });

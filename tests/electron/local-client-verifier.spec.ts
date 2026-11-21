@@ -20,14 +20,12 @@ const electronPath = path.resolve(
 test("proves an unknown exact build in one isolated pass", { tag: "@journey" }, async () => {
   const root = await mkdtemp(path.join(tmpdir(), "gw-local-verifier-"));
   const wasmPath = path.join(root, "Gw.jspi.wasm");
-  const jsPath = path.join(root, "Gw.jspi.js");
   // The smallest valid module has none of the certified shapes. That is useful:
   // the IPC path must return a safe negative decision rather than crash.
   const wasm = Uint8Array.of(0, 97, 115, 109, 1, 0, 0, 0);
-  const js = "var getHeapMax = () => 2147483648;";
-  const digest = (value: Uint8Array | string) =>
+  const digest = (value: Uint8Array) =>
     createHash("sha256").update(value).digest("hex");
-  await Promise.all([writeFile(wasmPath, wasm), writeFile(jsPath, js)]);
+  await writeFile(wasmPath, wasm);
   const env = Object.fromEntries(
     Object.entries(process.env).filter(
       (entry): entry is [string, string] =>
@@ -38,7 +36,7 @@ test("proves an unknown exact build in one isolated pass", { tag: "@journey" }, 
   const run = async (wasmSha256: string) => {
     const application = await electron.launch({
       cwd: path.resolve("."),
-      args: [fixture, wasmPath, wasmSha256, jsPath, digest(js)],
+      args: [fixture, wasmPath, wasmSha256],
       executablePath: electronPath,
       env,
     });
@@ -65,7 +63,7 @@ test("proves an unknown exact build in one isolated pass", { tag: "@journey" }, 
     };
     const first = await run(sha256);
     // The requested launch arrives first; the complete pass holds both, and no
-    // later stage (friends, Cartography, double-click, 4 GB) proved anything.
+    // later stage (friends, Cartography, double-click, sound repair) proved anything.
     expect(first).toMatchObject({
       requested: { launches: [{ cartography: true, verification: refusal }] },
       complete: {
@@ -76,7 +74,7 @@ test("proves an unknown exact build in one isolated pass", { tag: "@journey" }, 
         friendObserver: [],
         cartography: [],
         nativeDoubleClick: [],
-        extendedMemory: [],
+        soundDecodeRepair: [],
       },
     });
 

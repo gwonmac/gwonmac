@@ -4,8 +4,7 @@
  *
  * It owns the list of checks that release qualification and the client watch
  * both run: the runtime verifier, native double-click and Cartography against
- * every servable predecessor, the 4 GB allocator proof, and the production
- * `prepareClientModule` chain for every release profile. Each check yields one
+ * every servable predecessor, and the production `prepareClientModule` chain for every release profile. Each check yields one
  * evidence record; a refused check never stops the others, so the watch still
  * collects every verdict. The real-client regression suite in
  * `tests/client-artifact/` is a separate job: it tests the verifier, not the
@@ -25,14 +24,6 @@ import { prepareClientModule } from "../client/certification/client-module.js";
 import { supportedEnhancementCapabilities } from
   "../client/certification/enhancement-builds.js";
 import { transformEnhancementWasm } from "../client/certification/enhancement-transform.js";
-import {
-  deriveExtendedMemoryStructuralProof,
-  EXTENDED_MEMORY_JS_PROOF,
-  EXTENDED_MEMORY_MAX_BYTES,
-  prepareExtendedMemoryArtifacts,
-  rewriteExtendedMemoryJs,
-  rewriteExtendedMemoryWasm,
-} from "../client/certification/extended-memory.js";
 import { deriveFriendObserverBuild } from
   "../client/certification/friend-observer-transform.js";
 import {
@@ -42,7 +33,6 @@ import {
 } from "../client/certification/local-client-verifier.js";
 import {
   deriveNativeDoubleClickBuild,
-  rewriteWithBuild,
 } from "../client/certification/native-double-click.js";
 import { rewriteTemplateSaveWasm } from
   "../client/certification/template-save-compat.js";
@@ -53,27 +43,9 @@ import {
   ENHANCEMENT_CAPABILITY_FIELDS,
   ENHANCEMENT_CAPABILITY_PRESETS,
   enhancementCapabilityProfile,
-  NO_ENHANCEMENT_CAPABILITIES,
   RELEASE_ENHANCEMENT_CAPABILITIES,
   type EnhancementCapabilities,
 } from "../shared/enhancement-contracts.js";
-
-/** The WebAssembly members the allocator proof uses; `lib` is ES2022 only. */
-interface WasmMemory {
-  readonly buffer: ArrayBuffer;
-  grow(pages: number): number;
-}
-declare const WebAssembly: {
-  validate(bytes: Uint8Array): boolean;
-  Module: {
-    new (bytes: Uint8Array): object;
-    imports(module: object): Array<{ module: string; name: string; kind: string }>;
-  };
-  instantiate(
-    module: object,
-    imports: Record<string, Record<string, unknown>>,
-  ): Promise<{ exports: unknown }>;
-};
 
 const sha256 = (bytes: Uint8Array | string): string =>
   createHash("sha256").update(bytes).digest("hex");
@@ -82,7 +54,6 @@ export const QUALIFICATION_CHECKS = [
   "runtime",
   "double-click",
   "cartography",
-  "extended-memory",
   "chain",
 ] as const;
 
@@ -250,238 +221,12 @@ export function cartographyReport(
   });
 }
 
-const verifyExtendedMemory = async (options: {
-  jsPath: string;
-  wasmPath: string;
-}) => deriveExtendedMemoryStructuralProof(
-  await readFile(options.jsPath, "utf8"),
-  await readFile(options.wasmPath),
-);
-
-function withNativeDoubleClick(input: Uint8Array): Uint8Array {
-  const build = deriveNativeDoubleClickBuild(input);
-  if (!build) throw new Error("native double-click proof failed");
-  return rewriteWithBuild(input, build);
-}
-
-/** The last two stages every release launch serves: native double-click, then the sound decode repair. */
-function withLateStages(input: Uint8Array): Uint8Array {
-  const repair = deriveSoundDecodeRepairStage(withNativeDoubleClick(input));
-  if (!repair) throw new Error("sound decode repair proof failed");
-  return repair.output;
-}
-
-/**
- * The 4 GB proof: the paired JS/WASM cache, production selection for every
- * release profile, and a real allocator that crosses 3 GiB and reuses a
- * freed block without growing.
- */
-async function extendedMemoryReport(
-  jsPath: string,
-  wasmPath: string,
-  officialWasm: Uint8Array,
-  verify: ClientVerifier,
-): Promise<Readonly<Record<string, unknown>>> {
-  const officialJs = await readFile(jsPath, "utf8");
-  const transformedJs = rewriteExtendedMemoryJs(officialJs);
-  const jsInputSha256 = sha256(officialJs);
-  const jsOutputSha256 = sha256(transformedJs);
-  new Function(transformedJs);
-
-  const verification = verify();
-  if (!verification.templateSaveBuild || !verification.enhancementBuild) {
-    throw new Error("official WASM did not pass the local semantic verifier");
-  }
-  const templateWasm = rewriteTemplateSaveWasm(officialWasm, verification.templateSaveBuild);
-
-  const predecessors = new Map<string, Uint8Array>();
-  predecessors.set("off", withLateStages(templateWasm));
-  for (const [launch, capabilities] of Object.entries(
-    RELEASE_ENHANCEMENT_CAPABILITIES,
-  )) {
-    const profile = enhancementCapabilityProfile(capabilities);
-    if (!profile) throw new Error(`invalid ${launch} release capability set`);
-    const profileBuild = verify(capabilities).enhancementBuild;
-    if (!profileBuild) {
-      throw new Error(`semantic verification refused profile ${profile}`);
-    }
-    predecessors.set(
-      profile,
-      withLateStages(
-        transformEnhancementWasm(templateWasm, profileBuild, capabilities),
-      ),
-    );
-  }
-
-  const scratch = await mkdtemp(join(tmpdir(), "gwonmac-4gb-qualification-"));
-  try {
-    const predecessorPath = join(scratch, "Gw.jspi.wasm");
-    const cacheRoot = join(scratch, "cache");
-    const predecessor = predecessors.get("off");
-    if (!predecessor) throw new Error("Enhancements-off predecessor is missing");
-    await writeFile(predecessorPath, predecessor);
-    const prepare = (predecessorSha256: string) => prepareExtendedMemoryArtifacts(
-      jsPath, wasmPath, predecessorPath, predecessorSha256, "off", cacheRoot,
-      verifyExtendedMemory,
-    );
-    const first = await prepare(sha256(predecessor));
-    const cached = await prepare(sha256(predecessor));
-    if (
-      first?.profile !== "off"
-      || cached?.jsPath !== first.jsPath
-      || cached?.wasmPath !== first.wasmPath
-    ) throw new Error("paired artifact cache did not reproduce its exact output");
-
-    await writeFile(first.jsPath, "corrupt");
-    const repaired = await prepare(sha256(predecessor));
-    if (!repaired || sha256(await readFile(repaired.jsPath)) !== jsOutputSha256) {
-      throw new Error("corrupt paired cache was not rebuilt from proof");
-    }
-    if (await prepare("0".repeat(64)) !== null) {
-      throw new Error("4 GB preparation accepted a predecessor with the wrong chain hash");
-    }
-  } finally {
-    await rm(scratch, { recursive: true, force: true });
-  }
-
-  const variants = [];
-  let allocatorModule: Uint8Array | null = null;
-  for (const [profile, predecessor] of predecessors) {
-    const output = rewriteExtendedMemoryWasm(predecessor);
-    if (!WebAssembly.validate(Uint8Array.from(output))) {
-      throw new Error(`${profile} output does not validate`);
-    }
-    if (profile !== "off" && allocatorModule === null) allocatorModule = output;
-    variants.push({ profile, inputSha256: sha256(predecessor), outputSha256: sha256(output) });
-  }
-  if (!allocatorModule) throw new Error("required qualification variant is missing");
-
-  const selectionScratch = await mkdtemp(join(tmpdir(), "gwonmac-4gb-selection-"));
-  try {
-    const selections: Array<readonly [string, EnhancementCapabilities]> = [
-      ["off", NO_ENHANCEMENT_CAPABILITIES],
-    ];
-    for (const [launch, capabilities] of Object.entries(
-      RELEASE_ENHANCEMENT_CAPABILITIES,
-    )) {
-      const profile = enhancementCapabilityProfile(capabilities);
-      if (!profile) throw new Error(`invalid ${launch} release capability set`);
-      selections.push([profile, capabilities]);
-    }
-    for (const [profile, capabilities] of selections) {
-      const profileRoot = join(selectionScratch, profile);
-      const selected = await prepareClientModule({
-        officialJsPath: jsPath,
-        officialWasmPath: wasmPath,
-        officialSha256: sha256(officialWasm),
-        certification: certificationFromLocalVerification(verify(capabilities)),
-        enhancementCapabilities: capabilities,
-        compatibilityCacheRoot: join(profileRoot, "compatibility"),
-        enhancementCacheRoot: join(profileRoot, "enhancements"),
-        nativeDoubleClickCacheRoot: join(profileRoot, "double-click"),
-        soundDecodeRepair: {
-          cacheRoot: join(profileRoot, "sound-decode-repair"),
-          verifyLocally: async ({ wasmPath: candidatePath }) =>
-            deriveSoundDecodeRepairStage(await readFile(candidatePath))?.build ?? null,
-        },
-        extendedMemoryCacheRoot: join(profileRoot, "extended-memory"),
-        extendedMemoryEnabled: true,
-      }, async ({ wasmPath: candidatePath }) =>
-        deriveNativeDoubleClickBuild(await readFile(candidatePath)), verifyExtendedMemory);
-      const predecessor = predecessors.get(profile);
-      if (
-        !predecessor
-        || selected.extendedMemory.status !== "active"
-        || selected.extendedMemory.profile !== profile
-        || JSON.stringify(selected.effectiveCapabilities) !== JSON.stringify(capabilities)
-        || !selected.nativeDoubleClick
-        || !selected.soundDecodeRepair
-        || sha256(await readFile(selected.jsPath)) !== jsOutputSha256
-        || sha256(await readFile(selected.wasmPath))
-          !== sha256(rewriteExtendedMemoryWasm(predecessor))
-      ) throw new Error(`production client selection refused profile ${profile}`);
-    }
-  } finally {
-    await rm(selectionScratch, { recursive: true, force: true });
-  }
-
-  const module = new WebAssembly.Module(Uint8Array.from(allocatorModule));
-  const state: { memory?: WasmMemory } = {};
-  const imports: Record<string, Record<string, unknown>> = {};
-  for (const entry of WebAssembly.Module.imports(module)) {
-    const namespace = (imports[entry.module] ??= {});
-    if (entry.kind !== "function") {
-      throw new Error(`unsupported ${entry.kind} import ${entry.module}.${entry.name}`);
-    }
-    namespace[entry.name] = entry.name === "emscripten_resize_heap"
-      ? (requested: number) => {
-          const memory = state.memory;
-          if (!memory) throw new Error("heap growth requested during instantiation");
-          const target = requested >>> 0;
-          if (target > EXTENDED_MEMORY_MAX_BYTES) return 0;
-          const current = memory.buffer.byteLength;
-          if (target <= current) return 1;
-          memory.grow(Math.ceil((target - current) / 65_536));
-          return 1;
-        }
-      : () => 0;
-  }
-  const instance = await WebAssembly.instantiate(module, imports);
-  // The allocator's exports, as the 4 GB transform's own proof names them.
-  const exports = instance.exports as {
-    memory: WasmMemory;
-    malloc(bytes: number): number;
-    free(pointer: number): void;
-  };
-  const memory = exports.memory;
-  state.memory = memory;
-
-  const allocationBytes = 480 * 1_024 * 1_024;
-  const pointers: number[] = [];
-  let highPointer: number | undefined;
-  for (let index = 0; index < 7; index += 1) {
-    const raw = exports.malloc(allocationBytes);
-    if (raw === 0) throw new Error(`allocation ${index + 1} failed`);
-    pointers.push(raw);
-    if ((raw >>> 0) >= 0x8000_0000) highPointer ??= raw;
-  }
-  if (highPointer === undefined || memory.buffer.byteLength <= 0xc000_0000) {
-    throw new Error("allocator did not grow above 3 GiB");
-  }
-
-  const highAddress = highPointer >>> 0;
-  const view = new DataView(memory.buffer);
-  view.setUint32(highAddress, 0x4757_3447, true);
-  if (view.getUint32(highAddress, true) !== 0x4757_3447) {
-    throw new Error("high-address read/write failed");
-  }
-  const capacityBeforeFree = memory.buffer.byteLength;
-  for (const pointer of pointers) exports.free(pointer);
-  const reused = exports.malloc(allocationBytes);
-  if (reused === 0 || memory.buffer.byteLength !== capacityBeforeFree) {
-    throw new Error("freed allocation was not reused without heap growth");
-  }
-  exports.free(reused);
-
-  return Object.freeze({
-    jsInputSha256,
-    jsOutputSha256,
-    normalizedJsSha256: EXTENDED_MEMORY_JS_PROOF.normalizedSha256,
-    variants,
-    heapBytes: capacityBeforeFree,
-    highPointerUnsigned: highAddress,
-    crossed3GiB: true,
-    freedBlockReusedWithoutGrowth: true,
-  });
-}
-
 /**
  * The production chain for each release profile, exactly as a launch serves
  * it: template, Enhancement, Friends, Cartography (Tools only), double-click
- * and 4 GB, then a corrupted final derivative that the cache must reproduce.
+ * and the sound decode repair, then a corrupted final derivative that the cache must reproduce.
  */
 async function shippedChainReport(
-  jsPath: string,
   wasmPath: string,
   official: Uint8Array,
   verify: ClientVerifier,
@@ -497,7 +242,6 @@ async function shippedChainReport(
     };
     const prepare = () => prepareClientModule({
       officialWasmPath: wasmPath,
-      officialJsPath: jsPath,
       officialSha256,
       certification: certificationFromLocalVerification(verify(capabilities)),
       enhancementCapabilities: capabilities,
@@ -521,11 +265,8 @@ async function shippedChainReport(
         verifyLocally: async ({ wasmPath: input, inputSha256 }) =>
           deriveSoundDecodeRepairStage(await fromFile(input, inputSha256))?.build ?? null,
       },
-      extendedMemoryCacheRoot: join(cacheRoot, "memory"),
-      extendedMemoryEnabled: true,
     }, async ({ wasmPath: input, inputSha256 }) =>
-      deriveNativeDoubleClickBuild(await fromFile(input, inputSha256)),
-    verifyExtendedMemory);
+      deriveNativeDoubleClickBuild(await fromFile(input, inputSha256)));
     try {
       const served = async () => {
         const prepared = await prepare();
@@ -536,7 +277,6 @@ async function shippedChainReport(
           || prepared.cartography.status !== (launch === "tools" ? "active" : "disabled")
           || !prepared.nativeDoubleClick
           || !prepared.soundDecodeRepair
-          || prepared.extendedMemory.status !== "active"
           || sha256(await readFile(prepared.wasmPath)) !== prepared.wasmSha256
         ) throw new Error(`the ${launch} launch did not serve its complete chain`);
         return prepared;
@@ -586,7 +326,6 @@ const proved = async (report: Promise<Readonly<Record<string, unknown>>>) =>
  */
 export async function qualifyClient(
   wasmPath: string,
-  jsPath: string,
 ): Promise<Readonly<Record<QualificationCheck, QualificationRecord>>> {
   const official = new Uint8Array(await readFile(wasmPath));
   const verify = clientVerifier(official);
@@ -598,8 +337,6 @@ export async function qualifyClient(
       doubleClickReport(predecessors().officialSha256, predecessors().predecessors)),
     cartography: await record("cartography", () =>
       cartographyReport(predecessors().officialSha256, predecessors().predecessors)),
-    "extended-memory": await record("extended-memory", () =>
-      proved(extendedMemoryReport(jsPath, wasmPath, official, verify))),
-    chain: await record("chain", () => proved(shippedChainReport(jsPath, wasmPath, official, verify))),
+    chain: await record("chain", () => proved(shippedChainReport(wasmPath, official, verify))),
   });
 }

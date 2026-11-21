@@ -113,8 +113,8 @@ jobs:
           logs="$RUNNER_TEMP/logs"; mkdir -p "$logs"
           set +e
           # The release battery writes runtime-verdicts, double-click,
-          # cartography, extended-memory and chain records into $EVIDENCE.
-          node "$cli" qualify "$GW_CLIENT_WASM" "$GW_CLIENT_JS" "$EVIDENCE" 2> "$logs/qualify.txt"
+          # cartography and chain records into $EVIDENCE.
+          node "$cli" qualify "$GW_CLIENT_WASM" "$EVIDENCE" 2> "$logs/qualify.txt"
           battery=$?
           pnpm test:client-artifact > "$logs/client-artifact.txt" 2>&1; code=$?
           jq -n --arg sha "$(shasum -a 256 "$GW_CLIENT_WASM" | awk '{print $1}')" --argjson exitCode "$code" \
@@ -133,7 +133,7 @@ jobs:
           WASM: ${{ steps.official.outputs.wasm }}
         run: |
           node --import ./scripts/ts-hook.mjs scripts/client-recertification-evidence.ts \
-            "$GENERATION" "$WASM" "$JS" "$EVIDENCE"/{runtime-verdicts,client-artifact,double-click,cartography,extended-memory}.json \
+            "$GENERATION" "$WASM" "$JS" "$EVIDENCE"/{runtime-verdicts,client-artifact,double-click,cartography}.json \
             > "$EVIDENCE/generation.json"
           echo "outcome=$(jq -er '.outcome.status' "$EVIDENCE/generation.json")" >> "$GITHUB_OUTPUT"
           echo "summary=$(jq -er '.outcome.reason' "$EVIDENCE/generation.json")" >> "$GITHUB_OUTPUT"

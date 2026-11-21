@@ -21,8 +21,7 @@ release.
 
 No verifier can safely promise compatibility with an arbitrary future semantic
 change. When a protected behavior genuinely changes, only the feature whose
-proof fails must refuse. The untouched official client remains playable. If the
-4 GB transform cannot be proved, the normal 2 GB mode remains playable.
+proof fails must refuse. The untouched official client remains playable.
 
 Synthetic touch input is not a fallback for native double-click. Exact historic
 hashes are regression fixtures, not launch authority.
@@ -140,7 +139,6 @@ unwitnessed field must fail TypeScript compilation or boundary validation.
 | Chat print (Reminders) | The Chat Filters producer plus its `chat.valid-message` validator by exact body, a bounded printable-ASCII mailbox, and a drain that validates before it prints | Disable Reminders only |
 | Team Apply | Seven named builders, exact opcodes/payloads, sender, bounded drain, fresh complete Party proof, and runtime confirmations | Disable Team Apply only; Builds and Teams remain editable |
 | Cartography | Exact frame, game-context, area-table, agent-array, pathing-function, call-site, and surface-dispatch relationships, followed by an independently reproduced output hash | Disable Cartography observers only; the official client and independently proved Tools remain available |
-| 4 GB mode | Manifest-bound JS/WASM pair, normalized Emscripten glue, every audited pointer-conversion site, one memory shape, and memory-only rewrite | Retain safe 2 GB mode |
 
 Chat aliases never own a dispatcher or mailbox. The transform specializes the
 parser to the effective Travel and Xunlai capabilities. It must not read or
@@ -312,15 +310,15 @@ binaries and cannot grant runtime authority.
 - Refusal: the official client stays playable and only the refusing feature
   and its declared dependants turn off. Automation opens one issue with one
   row per verdict: template saving, every Enhancement feature, native
-  double-click, Cartography, 4 GB mode, and the real-client regression suite,
+  double-click, Cartography, and the real-client regression suite,
   each with its first failing invariant and, for ambiguity, the candidate
   count. A maintainer then follows [Recover certification](recertify.md).
 
-`pnpm certification qualify WASM JS OUT` is the one release battery. It writes
-one record per check: runtime verdicts, native double-click, Cartography, 4 GB
-mode, and the shipped chain. The chain check prepares every release profile
-through template, Enhancement, Friends, Cartography, double-click, and memory
-selection, corrupts the cached output, and requires a rebuild to the same hash.
+`pnpm certification qualify WASM OUT` is the one release battery. It writes one
+record per check: runtime verdicts, native double-click, Cartography, and the
+shipped chain. The chain check prepares every release profile through template,
+Enhancement, Friends, Cartography, double-click, and the sound decode repair,
+corrupts the cached output, and requires a rebuild to the same hash.
 The release `qualify` job runs this battery on the current client. Client watch
 runs the same battery and the real-client regression suite in
 `tests/client-artifact/`. A certification pull request dispatches client watch

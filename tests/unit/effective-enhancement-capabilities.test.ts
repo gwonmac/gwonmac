@@ -14,13 +14,6 @@ import {
 
 const available = Object.freeze({ status: "available" } as const);
 const off = Object.freeze({ status: "off" } as const);
-const standardMemory = Object.freeze({
-  requestedAtLaunch: false,
-  status: "standard",
-  effectiveCapBytes: 2_147_483_648,
-  fallbackReason: null,
-} as const);
-
 function session(capabilities: EnhancementCapabilities): ClientSession {
   const selected = (active: boolean): OptionalFeatureStatus =>
     active ? available : off;
@@ -56,7 +49,6 @@ function session(capabilities: EnhancementCapabilities): ClientSession {
   return {
     appVersion: "test",
     compatibility,
-    extendedMemory: standardMemory,
     healthToken: null,
   };
 }
@@ -78,7 +70,6 @@ describe("effective Enhancement capability boundary", () => {
     const original = session(capabilities);
     const value: ClientSession = {
       ...original,
-      extendedMemory: standardMemory,
       compatibility: {
         ...original.compatibility!,
         features: {
@@ -140,7 +131,6 @@ describe("effective Enhancement capability boundary", () => {
     assert.equal(effectiveCapabilities({
       appVersion: "test",
       compatibility: null,
-      extendedMemory: null,
       healthToken: null,
     }), null);
   });

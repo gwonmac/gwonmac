@@ -221,8 +221,6 @@
 .settings-view .settings-results button:hover, .settings-view .settings-results button:focus-visible { background: var(--surface-hover); }
 .settings-view .settings-results button > span { display: grid; gap: 3px; min-width: 0; }
 .settings-view .settings-results small { color: var(--muted); font-size: 13px; }
-.settings-view .setting-state { color: var(--gold); }
-.settings-view .setting-state.good { color: var(--success); }
 /* A gold bar and wash just outside the row, so the row's own text does not move. */
 .settings-view .setting-focus { position: relative; }
 .settings-view .setting-focus::before { content: ""; position: absolute; inset: 0 -10px 0 -14px; border-left: 3px solid var(--gold); border-radius: 6px; background: var(--gold-tint); pointer-events: none; }

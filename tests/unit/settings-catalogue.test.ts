@@ -5,7 +5,7 @@ import { parseSettingsTarget } from "../../app/shared/settings-catalogue.js";
 describe("Settings deep-link targets", () => {
   it("accepts a section, or a control inside its own section", () => {
     assert.deepEqual(parseSettingsTarget({ section: "updates" }), { section: "updates" });
-    assert.deepEqual(parseSettingsTarget({ section: "game", control: "extendedMemoryEnabled" }), { section: "game", control: "extendedMemoryEnabled" });
+    assert.deepEqual(parseSettingsTarget({ section: "game", control: "showDiagnostics" }), { section: "game", control: "showDiagnostics" });
     assert.deepEqual(parseSettingsTarget({ section: "tools", control: "tool:quick-travel" }), { section: "tools", control: "tool:quick-travel" });
   });
 
@@ -17,7 +17,8 @@ describe("Settings deep-link targets", () => {
       {},
       { section: "accounts" },
       { section: "game", control: "nope" },
-      { section: "updates", control: "extendedMemoryEnabled" },
+      { section: "updates", control: "showDiagnostics" },
+      { section: "game", control: "extendedMemoryEnabled" },
       { section: "game", control: 1 },
       { section: "game", url: "https://example.com" },
     ]) {

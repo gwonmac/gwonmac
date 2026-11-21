@@ -3,7 +3,6 @@
  * The existing preferences owner persists changes; launcher administration is excluded.
  */
 import { parseGlobalToolUpdate, parseLauncherSettingsPatch, parseShortcutReplacement, type LauncherSettings, type LauncherSnapshot, type LauncherShortcutCaptureResult, type SettingsWrite } from './launcher-contracts.js';
-import type { ExtendedMemoryRuntimeStatus } from './contracts.js';
 import type { SettingsTarget } from './settings-catalogue.js';
 import { HUB_SETTINGS } from './settings/index.js';
 import type { ShortcutAction } from './keyboard-shortcuts.js';
@@ -48,8 +47,6 @@ export type EmbeddedSettings<Target> = Readonly<{
     api: HubSettingsApi;
     /** Where to open; `null` reopens the last section. */
     target: SettingsTarget | null;
-    /** What this game session's memory module is; the Game section says so beside Extended memory. */
-    extendedMemory(): Promise<ExtendedMemoryRuntimeStatus | null>;
     /** Shows a section only the launcher draws, at its control when named. */
     openInLauncher(target: SettingsTarget): void | Promise<unknown>;
     /** Asked once the page has loaded: whether its first open may move the keyboard to it. */

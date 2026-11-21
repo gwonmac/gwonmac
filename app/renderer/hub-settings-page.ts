@@ -46,7 +46,6 @@ export function showHubSettings(hub: HubPresenter<HTMLElement>, target: Settings
       page = shown = settings.mountSettings(view, {
         api: window.gwNative.hubSettings,
         target,
-        extendedMemory: () => window.gwNative.client.session().then(session => session.extendedMemory),
         openInLauncher: next => window.gwNative.app.openSettings(next).catch(() => { throw new Error(LAUNCHER_UNAVAILABLE); }),
         // Focus still where the Hub put it means the player is waiting for this page; focus inside the page stays the page's.
         mayTakeFocus: () => moves <= 1 || view.contains(document.activeElement),

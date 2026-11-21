@@ -25,10 +25,8 @@ is briefly highlighted. Hub search does not change a setting in place.
    lists the sections and the settings that search can open, with their stable
    IDs, labels and keywords. Each control carries `data-setting="<id>"`.
 2. **Every setting says when it applies**, in the same words everywhere:
-   no note when it applies now; "Applies when you next open or reload a game
-   window."; "Applies after you restart GWonMac." A saved choice that is not
-   active yet shows its state next to the control ("Restart required. This
-   session still uses 2 GB.").
+   no note when it applies now, or "Applies when you next open or reload a game
+   window."
 3. **Changes save right away.** A change applies in every open game window. The
    status line names the saved setting and when it applies. A failed save keeps
    the change on screen and offers **Retry** and **Revert**.
@@ -86,7 +84,6 @@ section but edits only the in-game ones; the others (↗) open the launcher.
 | **Check for Updates…** (macOS app menu) | Launcher, Updates |
 | Hub search: a setting | Hub Settings page, that control focused and highlighted |
 | Hub search: a ↗ section | Launcher Settings, that section |
-| Memory warning › "Memory settings" | Hub Settings page, Game, Extended memory focused |
 
 ## Add a setting
 

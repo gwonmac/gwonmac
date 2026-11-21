@@ -7,7 +7,6 @@ import { FEATURES, type GlobalTool } from "../features/index.js";
 import type {
   AppSettingsPatch,
   AppUpdateState,
-  ExtendedMemoryRuntimeStatus,
   DownloadActivity,
   FullDownloadState,
   NoticeCode,
@@ -219,8 +218,6 @@ export interface LauncherSnapshot {
   readonly settings: LauncherSettings;
   readonly shortcuts: Readonly<Record<ShortcutAction, ShortcutBinding | null>>;
   readonly texturePacks: TexturePackSnapshot;
-  /** The running client's memory limit; null until a client is prepared. */
-  readonly extendedMemory: ExtendedMemoryRuntimeStatus | null;
   readonly profiles: readonly LauncherProfileSummary[];
   readonly selectedProfileIds: readonly ProfileId[];
   readonly preferences: LauncherPreferences;

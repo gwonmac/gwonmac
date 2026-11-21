@@ -55,7 +55,7 @@ test("a proved real client is served from its signed record with no pass", {
   let passes = 0;
   // The real pass in this process. Each answer crosses a structured clone, as
   // it does over the utility-process channel.
-  const runPass: RunVerifierPass = ({ launches, extendedMemoryFirst }) => {
+  const runPass: RunVerifierPass = ({ launches }) => {
     passes += 1;
     let requested!: (value: unknown) => void;
     let complete!: (value: unknown) => void;
@@ -65,10 +65,10 @@ test("a proved real client is served from its signed record with no pass", {
       background: () => {},
       cancel: () => complete(null),
     };
-    void runClientVerificationPass(official, officialJs, launches, (result, done) => {
+    void runClientVerificationPass(official, launches, (result, done) => {
       requested(structuredClone(result));
       if (done) complete(structuredClone(result));
-    }, { extendedMemoryFirst }).catch(() => complete(null));
+    }).catch(() => complete(null));
     return pass;
   };
   const launch = (requested: ClientVerificationLaunch) => obtainClientVerdict({
@@ -77,22 +77,19 @@ test("a proved real client is served from its signed record with no pass", {
     installKey: async () => installKey,
     wasmPath: artifact,
     wasmSha256: sha256(official),
-    jsPath: glue,
     jsSha256: sha256(officialJs),
     launch: requested,
     releaseLaunches: [CORE, TOOLS],
-    extendedMemoryRequested: false,
     runPass,
     slot,
     launchBudgetMs: 900_000,
   });
-  const prepare = (verdict: ClientVerdict, extendedMemoryEnabled: boolean, cache: string) => {
+  const prepare = (verdict: ClientVerdict, cache: string) => {
     const lookup = <Build>(find: (inputSha256: string) => Build | null) =>
       async ({ inputSha256 }: { inputSha256: string }) => find(inputSha256);
     const caches = join(root, cache);
     return prepareClientModule({
       officialWasmPath: artifact,
-      officialJsPath: glue,
       officialSha256: sha256(official),
       certification: certificationFromLocalVerification(verdict.verification),
       enhancementCapabilities: RELEASE_ENHANCEMENT_CAPABILITIES.tools,
@@ -102,10 +99,7 @@ test("a proved real client is served from its signed record with no pass", {
       cartographySpike: { cacheRoot: join(caches, "cartography"), verifyLocally: lookup(verdict.cartography) },
       nativeDoubleClickCacheRoot: join(caches, "double-click"),
       soundDecodeRepair: { cacheRoot: join(caches, "sound-decode-repair"), verifyLocally: lookup(verdict.soundDecodeRepair) },
-      extendedMemoryCacheRoot: join(caches, "memory"),
-      extendedMemoryEnabled,
-    }, lookup(verdict.nativeDoubleClick), async ({ jsInputSha256, wasmInputSha256 }) =>
-      verdict.extendedMemory(jsInputSha256, wasmInputSha256));
+    }, lookup(verdict.nativeDoubleClick));
   };
   const served = (module: Awaited<ReturnType<typeof prepare>>) => ({
     wasmSha256: module.wasmSha256,
@@ -115,7 +109,6 @@ test("a proved real client is served from its signed record with no pass", {
     soundDecodeRepair: module.soundDecodeRepair,
     friendObserver: module.friendObserver.status,
     cartography: module.cartography.status,
-    extendedMemory: module.extendedMemory.status,
   });
   try {
     const first = await launch(TOOLS);
@@ -133,7 +126,7 @@ test("a proved real client is served from its signed record with no pass", {
     assert.ok(toggled.verdict, "the record must hold the other release launch too");
     assert.deepEqual(again.verdict.failedStages, []);
 
-    const passModule = await prepare(first.verdict, false, "pass");
+    const passModule = await prepare(first.verdict, "pass");
     // Main and the pass name the served candidate alike; otherwise every
     // launch would read as a Main-side fallback.
     assert.equal(
@@ -142,14 +135,11 @@ test("a proved real client is served from its signed record with no pass", {
     );
     assert.notEqual(first.verdict.enhancementCandidate, null);
     const fromPass = served(passModule);
-    const fromRecord = served(await prepare(again.verdict, false, "record"));
+    const fromRecord = served(await prepare(again.verdict, "record"));
     assert.equal(fromPass.failure, null);
     assert.equal(fromPass.cartography, "active");
+    assert.equal(fromPass.soundDecodeRepair, true);
     assert.deepEqual(fromRecord, fromPass);
-    // The 4 GB proof came after the requested report, and the record holds it.
-    const withMemory = served(await prepare(again.verdict, true, "record-memory"));
-    assert.equal(withMemory.failure, null);
-    assert.equal(withMemory.extendedMemory, "active");
   } finally {
     await rm(root, { recursive: true, force: true });
   }

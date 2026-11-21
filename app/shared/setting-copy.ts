@@ -16,12 +16,11 @@ export function optionFor<T extends string | number>(values: readonly T[], raw: 
 }
 
 /** When a saved change takes effect. `now` needs no note. */
-export type SettingApplies = "now" | "next-game" | "restart";
+export type SettingApplies = "now" | "next-game";
 
 export const SETTING_APPLIES_NOTE: Readonly<Record<SettingApplies, string>> = {
   now: "",
   "next-game": "Applies when you next open or reload a game window.",
-  restart: "Applies after you restart GWonMac.",
 };
 
 type Copy = Readonly<{ label: string; detail: string; applies: SettingApplies; keywords?: string }>;
@@ -29,7 +28,6 @@ type Copy = Readonly<{ label: string; detail: string; applies: SettingApplies; k
 /** Settings › Game, in display order. */
 export const GAME_SETTINGS = {
   renderScale: { label: "Render quality", detail: "Higher quality uses more graphics power.", applies: "now", keywords: "graphics resolution scale sharp" },
-  extendedMemoryEnabled: { label: "Extended memory", detail: "Allow longer sessions to use up to 4 GB instead of 2 GB. Experimental.", applies: "restart", keywords: "memory ram 4gb out of memory crash" },
   autoRelogAfterReload: { label: "Return to character after reload", detail: "Sign in and return to the last character after reloading the game.", applies: "now", keywords: "relog login reload automatic" },
   controllerPromptStyle: { label: "Controller symbols", detail: "Button symbols shown for a game controller.", applies: "next-game", keywords: "gamepad playstation xbox buttons" },
   showDiagnostics: { label: "Diagnostics overlay", detail: "Show frame and memory diagnostics in open game windows.", applies: "now", keywords: "fps debug performance" },

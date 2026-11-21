@@ -579,9 +579,7 @@ async function fixture() {
   scratchDirs.push(root);
   const official = officialFixture();
   const officialWasmPath = join(root, "official.wasm");
-  const officialJsPath = join(root, "official.js");
   await writeFile(officialWasmPath, official);
-  await writeFile(officialJsPath, "official glue");
   const templateSaveBuild = certifyTemplate(official);
   const templateOutput = rewriteTemplateSaveWasm(official, templateSaveBuild);
   const enhancement = enhancementBuild(templateOutput);
@@ -589,14 +587,12 @@ async function fixture() {
     root,
     official,
     officialWasmPath,
-    officialJsPath,
     officialSha256: sha256(official),
     templateSaveBuild,
     enhancementBuild: enhancement,
     compatibilityCacheRoot: join(root, "compatibility"),
     enhancementCacheRoot: join(root, "enhancement"),
     nativeDoubleClickCacheRoot: join(root, "double-click"),
-    extendedMemoryCacheRoot: join(root, "extended-memory"),
   };
 }
 
@@ -609,7 +605,6 @@ function options(
 ) {
   return {
     officialWasmPath: value.officialWasmPath,
-    officialJsPath: value.officialJsPath,
     officialSha256: value.officialSha256,
     certification,
     enhancementCapabilities,
@@ -618,8 +613,6 @@ function options(
     nativeDoubleClickCacheRoot: value.nativeDoubleClickCacheRoot,
     // The synthetic client has no decode task, so the repair has no proof.
     soundDecodeRepair: { cacheRoot: join(value.root, "sound-decode-repair"), verifyLocally: async () => null },
-    extendedMemoryCacheRoot: value.extendedMemoryCacheRoot,
-    extendedMemoryEnabled: false,
   };
 }
 
@@ -792,8 +785,6 @@ describe("client module preparation", () => {
     assert.deepEqual(prepared, {
       wasmPath: value.officialWasmPath,
       wasmSha256: value.officialSha256,
-      jsPath: value.officialJsPath,
-      extendedMemory: { status: "disabled" },
       gameFileSaving: { status: "unavailable", reason: "game-update" },
       enhancementBuild: null,
       requestedCapabilities: CURSOR_TOOLBOX,
@@ -926,47 +917,6 @@ describe("client module preparation", () => {
     assert.equal(prepared.failure?.stage, "sound-decode-repair");
     assert.equal(prepared.wasmSha256, unrepaired.wasmSha256);
     assert.equal(sha256(await readFile(prepared.wasmPath)), unrepaired.wasmSha256);
-  });
-
-  it("falls back to the ordinary module when a requested 4 GB pair is unknown", async () => {
-    const value = await fixture();
-    const request = options(
-      value,
-      { templateSaveBuild: null, enhancementBuild: null },
-      CURSOR_TOOLBOX,
-    );
-    request.extendedMemoryEnabled = true;
-
-    const prepared = await prepareClientModule(request);
-
-    assert.deepEqual(prepared.extendedMemory, {
-      status: "unavailable",
-      reason: "unsupported-client",
-    });
-    assert.equal(prepared.jsPath, value.officialJsPath);
-    assert.equal(prepared.wasmPath, value.officialWasmPath);
-    assert.equal(prepared.failure, null);
-  });
-
-  it("keeps an earlier transform failure separate from 4 GB preparation failure", async () => {
-    const value = await fixture();
-    const request = options(value, {
-      templateSaveBuild: {
-        ...value.templateSaveBuild,
-        sha256: "0".repeat(64),
-      },
-      enhancementBuild: null,
-    }, CURSOR_TOOLBOX);
-    request.extendedMemoryEnabled = true;
-    request.officialJsPath = join(value.root, "missing.js");
-
-    const prepared = await prepareClientModule(request);
-
-    assert.equal(prepared.failure?.stage, "template-save");
-    assert.equal(prepared.extendedMemory.status, "unavailable");
-    if (prepared.extendedMemory.status !== "unavailable") return;
-    assert.equal(prepared.extendedMemory.reason, "preparation-failed");
-    assert.ok("error" in prepared.extendedMemory);
   });
 
   it("drops the Enhancement cache when the certified tool is disabled", async () => {

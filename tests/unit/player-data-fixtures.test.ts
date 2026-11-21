@@ -112,7 +112,7 @@ const each = (tags: readonly string[], row: Omit<Row, "tag">): Row[] => tags.map
 const BOTH = [OLD, NEW];
 
 // 1.0 clean cut (49da271f): these three are no longer read, so they are not kept.
-const DROPPED_SETTINGS = ["dataStrategy", "teamManagement", "updateTrack"];
+const DROPPED_SETTINGS = ["dataStrategy", "extendedMemoryEnabled", "teamManagement", "updateTrack"];
 /** `expect` for a settings file: every field it stores, except its marker and the dropped ones. */
 const EVERY_STORED_SETTING = Symbol("every stored setting");
 

@@ -14,7 +14,7 @@ import { SETTING_APPLIES_NOTE } from "@shared/setting-copy";
 import { HUB_SECTIONS, SETTINGS, SETTINGS_GROUP_LABELS, SETTINGS_SECTIONS, searchSettings, type SettingsSection, type SettingsTarget } from "@shared/settings-catalogue";
 import type { LauncherNativeApi, LauncherPreferencesPatch, LauncherSettingsPatch, LauncherSnapshot } from "@shared/launcher-contracts";
 import type { InGameNative, InGamePatch, InGameSnapshot } from "../settings-host";
-import type { CacheInfo, ExtendedMemoryRuntimeStatus } from "@shared/contracts";
+import type { CacheInfo } from "@shared/contracts";
 import { listIndexAfter, listKeyStep } from "@shared/ui/list-keys";
 import AppearanceSettings from "./AppearanceSettings.vue";
 import GameFilesSettings from "./GameFilesSettings.vue";
@@ -38,8 +38,6 @@ const props = defineProps<{
   launcher?: Readonly<{ snapshot: LauncherSnapshot; native: LauncherNativeApi | undefined }> | undefined;
   /** Hub only: shows a launcher section, at its control when named. */
   openInLauncher?: ((target: SettingsTarget) => void | Promise<unknown>) | undefined;
-  /** Hub only: what this game session uses for extended memory; the launcher reads it from its own snapshot. */
-  extendedMemory?: ExtendedMemoryRuntimeStatus | null | undefined;
   /** Where to open; a new object opens it again, even at the same control. */
   target: SettingsTarget | null;
   /** Hub only: whether the first open may take the keyboard. The page loads late, and by then the player may have moved on. */
@@ -356,7 +354,7 @@ onBeforeUnmount(() => {
             <ToolsSettings v-if="section === 'tools'" :snapshot="snapshot" :api="native" :profiles="launcher?.snapshot.profiles" :save="saveSettings" :perform-save="performSave" @maps="select('maps', true)" />
             <MapsSettings v-else-if="section === 'maps'" :settings="snapshot.settings" :shortcuts="snapshot.shortcuts" :tools="snapshot.tools" :api="native?.tools" :save="saveSettings" :perform-save="performSave" @tools="select('tools', true)" />
             <template v-else-if="section === 'appearance'"><h1>Appearance</h1><AppearanceSettings :settings="snapshot.settings" :save="saveSettings" /></template>
-            <GameSettings v-else-if="section === 'game'" :snapshot="snapshot" :extended-memory="launcher ? launcher.snapshot.extendedMemory : extendedMemory" :save="quietSave" />
+            <GameSettings v-else-if="section === 'game'" :snapshot="snapshot" :save="quietSave" />
             <TexturePacksSettings v-else-if="section === 'texture-packs' && launcher" :texture-packs="launcher.snapshot.texturePacks" />
             <GameFilesSettings
               v-else-if="section === 'game-files' && launcher"

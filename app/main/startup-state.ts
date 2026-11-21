@@ -214,6 +214,11 @@ async function ensureDirs(): Promise<void> {
   roots.push(paths.multiRoot, paths.multiProfiles);
   const removed = await sweepOrphanDirectories(roots);
   if (removed > 0) logEvent({ k: "orphanTemps.swept", removed });
+  // The removed 4 GB mode left derived modules here that nothing reads again.
+  await Promise.all([
+    path.join(paths.game, "extended-memory"),
+    path.join(paths.coreDerived, "extended-memory"),
+  ].map((directory) => rm(directory, { recursive: true, force: true }).catch(() => undefined)));
 }
 
 export async function clearBrowserCookies(phase: AppPhase): Promise<void> {

@@ -11,10 +11,9 @@ import {
   capabilityRecord,
   ENHANCEMENT_CAPABILITY_FIELDS,
 } from "../../app/shared/enhancement-contracts.js";
-import {
-  WASM_HEAP_CAP_BYTES,
-  type ClientCompatibility,
-  type OptionalFeatureStatus,
+import type {
+  ClientCompatibility,
+  OptionalFeatureStatus,
 } from "../../app/shared/contracts.js";
 
 test("runtime verdicts retain only closed per-feature debugging facts", () => {
@@ -68,21 +67,15 @@ test("reports a failed check as its own reason, never as a game update", () => {
       nativeCursor: { status: "available" },
     },
   };
-  const projected = withFailedCheck(compatibility, {
-    requestedAtLaunch: true,
-    status: "unavailable",
-    effectiveCapBytes: WASM_HEAP_CAP_BYTES,
-    fallbackReason: "unsupported-client",
-  });
-  assert.deepEqual(projected.compatibility.features.gameFileSaving,
+  const projected = withFailedCheck(compatibility);
+  assert.deepEqual(projected.features.gameFileSaving,
     { status: "unavailable", reason: "check-failed" });
-  assert.deepEqual(projected.compatibility.features.travelAction,
+  assert.deepEqual(projected.features.travelAction,
     { status: "unavailable", reason: "check-failed" });
-  assert.deepEqual(projected.compatibility.features.nativeDoubleClick,
+  assert.deepEqual(projected.features.nativeDoubleClick,
     { status: "unavailable", reason: "preparation-failed" });
-  assert.deepEqual(projected.compatibility.features.nativeCursor, { status: "available" });
-  assert.deepEqual(projected.compatibility.features.teamApply, { status: "off" });
-  assert.equal(projected.extendedMemory.fallbackReason, "check-failed");
+  assert.deepEqual(projected.features.nativeCursor, { status: "available" });
+  assert.deepEqual(projected.features.teamApply, { status: "off" });
 });
 
 test("attributes later-stage refusals to the stage that failed or to the fallback", () => {
@@ -98,26 +91,19 @@ test("attributes later-stage refusals to the stage that failed or to the fallbac
       travelAction: updated,
     },
   };
-  const memory = {
-    requestedAtLaunch: true,
-    status: "unavailable",
-    effectiveCapBytes: WASM_HEAP_CAP_BYTES,
-    fallbackReason: "unsupported-client",
-  } as const;
-  const cases: [string, Parameters<typeof servedReasons>[2], boolean, string, string, string][] = [
-    ["double-click crashed", ["nativeDoubleClick"], false, "check-failed", "game-update", "unsupported-client"],
-    ["4 GB crashed", ["extendedMemory"], false, "game-update", "game-update", "check-failed"],
-    ["Enhancement crashed", ["enhancement"], false, "check-failed", "check-failed", "check-failed"],
-    ["friends crashed", ["friendObserver"], false, "check-failed", "check-failed", "check-failed"],
-    ["Main served another candidate", [], true, "preparation-failed", "game-update", "preparation-failed"],
-    ["clean verdict", [], false, "game-update", "game-update", "unsupported-client"],
+  const cases: [string, Parameters<typeof servedReasons>[1], boolean, string, string][] = [
+    ["double-click crashed", ["nativeDoubleClick"], false, "check-failed", "game-update"],
+    ["sound decode repair crashed", ["soundDecodeRepair"], false, "game-update", "game-update"],
+    ["Enhancement crashed", ["enhancement"], false, "check-failed", "check-failed"],
+    ["friends crashed", ["friendObserver"], false, "check-failed", "check-failed"],
+    ["Main served another candidate", [], true, "preparation-failed", "game-update"],
+    ["clean verdict", [], false, "game-update", "game-update"],
   ];
-  for (const [name, stages, fellBack, doubleClick, travel, fourGb] of cases) {
-    const served = servedReasons(compatibility, memory, stages, fellBack);
+  for (const [name, stages, fellBack, doubleClick, travel] of cases) {
+    const served = servedReasons(compatibility, stages, fellBack);
     const reason = (status: OptionalFeatureStatus) =>
       status.status === "unavailable" ? status.reason : status.status;
-    assert.equal(reason(served.compatibility.features.nativeDoubleClick), doubleClick, name);
-    assert.equal(reason(served.compatibility.features.travelAction), travel, name);
-    assert.equal(served.extendedMemory.fallbackReason, fourGb, name);
+    assert.equal(reason(served.features.nativeDoubleClick), doubleClick, name);
+    assert.equal(reason(served.features.travelAction), travel, name);
   }
 });

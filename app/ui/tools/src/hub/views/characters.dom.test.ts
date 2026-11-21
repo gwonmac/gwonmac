@@ -104,7 +104,7 @@ beforeEach(() => {
         set: async (patch: Partial<AppSettings>) => { settings = { ...settings, ...patch }; return settings; },
       },
       clipboard: { writeText: async () => {} },
-      client: { session: async () => ({ extendedMemory: null }) },
+      client: { session: async () => ({ compatibility: null }) },
     },
   });
   // Characters never opens Settings; the stub only completes the host's shape.

@@ -19,7 +19,6 @@ export async function readClientRuntimeDiagnosticState(options: Readonly<{
   active: ActiveClient | null;
   paths: GamePaths;
   diagnosticProfile: DiagnosticProfile;
-  extendedMemoryEnabled: boolean;
   enhancementCapabilities: EnhancementCapabilities;
   enhancementProgram: EnhancementProgram;
 }>): Promise<RuntimeDiagnosticState> {
@@ -27,7 +26,6 @@ export async function readClientRuntimeDiagnosticState(options: Readonly<{
     active,
     paths,
     diagnosticProfile,
-    extendedMemoryEnabled,
     enhancementCapabilities,
     enhancementProgram,
   } = options;
@@ -36,7 +34,6 @@ export async function readClientRuntimeDiagnosticState(options: Readonly<{
       status: "preparing",
       diagnosticProfile,
       enhancementProgram,
-      extendedMemoryRequested: extendedMemoryEnabled,
       enhancementCapabilitiesRequested: enhancementCapabilities,
     };
   }
@@ -66,8 +63,6 @@ export async function readClientRuntimeDiagnosticState(options: Readonly<{
     officialJsSha256,
     selectedWasmSha256,
     selectedJsSha256,
-    extendedMemoryRequested: extendedMemoryEnabled,
-    extendedMemoryEffective: active.extendedMemory,
     enhancementCapabilitiesRequested: enhancementCapabilities,
     enhancementFeaturesEffective: active.compatibility?.features ?? null,
     enhancementVerification: active.enhancementVerification,

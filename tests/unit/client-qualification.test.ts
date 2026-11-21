@@ -14,10 +14,9 @@ test("a client no check can prove refuses every check and keeps its verdicts", a
   const root = await mkdtemp(path.join(tmpdir(), "gwonmac-qualify-"));
   try {
     const wasm = path.join(root, "Gw.jspi.wasm");
-    const js = path.join(root, "Gw.jspi.js");
-    await Promise.all([writeFile(wasm, WASM_HEADER), writeFile(js, "var Module = {};")]);
+    await writeFile(wasm, WASM_HEADER);
 
-    const records = await qualifyClient(wasm, js);
+    const records = await qualifyClient(wasm);
 
     for (const check of QUALIFICATION_CHECKS) {
       assert.equal(records[check].status, "refused", check);

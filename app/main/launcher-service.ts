@@ -46,7 +46,6 @@ export function createLauncherService(input: Readonly<{
     getNews: (contentPreferences) => launcherNews.snapshot(contentPreferences),
     toolsLoaded: () => input.toolsLoaded,
     getTexturePacks: () => texturePacks.snapshot(),
-    getExtendedMemory: () => clientRuntime.extendedMemory,
     allowUnreadyLaunch: input.allowUnreadyLaunch,
     publish: (snapshot) => {
       const launcher = windowRegistry.launcherWindow();

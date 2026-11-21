@@ -1,7 +1,6 @@
 /**
  * The utility process the local client proof runs inside: read the official
- * WebAssembly and JavaScript once, confirm they are the ones that were asked
- * for, run one verifier pass over every launch profile, and report after each
+ * WebAssembly once, confirm it is the one that was asked for, run one verifier pass over every launch profile, and report after each
  * profile.
  *
  * Isolation is the whole point. The verifier walks a multi-megabyte module this
@@ -32,7 +31,7 @@ const parentPort = (
   process as NodeJS.Process & { parentPort?: ParentPort }
 ).parentPort;
 
-const sha256 = (bytes: Uint8Array | string): string =>
+const sha256 = (bytes: Uint8Array): string =>
   createHash("sha256").update(bytes).digest("hex");
 
 function parseLaunches(value: string): ClientVerificationLaunch[] | null {
@@ -56,27 +55,25 @@ function parseLaunches(value: string): ClientVerificationLaunch[] | null {
 }
 
 async function main(): Promise<void> {
-  const [mode, wasmPath, wasmSha256, jsPath, jsSha256, launchesJson, memory] =
-    process.argv.slice(2);
+  const [mode, wasmPath, wasmSha256, launchesJson] = process.argv.slice(2);
   const launches = launchesJson ? parseLaunches(launchesJson) : null;
   if (
     !parentPort || mode !== "pass"
-    || !wasmPath || !wasmSha256 || !jsPath || !jsSha256 || !launches
-    || (memory !== "memory-first" && memory !== "memory-later")
+    || !wasmPath || !wasmSha256 || !launches
   ) {
     parentPort?.postMessage(null);
     process.exitCode = 2;
     return;
   }
-  const [wasm, js] = await Promise.all([readFile(wasmPath), readFile(jsPath, "utf8")]);
-  if (sha256(wasm) !== wasmSha256 || sha256(js) !== jsSha256) {
+  const wasm = await readFile(wasmPath);
+  if (sha256(wasm) !== wasmSha256) {
     parentPort.postMessage(null);
     process.exitCode = 3;
     return;
   }
   const port = parentPort;
   let reported = false;
-  await runClientVerificationPass(wasm, js, launches, (result, complete) => {
+  await runClientVerificationPass(wasm, launches, (result, complete) => {
     port.postMessage({ complete, result });
     if (reported) return;
     reported = true;
@@ -85,7 +82,7 @@ async function main(): Promise<void> {
     } catch {
       // Priority is a courtesy to the starting game, not a requirement.
     }
-  }, { extendedMemoryFirst: memory === "memory-first" });
+  });
 }
 
 await main().catch(() => {

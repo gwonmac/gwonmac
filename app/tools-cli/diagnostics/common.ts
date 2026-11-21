@@ -215,7 +215,6 @@ export function isRuntimeDiagnosticState(
     || !ENHANCEMENT_PROGRAMS.includes(
       value.enhancementProgram as RuntimeDiagnosticState["enhancementProgram"],
     )
-    || typeof value.extendedMemoryRequested !== "boolean"
     || !isRecord(requestedCapabilities)
     || Object.keys(requestedCapabilities).length
       !== ENHANCEMENT_CAPABILITY_FIELDS.length
@@ -228,7 +227,6 @@ export function isRuntimeDiagnosticState(
     && (value.presentationPath === "direct-canvas"
       || value.presentationPath === "offscreen-imagebitmap")
     && (value.artifactKind === "official" || value.artifactKind === "derived")
-    && isRecord(value.extendedMemoryEffective)
     && (value.enhancementFeaturesEffective === null
       || isRecord(value.enhancementFeaturesEffective))
     && isEnhancementVerification(value.enhancementVerification)

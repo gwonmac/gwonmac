@@ -6,7 +6,7 @@
  * This runs inside the isolated verifier process and is pure: it reads only the
  * bytes it is handed and writes nothing. It walks the chain exactly as Main
  * prepares it (official, template saving, Enhancement, friends, Cartography,
- * native double-click, 4 GB), each stage proved on the previous stage's
+ * native double-click, sound decode repair), each stage proved on the previous stage's
  * output, so Main can later find the proof for whatever input it actually
  * holds. A stage that refuses records nothing and the next stage proves the
  * previous output, which is the same degradation Main applies.
@@ -68,19 +68,12 @@ import {
   SOUND_DECODE_REPAIR_TRANSFORM_ABI,
   type SoundDecodeRepairBuild,
 } from "./sound-decode-repair.js";
-import {
-  deriveExtendedMemoryStructuralProof,
-  EXTENDED_MEMORY_TRANSFORM_ABI,
-  EXTENDED_MEMORY_VERIFIER_ABI,
-  isExtendedMemoryStructuralProof,
-  type ExtendedMemoryStructuralProof,
-} from "./extended-memory.js";
 
 /**
  * Bumped whenever the shape of a pass result changes, so a stored record from
  * an older shape is a key mismatch instead of a parse question.
  */
-export const CLIENT_VERIFICATION_PASS_ABI = 3;
+export const CLIENT_VERIFICATION_PASS_ABI = 4;
 
 /**
  * The ABI of every stage a pass proves. A stored pass made under any other
@@ -94,8 +87,6 @@ export const CLIENT_VERIFICATION_STAGE_ABIS = Object.freeze({
   cartography: CARTOGRAPHY_SPIKE_TRANSFORM_ABI,
   nativeDoubleClick: NATIVE_DOUBLE_CLICK_TRANSFORM_ABI,
   soundDecodeRepair: SOUND_DECODE_REPAIR_TRANSFORM_ABI,
-  extendedMemoryTransform: EXTENDED_MEMORY_TRANSFORM_ABI,
-  extendedMemoryVerifier: EXTENDED_MEMORY_VERIFIER_ABI,
 });
 
 /** One module chain a launch can select. */
@@ -115,7 +106,6 @@ export const CLIENT_VERIFICATION_STAGES = [
   "cartography",
   "nativeDoubleClick",
   "soundDecodeRepair",
-  "extendedMemory",
 ] as const;
 
 export type ClientVerificationStage = (typeof CLIENT_VERIFICATION_STAGES)[number];
@@ -174,7 +164,6 @@ export interface ClientVerificationPassResult {
   readonly cartography: readonly CartographySpikeBuild[];
   readonly nativeDoubleClick: readonly NativeDoubleClickBuild[];
   readonly soundDecodeRepair: readonly SoundDecodeRepairBuild[];
-  readonly extendedMemory: readonly ExtendedMemoryStructuralProof[];
 }
 
 export function sameLaunch(
@@ -199,26 +188,18 @@ const sha256 = (bytes: Uint8Array | string): string =>
 /**
  * Prove each launch in order and report after each one, so the caller can
  * start the requested launch before the rest of the pass has finished.
- *
- * The 4 GB proof of the requested launch waits until that launch is reported,
- * unless the launch asks for 4 GB: it is proved either way, so switching 4 GB
- * on later never needs another pass, but only a launch that uses it waits.
  */
 export async function runClientVerificationPass(
   official: Uint8Array,
-  officialJs: string,
   launches: readonly ClientVerificationLaunch[],
   onLaunch: (result: ClientVerificationPassResult, complete: boolean) => void,
-  options: Readonly<{ extendedMemoryFirst: boolean }> = { extendedMemoryFirst: true },
 ): Promise<void> {
   const officialSha256 = sha256(official);
-  const jsSha256 = sha256(officialJs);
   const launchResults: ClientVerificationLaunchResult[] = [];
   const friendObserver: FriendObserverBuild[] = [];
   const cartography: CartographySpikeBuild[] = [];
   const nativeDoubleClick: NativeDoubleClickBuild[] = [];
   const soundDecodeRepair: SoundDecodeRepairBuild[] = [];
-  const extendedMemory: ExtendedMemoryStructuralProof[] = [];
   // Every launch starts from the same template output; derive it once.
   const templateOutputs = new Map<string, Uint8Array | null>();
 
@@ -228,7 +209,6 @@ export async function runClientVerificationPass(
     cartography: Object.freeze([...cartography]),
     nativeDoubleClick: Object.freeze([...nativeDoubleClick]),
     soundDecodeRepair: Object.freeze([...soundDecodeRepair]),
-    extendedMemory: Object.freeze([...extendedMemory]),
   });
   const report = async (complete: boolean) => {
     onLaunch(snapshot(), complete);
@@ -357,41 +337,13 @@ export async function runClientVerificationPass(
       advance(repair.output, soundDecodeRepairOutputSha256(repair.build, inputSha256));
     }
 
-    const memoryInput = bytes;
-    const memoryInputSha256 = inputSha256;
-    const proveMemory = () => {
-      const memory = extendedMemory.find((proof) =>
-        isExtendedMemoryStructuralProof(proof, jsSha256, memoryInputSha256))
-        ?? attempt("extendedMemory", () =>
-          deriveExtendedMemoryStructuralProof(officialJs, memoryInput));
-      if (
-        isExtendedMemoryStructuralProof(memory, jsSha256, memoryInputSha256)
-        && !extendedMemory.includes(memory)
-      ) extendedMemory.push(memory);
-    };
-    const last = index === launches.length - 1;
-    const memoryLater = index === 0 && !options.extendedMemoryFirst;
-    if (!memoryLater) proveMemory();
-
     launchResults.push(Object.freeze({
       ...launch,
       verification,
       failedStages: Object.freeze([...failedStages]),
       enhancementCandidate,
     }));
-    await report(last && !memoryLater);
-    if (memoryLater) {
-      proveMemory();
-      // Replace the reported entry, so a deferred 4 GB failure reaches the
-      // final report.
-      launchResults[index] = Object.freeze({
-        ...launch,
-        verification,
-        failedStages: Object.freeze([...failedStages]),
-        enhancementCandidate,
-      });
-      if (last) await report(true);
-    }
+    await report(index === launches.length - 1);
   }
 }
 

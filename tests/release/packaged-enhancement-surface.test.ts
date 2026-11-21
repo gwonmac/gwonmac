@@ -69,7 +69,7 @@ test("every relative ESM dependency reachable from a shipped entry point is pack
   assert.ok(closure.has("/build/client/certification/enhancement-builds.js"));
   assert.ok(closure.has("/build/client/certification/local-client-verifier-host.js"));
   assert.ok(closure.has("/build/client/certification/native-double-click.js"));
-  assert.ok(closure.has("/build/client/certification/extended-memory.js"));
+  assert.ok(closure.has("/build/client/certification/sound-decode-repair.js"));
   assert.ok(
     packaged.has("/build/client/certification/local-client-verifier-process.js"),
     "the packaged utility verifier entry must ship beside its host",

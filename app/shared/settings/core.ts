@@ -92,8 +92,6 @@ export const CORE_SETTINGS = {
     },
     { rendererWritable: true, tools: true },
   ),
-  /** Request the certified 4 GB client module on the next Guild Wars launch. */
-  extendedMemoryEnabled: setting.boolean(false, { hub: true }),
   /** Return toward the current character after an explicit game reload. */
   autoRelogAfterReload: setting.boolean(false, { hub: true, rendererWritable: true }),
   /** Warning position within the available viewport space; null keeps the default. */
