@@ -5,6 +5,10 @@ do not read, change, or persist title progress, and they do not consume items or
 open chests. Mission, vanquish and Cartographer progress is read live on the
 Hub Progress page.
 
+**Hub calculators** in Settings › Game (`hubCalculators`, on by default) turns
+these and the currency calculators off: they then answer no search and offer no
+row.
+
 ## Supported flows
 
 - `titles` opens editable examples. Enter on an example fills the search field.

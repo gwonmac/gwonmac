@@ -44,6 +44,8 @@ const sendControlPaste = (contents: WebContents): void => {
 export async function editGameText(
   contents: WebContents,
   request: GameTextEditRequest,
+  /** Clean pasted text is on; off, a paste reaches the game exactly as it was copied. */
+  cleanPaste: boolean,
 ): Promise<void> {
   if (request.command === 'copy') {
     clipboard.writeText(request.text);
@@ -70,7 +72,7 @@ export async function editGameText(
   // hidden field but does not commit the edit to Guild Wars.
   const text = clipboard.readText();
   if (!text || text.length > CLIPBOARD_TEXT_CEILING) return;
-  if (request.field === 'text') {
+  if (cleanPaste && request.field === 'text') {
     // A name copied from a web page often carries a trailing space or an
     // invisible character; Guild Wars then cannot find that player. Chromium
     // pastes only from the pasteboard, so the cleaned text replaces it there.

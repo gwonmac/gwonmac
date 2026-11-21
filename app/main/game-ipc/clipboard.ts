@@ -9,7 +9,7 @@ import { ValidationError } from "../../shared/errors.js";
 import { editGameText } from "../game-text-editing.js";
 import { channel } from "../ipc-channel-registry.js";
 import { nothing, one } from "../ipc-values.js";
-import type { GameHandlers } from "./part.js";
+import type { GameHandlers, GameIpcInput } from "./part.js";
 
 const asClipboardText = one((value: unknown): string => {
   if (
@@ -51,13 +51,13 @@ const asGameTextEditRequest = one((value: unknown): GameTextEditRequest => {
   throw new ValidationError("invalid game text edit request");
 });
 
-export default () => ({
+export default ({ currentSettings }: GameIpcInput) => ({
   channels: {
     clipboardWriteText: channel(asClipboardText, (_win, text) => {
       clipboard.writeText(text);
     }),
     clipboardEdit: channel(asGameTextEditRequest, async (win, request) => {
-      await editGameText(win.webContents, request);
+      await editGameText(win.webContents, request, currentSettings().pasteCleanup);
     }),
     // Truncated rather than refused: a player who copied something large before
     // reaching for Import from Clipboard should see "no build templates in

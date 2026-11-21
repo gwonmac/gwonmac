@@ -29,7 +29,7 @@ async function perform(action: () => Promise<unknown> | undefined, nativeSave = 
   catch { message.value = "This setting could not be saved. Try again."; }
 }
 /** Tools whose options open under their row; closed by default so the list stays short. */
-const OPTION_TOOLS: readonly GlobalTool[] = ["character-switch", "alcohol-timer", "target-readout", "skill-key-labels", "chat-filters", "reminders", "skill-cooldowns"];
+const OPTION_TOOLS: readonly GlobalTool[] = ["character-switch", "alcohol-timer", "target-readout", "skill-key-labels", "chat-filters", "reminders", "skill-cooldowns", "whispers"];
 const hasOptions = (tool: GlobalTool) => OPTION_TOOLS.includes(tool);
 const openOptions = ref(new Set<GlobalTool>());
 function toggleOptions(tool: GlobalTool, event: Event) {
@@ -75,6 +75,7 @@ function customColor(value: string) {
         </div>
         <div v-if="tool === 'alcohol-timer'" class="feature-details" role="group" aria-label="Alcohol Timer position" data-setting="alcoholTimerPosition"><button class="secondary small" @click="perform(() => save({ alcoholTimerPosition: { ...snapshot.settings.alcoholTimerPosition, locked: false } }))">Show to place</button><button class="secondary small" @click="perform(() => save({ alcoholTimerPosition: DEFAULT_ALCOHOL_TIMER_POSITION }))">Reset position</button><p>Drag the timer in a game window at any time. Show to place keeps it on screen while you are sober, until you select its lock. It stays at the same distance from the nearest game-window corner.</p></div>
         <div v-if="tool === 'target-readout'" class="feature-details" role="group" aria-label="Target Distance position" data-setting="targetReadoutPosition"><button class="secondary small" :disabled="snapshot.settings.targetReadoutPosition === null" @click="perform(() => save({ targetReadoutPosition: null }))">Reset position</button><p>Drag Target Distance in a game window at any time. It stays at the same distance from the nearest game-window corner.</p></div>
+        <div v-if="tool === 'whispers'" class="whispers-details"><label data-setting="whispersIcon"><span>Show the Whispers icon<small>The small icon that counts unread whispers. With it hidden, open Whispers with its shortcut or from the Hub.</small></span><input type="checkbox" :checked="snapshot.settings.whispersIcon" @change="perform(() => save({ whispersIcon: ($event.currentTarget as HTMLInputElement).checked }))" /></label></div>
         <SkillLabelsSettings v-if="tool === 'skill-key-labels'" role="group" aria-label="Skill labels" data-setting="skillKeyBindings" :bindings="snapshot.settings.skillKeyBindings" :save="save" />
         <div v-if="tool === 'chat-filters'" class="chat-filter-details">
           <label v-for="filter in CHAT_FILTERS" :key="filter.key" :data-setting="filter.key"><span>{{ filter.label }}</span><input type="checkbox" :checked="snapshot.settings[filter.key]" @change="perform(() => save({ [filter.key]: ($event.target as HTMLInputElement).checked }))" /></label>
@@ -104,11 +105,13 @@ function customColor(value: string) {
 .tools-state { margin: 0 0 16px; font-size: 14px; }
 .character-details label,
 .chat-filter-details label,
-.reminder-details label { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0; }
+.reminder-details label,
+.whispers-details label { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0; }
 .feature-details { padding: 0 0 16px; }
 .reminder-details fieldset { margin: 0; padding: 0; border: 0; }
 .reminder-details legend { padding: 12px 0 0; font-size: 13px; font-weight: 600; }
-.reminder-details label small { display: block; }
+.reminder-details label small,
+.whispers-details label small { display: block; }
 .reminder-note { margin: 0 0 16px; font-size: 14px; }
 .feature-details button + button { margin-left: 8px; }
 .feature-details p { margin-bottom: 0; }
