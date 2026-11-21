@@ -89,7 +89,7 @@ export const GAME_CHANNELS = {
   hubShortcutCaptureCancel: invoke<[], void>("gw:hub:shortcut:captureCancel"),
   appShowLauncher: invoke<[], void>("gw:app:showLauncher"),
   appRequestQuit: invoke<[], void>("gw:app:requestQuit"),
-  appShowQuitOrReload: invoke<[], "stayed" | "left" | undefined>("gw:app:showQuitOrReload"),
+  appShowQuitOrReload: invoke<[], "stayed" | "left" | "panel" | undefined>("gw:app:showQuitOrReload"),
   appReloadGame: invoke<[cause: GameReloadCause], void>("gw:app:reloadGame"),
   appClaimRelogIntent: invoke<[], boolean>("gw:app:claimRelogIntent"),
   clipboardWriteText: invoke<[text: string], void>("gw:clipboard:writeText"),

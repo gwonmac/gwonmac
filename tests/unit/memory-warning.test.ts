@@ -48,6 +48,10 @@ function memoryDom(complete = true) {
     "memory-notice-reload",
     "memory-notice-later",
     "memory-notice-auto-relog",
+    "memory-notice-quit",
+    "memory-notice-usage",
+    "memory-notice-usage-text",
+    "memory-notice-meter",
     "canvas",
   ];
   const elements = new Map(ids.map((id) => [id, new FakeElement()]));
@@ -96,6 +100,49 @@ describe("memory warning presenter", () => {
     presenter.present("critical", 2_147_483_648);
     assert.equal(dom.element("memory-notice").hidden, false);
     assert.equal(dom.element("memory-notice-text").attributes.get("aria-live"), "assertive");
+  });
+
+  it("opens for Command-Q with the memory figure, Quit and Close, whatever was dismissed", async () => {
+    const dom = memoryDom();
+    let quits = 0;
+    const presenter = bindMemoryWarning(dom.document, { ...warningActions(), quit: () => { quits += 1; } });
+    assert.ok(presenter);
+    // No memory sample yet: main's native dialog answers instead.
+    dom.element("memory-notice").hidden = true;
+    assert.equal(presenter.open(), false);
+    assert.equal(dom.element("memory-notice").hidden, true);
+
+    presenter.update(1_503_238_553, 2_147_483_648);
+    assert.equal(presenter.open(), true);
+    assert.equal(dom.element("memory-notice").hidden, false);
+    assert.equal(dom.element("memory-notice-label").textContent, "Quit or reload Guild Wars?");
+    assert.equal(dom.element("memory-notice-usage-text").textContent, "1.4 of 2 GB used");
+    assert.equal(dom.element("memory-notice-usage").hidden, false);
+    assert.equal(dom.element("memory-notice-later").textContent, "Close");
+    assert.equal(dom.element("memory-notice-quit").hidden, false);
+    assert.equal(dom.element("memory-notice-later").focused, true);
+    assert.equal(dom.element("memory-notice-reload").focused, false);
+
+    // A dismissed warning stays dismissed for the heap watch, and still opens when asked.
+    presenter.present("low", 2_147_483_648);
+    dom.element("memory-notice-later").click();
+    presenter.present("low", 2_147_483_648);
+    assert.equal(dom.element("memory-notice").hidden, true);
+    assert.equal(presenter.open(), true);
+    assert.equal(dom.element("memory-notice-label").textContent, "Guild Wars is running low on memory.");
+
+    dom.element("memory-notice-quit").click();
+    await Promise.resolve();
+    await Promise.resolve();
+    assert.equal(quits, 1);
+    assert.equal(dom.element("memory-notice").hidden, true);
+  });
+
+  it("offers no Quit when the host gave it none", () => {
+    const dom = memoryDom();
+    dom.element("memory-notice-quit").hidden = true;
+    assert.ok(bindMemoryWarning(dom.document, warningActions()));
+    assert.equal(dom.element("memory-notice-quit").hidden, true);
   });
 
   it("reloads without adding another warning state", async () => {

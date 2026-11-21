@@ -448,8 +448,10 @@ function requestHeapCap() {
               throw error;
             }
           },
+          quit: () => native().app.requestQuit(),
         },
       );
+      window.gwQuitPanel = () => heapWarning?.open() ?? false;
       disposeMemoryWarningSettings();
       disposeMemoryWarningSettings = native().settings.onChange((updated) => {
         heapWarning?.setAutoRelog(updated.autoRelogAfterReload);
@@ -487,6 +489,7 @@ setInterval(() => {
   requestHeapCap();
   if (!heapWatch) return;
   const reading = heapWatch.sample(wasmHeapBytes(), performance.now());
+  heapWarning?.update(reading.bytes, heapCapBytes);
   if (reading.level === 'none') return;
   if (reading.level !== heapNoticeLevel) {
     heapNoticeLevel = reading.level;
