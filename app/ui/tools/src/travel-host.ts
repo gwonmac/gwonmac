@@ -82,6 +82,8 @@ export function createNativeTravelHost(
     mapId: number;
     phase: "queued" | "loading";
   }> | null = null;
+  // A Guild Hall trip that the game has not started within 3 s; a late start is still followed.
+  let delayedGuildHall: "inside" | "outside" | null = null;
   const clearAttempt = () => {
     window.clearTimeout(attemptTimer);
     attemptTimer = 0;
@@ -103,6 +105,22 @@ export function createNativeTravelHost(
         || attempt.value.mapId !== mapId) return;
       settleAttempt(mapId, "loading");
       failTravel(mapId, "Guild Wars did not confirm arrival. Travel is ready to try again.", "warning");
+    }, 30_000);
+  };
+  const beginGuildHallLoading = (target: "inside" | "outside") => {
+    window.clearTimeout(attemptTimer);
+    delayedGuildHall = null;
+    attempt.value = { status: "loading", kind: "guild-hall", target };
+    notice.value = { message: "Travel started.", level: "success" };
+    attemptTimer = window.setTimeout(() => {
+      const active = attempt.value;
+      if (active.status === "loading" && active.kind === "guild-hall") {
+        clearAttempt();
+        notice.value = {
+          message: "Guild Wars did not confirm Guild Hall travel. Try again.",
+          level: "warning",
+        };
+      }
     }, 30_000);
   };
   // People must withdraw an arrival invite from the same failure that Travel displays.
@@ -143,6 +161,7 @@ export function createNativeTravelHost(
         throw new Error(contextRefusal);
       }
       settledAttempt = null;
+      delayedGuildHall = null;
       unidentifiedOriginMapId = state.value.status === "ready"
         && state.value.characterKey === null
         ? state.value.mapId
@@ -158,8 +177,10 @@ export function createNativeTravelHost(
           if (attempt.value.status !== "queued"
             || attempt.value.kind !== "map"
             || attempt.value.mapId !== request.mapId) return;
+          // A game prompt or a party countdown starts the trip later, so this is not a
+          // failure: the attempt is released for a retry and a late start is still followed.
           settleAttempt(request.mapId, "queued");
-          failTravel(request.mapId, "Travel did not start. Check that this destination is unlocked, then try again.", "warning");
+          notice.value = { message: "Guild Wars has not started this trip yet. A game prompt or a party countdown can delay it.", level: "info" };
         }, 3_000);
         if (development) {
           console.debug(`[tools:dev] travel.queued ${JSON.stringify({ mapId: request.mapId })}`);
@@ -187,6 +208,8 @@ export function createNativeTravelHost(
         throw new Error(message);
       }
       const target = ready.guildHall ? "outside" : "inside";
+      settledAttempt = null;
+      delayedGuildHall = null;
       attempt.value = { status: "queued", kind: "guild-hall", target };
       notice.value = {
         message: target === "inside" ? "Travelling to your Guild Hall…" : "Leaving Guild Hall…",
@@ -198,9 +221,10 @@ export function createNativeTravelHost(
           const current = attempt.value;
           if (current.status !== "queued" || current.kind !== "guild-hall") return;
           clearAttempt();
+          delayedGuildHall = current.target;
           notice.value = {
-            message: "Guild Wars did not start Guild Hall travel. Try again.",
-            level: "warning",
+            message: "Guild Wars has not started Guild Hall travel yet. A game prompt or a party countdown can delay it.",
+            level: "info",
           };
         }, 3_000);
       } catch (error) {
@@ -220,21 +244,7 @@ export function createNativeTravelHost(
           clearAttempt();
           notice.value = null;
         } else if (next.status === "waiting" && next.reason === "loading") {
-          if (current.status === "queued") {
-            window.clearTimeout(attemptTimer);
-            attempt.value = { ...current, status: "loading" };
-            notice.value = { message: "Travel started.", level: "success" };
-            attemptTimer = window.setTimeout(() => {
-              const active = attempt.value;
-              if (active.status === "loading" && active.kind === "guild-hall") {
-                clearAttempt();
-                notice.value = {
-                  message: "Guild Wars did not confirm Guild Hall travel. Try again.",
-                  level: "warning",
-                };
-              }
-            }, 30_000);
-          }
+          if (current.status === "queued") beginGuildHallLoading(current.target);
         } else if (current.status === "loading" && next.status !== "ready") {
           clearAttempt();
           notice.value = { message: "Guild Hall travel was interrupted.", level: "warning" };
@@ -255,6 +265,16 @@ export function createNativeTravelHost(
       }
       historyObservation.update(next);
       if (current.status === "idle") {
+        const hall = delayedGuildHall;
+        if (hall !== null) {
+          if (next.status === "ready" && next.guildHall === (hall === "inside")) {
+            delayedGuildHall = null;
+            notice.value = null;
+          } else if (next.status === "waiting" && next.reason === "loading") {
+            beginGuildHallLoading(hall);
+          }
+          return;
+        }
         const settled = settledAttempt;
         if (settled === null) return;
         if (next.status === "ready" && next.mapId === settled.mapId) {
@@ -292,6 +312,7 @@ export function createNativeTravelHost(
       historyObservation.dispose();
       clearAttempt();
       settledAttempt = null;
+      delayedGuildHall = null;
       notice.value = null;
     },
     traceSearch(query, resultMapIds) {

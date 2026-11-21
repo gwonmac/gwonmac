@@ -321,17 +321,17 @@ test('Travel failure withdraws the pending invite within five seconds with its o
       await page().find(row => row.id === 'person:travel-invite')!.run(task);
       receipts.length = 0;
       context.mock.timers.tick(3_000);
-      // Travel's canonical host signal after its own queued-trip timeout.
+      // Travel's canonical host signal when a started trip fails.
       window.dispatchEvent(new CustomEvent('gw:travel-failed', { detail: {
-        mapId: 449, message: 'Travel did not start. Check that this destination is unlocked, then try again.',
+        mapId: 449, message: 'Guild Wars did not confirm arrival. Travel is ready to try again.',
       } }));
       await new Promise<void>(resolve => setImmediate(resolve));
-      assert.deepEqual(receipts, ['Travel did not start. Check that this destination is unlocked, then try again.']);
+      assert.deepEqual(receipts, ['Guild Wars did not confirm arrival. Travel is ready to try again.']);
       assert.equal(party.pending, null);
       assert.equal(listeners.size, 0);
       context.mock.timers.tick(60_000);
       assert.deepEqual(sent, []);
-      assert.deepEqual(receipts, ['Travel did not start. Check that this destination is unlocked, then try again.']);
+      assert.deepEqual(receipts, ['Guild Wars did not confirm arrival. Travel is ready to try again.']);
     } finally { party.dispose(); }
   }, party);
 });
