@@ -58,6 +58,8 @@ test("settings navigation has one scroll owner and compact controls at supported
   try {
     await page.evaluate(async () => {
       await window.launcherNative.experience.completeSetup({ enableTools: false });
+      // Feature options (opened below) show only outside the plain game.
+      await window.launcherNative.tools.setMasterEnabled(true);
     });
     const settings = await openSettings(fixture);
     for (const size of [{ width: 1180, height: 760, zoom: 1 }, { width: 900, height: 640, zoom: 1 }, { width: 1180, height: 760, zoom: 2 }, { width: 900, height: 640, zoom: 2 }]) {

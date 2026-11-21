@@ -14,7 +14,7 @@ test("feature controls preserve preferences and validate native commands", async
     const nav = (name: string) => settings.locator(".settings-page aside").getByRole("button", { name, exact: true });
     await nav("Tools").click();
     // The plain game holds every Feature switch, Switch Character included, until it is turned off.
-    await expect(settings.getByRole("checkbox", { name: "Play the plain game", exact: true })).toBeChecked();
+    await expect(settings.getByRole("checkbox", { name: /^Play the plain game/ })).toBeChecked();
     await expect(settings.getByRole("checkbox", { name: "Switch Character", exact: true })).toBeDisabled();
     await expect(nav("Maps")).toHaveCount(1);
     await settings.evaluate(() => window.launcherNative.tools.setFeature({ tool: "character-switch", enabled: false }));
@@ -25,7 +25,7 @@ test("feature controls preserve preferences and validate native commands", async
     });
     await expect(settings.getByText("⌘J", { exact: true })).toBeVisible();
     await settings.evaluate(() => window.launcherNative.tools.setMasterEnabled(true));
-    await expect(settings.getByRole("checkbox", { name: "Play the plain game", exact: true })).not.toBeChecked();
+    await expect(settings.getByRole("checkbox", { name: /^Play the plain game/ })).not.toBeChecked();
     await expect(settings.getByRole("checkbox", { name: "Switch Character", exact: true })).toBeEnabled();
     const resign = settings.getByRole("checkbox", { name: "Resign", exact: true });
     await expect(resign).not.toBeChecked();
