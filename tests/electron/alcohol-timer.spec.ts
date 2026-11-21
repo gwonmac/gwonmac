@@ -35,9 +35,10 @@ test("timer dragging, cancellation, stable corner, locking and reload", async ()
     const canvasBounds = (await page.locator("#canvas").boundingBox())!;
     expect(initial.x).toBeCloseTo(canvasBounds.x + 4, 0);
     expect(initial.y).toBeCloseTo(canvasBounds.y + 58, 0);
+    // It can be dragged at any time, so even locked it takes the pointer where it sits.
     expect(await root.evaluate(el => {
       const r = el.getBoundingClientRect(); return el.contains(document.elementFromPoint(r.x + 10, r.y + 10));
-    })).toBe(false);
+    })).toBe(true);
     await page.evaluate(() => window.alcoholFixture.setSettings({ corner: "top-left", x: 4, y: 58, locked: false }, true));
     await handle.focus();
     await handle.press("ArrowRight"); await handle.press("ArrowRight"); await handle.press("Shift+ArrowDown");
@@ -54,14 +55,22 @@ test("timer dragging, cancellation, stable corner, locking and reload", async ()
     await page.mouse.move(h.x + 8, h.y + 8); await page.mouse.down(); await page.mouse.move(h.x + 68, h.y + 38); await page.mouse.up();
     const dragged = (await root.boundingBox())!; expect(dragged.x).toBeCloseTo(keyboard.x + 60, 0);
     await page.waitForTimeout(150);
-    await root.getByRole("button", { name: "Lock alcohol timer position" }).click();
+    const lock = root.getByRole("button", { name: "Lock alcohol timer position" });
+    await lock.click();
     await expect.poll(() => page.evaluate(async () => (await window.gwNative.settings.get()).alcoholTimerPosition.locked)).toBe(true);
-    await expect(handle).toBeDisabled();
+    await expect(lock).toBeHidden();
     expect(await root.boundingBox()).toEqual(dragged);
-    expect(await root.evaluate(el => { const r = el.getBoundingClientRect(); return el.contains(document.elementFromPoint(r.x + 10, r.y + 10)); })).toBe(false);
     await page.screenshot({ path: test.info().outputPath("alcohol-locked.png") });
-    await page.reload(); await showTimer(page); await expect(handle).toBeDisabled();
+    await page.reload(); await showTimer(page); await expect(lock).toBeHidden();
     expect((await root.boundingBox())!.x).toBeCloseTo(dragged.x, 0);
+    // Dragging a locked timer moves it and keeps it locked.
+    const saved = await page.evaluate(async () => (await window.gwNative.settings.get()).alcoholTimerPosition);
+    const locked = (await handle.boundingBox())!;
+    await page.mouse.move(locked.x + 8, locked.y + 8); await page.mouse.down(); await page.mouse.move(locked.x - 22, locked.y + 8); await page.mouse.up();
+    await expect.poll(() => page.evaluate(async () => (await window.gwNative.settings.get()).alcoholTimerPosition))
+      .toEqual({ ...saved, x: saved.x - 30, locked: true });
+    expect((await root.boundingBox())!.x).toBeCloseTo(dragged.x - 30, 0);
+    await expect(lock).toBeHidden();
     await page.evaluate(() => window.alcoholFixture.setAlcohol({ status: "ready", sequence: 6, gameTimer: 0, remainingMs: 0 }));
     await expect(root).toBeHidden();
     await page.evaluate(async () => window.alcoholFixture.setSettings({ ...(await window.gwNative.settings.get()).alcoholTimerPosition, locked: false }, true));
@@ -92,7 +101,8 @@ test("timer picks the bottom-right corner and preserves gaps through resize and 
     const lock = root.getByRole("button", { name: "Lock alcohol timer position" });
     expect((await lock.boundingBox())!.x).toBeLessThan(placed.x);
     await lock.click();
-    await expect(handle).toBeDisabled();
+    await expect(lock).toBeHidden();
+    await expect(handle).toBeEnabled();
     expect(await root.boundingBox()).toEqual(placed);
     await page.setViewportSize({ width: 640, height: 480 });
     await expect.poll(async () => { const box = (await root.boundingBox())!; return box.x + box.width; }).toBeCloseTo(640 - 8, 0);

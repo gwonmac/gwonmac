@@ -292,6 +292,22 @@ async function getAuthToken(
   );
 }
 
+/**
+ * The client's glue loads only after boot() has loaded the host modules, so it
+ * never meets a login seam that cannot answer yet. The offline shell returns at
+ * page load, which is earlier: wait until the seam answers, as the client would.
+ */
+async function withLoginSeam(launched: Promise<OfflineFixture>): Promise<OfflineFixture> {
+  const fixture = await launched;
+  await fixture.page.waitForFunction(() => {
+    const login = (
+      globalThis as unknown as { Module?: { login?: { hasProvider(name: string): boolean } } }
+    ).Module?.login;
+    try { login?.hasProvider("Steam"); return login !== undefined; } catch { return false; }
+  });
+  return fixture;
+}
+
 async function windowCount(app: OfflineFixture["app"]): Promise<number> {
   return app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length);
 }
@@ -308,7 +324,7 @@ test.describe("the Steam credential seam", () => {
   test("advertises Steam and nothing else", async () => {
     // The client offers Steam in its provider chooser, before the unchanged
     // ArenaNet email/password form.
-    fixture = await launchOffline("gw-steam-providers-");
+    fixture = await withLoginSeam(launchOffline("gw-steam-providers-"));
     const answers = await fixture.page.evaluate(() => {
       const login = (
         globalThis as unknown as {
@@ -335,7 +351,7 @@ test.describe("the Steam credential seam", () => {
   test("refuses a silent request with no stored token, opening no window", async () => {
     // This is the launch-time probe: a player who never signed
     // in with Steam must not be shown a Steam window for it.
-    fixture = await launchOffline("gw-steam-none-");
+    fixture = await withLoginSeam(launchOffline("gw-steam-none-"));
     const before = await windowCount(fixture.app);
 
     const result = await getAuthToken(fixture, "Steam", true);
@@ -409,7 +425,7 @@ test.describe("the Steam credential seam", () => {
 
   test("drives an explicit request through the real bridge and IPC seam", async () => {
     oauth = await startIpcOAuthFixture();
-    fixture = await launchOffline("gw-steam-ipc-explicit-");
+    fixture = await withLoginSeam(launchOffline("gw-steam-ipc-explicit-"));
     await installFixtureAcquirer(fixture.app, oauth.config);
 
     const requested = getAuthToken(fixture, "Steam", false);
@@ -428,7 +444,7 @@ test.describe("the Steam credential seam", () => {
 
   test("coalesces concurrent explicit IPC requests into one window", async () => {
     oauth = await startIpcOAuthFixture();
-    fixture = await launchOffline("gw-steam-ipc-singleflight-");
+    fixture = await withLoginSeam(launchOffline("gw-steam-ipc-singleflight-"));
     await installFixtureAcquirer(fixture.app, oauth.config);
 
     const first = getAuthToken(fixture, "Steam", false);
@@ -442,7 +458,7 @@ test.describe("the Steam credential seam", () => {
 
   test("makes clear final through the real IPC boundary", async () => {
     oauth = await startIpcOAuthFixture();
-    fixture = await launchOffline("gw-steam-ipc-clear-order-");
+    fixture = await withLoginSeam(launchOffline("gw-steam-ipc-clear-order-"));
     await installFixtureAcquirer(fixture.app, oauth.config);
 
     const requested = getAuthToken(fixture, "Steam", false);
@@ -463,7 +479,7 @@ test.describe("the Steam credential seam", () => {
     // `{ silent }`, so this is about a build that stops: refusing is recoverable
     // -- email and password still work -- while opening a Steam window nobody
     // asked for is the failure the requirement exists to prevent.
-    fixture = await launchOffline("gw-steam-no-options-");
+    fixture = await withLoginSeam(launchOffline("gw-steam-no-options-"));
     const before = await windowCount(fixture.app);
 
     const settled = await fixture.page.evaluate(async () => {
@@ -488,7 +504,7 @@ test.describe("the Steam credential seam", () => {
     // `userId` is the client's local profile index, not the
     // SteamID, and `refreshToken` is empty. The client base64-encodes
     // `authCode` into <PasswordToken> for login.xml.
-    fixture = await launchOffline("gw-steam-stored-");
+    fixture = await withLoginSeam(launchOffline("gw-steam-stored-"));
     await seedStore(fixture.app, { token: TOKEN, expiry: FAR_FUTURE });
     const before = await windowCount(fixture.app);
 
@@ -502,7 +518,7 @@ test.describe("the Steam credential seam", () => {
   });
 
   test("refuses a provider it does not offer", async () => {
-    fixture = await launchOffline("gw-steam-wrong-provider-");
+    fixture = await withLoginSeam(launchOffline("gw-steam-wrong-provider-"));
     await seedStore(fixture.app, { token: TOKEN, expiry: FAR_FUTURE });
     expect(await getAuthToken(fixture, "Apple", true)).toEqual({
       settled: "rejected",
@@ -510,19 +526,19 @@ test.describe("the Steam credential seam", () => {
   });
 
   test("does not persist a token from an unofficial build", async () => {
-    fixture = await launchOffline("gw-steam-relaunch-");
+    fixture = await withLoginSeam(launchOffline("gw-steam-relaunch-"));
     await seedStore(fixture.app, { token: TOKEN, expiry: FAR_FUTURE });
     const userData = fixture.userData;
     await stopElectron(fixture.app);
 
-    fixture = await launchOfflineAt(userData);
+    fixture = await withLoginSeam(launchOfflineAt(userData));
     expect(await getAuthToken(fixture, "Steam", true)).toEqual({
       settled: "rejected",
     });
   });
 
   test("relays usable account expiries and ignores unusable ones", async () => {
-    fixture = await launchOffline("gw-steam-storeback-");
+    fixture = await withLoginSeam(launchOffline("gw-steam-storeback-"));
     await seedStore(fixture.app, { token: TOKEN, expiry: FAR_FUTURE });
     const before = Date.now();
 
@@ -567,7 +583,7 @@ test.describe("the Steam credential seam", () => {
     // verdict the exporter wrote about itself: drive the whole seam, export,
     // unzip, and read every file.
     const DIAGNOSTIC_EXPIRY = 4_123_456_789_123;
-    fixture = await launchOffline("gw-steam-diagnostics-");
+    fixture = await withLoginSeam(launchOffline("gw-steam-diagnostics-"));
     await seedStore(fixture.app, { token: TOKEN, expiry: DIAGNOSTIC_EXPIRY });
 
     // Every Steam event this feature can record, in one session.
