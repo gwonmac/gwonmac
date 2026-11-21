@@ -246,7 +246,7 @@ test('a view page mounts under its own Back and breadcrumbs, so it measures and 
   expect(seen).toEqual(['Return to Builds', ['Home', 'Builds']]);
 });
 
-test('a view action still running after a blur and resume is named, never started again (HUB-083)', async () => {
+test('a view action still running after a suspension and resume is named, never started again (HUB-083)', async () => {
   const hub = withHubBuiltins(createHub(document.body, { mountHubView }));
   window.gwHub = hub;
   let runs = 0;
@@ -259,8 +259,8 @@ test('a view action still running after a blur and resume is named, never starte
   hub.showView('Form', form); await settle();
   const field = () => document.querySelector<HTMLInputElement>('.hub-view input')!;
   key(field(), { key: 'Enter' }); await settle();
-  window.dispatchEvent(new Event('blur')); await settle();
-  hub.show(); await settle();
+  hub.suspend(); await settle();
+  hub.resume(); await settle();
   key(field(), { key: 'Enter' }); await settle();
   expect([runs, document.querySelector<HTMLButtonElement>('.hub-primary')?.disabled, document.querySelector('.hub-status')?.textContent?.trim()])
     .toEqual([1, true, 'Save is still running.']);

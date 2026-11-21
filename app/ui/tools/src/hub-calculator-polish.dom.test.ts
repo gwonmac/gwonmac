@@ -214,9 +214,9 @@ test('a resumed or rates-saved quote keeps its selection and empty status, and E
   trade().getTraderQuotes = async () => { reads++; return get(); };
   fill(search(), '10e in p'); await settle();
   expect(selectedId()).toBe('quote:result');
-  window.dispatchEvent(new Event('blur')); await settle();
+  window.gwHub!.suspend(); await settle();
   expect(document.getElementById('hub')?.hasAttribute('open')).toBe(false);
-  click(control('button', 'Open Hub')); await settle();
+  window.gwHub!.resume(); await settle();
   const payload = 'Copied 10 e = 60 platinum (sample) · Buy from trader · Current observation 9/30/2026, 12:00:00 PM · Kamadan · Estimate';
   for (const sequence of ['resume', 'rates-save-back']) {
     if (sequence === 'rates-save-back') {

@@ -38,7 +38,10 @@ const setLifecycle = async (value: string) => { choose(lifecycle(), value); awai
 const flush = () => vi.advanceTimersByTimeAsync(40);
 /** Lets queued microtasks run without moving the clock, for tests that count elapsed time. */
 const tick = () => vi.advanceTimersByTimeAsync(0);
-const blur = () => window.dispatchEvent(new Event('blur'));
+// A suspension hides the Hub and keeps its page, as a backdrop click or a popout handoff does.
+const suspendHub = () => window.gwHub!.suspend();
+// The page's own shortcut or a cancelled confirmation returns to a suspended page this way.
+const resumeHub = async () => { window.gwHub!.resume(); await flush(); };
 const openHub = async () => { click(button('Open Hub')); await flush(); };
 const goTo = async (query: string) => { fill(search(), query); press('Enter'); await flush(); };
 const openPhraseMenu = async () => { await flush(); click(actionsButton()); await flush(); click(byRole('menuitem', 'Set search phrase')[0]!); await flush(); };
@@ -112,13 +115,13 @@ test('a changed account list returns to one refreshed Accounts page (HUB-174)', 
   expect([crumbs(), /Account/u.test(action() ?? '')]).toEqual(['Home', false]);
 });
 
-test('temporary blur resumes the stage and focus while explicit close starts fresh', async () => {
+test('a suspension resumes the stage and focus while explicit close starts fresh', async () => {
   await mountFixture();
   await goTo('build monk');
   const id = selected()!.dataset.id!;
-  blur(); await flush();
+  suspendHub(); await flush();
   expect(hubOpen()).toBe(false);
-  await openHub();
+  await resumeHub();
   expect([text('.hub-summary').includes('Protection'), row(id)?.getAttribute('aria-selected'), document.activeElement === search()]).toEqual([true, 'true', true]);
   press('Meta+Backspace'); await flush();
   expect([search().value, selected()?.textContent?.includes('Protection')]).toEqual(['build monk', true]);
@@ -133,27 +136,27 @@ test('Travel and Settings restore their own state after a temporary hide', async
   fill(travelBox(), 'kam'); await flush();
   expect(travelBox().getAttribute('aria-activedescendant')).toMatch(/travel-/u);
   const active = travelBox().getAttribute('aria-activedescendant');
-  blur(); await flush(); await openHub();
+  suspendHub(); await flush(); await resumeHub();
   expect([travelBox().value, document.activeElement === travelBox(), travelBox().getAttribute('aria-activedescendant')]).toEqual(['kam', true, active]);
   click(button('Home')); await flush();
   await goTo('settings'); await settle();
   click(button('Appearance')); await settle();
   const style = () => narrow(HTMLSelectElement, $('[data-setting="uiStyle"] select'));
   style().focus();
-  blur(); await flush(); await openHub();
+  suspendHub(); await flush(); await resumeHub();
   expect(document.activeElement).toBe(style());
   press('Meta+r'); await flush();
   fill(search(), 'team gom afk'); press('Meta+j'); await flush();
   click(byRole('menuitem', 'Set search phrase')[0]!); await flush();
   fill(phraseBox(), 'smite now');
-  blur(); press('Meta+r'); await flush();
+  suspendHub(); await resumeHub();
   expect([phraseBox().value, document.activeElement === phraseBox()]).toEqual(['smite now', true]);
   press('Meta+r'); await flush();
   await goTo('rates');
   choose(narrow(HTMLSelectElement, byRole('combobox', 'Rate source', true)[0]), 'manual'); await flush();
   const rate = narrow(HTMLInputElement, byRole('textbox', 'Gold per ectoplasm', true)[0]);
   fill(rate, '7500');
-  blur(); press('Meta+r'); await flush();
+  suspendHub(); await resumeHub();
   expect([rate.value, document.activeElement === rate]).toEqual(['7500', true]);
 });
 
@@ -681,13 +684,14 @@ test('a digit typed after a resume selects a card, and the rest searches', async
   await mountFixture();
   await toCharacters();
   expect(focusedCard()).toBe('monk');
-  blur(); await flush();
+  suspendHub(); await flush();
   expect(hubOpen()).toBe(false);
-  press('Meta+r'); await flush();
+  // Characters' own shortcut returns to it; the Hub shortcut would open Home.
+  press('Meta+e'); await flush();
   expect(caption()).toBe('Characters');
   press('ArrowRight'); press('ArrowRight'); await flush();
   expect(focusedCard()).toBe('mesmer');
-  blur(); press('Meta+e'); await flush();
+  suspendHub(); press('Meta+e'); await flush();
   expect(focusedCard()).toBe('mesmer');
   type('2p in g'); await flush();
   expect([query().value, action()]).toEqual(['p in g', null]);
@@ -701,7 +705,7 @@ test('reopening Characters focuses the current character after any close', async
     ['Escape', async () => { press('Escape'); press('Escape'); await flush(); }],
     ['the close button', async () => { click(button('Close Hub')); await flush(); }],
     ['expired backdrop suspension', async () => { click($('#hub')!); await flush(); await vi.advanceTimersByTimeAsync(90_001); }],
-    ['expired blur suspension', async () => { blur(); await flush(); await vi.advanceTimersByTimeAsync(90_001); }],
+    ['expired suspension', async () => { suspendHub(); await flush(); await vi.advanceTimersByTimeAsync(90_001); }],
   ];
   for (const [name, close] of closes) {
     press('Meta+e'); await flush();
@@ -718,16 +722,17 @@ test('reopening Characters focuses the current character after any close', async
   expect(action()).toBeNull();
 });
 
-// HUB-033: a prefix that names several characters opens the cards on the top hit.
-test('an ambiguous char prefix opens Characters on the top hit and switches nothing', async () => {
+// Enter switches to the selected character row, whether or not other characters match.
+test('a char prefix that matches several characters switches to the selected one', async () => {
   await mountFixture();
   fill(search(), 'char fixture r'); await flush();
-  expect(primary().textContent).toMatch(/^Show Fixture Ranger in Characters/u);
+  expect(primary().textContent).toMatch(/^Switch to Fixture Ranger/u);
   press('Enter'); await flush();
-  expect([caption(), focusedCard(), action()]).toEqual(['Characters', 'ranger', null]);
-  press('Meta+Backspace'); await flush();
-  expect(search().value).toBe('char fixture r');
-  // An exact name or the sole match still switches directly.
+  expect(action()).toBe('Character ranger');
+});
+
+test('a char search with one match switches to it', async () => {
+  await mountFixture();
   fill(search(), 'char toe'); await flush();
   expect(primary().textContent).toMatch(/^Switch to Toefte/u);
   press('Enter'); await flush();

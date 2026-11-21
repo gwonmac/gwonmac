@@ -388,7 +388,7 @@ export function createCharacterSwitchPalette(
     if (resetFailure && source.action.status === "failed") source.reset();
   };
   /**
-   * Opens on the current character, or on `characterKey` when a Hub row reveals one.
+   * Opens on the current character, or on `characterKey` when a switch to it asks for confirmation.
    * The rows are rebuilt first, so a search from before the close never picks the card (HUB-009).
    */
   const openPalette = (characterKey?: string) => {
@@ -579,13 +579,6 @@ export function createCharacterSwitchPalette(
       const refusal = new Error(failureMessage(source.action.code));
       source.reset();
       return refusal;
-    },
-    /** A Hub row that names no single character opens the cards on it and switches nothing (HUB-033). */
-    reveal(characterKey: string): Error | undefined {
-      if (!enabled) return new Error("Character switching is not available right now.");
-      if (busy()) return new Error(failureMessage("busy"));
-      openPalette(characterKey);
-      return undefined;
     },
     dispose() {
       unsubscribe();

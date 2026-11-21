@@ -389,9 +389,10 @@ test('a click on blank space keeps the keyboard where it was (HUB-246)', async (
   const before = (await page.locator('.hub-panel').boundingBox())!;
   const heading = (await page.locator('.hub-heading').boundingBox())!;
   await page.mouse.move(heading.x + 40, heading.y + 10); await page.mouse.down();
-  await page.mouse.move(heading.x + 70, heading.y + 40); await page.mouse.up();
+  // Up, not down: the default Hub nearly fills this 720 px viewport's height.
+  await page.mouse.move(heading.x + 70, heading.y - 20); await page.mouse.up();
   const after = (await page.locator('.hub-panel').boundingBox())!;
-  expect([Math.round(after.x - before.x), Math.round(after.y - before.y)]).toEqual([30, 30]);
+  expect([Math.round(after.x - before.x), Math.round(after.y - before.y)]).toEqual([30, -30]);
   await page.keyboard.press('Meta+e');
   await expect(page.locator('button[data-character-key="monk"]')).toBeFocused();
   // Characters is card-first: typing from the card it returns to moves to its search.
@@ -413,7 +414,9 @@ test('a double-click on a recently applied build opens its target page and appli
 });
 
 
-test('dragging out preserves the Hub query, and a backdrop click resumes the same task', async ({ page }) => {
+// A backdrop click hides the Hub; the Hub shortcut then opens Home with an empty search. The page's own
+// shortcut resuming the task is covered in hub-pointer.dom.test.ts.
+test('dragging out preserves the Hub query, and Command-R after a backdrop click opens Home', async ({ page }) => {
   await open(page); await page.keyboard.press('Meta+b'); await search(page).fill('smiter');
   const inside = (await search(page).boundingBox())!;
   await page.mouse.move(inside.x + 10, inside.y + 10); await page.mouse.down();
@@ -423,6 +426,6 @@ test('dragging out preserves the Hub query, and a backdrop click resumes the sam
   await page.mouse.click(20, 20);
   await expect(page.locator('#hub')).toBeHidden();
   await page.keyboard.press('Meta+r');
-  await expect(caption(page)).toHaveText('Build Library');
-  await expect(search(page)).toHaveValue('smiter'); await expect(search(page)).toBeFocused();
+  await expect(caption(page)).toHaveText('Home');
+  await expect(search(page)).toHaveValue(''); await expect(search(page)).toBeFocused();
 });
