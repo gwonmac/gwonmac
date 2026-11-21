@@ -22,6 +22,7 @@ export default defineFeature({
   },
   activation: { kind: "setting", setting: "travelPalette", master: "gwonmacTools" },
   region: "pve",
+  capabilities: ["travelAction"],
   programs: ["toolbox-commands", "xunlai-storage"],
   optInWithTools: true,
   tool: {

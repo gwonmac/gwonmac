@@ -15,6 +15,7 @@ export default defineFeature({
   },
   activation: { kind: "independent", setting: "characterSwitchEnabled" },
   region: "any",
+  capabilities: ["characterSwitchAction"],
   tool: {
     id: "character-switch",
     label: "Switch Character",

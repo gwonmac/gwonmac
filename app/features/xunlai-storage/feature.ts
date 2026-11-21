@@ -12,6 +12,7 @@ export default defineFeature({
   // user-facing reason. This coarse rule withdraws on a certified PvP map
   // outside a Guild Hall; the runtime value means requested, not available.
   region: "non-pvp",
+  capabilities: ["xunlaiAction"],
   programs: ["toolbox-commands", "xunlai-storage"],
   optInWithTools: true,
   tool: {

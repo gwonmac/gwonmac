@@ -9,7 +9,7 @@
  * never app/shared/settings/index.ts, contracts.ts or keyboard-shortcuts.ts at
  * runtime, which import FEATURES themselves.
  */
-import type { EnhancementProgram } from "../shared/enhancement-contracts.js";
+import type { EnhancementCapability, EnhancementProgram } from "../shared/enhancement-contracts.js";
 import type { ShortcutBinding } from "../shared/keyboard-shortcuts.js";
 import type { SettingSpecs } from "../shared/settings/define.js";
 import type { SettingsSection } from "../shared/settings-catalogue.js";
@@ -45,6 +45,13 @@ export type FeatureDefinition = Readonly<{
   activation: FeatureActivation;
   /** The coarse region rule; a feature's live-state gate stays authoritative. */
   region: "any" | "non-pvp" | "pve";
+  /** Features that must be on for this one to run, by id (app/shared/feature-resolve.ts). */
+  requires?: readonly string[];
+  /**
+   * Verifier capabilities without which this feature does nothing. A feature that still does
+   * part of its job without a capability (saved builds without live party data) leaves it out.
+   */
+  capabilities?: readonly EnhancementCapability[];
   /** Developer programs that select this feature regardless of its saved setting. */
   programs?: readonly EnhancementProgram[];
   /** Enabling Tools in first-run setup also turns this feature's setting on. */

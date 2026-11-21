@@ -10,6 +10,7 @@ export default defineFeature({
   },
   activation: { kind: "setting", setting: "whispersEnabled", master: "gwonmacTools" },
   region: "pve",
+  capabilities: ["whisperChat"],
   tool: {
     id: "whispers",
     label: "Whispers",

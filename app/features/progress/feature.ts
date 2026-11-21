@@ -5,5 +5,7 @@ export default defineFeature({
   id: "progress",
   activation: { kind: "setting", setting: "travelPalette", master: "gwonmacTools" },
   region: "pve",
+  requires: ["travel"],
+  capabilities: ["progressObservation"],
   programs: ["toolbox-commands", "xunlai-storage"],
 });

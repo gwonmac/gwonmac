@@ -15,6 +15,7 @@ export default defineFeature({
   },
   activation: { kind: "setting", setting: "chatFiltersEnabled", master: "gwonmacTools" },
   region: "non-pvp",
+  capabilities: ["chatFiltering"],
   tool: {
     id: "chat-filters",
     label: "Chat Filters",

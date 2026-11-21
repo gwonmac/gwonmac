@@ -5,5 +5,7 @@ export default defineFeature({
   id: "teamApply",
   activation: { kind: "setting", setting: "buildLibrary", master: "gwonmacTools" },
   region: "pve",
+  requires: ["buildLibrary"],
+  capabilities: ["teamApply"],
   programs: ["toolbox-commands"],
 });

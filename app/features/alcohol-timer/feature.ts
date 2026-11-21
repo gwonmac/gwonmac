@@ -24,6 +24,7 @@ export default defineFeature({
   },
   activation: { kind: "setting", setting: "alcoholTimerEnabled", master: "gwonmacTools" },
   region: "pve",
+  capabilities: ["alcoholObservation"],
   tool: {
     id: "alcohol-timer",
     label: "Alcohol Timer",
