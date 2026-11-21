@@ -705,6 +705,12 @@ export const APP_AND_UPDATE_EVENT_SCHEMA = {
     level: "warn",
     fields: { code },
   },
+  "wasm.soundDecodeRepairPrepareFailed": {
+    scope: "app",
+    subsystem: "wasm",
+    level: "warn",
+    fields: { code },
+  },
   "wasm.cartographyPrepareFailed": {
     scope: "app",
     subsystem: "wasm",

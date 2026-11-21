@@ -537,6 +537,7 @@ export type ClientTransforms = Readonly<{
   templateSave: boolean;
   cartography: boolean;
   nativeDoubleClick: boolean;
+  soundDecodeRepair: boolean;
 }>;
 
 export type RuntimeEnhancementFeatureVerdict = Readonly<{
@@ -554,6 +555,7 @@ export type RuntimeEnhancementVerification = Readonly<{
     | "enhancement"
     | "cartography"
     | "native-double-click"
+    | "sound-decode-repair"
     | null;
   featureVerdicts: Readonly<Record<
     EnhancementCapability,

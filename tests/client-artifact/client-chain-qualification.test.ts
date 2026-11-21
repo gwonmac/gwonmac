@@ -11,6 +11,7 @@ import {
   enhancementOutputSha256,
 } from "../../app/client/certification/enhancement-builds.js";
 import { wasmEvidence, functionBodySha256 } from "../../app/client/certification/wasm-evidence.js";
+import { deriveSoundDecodeRepairStage } from "../../app/client/certification/sound-decode-repair.js";
 import { transformEnhancementWasm } from
   "../../app/client/certification/enhancement-transform.js";
 import { deriveFriendObserverCertificate } from
@@ -135,6 +136,14 @@ test("every shipped runtime profile reproduces the real client chain", {
       },
       } : {}),
       nativeDoubleClickCacheRoot: join(cacheRoot, "double-click"),
+      soundDecodeRepair: {
+        cacheRoot: join(cacheRoot, "sound-decode-repair"),
+        verifyLocally: async ({ wasmPath, inputSha256 }) => {
+          const input = new Uint8Array(await readFile(wasmPath));
+          assert.equal(sha256(input), inputSha256);
+          return deriveSoundDecodeRepairStage(input)?.build ?? null;
+        },
+      },
       extendedMemoryCacheRoot: join(cacheRoot, "memory"),
       extendedMemoryEnabled: true,
     }, async ({ wasmPath, inputSha256 }) => {
@@ -159,6 +168,7 @@ test("every shipped runtime profile reproduces the real client chain", {
       assert.equal(finalExports.some((entry) => entry.name === "gwonmac_cartography_context_observe"), launch === "tools",
         "Core must serve no optional Maps native hooks");
       assert.equal(prepared.nativeDoubleClick, true);
+      assert.equal(prepared.soundDecodeRepair, true, `the ${launch} launch must serve the sound decode repair`);
       assert.equal(prepared.extendedMemory.status, "active");
       assert.deepEqual(prepared.effectiveCapabilities, capabilities);
       assert.equal(sha256(await readFile(prepared.wasmPath)), prepared.wasmSha256);
@@ -170,6 +180,7 @@ test("every shipped runtime profile reproduces the real client chain", {
       assert.equal(rebuilt.failure, null);
       assert.deepEqual(rebuilt.cartography, { status: launch === "tools" ? "active" : "disabled" });
       assert.equal(rebuilt.nativeDoubleClick, true);
+      assert.equal(rebuilt.soundDecodeRepair, true);
       assert.equal(rebuilt.extendedMemory.status, "active");
       assert.equal(rebuilt.wasmSha256, prepared.wasmSha256);
       assert.equal(sha256(await readFile(rebuilt.wasmPath)), rebuilt.wasmSha256);

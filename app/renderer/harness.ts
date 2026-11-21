@@ -580,8 +580,6 @@ let texturePack: import('./texture-pack.js').PreparedTexturePack | null = null;
 // them here: `instantiateWasm` and `loadGlue` are called synchronously by the
 // glue and cannot await. Reading `host` before boot() assigns it is a
 // TypeError, not a silently skipped installation.
-// Frees the sound decode task's leaked seek index; assigned by boot() with the host modules.
-let fixDecoderIndexLeak: typeof import('../shared/decoder-index-fix.js').fixDecoderIndexLeak;
 let host: typeof import('./graphics.js') &
   typeof import('./client-exit.js') &
   typeof import('./wasm-memory-attribution.js') &
@@ -761,21 +759,8 @@ Module = {
     milestone('wasm.instantiate.begin');
     window.gwAutomation?.set('runtime.instantiating');
     (async () => {
-      let result: WebAssembly.WebAssemblyInstantiatedSource | undefined;
-      // The official client never closes its per-sound MP3 decoder, so every decode leaks
-      // the decoder's 64 KiB seek index and a long fight ends at the heap limit. The module
-      // this session runs is rewritten in memory to free it. The served file is untouched,
-      // and a module the rewrite does not know, or any failure, runs as served.
+      let result;
       try {
-        const fixed = fixDecoderIndexLeak(new Uint8Array(await (await fetch(url)).arrayBuffer()));
-        if (fixed) {
-          result = await WebAssembly.instantiate(fixed as BufferSource, imports);
-          log('sound decode leak: seek index fix applied');
-        } else log('[warn] sound decode leak: fix does not know this module');
-      } catch (e) {
-        log('[warn] sound decode leak: fix failed:', e instanceof Error ? e.message : String(e));
-      }
-      if (!result) try {
         result = await WebAssembly.instantiateStreaming(fetch(url), imports);
       } catch (e) {
         log(
@@ -1347,7 +1332,6 @@ function loadGlue(isProxyRouteLabel: (route: string) => boolean) {
       texturePackModule,
       characterSwitch,
       settingsTable,
-      decoderIndexFix,
     ] = await Promise.all([
       import('./platform-capabilities.js'),
       import('./socket-host.js'),
@@ -1372,9 +1356,7 @@ function loadGlue(isProxyRouteLabel: (route: string) => boolean) {
       import('./texture-pack.js'),
       import('../features/character-switch/renderer/host.js'),
       import('../shared/settings/index.js'),
-      import('../shared/decoder-index-fix.js'),
     ]);
-    fixDecoderIndexLeak = decoderIndexFix.fixDecoderIndexLeak;
     projectToolsSettings = settingsTable.toolsSettings;
     host = {
       ...clientExit,

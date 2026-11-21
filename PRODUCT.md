@@ -36,8 +36,8 @@ account profile, and each profile opens in its own game window.
 
 ## Tools
 
-Required template compatibility and Core cursor support run when their exact
-client proofs permit them. Optional **gwonmac Tools Beta** is off by default,
+Required template compatibility, Core cursor support, and the sound decode
+memory repair run when their exact client proofs permit them. Optional **gwonmac Tools Beta** is off by default,
 and every tool has its own switch beneath that master opt-in. Turning the
 master off disables all tool surfaces, shortcuts, and chat aliases without
 deleting saved tool data. A Core launch does not load optional Tools code at

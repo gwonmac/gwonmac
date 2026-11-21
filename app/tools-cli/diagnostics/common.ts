@@ -173,7 +173,8 @@ function isEnhancementVerification(value: unknown): boolean {
       || failureStage === "template-save"
       || failureStage === "enhancement"
       || failureStage === "cartography"
-      || failureStage === "native-double-click")
+      || failureStage === "native-double-click"
+      || failureStage === "sound-decode-repair")
   ) return false;
   if (value.featureVerdicts === null) return true;
   const featureVerdicts = value.featureVerdicts;

@@ -120,22 +120,6 @@ The official client restores a large `Gw.dat` file into this synchronous
 filesystem. Do not remove it or bypass IDBFS to reduce a memory chart. Measure a
 proven filesystem replacement with [Diagnostics and performance](diagnostics.md).
 
-## Sound decode leak repair
-
-The official client's MP3 decode task (`Engine/Sound/SndThread.cpp`) opens a minimp3
-decoder for each sound and never closes it. Each decode leaks the decoder's 64 KiB seek
-index, so a sound-dense fight grows the heap by about 2 GB an hour until the client aborts.
-
-The renderer rewrites the module it is about to instantiate, in memory:
-`fixDecoderIndexLeak` (`app/shared/decoder-index-fix.ts`) makes both destructors of the task
-free the index first. It finds them by shape, changes only those two function bodies, and
-returns nothing for a module it does not know; that module then runs as served. The served
-file and the derived chain below are not changed.
-
-This repair is not a certified transform. It runs after the chain, on whatever module the
-session selected, and has no proof or expected hash. Moving it into the chain is open work.
-The streaming-sound task leaks the same way at a much lower rate and is not repaired.
-
 ## Derived client chain
 
 The downloaded official module is always canonical. The app can create
@@ -145,6 +129,8 @@ rebuildable derived modules:
 verified official module
   -> certified file-compatibility transform
   -> optional certified Core and Tools transform
+  -> certified late stages: friend observer, Cartography, native double-click,
+     sound decode repair
   -> selected module for this session
 ```
 
@@ -227,6 +213,31 @@ double-click and 4 GB report `preparation-failed`, not a Guild Wars update.
 When both fell back the same way, the later stages were proved on the served
 candidate, and a refusal keeps its reason.
 
+## Sound decode repair
+
+The official client's MP3 decode task (`Engine/Sound/SndThread.cpp`) opens a
+minimp3 decoder for each sound and never closes it. Every decode leaks the
+decoder's 64 KiB seek index, so a sound-dense fight fills the 2 GB heap in
+about 40 minutes; the graphics glitches and the memory warning before the
+abort come from the same full heap. foogw found and measured it
+(gwonmac/gwonmac#20).
+
+`app/client/certification/sound-decode-repair.ts` is a certified stage after
+native double-click, for Core and Tools launches alike. Both destructors of the
+task first free the index, and the constructor first zeroes it, because the
+decoder's open returns before clearing the decoder when it refuses its
+arguments. The stage proves every role by its relocation-aware fingerprint and
+how they connect: the shared vtable, the constructor passing `this + 88` to
+the open, the open clearing 11,424 bytes and registering the index callback,
+and that callback being the only function that touches `+6680`, so nothing
+else can free the index. A build where any of this changed is refused, and the
+client runs with its leak but otherwise unchanged. The stage reports no player
+feature; diagnostics carry `transforms.soundDecodeRepair` and the
+`wasm.soundDecodeRepair` gauge.
+
+The streaming-sound task leaks the same way at a much lower rate and is not
+repaired yet.
+
 ## Effective feature status
 
 Main reports the effective served status for file saving, native double-click,
@@ -256,8 +267,8 @@ rules, feature refusal boundaries, and patch day;
 
 Required compatibility has two certification stages. The file-compatibility
 transform restores persistent template operations. Certified Core adds the
-Guild Wars cursor and native double-click. These behaviors have no player
-switch when their proof passes.
+Guild Wars cursor and native double-click, and every launch gets the sound
+decode repair. These behaviors have no player switch when their proof passes.
 
 Optional Tools are off by default. The master **Enable Tools Beta**
 setting selects a commands-capable derived module on the next start. The first

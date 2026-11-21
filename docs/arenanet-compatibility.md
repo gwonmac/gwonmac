@@ -128,6 +128,7 @@ unwitnessed field must fail TypeScript compilation or boundary validation.
 | --- | --- | --- |
 | Template saving | Unique bridge stubs, all 11 call sites, signatures, argument modes, control flow, and independently derived static storage | Serve the untouched official module; do not claim persistent template repair |
 | Native double-click | Named browser mousedown registration of the unique callback, complete producer/consumer queue-storage ledgers, the exact translator dispatch role, mouse-message table binding, click consumer, and flag-lift route, followed by the exact frame insertion and output | Keep ordinary client input; report it unavailable; never synthesize touch events |
+| Sound decode repair | Decode-task destructors, constructor, decoder open and index callback by relocation-aware fingerprint; shared vtable, `this + 88` open argument, 11,424-byte clear, registered callback slot, and the callback as the only owner of `+6680`; then the exact body hashes and output | Serve the module without the repair; the client keeps its leak |
 | Guild Wars cursor | Unique loop/callback/table/neighbour graph, both producers, and independently derived globals, buffer, and layout | Use the normal macOS pointer |
 | Target Distance | Complete observation base, target-field ledger, precedence, and bounded finite snapshot behavior | Disable Target Distance only |
 | Party capture | Complete roster, ownership, profession, unlock, flag, skill, attribute, dirty-message, and transition lifecycle | Disable party observation and dependent Team Apply |

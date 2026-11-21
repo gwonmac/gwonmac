@@ -101,6 +101,7 @@ test("a proved real client is served from its signed record with no pass", {
       friendObserver: { cacheRoot: join(caches, "friends"), verifyLocally: lookup(verdict.friendObserver) },
       cartographySpike: { cacheRoot: join(caches, "cartography"), verifyLocally: lookup(verdict.cartography) },
       nativeDoubleClickCacheRoot: join(caches, "double-click"),
+      soundDecodeRepair: { cacheRoot: join(caches, "sound-decode-repair"), verifyLocally: lookup(verdict.soundDecodeRepair) },
       extendedMemoryCacheRoot: join(caches, "memory"),
       extendedMemoryEnabled,
     }, lookup(verdict.nativeDoubleClick), async ({ jsInputSha256, wasmInputSha256 }) =>
@@ -111,6 +112,7 @@ test("a proved real client is served from its signed record with no pass", {
     failure: module.failure,
     effective: module.effectiveCapabilities,
     nativeDoubleClick: module.nativeDoubleClick,
+    soundDecodeRepair: module.soundDecodeRepair,
     friendObserver: module.friendObserver.status,
     cartography: module.cartography.status,
     extendedMemory: module.extendedMemory.status,

@@ -61,6 +61,14 @@ import {
   type NativeDoubleClickBuild,
 } from "./native-double-click.js";
 import {
+  deriveSoundDecodeRepairStage,
+  isSoundDecodeRepairBuild,
+  rewriteWithBuild as rewriteSoundDecodeRepair,
+  soundDecodeRepairOutputSha256,
+  SOUND_DECODE_REPAIR_TRANSFORM_ABI,
+  type SoundDecodeRepairBuild,
+} from "./sound-decode-repair.js";
+import {
   deriveExtendedMemoryStructuralProof,
   EXTENDED_MEMORY_TRANSFORM_ABI,
   EXTENDED_MEMORY_VERIFIER_ABI,
@@ -72,7 +80,7 @@ import {
  * Bumped whenever the shape of a pass result changes, so a stored record from
  * an older shape is a key mismatch instead of a parse question.
  */
-export const CLIENT_VERIFICATION_PASS_ABI = 2;
+export const CLIENT_VERIFICATION_PASS_ABI = 3;
 
 /**
  * The ABI of every stage a pass proves. A stored pass made under any other
@@ -85,6 +93,7 @@ export const CLIENT_VERIFICATION_STAGE_ABIS = Object.freeze({
   friendObserver: FRIEND_OBSERVER_TRANSFORM_ABI,
   cartography: CARTOGRAPHY_SPIKE_TRANSFORM_ABI,
   nativeDoubleClick: NATIVE_DOUBLE_CLICK_TRANSFORM_ABI,
+  soundDecodeRepair: SOUND_DECODE_REPAIR_TRANSFORM_ABI,
   extendedMemoryTransform: EXTENDED_MEMORY_TRANSFORM_ABI,
   extendedMemoryVerifier: EXTENDED_MEMORY_VERIFIER_ABI,
 });
@@ -105,6 +114,7 @@ export const CLIENT_VERIFICATION_STAGES = [
   "friendObserver",
   "cartography",
   "nativeDoubleClick",
+  "soundDecodeRepair",
   "extendedMemory",
 ] as const;
 
@@ -163,6 +173,7 @@ export interface ClientVerificationPassResult {
   readonly friendObserver: readonly FriendObserverBuild[];
   readonly cartography: readonly CartographySpikeBuild[];
   readonly nativeDoubleClick: readonly NativeDoubleClickBuild[];
+  readonly soundDecodeRepair: readonly SoundDecodeRepairBuild[];
   readonly extendedMemory: readonly ExtendedMemoryStructuralProof[];
 }
 
@@ -206,6 +217,7 @@ export async function runClientVerificationPass(
   const friendObserver: FriendObserverBuild[] = [];
   const cartography: CartographySpikeBuild[] = [];
   const nativeDoubleClick: NativeDoubleClickBuild[] = [];
+  const soundDecodeRepair: SoundDecodeRepairBuild[] = [];
   const extendedMemory: ExtendedMemoryStructuralProof[] = [];
   // Every launch starts from the same template output; derive it once.
   const templateOutputs = new Map<string, Uint8Array | null>();
@@ -215,6 +227,7 @@ export async function runClientVerificationPass(
     friendObserver: Object.freeze([...friendObserver]),
     cartography: Object.freeze([...cartography]),
     nativeDoubleClick: Object.freeze([...nativeDoubleClick]),
+    soundDecodeRepair: Object.freeze([...soundDecodeRepair]),
     extendedMemory: Object.freeze([...extendedMemory]),
   });
   const report = async (complete: boolean) => {
@@ -329,6 +342,19 @@ export async function runClientVerificationPass(
     if (doubleClick && isDerivedNativeDoubleClickBuild(doubleClick.build, inputSha256)) {
       remember(nativeDoubleClick, doubleClick.build, inputSha256, isDerivedNativeDoubleClickBuild);
       advance(doubleClick.output, nativeDoubleClickOutputSha256(doubleClick.build, inputSha256));
+    }
+
+    const knownRepair = provedFor(soundDecodeRepair, inputSha256, isSoundDecodeRepairBuild);
+    const repairInput = bytes;
+    const repair = knownRepair
+      ? {
+          build: knownRepair,
+          output: attempt("soundDecodeRepair", () => rewriteSoundDecodeRepair(repairInput, knownRepair)),
+        }
+      : attempt("soundDecodeRepair", () => deriveSoundDecodeRepairStage(repairInput));
+    if (repair && isSoundDecodeRepairBuild(repair.build, inputSha256)) {
+      remember(soundDecodeRepair, repair.build, inputSha256, isSoundDecodeRepairBuild);
+      advance(repair.output, soundDecodeRepairOutputSha256(repair.build, inputSha256));
     }
 
     const memoryInput = bytes;
