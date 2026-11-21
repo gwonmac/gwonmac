@@ -53,6 +53,8 @@ export interface LauncherPreferences {
     reforgedNews: boolean;
     eventNews: boolean;
     autoRotateNews: boolean;
+    /** Simple launcher: open on Accounts and leave Home, News and Help out. Absent means off. */
+    simple?: boolean;
   }>;
 }
 
@@ -407,7 +409,7 @@ export function parseLauncherPreferencesPatch(value: unknown): LauncherPreferenc
   if (source.content === undefined) return page;
   const content = exactObject(
     source.content,
-    ["news", "dailies", "first", "officialNews", "reforgedNews", "eventNews", "autoRotateNews"],
+    ["news", "dailies", "first", "officialNews", "reforgedNews", "eventNews", "autoRotateNews", "simple"],
     "launcher content patch",
   );
   const patch: {
@@ -418,8 +420,9 @@ export function parseLauncherPreferencesPatch(value: unknown): LauncherPreferenc
     reforgedNews?: boolean;
     eventNews?: boolean;
     autoRotateNews?: boolean;
+    simple?: boolean;
   } = {};
-  for (const field of ["news", "dailies", "officialNews", "reforgedNews", "eventNews", "autoRotateNews"] as const) {
+  for (const field of ["news", "dailies", "officialNews", "reforgedNews", "eventNews", "autoRotateNews", "simple"] as const) {
     const candidate = content[field];
     if (candidate === undefined) continue;
     if (typeof candidate !== "boolean") throw new Error(`${field} must be a boolean`);

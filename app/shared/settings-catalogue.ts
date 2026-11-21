@@ -90,10 +90,12 @@ export const SETTINGS: readonly SettingEntry[] = [
   game("renderScale"),
   game("autoRelogAfterReload"),
   game("controllerPromptStyle"),
+  game("disableSteamLogin"),
   game("showDiagnostics"),
 
   { id: "autoCheckUpdates", section: "updates", label: "Automatically check for launcher updates", keywords: "automatic update" },
 
+  { id: "content.simple", section: "home", label: "Simple launcher", keywords: "minimal accounts only hide home news help start page" },
   { id: "content.news", section: "home", label: "News", keywords: "home news" },
   { id: "content.dailies", section: "home", label: "Dailies", keywords: "daily weekly schedule" },
 

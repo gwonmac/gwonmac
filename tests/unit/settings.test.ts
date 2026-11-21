@@ -105,6 +105,7 @@ describe("settings", () => {
       autoRelogAfterReload: false,
       memoryWarningPosition: null,
       showDiagnostics: false,
+      disableSteamLogin: false,
       // Automatic app-update checks remain a separate preference from the
       // required ArenaNet game-data download.
       autoCheckUpdates: true,
@@ -243,6 +244,7 @@ describe("settings", () => {
       autoRelogAfterReload: false,
       memoryWarningPosition: null,
       showDiagnostics: true,
+      disableSteamLogin: false,
       autoCheckUpdates: true,
       lastUpdateCheckAt: null,
       compatibilityNoticeSeenFor: null,
@@ -665,6 +667,7 @@ describe("settings", () => {
       "compassRangeTheme",
       "compatibilityNoticeSeenFor",
       "controllerPromptStyle",
+      "disableSteamLogin",
       "effectTimersEnabled",
       "eliteMissionMapMarkers",
       "eliteSkillsEnabled",
@@ -821,6 +824,7 @@ describe("settings", () => {
       autoRelogAfterReload: false,
       memoryWarningPosition: null,
       showDiagnostics: true,
+      disableSteamLogin: false,
       // Fields that alpha never wrote arrive at their defaults — deliberately
       // including the update check, which defaults on. A profile that never
       // stored the setting inherits the current default; an explicit opt-out

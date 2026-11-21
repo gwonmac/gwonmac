@@ -25,8 +25,8 @@ is briefly highlighted. Hub search does not change a setting in place.
    lists the sections and the settings that search can open, with their stable
    IDs, labels and keywords. Each control carries `data-setting="<id>"`.
 2. **Every setting says when it applies**, in the same words everywhere:
-   no note when it applies now, or "Applies when you next open or reload a game
-   window."
+   no note when it applies now, "Applies when you next open or reload a game
+   window.", or "Applies at the next login screen."
 3. **Changes save right away.** A change applies in every open game window. The
    status line names the saved setting and when it applies. A failed save keeps
    the change on screen and offers **Retry** and **Revert**.

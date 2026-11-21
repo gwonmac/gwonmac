@@ -149,6 +149,8 @@ export function parseLauncherState(value: unknown): LauncherStateDocument {
         reforgedNews: boolean(content.reforgedNews, "Reforged News visibility"),
         eventNews: content.eventNews === undefined ? true : boolean(content.eventNews, "event News visibility"),
         autoRotateNews: content.autoRotateNews === undefined ? true : boolean(content.autoRotateNews, "News rotation"),
+        // Absent until a player chooses it, so a document that released apps wrote loads unchanged.
+        ...(content.simple === undefined ? {} : { simple: boolean(content.simple, "simple launcher") }),
       },
     },
     appearances: parsedAppearances,

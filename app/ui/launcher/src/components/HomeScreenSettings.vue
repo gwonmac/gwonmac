@@ -8,6 +8,10 @@ const checked = (event: Event) => (event.currentTarget as HTMLInputElement).chec
 
 <template>
   <h1>Home screen</h1>
+  <div class="setting-group">
+    <label data-setting="content.simple"><span><strong>Simple launcher</strong><small>Open on Accounts and hide Home, News and Help. The launcher is then only for accounts and settings.</small></span><input type="checkbox" :checked="content.simple === true" @change="save({ simple: checked($event) })" /></label>
+  </div>
+  <template v-if="!content.simple">
   <p class="section-intro">Choose what the launcher's Home shows.</p>
   <div class="setting-group">
     <label data-setting="content.news"><span><strong>News</strong><small>Game, event, and GWonMac updates.</small></span><input type="checkbox" :checked="content.news" @change="save({ news: checked($event) })" /></label>
@@ -22,5 +26,6 @@ const checked = (event: Event) => (event.currentTarget as HTMLInputElement).chec
       <label><span><strong>GWonMac releases</strong><small>Player-focused release notes.</small></span><input type="checkbox" :checked="content.reforgedNews" @change="save({ reforgedNews: checked($event) })" /></label>
       <label><span><strong>Rotate featured news</strong><small>Change the featured story every 12 seconds. Reduced Motion always turns rotation off.</small></span><input type="checkbox" :checked="content.autoRotateNews" @change="save({ autoRotateNews: checked($event) })" /></label>
     </div>
+  </template>
   </template>
 </template>

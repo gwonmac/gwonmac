@@ -74,6 +74,7 @@ export const fixtureSnapshot: LauncherSnapshot = {
     autoCheckUpdates: true,
     renderScale: 2,
     showDiagnostics: false,
+    disableSteamLogin: false,
     cartographyOverlayEnabled: false,
     cartographyGridEnabled: false,
     cartographyCompassGridEnabled: false,
