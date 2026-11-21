@@ -416,6 +416,7 @@ export function createToolsSubstrates(
     friends: createFriends(module, capabilities),
     alcohol: createAlcohol(capabilities),
     effects: createEffects(capabilities, program),
+    skills: createSkillOverlaysInstallation(capabilities),
   });
 }
 
@@ -462,11 +463,13 @@ function reportSkillGeometry(state: CompanionSkillSlotState): void {
   ).catch(() => {});
 }
 
-/** Skill Key Labels and Skill Cooldowns share one slot-geometry feed, so their HUD is one part. */
+/**
+ * The skill HUD feeds' place in the heap layout. Skill Key Labels still draws here;
+ * Skill Cooldowns reads the feeds through `game.skillbar` and `ui.skillLabels`.
+ */
 export const skillHudPart = {
   id: "skillHud",
-  prepare({ capabilities }) {
-    const skills = createSkillOverlaysInstallation(capabilities);
+  prepare({ substrates: { skills } }) {
     const slots = skills.geometry;
     const cooldowns = skills.cooldowns;
     return {
@@ -487,10 +490,10 @@ export const skillHudPart = {
       }),
       rollback: [(free) => slots?.release(free), (free) => cooldowns?.release(free)],
       activate(context) {
-        const sync = () => skills.sync(context.snapshot().settings, context.policy());
+        const sync = () => skills.sync(context.snapshot().settings, context.policy().skillKeyLabels);
         return {
           mount() {
-            if (context.hud) skills.mount(document.body, context.snapshot().settings, context.hud);
+            if (context.hud) skills.mount(document.body, context.hud);
             sync();
           },
           syncFeeds: sync,
@@ -503,7 +506,7 @@ export const skillHudPart = {
                 status: "waiting", reason: "inactive",
               })),
               update: (state) => { slots.sink?.update(state); reportSkillGeometry(state); } },
-            skillCooldowns: cooldowns?.sink == null ? null : { enabled: () => context.policy().skillCooldowns,
+            skillCooldowns: cooldowns?.sink == null ? null : { enabled: () => cooldowns.active,
               inactive: () => { setSkillCooldownReadiness("waiting"); },
               update: (state) => {
                 cooldowns.sink?.update(state);

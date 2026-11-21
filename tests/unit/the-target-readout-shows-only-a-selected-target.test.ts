@@ -1,7 +1,8 @@
 // This test covers the first Enhancement feature. The states come out of the
-// real decoder, driven by real snapshot bytes, so this executes the last two stages
-// of the pipeline together — snapshot → decoder → UI — and reads back what
-// landed in the elements the readout owns. Nothing here inspects source text.
+// real decoder, driven by real snapshot bytes, and through the game.target block's
+// mapping, so this executes the last stages of the pipeline together — snapshot →
+// decoder → block → UI — and reads back what landed in the elements the readout
+// owns. Nothing here inspects source text.
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
@@ -12,7 +13,9 @@ import {
   COMPANION_SNAPSHOT_ABI,
   COMPANION_SNAPSHOT_BYTES,
   readCompanionSnapshot,
+  type CompanionSnapshot,
 } from "../../app/renderer/companion-snapshot.js";
+import { gameTarget } from "../../app/renderer/game-blocks.js";
 
 const MAGIC = 0x42545747;
 const LIVING = 0xdb;
@@ -57,7 +60,9 @@ function bytes(options: {
 }
 
 const decode = (options?: Parameters<typeof bytes>[0]) =>
-  readCompanionSnapshot(bytes(options), 0);
+  gameTarget(readCompanionSnapshot(bytes(options), 0));
+/** A state the decoder does not publish, through the same block mapping. */
+const target = (state: object) => gameTarget(state as CompanionSnapshot);
 
 /** The DOM surface the readout uses, and nothing else. */
 class FakeElement {
@@ -174,7 +179,7 @@ test("nothing is shown until the snapshot says a target is selected", () => {
     decode({ flags: LOADING }),
     decode({ flags: READY }),
     decode({ sequence: 3 }),
-    { status: "unsupported" },
+    target({ status: "unsupported" }),
   ]) {
     view.readout.update(state);
     assert.equal(view.visible, false, JSON.stringify(state));
@@ -219,11 +224,11 @@ test("a state missing the fields it claims renders nothing", () => {
     { status: "ready", targetValid: true, rangeName: "Area" },
     { status: "ready", targetValid: true, distance: 700 },
   ]) {
-    view.readout.update(broken);
+    view.readout.update(target(broken));
     assert.equal(view.visible, false, JSON.stringify(broken));
     view.readout.update(decode());
   }
-  assert.equal(targetReadout({ status: "ready", targetValid: true }), null);
+  assert.equal(targetReadout(target({ status: "ready", targetValid: true })), null);
 });
 
 test("the readout takes the page back with it", () => {

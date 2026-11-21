@@ -1,8 +1,8 @@
 /**
  * The target distance and range readout: the first Enhancement feature, decided in
  * `PRODUCT.md`. It is the last stage of the read-only pipeline — manifest →
- * transform/kernel → snapshot → decoder → here — and it asks the game for
- * nothing. One decoded snapshot in, two values out.
+ * transform/kernel → snapshot → decoder → `game.target` → here — and it asks the
+ * game for nothing. One target in, two values out.
  *
  * There is deliberately no widget registry, event bus or command framework
  * behind it. A second feature can add one when it exists and needs it.
@@ -12,6 +12,7 @@
  */
 import { captureCornerPosition, restoreCornerPosition, type CornerPosition } from "../../../shared/corner-position.js";
 import { installOverlayDrag } from "../../../renderer/overlay-drag.js";
+import type { GameTarget } from "../../../renderer/game-blocks.js";
 import { isolateFromGame } from "../../../renderer/non-activating-surface.js";
 
 /*
@@ -43,31 +44,17 @@ const DISTANCE_STYLE = "font-size:15px;color:#ffb488";
 const RANGE_STYLE = "color:#c9c9c9";
 
 /**
- * The shape this reads out of a decoded snapshot. Everything is optional
- * because the decoder's waiting states carry none of it.
+ * What the readout says for the selected target, or `null` when it says
+ * nothing. The distance is the game's own value rounded to a whole game unit:
+ * no unit is invented and no band is recomputed. `game.target` gives a target
+ * only for a state the decoder certified as ready, with a finite distance.
  */
-type SnapshotState = {
-  status?: string;
-  targetValid?: boolean;
-  distance?: number;
-  rangeName?: string;
-};
-
-/**
- * What the readout says for a decoded snapshot, or `null` when it says
- * nothing. The distance is the snapshot's own value rounded to a whole game
- * unit: no unit is invented, no band is recomputed, and a state the decoder
- * did not certify as ready renders nothing at all.
- */
-export function targetReadout(state: SnapshotState) {
-  if (state?.status !== "ready" || state.targetValid !== true) return null;
-  const { distance, rangeName } = state;
-  // The decoder guarantees both for a ready target; a readout that would
-  // otherwise print `NaN` over someone's game shows nothing instead.
-  if (!Number.isFinite(distance) || typeof rangeName !== "string") return null;
+export function targetReadout(target: GameTarget | null) {
+  // A readout that would otherwise print `NaN` over someone's game shows nothing instead.
+  if (target === null || !Number.isFinite(target.distance) || typeof target.range !== "string") return null;
   return Object.freeze({
-    distance: String(Math.round(Number(distance))),
-    range: rangeName,
+    distance: String(Math.round(target.distance)),
+    range: target.range,
   });
 }
 
@@ -77,7 +64,7 @@ export type TargetReadoutPlacement = Readonly<{
 }>;
 
 /**
- * Mounts the readout and keeps it in step with the snapshot. Owns its own
+ * Mounts the readout and keeps it in step with the target. Owns its own
  * element, so nothing else in the page has to know it exists.
  */
 export function createTargetReadout(parent: HTMLElement, placement?: TargetReadoutPlacement) {
@@ -134,11 +121,11 @@ export function createTargetReadout(parent: HTMLElement, placement?: TargetReado
 
   return {
     /**
-     * Called once per animation frame, so it touches the DOM only when the
-     * text it would write has actually changed.
+     * Called whenever the target's distance changes, so it touches the DOM only
+     * when the text it would write has actually changed.
      */
-    update(state: SnapshotState) {
-      const next = targetReadout(state);
+    update(target: GameTarget | null) {
+      const next = targetReadout(target);
       const line = next === null ? "" : `${next.distance} ${next.range}`;
       if (line === rendered) return;
       rendered = line;

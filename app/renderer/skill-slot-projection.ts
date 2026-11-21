@@ -13,7 +13,7 @@ export type SkillSlotProjection = Readonly<{
 
 export function projectSkillSlots(
   state: CompanionSkillSlotState,
-  canvas: HTMLCanvasElement,
+  canvas: Pick<Element, "getBoundingClientRect">,
 ): readonly SkillSlotProjection[] | null {
   if (state.status !== "ready" || state.slots.length !== 8) return null;
   const canvasRect = canvas.getBoundingClientRect();

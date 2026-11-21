@@ -7,11 +7,15 @@
  * it does in each phase. Adding a feature adds a part; the installer and Core
  * stay unchanged.
  *
+ * A feature that runs on the building blocks alone builds its part with
+ * `featurePart`: it gives one `start` that returns what stops it, and never asks
+ * whether it is on.
+ *
  * It also names the narrow surfaces that shared Tools code borrows from a
  * feature, so shared code imports this contract and never a feature file.
  */
 import type { EnhancementCapabilities, EnhancementProgram } from "../shared/enhancement-contracts.js";
-import type { FeatureId } from "../shared/feature-contracts.js";
+import { FEATURES, type FeatureId } from "../shared/feature-contracts.js";
 import type { TravelFriend } from "../shared/friends.js";
 import type { TravelCommand } from "../shared/travel-command.js";
 import type {
@@ -20,7 +24,7 @@ import type {
   PreparedCompanionExtension,
 } from "./certified-companion-extension.js";
 import type { CompanionOwnedRegion } from "./companion-owned-regions.js";
-import type { GameBlocks } from "./game-blocks.js";
+import { createBlock, type Block, type GameBlocks, type UiBlocks } from "./game-blocks.js";
 import type { NativeHudLayer } from "./native-hud-layer.js";
 import type { ToolsPolicySnapshot, ToolsSubstrates } from "./tools-companion-substrates.js";
 
@@ -88,6 +92,8 @@ export type ToolsActivation = CompanionExtensionActivation & Readonly<{
   hud: NativeHudLayer | null;
   /** The typed game building blocks, shared by every part (game-blocks.ts). */
   game: GameBlocks;
+  /** The typed drawing blocks, shared by every part (game-blocks.ts). */
+  ui: UiBlocks;
   /** Publishes the active-feature bitmask that every part's `activeFeatures` builds. */
   syncObservers(): void;
   /** Another part's prepared state; null when that part is not registered. */
@@ -126,3 +132,55 @@ export type ToolsPartSession = Readonly<{
   releaseObserverMemory?: readonly ((free: Free) => void)[];
   releaseCallbackResources?: readonly ((free: Free) => void)[];
 }>;
+
+/** What a feature's `start` gets: the building blocks and the saved settings. */
+export type FeatureBlocks = Readonly<{
+  game: GameBlocks;
+  ui: UiBlocks;
+  /** The saved settings, again after every change. */
+  settings: Block<ToolsPolicySnapshot["settings"]>;
+}>;
+
+/**
+ * The game part of a feature that runs on the building blocks. `start` runs while
+ * the runtime policy has the feature on and the verifier proved every capability
+ * its manifest names; what it returns is stopped when either ends or the game part
+ * stops. `runtime` names developer runtime fields read from the running feature.
+ */
+export function featurePart<Running extends Readonly<{ stop(): void }>>(
+  id: FeatureId,
+  start: (blocks: FeatureBlocks) => Running,
+  runtime: Readonly<Record<string, (running: Running | null) => unknown>> = {},
+): ToolsCompanionPart {
+  const feature = FEATURES.find((candidate) => candidate.id === id);
+  const needs = feature !== undefined && "capabilities" in feature ? feature.capabilities : [];
+  return Object.freeze({
+    id,
+    prepare: ({ capabilities }) => ({
+      activate(context) {
+        const proven = needs.every((capability) => capabilities[capability]);
+        const settings = createBlock(true, context.snapshot().settings, Object.is, (wanted) => {
+          if (wanted) settings.publish(context.snapshot().settings);
+        });
+        let running: Running | null = null;
+        const stop = () => {
+          const stopping = running;
+          running = null;
+          stopping?.stop();
+        };
+        const sync = () => {
+          if (settings.wanted) settings.publish(context.snapshot().settings);
+          const on = proven && context.policy()[id];
+          if (!on) stop();
+          else running ??= start({ game: context.game, ui: context.ui, settings: settings.block });
+        };
+        return {
+          mount: sync,
+          syncFeeds: sync,
+          runtime: Object.fromEntries(Object.entries(runtime).map(([name, read]) => [name, () => read(running)])),
+          disposePresentation: [stop],
+        };
+      },
+    }),
+  });
+}

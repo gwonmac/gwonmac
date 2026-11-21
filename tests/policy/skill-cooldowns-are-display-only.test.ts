@@ -4,7 +4,8 @@ import test from "node:test";
 
 const rendererSources = [
   "app/renderer/native-hud-layer.ts",
-  "app/renderer/skill-cooldown-overlay-consumer.ts",
+  "app/features/skill-cooldowns/companion.ts",
+  "app/renderer/game-blocks.ts",
   "app/renderer/skill-cooldown-state-installation.ts",
   "app/renderer/skill-overlays-installation.ts",
   "app/renderer/skill-slot-projection.ts",

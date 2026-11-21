@@ -2,10 +2,11 @@
  * Prepares the optional half of a certified companion installation. Core owns
  * the shared kernel transaction and calls this extension only in Tools mode.
  *
- * This module names no feature: it runs every part in COMPANION_PARTS through
- * each of Core's phases, in registry order (tools-companion-part.ts).
+ * This module names no feature: it runs every part in COMPANION_PARTS, then
+ * FEATURE_PARTS, through each of Core's phases, in registry order
+ * (tools-companion-part.ts).
  */
-import { COMPANION_PARTS } from "../features/companion-parts.js";
+import { COMPANION_PARTS, FEATURE_PARTS } from "../features/companion-parts.js";
 import { COMPANION_DISPATCH_KINDS, COMPANION_FEATURE_BITS } from "../shared/companion-abi.js";
 import type { EnhancementCapabilities, EnhancementProgram } from "../shared/enhancement-contracts.js";
 import type {
@@ -15,7 +16,7 @@ import type {
   PreparedCompanionExtension,
 } from "./certified-companion-extension.js";
 import * as observerReaders from "./companion-tools-observer-readers.js";
-import { createGameBlocks } from "./game-blocks.js";
+import { createGameBlocks, createUiBlocks } from "./game-blocks.js";
 import { type PreparedToolsPart, type ToolsActivation, type ToolsCompanionPart, type ToolsPartSession } from "./tools-companion-part.js";
 import {
   createPolicyTrace,
@@ -69,7 +70,7 @@ export async function prepareToolsCompanionExtension(
     substrates: createToolsSubstrates(module, capabilities, program),
   });
   const prepared = new Map<ToolsCompanionPart, PreparedToolsPart>();
-  for (const part of COMPANION_PARTS) prepared.set(part, await part.prepare(input));
+  for (const part of [...COMPANION_PARTS, ...FEATURE_PARTS]) prepared.set(part, await part.prepare(input));
   const parts = [...prepared.values()];
   let allocated = false;
   let activated = false;
@@ -154,6 +155,8 @@ function activateParts(
 
   try {
     hud = createToolsHud(input.exports, capabilities);
+    // A block's demand can end after teardown, when a late stop runs; the kernel is gone then.
+    const syncBlockDemand = () => { if (!context.isCleaned()) syncObservers(); };
     const activation: ToolsActivation = Object.freeze({
       ...context,
       snapshot,
@@ -164,9 +167,10 @@ function activateParts(
         capabilities,
         observation: input.substrates.observation,
         playRegions: context.playRegions,
-        // A block's demand can end after teardown, when a late stop runs; the kernel is gone then.
-        syncObservers: () => { if (!context.isCleaned()) syncObservers(); },
+        skills: input.substrates.skills,
+        syncObservers: syncBlockDemand,
       }),
+      ui: createUiBlocks({ capabilities, hud, skills: input.substrates.skills, document, syncObservers: syncBlockDemand }),
       syncObservers,
       // The map holds each part's own prepare result, so the key fixes the value's type.
       prepared: <Prepared extends PreparedToolsPart>(part: ToolsCompanionPart<Prepared>) =>

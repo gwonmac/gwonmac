@@ -48,12 +48,15 @@ malformed state publishes no cooldown data.
 The shared record is fixed at 60 bytes and uses an odd/even publication
 sequence. The renderer reads the sequence before and after the payload and
 withdraws torn or stale publications. Geometry and recharge data remain
-separate until the presentation coordinator in
-[`skill-overlays-installation.ts`](../app/renderer/skill-overlays-installation.ts)
-joins their lifecycles. Both HUDs use the single coordinate conversion in
-[`skill-slot-projection.ts`](../app/renderer/skill-slot-projection.ts), and
-[`skill-cooldown-overlay-consumer.ts`](../app/renderer/skill-cooldown-overlay-consumer.ts)
-joins the two complete eight-slot records.
+separate feeds in
+[`skill-overlays-installation.ts`](../app/renderer/skill-overlays-installation.ts);
+each runs only while something needs it. The feature
+([`companion.ts`](../app/features/skill-cooldowns/companion.ts)) reads the
+complete eight-slot recharge record through the `game.skillbar` building block
+and writes its text through `ui.skillLabels`
+([`game-blocks.ts`](../app/renderer/game-blocks.ts)), which joins the text with
+the slot geometry. Both HUDs use the single coordinate conversion in
+[`skill-slot-projection.ts`](../app/renderer/skill-slot-projection.ts).
 
 Text updates are bounded by the formatter's visible output. Above three seconds
 the view changes only when the upward-rounded whole second changes. Below three

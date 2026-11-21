@@ -27,18 +27,18 @@ const withBinding = Object.freeze({
   ] as const),
 });
 
-test("skill policy activates and withdraws only the observation regions it needs", () => {
+test("the skill feeds run only for what needs them", () => {
   const skills = createSkillOverlaysInstallation({
     nativeHudRendering: true,
     skillSlotGeometry: true,
     skillCooldownObservation: true,
   });
-  skills.sync(DEFAULT_SETTINGS, { skillKeyLabels: false, skillCooldowns: false });
+  skills.sync(DEFAULT_SETTINGS, false);
   assert.equal(skills.geometry.active, false);
   assert.equal(skills.cooldowns.active, false);
   assert.equal(skills.activeFeatureFlags, 0);
 
-  skills.sync(withBinding, { skillKeyLabels: true, skillCooldowns: false });
+  skills.sync(withBinding, true);
   assert.equal(skills.geometry.active, true, "a key badge needs geometry");
   assert.equal(skills.cooldowns.active, false);
   assert.equal(
@@ -60,9 +60,9 @@ test("skill policy activates and withdraws only the observation regions it needs
   });
   assert.equal(skills.geometry.state.status, "ready");
 
-  skills.sync(DEFAULT_SETTINGS, { skillKeyLabels: false, skillCooldowns: false });
+  skills.sync(DEFAULT_SETTINGS, false);
   assert.deepEqual(skills.geometry.state, { status: "waiting", reason: "stale" });
-  skills.sync(withBinding, { skillKeyLabels: true, skillCooldowns: false });
+  skills.sync(withBinding, true);
   skills.geometry.sink?.update({
     status: "ready",
     sequence: 2,
@@ -96,7 +96,10 @@ test("skill policy activates and withdraws only the observation regions it needs
   });
   assert.equal(skills.geometry.state.status, "ready");
 
-  skills.sync(DEFAULT_SETTINGS, { skillKeyLabels: false, skillCooldowns: true });
+  // Skill Cooldowns claims ui.skillLabels and reads game.skillbar (game-blocks.ts).
+  skills.sync(DEFAULT_SETTINGS, false);
+  skills.wantSlots(true);
+  skills.wantCooldowns(true);
   assert.equal(skills.geometry.active, true, "cooldowns also need geometry");
   assert.equal(skills.cooldowns.active, true);
   assert.equal(
@@ -110,12 +113,14 @@ test("skill policy activates and withdraws only the observation regions it needs
 });
 
 
-test("a refused native renderer leaves skill display observers inactive", () => {
+test("a refused native renderer leaves the slot geometry inactive", () => {
   const skills = createSkillOverlaysInstallation({
     nativeHudRendering: false, skillSlotGeometry: true, skillCooldownObservation: true,
   });
-  skills.sync(withBinding, {skillKeyLabels: true, skillCooldowns: true});
+  skills.sync(withBinding, true);
+  skills.wantSlots(true);
   assert.equal(skills.activeFeatureFlags, 0);
   assert.equal(skills.geometry.active, false);
-  assert.equal(skills.cooldowns.active, false);
+  // Skill Cooldowns does not start without the native renderer, so nothing reads the
+  // recharge feed then (tests/unit/feature-parts-start-and-stop-with-their-feature.test.ts).
 });
