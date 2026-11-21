@@ -11,18 +11,18 @@ import type { KnownEnhancementBuild } from "./enhancement-build-model.js";
 const BUILD: KnownEnhancementBuild = Object.freeze({
   sha256: "c32b9ec13dc3d64fb50623bfd042e43ebddd8fa60f4090c508da73a2330af686",
   outputSha256: Object.freeze({
-    "features-3fffff": "cde8e22c07edb17e34b634d539ee48b689b49f31dfeead0763de3c1dcbf7a1e0",
-    "features-01": "f1f9ed27ec2d094a6d4f3741b82da34530aaa597add4399ecfcbb305a3b5bc33",
-    "features-e01": "141b6a7ac1d9932947d56517f9054a9deb0b442411656431ae93002dbb1af5a1",
-    "features-601": "05b123559aeb8e810687fdddaf744efd2204f1c979683619f3163d0ccf52ef44",
-    "features-200": "ab613e6b0317ed590f50bf9cebf336ad363cd39cda7f93bd6e20b8953451c401",
-    "features-202": "f0f8173101936019ca32cbdf888c2e5b2cac971bc3c224db8f9e8098960e08ef",
-    "features-284": "f18a802386e319353c8e991c0e78cc03cc1f308dcec9bd40904a2ec39b10cf0a",
-    "features-285": "be662ac187efc0f933deab65ce8d667f04bd83010b33b61cee517982ff42164a",
-    "features-270": "8efa044c3afd28e782780b723b75e4ea61a55d611051df082171138a6b6dc9fa",
-    "features-2fc": "11cbd848feefb824a2cf13eb7846f689bdcc827848331e030da5ab4211f77dba",
-    "features-c200": "3d90edcfa64d5f41844e441a2e914b4d1b47f24f2866da3bc09af6a2a182495a",
-    "features-c204": "632f434f07ef4e48d98f915f26ad5013977aa8c854ad35384d282f1eb88e65e8",
+    "features-3fffff": "16fb108f1dd854261eba0c4b55d242b466b14da1b3cb821a14efd2c4277f3096",
+    "features-01": "9386b293463ba266d75a422462195a2b88ad078df6a1a13efd59a65227d6d9d7",
+    "features-e01": "2d1fa24da2c667c3f008fa1e7ebc538cc513b2e361f2bdbe8f6df32e7fbc66fd",
+    "features-601": "ba822ce0509909a04316f769e6dcfad9d0f7835b481f81fc066c849d4a4cee36",
+    "features-200": "64cfd28ed72a9c3b3c5a12dba857e4ba48011ee18fb2ff61e5b381ddd9da3dfb",
+    "features-202": "66e0903b71bda02f3bd0f1fde7669addddab9622cbbdb7d8f0aa44fea35919e1",
+    "features-284": "2ba006c0f494c7677cedcc923d011748a7d79dab75a90c00f11c594d95e9bf89",
+    "features-285": "35753cfc1846083372d89cbf73c48254cce10a9735e53f675e1bf5aa02ed7268",
+    "features-270": "dee152ce490399c4251e7737c627c6e6188a04ef23c6c3d69b917a4a4a49f83c",
+    "features-2fc": "0e78c3f95ebdda533c20bfe4de7e87520fd0b8b4b43088f23cd6f793690ac92a",
+    "features-c200": "2c0c375e2b28660cd0f3722e5b50b8810baaeee6bb67db837b700dd29cd1931f",
+    "features-c204": "402cc44e348e269af7ff17c98f6ed73fd2e09d5b75d5653d2f4ee0d5ae54fed6",
   }),
   programId: 1,
   buildId: 4108659193,
@@ -336,6 +336,26 @@ const BUILD: KnownEnhancementBuild = Object.freeze({
         params: Object.freeze(["i32"] as const),
         results: Object.freeze(["i32"] as const),
         bodySha256: "081506484a3019e40c1a934f95f88ff3911d70640c0f446afc6c3a3fb4975e5e",
+      }),
+    }),
+    // The client's active-quest lookup: it binary-searches the 52-byte quest
+    // records for WorldContext's active quest id and copies the marker x, y
+    // (+inf without a marker) and the destination map, so its body proves the
+    // whole quest layout. R108 found it on October 22; GWCA Quest.h (e1bc303)
+    // names the same offsets.
+    quest: Object.freeze({
+      layout: Object.freeze({
+        worldActiveQuestId: 0x528,
+        worldQuestLog: 0x52c,
+        questStride: 0x34,
+        questMarker: 0x18,
+        questMapTo: 0x28,
+      }),
+      lookup: Object.freeze({
+        functionIndex: 9153,
+        params: Object.freeze(["i32", "i32", "i32"] as const),
+        results: Object.freeze(["i32"] as const),
+        bodySha256: "b430a9b43f474d825473287a8327f81ec82ba9c464d00e61d17d2c64f3e00031",
       }),
     }),
   }),

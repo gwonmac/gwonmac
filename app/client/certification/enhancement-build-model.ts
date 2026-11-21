@@ -33,6 +33,7 @@ import {
   type EnhancementPlayRegionLayout,
   type EnhancementPlayerEffectLayout,
   type EnhancementProgressLayout,
+  type EnhancementQuestLayout,
   type EnhancementPlayerSkillbarLayout,
   type EnhancementPartyLayout,
   type EnhancementSkillCooldownLayout,
@@ -170,6 +171,12 @@ export function enhancementConfigWords(
         case "progress":
           value = build.progressObservation?.layout[field.key];
           break;
+        case "quest":
+          // A build without the quest proof keeps Progress; the kernel reads a
+          // zero quest-log offset as "no quest".
+          if (build.progressObservation?.quest === undefined) return 0;
+          value = build.progressObservation.quest.layout[field.key];
+          break;
         default: {
           const unreachable: never = field;
           return unreachable;
@@ -216,6 +223,13 @@ type ProgressFieldAccessor = Readonly<{
 type ProgressIndexedAccessor = Readonly<{
   functionIndex: number;
   params: readonly ["i32"];
+  results: readonly ["i32"];
+  bodySha256: string;
+}>;
+/** The client's active-quest lookup: `(id*, marker*, mapTo*) -> found`. */
+type ProgressQuestLookup = Readonly<{
+  functionIndex: number;
+  params: readonly ["i32", "i32", "i32"];
   results: readonly ["i32"];
   bodySha256: string;
 }>;
@@ -476,6 +490,15 @@ export interface KnownEnhancementBuild {
       vanquishedAreas: ProgressFieldAccessor;
       titlePoints: ProgressIndexedAccessor;
       areaInfo: ProgressIndexedAccessor;
+    }>;
+    /**
+     * The active quest's quest-log record. The client's own lookup reads every
+     * field below, so its body proves all of them. Optional: a changed lookup
+     * withdraws only the quest, and Progress stays.
+     */
+    quest?: Readonly<{
+      layout: EnhancementQuestLayout;
+      lookup: ProgressQuestLookup;
     }>;
   }>;
   /**
