@@ -20,6 +20,7 @@ import type {
   PreparedCompanionExtension,
 } from "./certified-companion-extension.js";
 import type { CompanionOwnedRegion } from "./companion-owned-regions.js";
+import type { GameBlocks } from "./game-blocks.js";
 import type { NativeHudLayer } from "./native-hud-layer.js";
 import type { ToolsPolicySnapshot, ToolsSubstrates } from "./tools-companion-substrates.js";
 
@@ -85,6 +86,8 @@ export type ToolsActivation = CompanionExtensionActivation & Readonly<{
   policy(): ToolsPolicySnapshot["policy"];
   playRegion(): ToolsPolicySnapshot["playRegion"];
   hud: NativeHudLayer | null;
+  /** The typed game building blocks, shared by every part (game-blocks.ts). */
+  game: GameBlocks;
   /** Publishes the active-feature bitmask that every part's `activeFeatures` builds. */
   syncObservers(): void;
   /** Another part's prepared state; null when that part is not registered. */
