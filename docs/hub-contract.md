@@ -121,7 +121,9 @@ cheaper test fails if the rule breaks (try one product mutation to see).
   answers. That is the browser's Tab traversal, PageDown's page size, layout and
   geometry (the 340×380 minimum, no scrim), computed styles and contrast, native
   text editing and composition, popovers in the top layer, and the `@macos`
-  timing budgets. A spec opens the fixture page with `openHub(page, query)`
+  timing budgets. The macOS job retries a failed spec once, because a hosted
+  runner can stall for one sample; a retried pass shows as flaky in the report,
+  and a regression fails both attempts. A spec opens the fixture page with `openHub(page, query)`
   and reloads it with `reloadHub(page)` (`app/ui/tools/tests/hub-page.ts`).
   `page.goto` returns before the fixture has mounted the Hub, so a key pressed
   at once can miss it; the helpers wait for the fixture's `#app[data-ready]`
