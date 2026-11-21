@@ -147,6 +147,15 @@ export interface ShortcutReplacement {
   readonly action: ShortcutAction;
   readonly binding: ShortcutBinding | null;
 }
+/** Why Paste settings changed nothing: the clipboard is not copied settings, or not readable by this app. */
+export type LauncherSettingsPasteRefusal = "not-settings" | "other-version" | "damaged";
+
+/** What Paste settings did; `skipped` names what the text held that this app does not use. */
+export type LauncherSettingsPasteOutcome =
+  | Readonly<{ status: "applied"; skipped: readonly string[] }>
+  | Readonly<{ status: "cancelled" }>
+  | Readonly<{ status: "refused"; reason: LauncherSettingsPasteRefusal }>;
+
 /**
  * One settings write. The launcher's Settings and the Hub send `settings`,
  * `master`, `tool` and `shortcut`, each narrowed by its boundary's parser; a
@@ -258,6 +267,10 @@ export interface LauncherNativeApi {
   readonly settings: {
     update: Invoke<C["settingsUpdate"]>;
     reset: Invoke<C["settingsReset"]>;
+    /** Puts the settings on the clipboard as text, to carry to another Mac. */
+    copy: Invoke<C["settingsCopy"]>;
+    /** Replaces the settings with copied ones from the clipboard, after a confirmation. */
+    paste: Invoke<C["settingsPaste"]>;
   };
   readonly tools: {
     setMasterEnabled: Invoke<C["toolsSetMasterEnabled"]>;
@@ -403,15 +416,16 @@ function exactObject(value: unknown, allowed: readonly string[], label: string):
   return source;
 }
 
+/** Every field of the launcher's Home choices, as stored and as patched. */
+export const LAUNCHER_CONTENT_FIELDS = Object.freeze(
+  ["news", "dailies", "first", "officialNews", "reforgedNews", "eventNews", "autoRotateNews", "simple"] as const,
+) satisfies readonly (keyof LauncherPreferences["content"])[];
+
 export function parseLauncherPreferencesPatch(value: unknown): LauncherPreferencesPatch {
   const source = exactObject(value, ["content", "lastPlayPage"], "launcher preferences patch");
   const page = source.lastPlayPage === undefined ? {} : { lastPlayPage: parseLauncherPlayPage(source.lastPlayPage) };
   if (source.content === undefined) return page;
-  const content = exactObject(
-    source.content,
-    ["news", "dailies", "first", "officialNews", "reforgedNews", "eventNews", "autoRotateNews", "simple"],
-    "launcher content patch",
-  );
+  const content = exactObject(source.content, LAUNCHER_CONTENT_FIELDS, "launcher content patch");
   const patch: {
     news?: boolean;
     dailies?: boolean;

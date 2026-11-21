@@ -51,8 +51,9 @@ test('Hub searches, restores the query after actions, and hands off explicitly',
   await mountFixture();
   expect(document.activeElement).toBe(search());
   fill(search(), 'settings'); await settle();
-  // The command, then the launcher setting whose name holds the word.
-  expect(options().length).toBe(2);
+  // The command, then the launcher settings whose names hold the word: Copy settings, Paste
+  // settings and Reset all app settings.
+  expect(options().length).toBe(4);
   expect(selectedRow()!.dataset.id).toBe('settings');
   // A pinnable search result exposes its extra actions in the shared menu.
   expect(actionsButton().disabled).toBe(false);

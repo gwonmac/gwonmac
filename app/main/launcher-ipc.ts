@@ -5,7 +5,7 @@
  * LAUNCHER_CHANNELS entry has exactly one owner, or this file does not compile.
  * The launcher preload exposes this vocabulary; game preloads never receive it.
  */
-import { app, dialog, net, shell as electronShell, type BrowserWindow } from "electron";
+import { app, clipboard, dialog, net, shell as electronShell, type BrowserWindow } from "electron";
 import { writeFile } from "node:fs/promises";
 import type { ClientRuntime } from "../client/client-runtime.js";
 import { EXTERNAL_URLS } from "../shared/contracts.js";
@@ -34,6 +34,7 @@ import { sendLauncherFeedback } from "./core/launcher-feedback.js";
 import type { LauncherNewsService } from "./core/launcher-news.js";
 import type { LauncherStateStore } from "./core/launcher-state.js";
 import { allGlobalToolsPatch } from "./core/launcher-tools.js";
+import { settingsFromText, settingsToText } from "./core/settings-transfer.js";
 import type { TexturePackManager } from "./core/texture-pack-manager.js";
 import { logEvent } from "./diagnostics.js";
 import { channel, ownedOnce, register, type HandlersPart } from "./ipc-channel-registry.js";
@@ -185,6 +186,28 @@ function settings(input: LauncherIpcInput) {
         await texturePacks.select(null);
         logEvent({ k: "settings.reset" });
         orchestrator.publish();
+      }),
+      settingsCopy: channel(nothing, async () => {
+        clipboard.writeText(settingsToText(await preferences.getSettings(), launcherState.get().preferences.content));
+      }),
+      settingsPaste: channel(nothing, async (win) => {
+        // Read first, so a clipboard that holds something else never asks to replace anything.
+        const read = settingsFromText(clipboard.readText());
+        if (!read.ok) return { status: "refused", reason: read.reason } as const;
+        const { response } = await dialog.showMessageBox(win, {
+          type: "warning",
+          buttons: ["Replace Settings", "Cancel"],
+          defaultId: 1,
+          cancelId: 1,
+          message: "Replace your settings with the copied ones?",
+          detail: "This replaces launcher and game preferences, the choices for each Tool, shortcuts, custom map styles, custom panel colors and the launcher's Home choices. Enable Tools stays as it is on this Mac. Accounts, saved logins, game files, texture packs and Travel favourites are kept.",
+        });
+        if (response !== 0) return { status: "cancelled" } as const;
+        const { settings, launcherContent, skipped } = read.transfer;
+        await preferences.write({ kind: "settings", patch: settings });
+        if (launcherContent) await launcherState.updatePreferences({ content: launcherContent });
+        orchestrator.publish();
+        return { status: "applied", skipped } as const;
       }),
       toolsSetMasterEnabled: channel(booleanValue, async (_win, enabled) => {
         await preferences.write({ kind: "master", enabled });

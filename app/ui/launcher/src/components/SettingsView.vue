@@ -9,10 +9,10 @@ export function resetSettingsNavigation() { lastSection = "tools"; }
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, provide, ref, watch } from "vue";
 import { MODAL_HOST } from "../modal-host";
-import { ArrowUpRight, Contrast, FileText, FolderDown, Gamepad2, House, Image, Map as MapIcon, RefreshCw, Search, WandSparkles, X } from "lucide-vue-next";
+import { ArrowUpRight, ClipboardPaste, Contrast, Copy, FileText, FolderDown, Gamepad2, House, Image, Map as MapIcon, RefreshCw, Search, WandSparkles, X } from "lucide-vue-next";
 import { SETTING_APPLIES_NOTE } from "@shared/setting-copy";
 import { HUB_SECTIONS, SETTINGS, SETTINGS_GROUP_LABELS, SETTINGS_SECTIONS, searchSettings, type SettingsSection, type SettingsTarget } from "@shared/settings-catalogue";
-import type { LauncherNativeApi, LauncherPreferencesPatch, LauncherSettingsPatch, LauncherSnapshot } from "@shared/launcher-contracts";
+import type { LauncherNativeApi, LauncherPreferencesPatch, LauncherSettingsPasteOutcome, LauncherSettingsPasteRefusal, LauncherSettingsPatch, LauncherSnapshot } from "@shared/launcher-contracts";
 import type { InGameNative, InGamePatch, InGameSnapshot } from "../settings-host";
 import type { CacheInfo } from "@shared/contracts";
 import { listIndexAfter, listKeyStep } from "@shared/ui/list-keys";
@@ -154,6 +154,31 @@ async function saveContent(content: NonNullable<LauncherPreferencesPatch["conten
 }
 
 const actionError = ref("");
+const transferNote = ref("");
+const PASTE_REFUSALS: Readonly<Record<LauncherSettingsPasteRefusal, string>> = {
+  "not-settings": "The clipboard does not hold copied settings. Choose Copy settings on the other Mac first.",
+  "other-version": "These settings come from a version of gwonmac that this one cannot read. Update both Macs, then copy again.",
+  damaged: "The copied settings are incomplete or damaged. Copy them again.",
+};
+/** Copy settings and Paste settings say what happened in their own line; a failure uses the page's alert. */
+async function copySettings() {
+  transferNote.value = "";
+  if (await run("Settings could not be copied.", () => launcherNative?.settings.copy())) {
+    transferNote.value = "Settings copied. Send the text to your other Mac, copy it there, then choose Paste settings.";
+  }
+}
+async function pasteSettings() {
+  transferNote.value = "";
+  let outcome: LauncherSettingsPasteOutcome | undefined;
+  if (!await run("Settings could not be pasted.", async () => { outcome = await launcherNative?.settings.paste(); })) return;
+  if (outcome?.status === "refused") actionError.value = PASTE_REFUSALS[outcome.reason];
+  else if (outcome?.status === "applied") {
+    const skipped = outcome.skipped.length;
+    transferNote.value = skipped === 0 ? "Settings replaced."
+      : `Settings replaced. ${skipped} copied ${skipped === 1 ? "setting that this version does not use was" : "settings that this version does not use were"} left out.`;
+  }
+}
+
 async function run(message: string, action: () => Promise<unknown> | undefined) {
   actionError.value = "";
   try { await action(); return true; }
@@ -381,6 +406,12 @@ onBeforeUnmount(() => {
               <div class="setting-group">
                 <div class="setting-row" data-setting="openLogs"><span><strong>Open logs</strong><small>Show the log folder in Finder, for a bug report.</small></span><button class="secondary small" @click="run('Logs could not be opened.', () => launcherNative?.external.revealLogs())"><FileText />Open logs</button></div>
               </div>
+              <h2 class="settings-subheading">Move settings to another Mac</h2>
+              <div class="setting-group">
+                <div class="setting-row" data-setting="copySettings"><span><strong>Copy settings</strong><small>Put your settings on the clipboard as text. Accounts and saved logins are not included.</small></span><button class="secondary small" @click="copySettings"><Copy />Copy settings</button></div>
+                <div class="setting-row" data-setting="pasteSettings"><span><strong>Paste settings</strong><small>Replace your settings with ones copied on another Mac. You confirm before anything changes.</small></span><button class="secondary small" @click="pasteSettings"><ClipboardPaste />Paste settings</button></div>
+              </div>
+              <p v-if="transferNote" class="inline-message" role="status">{{ transferNote }}</p>
               <details class="settings-reset" data-setting="resetAllSettings"><summary>Reset all app settings</summary><p>Restores launcher and game preferences, Tools, shortcuts, custom map styles and panel colors. Original textures will be selected. Accounts and game files are kept.</p><button class="danger-button small" @click="run('Settings could not be reset.', () => launcherNative?.settings.reset())">Reset all app settings…</button></details>
             </template>
             <p v-if="actionError" role="alert" class="inline-message">{{ actionError }}</p>

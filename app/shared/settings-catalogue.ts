@@ -19,7 +19,7 @@ export const SETTINGS_SECTIONS = [
   { id: "game-files", label: "Game files", group: "game", keywords: "download repair disk space" },
   { id: "updates", label: "Updates", group: "app", keywords: "update version beta stable" },
   { id: "home", label: "Home screen", group: "app", keywords: "news dailies events launcher" },
-  { id: "advanced", label: "Advanced", group: "app", keywords: "logs reset support" },
+  { id: "advanced", label: "Advanced", group: "app", keywords: "logs reset support copy paste transfer" },
 ] as const;
 export type SettingsSection = typeof SETTINGS_SECTIONS[number]["id"];
 export const SETTINGS_GROUP_LABELS = { game: "In game", app: "GWonMac" } as const;
@@ -100,6 +100,8 @@ export const SETTINGS: readonly SettingEntry[] = [
   { id: "content.dailies", section: "home", label: "Dailies", keywords: "daily weekly schedule" },
 
   { id: "openLogs", section: "advanced", label: "Open logs", keywords: "logs diagnostics support bug" },
+  { id: "copySettings", section: "advanced", label: "Copy settings", keywords: "export backup move transfer another mac computer share" },
+  { id: "pasteSettings", section: "advanced", label: "Paste settings", keywords: "import restore move transfer another mac computer" },
   { id: "resetAllSettings", section: "advanced", label: "Reset all app settings", keywords: "reset defaults" },
 ];
 

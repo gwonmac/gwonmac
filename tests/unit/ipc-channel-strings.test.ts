@@ -117,6 +117,8 @@ const CASES = {
     "gw:launcher:profiles:setSelection",
     "gw:launcher:profiles:show",
     "gw:launcher:profiles:update",
+    "gw:launcher:settings:copy",
+    "gw:launcher:settings:paste",
     "gw:launcher:settings:reset",
     "gw:launcher:settings:update",
     "gw:launcher:state:event",

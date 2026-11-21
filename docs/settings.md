@@ -33,11 +33,35 @@ is briefly highlighted. Hub search does not change a setting in place.
 4. **Settings are found by their words.** Search on the Settings page (⌘F) and Hub
    search both use the catalogue.
 5. **A game window cannot reach launcher-only actions.** Updates, game files,
-   texture packs, reset and logs run only from the launcher. The Hub page never
+   texture packs, reset, logs, and copy and paste of settings run only from the
+   launcher. The Hub page never
    offers them.
 6. **Tools on or off needs a restart of the launcher.** The Tools section says
    "Restart the launcher". Only the launcher offers the restart button.
    Restarting only a game window does not load or unload Tools.
+
+## Moving settings to another Mac
+
+The launcher's **Advanced** section has **Copy settings** and **Paste settings**.
+`app/main/core/settings-transfer.ts` owns the text form: a JSON object with a
+`kind`, a format `version`, the stored settings and the launcher's Home
+choices. Copy puts it on the clipboard. Paste reads the clipboard in main,
+checks it before it asks anything, confirms with a native dialog, then writes
+the settings through the one settings write and the Home choices through the
+launcher state.
+
+- **Strict shape.** Text that is not copied settings, has another `version`, or
+  holds a malformed value is refused whole. The launcher says why
+  (`LauncherSettingsPasteRefusal`). Every kept value passes the settings file's
+  own validation.
+- **Lenient age.** A setting or Home choice this build does not know, from a
+  newer or older app, is left out; the launcher reports how many.
+- **Stays on this Mac.** The launch mode (`gwonmacTools`, Enable Tools), the
+  last update check, the client compatibility notice and the stored Travel
+  shortcuts (`NOT_TRANSFERRED`) are neither copied nor applied. The text carries
+  choices, not the mode. Travel shortcuts change only through Travel's own compare-and-refuse
+  write. Credentials, accounts, game files and texture packs are not settings,
+  so the text never holds them.
 
 ## Build and trust
 
