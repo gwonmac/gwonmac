@@ -121,7 +121,10 @@ export const COMPANION_KERNEL_DYLINK0 = Object.freeze([
   //               linker repacks the private data (two 8-byte alignment gaps,
   //               and one `true` bool takes its own word). Non-zero data is
   //               unchanged.
-  0x01, 0x05, 0x80, 0x25, 0x03, 0x00, 0x00,
+  // 4736 -> 4776: the active quest adds five config words to the static
+  //               layout and four words to the zero Progress record; the
+  //               linker pads one word.
+  0x01, 0x05, 0xa8, 0x25, 0x03, 0x00, 0x00,
 ]);
 
 const WASM_PAGE_BYTES = 65_536;

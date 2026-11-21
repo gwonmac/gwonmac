@@ -5,6 +5,7 @@ import {
   progressCatalogue,
   progressGoals,
   progressTravelTarget,
+  questTravelTarget,
   type AreaRow,
   type GameProgressState,
   type ProgressInputs,
@@ -52,6 +53,7 @@ function inputs(overrides: Partial<Ready> = {}, unlocked: number[] | null = [12,
       vanquished: bits(13),
       cartographer: [72.4, null, 18.9],
       areas: ROWS,
+      quest: null,
       ...overrides,
     },
     unlockedMapWords: unlocked === null ? null : bits(...unlocked),
@@ -108,4 +110,19 @@ test("travel goes to the item's own outpost, an entrance, or the nearest unlocke
   }
   // Only an outpost on another continent is unlocked.
   assert.equal(progressTravelTarget(find(10), inputs({}, [292])), null);
+});
+
+test("Travel to quest goes to the quest's outpost, or the unlocked outpost nearest the map it leads to", () => {
+  const cases: readonly [number, Partial<Ready>, unknown][] = [
+    [81, { mapId: 12 }, { mapId: 81, name: "Ascalon City", nearest: false, here: false }],
+    // An explorable area has no outpost of its own; one without a world-map point has no nearest one.
+    [13, {}, { mapId: 81, name: "Ascalon City", nearest: true, here: true }],
+    [17, {}, null],
+    // Lion's Arch is locked, so the unlocked outpost nearest it stands in.
+    [55, {}, { mapId: 12, name: "Aurora Glade", nearest: true, here: false }],
+  ];
+  for (const [mapId, overrides, expected] of cases) {
+    const quest = { id: 101, mapId, marker: null };
+    assert.deepEqual(questTravelTarget(quest, inputs(overrides)), expected, String(mapId));
+  }
 });
