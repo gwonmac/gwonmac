@@ -488,6 +488,13 @@ A new region is one entry in `COMPANION_KERNEL_INIT_ARGUMENTS`
 signature check, the loader, the region types and the Core installer follow
 from the list, and the ABI test compares it with the Rust signature.
 
+`abi.rs` owns each snapshot's layout; the decoders read literal offsets.
+[companion-snapshots-decode-at-rust-offsets.test.ts](../tests/unit/companion-snapshots-decode-at-rust-offsets.test.ts)
+ties the two in `pnpm check`: it computes the `repr(C)` offsets from the Rust
+source, writes one publication by Rust field name, and requires the decoder to
+return those values. A new region fails it until it has a case; a newly decoded
+field needs a value in its region's case.
+
 The official WASM remains canonical. Feature certificates and transformed
 outputs are derived from those bytes and the verifier ABI and must be
 rebuildable.

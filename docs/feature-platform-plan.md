@@ -95,8 +95,8 @@ adding, never by changing proved outputs.
 
 | ID | Step | You | Depends | Done when | Status | Rounds |
 |---|---|---|---|---|---|---|
-| 2.1 | Research: are Rust snapshot layouts (`kernels/companion/abi.rs`) and TS decoders (`companion-abi.ts`, `*-snapshot.ts`) checked against each other today? | – | – | Answer with file:line; if a test already fails on drift, skip 2.2 | todo | 0 |
-| 2.2 | If not: one test (or generation) that fails when a Rust and TS layout differ | – | 2.1 | Test fails on a planted offset change, passes on main | todo | 0 |
+| 2.1 | Research: are Rust snapshot layouts (`kernels/companion/abi.rs`) and TS decoders (`companion-abi.ts`, `*-snapshot.ts`) checked against each other today? | – | – | Answer with file:line; if a test already fails on drift, skip 2.2 | done: no check in `pnpm check` tied snapshot offsets. `the-companion-abi-is-exact-across-typescript-and-rust.test.ts` covers only the config `Layout` order, feature bits, dispatch kinds, `companion_init` and two ABI numbers; Rust pins its own sizes (`abi.rs:817-836`); size exports meet `COMPANION_ABI` only in `kernels.mjs verify` (`scripts/kernels.mjs:236`, macOS CI) and the loader at runtime (`companion-kernel-loader.ts:155`); decoders use literal offsets (e.g. `companion-alcohol-snapshot.ts:21`). A planted same-size swap in `AlcoholSnapshot` passed all 2211 unit tests; only the macOS integration test caught it, because it asserts that field | 1 |
+| 2.2 | If not: one test (or generation) that fails when a Rust and TS layout differ | – | 2.1 | Test fails on a planted offset change, passes on main | done: `companion-snapshots-decode-at-rust-offsets.test.ts` computes repr(C) offsets from `abi.rs` and runs every decoder on a publication written by Rust field name; 10 planted drifts (Rust swaps, magic, size; TS offset, stride, swap, ABI) each fail it | 1 |
 
 ## Phase 3 · Building blocks: typed `game.*` and `ui.*` (M–L)
 
