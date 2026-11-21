@@ -8,18 +8,14 @@ import { functionImportIndex } from "../../main/core/wasm-binary.js";
 import type {
   DecodedFunction,
   InstructionOperandSite,
-  ModuleShape,
 } from "./enhancement-evidence-types.js";
 import {
   functionBody,
   signatureMatches,
   wasmEvidence,
-  type WasmEvidence,
 } from "./wasm-evidence.js";
-import {
-  relocationAwareFingerprint,
-  type RelocationSpan,
-} from "./semantic-proof.js";
+import type { RelocationSpan } from "./semantic-proof.js";
+import { roleFingerprint, roleProofView, type RoleProofView } from "./role-fingerprint.js";
 
 const text = new TextEncoder();
 const sha256 = (bytes: Uint8Array): string =>
@@ -97,43 +93,7 @@ export const NATIVE_DOUBLE_CLICK_ROUTE_SHA256 = sha256(text.encode(JSON.stringif
   routeContract: "browser-mousedown-queue-ledger-dispatch-record16-message4-mask1-consumer1-v3",
 })));
 
-interface ProofView {
-  readonly evidence: WasmEvidence;
-  readonly module: ModuleShape;
-  readonly decoded: ReadonlyMap<number, DecodedFunction>;
-}
-
-function signatureKey(module: ModuleShape, functionIndex: number): string {
-  const typeIndex = module.functionTypeIndices[functionIndex];
-  const signature = typeIndex === undefined ? undefined : module.types[typeIndex];
-  return signature
-    ? `${signature.params.join(",")}=>${signature.results.join(",")}`
-    : "missing";
-}
-
-function printableCString(value: string | null): value is string {
-  return value !== null
-    && value.length >= 3
-    && [...value].every((character) => {
-      const code = character.charCodeAt(0);
-      return code === 9 || code === 10 || code === 13
-        || (code >= 32 && code <= 126);
-    });
-}
-
-function immutableWitness(
-  evidence: WasmEvidence,
-  address: number,
-): string | null {
-  const value = evidence.data.readCString(address);
-  const bytes = printableCString(value)
-    ? text.encode(`${value}\0`)
-    : evidence.data.readBytes(address, 32);
-  if (!bytes) return null;
-  const occurrences = evidence.data.addresses(bytes).length;
-  if (occurrences < 1) return null;
-  return `${sha256(bytes)}:${occurrences}`;
-}
+type ProofView = RoleProofView;
 
 interface RegistrationEvidence {
   readonly target: number;
@@ -182,63 +142,10 @@ function semanticFingerprint(
   functionIndex: number,
   role: RouteRole,
 ): string | null {
-  const body = functionBody(view.module, functionIndex);
+  if (role !== "binder") return roleFingerprint(view, functionIndex);
   const decoded = view.decoded.get(functionIndex);
-  if (!decoded) return null;
-  const spans: RelocationSpan[] = [];
-
-  const targetRoles = new Map<number, number>();
-  const calls = [...decoded.callSites]
-    .flatMap(([target, sites]) => sites.map((site) => ({ target, site })))
-    .sort((left, right) => left.site.offset - right.site.offset);
-  for (const { target, site } of calls) {
-    if (!targetRoles.has(target)) targetRoles.set(target, targetRoles.size);
-    spans.push({
-      start: site.offset + 1,
-      end: site.operandEnd,
-      addressClass: "function-index",
-      role: `callee-${targetRoles.get(target)}:${signatureKey(view.module, target)}`,
-    });
-  }
-
-  const operandSites = [...decoded.constantSites, ...decoded.memorySites];
-  const mutableSites = operandSites
-    .filter((site) =>
-      site.value >= view.evidence.data.zeroInitializedBase
-      && site.value < view.evidence.data.initialMemoryBytes
-    )
-    .sort((left, right) => left.offset - right.offset);
-  const mutableRoles = new Map<number, number>();
-  for (const site of mutableSites) {
-    if (!mutableRoles.has(site.value)) {
-      mutableRoles.set(site.value, mutableRoles.size);
-    }
-    spans.push({
-      start: site.operandStart,
-      end: site.operandEnd,
-      addressClass: "mutable-static",
-      role: `state-${mutableRoles.get(site.value)}`,
-    });
-  }
-
-  for (const site of operandSites) {
-    if (!view.evidence.data.contains(site.value)) continue;
-    const witness = immutableWitness(view.evidence, site.value);
-    if (!witness) return null;
-    spans.push({
-      start: site.operandStart,
-      end: site.operandEnd,
-      addressClass: "immutable-data",
-      role: witness,
-    });
-  }
-
-  if (role === "binder") {
-    const registrations = binderRegistrations(decoded);
-    if (!registrations) return null;
-    spans.push(...registrations.spans);
-  }
-  return relocationAwareFingerprint(body, spans);
+  const registrations = decoded ? binderRegistrations(decoded) : null;
+  return registrations ? roleFingerprint(view, functionIndex, registrations.spans) : null;
 }
 
 function uniqueRole(view: ProofView, role: RouteRole): number | null {
@@ -441,12 +348,7 @@ function proveRoute(view: ProofView): NativeDoubleClickRoute | null {
 export function locateNativeDoubleClickRoute(input: Uint8Array): NativeDoubleClickRoute | null {
   try {
     const evidence = wasmEvidence(input);
-    if (!evidence) return null;
-    const module = evidence.moduleView();
-    const decoded = new Map(
-      evidence.decodeFunctions([]).map((entry) => [entry.functionIndex, entry]),
-    );
-    return proveRoute({ evidence, module, decoded });
+    return evidence ? proveRoute(roleProofView(evidence)) : null;
   } catch (error) {
     return refusedOrRethrow(error);
   }

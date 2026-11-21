@@ -49,6 +49,7 @@ function generation(wasmPath: string, size: number): ClientGeneration {
       templateSave: supported,
       cartography: supported,
       nativeDoubleClick: supported,
+      soundDecodeRepair: supported,
     },
     enhancementVerification: {
       requestedProfile: supported ? "features-7ff" : "features-001",

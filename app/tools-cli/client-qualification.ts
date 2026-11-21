@@ -47,6 +47,9 @@ import {
 import { rewriteTemplateSaveWasm } from
   "../client/certification/template-save-compat.js";
 import {
+  deriveSoundDecodeRepairStage,
+} from "../client/certification/sound-decode-repair.js";
+import {
   ENHANCEMENT_CAPABILITY_FIELDS,
   ENHANCEMENT_CAPABILITY_PRESETS,
   enhancementCapabilityProfile,
@@ -261,6 +264,13 @@ function withNativeDoubleClick(input: Uint8Array): Uint8Array {
   return rewriteWithBuild(input, build);
 }
 
+/** The last two stages every release launch serves: native double-click, then the sound decode repair. */
+function withLateStages(input: Uint8Array): Uint8Array {
+  const repair = deriveSoundDecodeRepairStage(withNativeDoubleClick(input));
+  if (!repair) throw new Error("sound decode repair proof failed");
+  return repair.output;
+}
+
 /**
  * The 4 GB proof: the paired JS/WASM cache, production selection for every
  * release profile, and a real allocator that crosses 3 GiB and reuses a
@@ -285,7 +295,7 @@ async function extendedMemoryReport(
   const templateWasm = rewriteTemplateSaveWasm(officialWasm, verification.templateSaveBuild);
 
   const predecessors = new Map<string, Uint8Array>();
-  predecessors.set("off", withNativeDoubleClick(templateWasm));
+  predecessors.set("off", withLateStages(templateWasm));
   for (const [launch, capabilities] of Object.entries(
     RELEASE_ENHANCEMENT_CAPABILITIES,
   )) {
@@ -297,7 +307,7 @@ async function extendedMemoryReport(
     }
     predecessors.set(
       profile,
-      withNativeDoubleClick(
+      withLateStages(
         transformEnhancementWasm(templateWasm, profileBuild, capabilities),
       ),
     );
@@ -369,6 +379,11 @@ async function extendedMemoryReport(
         compatibilityCacheRoot: join(profileRoot, "compatibility"),
         enhancementCacheRoot: join(profileRoot, "enhancements"),
         nativeDoubleClickCacheRoot: join(profileRoot, "double-click"),
+        soundDecodeRepair: {
+          cacheRoot: join(profileRoot, "sound-decode-repair"),
+          verifyLocally: async ({ wasmPath: candidatePath }) =>
+            deriveSoundDecodeRepairStage(await readFile(candidatePath))?.build ?? null,
+        },
         extendedMemoryCacheRoot: join(profileRoot, "extended-memory"),
         extendedMemoryEnabled: true,
       }, async ({ wasmPath: candidatePath }) =>
@@ -380,6 +395,7 @@ async function extendedMemoryReport(
         || selected.extendedMemory.profile !== profile
         || JSON.stringify(selected.effectiveCapabilities) !== JSON.stringify(capabilities)
         || !selected.nativeDoubleClick
+        || !selected.soundDecodeRepair
         || sha256(await readFile(selected.jsPath)) !== jsOutputSha256
         || sha256(await readFile(selected.wasmPath))
           !== sha256(rewriteExtendedMemoryWasm(predecessor))
@@ -500,6 +516,11 @@ async function shippedChainReport(
         },
       } : {}),
       nativeDoubleClickCacheRoot: join(cacheRoot, "double-click"),
+      soundDecodeRepair: {
+        cacheRoot: join(cacheRoot, "sound-decode-repair"),
+        verifyLocally: async ({ wasmPath: input, inputSha256 }) =>
+          deriveSoundDecodeRepairStage(await fromFile(input, inputSha256))?.build ?? null,
+      },
       extendedMemoryCacheRoot: join(cacheRoot, "memory"),
       extendedMemoryEnabled: true,
     }, async ({ wasmPath: input, inputSha256 }) =>
@@ -514,6 +535,7 @@ async function shippedChainReport(
           || prepared.friendObserver.status !== (capabilities.travelAction ? "active" : "disabled")
           || prepared.cartography.status !== (launch === "tools" ? "active" : "disabled")
           || !prepared.nativeDoubleClick
+          || !prepared.soundDecodeRepair
           || prepared.extendedMemory.status !== "active"
           || sha256(await readFile(prepared.wasmPath)) !== prepared.wasmSha256
         ) throw new Error(`the ${launch} launch did not serve its complete chain`);

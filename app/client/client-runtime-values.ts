@@ -59,8 +59,9 @@ const WHOLE_CHAIN: StageScope = { upstream: true, nativeDoubleClick: true, exten
  */
 export function failedStageScope(stages: readonly ClientVerificationStage[]): StageScope {
   return {
+    // The sound decode repair reports no feature, so its failure re-attributes nothing.
     upstream: stages.some((stage) =>
-      stage !== "nativeDoubleClick" && stage !== "extendedMemory"),
+      stage !== "nativeDoubleClick" && stage !== "soundDecodeRepair" && stage !== "extendedMemory"),
     nativeDoubleClick: stages.includes("nativeDoubleClick"),
     extendedMemory: stages.includes("extendedMemory"),
   };

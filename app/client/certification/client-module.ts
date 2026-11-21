@@ -54,6 +54,12 @@ import {
   type NativeDoubleClickBuild,
 } from "./native-double-click.js";
 import {
+  rewriteWithBuild as rewriteSoundDecodeRepair,
+  soundDecodeRepairOutputSha256,
+  SOUND_DECODE_REPAIR_TRANSFORM_ABI,
+  type SoundDecodeRepairBuild,
+} from "./sound-decode-repair.js";
+import {
   EXTENDED_MEMORY_MAX_BYTES,
   prepareExtendedMemoryArtifacts,
   type ExtendedMemoryProfile,
@@ -74,7 +80,8 @@ export interface ClientModulePreparationFailure {
   readonly stage:
     | "template-save"
     | "enhancement"
-    | "native-double-click";
+    | "native-double-click"
+    | "sound-decode-repair";
   readonly error: unknown;
 }
 
@@ -103,6 +110,8 @@ interface PreparedWasmClientModule {
    * renderer's switch and not merely a report.
    */
   readonly nativeDoubleClick: boolean;
+  /** Whether the served module frees the MP3 decoder's seek index. */
+  readonly soundDecodeRepair: boolean;
   /** The single authority for Cartography preparation and its refusal reason. */
   readonly cartography: CartographyPreparationMode;
   readonly friendObserver: FriendObserverPreparationMode;
@@ -154,6 +163,14 @@ export interface PrepareClientModuleOptions {
     }) => Promise<CartographySpikeBuild | null>;
   }>;
   readonly nativeDoubleClickCacheRoot: string;
+  /** The repair runs for Core and Tools launches alike; it has no switch. */
+  readonly soundDecodeRepair: Readonly<{
+    cacheRoot: string;
+    verifyLocally: (options: {
+      wasmPath: string;
+      inputSha256: string;
+    }) => Promise<SoundDecodeRepairBuild | null>;
+  }>;
   readonly extendedMemoryCacheRoot: string;
   readonly extendedMemoryEnabled: boolean;
 }
@@ -291,6 +308,50 @@ async function withNativeDoubleClick(
   }
 }
 
+/**
+ * The sound decode repair, applied after native double-click. Like it, the
+ * repair is not certification state: a module it cannot prove is served as
+ * the previous stage produced it, and the client keeps its leak.
+ */
+async function withSoundDecodeRepair(
+  prepared: PreparedWasmClientModule,
+  options: PrepareClientModuleOptions["soundDecodeRepair"],
+): Promise<PreparedWasmClientModule> {
+  try {
+    const inputSha256 = await sha256File(prepared.wasmPath);
+    if (inputSha256 !== prepared.wasmSha256) {
+      throw new Error("prepared client cache no longer matches its certified hash");
+    }
+    const build = await options.verifyLocally({ wasmPath: prepared.wasmPath, inputSha256 });
+    const expectedOutputSha256 = build ? soundDecodeRepairOutputSha256(build, inputSha256) : null;
+    if (!build || expectedOutputSha256 === null) {
+      await discardDerivedWasm(options.cacheRoot).catch(() => undefined);
+      return prepared;
+    }
+    return {
+      ...prepared,
+      wasmPath: await prepareDerivedWasm(
+        prepared.wasmPath,
+        {
+          inputSha256,
+          cacheRoot: options.cacheRoot,
+          transformAbi: SOUND_DECODE_REPAIR_TRANSFORM_ABI,
+          buildFingerprint: buildFingerprint(build),
+          expectedOutputSha256,
+        },
+        (base) => rewriteSoundDecodeRepair(base, build),
+      ),
+      wasmSha256: expectedOutputSha256,
+      soundDecodeRepair: true,
+    };
+  } catch (error) {
+    return {
+      ...prepared,
+      failure: prepared.failure ?? { stage: "sound-decode-repair", error },
+    };
+  }
+}
+
 async function withFriendObserver(
   prepared: PreparedWasmClientModule,
   options: PrepareClientModuleOptions["friendObserver"],
@@ -365,10 +426,13 @@ export async function prepareClientModule(
       cartography: { status: "unavailable", error: cartography.error },
     };
   }
-  const prepared = await withNativeDoubleClick(
-    cartographyPrepared,
-    options.nativeDoubleClickCacheRoot,
-    verifyNativeDoubleClick,
+  const prepared = await withSoundDecodeRepair(
+    await withNativeDoubleClick(
+      cartographyPrepared,
+      options.nativeDoubleClickCacheRoot,
+      verifyNativeDoubleClick,
+    ),
+    options.soundDecodeRepair,
   );
   if (!options.extendedMemoryEnabled) {
     return {
@@ -487,6 +551,7 @@ async function prepareCertifiedChain(
       cartography: { status: "disabled" },
       friendObserver: { status: "disabled" },
       nativeDoubleClick: false,
+      soundDecodeRepair: false,
       failure: fileFailure ?? cleanupFailure,
     };
   }
@@ -503,6 +568,7 @@ async function prepareCertifiedChain(
       cartography: { status: "disabled" },
       friendObserver: { status: "disabled" },
       nativeDoubleClick: false,
+      soundDecodeRepair: false,
       failure: {
         stage: "enhancement",
         error: new Error("Enhancement certification does not match template-save output"),
@@ -521,6 +587,7 @@ async function prepareCertifiedChain(
       cartography: { status: "disabled" },
       friendObserver: { status: "disabled" },
       nativeDoubleClick: false,
+      soundDecodeRepair: false,
       failure: await discardEnhancementCache(enhancementCacheRoot),
     };
   }
@@ -546,6 +613,7 @@ async function prepareCertifiedChain(
         cartography: { status: "disabled" },
         friendObserver: { status: "disabled" },
         nativeDoubleClick: false,
+        soundDecodeRepair: false,
         failure: firstFailure === null
           ? fileFailure
           : { stage: "enhancement", error: firstFailure },
@@ -564,6 +632,7 @@ async function prepareCertifiedChain(
     cartography: { status: "disabled" },
     friendObserver: { status: "disabled" },
     nativeDoubleClick: false,
+    soundDecodeRepair: false,
     failure: firstFailure === null
       ? null
       : { stage: "enhancement", error: firstFailure },

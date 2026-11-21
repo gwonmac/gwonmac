@@ -348,7 +348,7 @@ export class ClientRuntime {
         jsPath: clientArtifactPath(this.options.paths.artifacts, "Gw.jspi.js"),
         compatibility: null,
         extendedMemory,
-        transforms: { templateSave: false, cartography: false, nativeDoubleClick: false },
+        transforms: { templateSave: false, cartography: false, nativeDoubleClick: false, soundDecodeRepair: false },
         enhancementVerification: {
           requestedProfile: enhancementCapabilityProfile(this.options.enhancementCapabilities),
           effectiveProfile: null,
@@ -437,6 +437,10 @@ export class ClientRuntime {
             }
           : {}),
         nativeDoubleClickCacheRoot: roots.nativeDoubleClick,
+        soundDecodeRepair: {
+          cacheRoot: roots.soundDecodeRepair,
+          verifyLocally: lookup(verdict?.soundDecodeRepair),
+        },
         extendedMemoryCacheRoot: roots.extendedMemory,
         extendedMemoryEnabled: this.options.extendedMemoryEnabled,
       }, lookup(verdict?.nativeDoubleClick), async ({ jsInputSha256, wasmInputSha256 }) =>
@@ -529,6 +533,12 @@ export class ClientRuntime {
         code: errorCode(prepared.failure.error),
       });
     }
+    gauge("wasm.soundDecodeRepair", prepared.soundDecodeRepair);
+    if (prepared.failure?.stage === "sound-decode-repair") {
+      logEvent({ k: "wasm.soundDecodeRepairPrepareFailed",
+        code: errorCode(prepared.failure.error),
+      });
+    }
     if (prepared.cartography.status === "unavailable") {
       logEvent({
         k: "wasm.cartographyPrepareFailed",
@@ -591,6 +601,7 @@ export class ClientRuntime {
         templateSave: prepared.gameFileSaving.status === "available",
         cartography: cartographyPrepared,
         nativeDoubleClick: prepared.nativeDoubleClick,
+        soundDecodeRepair: prepared.soundDecodeRepair,
       },
       enhancementVerification: {
         requestedProfile: enhancementCapabilityProfile(requested),

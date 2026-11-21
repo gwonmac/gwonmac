@@ -63,6 +63,7 @@ export interface GamePaths {
   cartographySpike: string;
   friendObserver: string;
   nativeDoubleClick: string;
+  soundDecodeRepair: string;
   extendedMemory: string;
   /** Derived-module caches of Core launches; see `launchCacheRoots`. */
   coreDerived: string;
@@ -112,6 +113,7 @@ export function gamePaths(userData: string): GamePaths {
     cartographySpike: path.join(game, "cartography-spike"),
     friendObserver: path.join(game, "friend-observer"),
     nativeDoubleClick: path.join(game, "double-click"),
+    soundDecodeRepair: path.join(game, "sound-decode-repair"),
     extendedMemory: path.join(game, "extended-memory"),
     coreDerived: path.join(game, "core"),
     texturePacks,
@@ -190,6 +192,7 @@ export function launchCacheRoots(
   enhancements: string;
   friendObserver: string;
   nativeDoubleClick: string;
+  soundDecodeRepair: string;
   extendedMemory: string;
 }> {
   if (launch === "tools") {
@@ -197,6 +200,7 @@ export function launchCacheRoots(
       enhancements: paths.enhancements,
       friendObserver: paths.friendObserver,
       nativeDoubleClick: paths.nativeDoubleClick,
+      soundDecodeRepair: paths.soundDecodeRepair,
       extendedMemory: paths.extendedMemory,
     };
   }
@@ -204,6 +208,7 @@ export function launchCacheRoots(
     enhancements: path.join(paths.coreDerived, "enhancements"),
     friendObserver: path.join(paths.coreDerived, "friend-observer"),
     nativeDoubleClick: path.join(paths.coreDerived, "double-click"),
+    soundDecodeRepair: path.join(paths.coreDerived, "sound-decode-repair"),
     extendedMemory: path.join(paths.coreDerived, "extended-memory"),
   };
 }

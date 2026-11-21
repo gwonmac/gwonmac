@@ -41,6 +41,7 @@ import {
   rewriteWithBuild,
   type NativeDoubleClickBuild,
 } from "../../app/client/certification/native-double-click.js";
+import { SOUND_DECODE_REPAIR_PROOF_SHA256 } from "../../app/client/certification/sound-decode-repair.js";
 import {
   parseCode,
   sectionById,
@@ -615,6 +616,8 @@ function options(
     compatibilityCacheRoot: value.compatibilityCacheRoot,
     enhancementCacheRoot: value.enhancementCacheRoot,
     nativeDoubleClickCacheRoot: value.nativeDoubleClickCacheRoot,
+    // The synthetic client has no decode task, so the repair has no proof.
+    soundDecodeRepair: { cacheRoot: join(value.root, "sound-decode-repair"), verifyLocally: async () => null },
     extendedMemoryCacheRoot: value.extendedMemoryCacheRoot,
     extendedMemoryEnabled: false,
   };
@@ -800,6 +803,7 @@ describe("client module preparation", () => {
       // An unrecognised client is served exactly as downloaded, so it receives
       // neither the double-click transform nor substitute touch input.
       nativeDoubleClick: false,
+      soundDecodeRepair: false,
       failure: null,
     });
     await Promise.all([
@@ -892,6 +896,36 @@ describe("client module preparation", () => {
     });
     assert.equal(prepared.nativeDoubleClick, false);
     assert.equal(prepared.failure?.stage, "native-double-click");
+  });
+
+  it("serves the previous stage when a sound decode repair record does not fit the module", async () => {
+    const value = await fixture();
+    const certification: ClientCertification = {
+      templateSaveBuild: value.templateSaveBuild,
+      enhancementBuild: value.enhancementBuild,
+    };
+    const unrepaired = await prepareClientModule(options(value, certification, CURSOR_TOOLBOX));
+    // A record whose guard passes for this input, naming bodies this module does not have.
+    const prepared = await prepareClientModule({
+      ...options(value, certification, CURSOR_TOOLBOX),
+      soundDecodeRepair: {
+        cacheRoot: join(value.root, "sound-decode-repair"),
+        verifyLocally: async ({ inputSha256 }) => ({
+          proofSha256: SOUND_DECODE_REPAIR_PROOF_SHA256,
+          constructorFunctionIndex: 1,
+          destructorFunctionIndex: 2,
+          deletingDestructorFunctionIndex: 3,
+          freeFunctionIndex: 4,
+          bodySha256: ["0".repeat(64), "1".repeat(64), "2".repeat(64)],
+          derivations: { [inputSha256]: "3".repeat(64) },
+        }),
+      },
+    });
+
+    assert.equal(prepared.soundDecodeRepair, false);
+    assert.equal(prepared.failure?.stage, "sound-decode-repair");
+    assert.equal(prepared.wasmSha256, unrepaired.wasmSha256);
+    assert.equal(sha256(await readFile(prepared.wasmPath)), unrepaired.wasmSha256);
   });
 
   it("falls back to the ordinary module when a requested 4 GB pair is unknown", async () => {

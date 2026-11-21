@@ -46,6 +46,10 @@ import {
   type NativeDoubleClickBuild,
 } from "./certification/native-double-click.js";
 import {
+  isSoundDecodeRepairBuild,
+  type SoundDecodeRepairBuild,
+} from "./certification/sound-decode-repair.js";
+import {
   isExtendedMemoryStructuralProof,
   type ExtendedMemoryStructuralProof,
 } from "./certification/extended-memory.js";
@@ -66,6 +70,7 @@ export interface UntrustedPassResult {
   readonly friendObserver: readonly unknown[];
   readonly cartography: readonly unknown[];
   readonly nativeDoubleClick: readonly unknown[];
+  readonly soundDecodeRepair: readonly unknown[];
   readonly extendedMemory: readonly unknown[];
 }
 
@@ -84,6 +89,7 @@ export function readPassResult(value: unknown): UntrustedPassResult | null {
     || !("friendObserver" in value) || !boundedArray(value.friendObserver)
     || !("cartography" in value) || !boundedArray(value.cartography)
     || !("nativeDoubleClick" in value) || !boundedArray(value.nativeDoubleClick)
+    || !("soundDecodeRepair" in value) || !boundedArray(value.soundDecodeRepair)
     || !("extendedMemory" in value) || !boundedArray(value.extendedMemory)
   ) return null;
   const launches: UntrustedPassResult["launches"][number][] = [];
@@ -117,6 +123,7 @@ export function readPassResult(value: unknown): UntrustedPassResult | null {
     friendObserver: value.friendObserver,
     cartography: value.cartography,
     nativeDoubleClick: value.nativeDoubleClick,
+    soundDecodeRepair: value.soundDecodeRepair,
     extendedMemory: value.extendedMemory,
   };
 }
@@ -135,6 +142,7 @@ export interface ClientVerdict {
   readonly friendObserver: (inputSha256: string) => FriendObserverBuild | null;
   readonly cartography: (inputSha256: string) => CartographySpikeBuild | null;
   readonly nativeDoubleClick: (inputSha256: string) => NativeDoubleClickBuild | null;
+  readonly soundDecodeRepair: (inputSha256: string) => SoundDecodeRepairBuild | null;
   readonly extendedMemory: (
     jsInputSha256: string,
     wasmInputSha256: string,
@@ -187,6 +195,7 @@ export function acceptLaunchVerdict(
       friendObserver: find(result.friendObserver, isFriendObserverBuild),
       cartography: find(result.cartography, isCartographySpikeBuild),
       nativeDoubleClick: find(result.nativeDoubleClick, isDerivedNativeDoubleClickBuild),
+      soundDecodeRepair: find(result.soundDecodeRepair, isSoundDecodeRepairBuild),
       extendedMemory: (jsInputSha256: string, wasmInputSha256: string) =>
         guarded(() => result.extendedMemory.find((proof): proof is ExtendedMemoryStructuralProof =>
           isExtendedMemoryStructuralProof(proof, jsInputSha256, wasmInputSha256))),
