@@ -246,6 +246,27 @@ export interface MemoryPressurePresentation {
  */
 const MEMORY_RELOAD = 'Reload Guild Wars';
 const MEMORY_DISMISS = 'Later';
+const MEMORY_CLOSE = 'Close';
+
+/** "1.4 of 2 GB used": what the game has reserved of this session's limit. */
+export function memoryUsageCopy(usedBytes: number, capBytes: number): string {
+  const gb = (bytes: number) => bytes / 1_073_741_824;
+  const used = Math.max(0, gb(usedBytes));
+  return `${used.toFixed(1)} of ${Math.max(1, Math.round(gb(capBytes)))} GB used`;
+}
+
+/**
+ * The panel a player opens with Command-Q while memory is fine: the same surface and
+ * actions as the warning, without the warning.
+ */
+export function memoryPanelCopy(capBytes: number): MemoryPressurePresentation {
+  return {
+    ...memoryWarningCopy('low', capBytes),
+    label: 'Quit or reload Guild Wars?',
+    detail: 'Reload restarts this account with fresh memory. Other accounts stay open.',
+    dismissButton: MEMORY_CLOSE,
+  };
+}
 
 export function memoryWarningCopy(
   level: 'low' | 'critical',

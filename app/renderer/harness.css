@@ -145,6 +145,12 @@ html,body { width:100%; height:100%; margin:0; overflow:hidden;
   width: fit-content;
   margin-top: 8px;
 }
+#memory-notice-usage {
+  display: flex; align-items: center; gap: 8px; margin-top: 6px;
+  font: var(--ui-type-caption-size)/1.3 var(--ui-font-readable); color: var(--ui-text);
+}
+#memory-notice-usage[hidden] { display: none; }
+#memory-notice-meter { width: 120px; height: 8px; }
 #memory-notice-actions { display: flex; gap: 8px; flex-shrink: 0; }
 #memory-notice-actions button {
   flex: 0 0 auto;
