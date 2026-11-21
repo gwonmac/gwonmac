@@ -17,7 +17,7 @@ for (const ratio of [1, 2]) {
       await openHub(page);
       const frame = page.locator('#hub .ui-frame-artwork');
       await expect(page.locator('.hub-panel')).toHaveClass(/ui-art-frame/);
-      await expect.poll(() => frame.evaluate(element => element instanceof HTMLCanvasElement ? element.width : 0)).toBe(780 * ratio);
+      await expect.poll(() => frame.evaluate(element => element instanceof HTMLCanvasElement ? element.width : 0)).toBe(960 * ratio);
       await expect(frame).toHaveAttribute('aria-hidden', 'true');
       const pixels = await frame.evaluate(element => {
         if (!(element instanceof HTMLCanvasElement)) throw new Error('Expected frame canvas');

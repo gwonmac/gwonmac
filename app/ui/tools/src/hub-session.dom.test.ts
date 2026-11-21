@@ -274,10 +274,9 @@ test('an account open that focuses another window still ends the task, so the ne
   expect([caption(), primary().textContent]).toEqual(['Second', 'Open Second↵']);
   click(primary()); await settle();
   expect(status().textContent).toBe('Opening Second…');
-  // The opening account takes the focus while the action runs, which suspends this very page.
-  window.dispatchEvent(new Event('blur')); await settle();
-  expect(hubOpen()).toBe(false);
+  // The opening account takes the focus while the action runs; its success closes this Hub.
   await advance(1600);
+  expect(hubOpen()).toBe(false);
   expect(actions()).toEqual(['Account Second open']);
   press('Meta+r'); await settle();
   expect([hubOpen(), caption(), search().value, document.activeElement === search(), /Second/u.test(primary().textContent ?? ''), status().textContent])

@@ -339,8 +339,8 @@ test('repeated opens and resumes search once per transition and leave no rows be
     hub().close(); calls = 0;
     hub().show(); passes.push(calls); await frame();
     fill(search(), 'm');
-    window.dispatchEvent(new Event('blur')); calls = 0;
-    hub().show(); passes.push(calls); await frame();
+    hub().suspend(); calls = 0;
+    hub().resume(); passes.push(calls); await frame();
   }
   hub().close();
   const remaining = rows('#hub-results .hub-row');

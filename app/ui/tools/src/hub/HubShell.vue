@@ -63,7 +63,7 @@ defineExpose({ root, focus });
       <p class="hub-announce ui-sr-only" role="status" aria-live="polite" aria-atomic="true" v-text="model.announce"></p>
       <HubFooter :legend="model.legend" :count="model.count" :primary="model.primary" :actions="model.actions" />
       <HubActionsMenu :menu="model.menu" :bottom="menuBottom" />
-      <button class="ui-window-resize hub-resize" aria-label="Resize Hub" data-focus-key="resize" title="Drag to resize, or use arrow keys" hidden></button>
+      <button class="ui-window-resize hub-resize" aria-label="Resize Hub" data-focus-key="resize" title="Drag to resize, or use arrow keys"></button>
     </section>
   </dialog>
   <div

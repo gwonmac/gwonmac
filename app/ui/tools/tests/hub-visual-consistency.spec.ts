@@ -219,7 +219,8 @@ test('every view keeps the same frame and search box across styles, fonts and op
   await openHub(page);
   const search=page.locator('.hub-search input');
   const frame=await page.locator('.hub-panel').boundingBox(),field=await page.locator('.hub-search').boundingBox();
-  expect(frame!.width).toBe(780);expect(frame!.height).toBe(590);
+  // The default box is 960 by 680, held inside 88% of this 720 px viewport.
+  expect(frame!.width).toBe(960);expect(frame!.height).toBeCloseTo(Math.min(680,720*.88-24),1);
   for(const uiStyle of ['guild-wars','obsidian'] as const)for(const uiFont of ['guild-wars','inter','system','avenir','georgia','palatino'] as const)for(const uiPanelOpacity of [94,65]){
     await page.evaluate(value=>window.gwApplyFixtureAppearance(value),{uiStyle,uiFont,uiPanelOpacity});
     for(const query of ['', 'kam', '10 ectos in p', 'zzzq', 'commands', 'titles', 'build library', 'team gom afk', 'settings', 'hub preferences', '@travel', '@characters', '@actions']){

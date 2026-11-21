@@ -132,8 +132,7 @@ test('one floating whisper view keeps drafts through dismissal and failures', as
   fill(draft('Romi Ranger')!, 'Meet in Kamadan?');
   click(button('Hide Whispers')); await settle();
   click(button('Open Hub')); await settle();
-  expect(caption()).toBe('Romi Ranger');
-  click(button('Back')); await settle();
+  expect(caption()).toBe('Home');
   await go('whispers');
   expect(document.activeElement).toBe(draft('Romi Ranger'));
   expect(draft('Romi Ranger')!.value).toBe('Meet in Kamadan?');

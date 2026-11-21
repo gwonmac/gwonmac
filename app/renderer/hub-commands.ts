@@ -22,7 +22,7 @@ const dispatch = (name: string, detail?: unknown) => {
 };
 
 /** The Hub as its commands use it: to close, suspend or show it, open a page, and find a saved row. */
-type CommandsHub = Pick<Hub, 'close' | 'show' | 'showRows' | 'suspend'> & Readonly<{ shortcuts: Pick<Hub['shortcuts'], 'lookup'> }>;
+type CommandsHub = Pick<Hub, 'close' | 'resume' | 'showRows' | 'suspend'> & Readonly<{ shortcuts: Pick<Hub['shortcuts'], 'lookup'> }>;
 
 /** `openSettings` is the Settings source's row action, at a section or control when given. */
 export function createHubCommands(hub: CommandsHub, openSettings: (target?: SettingsTarget) => (task: HubTask) => Promise<void>): HubSource {
@@ -53,7 +53,7 @@ export function createHubCommands(hub: CommandsHub, openSettings: (target?: Sett
         // The sheet waits for the press that asked for it, so its repeat or trailing click never answers it.
         // Cancel of the native dialog hands the task back with its search, as Resign's confirmation
         // does (HUB-250). The in-game panel takes over instead, so the Hub closes for it.
-        { id: 'reload', title: 'Quit or Reload Game…', detail: 'Opens confirmation for this account', keywords: 'restart reconnect', group: 'Commands', action: 'Review options', run: async () => { hub.suspend(); await window.gwSurfaces.afterPress(); if (await window.gwNative.app.showQuitOrReload() === 'stayed') hub.show(); else hub.close(); } },
+        { id: 'reload', title: 'Quit or Reload Game…', detail: 'Opens confirmation for this account', keywords: 'restart reconnect', group: 'Commands', action: 'Review options', run: async () => { hub.suspend(); await window.gwSurfaces.afterPress(); if (await window.gwNative.app.showQuitOrReload() === 'stayed') hub.resume(); else hub.close(); } },
       ]),
     ];
   };
