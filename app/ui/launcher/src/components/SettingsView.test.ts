@@ -47,6 +47,28 @@ describe("Settings page", () => {
     wrapper.unmount();
   });
 
+  it("says what Paste settings did: replaced, with what was left out, or why nothing changed", async () => {
+    const paste = vi.fn()
+      .mockResolvedValueOnce({ status: "applied", skipped: ["someFutureSwitch", "launcherContent.someFutureChoice"] })
+      .mockResolvedValueOnce({ status: "refused", reason: "other-version" })
+      .mockResolvedValueOnce({ status: "cancelled" });
+    const wrapper = mountView({ settings: { paste } }, { target: { section: "advanced" } });
+    await flushPromises();
+    const pasteButton = wrapper.get('[data-setting="pasteSettings"] button');
+    await pasteButton.trigger("click");
+    await flushPromises();
+    expect(wrapper.get('[role="status"].inline-message').text()).toBe("Settings replaced. 2 copied settings that this version does not use were left out.");
+    await pasteButton.trigger("click");
+    await flushPromises();
+    expect(wrapper.find('[role="status"].inline-message').exists()).toBe(false);
+    expect(wrapper.get('[role="alert"]').text()).toContain("cannot read. Update both Macs");
+    await pasteButton.trigger("click");
+    await flushPromises();
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false);
+    expect(wrapper.find('[role="status"].inline-message').exists()).toBe(false);
+    wrapper.unmount();
+  });
+
   it("finds a setting by its words and focuses its control", async () => {
     const wrapper = mountView({}, { attach: true });
     await flushPromises();
