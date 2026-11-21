@@ -101,7 +101,10 @@ export class MultipleAccountsController {
   private nextDiagnosticOwnerId = 2;
   private workspace: AccountWorkspace;
 
-  constructor(private readonly options: MultipleAccountsControllerOptions) {
+  private readonly options: MultipleAccountsControllerOptions;
+
+  constructor(options: MultipleAccountsControllerOptions) {
+    this.options = options;
     this.workspace = options.workspace;
   }
 

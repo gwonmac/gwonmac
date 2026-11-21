@@ -3,6 +3,7 @@ import vue from "@vitejs/plugin-vue";
 import { defineConfig, type Plugin } from "vite";
 
 const settingsEntry = fileURLToPath(new URL("../launcher/src/hub-entry.ts", import.meta.url));
+const toolsEntry = fileURLToPath(new URL("./src/embedded.ts", import.meta.url));
 /**
  * The Hub fixture loads Settings as the game does, from `settings/settings-app.js`. In the dev
  * server that path is the launcher's source entry, so the fixture draws the same page.
@@ -14,7 +15,10 @@ const hubSettingsModule: Plugin = {
   // resolver, which would return the missing file's path unchanged.
   enforce: "pre",
   resolveId(source) {
-    return source.endsWith("/settings/settings-app.js") ? settingsEntry : null;
+    if (source.endsWith("/settings/settings-app.js")) return settingsEntry;
+    // The Tools bundle the game host loads the same way; feature-parts-stop-leaves-nothing mounts it.
+    if (source.endsWith("/tools/tools-app.js")) return toolsEntry;
+    return null;
   },
   configureServer(server) {
     server.middlewares.use((request, _response, next) => {
