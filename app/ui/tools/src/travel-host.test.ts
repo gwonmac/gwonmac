@@ -135,6 +135,33 @@ describe("native Travel host", () => {
     expect(host.notice.value?.message).toContain("did not confirm Guild Hall travel");
   });
 
+  // Wrong behavior: a Guild Hall trip that starts after 3 s is not followed, so "has not started
+  // yet" stays on screen after the character arrived.
+  it("follows a Guild Hall trip that the game starts late", async () => {
+    vi.useFakeTimers();
+    const { host } = fixture();
+    host.updateGameState({
+      status: "ready", mapId: 55, travelContext: "world", characterKey: null,
+      unlockedMapWords: null, guildHall: false, hasGuildHall: true, explorable: false,
+    });
+    await host.guildHall();
+    await vi.advanceTimersByTimeAsync(3_000);
+    expect(host.attempt.value).toEqual({ status: "idle" });
+    expect(host.notice.value).toMatchObject({ level: "info" });
+    expect(host.notice.value?.message).toContain("has not started Guild Hall travel yet");
+
+    host.updateGameState({ status: "waiting", reason: "loading" });
+    expect(host.attempt.value).toEqual({ status: "loading", kind: "guild-hall", target: "inside" });
+    expect(host.notice.value).toMatchObject({ level: "success" });
+
+    host.updateGameState({
+      status: "ready", mapId: 4, travelContext: "world", characterKey: null,
+      unlockedMapWords: null, guildHall: true, hasGuildHall: true, explorable: false,
+    });
+    expect(host.attempt.value).toEqual({ status: "idle" });
+    expect(host.notice.value).toBeNull();
+  });
+
   it("delegates shortcut mutations to Main", async () => {
     const { host, setTravel } = fixture();
     await host.loadPreferences();
@@ -159,15 +186,22 @@ describe("native Travel host", () => {
     expect(host.notice.value).toBeNull();
   });
 
-  it("keeps delayed queued failure feedback until another attempt replaces it", async () => {
+  // Wrong behavior: a trip that a game prompt or a party countdown delays past 3 s is reported
+  // as failed, which sends a Hub receipt and withdraws the pending arrival invite.
+  it("says a queued trip has not started yet, without a failure, until another attempt replaces it", async () => {
     vi.useFakeTimers();
     const { host } = fixture();
+    const failures = vi.fn();
+    window.addEventListener("gw:travel-failed", failures);
 
-    await host.travel({ mapId: 449 });
-    await vi.advanceTimersByTimeAsync(3_000);
+    try {
+      await host.travel({ mapId: 449 });
+      await vi.advanceTimersByTimeAsync(3_000);
+    } finally { window.removeEventListener("gw:travel-failed", failures); }
+    expect(failures).not.toHaveBeenCalled();
     expect(host.attempt.value).toEqual({ status: "idle" });
-    expect(host.notice.value).toMatchObject({ level: "warning" });
-    expect(host.notice.value?.message).toContain("did not start");
+    expect(host.notice.value).toMatchObject({ level: "info" });
+    expect(host.notice.value?.message).toContain("has not started this trip yet");
 
     await host.travel({ mapId: 55 });
     expect(host.notice.value).toMatchObject({ level: "info" });
@@ -187,13 +221,13 @@ describe("native Travel host", () => {
 
     await host.travel({ mapId: 449 });
     await vi.advanceTimersByTimeAsync(3_000);
-    expect(host.notice.value?.message).toContain("did not start");
+    expect(host.notice.value?.message).toContain("has not started this trip yet");
 
     host.updateGameState({ status: "waiting", reason: "loading" });
 
     expect(host.attempt.value).toEqual({ status: "loading", kind: "map", mapId: 449 });
     expect(host.notice.value).toMatchObject({ level: "success" });
-    expect(host.notice.value?.message).not.toContain("did not start");
+    expect(host.notice.value?.message).not.toContain("has not started");
   });
 
   it("publishes immediate refusal and clears command feedback on disposal", async () => {
