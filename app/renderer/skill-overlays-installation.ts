@@ -1,22 +1,20 @@
 /**
- * Coordinates the two presentation-only skill HUDs over their independent
- * certified geometry and recharge feeds. Native ownership stays in the feed
- * installations; this module owns only their shared settings/policy lifecycle.
+ * The skill HUD substrate: the certified slot-geometry and recharge feeds, and
+ * which of them run. Native ownership stays in the feed installations.
+ *
+ * A feed runs while something needs it: the slot geometry for Skill Key Labels
+ * (still drawn here until it moves onto blocks) or for the `ui.skillLabels`
+ * block, and the recharge feed for the `game.skillbar` block (game-blocks.ts).
  */
 import type { NativeHudLayer } from "./native-hud-layer.js";
 import { COMPANION_FEATURE_BITS } from "../shared/companion-abi.js";
 import type { AppSettings } from "../shared/settings/index.js";
 import type { EnhancementCapabilities } from "../shared/enhancement-contracts.js";
-import { createSkillCooldownOverlayConsumer } from "./skill-cooldown-overlay-consumer.js";
 import { createSkillCooldownObservationInstallation } from "./skill-cooldown-state-installation.js";
 import { createSkillKeyOverlayConsumer } from "./skill-key-overlay-consumer.js";
 import { createSkillSlotGeometryInstallation } from "./skill-slot-geometry-installation.js";
 
-type SkillSettings = Pick<AppSettings, "skillKeyBindings" | "skillCooldownColor">;
-type SkillFeaturePolicy = Readonly<{
-  skillKeyLabels: boolean;
-  skillCooldowns: boolean;
-}>;
+type SkillSettings = Pick<AppSettings, "skillKeyBindings">;
 
 export function createSkillOverlaysInstallation(
   capabilities: Pick<EnhancementCapabilities, "skillSlotGeometry" | "skillCooldownObservation" | "nativeHudRendering">,
@@ -26,11 +24,19 @@ export function createSkillOverlaysInstallation(
     capabilities.skillCooldownObservation,
   );
   let keyConsumer: ReturnType<typeof createSkillKeyOverlayConsumer> | null = null;
-  let cooldownConsumer: ReturnType<typeof createSkillCooldownOverlayConsumer> | null = null;
   let unsubscribeKeyGeometry: (() => void) | null = null;
-  let unsubscribeCooldownGeometry: (() => void) | null = null;
-  let unsubscribeCooldownState: (() => void) | null = null;
+  let keyLabels = false;
+  let slotsWanted = false;
+  let cooldownsWanted = false;
   let activeFeatureFlags = 0;
+
+  const apply = () => {
+    const geometryActive = capabilities.nativeHudRendering && (keyLabels || slotsWanted);
+    geometry.setActive(geometryActive);
+    cooldowns.setActive(cooldownsWanted);
+    activeFeatureFlags = (capabilities.skillSlotGeometry && geometryActive ? COMPANION_FEATURE_BITS.skillSlotGeometry : 0)
+      | (capabilities.skillCooldownObservation && cooldownsWanted ? COMPANION_FEATURE_BITS.skillCooldownObservation : 0);
+  };
 
   return Object.freeze({
     geometry,
@@ -41,7 +47,11 @@ export function createSkillOverlaysInstallation(
         ? COMPANION_FEATURE_BITS.skillCooldownObservation
         : 0),
     get activeFeatureFlags() { return activeFeatureFlags; },
-    mount(parent: HTMLElement, settings: SkillSettings, hud: NativeHudLayer) {
+    /** The slot geometry runs while a block draws on the skill slots. */
+    wantSlots(wanted: boolean) { slotsWanted = wanted; apply(); },
+    /** The recharge feed runs while a block reads it. */
+    wantCooldowns(wanted: boolean) { cooldownsWanted = wanted; apply(); },
+    mount(parent: HTMLElement, hud: NativeHudLayer) {
       if (!capabilities.nativeHudRendering || !capabilities.skillSlotGeometry || keyConsumer !== null) return;
       const canvas = parent.ownerDocument.getElementById("canvas");
       if (!(canvas instanceof HTMLCanvasElement)) {
@@ -49,30 +59,13 @@ export function createSkillOverlaysInstallation(
       }
       keyConsumer = createSkillKeyOverlayConsumer(parent, canvas, hud);
       unsubscribeKeyGeometry = geometry.subscribe(keyConsumer.update);
-      if (!capabilities.skillCooldownObservation) return;
-      cooldownConsumer = createSkillCooldownOverlayConsumer(parent, canvas, hud);
-      cooldownConsumer.sync(settings.skillCooldownColor, false);
-      unsubscribeCooldownGeometry = geometry.subscribe(cooldownConsumer.update);
-      unsubscribeCooldownState = cooldowns.subscribe(cooldownConsumer.setCooldownState);
     },
-    sync(settings: SkillSettings, policy: SkillFeaturePolicy) {
-      const geometryActive = capabilities.nativeHudRendering && (policy.skillKeyLabels || policy.skillCooldowns);
-      const cooldownActive = capabilities.nativeHudRendering && policy.skillCooldowns;
-      geometry.setActive(geometryActive);
-      cooldowns.setActive(cooldownActive);
+    /** Applies Skill Key Labels' switch and bindings. */
+    sync(settings: SkillSettings, skillKeyLabels: boolean) {
+      keyLabels = skillKeyLabels;
+      apply();
       keyConsumer?.setBindings(settings.skillKeyBindings);
-      keyConsumer?.setEnabled(policy.skillKeyLabels);
-      cooldownConsumer?.sync(settings.skillCooldownColor, policy.skillCooldowns);
-      activeFeatureFlags = (
-        capabilities.skillSlotGeometry
-          && geometryActive
-          ? COMPANION_FEATURE_BITS.skillSlotGeometry
-          : 0
-      ) | (
-        capabilities.skillCooldownObservation && cooldownActive
-          ? COMPANION_FEATURE_BITS.skillCooldownObservation
-          : 0
-      );
+      keyConsumer?.setEnabled(skillKeyLabels);
     },
     disposePresentation() {
       const failures: unknown[] = [];
@@ -80,19 +73,12 @@ export function createSkillOverlaysInstallation(
         try { release?.(); } catch (cause) { failures.push(cause); }
       };
       const keyToDispose = keyConsumer;
-      const cooldownToDispose = cooldownConsumer;
       const releases = [
         unsubscribeKeyGeometry,
-        unsubscribeCooldownGeometry,
-        unsubscribeCooldownState,
         keyToDispose === null ? null : () => keyToDispose.dispose(),
-        cooldownToDispose === null ? null : () => cooldownToDispose.dispose(),
       ];
       unsubscribeKeyGeometry = null;
-      unsubscribeCooldownGeometry = null;
-      unsubscribeCooldownState = null;
       keyConsumer = null;
-      cooldownConsumer = null;
       for (const release of releases) attempt(release);
       if (failures.length > 0) {
         throw new AggregateError(failures, "Skill overlay cleanup failed");
@@ -100,3 +86,5 @@ export function createSkillOverlaysInstallation(
     },
   });
 }
+
+export type SkillOverlays = ReturnType<typeof createSkillOverlaysInstallation>;

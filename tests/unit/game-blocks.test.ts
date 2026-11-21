@@ -1,11 +1,13 @@
-// game.target and game.region over the real observation substrate and the real
-// play-region feed. What would go wrong without these tests: the kernel keeps
-// computing target data with nobody listening (or never starts), a listener sees
-// a stale target from before it subscribed, every game tick reaches a feature as
-// a "change", or a build without the proof hands out values anyway.
+// game.target, game.region, game.skillbar and ui.skillLabels over the real
+// substrates and feeds. What would go wrong without these tests: the kernel keeps
+// computing target or skill data with nobody listening (or never starts), a
+// listener sees a stale value from before it subscribed, every game tick reaches a
+// feature as a "change", the skill text lands on the wrong slot or repaints every
+// frame, or a build without the proof hands out values anyway.
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createGameBlocks, type GameRegion, type GameTarget } from "../../app/renderer/game-blocks.ts";
+import { createGameBlocks, createUiBlocks, type GameRegion, type GameSkillbar, type GameTarget } from "../../app/renderer/game-blocks.ts";
+import type { NativeHudChannel, NativeHudItem, NativeHudLayer } from "../../app/renderer/native-hud-layer.ts";
 import type { CompanionPlayRegionState } from "../../app/renderer/companion-play-region-snapshot.ts";
 import type { CompanionSnapshot } from "../../app/renderer/companion-snapshot.ts";
 import { createPlayRegionObservationInstallation } from "../../app/renderer/play-region-state-installation.ts";
@@ -17,7 +19,8 @@ const EMPTY_MODULE = new WebAssembly.Module(new Uint8Array([0, 0x61, 0x73, 0x6d,
 
 function setup(t: test.TestContext, without: readonly EnhancementCapability[] = []) {
   const capabilities = capabilityRecord((capability) => !without.includes(capability));
-  const { observation } = createToolsSubstrates(EMPTY_MODULE, capabilities, "none");
+  const { observation, skills } = createToolsSubstrates(EMPTY_MODULE, capabilities, "none");
+  t.after(() => { skills.geometry.dispose(); skills.cooldowns.dispose(); });
   const pointer = { pointer: 0 };
   // The installer hands each part Core's activation; observation reads only Core's pointers.
   const session = observation.prepared.activate({
@@ -27,9 +30,21 @@ function setup(t: test.TestContext, without: readonly EnhancementCapability[] = 
   playRegions.setActive(true);
   t.after(() => playRegions.dispose());
   let syncs = 0;
-  const game = createGameBlocks({ capabilities, observation, playRegions, syncObservers: () => { syncs += 1; } });
+  const syncObservers = () => { syncs += 1; };
+  const game = createGameBlocks({ capabilities, observation, playRegions, skills, syncObservers });
+  // The game's canvas fills an 800 × 600 window.
+  const view = new EventTarget();
+  const canvas = { getBoundingClientRect: () => ({ left: 0, top: 0, width: 800, height: 600 }) };
+  const document = { defaultView: view, getElementById: (id: string) => id === "canvas" ? canvas : null };
+  const drawn: (readonly (NativeHudItem | null)[])[] = [];
+  const hud: NativeHudLayer = { update(channel: NativeHudChannel, items) { if (channel === "cooldowns") drawn.push(items); }, dispose() {} };
+  const ui = createUiBlocks({ capabilities, hud, skills, document: document as unknown as Document, syncObservers });
   return {
     game,
+    ui,
+    view,
+    drawn,
+    skills,
     get syncs() { return syncs; },
     /** What the kernel is asked to compute: the target bit and the game snapshot. */
     observing: () => ({
@@ -40,6 +55,14 @@ function setup(t: test.TestContext, without: readonly EnhancementCapability[] = 
     region: (state: CompanionPlayRegionState) => playRegions.sink?.update(state),
   };
 }
+
+const recharge = (sequence: number, gameTimer: number, rechargeTimestamps: readonly number[]) =>
+  Object.freeze({ status: "ready", sequence, generation: 1, gameTimer, playerAgentId: 7, rechargeTimestamps } as const);
+
+const bar = (sequence: number, frameId = 43) => Object.freeze({
+  status: "ready", sequence, frameId, viewportWidth: 800, viewportHeight: 600,
+  slots: Object.freeze(Array.from({ length: 8 }, (_, slot) => Object.freeze({ left: 100 + slot * 50, bottom: 20, right: 148 + slot * 50, top: 68 }))),
+} as const);
 
 function inGame(target: Readonly<{ distance: number; rangeBand: number; rangeName: GameTarget["range"] }> | null) {
   return Object.freeze({
@@ -139,5 +162,79 @@ test("a build without the proof offers no value and asks the kernel for nothing"
     assert.deepEqual(seen, [null]);
   }
   assert.deepEqual(run.observing(), { target: false, state: false });
+  assert.equal(run.syncs, 0);
+});
+
+test("game.skillbar reads the recharge feed only while someone listens and gives each change once", (t) => {
+  const run = setup(t);
+  const seen: (GameSkillbar | null)[] = [];
+  assert.equal(run.skills.cooldowns.active, false);
+  const stop = run.game.skillbar.subscribe((skillbar) => seen.push(skillbar));
+  assert.equal(run.skills.cooldowns.active, true);
+  assert.equal(run.skills.activeFeatureFlags, COMPANION_FEATURE_BITS.skillCooldownObservation);
+
+  for (const state of [
+    recharge(2, 10_000, [12_899, 24_001, 0, 0, 0, 0, 0, 10_400]),
+    // A new publication with the same times changes nothing a feature can show.
+    recharge(4, 10_000, [12_899, 24_001, 0, 0, 0, 0, 0, 10_400]),
+    // A time already passed is ready.
+    recharge(6, 13_000, [12_899, 24_001, 0, 0, 0, 0, 0, 10_400]),
+    // The game's 32-bit timer wraps between now and the time a skill is ready.
+    recharge(8, 0xffff_ff00, [0x100, 0, 0, 0, 0, 0, 0, 0]),
+    recharge(10, 10_000, [1, 2, 3]),
+  ]) run.skills.cooldowns.sink?.update(state);
+  stop();
+  assert.equal(run.skills.cooldowns.active, false);
+  assert.deepEqual(seen, [
+    null,
+    { rechargeMs: [2_899, 14_001, 0, 0, 0, 0, 0, 400] },
+    { rechargeMs: [0, 11_001, 0, 0, 0, 0, 0, 0] },
+    { rechargeMs: [0x200, 0, 0, 0, 0, 0, 0, 0] },
+    null,
+  ]);
+});
+
+test("ui.skillLabels draws each text on its own slot, repaints only on a change and cleans up", (t) => {
+  const run = setup(t);
+  const labels = run.ui.skillLabels.claim();
+  assert.equal(run.skills.geometry.active, true, "a claim reads the slot positions");
+  assert.throws(() => run.ui.skillLabels.claim(), /already claimed/u);
+  run.skills.geometry.sink?.update(bar(2));
+  const texts = ["2.9", "15", null, null, null, null, null, "0.4"];
+  labels.show(texts, "#abcdef");
+  const painted = run.drawn.length;
+  assert.deepEqual(run.drawn.at(-1)?.map((item) => item && [item.parent, item.child, item.text, item.color, item.width, item.height]), [
+    [43, 0, "2.9", "#abcdef", 48, 48], [43, 1, "15", "#abcdef", 48, 48], null, null, null, null, null, [43, 7, "0.4", "#abcdef", 48, 48],
+  ]);
+  labels.show([...texts], "#abcdef");
+  assert.equal(run.drawn.length, painted, "the same texts cost no repaint");
+  run.view.dispatchEvent(new Event("resize"));
+  assert.equal(run.drawn.length, painted + 1, "a resize repaints");
+  run.skills.geometry.sink?.update(Object.freeze({ status: "waiting", reason: "memory" } as const));
+  assert.deepEqual(run.drawn.at(-1), [], "no slot positions, no text");
+
+  labels.stop();
+  labels.stop();
+  assert.equal(run.skills.geometry.active, false);
+  assert.deepEqual(run.drawn.at(-1), []);
+  run.view.dispatchEvent(new Event("resize"));
+  labels.show(texts, "#abcdef");
+  assert.deepEqual(run.drawn.at(-1), [], "a stopped claim draws nothing");
+  run.ui.skillLabels.claim().stop();
+});
+
+test("a build without the skill proofs offers no skill values and draws nothing", (t) => {
+  const run = setup(t, ["skillCooldownObservation", "nativeHudRendering"]);
+  for (const block of [run.game.skillbar, run.ui.skillLabels]) {
+    assert.deepEqual({ available: block.available, reason: block.available ? null : block.reason },
+      { available: false, reason: "not-proven" });
+  }
+  const seen: unknown[] = [];
+  run.game.skillbar.subscribe((value) => seen.push(value))();
+  run.ui.skillLabels.claim().show(["1"], "#fff");
+  assert.deepEqual(seen, [null]);
+  assert.deepEqual(run.drawn, []);
+  assert.equal(run.skills.cooldowns.active, false);
+  assert.equal(run.skills.geometry.active, false);
   assert.equal(run.syncs, 0);
 });

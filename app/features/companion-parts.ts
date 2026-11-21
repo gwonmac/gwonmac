@@ -1,6 +1,7 @@
 /**
  * Every Tools companion part, in the order the installer runs them: the
  * renderer half of each feature that has one, and the shared substrates.
+ * COMPANION_PARTS runs first, then FEATURE_PARTS.
  *
  * The order is the heap layout: parts allocate in this order, so a part that
  * allocates keeps its place. A part without memory can go anywhere; its place
@@ -8,8 +9,8 @@
  *
  * Renderer only, and Tools only: certified-companion-tools-installation.ts is
  * the one importer, behind Core's dynamic import (tests/policy/core-tools-launch-boundary).
- * Some features have no line here: Build Library lives in the Tools window, both
- * skill HUDs share the skill HUD substrate, Call Target's fixed key chord needs
+ * Some features have no line here: Build Library lives in the Tools window, Skill
+ * Key Labels still draws from the skill HUD substrate, Call Target's fixed key chord needs
  * the input host's held keys (input.ts), and Character Switch is started by the
  * game host through its renderer/host.ts. Maps has both: its line here draws
  * Elite Skills in the native maps and keeps the player state, and its
@@ -31,6 +32,7 @@ import progress from "./progress/companion.js";
 import quickItemMove from "./quick-item-move/companion.js";
 import reminders from "./reminders/companion.js";
 import resign from "./resign/companion.js";
+import skillCooldowns from "./skill-cooldowns/companion.js";
 import targetReadout from "./target-readout/companion.js";
 import teamApply from "./team-apply/companion.js";
 import tools from "./tools/companion.js";
@@ -60,4 +62,14 @@ export const COMPANION_PARTS: readonly ToolsCompanionPart[] = [
   resign,
   tradeChat,
   chatFilters,
+];
+
+/**
+ * Features that run on the building blocks alone (`featurePart`). They own no
+ * memory, so their order is not the heap layout and adding one moves nothing in
+ * COMPANION_PARTS (tests/unit/the-companion-heap-layout-stays-fixed.test.ts).
+ * Target Distance is built the same way but keeps its pinned place above.
+ */
+export const FEATURE_PARTS: readonly ToolsCompanionPart[] = [
+  skillCooldowns,
 ];

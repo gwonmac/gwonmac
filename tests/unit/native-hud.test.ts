@@ -3,7 +3,6 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createNativeHudLayer, type NativeHudChannel, type NativeHudItem, type NativeHudLayer } from "../../app/renderer/native-hud-layer.js";
 import { createSkillKeyOverlayConsumer } from "../../app/renderer/skill-key-overlay-consumer.js";
-import { createSkillCooldownOverlayConsumer } from "../../app/renderer/skill-cooldown-overlay-consumer.js";
 import { createEffectTimerOverlayConsumer } from "../../app/features/effect-timers/renderer/effect-timer-overlay-consumer.js";
 import { EMPTY_SKILL_KEY_MODIFIERS } from "../../app/shared/skill-key-bindings.js";
 import { skillKeyPlateLayout } from "../../app/renderer/skill-key-artwork.js";
@@ -20,11 +19,10 @@ function peer() {
   const hud: NativeHudLayer = {update: (channel, items) => { output.set(channel, items); }, dispose() {}};
   return {view, parent, canvas, output, hud};
 }
-test("skill consumers preserve slot identity, formatting, color and independent enablement", () => {
+test("the skill key consumer preserves slot identity and bindings", () => {
   const {parent, canvas, output, hud} = peer();
   const keys = createSkillKeyOverlayConsumer(parent, canvas, hud);
-  const cooldowns = createSkillCooldownOverlayConsumer(parent, canvas, hud);
-  keys.update(geometry); cooldowns.update(geometry);
+  keys.update(geometry);
   keys.setBindings([null, null, null, null, null, null, null, {input: {kind: "keyboard", code: "KeyX"}, modifiers: {...EMPTY_SKILL_KEY_MODIFIERS, command: true, shift: true}}]);
   keys.setEnabled(true);
   assert.equal(output.get("keys")?.[7]?.child, 7);
@@ -33,17 +31,7 @@ test("skill consumers preserve slot identity, formatting, color and independent 
   assert.equal(output.get("keys")?.[7]?.binding?.modifiers.command, true);
   assert.equal(output.get("keys")?.[7]?.binding?.modifiers.shift, true);
   assert.equal(output.get("keys")?.filter(Boolean).length, 8);
-  cooldowns.sync({kind: "custom", value: "#abcdef"}, true);
-  const state = {status: "ready" as const, sequence: 2, generation: 1, gameTimer: 10000, playerAgentId: 7,
-    rechargeTimestamps: [12899, 24001, 0, 0, 0, 0, 0, 10400]};
-  cooldowns.setCooldownState(state);
-  assert.deepEqual(output.get("cooldowns")?.map((item) => item?.text ?? ""), ["2.9", "15", "", "", "", "", "", "0.4"]);
-  assert.equal(output.get("cooldowns")?.[0]?.color, "#abcdef");
-  const before = output.get("cooldowns"); cooldowns.setCooldownState({...state, sequence: 4, gameTimer: 10000});
-  assert.equal(output.get("cooldowns"), before, "unobservable timer changes do not publish labels");
-  cooldowns.update({status: "waiting", reason: "memory"}); assert.deepEqual(output.get("cooldowns"), []);
-  assert.ok(output.get("keys")?.[7]);
-  keys.dispose(); cooldowns.dispose(); assert.deepEqual(output.get("keys"), []);
+  keys.dispose(); assert.deepEqual(output.get("keys"), []);
 });
 test("effect consumers keep only finite player durations and withdraw on stale geometry", () => {
   const {parent, canvas, output, hud} = peer();
