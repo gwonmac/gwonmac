@@ -28,6 +28,10 @@ const route = ref<LauncherRoute>("home");
 const snapshot = shallowRef<LauncherSnapshot>(fixtureSnapshotFor(window.location.search));
 const helpPage = ref<HelpPage>();
 const releaseNotes = computed(() => releaseNotesFor(snapshot.value.appUpdate.currentVersion));
+/** The simple launcher is only Accounts and Settings: Home, News and Help are not reachable. */
+const simple = computed(() => snapshot.value.preferences.content.simple === true);
+const reachable = (page: LauncherRoute): LauncherRoute =>
+  simple.value && (page === "home" || page === "news" || page === "help") ? "accounts" : page;
 const newsArticle = ref<string | null>(null);
 watch(route, (next) => { if (next !== "help") helpPage.value = undefined; });
 
@@ -77,6 +81,8 @@ if (!native && import.meta.env.MODE === "development") {
 }
 watch(route, (page) => {
   if (page !== "home" && page !== "accounts") return;
+  // The simple launcher always opens on Accounts, so it leaves the remembered page for when it is off.
+  if (simple.value) return;
   if (!native) {
     if (import.meta.env.MODE === "development") sessionStorage.setItem("launcher-preview-page", page);
     return;
@@ -100,8 +106,9 @@ onMounted(async () => {
   unsubscribe = native.state.onChange(applySnapshot);
   try {
     applySnapshot(await native.state.get());
-    if (!navigationRequested) route.value = snapshot.value.preferences.lastPlayPage ?? "home";
-    if (!navigationRequested && releaseNotes.value && firstLaunchOf(snapshot.value.appUpdate.currentVersion)) {
+    if (!navigationRequested) route.value = reachable(snapshot.value.preferences.lastPlayPage ?? "home");
+    // The simple launcher has no News page to open the release notes on.
+    if (!navigationRequested && !simple.value && releaseNotes.value && firstLaunchOf(snapshot.value.appUpdate.currentVersion)) {
       newsArticle.value = releaseNotes.value.id;
       route.value = "news";
     }
@@ -255,7 +262,7 @@ function navigateFromMain(destination: LauncherDestination) {
   navigationRequested = true;
   if (typeof destination === "object") openSettings(destination);
   else if (destination === "settings") openSettings();
-  else route.value = destination;
+  else route.value = reachable(destination);
 }
 
 function retryStartup() {
@@ -308,7 +315,7 @@ async function sendFeedback(feedback: LauncherFeedback) {
 
 function navigate(next: LauncherRoute) {
   if (next === "news") newsArticle.value = null;
-  route.value = next;
+  route.value = reachable(next);
 }
 
 function readNews(id: string | null) {
@@ -344,7 +351,7 @@ async function updateContent(content: NonNullable<LauncherPreferencesPatch["cont
   <div v-if="startupError" class="launcher-boot launcher-error" role="alert"><AlertTriangle /><h1>The launcher could not open</h1><p>Your accounts and game files were not changed.</p><button class="primary" @click="retryStartup">Try again</button></div>
   <div v-else-if="!synchronized" class="launcher-boot" role="status">Opening launcher…</div>
   <div v-else class="app-shell" :class="{ 'settings-shell': route === 'settings' }">
-    <LauncherHeader :route="route" @navigate="navigate" @settings="openSettings()" @external="openExternal" />
+    <LauncherHeader :route="route" :simple="simple" @navigate="navigate" @settings="openSettings()" @external="openExternal" />
 
 
     <main :class="{ 'artwork-only': route === 'home' && !snapshot.preferences.content.news && !snapshot.preferences.content.dailies }">

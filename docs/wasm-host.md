@@ -86,7 +86,9 @@ use them only in a safe test area.
 Awaited image, DNS, saved-login, Steam, advertisement, age, and shop operations
 always return promises. The preload exposes only the required capability. The
 main process keeps validation and native ownership. Steam is the only federated
-provider that the host advertises. Narrow unavailable advertisement and shop
+provider that the host advertises (`app/renderer/login-provider.ts`), and it
+advertises none while **Disable Steam login** is on in Settings › Game; the
+client then shows only the email and password form. Narrow unavailable advertisement and shop
 objects satisfy two defective client absence checks.
 
 ## Persistent game filesystem

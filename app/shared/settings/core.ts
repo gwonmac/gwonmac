@@ -110,6 +110,8 @@ export const CORE_SETTINGS = {
     { rendererWritable: true, error: "settings.memoryWarningPosition must contain x and y between 0 and 1" },
   ),
   showDiagnostics: setting.boolean(false, { hub: true }),
+  /** Tell the client that no login provider exists, so its login screen is only the email and password form. */
+  disableSteamLogin: setting.boolean(false, { hub: true }),
   /**
    * Automatic release checks: one static channel request when no settled
    * attempt was recorded in the previous six hours, including across app

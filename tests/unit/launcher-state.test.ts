@@ -130,6 +130,18 @@ describe("launcher presentation state", () => {
     assert.deepEqual(second.document, first.document);
   });
 
+  it("keeps the simple launcher off until the player turns it on, across restart", async () => {
+    const path = await fixture();
+    const loaded = await loadOrCreateLauncherState(path, "fresh");
+    assert.equal(loaded.document.preferences.content.simple, undefined);
+    const store = new LauncherStateStore(path, loaded.document);
+    await store.updatePreferences(parseLauncherPreferencesPatch({ content: { simple: true } }));
+    const restarted = await loadOrCreateLauncherState(path, "fresh");
+    assert.equal(restarted.document.preferences.content.simple, true);
+    assert.equal(restarted.document.preferences.content.news, true);
+    assert.throws(() => parseLauncherPreferencesPatch({ content: { simple: "yes" } }));
+  });
+
   it("accepts candidate format-1 state written before durable reset notices", async () => {
     const path = await fixture();
     const created = await loadOrCreateLauncherState(path, "migrated-single");

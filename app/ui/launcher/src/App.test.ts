@@ -78,6 +78,35 @@ describe("unified launcher shell", () => {
     expect(wrapper.get(".hero-copy h1").text()).toContain("Seven skill fixes");
   });
 
+  it("the simple launcher opens on Accounts, hides Home, News and Help, and never rewrites the remembered page", async () => {
+    const updatePreferences = vi.fn(async () => undefined);
+    const simple: LauncherSnapshot = {
+      ...fixtureSnapshot,
+      preferences: { lastPlayPage: "home", content: { ...fixtureSnapshot.preferences.content, simple: true } },
+    };
+    // A release that would otherwise open its notes in News.
+    localStorage.removeItem("gwonmac.whatsNewSeen");
+    let navigate: ((destination: "home" | "accounts") => void) | undefined;
+    installNative({
+      state: { get: async () => simple, onChange: () => () => undefined },
+      experience: { updatePreferences },
+      navigation: { onRequest(callback: (destination: "home" | "accounts") => void) { navigate = callback; return () => undefined; } },
+    });
+    const wrapper = mount(App);
+    await flushPromises();
+
+    expect(wrapper.get(".accounts-page h1").text()).toBe("Accounts");
+    expect(wrapper.findAll(".titlebar nav button").map(button => button.text())).toEqual(["Accounts"]);
+    await wrapper.get(".titlebar .brand").trigger("click");
+    await flushPromises();
+    expect(wrapper.get(".accounts-page h1").text()).toBe("Accounts");
+    // The application menu's request for Home lands on Accounts too.
+    navigate?.("home");
+    await flushPromises();
+    expect(wrapper.get(".accounts-page h1").text()).toBe("Accounts");
+    expect(updatePreferences).not.toHaveBeenCalled();
+  });
+
   it("opens the Settings page from the gear and at Home from Home's Customize", async () => {
     const gear = mount(App);
     await flushPromises();

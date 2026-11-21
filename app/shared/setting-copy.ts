@@ -16,11 +16,12 @@ export function optionFor<T extends string | number>(values: readonly T[], raw: 
 }
 
 /** When a saved change takes effect. `now` needs no note. */
-export type SettingApplies = "now" | "next-game";
+export type SettingApplies = "now" | "next-game" | "next-login";
 
 export const SETTING_APPLIES_NOTE: Readonly<Record<SettingApplies, string>> = {
   now: "",
   "next-game": "Applies when you next open or reload a game window.",
+  "next-login": "Applies at the next login screen.",
 };
 
 type Copy = Readonly<{ label: string; detail: string; applies: SettingApplies; keywords?: string }>;
@@ -30,6 +31,7 @@ export const GAME_SETTINGS = {
   renderScale: { label: "Render quality", detail: "Higher quality uses more graphics power.", applies: "now", keywords: "graphics resolution scale sharp" },
   autoRelogAfterReload: { label: "Return to character after reload", detail: "Sign in and return to the last character after reloading the game.", applies: "now", keywords: "relog login reload automatic" },
   controllerPromptStyle: { label: "Controller symbols", detail: "Button symbols shown for a game controller.", applies: "next-game", keywords: "gamepad playstation xbox buttons" },
+  disableSteamLogin: { label: "Disable Steam login", detail: "Do not offer Steam as a way to sign in. The login screen then shows only the ArenaNet email and password form.", applies: "next-login", keywords: "steam login sign in account provider password email" },
   showDiagnostics: { label: "Diagnostics overlay", detail: "Show frame and memory diagnostics in open game windows.", applies: "now", keywords: "fps debug performance" },
 } as const satisfies Readonly<Record<string, Copy>>;
 
