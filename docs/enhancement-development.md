@@ -56,6 +56,13 @@ sockets, commands, surfaces, and storage work. Disabling the master applies the
 same shutdown to every child while preserving settings and saved data. Complete
 module unloading happens on the next Core launch.
 
+Two tests hold this for every feature part: they start each part with every
+switch on, switch it off, and fail on any listener, timer, interval, animation
+frame, observer, DOM node, bridge subscription, Hub source, or IPC handler left
+behind ([renderer and Hub](../app/ui/tools/src/feature-parts-stop-leaves-nothing.dom.test.ts),
+[main](../tests/unit/feature-main-parts-stop-leaves-nothing.test.ts)). Known
+leftovers are listed in each test and must fail it once fixed.
+
 Quick Item Move wraps two exact item-slot callbacks, the native quantity-move
 helper, and the UI dispatcher already certified for Tools. Its certificate binds
 those bodies, item lookup, the storage-page reader, frame hierarchy, and clock

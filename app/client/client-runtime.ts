@@ -184,7 +184,10 @@ export class ClientRuntime {
   private candidateHealthToken: ClientHealthToken | null = null;
   private readonly patchFetch: PatchFetch;
 
-  constructor(private readonly options: ClientRuntimeOptions) {
+  private readonly options: ClientRuntimeOptions;
+
+  constructor(options: ClientRuntimeOptions) {
+    this.options = options;
     this.patchFetch = createBoundedPatchFetch(
       (url, init) => net.fetch(url, init),
       PATCH_REQUEST_TIMEOUT_MS,
