@@ -27,6 +27,7 @@ export const fixtureSnapshot: LauncherSnapshot = {
     configured: false,
     loaded: false,
     restartRequired: false,
+    plainGame: false,
     features: {
       resign: { enabled: false },
       whispers: { enabled: false },
@@ -50,6 +51,7 @@ export const fixtureSnapshot: LauncherSnapshot = {
   shortcuts: resolveShortcuts({}),
   settings: {
     alcoholTimerPosition: { corner: "top-left", x: 4, y: 58, locked: true },
+    overlayPlacement: { compassButtons: true, compassOffset: { x: 0, y: 0 }, targetDistance: null },
     uiStyle: DEFAULT_SETTINGS.uiStyle,
     uiFont: DEFAULT_SETTINGS.uiFont,
     uiCustomTheme: DEFAULT_SETTINGS.uiCustomTheme,
@@ -74,6 +76,10 @@ export const fixtureSnapshot: LauncherSnapshot = {
     autoCheckUpdates: true,
     renderScale: 2,
     showDiagnostics: false,
+    disableSteamLogin: false,
+    pasteCleanup: true,
+    hubCalculators: true,
+    whispersIcon: true,
     cartographyOverlayEnabled: false,
     cartographyGridEnabled: false,
     cartographyCompassGridEnabled: false,

@@ -17,6 +17,7 @@ export default defineFeature({
   region: "non-pvp",
   tool: {
     id: "chat-filters",
+    kind: "chat",
     label: "Chat Filters",
     description: "Hide selected system notices before they enter chat.",
     keywords: "chat filter spam",

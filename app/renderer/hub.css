@@ -2,7 +2,7 @@
  * controls, typography and states in both Classic and Modern. */
 .hub-panel {
   position:fixed; top:clamp(16px,12vh,120px); left:50%; transform:translateX(-50%);
-  width:min(780px,calc(100vw - 32px)); height:min(590px,calc(88vh - 24px));
+  width:min(960px,calc(100vw - 32px)); height:min(680px,calc(88vh - 24px));
   display:flex; flex-direction:column; overflow:clip;
 }
 .hub-panel,.hub-panel * { box-sizing:border-box; }

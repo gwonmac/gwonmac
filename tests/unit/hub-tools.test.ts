@@ -38,7 +38,7 @@ test('every word a Tools row answered still finds it', () => {
   const previous = Object.getOwnPropertyDescriptor(globalThis, 'window');
   Object.assign(globalThis, { window: { gwToolsSettings: () => everyFeature } });
   try {
-    const hub = { close() {}, show() {}, showRows() {}, suspend() {}, shortcuts: { lookup: () => undefined } };
+    const hub = { close() {}, resume() {}, showRows() {}, suspend() {}, shortcuts: { lookup: () => undefined } };
     const { commands } = createHubCommands(hub, () => async () => {});
     assert.ok(commands);
     const rows = commands('').filter(row => row.group === 'Tools');

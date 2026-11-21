@@ -48,16 +48,16 @@ test('root typing and complete library entry stay within the scale budget (HUB-1
   expect(timings.libraryLongTasks.filter(duration => duration > timeBudget(50))).toEqual([]);
 });
 
-test('suspension retains the selected row across a ⌘R reopen (HUB-171)', async ({ page }) => {
+test('suspension retains the selected row across a resume (HUB-171)', async ({ page }) => {
   await openHub(page, '&library=1000');
   const search = page.locator('.hub-search input');
   await search.fill('build m');
   await search.press('ArrowDown');
   const selected = await page.locator('#hub [aria-selected="true"]').getAttribute('data-id');
-  await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+  await page.evaluate(() => window.gwHub?.suspend());
   await expect(page.locator('#hub')).toBeHidden();
   await expect.poll(() => page.locator('.hub-row').count()).toBeGreaterThan(100);
-  await page.keyboard.press('Meta+r');
+  await page.evaluate(() => window.gwHub?.resume());
   await expect(page.locator('#hub [aria-selected="true"]')).toHaveAttribute('data-id', selected!);
 });
 
@@ -172,8 +172,8 @@ test('twenty opens and resumes stay within the time budget (HUB-111, 171)', { ta
       const started = performance.now(); hub.show(); opens.push(performance.now() - started);
       passes.push(calls); await new Promise(requestAnimationFrame); paints.push(performance.now() - started);
       input.value = 'm'; input.dispatchEvent(new Event('input', { bubbles: true }));
-      window.dispatchEvent(new Event('blur')); calls = 0;
-      const resumed = performance.now(); hub.show(); resumes.push(performance.now() - resumed);
+      hub.suspend(); calls = 0;
+      const resumed = performance.now(); hub.resume(); resumes.push(performance.now() - resumed);
       passes.push(calls); await new Promise(requestAnimationFrame);
     }
     hub.close(); const remaining = document.querySelectorAll('#hub-results .hub-row').length;

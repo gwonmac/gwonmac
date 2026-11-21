@@ -104,11 +104,11 @@ describe('Hub travel recents', () => {
       host.notice.value = { message: 'Travelling to Kamadan…', level: 'info' };
       host.notice.value = { message: 'Travel started.', level: 'success' };
       expect(hub.notify).not.toHaveBeenCalled();
-      host.notice.value = { message: 'Travel did not start. Check that this destination is unlocked, then try again.', level: 'warning' };
+      host.notice.value = { message: 'Guild Wars did not confirm arrival. Travel is ready to try again.', level: 'warning' };
       expect(hub.notify).toHaveBeenCalledOnce();
-      expect(hub.notify).toHaveBeenCalledWith('Travel did not start. Check that this destination is unlocked, then try again.', 'failed');
+      expect(hub.notify).toHaveBeenCalledWith('Guild Wars did not confirm arrival. Travel is ready to try again.', 'failed');
       host.notice.value = null;
-      expect(hub.notify).toHaveBeenLastCalledWith('Travel did not start. Check that this destination is unlocked, then try again.', 'cleared');
+      expect(hub.notify).toHaveBeenLastCalledWith('Guild Wars did not confirm arrival. Travel is ready to try again.', 'cleared');
     } finally { travel.dispose(); }
   });
 

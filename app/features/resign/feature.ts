@@ -11,6 +11,7 @@ export default defineFeature({
   region: "pve",
   tool: {
     id: "resign",
+    kind: "keys",
     label: "Resign",
     event: "gw:resign-show",
     description: "Ask before sending /resign in PvE. Enter confirms; Escape cancels.",

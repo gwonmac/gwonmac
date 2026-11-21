@@ -139,7 +139,7 @@ test("minimum window and 200% zoom keep primary launcher controls reachable", as
 
     await fixture.page.locator(".titlebar").getByRole("button", { name: "Settings", exact: true }).click();
     await fixture.page.evaluate(() => window.launcherNative.tools.setMasterEnabled(true));
-    for (const section of ["Updates", "Home screen", "Advanced", "Game", "Appearance", "Tools", "Maps", "Game files"]) {
+    for (const section of ["Updates", "Home screen", "Advanced", "Game", "Appearance", "Features", "Maps", "Game files"]) {
       await fixture.page.locator(".settings-page aside").getByRole("button", { name: section, exact: true }).click();
       await expect(fixture.page.locator(".settings-content").getByRole("heading", { name: section, exact: true })).toBeVisible();
       await expectCurrentContentFitsHorizontally(fixture);

@@ -5,7 +5,8 @@ import type { LauncherRoute } from "../routes";
 import DiscordIcon from "./DiscordIcon.vue";
 import iconUrl from "../assets/gwonmac-icon.png";
 
-defineProps<{ route: LauncherRoute }>();
+/** `simple` leaves Home, News and Help out; the launcher is then Accounts and Settings. */
+const props = defineProps<{ route: LauncherRoute; simple?: boolean }>();
 const emit = defineEmits<{
   navigate: [route: LauncherRoute];
   settings: [];
@@ -15,12 +16,12 @@ const emit = defineEmits<{
 
 <template>
   <header class="titlebar">
-    <button class="brand" aria-label="GWonMac home" @click="emit('navigate', 'home')"><img :src="iconUrl" alt="" /><span>GWonMac</span></button>
+    <button class="brand" :aria-label="props.simple ? 'GWonMac accounts' : 'GWonMac home'" @click="emit('navigate', props.simple ? 'accounts' : 'home')"><img :src="iconUrl" alt="" /><span>GWonMac</span></button>
     <nav aria-label="Main navigation">
-      <button :class="{ active: route === 'home' }" :aria-current="route === 'home' ? 'page' : undefined" @click="emit('navigate', 'home')"><Home />Home</button>
-      <button :class="{ active: route === 'news' }" :aria-current="route === 'news' ? 'page' : undefined" @click="emit('navigate', 'news')"><Newspaper />News</button>
+      <button v-if="!props.simple" :class="{ active: route === 'home' }" :aria-current="route === 'home' ? 'page' : undefined" @click="emit('navigate', 'home')"><Home />Home</button>
+      <button v-if="!props.simple" :class="{ active: route === 'news' }" :aria-current="route === 'news' ? 'page' : undefined" @click="emit('navigate', 'news')"><Newspaper />News</button>
       <button :class="{ active: route === 'accounts' }" :aria-current="route === 'accounts' ? 'page' : undefined" @click="emit('navigate', 'accounts')"><Users />Accounts</button>
-      <button :class="{ active: route === 'help' }" :aria-current="route === 'help' ? 'page' : undefined" @click="emit('navigate', 'help')"><LifeBuoy />Help</button>
+      <button v-if="!props.simple" :class="{ active: route === 'help' }" :aria-current="route === 'help' ? 'page' : undefined" @click="emit('navigate', 'help')"><LifeBuoy />Help</button>
     </nav>
     <div class="title-actions">
       <button class="support-pill" aria-label="Support gwonmac on Ko-fi" title="gwonmac is free and built in spare time" @click="emit('external', 'donate')"><Coffee />Support</button>

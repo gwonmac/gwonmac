@@ -658,6 +658,8 @@ export type WasmBridgeMarkers = typeof WASM_BRIDGE_MARKERS;
 export type RendererCommand =
   | { type: "hub.toggle" }
   | { type: "hub.settings" }
+  /** Command-Q: show the in-game quit-or-reload panel; "unhandled" sends main to its native dialog. */
+  | { type: "quit.panel" }
   | { type: "input.reset" }
   | { type: "input.release"; code: string }
   | { type: "text.edit"; command: TextEditCommand }

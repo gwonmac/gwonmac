@@ -1,5 +1,7 @@
 /**
- * Owns the Hub's locked-by-default placement, bounded drag and resize gestures.
+ * Owns the Hub's placement: a position that is locked by default, a bounded drag, and a
+ * corner grip that always resizes. The lock guards only the position, so a player can make
+ * the Hub larger without first finding the lock.
  * Placement stays local to the Hub; navigating never resets the player's geometry.
  */
 import { restoreFloatingWindowPlacement, serializeFloatingWindowPlacement } from '../shared/ui/window-placement.js';
@@ -22,9 +24,8 @@ export function installHubWindow(panel: HTMLElement, heading: HTMLElement, lock:
     lock.setAttribute('aria-label', 'Lock Hub position');
     hint.hidden = locked;
     if (locked) lock.removeAttribute('aria-describedby'); else lock.setAttribute('aria-describedby', hint.id);
-    lock.title = locked ? 'Unlock to move and resize' : 'Lock position and size. Option + arrows here moves the Hub; arrows on the corner resize it.';
+    lock.title = locked ? 'Unlock to move the Hub' : 'Lock the position. Option + arrows here moves the Hub; the corner always resizes it.';
     lock.setAttribute('aria-pressed', String(locked));
-    grip.hidden = locked;
   };
   const place = (left: number, top: number, width: number, height: number) => {
     placed = true;
@@ -82,7 +83,7 @@ export function installHubWindow(panel: HTMLElement, heading: HTMLElement, lock:
     setActive: active => { if (!active) save(); },
     size: () => panel.getBoundingClientRect(),
     limits: () => { const box = panel.getBoundingClientRect(); return { minWidth: minimum.width, minHeight: minimum.height, maxWidth: window.innerWidth - box.left - 8, maxHeight: window.innerHeight - box.top - 8 }; },
-    resize: (width, height) => { if (!locked) { const box = panel.getBoundingClientRect(); place(box.left, box.top, width, height); } },
+    resize: (width, height) => { const box = panel.getBoundingClientRect(); place(box.left, box.top, width, height); },
   });
   const saveResize = () => save();
   grip.addEventListener('keyup', saveResize);

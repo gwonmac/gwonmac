@@ -12,6 +12,7 @@ export default defineFeature({
   programs: ["effect-observer"],
   tool: {
     id: "effect-timers",
+    kind: "screen",
     label: "Effect Timers",
     description: "Show exact remaining time on your native Effects icons.",
     keywords: "effects buffs timers",

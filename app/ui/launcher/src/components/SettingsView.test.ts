@@ -115,10 +115,60 @@ describe("Settings page", () => {
     wrapper.unmount();
   });
 
+  it("offers Play the plain game in the launcher, and holds the feature switches while it is on", async () => {
+    const setPlainGame = vi.fn(async () => undefined);
+    const wrapper = mountView({ settings: { setPlainGame } });
+    await flushPromises();
+    const box = wrapper.get('[data-setting="plainGame"] input');
+    expect((box.element as HTMLInputElement).checked).toBe(false);
+    expect((wrapper.get('[data-setting="gwonmacTools"] input').element as HTMLInputElement).disabled).toBe(false);
+    await box.setValue(true);
+    await flushPromises();
+    expect(setPlainGame).toHaveBeenCalledWith(true);
+    wrapper.unmount();
+
+    const plain = { ...fixtureSnapshot, tools: { ...fixtureSnapshot.tools, plainGame: true } };
+    const on = mountView({ settings: { setPlainGame } }, { snapshot: plain });
+    await flushPromises();
+    expect((on.get('[data-setting="plainGame"] input').element as HTMLInputElement).checked).toBe(true);
+    expect(on.get(".plain-game").text()).toContain("The plain game is on.");
+    expect((on.get('[data-setting="gwonmacTools"] input').element as HTMLInputElement).disabled).toBe(true);
+    expect((on.get("#tool-character-switch").element as HTMLInputElement).disabled).toBe(true);
+    on.unmount();
+  });
+
+  it("shows the plain game switch in a game window, where only the launcher can change it", async () => {
+    const wrapper = mount(SettingsView, { props: { snapshot: fixtureSnapshot, native: {} as never, target: { section: "tools" } } });
+    await flushPromises();
+    expect((wrapper.get('[data-setting="plainGame"] input').element as HTMLInputElement).disabled).toBe(true);
+    expect(wrapper.get(".plain-game").text()).toContain("Change this in the launcher's Settings.");
+    wrapper.unmount();
+  });
+
+  it("shows the plain game switch in a game window, where only the launcher can change it", async () => {
+    const wrapper = mount(SettingsView, { props: { snapshot: fixtureSnapshot, native: {} as never, target: { section: "tools" } } });
+    await flushPromises();
+    expect((wrapper.get('[data-setting="plainGame"] input').element as HTMLInputElement).disabled).toBe(true);
+    expect(wrapper.get(".plain-game").text()).toContain("Change this in the launcher's Settings.");
+    wrapper.unmount();
+  });
+
+  it("shows Disable Steam login in Game, off by default, and saves the choice", async () => {
+    const update = vi.fn(async () => undefined);
+    const wrapper = mountView({ settings: { update } }, { target: { section: "game" } });
+    await flushPromises();
+    const box = wrapper.get('[data-setting="disableSteamLogin"] input');
+    expect((box.element as HTMLInputElement).checked).toBe(false);
+    expect(wrapper.get('[data-setting="disableSteamLogin"]').text()).toContain("Applies at the next login screen.");
+    await box.setValue(true);
+    await flushPromises();
+    expect(update).toHaveBeenCalledWith({ disableSteamLogin: true });
+  });
+
   it("keeps each Tool's switch and shortcut on one row, with the Hub key first", async () => {
     const wrapper = mountView();
     await flushPromises();
-    expect(wrapper.get(".settings-fields h1").text()).toBe("Tools");
+    expect(wrapper.get(".settings-fields h1").text()).toBe("Features");
     expect(wrapper.get('[data-setting="hub"]').text()).toContain("Built in");
     const builds = wrapper.get('[data-setting="tool:build-management"]');
     expect(builds.text()).toContain("Build Library");
@@ -148,7 +198,7 @@ describe("Settings page", () => {
     expect(wrapper.text()).toContain("Restart the launcher to enable Maps");
     await wrapper.findAll("button").find(button => button.text() === "Open restart options")!.trigger("click");
     await flushPromises();
-    expect(wrapper.get(".settings-fields h1").text()).toBe("Tools");
+    expect(wrapper.get(".settings-fields h1").text()).toBe("Features");
     expect(wrapper.get(".restart-row button").attributes("disabled")).toBeDefined();
     expect(wrapper.get(".restart-row").text()).toContain("Close every game window");
     update({ ...fixtureSnapshot, revision: 3, profiles: fixtureSnapshot.profiles.map(profile => ({ ...profile, state: "ready" })), tools: { ...fixtureSnapshot.tools, configured: true, loaded: false, restartRequired: true } });
@@ -181,7 +231,7 @@ describe("Settings page", () => {
     expect(openInLauncher).toHaveBeenCalledWith({ section: "updates", control: "autoCheckUpdates" });
     await openSection(wrapper, "Game files");
     expect(openInLauncher).toHaveBeenLastCalledWith({ section: "game-files" });
-    expect(wrapper.get(".settings-fields h1").text()).toBe("Tools");
+    expect(wrapper.get(".settings-fields h1").text()).toBe("Features");
     await openSection(wrapper, "Maps");
     expect(wrapper.get(".settings-fields h1").text()).toBe("Maps");
   });
@@ -229,7 +279,7 @@ describe("Settings page", () => {
       await close();
       await flushPromises();
       expect(aside.classes()).not.toContain("search-open");
-      expect(wrapper.get(".settings-content h1").text()).toBe("Tools");
+      expect(wrapper.get(".settings-content h1").text()).toBe("Features");
       expect(document.activeElement).toBe(toggle.element);
     }
     // Choosing a result goes to its section: the tabs come back to show where it landed.
@@ -259,10 +309,10 @@ describe("Settings page", () => {
     expect(wrapper.get(".settings-status").text()).not.toContain("Saved:");
     await button("Maps").trigger("keydown", { key: "ArrowUp" });
     await flushPromises();
-    expect(wrapper.get(".settings-fields h1").text()).toBe("Tools");
-    expect(document.activeElement).toBe(button("Tools").element);
-    await button("Tools").trigger("keydown", { key: "ArrowUp" });
-    expect(document.activeElement).toBe(button("Tools").element);
+    expect(wrapper.get(".settings-fields h1").text()).toBe("Features");
+    expect(document.activeElement).toBe(button("Features").element);
+    await button("Features").trigger("keydown", { key: "ArrowUp" });
+    expect(document.activeElement).toBe(button("Features").element);
     wrapper.unmount();
   });
 

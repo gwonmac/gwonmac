@@ -158,8 +158,10 @@ export function createNativeTravelHost(
           if (attempt.value.status !== "queued"
             || attempt.value.kind !== "map"
             || attempt.value.mapId !== request.mapId) return;
+          // A game prompt or a party countdown starts the trip later, so this is not a
+          // failure: the attempt is released for a retry and a late start is still followed.
           settleAttempt(request.mapId, "queued");
-          failTravel(request.mapId, "Travel did not start. Check that this destination is unlocked, then try again.", "warning");
+          notice.value = { message: "Guild Wars has not started this trip yet. A game prompt or a party countdown can delay it.", level: "info" };
         }, 3_000);
         if (development) {
           console.debug(`[tools:dev] travel.queued ${JSON.stringify({ mapId: request.mapId })}`);
@@ -199,8 +201,8 @@ export function createNativeTravelHost(
           if (current.status !== "queued" || current.kind !== "guild-hall") return;
           clearAttempt();
           notice.value = {
-            message: "Guild Wars did not start Guild Hall travel. Try again.",
-            level: "warning",
+            message: "Guild Wars has not started Guild Hall travel yet. A game prompt or a party countdown can delay it.",
+            level: "info",
           };
         }, 3_000);
       } catch (error) {

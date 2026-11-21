@@ -28,6 +28,7 @@ export default defineFeature({
   region: "pve",
   tool: {
     id: "skill-key-labels",
+    kind: "screen",
     label: "Skill Key Labels",
     description: "Show your own control labels on the eight skill slots.",
   },

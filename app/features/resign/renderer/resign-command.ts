@@ -41,7 +41,7 @@ export function installResignCommand(exports: WebAssembly.Exports) {
           const hub = window.gwHub;
           if (!hub) { showResignConfirmation(); return; }
           hub.suspend();
-          showResignConfirmation({ confirmed: () => hub.close(), cancelled: () => hub.show() });
+          showResignConfirmation({ confirmed: () => hub.close(), cancelled: () => hub.resume() });
         },
       }], query);
     },

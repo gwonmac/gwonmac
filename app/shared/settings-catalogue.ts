@@ -11,7 +11,7 @@ import { TOOL_KEYWORDS, TOOL_PRESENTATION } from "./tool-presentation.js";
 
 /** Settings sections in sidebar order: game settings first, by how often players change them. */
 export const SETTINGS_SECTIONS = [
-  { id: "tools", label: "Tools", group: "game", keywords: "features optional" },
+  { id: "tools", label: "Features", group: "game", keywords: "tools optional" },
   { id: "maps", label: "Maps", group: "game", keywords: "grid terrain compass elite cartographer" },
   { id: "appearance", label: "Appearance", group: "game", keywords: "theme look style colors font opacity panels" },
   { id: "game", label: "Game", group: "game", keywords: "graphics memory diagnostics controller quality" },
@@ -60,6 +60,7 @@ const game = (key: keyof typeof GAME_SETTINGS): SettingEntry => ({ id: key, sect
 /** Every setting a player can find by name, in display order within its section. */
 export const SETTINGS: readonly SettingEntry[] = [
   { id: "hub", section: "tools", label: "Hub", detail: "Search everything in game. Always on, even with Tools off.", keywords: `search command palette ${KEYS}` },
+  { id: "plainGame", section: "tools", label: "Play the plain game", detail: "The official client with nothing added. Changed in the launcher.", keywords: "disable all hub features off vanilla original regular client no changes" },
   { id: "gwonmacTools", section: "tools", label: "Enable Tools", detail: "Optional game features. Character Switch works independently.", keywords: "features optional" },
   ...GLOBAL_TOOLS.map(toolEntry),
   ...option("character-switch", CHARACTER_DETAILS, "character details"),
@@ -67,6 +68,8 @@ export const SETTINGS: readonly SettingEntry[] = [
   ...option("reminders", [...REMINDER_GROUPS, ...REMINDER_TIMING, REMINDER_SOUND], "reminder"),
   { id: "skillCooldownColor", section: "tools", label: "Timer color", tool: "skill-cooldowns", keywords: "skill cooldown colour" },
   { id: "alcoholTimerPosition", section: "tools", label: "Alcohol Timer position", tool: "alcohol-timer", keywords: "move reset position" },
+  { id: "whispersIcon", section: "tools", label: "Show the Whispers icon", tool: "whispers", keywords: "hide whisper button icon unread" },
+  { id: "overlayPlacement.targetDistance", section: "tools", label: "Target Distance position", tool: "target-readout", keywords: "move drag reset position" },
   { id: "skillKeyBindings", section: "tools", label: "Skill labels", tool: "skill-key-labels", keywords: "skill key labels bindings" },
 
   { id: "cartographyGridEnabled", section: "maps", label: "Exploration grid", detail: "Shows remaining exploration on the Mission Map and World Map.", keywords: `cartographer explore ${KEYS}` },
@@ -81,6 +84,8 @@ export const SETTINGS: readonly SettingEntry[] = [
   { id: "cartographyRevealMode", section: "maps", label: "Reveal range", keywords: "explore stand diamonds" },
   { id: "cartographyWalkabilityOpacity", section: "maps", label: "Walkable terrain opacity", keywords: "transparency" },
   { id: "cartographyControlIdleOpacity", section: "maps", label: "Compass control visibility", keywords: "compass opacity idle" },
+  { id: "overlayPlacement.compassButtons", section: "maps", label: "Show compass buttons", keywords: "hide compass buttons controls map" },
+  { id: "overlayPlacement.compassOffset", section: "maps", label: "Compass buttons position", keywords: "move drag reset compass buttons" },
 
   { id: "uiStyle", section: "appearance", label: "Panel style", keywords: "theme modern classic look custom colors colours" },
   { id: "uiFont", section: "appearance", label: "Panel font", keywords: "text typeface" },
@@ -90,10 +95,16 @@ export const SETTINGS: readonly SettingEntry[] = [
   game("renderScale"),
   game("autoRelogAfterReload"),
   game("controllerPromptStyle"),
+  game("disableSteamLogin"),
+  game("pasteCleanup"),
+  game("hubCalculators"),
   game("showDiagnostics"),
 
   { id: "autoCheckUpdates", section: "updates", label: "Automatically check for launcher updates", keywords: "automatic update" },
 
+  { id: "copySettings", section: "advanced", label: "Copy settings", keywords: "export backup move transfer another mac computer share" },
+  { id: "pasteSettings", section: "advanced", label: "Paste settings", keywords: "import restore move transfer another mac computer" },
+  { id: "content.simple", section: "home", label: "Simple launcher", keywords: "light minimal accounts only hide home news help start page" },
   { id: "content.news", section: "home", label: "News", keywords: "home news" },
   { id: "content.dailies", section: "home", label: "Dailies", keywords: "daily weekly schedule" },
 

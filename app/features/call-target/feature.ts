@@ -11,6 +11,7 @@ export default defineFeature({
   region: "any",
   tool: {
     id: "call-target",
+    kind: "keys",
     label: "Call target",
     event: "gw:call-target",
     description: "Call the selected target without attacking. Sends Control-Shift-Space and requires Guild Wars’ default controls. Inactive while typing.",

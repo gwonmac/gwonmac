@@ -81,6 +81,8 @@ watch(route, (page) => {
     if (import.meta.env.MODE === "development") sessionStorage.setItem("launcher-preview-page", page);
     return;
   }
+  // The simple launcher always opens on Accounts, so it never rewrites the remembered page.
+  if (snapshot.value.preferences.content.simple) return;
   if (snapshot.value.preferences.lastPlayPage === page) return;
   void runAction("The starting page could not be remembered.", () => native.experience.updatePreferences({ lastPlayPage: page }));
 });
@@ -100,8 +102,10 @@ onMounted(async () => {
   unsubscribe = native.state.onChange(applySnapshot);
   try {
     applySnapshot(await native.state.get());
-    if (!navigationRequested) route.value = snapshot.value.preferences.lastPlayPage ?? "home";
-    if (!navigationRequested && releaseNotes.value && firstLaunchOf(snapshot.value.appUpdate.currentVersion)) {
+    const simple = snapshot.value.preferences.content.simple;
+    if (!navigationRequested) route.value = simple ? "accounts" : snapshot.value.preferences.lastPlayPage ?? "home";
+    // The simple launcher has no News page to open the release notes on.
+    if (!simple && !navigationRequested && releaseNotes.value && firstLaunchOf(snapshot.value.appUpdate.currentVersion)) {
       newsArticle.value = releaseNotes.value.id;
       route.value = "news";
     }
@@ -255,7 +259,8 @@ function navigateFromMain(destination: LauncherDestination) {
   navigationRequested = true;
   if (typeof destination === "object") openSettings(destination);
   else if (destination === "settings") openSettings();
-  else route.value = destination;
+  // The simple launcher has no Home: a request for it lands on Accounts.
+  else route.value = destination === "home" && snapshot.value.preferences.content.simple ? "accounts" : destination;
 }
 
 function retryStartup() {
@@ -344,7 +349,7 @@ async function updateContent(content: NonNullable<LauncherPreferencesPatch["cont
   <div v-if="startupError" class="launcher-boot launcher-error" role="alert"><AlertTriangle /><h1>The launcher could not open</h1><p>Your accounts and game files were not changed.</p><button class="primary" @click="retryStartup">Try again</button></div>
   <div v-else-if="!synchronized" class="launcher-boot" role="status">Opening launcher…</div>
   <div v-else class="app-shell" :class="{ 'settings-shell': route === 'settings' }">
-    <LauncherHeader :route="route" @navigate="navigate" @settings="openSettings()" @external="openExternal" />
+    <LauncherHeader :route="route" :simple="snapshot.preferences.content.simple === true" @navigate="navigate" @settings="openSettings()" @external="openExternal" />
 
 
     <main :class="{ 'artwork-only': route === 'home' && !snapshot.preferences.content.news && !snapshot.preferences.content.dailies }">

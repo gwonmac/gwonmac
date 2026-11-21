@@ -420,7 +420,8 @@ describe('a press that ends on another element', () => {
     expect(search().value).toBe('smiter');
     await clicks(document.getElementById('hub')!, 1);
     expect(hubOpen()).toBe(false);
-    press('Meta+r'); await settle();
+    // The page's own shortcut returns to it; the Hub shortcut would open Home.
+    press('Meta+b'); await settle();
     expect(caption()).toBe('Build Library');
     expect(search().value).toBe('smiter');
     expect(document.activeElement).toBe(search());

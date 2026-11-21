@@ -77,6 +77,8 @@ function focusHubSettings(target: SettingsTarget) {
  */
 export function createHubSettings(hub: Hub) {
   const show = (target?: SettingsTarget) => {
+    // The plain game has no Hub page to show Settings on; the launcher has the same page.
+    if ((window.gwToolsSettings?.().plainGame ?? null) !== null) { void window.gwNative.app.openSettings(target ?? { section: 'tools' }).catch(() => undefined); return; }
     hub.direct('settings', () => showHubSettings(hub, target ?? null));
     if (target) focusHubSettings(target);
   };

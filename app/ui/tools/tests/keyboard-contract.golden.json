@@ -145,7 +145,7 @@
     "Shift+Tab": "Build Library | focus button[Close Hub] | sel team:hub-gom-afk | q \"\" | action - | life outpost | canvas down 0 up 0 pointer 0",
     "Home": "Build Library | focus search | sel team:hub-gom-afk | q \"\" | action - | life outpost | canvas down 0 up 0 pointer 0",
     "End": "Build Library | focus search | sel build:hub-smiter | q \"\" | action - | life outpost | canvas down 0 up 0 pointer 0",
-    "PageDown": "Build Library | focus search | sel game-templates | q \"\" | action - | life outpost | canvas down 0 up 0 pointer 0",
+    "PageDown": "Build Library | focus search | sel build:b-woh | q \"\" | action - | life outpost | canvas down 0 up 0 pointer 0",
     "Control+n": "Build Library | focus search | sel team:t-vanquish | q \"\" | action - | life outpost | canvas down 0 up 0 pointer 0",
     "Meta+Enter": "Build Library | focus search | sel team:hub-gom-afk | q \"\" | action - | life outpost | canvas down 0 up 0 pointer 0",
     "Meta+j": "Build Library | focus button.hub-menu-item | sel team:hub-gom-afk | q \"\" | action - | life outpost | canvas down 0 up 0 pointer 0",

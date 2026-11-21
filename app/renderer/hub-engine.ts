@@ -13,9 +13,9 @@ import type { HubFocusTarget } from '../shared/ui/hub-view.js';
 import { listIndexAfter, listKeyStep } from '../shared/ui/list-keys.js';
 
 /**
- * A suspended page resumes for this long (D-11): a quick trip to another window or a popout
- * returns to it with the query selected; later, the Hub starts fresh at Home. A failure carried
- * across a close expires with it too.
+ * A suspended page can be returned to for this long, by its own shortcut or by the surface that
+ * suspended it (a popout, a cancelled confirmation). The Hub shortcut never resumes it: it opens
+ * Home. A failure carried across a close expires with the same window.
  */
 export const HUB_RESUME_MS = 90_000;
 
@@ -50,7 +50,7 @@ export type HubState<S extends Located, V extends Located> = Readonly<{
    * and suspending end it, so a late completion reports instead of closing or navigating.
    */
   session: number;
-  /** The page a blur or another window left, when, and the session that suspension ended. */
+  /** The page a backdrop click, a popout or a confirmation left, when, and the session that suspension ended. */
   suspended: Readonly<{ page: HubPage<S, V>; at: number; session: number }> | null;
   /**
    * The row or view action running on the page of `session`: while that session lasts, the

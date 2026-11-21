@@ -1,6 +1,7 @@
 /**
- * Owns the quiet alcohol readout and explicit positioning mode. Its saved
- * position keeps a fixed distance from the nearest game-window corner.
+ * Owns the quiet alcohol readout. It can be dragged whenever it shows; the
+ * unlocked mode only keeps it on screen while sober, so it can be placed then.
+ * Its saved position keeps a fixed distance from the nearest game-window corner.
  */
 import { DEFAULT_ALCOHOL_TIMER_POSITION, formatAlcoholTimer, type AlcoholTimerPosition } from "../../../shared/alcohol-timer.js";
 import { captureCornerPosition, restoreCornerPosition } from "../../../shared/corner-position.js";
@@ -70,9 +71,8 @@ export function createAlcoholTimerOverlay(parent: HTMLElement, canvas: HTMLCanva
     const remaining = alcohol.status === "ready" ? alcohol.remainingMs : 0;
     time.textContent = remaining > 0 ? formatAlcoholTimer(remaining) : "—:—";
     root.style.color = remaining > 0 && remaining <= 15_000 ? "#e5bd75" : "#eadcc2";
-    handle.disabled = position.locked;
-    handle.style.pointerEvents = position.locked ? "none" : "auto";
-    handle.style.cursor = position.locked ? "default" : drag ? "grabbing" : "grab";
+    handle.style.pointerEvents = "auto";
+    handle.style.cursor = drag ? "grabbing" : "grab";
     handle.style.outline = position.locked ? "" : "1px dashed #eadcc277";
     handle.style.background = position.locked ? "transparent" : "#18231d55";
     lock.hidden = position.locked;
@@ -102,12 +102,12 @@ export function createAlcoholTimerOverlay(parent: HTMLElement, canvas: HTMLCanva
   };
   const setPoint = (x: number, y: number) => {
     const point = capture(x, y); if (!point) return;
-    position = { ...point, locked: false };
+    position = { ...point, locked: position.locked };
     render();
   };
   const lockPosition = () => { cancel(); position = { ...position, locked: true }; render(); commit(); surface.releaseKeyboard(); };
   handle.addEventListener("pointerdown", event => {
-    if (position.locked || drag || !event.isPrimary || event.button !== 0) return;
+    if (drag || !event.isPrimary || event.button !== 0) return;
     drag = { id: event.pointerId, x: event.clientX, y: event.clientY,
       left: root.getBoundingClientRect().left, top: root.getBoundingClientRect().top, before: position };
     handle.setPointerCapture(event.pointerId); render();
@@ -123,8 +123,8 @@ export function createAlcoholTimerOverlay(parent: HTMLElement, canvas: HTMLCanva
   handle.addEventListener("lostpointercapture", cancel);
   root.addEventListener("keydown", event => {
     if (event.key === "Escape") { event.preventDefault(); cancel(); return; }
-    if (event.target !== handle || position.locked) return;
-    if (event.key === "Enter") { event.preventDefault(); lockPosition(); return; }
+    if (event.target !== handle) return;
+    if (event.key === "Enter" && !position.locked) { event.preventDefault(); lockPosition(); return; }
     const directions: Record<string, readonly [number, number]> = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
     const direction = directions[event.key]; if (!direction) return;
     event.preventDefault(); const amount = event.shiftKey ? 10 : 1;

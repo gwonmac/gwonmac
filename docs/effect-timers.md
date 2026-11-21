@@ -40,7 +40,7 @@ so an old placeholder cannot become a countdown later.
 - Under five seconds: amber; under two seconds: muted red; otherwise cream.
 
 The overlay is pointer-transparent and has no command or gameplay-input path.
-The setting is off by default under **Settings → Tools → Effect Timers**.
+The setting is off by default under **Settings → Features → Effect Timers**.
 
 ## Evidence and acceptance
 
@@ -89,10 +89,10 @@ The renderer places a small beer icon and `m:ss` near the game viewport’s
 top-left corner by default, below one standard Effects row. Its position stays
 fixed when Effects icons appear, disappear, or move.
 The readout turns amber in the last 15 seconds and disappears at zero. There
-are no sounds or animations. Locked mode passes all pointer input to the game.
+are no sounds or animations. The readout can be dragged whenever it shows.
 
-Enable **Settings → Tools → Alcohol Timer**, then select **Adjust position**.
-An unlocked placeholder permits adjustment while sober. Drag the readout and
+Enable **Settings → Features → Alcohol Timer**. To place it while sober, select
+**Show to place**: an unlocked placeholder stays on screen until it is locked. Drag the readout and
 select its lock, or focus it and use arrows, Shift+arrows, and Enter. Escape,
 lost pointer capture, or window blur cancels a drag. **Reset position** restores
 the initial placement and lock. Like the chat icon, dragging picks the nearest

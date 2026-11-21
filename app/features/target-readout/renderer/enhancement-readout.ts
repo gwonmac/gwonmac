@@ -6,13 +6,18 @@
  *
  * There is deliberately no widget registry, event bus or command framework
  * behind it. A second feature can add one when it exists and needs it.
+ *
+ * It also owns its own place on screen: top centre by default, or the corner
+ * distance a player dragged it to. It can be dragged whenever it shows.
  */
+import { captureCornerPosition, restoreCornerPosition, type CornerPosition } from "../../../shared/corner-position.js";
+import { installOverlayDrag } from "../../../renderer/overlay-drag.js";
 
 /*
  * Top centre: the two other fixed overlays own the top corners (`#capture-status`
  * left, `#diagnostics` right), and the game's own target bar is up there, so
- * the number sits where the eye already is. Below both in the stack, and never
- * a pointer target — a HUD that can eat a click on the game surface is a bug.
+ * the number sits where the eye already is. Below both in the stack. A host
+ * that stores its place makes it draggable; that is its only pointer use.
  */
 const ROOT_STYLE = [
   "position:fixed",
@@ -68,7 +73,12 @@ export function targetReadout(state: SnapshotState) {
  * Mounts the readout and keeps it in step with the snapshot. Owns its own
  * element, so nothing else in the page has to know it exists.
  */
-export function createTargetReadout(parent: HTMLElement) {
+export type TargetReadoutPlacement = Readonly<{
+  /** Saves the place the player dragged the readout to. */
+  savePosition(position: CornerPosition): void;
+}>;
+
+export function createTargetReadout(parent: HTMLElement, placement?: TargetReadoutPlacement) {
   const document = parent.ownerDocument;
   const root = document.createElement("div");
   root.id = "enhancement-target";
@@ -90,6 +100,47 @@ export function createTargetReadout(parent: HTMLElement) {
 
   /** The rendered line, or the empty string while nothing is shown. */
   let rendered = "";
+  let position: CornerPosition | null = null;
+  const view = document.defaultView;
+  const viewport = () => ({ width: view?.innerWidth ?? 0, height: view?.innerHeight ?? 0, margin: 0 });
+  /** Puts the readout at its saved corner distance, or back at the top centre. */
+  const place = () => {
+    const point = position === null || root.style.display === "none"
+      ? null : restoreCornerPosition(position, viewport(), root.getBoundingClientRect());
+    if (point === null) {
+      if (position === null) { root.style.left = "50%"; root.style.top = "12px"; root.style.transform = "translateX(-50%)"; }
+      return;
+    }
+    root.style.left = `${point.left}px`; root.style.top = `${point.top}px`; root.style.transform = "none";
+  };
+  /**
+   * The moving parts exist only for a host that stores a placement. Without one the readout
+   * stays what it always was: text that is never a pointer target.
+   */
+  const movable = placement === undefined ? null : (() => {
+    let beforeDrag: CornerPosition | null = null;
+    const disposeDrag = installOverlayDrag(root, {
+      origin: () => { beforeDrag = position; const box = root.getBoundingClientRect(); return { left: box.left, top: box.top }; },
+      move(left, top) {
+        const next = captureCornerPosition({ left, top }, viewport(), root.getBoundingClientRect());
+        if (next) { position = next; place(); }
+      },
+      commit() { if (position) placement.savePosition(position); },
+      cancel() { position = beforeDrag; place(); },
+    });
+    // A press on the readout never reaches the game under it, and never takes the keyboard from it.
+    for (const name of ["pointerdown", "pointerup", "mousedown", "mouseup", "click"]) {
+      root.addEventListener(name, event => { event.stopPropagation(); if (name === "mousedown") event.preventDefault(); });
+    }
+    root.style.pointerEvents = "auto";
+    root.style.cursor = "grab";
+    view?.addEventListener("resize", place);
+    return { dispose() { disposeDrag(); view?.removeEventListener("resize", place); } };
+  })();
+  const paint = () => {
+    root.style.display = rendered !== "" ? "flex" : "none";
+    if (rendered !== "") place();
+  };
 
   return {
     /**
@@ -101,18 +152,22 @@ export function createTargetReadout(parent: HTMLElement) {
       const line = next === null ? "" : `${next.distance} ${next.range}`;
       if (line === rendered) return;
       rendered = line;
-      if (next === null) {
-        root.style.display = "none";
-        return;
+      if (next !== null) {
+        distance.textContent = next.distance;
+        range.textContent = next.range;
       }
-      distance.textContent = next.distance;
-      range.textContent = next.range;
-      root.style.display = "flex";
+      paint();
+    },
+    /** The saved place; null is the top centre. */
+    setPlacement(next: CornerPosition | null) {
+      position = next;
+      paint();
     },
     get state() {
       return Object.freeze({ visible: rendered !== "", line: rendered });
     },
     dispose() {
+      movable?.dispose();
       root.remove();
     },
   };

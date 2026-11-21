@@ -39,7 +39,7 @@ export function createHubTravel(host: TravelHost, hub: HubPresenter<HTMLElement>
   const listeners = new Set<() => void>();
   const refresh = () => { for (const listener of listeners) listener(); };
   const stop = watch([host.state, host.attempt, host.history, preferences.synonyms, progress], refresh, { flush: 'sync' });
-  // A trip that fails after the quiet close ("did not start", "did not confirm arrival") is
+  // A trip that fails after the quiet close ("was interrupted", "did not confirm arrival") is
   // reported once through the Hub's receipt; success stays quiet, and the open Travel view
   // shows its own notice (HUB-072).
   const stopNotice = watch(host.notice, (notice, previous) => {

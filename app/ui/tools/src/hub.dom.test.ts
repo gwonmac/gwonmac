@@ -51,8 +51,9 @@ test('Hub searches, restores the query after actions, and hands off explicitly',
   await mountFixture();
   expect(document.activeElement).toBe(search());
   fill(search(), 'settings'); await settle();
-  // The command, then the launcher setting whose name holds the word.
-  expect(options().length).toBe(2);
+  // The command, then the three launcher settings whose names hold the word: Copy settings,
+  // Paste settings and Reset all app settings.
+  expect(options().length).toBe(4);
   expect(selectedRow()!.dataset.id).toBe('settings');
   // A pinnable search result exposes its extra actions in the shared menu.
   expect(actionsButton().disabled).toBe(false);
@@ -132,8 +133,7 @@ test('one floating whisper view keeps drafts through dismissal and failures', as
   fill(draft('Romi Ranger')!, 'Meet in Kamadan?');
   click(button('Hide Whispers')); await settle();
   click(button('Open Hub')); await settle();
-  expect(caption()).toBe('Romi Ranger');
-  click(button('Back')); await settle();
+  expect(caption()).toBe('Home');
   await go('whispers');
   expect(document.activeElement).toBe(draft('Romi Ranger'));
   expect(draft('Romi Ranger')!.value).toBe('Meet in Kamadan?');
@@ -562,7 +562,7 @@ test('in-game settings stay in Hub and Show Launcher remains explicit', async ()
   await mountFixture();
   await go('settings');
   // A page load opens Settings on Tools.
-  expect(document.querySelector('.settings-fields h1')?.textContent).toBe('Tools');
+  expect(document.querySelector('.settings-fields h1')?.textContent).toBe('Features');
   const whispers = () => narrow(HTMLInputElement, byRole('checkbox', 'Whispers', true)[0]);
   click(whispers()); await settle();
   expect(document.querySelector('nav[aria-label="Settings sections"]')).not.toBeNull();
@@ -574,7 +574,7 @@ test('in-game settings stay in Hub and Show Launcher remains explicit', async ()
   expect(document.querySelectorAll('.hub-row[data-id="setting:tool:whispers"]').length).toBe(1);
   await go('settings');
   // Within one page load, Settings reopens on the section last shown.
-  expect(document.querySelector('.settings-fields h1')?.textContent).toBe('Tools');
+  expect(document.querySelector('.settings-fields h1')?.textContent).toBe('Features');
   click(whispers()); await settle();
   expect(whispers().checked).toBe(true);
   click(button('Appearance')); await settle();

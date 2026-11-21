@@ -12,6 +12,7 @@ export default defineFeature({
   programs: ["target-observer"],
   tool: {
     id: "target-readout",
+    kind: "screen",
     label: "Target Distance",
     description: "Show distance to the selected target in PvE.",
     keywords: "distance range",

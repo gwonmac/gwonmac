@@ -12,8 +12,14 @@ export default {
         let readout: ReturnType<typeof createTargetReadout> | null = null;
         const sync = () => {
           if (!observation.observeState) return;
-          if (context.policy().targetReadout) readout ??= createTargetReadout(document.body);
-          else { readout?.dispose(); readout = null; }
+          if (context.policy().targetReadout) {
+            // The game window reads the placement back from settings, so every window follows a drag.
+            const saved = () => context.snapshot().settings.overlayPlacement;
+            readout ??= createTargetReadout(document.body, {
+              savePosition: targetDistance => { void window.gwNative.settings.set({ overlayPlacement: { ...saved(), targetDistance } }); },
+            });
+            readout.setPlacement(saved().targetDistance);
+          } else { readout?.dispose(); readout = null; }
         };
         const wanted = () => context.policy().targetReadout;
         observation.observeStateWhen(wanted);

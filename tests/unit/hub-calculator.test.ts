@@ -258,3 +258,15 @@ test('item equivalents retain their limitation in the visible card and clipboard
     assert.match(copied,/^1 iron = 1 Feather/);assert.match(copied,/Equivalent value/);
   } finally {source.setVisible(false);}
 });
+
+test("turned off, the calculators answer nothing and offer no row", async () => {
+  const { createHubCalculator } = await import('../../app/renderer/hub-calculator.ts');
+  let enabled = true;
+  const source = createHubCalculator({ copy: async () => {}, marketEnabled: () => false, enabled: () => enabled, quotes: async () => ({ updatedAt: 0, quotes: [] }) });
+  assert.ok(source.search("10p in g").length > 0);
+  assert.ok(source.search("titles").length > 0);
+  enabled = false;
+  for (const query of ["", "10p in g", "titles", "rates", "calc"]) assert.deepEqual(source.search(query), [], query);
+  enabled = true;
+  assert.ok(source.search("10p in g").length > 0);
+});

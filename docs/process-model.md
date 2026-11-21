@@ -443,7 +443,11 @@ Application quit saves
 all live renderer filesystems in parallel, closes sockets, stops background
 work, flushes diagnostics, and exits through one bounded cleanup path.
 
-Command-Q opens an account-owned native dialog while a game window is active.
+Command-Q asks the active game window to show its in-game quit-or-reload panel,
+which is the memory warning's surface (`app/renderer/memory-warning.ts`) and
+shows the memory figure. Main waits one second for the window to show it. A
+window that does not answer gets the account-owned native dialog instead, so a
+frozen, crashed or loading game can still be reloaded or quit.
 Reload and Quit Game affect that account only. The launcher keeps the
 ordinary application Quit command because it has no game account to reload.
 The Q claim lasts only until that dialog settles; Cancel re-arms the

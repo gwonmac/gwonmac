@@ -18,6 +18,7 @@ export default defineFeature({
   region: "pve",
   tool: {
     id: "reminders",
+    kind: "chat",
     label: "Reminders",
     description: "Remind you in chat before cons, pcons or alcohol run out. Only you see these lines.",
     keywords: "cons pcons alcohol reminder chime",

@@ -28,6 +28,7 @@ export default defineFeature({
   region: "pve",
   tool: {
     id: "skill-cooldowns",
+    kind: "screen",
     label: "Skill Cooldowns",
     description: "Show numeric recharge timers on the skill bar.",
     keywords: "recharge timer skill bar",

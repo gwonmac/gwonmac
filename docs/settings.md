@@ -9,7 +9,7 @@ launcher or from a game window.
 gwonmac has one Settings page. The launcher draws it. Inside a game window, the
 same page opens as a Hub page, with the same labels and controls.
 
-The Hub page shows four in-game sections: **Tools**, **Maps**, **Appearance**
+The Hub page shows four in-game sections: **Features**, **Maps**, **Appearance**
 and **Game**. You change them there, and the game updates at once. Five other
 sections need the launcher: **Texture packs**, **Game files**, **Updates**,
 **Home screen** and **Advanced**. In the Hub they show ↗. Choosing one opens the
@@ -25,8 +25,8 @@ is briefly highlighted. Hub search does not change a setting in place.
    lists the sections and the settings that search can open, with their stable
    IDs, labels and keywords. Each control carries `data-setting="<id>"`.
 2. **Every setting says when it applies**, in the same words everywhere:
-   no note when it applies now, or "Applies when you next open or reload a game
-   window."
+   no note when it applies now; "Applies when you next open or reload a game
+   window."; or "Applies at the next login screen."
 3. **Changes save right away.** A change applies in every open game window. The
    status line names the saved setting and when it applies. A failed save keeps
    the change on screen and offers **Retry** and **Revert**.
@@ -35,9 +35,44 @@ is briefly highlighted. Hub search does not change a setting in place.
 5. **A game window cannot reach launcher-only actions.** Updates, game files,
    texture packs, reset and logs run only from the launcher. The Hub page never
    offers them.
-6. **Tools on or off needs a restart of the launcher.** The Tools section says
+6. **Tools on or off needs a restart of the launcher.** The Features section says
    "Restart the launcher". Only the launcher offers the restart button.
    Restarting only a game window does not load or unload Tools.
+
+## Features, by kind
+
+The **Features** section lists the optional Tools under four kinds, from
+`TOOL_GROUPS` in `app/shared/tool-presentation.ts`, which reads each feature manifest's `tool.kind`: **Hub pages**, **Keys and
+clicks**, **On the game screen** and **Chat**. Every tool belongs to exactly one
+kind. The master switch is still **Enable Tools**, because Tools is the name of
+the optional client build that these features need.
+
+Every setting on the page applies to every account on this Mac, and the page
+says so beside its sections. Logins, builds, templates and chat logs are kept
+per account and are not settings.
+
+## The plain game
+
+**Play the plain game** is the first control in **Features**. Only the launcher
+can change it, through `settings.setPlainGame`; a game window shows it read-only
+and no settings patch can set it. Turning it on stores **Enable Tools** and
+**Switch Character** off and remembers both in `plainGame`; turning it off puts
+them back. Main refuses a feature switch while it is on. In a game window the
+Hub does not open, and Settings opens the launcher. Pasted text reaches the
+game as it was copied, whatever **Clean pasted text** says. Hosting itself is
+unchanged: accounts, the memory and quit panel, and keyboard-layout mapping
+still work.
+
+## Moving settings to another Mac
+
+The launcher's **Advanced** section has **Copy settings** and **Paste settings**.
+`app/main/core/settings-transfer.ts` owns the text form. Copy writes the stored
+settings and the launcher's Home choices to the clipboard. Paste validates the
+clipboard text with the settings file's own parser, asks for confirmation, and
+then replaces those values. A field that this build does not use is left out and
+counted in the result. The last update check, the compatibility notice and the
+stored Travel shortcuts never leave the Mac they were made on.
+A game window cannot copy or paste settings.
 
 ## Build and trust
 
@@ -68,7 +103,7 @@ section but edits only the in-game ones; the others (↗) open the launcher.
 
 | Group | Section | In the Hub |
 |---|---|---|
-| In game | Tools | Yes |
+| In game | Features | Yes |
 | In game | Maps | Yes |
 | In game | Appearance | Yes |
 | In game | Game | Yes |

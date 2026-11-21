@@ -26,6 +26,7 @@ export default defineFeature({
   region: "pve",
   tool: {
     id: "alcohol-timer",
+    kind: "screen",
     label: "Alcohol Timer",
     description: "A quiet, movable alcohol countdown. Hidden when sober; amber in the last 15 seconds.",
     keywords: "drunk alcohol timer",

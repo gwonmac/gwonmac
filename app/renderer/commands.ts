@@ -81,6 +81,11 @@
         if (!window.gwHub) return 'unhandled';
         window.gwHub.openSettings();
         break;
+      case 'quit.panel':
+        // The panel sits above play, so an open Hub or tool window gives way to it.
+        if (!window.gwQuitPanel?.()) return 'unhandled';
+        window.gwSurfaces?.dismissTransient();
+        break;
       case 'hub.toggle':
         // The command keeps its stored name; an open Hub goes Home and never closes.
         if (!window.gwHub) return 'unhandled';

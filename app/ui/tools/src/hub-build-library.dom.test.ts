@@ -149,8 +149,9 @@ test('recent build targets and the editor handoff retain their place', async () 
   expect(field('Build name').value).toBe('Word of Healing');
   expect(document.querySelector('.tools-window')!.contains(document.activeElement)).toBe(true);
   click(button('Close Build Library', true)!); await settle();
+  // The Hub shortcut never returns to the page the editor was opened from: it opens Home.
   click(button('Open Hub', true)!); await settle();
-  expect(document.querySelector('.hub-build-details')).not.toBeNull();
+  expect([caption(), search().value, document.activeElement === search()]).toEqual(['Home', '', true]);
 });
 
 
@@ -273,7 +274,7 @@ test('turning a Tool off in Settings keeps the Settings page and section', async
   await submit('accounts');
   expect(caption()).toBe('Accounts');
   window.gwHub!.openSettings({ section: 'tools' }); await settle();
-  const tools = [...document.querySelectorAll<HTMLButtonElement>('[aria-label="Settings sections"] button')].find(item => item.textContent?.trim() === 'Tools')!;
+  const tools = [...document.querySelectorAll<HTMLButtonElement>('[aria-label="Settings sections"] button')].find(item => item.textContent?.trim() === 'Features')!;
   click(tools); await settle();
   const travel = narrow(HTMLInputElement, byRole('checkbox', 'Travel', true)[0]);
   click(travel); await settle();
@@ -325,9 +326,9 @@ test.each([
 ])('%s cannot resume once its Library source is withdrawn', async (_name, arrange) => {
   await mountFixture();
   await arrange();
-  window.dispatchEvent(new Event('blur')); await settle();
+  window.gwHub!.suspend(); await settle();
   window.dispatchEvent(new Event('hub-fixture-withdraw-library')); await settle();
-  click(button('Open Hub', true)); await settle();
+  window.gwHub!.resume(); await settle();
   expect(caption()).toBe('Home');
   expect(byRole('textbox', 'Search phrase', true)).toHaveLength(0);
   expect(rows('.hub-row').map(row => row.textContent).join(' ')).not.toMatch(/Apply to (me|hero)/u);

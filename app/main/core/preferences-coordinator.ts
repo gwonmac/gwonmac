@@ -123,7 +123,12 @@ export class PreferencesCoordinator {
    * The one settings write: the launcher, the Hub, game windows, menus, setup
    * and update bookkeeping all change settings through this dispatch.
    */
-  write(change: SettingsWrite): Promise<AppSettings> {
+  async write(change: SettingsWrite): Promise<AppSettings> {
+    // The plain game stores both masters off and remembers them. A feature switch changed
+    // meanwhile would be lost or would half turn the plain game off, so it is refused.
+    if ((change.kind === "master" || change.kind === "tool") && (await this.getSettings()).plainGame !== null) {
+      throw new AppError("bad_settings", "Turn the plain game off to change features.");
+    }
     switch (change.kind) {
       case "settings": return this.#updateSettings(change.patch);
       case "renderer": return this.#updateRendererSettings(change.patch);

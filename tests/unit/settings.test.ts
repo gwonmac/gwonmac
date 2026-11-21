@@ -101,10 +101,16 @@ describe("settings", () => {
       reminderAtEnd: true,
       reminderSound: false,
       alcoholTimerPosition: { corner: "top-left", x: 4, y: 58, locked: true },
+      overlayPlacement: { compassButtons: true, compassOffset: { x: 0, y: 0 }, targetDistance: null },
+      plainGame: null,
       skillCooldownColor: { kind: "preset", preset: "red" },
       autoRelogAfterReload: false,
       memoryWarningPosition: null,
       showDiagnostics: false,
+      disableSteamLogin: false,
+      pasteCleanup: true,
+      hubCalculators: true,
+      whispersIcon: true,
       // Automatic app-update checks remain a separate preference from the
       // required ArenaNet game-data download.
       autoCheckUpdates: true,
@@ -239,10 +245,16 @@ describe("settings", () => {
       reminderAtEnd: true,
       reminderSound: false,
       alcoholTimerPosition: { corner: "top-left", x: 4, y: 58, locked: true },
+      overlayPlacement: { compassButtons: true, compassOffset: { x: 0, y: 0 }, targetDistance: null },
+      plainGame: null,
       skillCooldownColor: { kind: "preset", preset: "red" },
       autoRelogAfterReload: false,
       memoryWarningPosition: null,
       showDiagnostics: true,
+      disableSteamLogin: false,
+      pasteCleanup: true,
+      hubCalculators: true,
+      whispersIcon: true,
       autoCheckUpdates: true,
       lastUpdateCheckAt: null,
       compatibilityNoticeSeenFor: null,
@@ -604,6 +616,32 @@ describe("settings", () => {
     assert.deepEqual(await readdir(dir), [backup.split("/").at(-1)]);
   });
 
+  it("keeps Clean pasted text and Hub calculators on unless the player turns them off, and rejects a non-boolean", async context => {
+    const dir = await mkdtemp(join(tmpdir(), "gw-settings-"));
+    context.after(() => rm(dir, { recursive: true, force: true }));
+    const path = join(dir, "settings.json");
+    for (const setting of ["pasteCleanup", "hubCalculators"] as const) {
+      assert.equal((await loadSettings(path))[setting], true);
+      assert.deepEqual(parseSettingsPatch({ [setting]: false }), { [setting]: false });
+      assert.throws(() => parseSettingsPatch({ [setting]: "false" }), AppError);
+    }
+    await saveSettings(path, { ...DEFAULT_SETTINGS, pasteCleanup: false, hubCalculators: false });
+    const saved = await loadSettings(path);
+    assert.equal(saved.pasteCleanup, false);
+    assert.equal(saved.hubCalculators, false);
+  });
+
+  it("keeps Disable Steam login off unless the player turns it on, and rejects a non-boolean", async context => {
+    const dir = await mkdtemp(join(tmpdir(), "gw-settings-"));
+    context.after(() => rm(dir, { recursive: true, force: true }));
+    const path = join(dir, "settings.json");
+    assert.equal((await loadSettings(path)).disableSteamLogin, false);
+    assert.deepEqual(parseSettingsPatch({ disableSteamLogin: true }), { disableSteamLogin: true });
+    assert.throws(() => parseSettingsPatch({ disableSteamLogin: "true" }), AppError);
+    await saveSettings(path, { ...DEFAULT_SETTINGS, disableSteamLogin: true });
+    assert.equal((await loadSettings(path)).disableSteamLogin, true);
+  });
+
   it("saves only known fields, including text size across reload (HUB-116)", async context => {
     const dir = await mkdtemp(join(tmpdir(), "gw-settings-"));
     context.after(() => rm(dir, { recursive: true, force: true }));
@@ -665,14 +703,19 @@ describe("settings", () => {
       "compassRangeTheme",
       "compatibilityNoticeSeenFor",
       "controllerPromptStyle",
+      "disableSteamLogin",
       "effectTimersEnabled",
       "eliteMissionMapMarkers",
       "eliteSkillsEnabled",
       "formatVersion",
       "gwonmacTools",
+      "hubCalculators",
       "hubShortcuts",
       "lastUpdateCheckAt",
       "memoryWarningPosition",
+      "overlayPlacement",
+      "pasteCleanup",
+      "plainGame",
       "quickItemMove",
       "reminderAlcohol",
       "reminderAtEnd",
@@ -699,6 +742,7 @@ describe("settings", () => {
       "uiStyle",
       "uiTextSize",
       "whispersEnabled",
+      "whispersIcon",
       "xunlaiStorage",
     ]);
     assert.equal(disk.formatVersion, 1);
@@ -817,10 +861,16 @@ describe("settings", () => {
       reminderAtEnd: true,
       reminderSound: false,
       alcoholTimerPosition: { corner: "top-left", x: 4, y: 58, locked: true },
+      overlayPlacement: { compassButtons: true, compassOffset: { x: 0, y: 0 }, targetDistance: null },
+      plainGame: null,
       skillCooldownColor: { kind: "preset", preset: "red" },
       autoRelogAfterReload: false,
       memoryWarningPosition: null,
       showDiagnostics: true,
+      disableSteamLogin: false,
+      pasteCleanup: true,
+      hubCalculators: true,
+      whispersIcon: true,
       // Fields that alpha never wrote arrive at their defaults — deliberately
       // including the update check, which defaults on. A profile that never
       // stored the setting inherits the current default; an explicit opt-out

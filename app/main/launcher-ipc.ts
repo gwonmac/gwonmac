@@ -5,7 +5,7 @@
  * LAUNCHER_CHANNELS entry has exactly one owner, or this file does not compile.
  * The launcher preload exposes this vocabulary; game preloads never receive it.
  */
-import { app, dialog, net, shell as electronShell, type BrowserWindow } from "electron";
+import { app, clipboard, dialog, net, shell as electronShell, type BrowserWindow } from "electron";
 import { writeFile } from "node:fs/promises";
 import type { ClientRuntime } from "../client/client-runtime.js";
 import { EXTERNAL_URLS } from "../shared/contracts.js";
@@ -34,6 +34,7 @@ import { sendLauncherFeedback } from "./core/launcher-feedback.js";
 import type { LauncherNewsService } from "./core/launcher-news.js";
 import type { LauncherStateStore } from "./core/launcher-state.js";
 import { allGlobalToolsPatch } from "./core/launcher-tools.js";
+import { settingsFromText, settingsToText } from "./core/settings-transfer.js";
 import type { TexturePackManager } from "./core/texture-pack-manager.js";
 import { logEvent } from "./diagnostics.js";
 import { channel, ownedOnce, register, type HandlersPart } from "./ipc-channel-registry.js";
@@ -185,6 +186,43 @@ function settings(input: LauncherIpcInput) {
         await texturePacks.select(null);
         logEvent({ k: "settings.reset" });
         orchestrator.publish();
+      }),
+      settingsPlainGame: channel(booleanValue, async (_win, enabled) => {
+        const current = await preferences.getSettings();
+        if (enabled === (current.plainGame !== null)) return;
+        // On: remember both masters and store them off. Off: put them back as they were.
+        await preferences.write({ kind: "settings", patch: enabled
+          ? { plainGame: { gwonmacTools: current.gwonmacTools, characterSwitchEnabled: current.characterSwitchEnabled }, gwonmacTools: false, characterSwitchEnabled: false }
+          : { plainGame: null, ...current.plainGame } });
+      }),
+      settingsCopy: channel(nothing, async () => {
+        clipboard.writeText(settingsToText(await preferences.getSettings(), launcherState.get().preferences.content));
+      }),
+      settingsPaste: channel(nothing, async (win) => {
+        // Read and validate first, so a clipboard that holds something else never asks to replace anything.
+        const transfer = settingsFromText(clipboard.readText());
+        const { response } = await dialog.showMessageBox(win, {
+          type: "warning",
+          buttons: ["Replace Settings", "Cancel"],
+          defaultId: 1,
+          cancelId: 1,
+          message: "Replace your settings with the copied ones?",
+          detail: "This replaces game preferences, Tools, shortcuts, map styles, panel colors and the launcher's Home choices. Accounts, saved logins, game files and Travel favourites are kept.",
+        });
+        if (response !== 0) return { status: "cancelled" as const };
+        const current = await preferences.getSettings();
+        const { gwonmacTools, characterSwitchEnabled, ...rest } = transfer.settings;
+        // While the plain game is on, the pasted masters wait in it and take effect when it is turned off.
+        await preferences.write({ kind: "settings", patch: current.plainGame === null ? transfer.settings : {
+          ...rest,
+          plainGame: {
+            gwonmacTools: gwonmacTools ?? current.plainGame.gwonmacTools,
+            characterSwitchEnabled: characterSwitchEnabled ?? current.plainGame.characterSwitchEnabled,
+          },
+        } });
+        if (transfer.launcherContent) await launcherState.updatePreferences({ content: transfer.launcherContent });
+        orchestrator.publish();
+        return { status: "applied" as const, skipped: transfer.skipped };
       }),
       toolsSetMasterEnabled: channel(booleanValue, async (_win, enabled) => {
         await preferences.write({ kind: "master", enabled });

@@ -90,7 +90,7 @@ export function mountHubFixture(target: HTMLElement) {
   const settingsListeners = new Set<(value: AppSettings) => void>();
   let capturingShortcut = false; let cancelShortcutCapture = () => {};
   const hubSettings: HubSettingsApi = {
-    get: async () => ({ settings, tools: { configured: settings.gwonmacTools, loaded: true, restartRequired: !settings.gwonmacTools, features: launcherToolSettings(settings) }, shortcuts: resolveShortcuts(settings.shortcutOverrides) }),
+    get: async () => ({ settings, tools: { configured: settings.gwonmacTools, loaded: true, restartRequired: !settings.gwonmacTools, plainGame: settings.plainGame !== null, features: launcherToolSettings(settings) }, shortcuts: resolveShortcuts(settings.shortcutOverrides) }),
     // `?settings-ms=` answers every settings write late, as a busy main process does.
     update: async raw => {
       await delay('settings-ms');
