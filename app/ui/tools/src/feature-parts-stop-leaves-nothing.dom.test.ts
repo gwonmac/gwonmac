@@ -6,10 +6,12 @@
  *
  * The parts run through their real entry points: the Tools installer for every COMPANION_PARTS
  * line, on the real Hub with its real view, in happy-dom. Only the boundaries are stubbed:
- * ArenaNet's module (every export answers 1), the preload bridge, and the kernel's dispatch.
+ * ArenaNet's module (every export answers 1), the preload bridge, the kernel's dispatch, and the
+ * built Tools bundle: its Vue apps read the whole bridge and have their own component tests, so a
+ * stand-in records each app a part mounts and whether the part disposes it.
  * The main-process parts have their own test (tests/unit/feature-main-parts-stop-leaves-nothing.test.ts).
  */
-import { afterAll, beforeAll, expect, test } from 'vitest';
+import { afterAll, beforeAll, expect, test, vi } from 'vitest';
 // eslint-disable-next-line no-restricted-imports
 import type {} from '../../../renderer/gw-native';
 // eslint-disable-next-line no-restricted-imports
@@ -30,6 +32,38 @@ import { installCharacterSwitchHost } from '../../../features/character-switch/r
 import { installCartographyHost } from '../../../features/cartography/renderer/host';
 import { mountHubView } from './hub/embedded';
 
+/**
+ * The Tools bundle the game host loads (`tools/tools-app.js`, src/embedded.ts in this test): every
+ * export mounts an app that is held until its handle's `dispose`. Nothing else is modelled.
+ */
+vi.mock('./embedded', () => {
+  const mounted = (what: string) => {
+    const token = {};
+    ledger.take(token, 'Tools bundle app', what);
+    const members: Record<string, unknown> = {
+      dispose: () => ledger.give(token),
+      stepBack: () => false,
+      active: false,
+      source: { search: () => [], setVisible() {}, subscribe: () => () => {} },
+      // Travel's Hub page: one node, removed by the page's own unmount.
+      page: () => (target: HTMLElement) => {
+        const node = target.ownerDocument.createElement('section');
+        node.className = 'travel-page';
+        target.append(node);
+        return () => node.remove();
+      },
+    };
+    return new Proxy(members, { get: (target, key) => typeof key === 'symbol' || key === 'then' ? undefined : key in target ? target[key] : () => undefined });
+  };
+  return {
+    mountEliteSkills: () => mounted('mountEliteSkills'),
+    mountWhispers: () => mounted('mountWhispers'),
+    mountToolsApp: () => mounted('mountToolsApp'),
+    createHubTravel: () => mounted('createHubTravel'),
+    mountTradeChat: () => mounted('mountTradeChat'),
+  };
+});
+
 /** Every feature's switch on, so every part starts what it shows. */
 const ALL_ON: Record<string, boolean> = {};
 for (const { activation } of FEATURES) {
@@ -48,6 +82,8 @@ let ledger: LeakLedger;
 const BRIDGE_VALUES: Readonly<Record<string, unknown>> = {
   'init.development': false,
   'init.enhancementSelection': { nativeCursor: true, tools: true },
+  // The Tools app mounts once both resolve; a session without a compatibility report is still checking.
+  'client.session': () => Promise.resolve({ appVersion: 'test', compatibility: null, healthToken: null }),
 };
 function bridge(path: string): unknown {
   const call = () => {
@@ -70,7 +106,10 @@ function bridge(path: string): unknown {
 const describe = (target: EventTarget) => target === window ? 'window' : target === document ? 'document'
   : target instanceof Element ? `<${target.tagName.toLowerCase()}${target.id ? `#${target.id}` : ''}>` : target.constructor.name;
 
-beforeAll(() => {
+beforeAll(async () => {
+  // The game host loads the Tools bundle with a dynamic import. Loaded here first, it resolves from the
+  // module cache within one settle, so each app mounts inside the test whose part asked for it.
+  await import('./embedded');
   // happy-dom has no popover methods or pointer lock; the Hub only needs them to exist.
   HTMLElement.prototype.showPopover ??= function () {};
   HTMLElement.prototype.hidePopover ??= function () {};
@@ -122,9 +161,8 @@ const tagOf = (node: Element) => `<${node.tagName.toLowerCase()}${node.id ? `#${
 const KNOWN_LEFTOVERS: readonly Readonly<{ leftover: string; why: string }>[] = [
   { leftover: 'DOM node: <link> in <head>',
     why: 'ensureToolsStylesheet (app/renderer/tools-stylesheet.ts) adds the Tools stylesheet once per page and nothing removes it' },
-  { leftover: 'DOM node: <p.hub-empty> in <div.hub-view>',
+  { leftover: 'DOM node: <section.travel-page> in <div.hub-view>',
     why: 'a feature page (Travel) stays mounted in a closed Hub after its part stops: the Hub engine withdraws a dead page only while the Hub is open (app/renderer/hub-engine.ts, withdraw)' },
-  { leftover: 'DOM node: <button.ui-button> in <div.hub-view>', why: 'the same page: Travel\'s Try again button' },
 ];
 const seenLeftovers = new Set<string>();
 const HUB_PAGE_STATE = /^DOM node: .* in <(div#hub-results|span\.hub-legend|button\.hub-primary|button\.hub-actions)/u;
@@ -283,6 +321,8 @@ test('the check catches a planted leak of every kind', async () => {
   document.body.append(document.createElement('aside'));
   window.gwHub!.attach({ search: () => [], setVisible() {}, subscribe: () => () => {} });
   (window.gwNative.settings as unknown as { onChanged(listener: () => void): () => void }).onChanged(() => {});
+  const bundle = await import('./embedded');
+  const app = bundle.mountTradeChat(document.body, {} as Parameters<typeof bundle.mountTradeChat>[1]);
   stop();
   const leaks = await page.leftOver();
   clearInterval(interval);
@@ -290,6 +330,7 @@ test('the check catches a planted leak of every kind', async () => {
   expect(leaks.map(leak => leak.replace(/ \(.*\)$/u, '')).sort()).toEqual([
     'DOM node: <aside> in <body>',
     'Hub source: a source',
+    'Tools bundle app: mountTradeChat',
     'animation frame: requestAnimationFrame',
     'bridge subscription: gwNative.settings.onChanged',
     'interval: setInterval 1000 ms',
@@ -298,4 +339,5 @@ test('the check catches a planted leak of every kind', async () => {
     'timer: setTimeout 60000 ms',
   ]);
   for (const node of document.querySelectorAll('aside')) node.remove();
+  app.dispose();
 });
