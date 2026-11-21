@@ -12,8 +12,13 @@ export default {
         let readout: ReturnType<typeof createTargetReadout> | null = null;
         const sync = () => {
           if (!observation.observeState) return;
-          if (context.policy().targetReadout) readout ??= createTargetReadout(document.body);
-          else { readout?.dispose(); readout = null; }
+          if (context.policy().targetReadout) {
+            // Every game window reads the place back from settings, so all of them follow a drag.
+            readout ??= createTargetReadout(document.body, {
+              savePosition: targetReadoutPosition => { void window.gwNative.settings.set({ targetReadoutPosition }).catch(() => undefined); },
+            });
+            readout.setPosition(context.snapshot().settings.targetReadoutPosition);
+          } else { readout?.dispose(); readout = null; }
         };
         const wanted = () => context.policy().targetReadout;
         observation.observeStateWhen(wanted);

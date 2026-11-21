@@ -121,7 +121,7 @@ describe("Maps settings", () => {
     });
     const textarea = wrapper.get('textarea[placeholder="Paste style text"]');
     await textarea.setValue("not a map style");
-    await wrapper.get("details .secondary").trigger("click");
+    await wrapper.findAll("button").find(button => button.text() === "Import as new style")!.trigger("click");
     expect(wrapper.get('[role="status"]').text()).toBe("That style text is not valid.");
     expect(save).not.toHaveBeenCalled();
   });

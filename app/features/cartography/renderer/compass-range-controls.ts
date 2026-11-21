@@ -30,6 +30,8 @@ const PANEL_WIDTH = 220;
 const PANEL_HEIGHT_ESTIMATE = 290;
 
 export type CompassRangeControls = Readonly<{
+  /** The button beside the Compass; dragging it moves the Compass buttons. */
+  trigger: HTMLButtonElement;
   update(
     box: ScreenBox,
     settings: AppSettings,
@@ -318,6 +320,7 @@ export function createCompassRangeControls(options: Readonly<{
   view.addEventListener("resize", viewportResize);
 
   return Object.freeze({
+    trigger,
     update(box, settings, placement) {
       const boxChanged = latestBox === null
         || latestBox.left !== box.left || latestBox.top !== box.top
