@@ -700,9 +700,15 @@ test('Trade focuses search on its shortcut, keeps slash inside its controls, and
     await expect(page.locator('.hub-caption')).toHaveText('Build Library');
     await chord(fixture, 'K', ['meta']);
     await expect(trade).toBeVisible(); await expect(search).toBeFocused(); await expect(hubOf(page)).toBeHidden();
-    await chord(fixture, 'R', ['meta']);
+    // The page Trade hid comes back on its own shortcut; the Hub shortcut always opens Home.
+    await chord(fixture, 'B', ['meta']);
     await expect(page.locator('.hub-caption')).toHaveText('Build Library');
     await expect(searchOf(page)).toHaveValue('native draft'); await expect(searchOf(page)).toBeFocused();
+    await chord(fixture, 'K', ['meta']);
+    await expect(trade).toBeVisible(); await expect(search).toBeFocused(); await expect(hubOf(page)).toBeHidden();
+    await chord(fixture, 'R', ['meta']);
+    await expect(page.locator('.hub-caption')).toHaveText('Home');
+    await expect(searchOf(page)).toHaveValue(''); await expect(searchOf(page)).toBeFocused();
     await page.getByRole('button', { name: 'Close Hub', exact: true }).click();
   } finally { await closeOffline(fixture); }
 });
