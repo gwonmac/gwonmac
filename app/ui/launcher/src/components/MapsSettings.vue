@@ -221,6 +221,7 @@ async function updateUnseen(patch: Partial<CartographyPresetStyle["grid"]["unsee
       <ShortcutSetting v-if="shortcuts" action="cartography.route.toggle" :shortcuts="shortcuts" :api="api" :perform-save="performSave" />
       <input id="map-route" type="checkbox" aria-label="Walking route" aria-describedby="map-route-help" :checked="settings.cartographyRouteEnabled" @change="persist({ cartographyRouteEnabled: ($event.currentTarget as HTMLInputElement).checked })" />
     </div>
+    <label data-setting="cartographyQuestRouteEnabled"><span><strong>Route to quest</strong><small>Without your own target, lead to your active quest with a solid line.</small></span><input type="checkbox" :checked="settings.cartographyQuestRouteEnabled" :disabled="!settings.cartographyRouteEnabled" @change="persist({ cartographyQuestRouteEnabled: ($event.currentTarget as HTMLInputElement).checked })" /></label>
     <div class="feature-heading" data-setting="cartographyOverlayEnabled">
       <label for="map-terrain"><strong>Walkable terrain</strong><small id="map-terrain-help">Shade areas you cannot walk on.</small></label>
       <ShortcutSetting v-if="shortcuts" action="cartography.walkability.toggle" :shortcuts="shortcuts" :api="api" :perform-save="performSave" />

@@ -33,7 +33,8 @@ import {
   projectCartographyGridToWorldMap,
   type CartographyGridProjection,
 } from "./cartography-grid-projection.js";
-import { createRouteTracker, routeFrom, routeInMapUnits, routeTargetIn, type RouteGoal, type RouteView } from "./route-path.js";
+import { createRouteTracker, routeChoice, routeFrom, routeInMapUnits, type RouteChoice, type RouteGoal, type RouteView } from "./route-path.js";
+import type { CartographyQuestMarker } from "./cartography-player-state.js";
 import { createRouteLayer, type RouteDrawing } from "./route-paint.js";
 import { cartographyHoverRevealRadius } from "./cartography-paint.js";
 import { projectMissionMapFrame, projectNativeFrame } from "./frame-placement.js";
@@ -157,6 +158,8 @@ export function mountCartographyOverlay(options: Readonly<{
   modelSources: CartographyModelSources;
   /** The live play region; the overlay hides while Maps' manifest does not allow it. */
   playRegion(): RuntimePlayRegion;
+  /** The active quest's marker from Progress, on the map it was read in. */
+  questMarker(): CartographyQuestMarker | null;
   settings(): AppSettings;
   persist(patch: RendererSettingsPatch): Promise<AppSettings>;
   exportEvidence(
@@ -257,8 +260,9 @@ export function mountCartographyOverlay(options: Readonly<{
     let optionHeld = false;
     // The walking route: the point the player set, in continent map units so it
     // outlives travel to the next area, and the map projections a right-click is
-    // resolved through.
+    // resolved through. Without one, the route leads to the active quest's marker.
     let routeGoal: RouteGoal | null = null;
+    let routeLead: RouteChoice | null = null;
     let routeView: RouteView | null = null;
     const routeDrawings = new Map<number, RouteDrawing>();
     let missionPointProjection: CartographyGridProjection | null = null;
@@ -431,17 +435,17 @@ export function mountCartographyOverlay(options: Readonly<{
      */
     const routeDrawing = (quantum: number): RouteDrawing | undefined => {
       const current = state.currentInstance;
-      if (routeGoal === null || current.status !== "ready") return undefined;
-      const { x: targetX, y: targetY } = routeGoal;
+      if (routeLead === null || current.status !== "ready") return undefined;
+      const { goal: { x: targetX, y: targetY }, kind } = routeLead;
       const step = routeView === null ? -1 : Math.floor(routeView.along / quantum);
-      const version = [routeView?.path.version ?? "none", step, targetX, targetY].join(":");
+      const version = [routeView?.path.version ?? "none", step, targetX, targetY, kind].join(":");
       const cached = routeDrawings.get(quantum);
       if (cached?.version === version) return cached;
       const points = routeView === null
         ? new Float32Array(0)
         : routeInMapUnits(routeFrom(routeView.path, step * quantum), current.worldAnchor);
       const drawing = Object.freeze({
-        version, points, reached: routeView?.path.reached ?? true, target: Object.freeze({ x: targetX, y: targetY }),
+        version, points, kind, reached: routeView?.path.reached ?? true, target: Object.freeze({ x: targetX, y: targetY }),
       });
       routeDrawings.set(quantum, drawing);
       return drawing;
@@ -587,15 +591,17 @@ export function mountCartographyOverlay(options: Readonly<{
       const currentInstance = state.currentInstance;
       // Turning the route off forgets the target; so does another continent. Travel
       // within the continent keeps it, and the next area searches toward it again.
+      // The player's own target wins; without one the route leads to the quest.
       if (!settings.cartographyRouteEnabled) routeGoal = null;
-      let target = null;
-      if (routeGoal !== null && currentInstance.status === "ready") {
-        target = routeTargetIn(routeGoal, { mapId: currentInstance.epoch.mapId, areaEpoch: currentInstance.epoch.area,
-          continent: currentInstance.continent, worldAnchor: currentInstance.worldAnchor });
-        if (target === null) routeGoal = null;
+      routeLead = null;
+      if (currentInstance.status === "ready") {
+        const quest = settings.cartographyRouteEnabled && settings.cartographyQuestRouteEnabled
+          ? options.questMarker() : null;
+        ({ own: routeGoal, route: routeLead } = routeChoice(routeGoal, quest, { mapId: currentInstance.epoch.mapId,
+          areaEpoch: currentInstance.epoch.area, continent: currentInstance.continent, worldAnchor: currentInstance.worldAnchor }));
       }
       routeView = currentInstance.status === "ready" && presentation.player !== null
-        ? routeTracker.update({ now, target, player: presentation.player })
+        ? routeTracker.update({ now, target: routeLead?.target ?? null, player: presentation.player })
         : null;
       const gridOpacity = previewGridOpacity ?? settings.cartographyGridOpacity;
       const walkabilityOpacity = previewWalkabilityOpacity

@@ -42,6 +42,8 @@ export default defineFeature({
     /** Draw the walking route to the point the player sets on the Mission Map or World Map. On by
      * default: nothing draws until the player sets a target. */
     cartographyRouteEnabled: setting.boolean(true, { ...MAP_LAYER, tools: true }),
+    /** Without the player's own target, lead the walking route to the active quest's marker. */
+    cartographyQuestRouteEnabled: setting.boolean(true, { hub: true, tools: true }),
     /** Include the Compass in exploration-grid presentation; off by default. */
     cartographyCompassGridEnabled: setting.boolean(false, { hub: true }),
     /** Draw standard Guild Wars ranges around the player on the Compass. */

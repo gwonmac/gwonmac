@@ -73,6 +73,7 @@ export const SETTINGS: readonly SettingEntry[] = [
   { id: "cartographyCompassGridEnabled", section: "maps", label: "Markers on Compass", keywords: "unexplored cells" },
   { id: "compassRangeIndicatorsEnabled", section: "maps", label: "Compass ranges", detail: "Range rings on the Compass.", keywords: "earshot shout cast casting spirit aggro rings" },
   { id: "cartographyRouteEnabled", section: "maps", label: "Walking route", detail: "Right-click the Mission Map or World Map to set a target. Right-click the target to remove it.", keywords: `path navigate waypoint target ${KEYS}` },
+  { id: "cartographyQuestRouteEnabled", section: "maps", label: "Route to quest", detail: "Without your own target, the walking route leads to your active quest.", keywords: "quest objective marker path" },
   { id: "cartographyOverlayEnabled", section: "maps", label: "Walkable terrain", detail: "Shade areas you cannot walk on.", keywords: `walkability ${KEYS}` },
   { id: "eliteSkillsEnabled", section: "maps", label: "Elite skill planner", detail: "Adds the planner to the World Map and your Hunt list to the Mission Map.", keywords: "elite capture hunt boss signet" },
   { id: "eliteMissionMapMarkers", section: "maps", label: "Mission Map markers", keywords: "elite hunt" },
