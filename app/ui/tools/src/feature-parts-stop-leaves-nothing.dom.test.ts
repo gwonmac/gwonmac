@@ -33,11 +33,13 @@ import { installCartographyHost } from '../../../features/cartography/renderer/h
 import { mountHubView } from './hub/embedded';
 
 /**
- * The Tools bundle the game host loads (`tools/tools-app.js`, src/embedded.ts in this test): every
- * export mounts an app that is held until its handle's `dispose`. Nothing else is modelled.
+ * The Tools bundle the game host loads (`tools/tools-app.js`, src/embedded.ts in this test). Its
+ * five mounts are stood in where embedded.ts imports them: vitest swaps static imports reliably,
+ * but not the host's dynamic import with a variable specifier. Each mount holds an app until its
+ * handle's `dispose`. Nothing else is modelled.
  */
-vi.mock('./embedded', () => {
-  const mounted = (what: string) => {
+const { mounted } = vi.hoisted(() => ({
+  mounted(what: string) {
     const token = {};
     ledger.take(token, 'Tools bundle app', what);
     const members: Record<string, unknown> = {
@@ -54,15 +56,13 @@ vi.mock('./embedded', () => {
       },
     };
     return new Proxy(members, { get: (target, key) => typeof key === 'symbol' || key === 'then' ? undefined : key in target ? target[key] : () => undefined });
-  };
-  return {
-    mountEliteSkills: () => mounted('mountEliteSkills'),
-    mountWhispers: () => mounted('mountWhispers'),
-    mountToolsApp: () => mounted('mountToolsApp'),
-    createHubTravel: () => mounted('createHubTravel'),
-    mountTradeChat: () => mounted('mountTradeChat'),
-  };
-});
+  },
+}));
+vi.mock('./elite-mount', () => ({ mountEliteSkills: () => mounted('mountEliteSkills') }));
+vi.mock('./whispers-mount', () => ({ mountWhispers: () => mounted('mountWhispers') }));
+vi.mock('./mount', () => ({ mountToolsApp: () => mounted('mountToolsApp') }));
+vi.mock('./hub-travel', () => ({ createHubTravel: () => mounted('createHubTravel') }));
+vi.mock('./trade-mount', () => ({ mountTradeChat: () => mounted('mountTradeChat') }));
 
 /** Every feature's switch on, so every part starts what it shows. */
 const ALL_ON: Record<string, boolean> = {};
@@ -321,8 +321,8 @@ test('the check catches a planted leak of every kind', async () => {
   document.body.append(document.createElement('aside'));
   window.gwHub!.attach({ search: () => [], setVisible() {}, subscribe: () => () => {} });
   (window.gwNative.settings as unknown as { onChanged(listener: () => void): () => void }).onChanged(() => {});
-  const bundle = await import('./embedded');
-  const app = bundle.mountTradeChat(document.body, {} as Parameters<typeof bundle.mountTradeChat>[1]);
+  const { mountTradeChat } = await import('./trade-mount');
+  const app = mountTradeChat(document.body, {} as Parameters<typeof mountTradeChat>[1]);
   stop();
   const leaks = await page.leftOver();
   clearInterval(interval);
