@@ -28,7 +28,7 @@ test('turning the plain game on closes an open Hub, and no shortcut or call open
     press(key); await settle();
     expect([key, hubOpen()]).toEqual([key, false]);
   }
-  window.gwHub!.show(); await settle();
+  window.gwHub!.show(); window.gwHub!.resume(); await settle();
   expect(hubOpen()).toBe(false);
 });
 

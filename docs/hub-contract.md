@@ -4,7 +4,7 @@ The Hub presents commands over Guild Wars. Its navigation and keys belong to the
 pure engine in `app/renderer/hub-engine.ts`, tested in Node by
 `tests/unit/hub-engine.test.ts`: the page stack, the query, the selection and
 menu, the page session, the row or view action running on it (one at a
-time: Enter, the footer and Actions name it while it runs, also after a blur
+time: Enter, the footer and Actions name it while it runs, also after a suspension
 when the page resumes still mounted) and a failure carried across a close. What a list shows and which row it selects (its ranking with
 pins, phrases and commands, ties, the initial row and a selection handed on by
 a loading row) are pure functions in `app/renderer/hub-results.ts`, tested by
@@ -65,6 +65,22 @@ Command-Backspace goes back from any focus. Plain Backspace edits text.
 Consequential rows require explicit activation. A click selects; Enter, the
 footer primary, or a double-click on the same row runs the action. Destructive
 actions ask for confirmation. No transition leaves focus on a removed node.
+
+## Opening, hiding and resuming
+
+The Hub shortcut (Command-R) always opens Home with an empty search, so what the
+player types next is a global search. It never resumes a page. On an open Hub it
+goes Home and keeps the query typed there selected.
+
+A window blur leaves the Hub open: switching to another application and back
+keeps the page, the query and the focus.
+
+A backdrop click, a popout handoff and a confirmation hide the Hub and keep its
+page for 90 seconds. That page's own shortcut (Command-T, Command-E, Command-B,
+Settings) or a cancelled confirmation returns to it.
+
+Enter on a character row switches to that character, whether or not other
+characters match the search. Leaving an explorable area still asks first.
 
 ## Presentation and ownership
 

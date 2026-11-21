@@ -4,7 +4,7 @@
  * replace only the source, never shortcut ownership. The Core companion
  * installation builds that source with the controller exported here.
  */
-import { matchHubRows, normaliseHubQuery, parseHubQuery, type HubRow, type HubSource } from '../../../shared/hub.js';
+import { matchHubRows, parseHubQuery, type HubRow, type HubSource } from '../../../shared/hub.js';
 import { professionPresentation } from '../../../shared/profession-assets.js';
 import { currentCharacterIndex, type CharacterSwitchSource } from "./character-switch-model.js";
 import { characterSwitchRefusal, createCharacterSwitchPalette } from "./character-switch-palette.js";
@@ -75,16 +75,9 @@ export function installCharacterSwitchHost(parent: HTMLElement): CharacterSwitch
           },
         };
       }), parsed.term, true);
-      // A switch runs only on an exact name or the sole match. Otherwise the row opens the
-      // cards on that character and switches nothing, so Enter never relogs a guess (HUB-033).
-      if (matched.length === 1) return matched;
-      return matched.map(row => row.unavailable || normaliseHubQuery(row.title) === parsed.term ? row : {
-        ...row, action: `Show ${row.title} in Characters`, consequential: false,
-        run: () => {
-          const refusal = palette.reveal(row.id.slice('character:'.length));
-          if (refusal) throw refusal;
-        },
-      });
+      // Enter switches to the selected row, whose footer names that character, so a name
+      // typed in the Hub never needs a second Enter in the cards.
+      return matched;
     },
   };
   const detachHub = window.gwHub?.attach(hubSource);

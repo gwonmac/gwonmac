@@ -183,7 +183,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
       case 'open-menu': openMenu(); return;
       case 'close-disclosure': closeDisclosure(cause.event?.target ?? null, root); return;
       case 'focus-page': focusPage(); return;
-      case 'show': show(); return;
+      case 'show': resume(); return;
       case 'open': cause.open?.(); return;
       case 'refresh': refresh(); return;
       case 'report': report(effect.message, effect.receipt); return;
@@ -622,18 +622,27 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
   const direct = (destination: HubDestination, open: () => void) => { if (!plainGame()) send({ type: 'direct', destination }, { open }); };
   const modal = window.gwSurfaces.registerDialog({ root, priority: 6, transient: true,
     dismiss,
-    // A backdrop click keeps the task for the next ⌘R, like a trip to another window (HUB-052).
+    // A backdrop click hides the Hub and keeps its page for that page's own shortcut (HUB-052).
     backdrop: suspend,
     // Focus never lands on <body>: without a visible opener it returns to the game.
     restoreFocus: () => previousFocus?.isConnected && previousFocus !== document.body && previousFocus.getClientRects().length > 0
       ? previousFocus : document.getElementById('canvas'),
   });
   /**
-   * The Hub shortcut (⌘R). A closed Hub opens: a page suspended within the resume window
-   * resumes, otherwise Home starts fresh (D-11). An open Hub goes Home, keeping a query typed
-   * there selected, and never closes.
+   * The Hub shortcut (⌘R) always lands on Home with the search focused, so what the player
+   * types next is a global search. A closed Hub opens there with an empty search and drops a
+   * suspended page; an open Hub goes Home, keeping a query typed there selected, and never closes.
    */
-  const show = () => openHub(false);
+  const show = () => {
+    // The page a suspension kept ends here, as an explicit close ends it, so Home starts empty.
+    if (!root.open && state.suspended) close();
+    openHub(true);
+  };
+  /**
+   * Returns to the page a suspension left, within the resume window; otherwise opens Home. A
+   * page's own shortcut and a cancelled confirmation come back this way.
+   */
+  const resume = () => openHub(false);
   /** Opens the Hub; `fresh` drops a suspended page, for a page that opens a closed Hub itself. */
   function openHub(fresh: boolean) {
     if (plainGame()) return;
@@ -754,14 +763,13 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
   backButton.onclick = entry(back);
   primary.onclick = entry((event: MouseEvent) => { if (event.detail > 1) return; if (viewFooter) void runViewAction(viewFooter.primary ?? done, event); else send({ type: 'activate' }); });
   root.addEventListener('close', entry(() => { if (!root.open && !state.suspended) close(); }));
-  const onBlur = entry(() => suspend());
   const onSettings = entry(() => {
     // The plain game turned on in the launcher closes a Hub that is still open.
     if (plainGame() && root.open) { close(); return; }
     for (const source of sources.keys()) source.setVisible(root.open && sourceEnabled(source));
     withdrawPages();
   });
-  window.addEventListener('blur', onBlur); window.addEventListener('gw:tools-settings', onSettings);
+  window.addEventListener('gw:tools-settings', onSettings);
   /** A new page starts over the open Hub's page, which Back returns to, or as the only page of a fresh Hub. */
   function enterPage(place: (current: Place) => Place, query?: string) {
     if (plainGame()) return;
@@ -795,7 +803,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
   }
   // A presenter call is an entry point: it leaves the DOM drawn, so its caller can measure and focus right after.
   const presenter = {
-    show: entry(show), close: entry(() => close()), suspend: entry(suspend), direct: entry(direct),
+    show: entry(show), resume: entry(resume), close: entry(() => close()), suspend: entry(suspend), direct: entry(direct),
     suspendedOn: (destination: HubDestination) => hubSuspendedOn(state, destination, env()),
     /** A mounted view replaced its own page (a confirmation): a click run from before it is cancelled. */
     pageChanged: () => modal.pageChanged(),
@@ -835,7 +843,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     /** The pins and phrases, for the sources that edit them. */
     shortcuts: shortcutStore,
     resetPosition: hubWindow.reset,
-    dispose() { close(); clearTimeout(receiptTimer); hubWindow.dispose(); disposeFrame(); for (const unsubscribe of sources.values()) unsubscribe(); sources.clear(); modal.dispose(); disposed = true; ui.dispose(); window.removeEventListener('blur', onBlur); window.removeEventListener('gw:tools-settings', onSettings); },
+    dispose() { close(); clearTimeout(receiptTimer); hubWindow.dispose(); disposeFrame(); for (const unsubscribe of sources.values()) unsubscribe(); sources.clear(); modal.dispose(); disposed = true; ui.dispose(); window.removeEventListener('gw:tools-settings', onSettings); },
   };
   return presenter;
 }

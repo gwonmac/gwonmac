@@ -11,14 +11,15 @@ test('the smallest Hub keeps room for three results (HUB-238)', async ({ page })
   expect({ width: Math.round(box.width), height: Math.round(box.height) }).toEqual({ width: 340, height: 380 });
 });
 
-test('Hub has a locked frame, invisible corner hit area and bounded movable geometry', async ({ page }, info) => {
+test('Hub has a locked position, an always available corner grip and bounded movable geometry', async ({ page }, info) => {
   await openHub(page);
   const panel = page.locator('.hub-panel');
   const head = page.locator('.hub-heading');
   const grip = page.getByRole('button', { name: 'Resize Hub', exact: true });
   const initial = (await panel.boundingBox())!;
   await expect(panel).toHaveAttribute('data-locked', 'true');
-  await expect(grip).toBeHidden();
+  // The lock guards only the position: the corner resizes without it.
+  await expect(grip).toBeVisible();
   const heading = (await head.boundingBox())!;
   await page.mouse.move(heading.x + heading.width / 2, heading.y + 12);
   await page.mouse.down(); await page.mouse.move(heading.x + heading.width / 2 + 60, heading.y + 45); await page.mouse.up();
@@ -35,7 +36,7 @@ test('Hub has a locked frame, invisible corner hit area and bounded movable geom
   expect((await panel.boundingBox())!.width).toBeLessThan(initial.width);
   await page.getByRole('button', { name: 'Lock Hub position', exact: true }).click();
   const placement = await panel.boundingBox();
-  await expect(grip).toBeHidden();
+  await expect(grip).toBeVisible();
   const search = page.locator('.hub-search input');
   await search.fill('maps'); await search.press('Enter');
   expect(await panel.boundingBox()).toEqual(placement);

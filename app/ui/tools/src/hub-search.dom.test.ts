@@ -39,7 +39,7 @@ const answers: [query: string, primary: RegExp, finding: string][] = [
   ['ma', /^Adjust maps/u, 'HUB-058: a tool named by the query leads places that start the same'],
   ['tra', /^Browse travel/u, 'HUB-058: a name that starts with the query beats a later word'],
   ['ascalon city', /^Travel to Ascalon City/u, 'HUB-056: the available exact place, not the disabled pre-Searing one'],
-  ['char f', /^Show Fixture Ranger in Characters/u, 'HUB-056: the eligible character'],
+  ['char f', /^Switch to Fixture Ranger/u, 'HUB-056: the eligible character'],
   ['trader prices', /^Open Trade Chat/u, 'HUB-224: trader finds Trade Chat'],
   ['rate', /^Choose rates/u, 'HUB-063: the rates editor by its word'],
   ['title', /^Open calculator/u, 'HUB-063: the title calculator by its word'],
@@ -56,7 +56,7 @@ test('a typed search selects its best answer', async () => {
     expect(primary().disabled, finding).toBe(false);
   }
   // `travel` is also a Tools setting; the command is the answer, not the setting row below it.
-  for (const [query, id, label] of [['ascalon city', 'place:81', 'Travel to Ascalon City↵'], ['char f', 'character:ranger', 'Show Fixture Ranger in Characters↵'], ['travel', 'travel', 'Browse travel↵']] as const) {
+  for (const [query, id, label] of [['ascalon city', 'place:81', 'Travel to Ascalon City↵'], ['char f', 'character:ranger', 'Switch to Fixture Ranger↵'], ['travel', 'travel', 'Browse travel↵']] as const) {
     await ask(query);
     expect([selectedId(), primary().textContent], query).toEqual([id, label]);
   }
