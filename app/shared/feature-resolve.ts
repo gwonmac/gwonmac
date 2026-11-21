@@ -30,7 +30,10 @@ void requiresNameFeatures;
  * one to player text, so add one only for a new thing a player can do or wait for.
  */
 export type FeatureOffReason =
-  /** Optional features are off: the Tools switch is off. (Plain game, step 4.6.) */
+  /**
+   * The player plays the plain game (`gwonmacTools` off): every Feature is off and its own
+   * switch waits as stored. Player text: "Off while you play the plain game."
+   */
   | "plain-game"
   /** Optional features were turned on after the game started; they load at the next start. */
   | "needs-restart"
@@ -54,7 +57,7 @@ export type FeatureResolution =
 
 /** Everything `resolve` reads besides the manifest. */
 export type FeatureState = Readonly<{
-  /** Whether this game session started with optional features loaded (the Tools launch). */
+  /** Whether this game session started with Features loaded (not a plain-game Core launch). */
   toolsAtLaunch: boolean;
   /** The saved switches, read live: turning a feature off takes effect at once. */
   settings: Partial<FeatureActivationSettings>;

@@ -21,7 +21,7 @@ void activationSettingsAreBooleans;
 type FeatureBooleanSetting = ActivationSetting & BooleanSetting;
 
 type FeatureActivation =
-  | Readonly<{ kind: "master" | "independent"; setting: FeatureBooleanSetting }>
+  | Readonly<{ kind: "master"; setting: FeatureBooleanSetting }>
   | Readonly<{ kind: "setting"; setting: FeatureBooleanSetting; master: FeatureBooleanSetting }>;
 
 type FeatureSelectionPolicy = Readonly<{

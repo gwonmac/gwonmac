@@ -59,8 +59,8 @@ const game = (key: keyof typeof GAME_SETTINGS): SettingEntry => ({ id: key, sect
 
 /** Every setting a player can find by name, in display order within its section. */
 export const SETTINGS: readonly SettingEntry[] = [
-  { id: "hub", section: "tools", label: "Hub", detail: "Search everything in game. Always on, even with Tools off.", keywords: `search command palette ${KEYS}` },
-  { id: "gwonmacTools", section: "tools", label: "Enable Tools", detail: "Optional game features. Character Switch works independently.", keywords: "features optional" },
+  { id: "hub", section: "tools", label: "Hub", detail: "Search everything in game. Always on, also in the plain game.", keywords: `search command palette ${KEYS}` },
+  { id: "gwonmacTools", section: "tools", label: "Play the plain game", detail: "Turns off every Feature. Your Feature choices stay saved.", keywords: "plain vanilla original official features optional tools beta enable disable all off" },
   ...GLOBAL_TOOLS.map(toolEntry),
   ...option("character-switch", CHARACTER_DETAILS, "character details"),
   ...option("chat-filters", CHAT_FILTERS, "chat filter spam"),

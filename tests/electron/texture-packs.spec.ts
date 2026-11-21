@@ -29,7 +29,7 @@ test("selects one managed TPF for a new game window and keeps its generation imm
   try {
     if (await fixture.page.getByRole("button", { name: "Continue" }).isVisible()) {
       await fixture.page.getByRole("button", { name: "Continue" }).click();
-      await fixture.page.getByRole("button", { name: "Not now" }).click();
+      await fixture.page.getByRole("button", { name: "Play the plain game" }).click();
     }
     const settings = await openSettings(fixture);
     await settings.locator(".settings-page aside").getByRole("button", { name: "Texture packs" }).click();

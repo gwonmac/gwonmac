@@ -4,7 +4,7 @@ import { defineFeature } from "../define.js";
 export default defineFeature({
   id: "tools",
   settings: {
-    /** Master opt-in for the optional executable Tools Beta capability. */
+    /** The launch mode: on loads Features at the next start, off is the plain game (a Core launch). */
     gwonmacTools: setting.boolean(false, { tools: true }),
   },
   activation: { kind: "master", setting: "gwonmacTools" },

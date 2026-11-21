@@ -12,7 +12,7 @@ test("failed map edits remain visibly unsaved and can be retried or reverted at 
     });
     const settings = await openSettings(fixture);
     await settings.locator(".settings-page aside").getByRole("button", { name: "Maps", exact: true }).click();
-    await expect(settings.getByText("Tools are off", { exact: true })).toBeVisible();
+    await expect(settings.getByText("The plain game is on", { exact: true })).toBeVisible();
     await settings.getByRole("button", { name: "Customize style", exact: true }).click();
     await expect(settings.getByRole("textbox", { name: "Shaded area color hex" })).toBeVisible();
     const original = await settings.getByRole("textbox", { name: "Shaded area color hex" }).inputValue();

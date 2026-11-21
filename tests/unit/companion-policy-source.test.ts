@@ -53,7 +53,7 @@ describe("companion policy source", () => {
         playRegion: "unknown",
         playRegionState: { status: "waiting", reason: "memory" },
         policy: {
-          characterSwitch: true,
+          characterSwitch: false,
       resign: false,
       whispers: false,
       callTarget: false,

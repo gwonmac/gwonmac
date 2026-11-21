@@ -72,12 +72,13 @@ function today(feature: Feature, state: FeatureState): boolean {
 }
 
 /**
- * A difference between `resolve` and today that the PR lists for a decision instead of
- * copying today: Call Target's key chord reads only the switches (app/renderer/input.ts), so
- * it already runs after Tools is switched on in a session that started without Tools.
+ * Differences between `resolve` and today that a PR listed for a decision instead of copying
+ * today. Both features run from code a plain-game launch already has, and read only the
+ * switches, so they start as soon as the plain game is turned off in a running session:
+ * Call Target's key chord (app/renderer/input.ts) and Character Switch (the Core companion).
  */
 function knownDifference(feature: Feature, state: FeatureState): boolean {
-  return feature.id === "callTarget" && !state.toolsAtLaunch;
+  return (feature.id === "callTarget" || feature.id === "characterSwitch") && !state.toolsAtLaunch;
 }
 
 const ACTIVATION_SETTINGS = [...new Set(FEATURES.flatMap((feature) =>
@@ -129,7 +130,7 @@ test("resolve turns every feature on exactly when today's activation does", () =
   }
   assert.ok(compared > 10_000, `compared only ${compared} states`);
   // The listed difference is real; when a call site changes, drop it from the list.
-  assert.deepEqual([...differences], ["callTarget"]);
+  assert.deepEqual([...differences].sort(), ["callTarget", "characterSwitch"]);
 });
 
 const PLAYING: FeatureState = Object.freeze({
@@ -167,7 +168,7 @@ test("resolve names the first reason a feature is off", () => {
     ["PvE feature before a map", "whispers", playing({ playRegion: "unknown" }), { on: false, reason: "wrong-area" }],
     ["update before area", "whispers", playing({ playRegion: "pvp", features: features({ whisperChat: { status: "unavailable", reason: "game-update" } }) }), { on: false, reason: "needs-update" }],
     ["non-PvP feature before a map", "quickItemMove", playing({ playRegion: "unknown" }), { on: true }],
-    ["Character Switch without Tools", "characterSwitch", playing({ toolsAtLaunch: false }, { gwonmacTools: false }), { on: true }],
+    ["Character Switch in the plain game", "characterSwitch", playing({ toolsAtLaunch: false }, { gwonmacTools: false }), { on: false, reason: "plain-game" }],
     ["Character Switch off", "characterSwitch", playing({}, { characterSwitchEnabled: false }), { on: false, reason: "switched-off" }],
     ["a developer program selects with switches off", "travel", playing({ program: "toolbox-commands" }, { gwonmacTools: false, travelPalette: false }), { on: true }],
     ["a developer program needs the Tools launch", "travel", playing({ program: "toolbox-commands", toolsAtLaunch: false }), { on: false, reason: "needs-restart" }],

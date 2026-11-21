@@ -13,9 +13,10 @@ architecture.
 ## Current product boundary
 
 Core is required and has no player switch: file compatibility, the Guild Wars
-cursor, native double-click, Scry (Command-R), Character Switch (Command-E), and
-pre-game reload. Optional Tools are off by default. The first enable selects a
-Tools-capable module and needs a restart; after that, every tool has its own
+cursor, native double-click, Scry (Command-R), and pre-game reload. Every other
+feature, Character Switch (Command-E) included, is a Feature that the plain game
+turns off. New players start in the plain game. Turning it off selects a
+Tools-capable module and needs a restart; after that, every Feature has its own
 live switch. `app/shared/settings-catalogue.ts` lists the shipped tools, and the
 [website feature pages](https://www.gwonmac.com/docs) describe them for players.
 

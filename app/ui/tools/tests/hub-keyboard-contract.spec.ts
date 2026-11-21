@@ -56,7 +56,7 @@ const VIEWS: Record<KeyboardView, { query?: string; open(page: Page): Promise<vo
     await page.locator('.hub-search input').fill('team gom afk'); await page.keyboard.press('ArrowRight');
     await page.locator('#hub details summary').first().click();
   } },
-  'settings-body': { open: async page => { await enterHub(page, 'settings'); await page.getByRole('checkbox', { name: 'Enable Tools' }).focus(); } },
+  'settings-body': { open: async page => { await enterHub(page, 'settings'); await page.getByRole('checkbox', { name: 'Play the plain game' }).focus(); } },
 };
 
 /** Two animation frames and the demo hosts' 600 ms travel or apply delays. */

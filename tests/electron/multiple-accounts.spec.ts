@@ -176,7 +176,7 @@ test("fresh startup creates Main and adds an account without restart", { tag: "@
   try {
     await expect(fixture.page).toHaveURL("gw://app/launcher/index.html");
     await fixture.page.getByRole("button", { name: "Continue" }).click();
-    await fixture.page.getByRole("button", { name: "Not now" }).click();
+    await fixture.page.getByRole("button", { name: "Play the plain game" }).click();
     await expect(fixture.page.getByRole("button", { name: "Play", exact: true })).toBeVisible();
     await fixture.page.getByRole("button", { name: "Accounts", exact: true }).click();
     await expect(fixture.page.getByRole("heading", { name: "Main account", exact: true })).toBeVisible();
@@ -532,7 +532,7 @@ test("the account workspace survives a full application restart", { tag: "@journ
   let restarted: Awaited<ReturnType<typeof launchOfflineAt>> | null = null;
   try {
     await first.page.getByRole("button", { name: "Continue" }).click();
-    await first.page.getByRole("button", { name: "Not now" }).click();
+    await first.page.getByRole("button", { name: "Play the plain game" }).click();
     await first.page.getByRole("button", { name: "Accounts", exact: true }).click();
     await first.page.getByRole("button", { name: "Add account" }).click();
     await first.page.getByLabel("Name").fill("Second account");
@@ -560,16 +560,16 @@ test("global map settings live in the launcher and survive restart", { tag: "@jo
   let restarted: Awaited<ReturnType<typeof launchOfflineAt>> | null = null;
   try {
     await first.page.getByRole("button", { name: "Continue" }).click();
-    await first.page.getByRole("button", { name: "Not now" }).click();
+    await first.page.getByRole("button", { name: "Play the plain game" }).click();
     const settings = await openSettings(first);
     const nav = (name: string) => settings.locator(".settings-page aside").getByRole("button", { name, exact: true });
     await nav("Maps").click();
-    await expect(settings.getByText("Tools are off", { exact: true })).toBeVisible();
+    await expect(settings.getByText("The plain game is on", { exact: true })).toBeVisible();
     await settings.getByRole("checkbox", { name: /^Exploration grid/ }).check();
     await settings.getByRole("button", { name: "Customize style" }).click();
     await expect(settings.getByRole("region", { name: "Edit Cartographer custom" })).toBeVisible();
     await settings.getByRole("button", { name: "Open Tools settings" }).click();
-    await settings.getByRole("checkbox", { name: /^Enable Tools/ }).check();
+    await settings.getByRole("checkbox", { name: /^Play the plain game/ }).uncheck();
     await nav("Maps").click();
     await expect(settings.getByRole("heading", { name: "Maps" })).toBeVisible();
     await expect(settings.getByText("Restart the launcher to enable Maps", { exact: true })).toBeVisible();
@@ -601,7 +601,7 @@ test("renderer recovery stays inside one profile and leaves the launcher alive",
   });
   try {
     await fixture.page.getByRole("button", { name: "Continue" }).click();
-    await fixture.page.getByRole("button", { name: "Not now" }).click();
+    await fixture.page.getByRole("button", { name: "Play the plain game" }).click();
     await fixture.page.evaluate(async () => {
       const id = (await window.launcherNative.state.get()).profiles[0]!.id;
       window.__concurrentProfileOpen = window.launcherNative.profiles.play([id]);
@@ -684,7 +684,7 @@ test("mandatory client repair blocks Play without rejecting and stays global", {
   });
   try {
     await fixture.page.getByRole("button", { name: "Continue" }).click();
-    await fixture.page.getByRole("button", { name: "Not now" }).click();
+    await fixture.page.getByRole("button", { name: "Play the plain game" }).click();
     await expect(fixture.page.getByText("Game files need repair").first()).toBeVisible({
       timeout: 30_000,
     });

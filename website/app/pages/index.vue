@@ -285,8 +285,8 @@ const FAQ: FaqItem[] = [
   {
     q: { en: "Can I use GWToolbox++?", de: "Kann ich GWToolbox++ nutzen?" },
     a: {
-      en: "No. GWToolbox++ only works with the Windows client. GWonMac Tools Beta provides its own build and team features. It is optional and works only in supported PvE outposts.",
-      de: "Nein. GWToolbox++ funktioniert nur mit dem Windows-Client. GWonMac Tools Beta bietet eigene Funktionen für Builds und Teams. Die Tools sind optional und funktionieren nur in unterstützten PvE-Außenposten.",
+      en: "No. GWToolbox++ only works with the Windows client. GWonMac's own Features help with builds and teams. They are optional and work only in supported PvE outposts.",
+      de: "Nein. GWToolbox++ funktioniert nur mit dem Windows-Client. Die Features von GWonMac bieten eigene Funktionen für Builds und Teams. Sie sind optional und funktionieren nur in unterstützten PvE-Außenposten.",
     },
   },
   {

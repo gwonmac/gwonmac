@@ -4,7 +4,7 @@ import { defineFeature } from "../define.js";
 export default defineFeature({
   id: "characterSwitch",
   settings: {
-    /** Allow the Core Character Switch surface independently of optional Tools. */
+    /** Character Switch's own switch; the plain game (`gwonmacTools` off) stops it too. */
     characterSwitchEnabled: setting.boolean(true, { tools: true }),
     /** Show the canonical profession icon and profession names in Character Switch. */
     characterSwitchProfession: setting.boolean(true, { hub: true, rendererWritable: true }),
@@ -13,14 +13,14 @@ export default defineFeature({
     /** Show a location only when Travel's reviewed catalogue names its map. */
     characterSwitchLocation: setting.boolean(true, { hub: true, rendererWritable: true }),
   },
-  activation: { kind: "independent", setting: "characterSwitchEnabled" },
+  activation: { kind: "setting", setting: "characterSwitchEnabled", master: "gwonmacTools" },
   region: "any",
   capabilities: ["characterSwitchAction"],
   tool: {
     id: "character-switch",
     label: "Switch Character",
     event: "gw:character-toggle",
-    description: "Search and browse every character. Available without optional Tools.",
+    description: "Search and browse every character.",
     keywords: "characters relog alts profession",
     hub: {
       command: "character", order: 1, keyOrder: 1,

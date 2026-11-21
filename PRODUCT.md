@@ -37,11 +37,14 @@ account profile, and each profile opens in its own game window.
 ## Tools
 
 Required template compatibility, Core cursor support, and the sound decode
-memory repair run when their exact client proofs permit them. Optional **gwonmac Tools Beta** is off by default,
-and every tool has its own switch beneath that master opt-in. Turning the
-master off disables all tool surfaces, shortcuts, and chat aliases without
-deleting saved tool data. A Core launch does not load optional Tools code at
-all; Settings offers a restart to unload Tools completely.
+memory repair run when their exact client proofs permit them. New players start in the
+**plain game**: no Feature runs. Turning off **Play the plain game** loads the
+Features, and every Feature has its own switch. Turning the plain game on stops
+every Feature, Character Switch included, without changing a switch or deleting
+saved data, so turning it off brings each back as it was. A plain-game launch is
+a Core launch and loads no optional Feature code; Character Switch's code sits in
+the Core companion and stays idle. Settings offers a restart to unload Features
+completely.
 
 Tools provides Build and Team authoring, party capture, team-code exchange,
 read-only Trade Chat discovery with observed Kamadan NPC trader prices, Target
@@ -50,7 +53,6 @@ publish trade listings in Guild Wars. The Trader prices view does not estimate
 player-market prices, and Trade never sends or automates game chat or executes
 trades. Team Apply is a
 bounded configuration action that checks fresh game state after each step.
-**Tools Beta** describes feature maturity.
 
 Texture packs: players import legacy 32-bit TexMod `.tpf` interface packs and
 choose one appearance for newly opened game windows. Packs replace matching

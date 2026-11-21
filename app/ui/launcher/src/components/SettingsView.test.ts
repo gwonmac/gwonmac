@@ -164,7 +164,7 @@ describe("Settings page", () => {
     await flushPromises();
     await openSection(wrapper, "Maps");
     expect(wrapper.get(".settings-fields h1").text()).toBe("Maps");
-    expect(wrapper.text()).toContain("Tools are off");
+    expect(wrapper.text()).toContain("The plain game is on");
     update({ ...fixtureSnapshot, revision: 2, tools: { ...fixtureSnapshot.tools, configured: true, loaded: false, restartRequired: true } });
     await flushPromises();
     expect(wrapper.text()).toContain("Restart the launcher to enable Maps");
@@ -179,6 +179,28 @@ describe("Settings page", () => {
     expect(restart).toHaveBeenCalledOnce();
   });
 
+  it("plays the plain game with every Feature switch held, and turning it off loads Features", async () => {
+    const setMasterEnabled = vi.fn(async () => undefined);
+    const wrapper = mountView({ tools: { setMasterEnabled } });
+    await flushPromises();
+    const plain = wrapper.get<HTMLInputElement>('[data-setting="gwonmacTools"] input');
+    expect(plain.element.checked).toBe(true);
+    // Character Switch is a Feature: the plain game holds its switch like every other one.
+    expect(wrapper.get<HTMLInputElement>("#tool-character-switch").element.disabled).toBe(true);
+    expect(wrapper.get<HTMLInputElement>("#tool-character-switch").element.checked).toBe(true);
+    await plain.setValue(false);
+    await flushPromises();
+    expect(setMasterEnabled).toHaveBeenCalledWith(true);
+
+    const features = mountView({ tools: { setMasterEnabled } }, { snapshot: allToolsOn });
+    await flushPromises();
+    expect(features.get<HTMLInputElement>('[data-setting="gwonmacTools"] input').element.checked).toBe(false);
+    expect(features.get<HTMLInputElement>("#tool-character-switch").element.disabled).toBe(false);
+    await features.get<HTMLInputElement>('[data-setting="gwonmacTools"] input').setValue(true);
+    await flushPromises();
+    expect(setMasterEnabled).toHaveBeenLastCalledWith(false);
+  });
+
   it("asks before replacing another Tool shortcut", async () => {
     const replaceShortcut = vi.fn(async () => undefined);
     const wrapper = mountView({
@@ -186,7 +208,7 @@ describe("Settings page", () => {
         captureShortcut: async () => ({ status: "conflict" as const, action: "travel.open" as const, binding: { key: "t", shift: false, option: false } }),
         replaceShortcut,
       },
-    });
+    }, { snapshot: allToolsOn });
     await flushPromises();
     await wrapper.get('button[aria-label="Change Switch Character shortcut"]').trigger("click");
     await flushPromises();

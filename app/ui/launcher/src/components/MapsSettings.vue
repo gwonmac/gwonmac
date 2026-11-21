@@ -195,8 +195,8 @@ async function updateUnseen(patch: Partial<CartographyPresetStyle["grid"]["unsee
   <h1>Maps</h1>
   <p class="section-intro">Layers and styles for every account.</p>
   <div v-if="tools" class="feature-availability" role="status">
-    <template v-if="!tools.configured || !tools.features.maps.enabled"><span><strong>{{ !tools.configured ? 'Tools are off' : 'Maps are off' }}</strong> · You can edit your preferences here. Enable {{ !tools.configured ? 'Tools and Maps' : 'Maps' }} to see them in game.</span><button class="secondary small" @click="emit('tools')">Open Tools settings</button></template>
-    <template v-else-if="!tools.loaded"><span><strong>Restart the launcher to enable Maps</strong> · Your settings are saved. Quit the entire app (⌘Q), including the launcher, then reopen it. Restarting only a game window does not load Tools.</span><button class="secondary small" @click="emit('tools')">Open restart options</button></template>
+    <template v-if="!tools.configured || !tools.features.maps.enabled"><span><strong>{{ !tools.configured ? 'The plain game is on' : 'Maps are off' }}</strong> · You can edit your preferences here. {{ !tools.configured ? 'Turn off the plain game and turn on Maps' : 'Turn on Maps' }} to see them in game.</span><button class="secondary small" @click="emit('tools')">Open Tools settings</button></template>
+    <template v-else-if="!tools.loaded"><span><strong>Restart the launcher to enable Maps</strong> · Your settings are saved. Quit the entire app (⌘Q), including the launcher, then reopen it. Restarting only a game window does not load Features.</span><button class="secondary small" @click="emit('tools')">Open restart options</button></template>
     <span v-else><strong>Maps enabled</strong> · Changes update open game windows. Layers appear in supported PvE areas.</span>
   </div>
   <div class="setting-group map-layers">

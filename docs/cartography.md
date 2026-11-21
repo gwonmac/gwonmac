@@ -45,7 +45,7 @@ applies the manifest rule. The part removes the reader with its presentation.
 Without a reader (before activation, after disposal, or when no companion is
 certified) the region is unknown and Maps stays hidden.
 
-Maps settings remain available when Tools are off. The page explains how to
+Maps settings remain available in the plain game. The page explains how to
 enable Maps and whether an application restart is needed. An illustrative
 preview shows the selected colors, border, and remaining markers without a game
 session. Inspection outlines and Compass inspection options are disclosed
