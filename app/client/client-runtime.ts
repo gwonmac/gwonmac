@@ -482,20 +482,12 @@ export class ClientRuntime {
     gauge("wasm.templateSaveCompatible", prepared.gameFileSaving.status === "available");
     const cartographyPrepared = prepared.cartography.status === "active";
     gauge("wasm.cartographyPrepared", cartographyPrepared);
-    gauge("enhancement.effectiveCursor", effective.nativeCursor);
-    gauge("enhancement.effectiveTargetObservation", effective.targetObservation);
-    gauge("enhancement.effectivePartyObservation", effective.partyObservation);
-    gauge("enhancement.effectiveTeamApply", effective.teamApply);
-    gauge("enhancement.effectiveTravelAction", effective.travelAction);
-    gauge("enhancement.effectiveXunlaiAction", effective.xunlaiAction);
-    gauge("enhancement.effectiveChatAliases", effective.chatAliases);
-    gauge("enhancement.effectiveChatFiltering", effective.chatFiltering);
-    gauge("enhancement.effectiveQuickItemMove", effective.quickItemMove);
-    gauge("enhancement.effectiveSkillSlotGeometry", effective.skillSlotGeometry);
-    gauge(
-      "enhancement.effectiveSkillCooldownObservation",
-      effective.skillCooldownObservation,
-    );
+    for (const capability of ENHANCEMENT_CAPABILITY_FIELDS) {
+      gauge(
+        `enhancement.effective${capability[0]!.toUpperCase()}${capability.slice(1)}`,
+        effective[capability],
+      );
+    }
 
     if (prepared.failure?.stage === "template-save") {
       logEvent({ k: "wasm.templateSavePrepareFailed",
