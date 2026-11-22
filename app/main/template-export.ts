@@ -2,11 +2,12 @@
  * Putting the game's build templates on disk, where a player can keep, copy or
  * carry them.
  *
- * Owns: the destination dialog, naming a folder that replaces nothing, the
- * bounded write, and the check that every path the renderer sent stays inside
- * the chosen folder. That last one is not a formality — the renderer supplies
- * the tree because only it can see the mount, so this is the boundary where a
- * path stops being trusted.
+ * Owns: the destination dialog, naming a folder that replaces nothing, and the
+ * bounded write. Every path the renderer sent is proven by `parseTemplateEntries`
+ * (shared/template-entries.ts: two or three plain segments, no `..`, separators
+ * or control characters), so a path cannot leave the chosen folder. The renderer
+ * supplies the tree because only it can see the mount, so that parser is the
+ * boundary where a path stops being trusted.
  *
  * Refuses to parse, to know the game's filesystem, and to answer a path back to
  * the renderer: like `appRevealPath`, only main knows where the player pointed.
@@ -18,27 +19,10 @@ import { mkdir, writeFile } from "node:fs/promises";
 import type { TemplateExportResult } from "../shared/contracts.js";
 import type { TemplateExportEntry } from "../shared/template-contracts.js";
 import { AppError, type ErrorCode } from "../shared/errors.js";
-import { parseTemplateEntries } from "../shared/template-entries.js";
 
 /** The folder an export creates. Numbered rather than merged, so nothing is replaced. */
 const DESTINATION_NAME = "Guild Wars Build Templates";
 const MAX_DESTINATIONS = 99;
-
-/**
- * `Skills/<name>.txt` or `Skills/<folder>/<name>.txt` — two or three segments,
- * which is the deepest the client can key a template.
- */
-/**
- * The rule the writer relies on, applied at the boundary rather than trusted.
- *
- * `credentialsSave` validates the same way: the code that consumes a value
- * re-checks it here so there is no second opinion about what is acceptable. A
- * path is rejected outright rather than repaired, because a repaired path is a
- * write the player never asked for.
- */
-export function parseExportEntries(value: unknown): TemplateExportEntry[] {
-  return parseTemplateEntries(value);
-}
 
 /**
  * A destination that exists already is never written into. The player asked to

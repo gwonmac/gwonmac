@@ -266,7 +266,7 @@ export class AppUpdater {
 
   /**
    * The one place a fault that stops a check is kept rather than dropped. The
-   * The bounded reason reaches diagnostics; an error is text this
+   * bounded reason reaches diagnostics; an error is text this
    * process did not author, so it is redacted and goes no further than the
    * console. Transport, JSON, and closed-contract failures all name the one
    * static-feed boundary without retaining provider prose.

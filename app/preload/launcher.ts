@@ -1,7 +1,9 @@
-// The launcher's deliberately small sandbox bridge. Built to
-// build/preload/preload-launcher.cjs; every channel comes from the launcher
-// channel table (app/shared/ipc/launcher.ts), bundled in, so there is no
-// parallel IPC list.
+/**
+ * The launcher's deliberately small sandbox bridge. Built to
+ * build/preload/preload-launcher.cjs; every channel comes from the launcher
+ * channel table (app/shared/ipc/launcher.ts), bundled in, so there is no
+ * parallel IPC list.
+ */
 import { contextBridge } from "electron";
 import { LAUNCHER_CHANNELS } from "../shared/ipc/launcher.js";
 import type { LauncherNativeApi } from "../shared/launcher-contracts.js";

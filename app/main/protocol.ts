@@ -172,10 +172,6 @@ export function registerGwScheme(): void {
   ]);
 }
 
-export function installGwProtocolHandler(deps: ProtocolDeps): void {
-  protocol.handle("gw", (request) => handleGwRequest(request, deps));
-}
-
 /** A custom partition owns its own protocol registry. */
 export function installGwProtocolHandlerForSession(
   owner: Session,
@@ -443,7 +439,7 @@ async function handleProxy(
     fwd.set(k, v);
   }
   try {
-    const init: RequestInit & { bypassCustomProtocolHandlers?: boolean } = {
+    const init: RequestInit = {
       method,
       headers: fwd,
       redirect: "manual",

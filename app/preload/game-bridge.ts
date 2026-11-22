@@ -1,10 +1,12 @@
-// The game window's sandboxed bridge, shared by the Core and Tools preloads.
-//
-// A sandboxed preload may `require` only `electron` (and `events`, `timers`,
-// `url`), so it cannot load a repository module at run time. Rollup bundles
-// each preload entry into one CommonJS file instead (scripts/build-renderer.mjs),
-// which is what lets this file import the canonical channels and constants
-// rather than carry a copy of them.
+/**
+ * The game window's sandboxed bridge, shared by the Core and Tools preloads.
+ *
+ * A sandboxed preload may `require` only `electron` (and `events`, `timers`,
+ * `url`), so it cannot load a repository module at run time. Rollup bundles
+ * each preload entry into one CommonJS file instead (scripts/build-renderer.mjs),
+ * which is what lets this file import the canonical channels and constants
+ * rather than carry a copy of them.
+ */
 import { contextBridge, ipcRenderer } from "electron";
 import {
   DIAGNOSTIC_PROFILES,

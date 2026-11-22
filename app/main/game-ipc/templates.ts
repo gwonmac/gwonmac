@@ -5,12 +5,13 @@
 import { logEvent } from "../diagnostics.js";
 import { channel } from "../ipc-channel-registry.js";
 import { nothing, one } from "../ipc-values.js";
-import { exportTemplates, parseExportEntries } from "../template-export.js";
+import { parseTemplateEntries } from "../../shared/template-entries.js";
+import { exportTemplates } from "../template-export.js";
 import type { GameHandlers, GameIpcInput } from "./part.js";
 
 export default ({ accounts, windows }: GameIpcInput) => ({
   channels: {
-    templatesExport: channel(one(parseExportEntries), async (win, entries) => {
+    templatesExport: channel(one(parseTemplateEntries), async (win, entries) => {
       const ownerId = windows.requireDiagnosticOwnerForWindow(win);
       const result = await exportTemplates(win, entries);
       if (result.status === "written") {
@@ -21,7 +22,7 @@ export default ({ accounts, windows }: GameIpcInput) => ({
       return result;
     }),
     profileTemplatesLoad: channel(nothing, (win) => accounts.loadTemplates(win)),
-    profileTemplatesSave: channel(one(parseExportEntries), (win, entries) =>
+    profileTemplatesSave: channel(one(parseTemplateEntries), (win, entries) =>
       accounts.saveTemplates(win, entries)),
   } satisfies GameHandlers,
 });
