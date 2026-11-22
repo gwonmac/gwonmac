@@ -3,8 +3,9 @@
  * the shared kernel transaction and calls this extension only in Tools mode.
  *
  * This module names no feature: it runs every substrate and feature part through
- * each of Core's phases (tools-companion-part.ts). The memory phases run in
- * COMPANION_HEAP_LAYOUT order; the order of the other phases does not matter.
+ * each of Core's phases (tools-companion-part.ts). The memory phases, from
+ * allocation to release, run in COMPANION_HEAP_LAYOUT order; the order of the
+ * other phases does not matter.
  */
 import * as featureParts from "../features/companion-parts.js";
 import { COMPANION_DISPATCH_KINDS, COMPANION_FEATURE_BITS } from "../shared/companion-abi.js";
@@ -118,7 +119,7 @@ export async function prepareToolsCompanionExtension(
       return regions;
     },
     activate(context) {
-      const session = activateParts(input, context, prepared);
+      const session = activateParts(input, context, prepared, owners);
       activated = true;
       return session;
     },
@@ -141,12 +142,15 @@ function activateParts(
   }>,
   context: CompanionExtensionActivation,
   prepared: ReadonlyMap<ToolsCompanionPart, PreparedToolsPart>,
+  owners: readonly PreparedToolsPart[],
 ): CompanionExtensionSession {
   const { capabilities, program } = input;
   const source = createToolsPolicySource(context);
   const snapshot = () => source.snapshot;
   const trace = createPolicyTrace(context, snapshot);
   const sessions: ToolsPartSession[] = [];
+  /** The memory owners' sessions in heap-layout order: they free what they allocated. */
+  const releasing: ToolsPartSession[] = [];
   let hud: ReturnType<typeof createToolsHud> = null;
   const syncObservers = () => context.kernel.dispatch(
     COMPANION_DISPATCH_KINDS.activeFeatures,
@@ -199,10 +203,17 @@ function activateParts(
       prepared: <Prepared extends PreparedToolsPart>(part: ToolsCompanionPart<Prepared>) =>
         (prepared.get(part) ?? null) as Prepared | null,
     });
-    for (const part of prepared.values()) {
-      const session = part.activate?.(activation);
-      if (session !== undefined) sessions.push(session);
+    const activated = new Map<PreparedToolsPart, ToolsPartSession>();
+    for (const [part, value] of prepared) {
+      const session = value.activate?.(activation);
+      if (session === undefined) continue;
+      if (!owners.includes(value) && (session.releaseObserverMemory ?? session.releaseCallbackResources) !== undefined) {
+        throw new Error(`Companion part ${part.id} frees memory but has no place in COMPANION_HEAP_LAYOUT`);
+      }
+      sessions.push(session);
+      activated.set(value, session);
     }
+    releasing.push(...owners.flatMap((owner) => activated.get(owner) ?? []));
     for (const session of sessions) session.mount?.();
   } catch (cause) {
     abortActivation(cause);
@@ -276,11 +287,11 @@ function activateParts(
     disposePresentation,
     releaseObserverMemory(free) {
       runCleanupSteps("Companion Tools observer memory cleanup failed",
-        sessions.flatMap((session) => freeing(session.releaseObserverMemory ?? [], free)));
+        releasing.flatMap((session) => freeing(session.releaseObserverMemory ?? [], free)));
     },
     releaseCallbackResources(free) {
       runCleanupSteps("Companion Tools callback cleanup failed",
-        sessions.flatMap((session) => freeing(session.releaseCallbackResources ?? [], free)));
+        releasing.flatMap((session) => freeing(session.releaseCallbackResources ?? [], free)));
     },
   });
 }

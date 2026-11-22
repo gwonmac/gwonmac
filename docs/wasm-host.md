@@ -356,7 +356,7 @@ does not consume an existing game table entry for its own table.
 
 The Tools companion's own regions (friends, chat, skill HUD, alcohol, progress,
 effects, and the regions some features own) are allocated with the game's
-`malloc` in one fixed order, `COMPANION_HEAP_LAYOUT` in
+`malloc`, and freed, in one fixed order, `COMPANION_HEAP_LAYOUT` in
 `app/renderer/tools-companion-part.ts`. The kernel receives each region's
 pointer at install, after the owned-region check, and no certificate or proof
 stores an offset, so the order is a stability rule, not a proof input: a new

@@ -196,7 +196,7 @@ not matter.
 A part that owns memory (a certified stage with its own region, as Reminders' chat print) also
 takes a place in `COMPANION_HEAP_LAYOUT` (`app/renderer/tools-companion-part.ts`): add its id at
 the end, so the memory that already works never moves. The installer refuses a part that
-allocates or names a region without a place, and
+allocates, names a region or frees memory without a place, and
 `tests/unit/the-companion-heap-layout-stays-fixed.test.ts` pins the layout. A group A Feature
 owns no memory and never touches it.
 

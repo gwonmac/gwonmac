@@ -4,9 +4,9 @@
  * A part is one feature's renderer code (app/features/<id>/companion.ts) or one
  * shared substrate (tools-companion-substrates.ts). The installer runs every
  * part through Core's phases, so a part only says what it does in each phase.
- * The order of the parts does not matter: the parts that own memory allocate in
- * COMPANION_HEAP_LAYOUT order, and no other phase depends on another part's
- * place. Adding a feature adds a part; the installer and Core stay unchanged.
+ * The order of the parts does not matter: the parts that own memory allocate and
+ * free it in COMPANION_HEAP_LAYOUT order, and no other phase depends on another
+ * part's place. Adding a feature adds a part; the installer and Core stay unchanged.
  *
  * A feature that runs on the building blocks alone builds its part with
  * `featurePart`, the `game` kind of app/features/parts.ts: it gives one `start`
@@ -52,9 +52,9 @@ export type ToolsPrepareInput = Readonly<{
 export type SubstrateId = "observation" | "friends" | "chat" | "alcohol" | "effects" | "gameProgress" | "skillHud";
 
 /**
- * The heap layout: every part that owns memory, in the order it allocates. It is
- * the one source of that order. A part that allocates (or names regions) without
- * a place here is refused when the installation prepares, and a new memory owner
+ * The heap layout: every part that owns memory, in the order it allocates and
+ * frees it. It is the one source of that order. A part that allocates, names
+ * regions or frees memory without a place here is refused, and a new memory owner
  * takes the last place, so the memory that already works never moves. The
  * kernel gets each region's pointer at install, and no proof stores an offset;
  * the order is fixed so a change never shifts memory that a player's game already
