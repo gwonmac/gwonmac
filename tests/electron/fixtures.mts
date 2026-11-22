@@ -131,6 +131,11 @@ export async function launchOfflineAt(
     // Existing game-renderer tests can still exercise the shell's pre-ready
     // states. Production never reads this unpackaged-only launch seam.
     GW_TEST_ALLOW_UNREADY_LAUNCH: "1",
+    // The stand-in clients prove nothing, so main's Feature facts would hold
+    // every Feature off. Specs drive Feature surfaces with stand-in commands,
+    // so every capability reads as proved; the unit tests own the proof gate.
+    // Unpackaged-only, like the seam above; pass "0" to see the real checks.
+    GW_TEST_FEATURES_PROVEN: "1",
     ...environment,
     // Every default launch is offline by policy. With no seeded generation the
     // runtime publishes a normal `not_ready` failure; it never fabricates a
