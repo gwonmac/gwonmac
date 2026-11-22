@@ -18,6 +18,8 @@ import {
   type RendererInit,
 } from "../../app/shared/contracts.ts";
 import { preloadSource as bundlePreload } from "../../scripts/build-renderer.mjs";
+import { provideLink } from "../../app/renderer/feature-links.ts";
+import { provenFacts } from "../helpers/feature-facts.ts";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 // The Tools preload as it ships: bundled in memory by the build's own Rollup
@@ -293,7 +295,6 @@ test("key release, trace state and text editing cross preload with their values 
 const TOOL_COMMANDS = [
   ["tools.toggle", "gw:tools-toggle"],
   ["trade.toggle", "gw:trade-toggle"],
-  ["whispers.toggle", "gw:whispers-toggle"],
   ["storage.open", "gw:storage-open"],
   ["travel.toggle", "gw:travel-toggle"],
   ["character.toggle", "gw:character-toggle"],
@@ -318,6 +319,32 @@ test("a tool command is unhandled when no listener claims its event, and fails w
         `${type} with its listener ${listener}`,
       );
     }
+  }
+});
+
+test("a tool that opens through its Feature's link is toggled through it, and is unhandled while nothing provides it", async () => {
+  // Whispers offers `toggle` (ToolLink, app/features/links.ts): its shortcut calls the link, and
+  // no window event is fired. A link the part does not provide is the answer of a launch without it.
+  const previous = Object.getOwnPropertyDescriptor(globalThis, "window");
+  Object.defineProperty(globalThis, "window", { configurable: true, value: { gwFeatureFacts: () => provenFacts({ gwonmacTools: true, whispersEnabled: true }) } });
+  try {
+    for (const provided of [false, true]) {
+      const asked: string[] = [];
+      const stop = provided
+        ? provideLink("whispers", { open: () => "opened", people: () => "unavailable", toggle: (intent) => { asked.push(intent); return "shown"; } })
+        : () => {};
+      const fixture = harness(TOOLS_ARGV);
+      fixture.deliver(1, { type: "whispers.toggle" });
+      await fixture.settled(1);
+      stop();
+      assert.deepEqual(
+        { dispatched: fixture.dispatched.filter((name) => name !== "gw:input-reset"), asked, acknowledged: fixture.acknowledgements() },
+        { dispatched: [], asked: provided ? ["toggle"] : [], acknowledged: [[1, provided ? "completed" : "unhandled"]] },
+        provided ? "provided" : "not provided",
+      );
+    }
+  } finally {
+    if (previous) Object.defineProperty(globalThis, "window", previous); else Reflect.deleteProperty(globalThis, "window");
   }
 });
 

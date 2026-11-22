@@ -10,16 +10,18 @@ import { useClassicFrame } from "./ui/use-classic-frame";
 import { isHubBackKey } from "../../../shared/keyboard-shortcuts";
 import { listIndexAfter, listKeyStep, listPage } from "../../../shared/ui/list-keys";
 import { useFloatingWindow } from "./use-floating-window";
-import {
-  restoreFloatingPosition,
-  serializeFloatingPosition,
-} from "../../../shared/ui/window-placement";
+import { captureCornerPosition, restoreCornerPosition, type CornerPosition } from "../../../shared/corner-position";
+import type { WhisperIconPlacement } from "../../../shared/tools-bundle-contracts";
 
 const initials = (name: string) => name.trim().split(/\s+/u).slice(0, 2).map(word => word[0]).join("").toLocaleUpperCase();
 
-const props = defineProps<{ session: WhisperSession }>();
+/** The view of one whisper session (WhispersMountOptions in app/shared/tools-bundle-contracts.ts). */
+const props = defineProps<{
+  session: WhisperSession;
+  toggle?: (intent: "show" | "toggle") => "shown" | "hidden" | "unavailable";
+  iconPlacement?: WhisperIconPlacement;
+}>();
 const WINDOW_PLACEMENT_KEY = "gwonmac.whispers-window-placement";
-const ICON_PLACEMENT_KEY = "gwonmac.whispers-icon-placement";
 const ICON_SIZE = 36;
 const VIEWPORT_MARGIN = 8;
 const state = shallowRef(props.session.state);
@@ -81,18 +83,17 @@ const iconViewport = () => ({
   height: window.innerHeight,
   margin: VIEWPORT_MARGIN,
 });
-function savedIconPosition() {
-  let serialized: string | null = null;
-  try { serialized = window.localStorage.getItem(ICON_PLACEMENT_KEY); }
-  catch { /* Browser storage refusal leaves the icon at its ordinary default. */ }
-  const restored = restoreFloatingPosition(
-    serialized,
-    iconViewport(),
-    { width: ICON_SIZE, height: ICON_SIZE },
-  );
-  return restored ? { left: restored.left, top: restored.top } : null;
-}
-const icon = ref(savedIconPosition() ?? { left: 20, top: 160 });
+const ICON_BOX = { width: ICON_SIZE, height: ICON_SIZE };
+const ICON_DEFAULT = { left: 20, top: 160 };
+/** Where the player put the icon (the `whispersIconPosition` setting, through `iconPlacement`); null is its default place. */
+let savedIcon: CornerPosition | null = null;
+const savedIconPosition = () => (savedIcon && restoreCornerPosition(savedIcon, iconViewport(), ICON_BOX)) ?? ICON_DEFAULT;
+const icon = ref(ICON_DEFAULT);
+const stopIconPlacement = props.iconPlacement?.subscribe(position => {
+  if (position?.corner === savedIcon?.corner && position?.x === savedIcon?.x && position?.y === savedIcon?.y) return;
+  savedIcon = position;
+  restoreIconAfterResize();
+});
 const iconButton = ref<HTMLButtonElement | null>(null);
 const atBottom = ref(true);
 const initializedTranscripts = new Set<string>();
@@ -321,28 +322,21 @@ function soundChange(event: Event) {
 function opacityChange(event: Event) {
   props.session.setBackgroundOpacity(Number((event.target as HTMLInputElement).value));
 }
+/** Saves where the player moved the icon, as a distance from the nearest corner. */
 function persistIconPosition() {
-  const serialized = serializeFloatingPosition(
-    icon.value,
-    iconViewport(),
-    { width: ICON_SIZE, height: ICON_SIZE },
-  );
-  if (serialized === null) return;
-  try { window.localStorage.setItem(ICON_PLACEMENT_KEY, serialized); }
-  catch { /* A UI preference must not make the surface unusable when storage fails. */ }
+  const position = captureCornerPosition(icon.value, iconViewport(), ICON_BOX);
+  if (position === null) return;
+  savedIcon = position;
+  props.iconPlacement?.save(position);
 }
 function fitIcon() {
-  const fitted = {
+  icon.value = {
     left: Math.max(VIEWPORT_MARGIN, Math.min(window.innerWidth - ICON_SIZE - VIEWPORT_MARGIN, icon.value.left)),
     top: Math.max(VIEWPORT_MARGIN, Math.min(window.innerHeight - ICON_SIZE - VIEWPORT_MARGIN, icon.value.top)),
   };
-  const changed = fitted.left !== icon.value.left || fitted.top !== icon.value.top;
-  icon.value = fitted;
-  if (changed) persistIconPosition();
 }
 function restoreIconAfterResize() {
-  const restored = savedIconPosition();
-  if (restored) icon.value = restored;
+  icon.value = savedIconPosition();
   fitIcon();
 }
 let dragged = false;
@@ -371,12 +365,11 @@ function dragIcon(event: PointerEvent) {
   button.addEventListener("pointercancel", cancel);
   button.addEventListener("lostpointercapture", finish);
 }
-function toggle() {
+function iconClick() {
   if (dragged) { dragged = false; return; }
   enableAudio();
-  const event = new CustomEvent('gw:whispers-toggle', { cancelable: true, detail: 'toggle' });
-  window.dispatchEvent(event);
-  if (!event.defaultPrevented) props.session.setVisible(!visible.value);
+  // Whispers' own toggle, as its shortcut calls it; without one, or while it cannot open, the panel follows the icon.
+  if ((props.toggle?.("toggle") ?? "unavailable") === "unavailable") props.session.setVisible(!visible.value);
 }
 function moveIcon(event: KeyboardEvent) {
   if (!event.altKey || !event.key.startsWith("Arrow")) return;
@@ -388,7 +381,6 @@ function moveIcon(event: KeyboardEvent) {
 onMounted(() => {
   document.addEventListener("pointerdown", dismissOptions);
   window.addEventListener("resize", restoreIconAfterResize); window.addEventListener("focus", markVisibleRead);
-  window.addEventListener("pagehide", persistIconPosition);
   // Game interaction unlocks sound too; opening this panel is not required.
   document.addEventListener("pointerdown", enableAudio, { once: true });
   document.addEventListener("keydown", enableAudio, { once: true });
@@ -396,8 +388,7 @@ onMounted(() => {
 });
 onBeforeUnmount(() => {
   document.removeEventListener("pointerdown", dismissOptions);
-  unsubscribe(); window.removeEventListener("resize", restoreIconAfterResize); window.removeEventListener("focus", markVisibleRead);
-  window.removeEventListener("pagehide", persistIconPosition); persistIconPosition();
+  unsubscribe(); stopIconPlacement?.(); window.removeEventListener("resize", restoreIconAfterResize); window.removeEventListener("focus", markVisibleRead);
   document.removeEventListener("pointerdown", enableAudio); document.removeEventListener("keydown", enableAudio);
   void audio?.close();
 });
@@ -407,7 +398,7 @@ useClassicFrame(panel);
 <template>
   <button ref="iconButton" class="ui-button ui-reading-surface whisper-launcher" :style="{ left: `${icon.left}px`, top: `${icon.top}px` }"
     :aria-label="`Whispers, ${unread} unread. Drag to move, or use Alt and arrow keys.`" :aria-expanded="visible" aria-controls="whisper-window"
-    title="Whispers · drag to move" @pointerdown="dragIcon" @keydown="moveIcon" @click="toggle">
+    title="Whispers · drag to move" @pointerdown="dragIcon" @keydown="moveIcon" @click="iconClick">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3C6.49 3 2 6.59 2 11c0 2.91 1.9 5.51 5 6.93V21c0 .38.21.73.55.89c.14.07.29.11.45.11c.21 0 .42-.07.6-.2l3.74-2.8c5.36-.14 9.66-3.68 9.66-8s-4.49-8-10-8"/></svg>
     <span v-if="unread" class="whisper-badge" aria-hidden="true">{{ unread > 99 ? '99+' : unread }}</span>
   </button>

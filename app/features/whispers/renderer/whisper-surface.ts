@@ -1,14 +1,17 @@
 /**
- * Owns input isolation and Vue lifetime for the optional whisper surface.
- * Temporary region withdrawal hides the view without losing its placement.
+ * Owns input isolation and Vue lifetime for the optional whisper surface, and how it shows or
+ * hides when Whispers' link `toggle` asks (its shortcut, menu item, Hub row and unread icon).
+ * Whispers' game part creates it while resolve has Whispers on and disposes it when resolve turns
+ * Whispers off; the session, which keeps the conversation, outlives it.
  */
 import { toggleHubWhispers, whisperFocusReturn } from './hub-whisper.js';
 import type { WhisperSession } from "../../../shared/whisper-session.js";
-import type { EmbeddedToolsBundle } from "../../../shared/tools-bundle-contracts.js";
+import type { EmbeddedToolsBundle, WhisperIconPlacement } from "../../../shared/tools-bundle-contracts.js";
+import type { ToolIntent, ToolLink } from "../../links.js";
 import { createNonActivatingSurface, isolateFromGame } from "../../../renderer/non-activating-surface.js";
 import { ensureToolsStylesheet } from "../../../renderer/tools-stylesheet.js";
 
-export function createWhisperSurface(parent: HTMLElement, session: WhisperSession) {
+export function createWhisperSurface(parent: HTMLElement, session: WhisperSession, iconPlacement?: WhisperIconPlacement) {
   const document = parent.ownerDocument;
   const canvas = document.getElementById("canvas");
   if (!(canvas instanceof HTMLCanvasElement)) throw new Error("Whispers game canvas is missing");
@@ -20,29 +23,27 @@ export function createWhisperSurface(parent: HTMLElement, session: WhisperSessio
   const nonActivating = createNonActivatingSurface(root, () => canvas);
   const surface = window.gwSurfaces.register({ root, priority: 4,
     dismiss: () => session.setVisible(false) });
-  const toggle = (event: Event) => {
-    if (!enabled || !session.state.available) return;
-    event.preventDefault();
-    if (window.gwHub) {
-      toggleHubWhispers(event, window.gwHub, root, session);
-      if (session.state.visible) surface.raise();
-      return;
-    }
-    session.setVisible(event instanceof CustomEvent && event.detail === "show" ? true : !session.state.visible);
-    if (session.state.visible) requestAnimationFrame(() => {
-      if (disposed || !enabled || !session.state.visible) return;
-      const id = session.state.selected ? `draft-${session.state.selected}` : "whisper-person";
-      root.querySelector<HTMLInputElement>(`input[id="${CSS.escape(id)}"]`)?.focus({ preventScroll: true });
-    });
-  };
-  window.addEventListener("gw:whispers-toggle", toggle);
   let visible = false;
-  let enabled = true;
   let disposed = false;
   let app: { dispose(): void } | null = null;
+  const toggle = (intent: ToolIntent): ReturnType<ToolLink["toggle"]> => {
+    if (disposed || !session.state.available) return "unavailable";
+    if (window.gwHub) {
+      toggleHubWhispers(intent, window.gwHub, root, session);
+      if (session.state.visible) surface.raise();
+    } else {
+      session.setVisible(intent === "show" ? true : !session.state.visible);
+      if (session.state.visible) requestAnimationFrame(() => {
+        if (disposed || !session.state.visible) return;
+        const id = session.state.selected ? `draft-${session.state.selected}` : "whisper-person";
+        root.querySelector<HTMLInputElement>(`input[id="${CSS.escape(id)}"]`)?.focus({ preventScroll: true });
+      });
+    }
+    return session.state.visible ? "shown" : "hidden";
+  };
   const returnFocus = whisperFocusReturn(root, nonActivating.releaseKeyboard);
   const unsubscribe = session.subscribe(state => {
-    surface.setOpen(enabled && state.visible);
+    surface.setOpen(state.visible);
     if (state.visible === visible) return;
     visible = state.visible;
     if (visible && document.pointerLockElement) document.exitPointerLock();
@@ -54,7 +55,7 @@ export function createWhisperSurface(parent: HTMLElement, session: WhisperSessio
   ensureToolsStylesheet(document);
   const specifier = "../../../tools/tools-app.js";
   void import(specifier).then((bundle: EmbeddedToolsBundle<HTMLElement>) => {
-    if (!disposed) app = bundle.mountWhispers(root, { session });
+    if (!disposed) app = bundle.mountWhispers(root, { session, toggle, ...(iconPlacement ? { iconPlacement } : {}) });
   }).catch(() => {
     if (disposed) return;
     root.textContent = "Whispers could not load. Use original chat and restart to try again.";
@@ -63,15 +64,11 @@ export function createWhisperSurface(parent: HTMLElement, session: WhisperSessio
     root.classList.add("ui-frame");
   });
   return {
-    setEnabled(next: boolean) {
-      enabled = next; root.hidden = !next; surface.setOpen(next && session.state.visible);
-      if (!next && root.contains(document.activeElement)) nonActivating.releaseKeyboard();
-    },
+    toggle,
     /** Draws or hides the unread icon; the panel is unaffected. */
     setIconShown(shown: boolean) { root.toggleAttribute("data-icon-hidden", !shown); },
     dispose() {
       if (disposed) return;
-      window.removeEventListener("gw:whispers-toggle", toggle);
       disposed = true; unsubscribe(); app?.dispose(); surface.dispose();
       if (root.contains(document.activeElement)) nonActivating.releaseKeyboard();
       nonActivating.dispose(); root.remove();

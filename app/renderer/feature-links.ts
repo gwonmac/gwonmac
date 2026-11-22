@@ -7,7 +7,9 @@
  * running (still loading, or no companion) answers "unavailable" and reaches nothing. Links
  * replace window events between Features.
  */
-import { HUB_LINKS, type FeatureLinkApis, type FeatureLinks, type HubLinks, type LinkTarget } from "../features/links.js";
+import {
+  HUB_LINKS, type FeatureLinkApis, type FeatureLinks, type HubLinks, type LinkTarget, type ToolIntent, type ToolLink, type ToolLinkTarget,
+} from "../features/links.js";
 import { FEATURES, type FeatureId } from "../shared/feature-contracts.js";
 import { featureOn } from "./feature-on.js";
 
@@ -56,6 +58,16 @@ export function featureLinks<Id extends FeatureId>(id: Id): FeatureLinks<Id> {
 /** The links the Hub calls (HUB_LINKS), read live: each is null while its target is off. */
 export function hubLinks(): HubLinks {
   return linksOf<HubLinks>(HUB_LINKS);
+}
+
+/**
+ * Opens `target`'s tool through its link (`ToolLink`): its shortcut, game menu item and Hub row
+ * (app/shared/hub-tools.ts). "unavailable" while resolve has the target off or its part does not
+ * provide the link.
+ */
+export function toggleTool(target: ToolLinkTarget, intent: ToolIntent): ReturnType<ToolLink["toggle"]> {
+  const link = provided.get(target);
+  return featureOn(target) && link !== undefined && "toggle" in link ? link.toggle(intent) : "unavailable";
 }
 
 /**

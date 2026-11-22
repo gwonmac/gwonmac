@@ -38,9 +38,9 @@
       new window.CustomEvent(name, { cancelable: true, bubbles: true, detail }),
     );
 
-  // Every tool's event, from each tool's one entry (app/shared/hub-tools.ts). The import starts
+  // How every tool opens, from each tool's one entry (app/shared/hub-tools.ts). The import starts
   // at once, so the first shortcut does not wait on it.
-  const toolEvents = import('../shared/hub-tools.js').then(({ TOOL_COMMAND_EVENTS }) => TOOL_COMMAND_EVENTS);
+  const toolCommands = import('../shared/hub-tools.js').then(({ TOOL_COMMANDS }) => TOOL_COMMANDS);
 
   async function capture(command: CaptureCommand) {
     const diagnostics = window.gwDiagnostics;
@@ -140,17 +140,23 @@
         await capture(command);
         break;
       default: {
-        // A tool command fires its tool's event (TOOL_COMMAND_EVENTS), and only in a launch
-        // that selected Tools. Main gates on the live settings, not on this launch, and a
-        // listener such as Call target's (input.ts) checks only its setting: without this
-        // gate, a launch whose profile forced Tools off, or one where Tools was switched on
-        // mid-session, would press keys in the untouched official client. An unclaimed
-        // event is the ordinary answer of a launch without that tool.
-        const event = (await toolEvents).get(command.type);
-        if (event === undefined) break;
+        // A tool command opens its tool (TOOL_COMMANDS): it fires the tool's event or calls its
+        // Feature's link `toggle`, and only in a launch that selected Tools. Main gates on the
+        // live settings, not on this launch, and a listener such as Call target's (input.ts)
+        // checks only its setting: without this gate, a launch whose profile forced Tools off,
+        // or one where Tools was switched on mid-session, would press keys in the untouched
+        // official client. An unclaimed event, or a link that answers "unavailable", is the
+        // ordinary answer of a launch without that tool.
+        const opener = (await toolCommands).get(command.type);
+        if (opener === undefined) break;
         if (!window.gwNative.init.enhancementSelection.tools) return 'unhandled';
+        if ('link' in opener) {
+          const { toggleTool } = await import('./feature-links.js');
+          if (toggleTool(opener.link, 'toggle') === 'unavailable') return 'unhandled';
+          break;
+        }
         const result: { error?: unknown } = {};
-        if (!dispatch(event, result)) return 'unhandled';
+        if (!dispatch(opener.event, result)) return 'unhandled';
         if (result.error !== undefined) throw result.error;
       }
     }

@@ -3,8 +3,8 @@
  * (app/ui/tools/src/hub-fixture-main.ts) share: the renderer commands main sends, in order, or
  * the map layer setting it flips. Main sends a shortcut only while its feature is turned on in
  * the live settings (SHORTCUT_FEATURES). The renderer (app/renderer/commands.ts) acts on a tool
- * command only in a launch that selected Tools, turns it into its tool's event
- * (TOOL_COMMAND_EVENTS, app/shared/hub-tools.ts) and refuses what no listener claims.
+ * command only in a launch that selected Tools, opens its tool through its event or its Feature's
+ * link `toggle` (TOOL_COMMANDS, app/shared/hub-tools.ts) and refuses what nothing claims.
  */
 import type { RendererCommand } from "./contracts.js";
 import type { AppSettings } from "./settings/index.js";

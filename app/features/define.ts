@@ -21,8 +21,9 @@ import type { HubIconKind } from "../shared/ui/hub-icon.js";
 /**
  * A Tools row Core draws for a tool without loading its code: its detail, its icon, its action
  * name (`Open <name>` by default) and how it opens; it matches the tool's `keywords`. A tool
- * opens through its own `event`, asked to `show` (never to close), as a Hub page (`page`, so
- * Right Arrow opens it too) or after the Hub closes (`closesHub`); or at a Settings section.
+ * opens through its own `event` or its Feature's link `toggle` (`offers`), asked to `show` (never
+ * to close), as a Hub page (`page`, so Right Arrow opens it too) or after the Hub closes
+ * (`closesHub`); or at a Settings section.
  */
 export type HubToolRow = Readonly<{
   detail: string;
@@ -133,7 +134,8 @@ export type FeatureDefinition = Readonly<{
     keywords?: string;
     /**
      * The renderer event that runs this tool. Its shortcut's command fires it
-     * (app/renderer/commands.ts), and so does its Hub row. A listener cancels the event to
+     * (app/renderer/commands.ts), and so does its Hub row. A feature that offers `toggle` opens
+     * its tool through that link instead and names no event. A listener cancels the event to
      * claim it and, given an object detail, sets `error` on it to refuse.
      */
     event?: `gw:${string}`;

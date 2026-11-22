@@ -4,6 +4,7 @@ import { afterEach, expect, it, vi } from "vitest";
 import { nextTick } from "vue";
 import WhispersApp from "./WhispersApp.vue";
 import { createWhisperSession } from "../../../shared/whisper-session";
+import type { CornerPosition } from "../../../shared/corner-position";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -16,7 +17,11 @@ it("restores the Messenger window and icon positions in the current profile", as
   const viewportHeight = vi.spyOn(window, "innerHeight", "get").mockReturnValue(768);
   const session = createWhisperSession(async () => {});
   session.setAvailable(true);
-  const wrapper = mount(WhispersApp, { props: { session }, attachTo: document.body });
+  // The icon's place is a setting (whispersIconPosition) that the game part hands in.
+  let saved: CornerPosition | null = null;
+  const iconPlacement = { subscribe: (listener: (position: CornerPosition | null) => void) => { listener(saved); return () => {}; },
+    save: (position: CornerPosition) => { saved = position; } };
+  const wrapper = mount(WhispersApp, { props: { session, iconPlacement }, attachTo: document.body });
   const panel = wrapper.get<HTMLElement>("#whisper-window").element;
   Object.defineProperties(panel, {
     offsetWidth: { configurable: true, get: () => 340 },
@@ -60,7 +65,7 @@ it("restores the Messenger window and icon positions in the current profile", as
   const restoredSession = createWhisperSession(async () => {});
   restoredSession.setAvailable(true);
   const restored = mount(WhispersApp, {
-    props: { session: restoredSession },
+    props: { session: restoredSession, iconPlacement },
     attachTo: document.body,
   });
   expect(restored.get(".whisper-launcher").attributes("style")).toContain("left: 1276px");

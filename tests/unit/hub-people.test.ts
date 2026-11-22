@@ -21,6 +21,8 @@ type Harness = {
   set(next: Record<string, boolean>): void;
 };
 let currentReceipts: string[] = [];
+/** What Whispers' panel was asked to do through its link's `toggle`. */
+let currentShows: string[] = [];
 /** One character's time in the game throughout (`game.session`). */
 const ONE_SESSION = { available: true, subscribe: (listener: (session: { id: number }) => void) => { listener({ id: 1 }); return () => {}; } } as const;
 /** A task on a page that still shows: its receipt is what closing the Hub shows. */
@@ -37,7 +39,9 @@ function withPeople(settings: Record<string, boolean>, run: (people: Harness) =>
   const session = createWhisperSession(async () => {});
   session.setAvailable(true);
   // Whispers' and Travel's parts provide their links; Hub people reaches them only through these.
-  const stopLinks = [provideLink('whispers', whispersLink(session)), provideLink('travel', travel)];
+  const shows: string[] = [];
+  currentShows = shows;
+  const stopLinks = [provideLink('whispers', whispersLink(session, intent => { shows.push(intent); return 'shown'; })), provideLink('travel', travel)];
   const people = createHubPeople({
     showRows(_title, rows) { page = rows; }, attach(next) { source = next; return () => {}; },
     notify(message) { receipts.push(message); },
@@ -252,9 +256,8 @@ test('`invite ` lists the online friends as named invites, those invitable now f
 // Wrong behavior: a whisper row kept from before Whispers turned off still opens a conversation
 // (or shows the panel), or fails with words the launcher and the Hub's Features row do not use.
 test('with Whispers off a kept whisper row opens nothing and says why', async () => {
-  const opened: unknown[] = [];
   await withPeople(ALL_TOOLS, ({ source, session, page, set }) => {
-    window.addEventListener('gw:whispers-toggle', event => opened.push((event as CustomEvent).detail));
+    const opened = currentShows;
     source.search('mo kaiser')[0]!.run(task);
     const row = page().find(each => each.id === 'person:whisper')!;
     const scoped = source.search('whisper Mo Kaiser')[0]!;

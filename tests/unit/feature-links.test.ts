@@ -20,10 +20,9 @@ test("Trade's Whispers link is null while Whispers is off, and then nothing is s
     const session = createWhisperSession(async (to, text) => { sent.push(`${to}: ${text}`); });
     session.setAvailable(true);
     const shown: unknown[] = [];
-    window.addEventListener("gw:whispers-toggle", (event) => shown.push((event as CustomEvent).detail));
     let changes = 0;
     const unsubscribe = onLinksChange(() => { changes += 1; });
-    const stopLink = provideLink("whispers", whispersLink(session));
+    const stopLink = provideLink("whispers", whispersLink(session, (intent) => { shown.push(intent); return "shown"; }));
     const links = featureLinks("tradeChat");
     // Read live: each read asks resolve again.
     const whispers = () => links.whispers;

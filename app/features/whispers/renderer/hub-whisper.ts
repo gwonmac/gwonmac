@@ -3,12 +3,12 @@
  * The existing session retains drafts and transcripts when its window is hidden.
  */
 import type { WhisperSession } from '../../../shared/whisper-session.js';
+import type { ToolIntent } from '../../links.js';
 import type { Hub } from '../../../renderer/hub.js';
 import { focusable } from '../../../shared/ui/focusable.js';
 
-export function toggleHubWhispers(event: Event, hub: Hub, root: HTMLElement, session: WhisperSession) {
-  event.preventDefault();
-  const intent = event instanceof CustomEvent ? event.detail : undefined;
+/** Shows Whispers over an open Hub (which it suspends), or toggles it; the keyboard goes to its picker or draft. */
+export function toggleHubWhispers(intent: ToolIntent, hub: Hub, root: HTMLElement, session: WhisperSession) {
   const show = hub.visible || intent === 'show';
   hub.suspend();
   root.classList.add('whisper-popout-host');

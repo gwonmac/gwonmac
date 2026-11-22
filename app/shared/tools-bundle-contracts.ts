@@ -13,7 +13,8 @@ import type { TeamApplyCommands } from "./builds/team-apply-runner.js";
 import type { StorageCommand } from "./storage-command.js";
 import type { TravelCommand, TravelGameState } from "./travel-command.js";
 import type { ToolsGwNativeApi } from "./contracts.js";
-import type { FeatureLinks } from "../features/links.js";
+import type { FeatureLinks, ToolLink } from "../features/links.js";
+import type { CornerPosition } from "./corner-position.js";
 
 export type PublishedTemplate = Readonly<{
   fileName: string;
@@ -110,6 +111,23 @@ export type TradeLinks = Readonly<{
   onLinksChange(listener: () => void): () => void;
 }>;
 
+/**
+ * Where the player put Whispers' unread icon: the `whispersIconPosition` setting, given at once and
+ * after every change (null is its default place), and saved when the player moves it.
+ */
+export type WhisperIconPlacement = Readonly<{
+  subscribe(listener: (position: CornerPosition | null) => void): () => void;
+  save(position: CornerPosition): void;
+}>;
+
+export type WhispersMountOptions = Readonly<{
+  session: WhisperSession;
+  /** What the icon does when clicked: Whispers' own `toggle` (its link). Absent, the icon shows or hides the panel. */
+  toggle?: ToolLink["toggle"];
+  /** Absent, the icon starts at its default place and a move lasts until the view goes. */
+  iconPlacement?: WhisperIconPlacement;
+}>;
+
 export type TradeChatMountOptions = Readonly<{
   initiallyVisible?: boolean;
   onVisibilityChange?: (visible: boolean) => void;
@@ -120,7 +138,7 @@ export type TradeChatMountOptions = Readonly<{
 /** The exact named exports of the generated Tools module. */
 export type EmbeddedToolsBundle<Target> = Readonly<{
   mountEliteSkills: (target: Target, options: Readonly<{ nativeApi: ToolsGwNativeApi; onOpenChange(open: boolean): void } & EliteMapHost>) => EliteMapHandle;
-  mountWhispers: (target: Target, options: { session: WhisperSession }) => { dispose(): void };
+  mountWhispers: (target: Target, options: WhispersMountOptions) => { dispose(): void };
   mountToolsApp: (
     target: Target,
     options: ToolsAppMountOptions & Readonly<{ nativeApi: ToolsGwNativeApi; hub?: HubPresenter<Target> }>,

@@ -114,6 +114,7 @@ describe("settings", () => {
       pasteCleanup: true,
       hubCalculators: true,
       whispersIcon: true,
+      whispersIconPosition: null,
       // Automatic app-update checks remain a separate preference from the
       // required ArenaNet game-data download.
       autoCheckUpdates: true,
@@ -589,6 +590,7 @@ describe("settings", () => {
       "uiTextSize",
       "whispersEnabled",
       "whispersIcon",
+      "whispersIconPosition",
       "xunlaiStorage",
     ]);
     assert.equal(disk.formatVersion, 1);

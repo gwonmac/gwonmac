@@ -1,78 +1,81 @@
 /**
- * Whispers in the game host: the whisper session and its surface over
- * `game.chat`. The session reads friends through `game.friends`; other Features
- * and Hub people reach it through its link.
+ * Whispers in the game host. The whisper session keeps the conversation for one character's
+ * time in the game (`game.session`): it clears when the account or character changes, or when
+ * resolve turns Whispers off for any reason but the area, and it stays through map loads and
+ * PvP. While resolve has Whispers on, its `featurePart` listens to `game.chat` and shows the
+ * surface. The session reads friends through `game.friends` while its people picker shows; other
+ * Features, the Hub and its shortcut reach it through its link.
  *
  * This line also hosts the chat region's memory phases (the chat substrate in
- * tools-companion-substrates.ts): the region keeps the place in COMPANION_PARTS
- * it had when Whispers owned it, and that place is the heap layout.
+ * tools-companion-substrates.ts): the region keeps the place in COMPANION_PARTS it had when
+ * Whispers owned it, and that place is the heap layout. So the line is written by hand and hands
+ * the session to the feature's `featurePart`.
  */
 import { NO_FRIENDS } from "../../shared/friends.js";
-import { createWhisperSession } from "../../shared/whisper-session.js";
+import { createWhisperSession, type WhisperSession } from "../../shared/whisper-session.js";
 import { provideLink } from "../../renderer/feature-links.js";
 import { subscribeWhile } from "../../renderer/game-blocks.js";
-import type { ToolsCompanionPart } from "../../renderer/tools-companion-part.js";
+import { featurePart, type FeatureBlocks, type ToolsCompanionPart } from "../../renderer/tools-companion-part.js";
+import type { ToolIntent } from "../links.js";
+import { whisperIconPlacement } from "./renderer/icon-placement.js";
 import { whispersLink } from "./renderer/link.js";
 import { createWhisperSurface } from "./renderer/whisper-surface.js";
 
+type Surface = ReturnType<typeof createWhisperSurface>;
+
+function startWhispers({ game, settings }: FeatureBlocks<"whispers">, session: WhisperSession, shown: (surface: Surface | null) => void) {
+  const stopListening = game.chat.messages.subscribe((batch) => {
+    if (batch !== null) session.observe(batch.messages, batch.missed);
+  });
+  session.setAvailable(true);
+  const surface = createWhisperSurface(document.body, session, whisperIconPlacement(settings));
+  const stopIcon = settings.subscribe(({ whispersIcon }) => surface.setIconShown(whispersIcon));
+  shown(surface);
+  return {
+    stop() { shown(null); stopIcon(); surface.dispose(); stopListening(); session.setAvailable(false); },
+  };
+}
+
 export default {
   id: "whispers",
-  prepare({ exports, capabilities, substrates: { chat } }) {
+  prepare(input) {
+    const { exports, substrates: { chat } } = input;
     return {
       ...chat.prepare(exports),
       activate(context) {
         const { chat: gameChat, friends } = context.game;
         const session = createWhisperSession((to, text) => gameChat.send({ kind: "whisper", to, text }));
-        let stopListening: (() => void) | null = null;
-        const listen = (on: boolean) => {
-          if (!on) {
-            stopListening?.();
-            stopListening = null;
-          } else {
-            stopListening ??= gameChat.messages.subscribe((batch) => {
-              if (batch !== null) session.observe(batch.messages, batch.missed);
-            });
+        let surface: Surface | null = null;
+        const feature = featurePart("whispers", (blocks) => startWhispers(blocks, session, (next) => { surface = next; }))
+          .prepare(input).activate(context);
+        // A different character, or another account, starts a new session; a map load keeps it.
+        // The block keeps one session only while someone listens, so this listens for the part's whole life.
+        let current: number | null | undefined;
+        const stopSession = context.game.session.subscribe((next) => {
+          const id = next?.id ?? null;
+          if (current !== undefined && id !== current) {
+            const available = session.state.available;
+            session.reset();
+            session.setAvailable(available);
           }
-        };
-        let surface: ReturnType<typeof createWhisperSurface> | null = null;
-        let character: string | null = null;
-        // The people picker and the Hub's people search show friends; the list is read only then.
+          current = id;
+        });
+        // The people picker shows friends; the list is read only then (Hub people reads its own).
         const followFriends = subscribeWhile(friends, null, (list) => session.updateFriends(list ?? NO_FRIENDS));
-        const stopLink = provideLink("whispers", whispersLink(session));
+        const stopLink = provideLink("whispers", whispersLink(session, (intent: ToolIntent) => surface?.toggle(intent) ?? "unavailable"));
         return {
           ...chat.session,
+          ...feature,
           pollers: [...chat.session.pollers, {
-            poll: () => followFriends(context.on("whispers")
-              && (window.gwHub?.visible === true || (session.state.visible && session.state.selected === null))),
+            poll: () => followFriends(context.on("whispers") && session.state.visible && session.state.selected === null),
           }],
           sync() {
-            const region = context.snapshot().playRegionState;
-            if (region.status === "ready" && region.characterKey !== null) {
-              if (character !== null && character !== region.characterKey) {
-                listen(false); session.reset();
-              }
-              character = region.characterKey;
-            } else if (region.status === "waiting" && region.reason === "game") {
-              listen(false); session.reset(); character = null;
-            }
+            // Only the area is missing: keep the conversation for when the character returns.
             const resolution = context.snapshot().features.whispers;
-            const on = resolution.on && capabilities.whisperChat;
-            listen(on);
-            session.setAvailable(on);
-            if (on) {
-              surface ??= createWhisperSurface(document.body, session);
-              surface.setEnabled(true);
-              surface.setIconShown(context.snapshot().settings.whispersIcon);
-            } else {
-              surface?.setEnabled(false);
-              // Only the area is missing: keep the conversation for when the character returns.
-              if (resolution.on || resolution.reason !== "wrong-area") {
-                surface?.dispose(); surface = null; session.reset();
-              }
-            }
+            if (!resolution.on && resolution.reason !== "wrong-area") session.reset();
           },
-          disposePresentation: [() => {
-            stopLink(); followFriends(false); listen(false); surface?.dispose(); surface = null; session.dispose();
+          disposePresentation: [...feature.disposePresentation ?? [], () => {
+            stopLink(); stopSession(); followFriends(false); session.dispose();
           }],
         };
       },

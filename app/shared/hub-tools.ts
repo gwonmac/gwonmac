@@ -1,12 +1,14 @@
 /**
  * Every tool's one entry from its manifest (`tool` and `hub`, app/features): the Hub's Tools rows, their
  * order on a root search, the Commands page's shortcut rows and the shortcut each row shows,
- * and the renderer event each tool command fires (app/renderer/commands.ts). A manifest-only
+ * and how each tool command opens its tool (app/renderer/commands.ts): the renderer event its
+ * manifest names, or its Feature's link `toggle` (app/features/links.ts). A manifest-only
  * Hub entry needs no other edit: hub-commands.ts draws the rows, rankHubRows
  * (app/shared/hub.ts) orders them.
  */
-import { FEATURES, type FeatureId, type GlobalTool, type ShortcutAction } from "../features/index.js";
+import { FEATURES, type Feature, type FeatureId, type GlobalTool, type ShortcutAction } from "../features/index.js";
 import type { HubToolRow } from "../features/define.js";
+import type { ToolLinkTarget } from "../features/links.js";
 import type { RendererCommand } from "./contracts.js";
 import { isShortcutCommandAction, SHORTCUT_COMMANDS } from "./shortcut-commands.js";
 import { TOOL_PRESENTATION } from "./tool-presentation.js";
@@ -41,14 +43,31 @@ export const HUB_TOOL_KEYS: readonly HubToolKey[] = Object.freeze(hubTools
   .map(({ key }) => key));
 
 /**
- * The renderer event each tool command fires: the `event` of the tool whose own shortcut sends
- * that command last (the commands before it only clear held input). The menus and the Tools
- * window send the same commands.
+ * A Feature whose manifest `offers` `toggle` opens its tool through its link (ToolLink). The
+ * offers name exactly its link's methods (LinkDeclarationsHold in app/features/links.ts), so its
+ * link has `toggle` and its id is a ToolLinkTarget.
  */
-export const TOOL_COMMAND_EVENTS: ReadonlyMap<RendererCommand["type"], string> = new Map(tools.flatMap(({ tool, action }) => {
-  const event = "event" in tool ? tool.event : undefined;
+function opensThroughLink(feature: Feature): feature is Extract<Feature, Readonly<{ id: ToolLinkTarget }>> {
+  const offers: readonly string[] = "offers" in feature ? feature.offers : [];
+  return offers.includes("toggle");
+}
+
+/** How a tool opens: the window event its manifest names, or its Feature's link `toggle`. */
+export type ToolOpener = Readonly<{ event: string }> | Readonly<{ link: ToolLinkTarget }>;
+const openers = new Map(FEATURES.flatMap((feature): (readonly [FeatureId, ToolOpener])[] => {
+  if (opensThroughLink(feature)) return [[feature.id, { link: feature.id }]];
+  return "tool" in feature && "event" in feature.tool ? [[feature.id, { event: feature.tool.event }]] : [];
+}));
+
+/**
+ * How each tool command opens its tool: the opener of the tool whose own shortcut sends that
+ * command last (the commands before it only clear held input). The menus and the Tools window
+ * send the same commands.
+ */
+export const TOOL_COMMANDS: ReadonlyMap<RendererCommand["type"], ToolOpener> = new Map(tools.flatMap(({ feature, action }) => {
+  const opener = openers.get(feature);
   const sent = action !== undefined && isShortcutCommandAction(action) ? SHORTCUT_COMMANDS[action].at(-1) : undefined;
-  return event !== undefined && sent ? [[sent.type, event] as const] : [];
+  return opener !== undefined && sent ? [[sent.type, opener] as const] : [];
 }));
 
 type ToolOpen = HubToolRow["open"];
@@ -59,19 +78,19 @@ export type HubToolEntry = Readonly<{
   title: string;
   /** The tool's `keywords`, which Settings search matches too. */
   keywords: string;
-  /** A Settings section, or the tool's own `event` and how the row fires it. */
-  open: Extract<ToolOpen, { settings: unknown }> | (Exclude<ToolOpen, { settings: unknown }> & Readonly<{ event: string }>);
+  /** A Settings section, or how the tool opens and how the row asks it to. */
+  open: Extract<ToolOpen, { settings: unknown }> | (Exclude<ToolOpen, { settings: unknown }> & ToolOpener);
 }> & Omit<HubToolRow, "open">;
 
 /** The Tools rows Core draws, in their order. */
 export const HUB_TOOL_ROWS: readonly HubToolEntry[] = Object.freeze(hubTools.flatMap(({ feature, name, tool, hub }): HubToolEntry[] => {
   if (!("row" in hub)) return [];
   const row: HubToolRow = hub.row;
-  const event = "event" in tool ? tool.event : undefined;
+  const opener = openers.get(feature);
   let open: HubToolEntry["open"];
   if ("settings" in row.open) open = row.open;
-  else if (event !== undefined) open = { ...row.open, event };
-  else throw new Error(`The ${feature} Hub row opens through an event its tool does not name.`);
+  else if (opener !== undefined) open = { ...row.open, ...opener };
+  else throw new Error(`The ${feature} Hub row opens through an event its tool does not name, and ${feature} offers no toggle.`);
   return [{ detail: row.detail, iconKind: row.iconKind, open, ...(row.action ? { action: row.action } : {}), ...(row.aliases ? { aliases: row.aliases } : {}),
     id: hub.command, feature, title: name, keywords: "keywords" in tool ? tool.keywords : "" }];
 }));
