@@ -1,9 +1,10 @@
 /**
  * Lifecycle owner for storage availability, policy synchronization, and disposal.
  * The installer forwards settings and the certified game snapshot here instead
- * of duplicating state.
+ * of duplicating state. It also owns Xunlai Storage's link (shared/link.ts): its
+ * `toggle` is the one way to open the chest, and it says why it refused.
  */
-import type { StorageCommand } from "../../../shared/storage-command.js";
+import type { XunlaiStorageLink } from "../shared/link.js";
 import type { CompanionSnapshot } from "../../../renderer/companion-snapshot.js";
 import type { RuntimePlayRegion } from "../../../renderer/enhancement-runtime-policy.js";
 import {
@@ -33,7 +34,8 @@ export interface StorageAvailability {
 }
 
 export interface StorageController {
-  readonly command: StorageCommand;
+  /** Xunlai Storage's link; it stays valid after `dispose` and then refuses. */
+  readonly link: XunlaiStorageLink;
   update(availability: StorageAvailability): void;
   dispose(): void;
 }
@@ -60,7 +62,7 @@ function unavailableReason(
   return null;
 }
 
-/** Owns the complete storage command policy, event, and Wasm configuration lifecycle. */
+/** Owns the complete storage command policy, link, and Wasm configuration lifecycle. */
 export function createStorageController(
   open: EnhancementStorageOpen,
   configure: EnhancementStorageConfigure,
@@ -98,9 +100,8 @@ export function createStorageController(
         : "unknown",
     });
   };
-  const onCommand = (event: Event) => {
-    if (!(event instanceof CustomEvent)) return;
-    event.preventDefault();
+  /** Opens the chest: the game opens it, so there is nothing to hide, and a refusal answers "unavailable". */
+  const toggle = (): "shown" | "unavailable" => {
     const requestedAt = performance.now();
     const fields = {
       request: ++request,
@@ -116,6 +117,7 @@ export function createStorageController(
     try {
       command.open();
       trace("queued", { ...fields, accepted: true });
+      return "shown";
     } catch (error) {
       trace("refused", {
         ...fields,
@@ -123,16 +125,14 @@ export function createStorageController(
         enabled: availability.enabled,
         playRegion: availability.playRegion,
       });
-      if (event.detail !== null && typeof event.detail === "object") {
-        (event.detail as { error?: unknown }).error = error;
-      }
+      return "unavailable";
     }
   };
-  window.addEventListener("gw:storage-open", onCommand);
+  const link: XunlaiStorageLink = Object.freeze({ toggle, blocked: unavailable });
   sync();
 
   return Object.freeze({
-    command,
+    link,
     update(next: StorageAvailability) {
       availability = next;
       const fields = {
@@ -151,7 +151,6 @@ export function createStorageController(
     dispose() {
       if (!active) return;
       active = false;
-      window.removeEventListener("gw:storage-open", onCommand);
       configure(0, 0);
     },
   });

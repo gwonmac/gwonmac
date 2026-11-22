@@ -580,9 +580,13 @@ test.describe("renderer Tools input", () => {
           );
           appendStorageOrder("reset");
         });
-        window.addEventListener("gw:storage-open", (event) => {
-          event.preventDefault();
-          openStorage();
+        // Xunlai Storage opens through its link `toggle`, which its shortcut calls; the stand-in
+        // client has no storage controller, so the page provides the link.
+        const storageLinksPath = "./feature-links.js";
+        const storageLinks = await import(storageLinksPath) as typeof import("../../app/renderer/feature-links.js");
+        storageLinks.provideLink("xunlaiStorage", {
+          toggle: () => { openStorage(); return "shown"; },
+          blocked: () => null,
         });
         canvas.addEventListener("keydown", (event) => {
           if (event.key !== "Shift") return;

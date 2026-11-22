@@ -564,11 +564,6 @@
       "reason": "Input: the diagnostics input trace."
     },
     {
-      "name": "gw:storage-open",
-      "category": "certified stage or verifier",
-      "reason": "The certified storage controller claims it; the Must-stay test enhancement-storage-controller.test.ts dispatches it (#86)."
-    },
-    {
       "name": "gw:surfaces-ready",
       "category": "host plumbing",
       "reason": "Harness: the game surfaces exist."

@@ -5,10 +5,11 @@
  * and move template files in and out. Applying a team reaches Team Apply's certified commands, and
  * "Find capture locations" reaches Maps, through the links the manifest names.
  *
- * The Tools window also hands it the Xunlai Storage command (null for a module derived without
- * it) and whether this client lists templates written to its mount.
+ * Its storage button opens Xunlai Storage through Xunlai's link. The Tools window also hands it
+ * whether this client lists templates written to its mount.
  */
 import type { StorageCommand } from "../../../shared/storage-command.js";
+import type { FeatureLinks } from "../../links.js";
 import type { EmbeddedToolsBundle, PublishableTemplate, PublishedTemplate } from "../../../shared/tools-bundle-contracts.js";
 import { toolsUnavailableCopy } from "../../../shared/tools-unavailable-copy.js";
 import { definePart } from "../../parts.js";
@@ -20,7 +21,6 @@ import { ensureToolsStylesheet } from "../../../renderer/tools-stylesheet.js";
 import { requireToolsApi } from "../../../renderer/tools-native-api.js";
 
 export type BuildLibraryWindowContext = WindowContext<"buildLibrary"> & Readonly<{
-  storage: StorageCommand | null;
   /** Whether this session's client discovers templates written to its mount. */
   templatePublishing: boolean;
 }>;
@@ -47,12 +47,29 @@ async function publishTemplate({ name: raw, code }: PublishableTemplate): Promis
   return Object.freeze({ fileName: `${name}.txt`, location: "Skills — press Refresh List in Guild Wars to see it" });
 }
 
+/** What the storage button reads while Xunlai Storage is off (switched off, plain game, PvP). */
+const STORAGE_OFF = "Xunlai Storage is off here.";
+
+/** Xunlai Storage as the storage button uses it: it opens through Xunlai's `toggle` and says why it cannot. */
+function storageThrough(links: FeatureLinks<"buildLibrary">): StorageCommand {
+  const unavailable = (): string | null => {
+    const blocked = links.xunlaiStorage?.blocked() ?? STORAGE_OFF;
+    return blocked === "unavailable" ? STORAGE_OFF : blocked;
+  };
+  return Object.freeze({
+    unavailable,
+    open() {
+      if (links.xunlaiStorage?.toggle("show") !== "shown") throw new Error(unavailable() ?? STORAGE_OFF);
+    },
+  });
+}
+
 /**
  * A failure is reported rather than swallowed: an empty panel that explains nothing costs a
  * debugging session, so this one says what went wrong and leaves the reason in the console.
  */
 export default definePart("window", "buildLibrary", async (context: BuildLibraryWindowContext): Promise<MountedTool | null> => {
-  const { host, onVisibilityChange, links, show, storage, templatePublishing } = context;
+  const { host, onVisibilityChange, links, show, templatePublishing } = context;
   // Read at each Apply: Team Apply may turn on after this window started (its build check
   // arrives later). Null is a module derived without the command queue, or Team Apply off.
   const commands = () => {
@@ -70,6 +87,8 @@ export default definePart("window", "buildLibrary", async (context: BuildLibrary
       import(specifier) as Promise<EmbeddedToolsBundle<HTMLElement>>,
       native.client.session(),
     ]);
+    // Null is a module derived without the storage command: an absence in the bytes, worded by its reason.
+    const storage = session.compatibility?.features.xunlaiAction.status === "available" ? storageThrough(links) : null;
     const unavailable = toolsUnavailableCopy(session.compatibility?.features, {
       // The module holds the command queue when the build proved Team Apply, even while its link
       // still waits for the build check.

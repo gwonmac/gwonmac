@@ -8,28 +8,22 @@
  * again. Two boundaries around one panel is how a held movement key ends up stuck when only one
  * of them is torn down.
  */
-import type { StorageCommand } from "../shared/storage-command.js";
 import { createToolboxLifecycle, type MountedTool } from "./toolbox-foundation.js";
 import { featureLinks, onLinksChange } from "./feature-links.js";
 import buildLibraryWindow from "../features/build-library/renderer/host.js";
 import tradeWindow from "../features/trade-chat/renderer/host.js";
 import { featureOn } from "./feature-on.js";
 
-/**
- * Starts the Build Library's window part. `storage` is the certified Xunlai Storage command, or
- * null for a module derived without it: null is an absence in the bytes rather than a disabled
- * JavaScript switch. It is handed straight through.
- */
+/** Starts the Build Library's window part. */
 export function mountBuildsInto(
   host: HTMLElement,
   onVisibilityChange: (visible: boolean) => void,
   show: () => void,
-  storage: StorageCommand | null,
   /** Whether this session's client can discover templates written to IDBFS. */
   templatePublishing: boolean,
 ): Promise<MountedTool | null> {
   return buildLibraryWindow.start({
-    host, onVisibilityChange, show, links: featureLinks(buildLibraryWindow.id), onLinksChange, storage, templatePublishing,
+    host, onVisibilityChange, show, links: featureLinks(buildLibraryWindow.id), onLinksChange, templatePublishing,
   });
 }
 
@@ -55,7 +49,7 @@ export function mountHostOnlyTools(
   const lifecycle = createToolboxLifecycle(parent, {
     buildsLink: buildLibraryWindow.id,
     mountTool: (host, onVisibilityChange, show) =>
-      mountBuildsInto(host, onVisibilityChange, show, null, templatePublishingAvailable),
+      mountBuildsInto(host, onVisibilityChange, show, templatePublishingAvailable),
     mountTrade: mountTradeInto,
   });
   const syncEnabled = () => {
