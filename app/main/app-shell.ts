@@ -10,6 +10,7 @@
  */
 import { app, type BrowserWindow } from "electron";
 import type { DownloadProgress } from "../shared/contracts.js";
+import { errorCode } from "../shared/errors.js";
 import { GAME_CHANNELS } from "../shared/ipc/game.js";
 import { LAUNCHER_CHANNELS } from "../shared/ipc/launcher.js";
 import type { AppSettings } from "../shared/settings/index.js";
@@ -96,7 +97,7 @@ export function createAppShell(): AppShell {
     // They change with the phase, not with each byte of a download.
     if (next.phase !== refreshedPhase) {
       refreshedPhase = next.phase;
-      if (currentSettings) void refreshFeatureGates(currentSettings);
+      if (currentSettings) refreshFeatureGatesInBackground(currentSettings);
     }
     launcher?.clientChanged();
     if (
@@ -120,6 +121,13 @@ export function createAppShell(): AppShell {
     }
     publishFeatureFacts(windowRegistry.gameWindows(), settings);
     return tools;
+  }
+
+  /** The refresh for callers that cannot wait: a failure is logged, never an unhandled rejection. */
+  function refreshFeatureGatesInBackground(settings: AppSettings): void {
+    refreshFeatureGates(settings).catch((error: unknown) => {
+      logEvent({ k: "features.gateRefreshFailed", code: errorCode(error) });
+    });
   }
 
   /** Sends each game window its Feature facts when they differ from what it last got. */
@@ -162,7 +170,7 @@ export function createAppShell(): AppShell {
       scheduleAutomaticAppUpdateCheck = schedule;
     },
     refreshFeatureGates: () => {
-      if (currentSettings) void refreshFeatureGates(currentSettings);
+      if (currentSettings) refreshFeatureGatesInBackground(currentSettings);
     },
   };
 }
