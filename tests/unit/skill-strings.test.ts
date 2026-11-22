@@ -6,17 +6,7 @@ import {
   parseStringShard,
   stringShardIndex,
 } from "../../app/main/core/skill-strings.ts";
-
-function uleb(value: number): number[] {
-  const bytes: number[] = [];
-  do {
-    let byte = value & 0x7f;
-    value >>>= 7;
-    if (value) byte |= 0x80;
-    bytes.push(byte);
-  } while (value);
-  return bytes;
-}
+import { uleb } from "../helpers/wasm-builder.ts";
 
 function sleb(value: number): number[] {
   const bytes: number[] = [];

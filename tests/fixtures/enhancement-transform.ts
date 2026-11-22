@@ -11,6 +11,7 @@ import {
   sleb,
   splitSections,
 } from "../../app/main/core/wasm-binary.js";
+import { section, uleb } from "../helpers/wasm-builder.ts";
 
 export const UNSUPPORTED_ALL_CAPABILITIES: EnhancementCapabilities = Object.freeze({
   nativeCursor: true,
@@ -287,20 +288,6 @@ const PLACEHOLDER_OUTPUTS: EnhancementOutputHashes = Object.freeze({
   "features-27e": "0".repeat(64),
   "features-27f": "0".repeat(64),
 });
-
-function uleb(value: number): number[] {
-  const out: number[] = [];
-  do {
-    let byte = value & 0x7f;
-    value >>>= 7;
-    if (value) byte |= 0x80;
-    out.push(byte);
-  } while (value);
-  return out;
-}
-function section(id: number, body: number[]): number[] {
-  return [id, ...uleb(body.length), ...body];
-}
 
 export function moduleWithManifest(value: unknown): WebAssembly.Module {
   const name = [...new TextEncoder().encode(ENHANCEMENT_MANIFEST_SECTION)];

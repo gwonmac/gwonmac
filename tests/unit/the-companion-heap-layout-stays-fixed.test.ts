@@ -14,6 +14,7 @@ import {
   FRIEND_OBSERVER_SEMANTIC_SHA256,
   FRIEND_OBSERVER_TRANSFORM_ABI,
 } from "../../app/shared/friend-observer-contract.ts";
+import { uleb } from "../helpers/wasm-builder.ts";
 
 /** An empty module that carries one friend observer manifest, as a certified build does. */
 function moduleWithFriendManifest(): WebAssembly.Module {
@@ -25,18 +26,8 @@ function moduleWithFriendManifest(): WebAssembly.Module {
     semanticSha256: FRIEND_OBSERVER_SEMANTIC_SHA256,
     root: 4096,
   }));
-  const leb = (value: number) => {
-    const bytes: number[] = [];
-    do {
-      let byte = value & 0x7f;
-      value >>>= 7;
-      if (value !== 0) byte |= 0x80;
-      bytes.push(byte);
-    } while (value !== 0);
-    return bytes;
-  };
-  const body = [...leb(name.length), ...name, ...payload];
-  return new WebAssembly.Module(new Uint8Array([0, 0x61, 0x73, 0x6d, 1, 0, 0, 0, 0, ...leb(body.length), ...body]));
+  const body = [...uleb(name.length), ...name, ...payload];
+  return new WebAssembly.Module(new Uint8Array([0, 0x61, 0x73, 0x6d, 1, 0, 0, 0, 0, ...uleb(body.length), ...body]));
 }
 
 test("the Tools companion allocates the same regions in the same order", async (t) => {

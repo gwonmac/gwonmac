@@ -25,11 +25,10 @@ import {
   sectionById,
   splitSections,
 } from "../../app/main/core/wasm-binary.ts";
+import { section } from "../helpers/wasm-builder.ts";
 
 const sha256 = (bytes: Uint8Array) =>
   createHash("sha256").update(bytes).digest("hex");
-
-const section = (id: number, body: number[]) => [id, body.length, ...body];
 
 /**
  * A module shaped like the part of the client this transform touches: one

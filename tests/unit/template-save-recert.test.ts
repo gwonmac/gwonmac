@@ -21,16 +21,7 @@ import {
 import {
   preparePostTemplateSaveModule,
 } from "../../app/client/certification/template-save-verifier.js";
-function uleb(value: number): number[] {
-  const out: number[] = [];
-  do {
-    const byte = value & 0x7f;
-    value >>>= 7;
-    out.push(value === 0 ? byte : byte | 0x80);
-  } while (value !== 0);
-  return out;
-}
-
+import { section, uleb } from "../helpers/wasm-builder.ts";
 function sleb(value: number): number[] {
   const out: number[] = [];
   for (;;) {
@@ -43,10 +34,6 @@ function sleb(value: number): number[] {
     }
     out.push(byte | 0x80);
   }
-}
-
-function section(id: number, body: number[]): number[] {
-  return [id, ...uleb(body.length), ...body];
 }
 
 const IMPORTS = 2;

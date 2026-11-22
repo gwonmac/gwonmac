@@ -11,6 +11,7 @@ import {
   COMPANION_KERNEL_INIT_WORD_COUNT,
   COMPANION_KERNEL_SIGNATURES,
 } from "../../app/shared/companion-kernel-contract.ts";
+import { section, uleb } from "./wasm-builder.ts";
 
 export interface CompanionKernelFixtureOptions {
   readonly start?: boolean;
@@ -27,17 +28,6 @@ export interface CompanionKernelFixtureOptions {
   readonly exportValueOverrides?: Readonly<Partial<
     Record<keyof typeof COMPANION_KERNEL_EXPORT_VALUES, number>
   >>;
-}
-
-function uleb(value: number): number[] {
-  const bytes: number[] = [];
-  do {
-    let byte = value & 0x7f;
-    value = Math.floor(value / 0x80);
-    if (value !== 0) byte |= 0x80;
-    bytes.push(byte);
-  } while (value !== 0);
-  return bytes;
 }
 
 function sleb(value: number): number[] {
@@ -58,10 +48,6 @@ function sleb(value: number): number[] {
 function name(value: string): number[] {
   const bytes = new TextEncoder().encode(value);
   return [...uleb(bytes.byteLength), ...bytes];
-}
-
-function section(id: number, body: readonly number[]): number[] {
-  return [id, ...uleb(body.length), ...body];
 }
 
 function functionType(params: number, result: boolean): number[] {
