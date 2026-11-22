@@ -17,7 +17,7 @@ import { createHub } from '../../../../renderer/hub';
 // eslint-disable-next-line no-restricted-imports
 import { withHubBuiltins } from '../../../../renderer/hub-builtins';
 import { mountHubView } from './embedded';
-import { withBuildDetails } from '../hub-library';
+import { withBuildDetails } from '../../../../features/build-library/ui/hub-library';
 
 const settle = () => vi.advanceTimersByTimeAsync(1_000);
 const key = (target: Element, init: KeyboardEventInit) => target.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ...init }));

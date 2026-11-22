@@ -1,6 +1,6 @@
 /** Mounts the Vue Travel palette and exposes its small lifecycle to the renderer. */
 import { createApp, h, ref } from "vue";
-import TravelPalette from "./components/TravelPalette.vue";
+import TravelPalette from "./TravelPalette.vue";
 import type { TravelHost } from "./travel-host";
 import type { TravelPaletteHandle } from "../../../shared/tools-bundle-contracts";
 

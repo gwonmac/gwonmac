@@ -5,7 +5,7 @@ import {
   characterRows,
   searchCharacters,
 } from "../../app/features/character-switch/renderer/character-switch-palette.js";
-import { numberedCharacterPosition } from "../../app/features/character-switch/hub-views/characters-page.js";
+import { numberedCharacterPosition } from "../../app/features/character-switch/ui/characters-page.js";
 import type { CharacterSummary } from "../../app/renderer/companion-character-list-snapshot.js";
 
 const character = (

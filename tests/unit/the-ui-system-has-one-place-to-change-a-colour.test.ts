@@ -225,7 +225,7 @@ const IN_GAME_PROVIDED: Record<string, { setBy: string; reason: string }> = {
   "--compass-range-control-size": { setBy: "app/features/cartography/renderer/compass-range-controls.ts", reason: "the trigger's size, from COMPASS_CONTROL_SIZE" },
   "--compass-range-panel-width": { setBy: "app/features/cartography/renderer/compass-range-controls.ts", reason: "the panel's width, from PANEL_WIDTH" },
   "--compass-range-color": { setBy: "app/features/cartography/renderer/compass-range-controls.ts", reason: "each range's colour, from compass-ranges.ts" },
-  "--character-cards": { setBy: "app/features/character-switch/hub-views/HubCharacters.vue", reason: "the carousel's card count" },
+  "--character-cards": { setBy: "app/features/character-switch/ui/HubCharacters.vue", reason: "the carousel's card count" },
 };
 const launcherTokens = declared(readFileSync(LAUNCHER_TOKENS, "utf8"));
 

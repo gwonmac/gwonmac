@@ -1,7 +1,7 @@
 /** The fixture lifecycle must feed every consumer the facts the game would. */
 import { describe, expect, it, vi } from 'vitest';
 import { createFixtureLifecycle, FIXTURE_LIFECYCLES } from './hub-fixture-lifecycle';
-import { createDemoTravelHost } from './travel-host';
+import { createDemoTravelHost } from '../../../features/travel/ui/travel-host';
 
 describe('Hub fixture lifecycle', () => {
   it('derives the play region, pre-game screen and switch context from one Travel state', () => {

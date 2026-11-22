@@ -25,7 +25,7 @@ import {
   teamMemberLabel,
 } from "./model";
 import type { HubPresenter } from '../../../shared/hub';
-import { createHubLibrary } from './hub-library';
+import { createHubLibrary } from '../../../features/build-library/ui/hub-library';
 import { useLibrary } from "./use-library";
 import BuildDetail from "./components/BuildDetail.vue";
 import LiveParty from "./components/LiveParty.vue";

@@ -1,6 +1,7 @@
 /**
- * One Travel host serves both unified search and the existing detailed view.
- * It stays in the Tools app because it serves two features: Travel and Progress.
+ * Travel's Hub source: one Travel host serves both unified search and the detailed view, and it
+ * shows the Progress page, which the Progress Feature opens through Travel's link
+ * (`showProgress`). It lives in Travel's views folder and builds into the Tools bundle.
  */
 import { TOOL_PRESENTATION } from '../../../shared/tool-presentation';
 import { createApp, h, reactive, shallowRef, watch } from 'vue';
@@ -9,8 +10,8 @@ import { matchHubRows, parseHubQuery, hubTier, normaliseHubQuery } from '../../.
 import { TRAVEL_DESTINATIONS, isPvpTravelDestination, travelDestination, type TravelDestination } from '../../../shared/travel';
 import { guildWarsMapName } from '../../../shared/guild-wars-map-names';
 import { travelContextRefusal, travelDestinationAvailability } from '../../../shared/travel-command';
-import TravelPalette from './components/TravelPalette.vue';
-import ProgressView, { type ProgressViewResume } from './components/ProgressView.vue';
+import TravelPalette from './TravelPalette.vue';
+import ProgressView, { type ProgressViewResume } from './ProgressView.vue';
 import { PROGRESS_GOAL_WORDS, currentProgressCampaign, progressGoalLeft, progressGoals, questMapName, questTravelTarget, type GameProgressState, type ProgressCampaignId, type ProgressGoalId } from '../../../shared/game-progress';
 import type { TravelHost } from './travel-host';
 import { useTravelPreferences } from './travel-preferences';

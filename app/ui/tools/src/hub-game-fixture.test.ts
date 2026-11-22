@@ -3,7 +3,7 @@ import { flushPromises } from '@vue/test-utils';
 import { createApp, h, nextTick } from 'vue';
 import { expect, test } from 'vitest';
 import { createHubGameFixture } from './hub-game-fixture';
-import { createHubLibrary } from './hub-library';
+import { createHubLibrary } from '../../../features/build-library/ui/hub-library';
 import { useLibrary, type LibraryController } from './use-library';
 import { HUB_PAGES } from './hub/views';
 import { buildId, mapTeamSlots, teamId, type Build, type Team } from '../../../shared/builds/library';

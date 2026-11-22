@@ -1,6 +1,6 @@
 import { mount } from "@vue/test-utils";
 import { describe, expect, it } from "vitest";
-import TravelDestinationPicker from "./TravelDestinationPicker.vue";
+import TravelDestinationPicker from "../../../../features/travel/ui/TravelDestinationPicker.vue";
 
 describe("TravelDestinationPicker", () => {
   it("searches the catalogue without rendering a 199-item native select", async () => {

@@ -40,8 +40,8 @@ area, the Settings host) are Vue components in `app/ui/tools/src/hub/views`; the
 `app/renderer` keep state, validation and saves. A view mounts a page by its
 name in `HubPageProps` (`app/shared/ui/hub-pages.ts`). Each page folder names
 its pages in an `index.ts`, and the kit's registry collects those folders and
-every feature's `app/features/<id>/hub-views/`, so a feature adds a page from
-its own folder; Characters (`app/features/character-switch/hub-views/`) is one.
+every feature's `app/features/<id>/ui/index.ts`, so a feature adds a page from
+its own folder; Characters (`app/features/character-switch/ui/`) is one.
 `app/ui/tools/src/hub/views/registry.test.ts` holds the registry total: its
 page list must name every `HubPageProps` key, and every name must resolve.
 A feature page imports its props contract into its controller, so the

@@ -11,10 +11,10 @@ import type {
   TravelHost,
   TravelPreferencePatch,
   TravelPreferences,
-} from "../travel-host";
+} from "../../../../features/travel/ui/travel-host";
 import { DEFAULT_SETTINGS } from "../../../../shared/settings/index";
-import TravelDestinationPicker from "./TravelDestinationPicker.vue";
-import TravelPalette from "./TravelPalette.vue";
+import TravelDestinationPicker from "../../../../features/travel/ui/TravelDestinationPicker.vue";
+import TravelPalette from "../../../../features/travel/ui/TravelPalette.vue";
 import {
   EMPTY_TRAVEL_HISTORY,
   travelCharacterKey,

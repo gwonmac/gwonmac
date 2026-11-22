@@ -1,6 +1,7 @@
 /**
- * Hub presentation over the existing library controller and bounded apply owners.
- * It stays in the Tools app because it serves two features: Build Library and Team apply.
+ * The Build Library's Hub source: Hub presentation over the Library's controller and its
+ * bounded apply owners (Apply runs Team Apply's commands through the Library's link). It lives
+ * in the Library's views folder and builds into the Tools bundle with the Library's window view.
  */
 import { TOOL_PRESENTATION } from '../../../shared/tool-presentation';
 import { watch } from 'vue';
@@ -13,9 +14,9 @@ import { heroLabel, PROFESSIONS } from '../../../shared/builds/heroes';
 import { decodeSkillTemplate } from '../../../shared/builds/skill-template';
 import { preflightTeamApply, resolveTeamApplyPlan, type TeamApplyPlan } from '../../../shared/builds/team-apply';
 import type { TeamApplyEvent } from '../../../shared/builds/team-apply-runner';
-import { teamApplyStoredProblemMessage, teamApplyRuntimeProblemMessage } from './team-apply-presentation';
-import type { LibraryController } from './use-library';
-import type { ToolsHost } from './host';
+import { teamApplyStoredProblemMessage, teamApplyRuntimeProblemMessage } from '../../../ui/tools/src/team-apply-presentation';
+import type { LibraryController } from '../../../ui/tools/src/use-library';
+import type { ToolsHost } from '../../../ui/tools/src/host';
 
 type Item = { kind: 'team'; value: Team } | { kind: 'build'; value: Build };
 // Only native template records have a current folder; import provenance is not a folder.

@@ -4,8 +4,8 @@ import { loadInstalledSkills } from "./skill-catalog";
 import { mountWhispers } from "./whispers-mount";
 import { createNativeHost } from "./host";
 import { mountToolsApp as mount } from "./mount";
-import { createNativeTravelHost } from "./travel-host";
-import { createHubTravel as createTravel } from "./hub-travel";
+import { createNativeTravelHost } from "../../../features/travel/ui/travel-host";
+import { createHubTravel as createTravel } from "../../../features/travel/ui/hub-travel";
 import { createNativeTradeHost } from "./trade-host";
 import { mountTradeChat as mountTrade } from "./trade-mount";
 import type {

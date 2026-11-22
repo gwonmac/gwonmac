@@ -262,11 +262,11 @@ export function createHubPeople(hub: Pick<Hub, 'attach' | 'showRows' | 'notify'>
 
 /**
  * Hub people in the game host, hosted on the friends line (tools-companion-substrates.ts). It
- * reads the friend list while the Hub shows and Whispers or Travel is on here (the times their
- * own friend lists read it), invites through `game.chat`, and attaches while Whispers or Travel
- * is on. Null without a Hub.
+ * reads the friend list while the Hub shows and Whispers' or Travel's link answers (the times
+ * their own friend lists read it), invites through `game.chat`, and attaches while either link
+ * answers. Null without a Hub.
  */
-export function mountHubPeople(context: Pick<ToolsActivation, 'game' | 'playRegions' | 'on'>) {
+export function mountHubPeople(context: Pick<ToolsActivation, 'game' | 'playRegions'>) {
   const hub = window.gwHub;
   if (!hub) return null;
   const { chat, friends } = context.game;
@@ -284,7 +284,7 @@ export function mountHubPeople(context: Pick<ToolsActivation, 'game' | 'playRegi
   const people = createHubPeople(hub, links, party);
   const followFriends = subscribeWhile(friends, null, list => people.updateFriends(list ?? NO_FRIENDS));
   return Object.freeze({
-    poll() { followFriends(hub.visible && (context.on('whispers') || context.on('travel'))); },
+    poll() { followFriends(hub.visible && (links.whispers !== null || links.travel !== null)); },
     sync() {
       // People stays attached through a map load, character select or PvP; its person pages say
       // why an action waits, and the Home query survives the load (HUB-051, HUB-135).
