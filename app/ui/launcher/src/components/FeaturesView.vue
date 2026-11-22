@@ -6,7 +6,7 @@
  */
 import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
 import { AlertCircle, Check, LayoutGrid, List, Search, X } from "lucide-vue-next";
-import type { FeatureId } from "@shared/feature-contracts";
+import { featureSettingText, type FeatureId } from "@shared/feature-contracts";
 import type { LauncherExternalLink, LauncherNativeApi, LauncherSettingsPatch, LauncherSnapshot } from "@shared/launcher-contracts";
 import type { SettingsTarget } from "@shared/settings-catalogue";
 import {
@@ -77,6 +77,8 @@ const filters = computed(() => [
 ]);
 const shown = computed(() => (feature.value ? cardFeature(feature.value) : undefined) ?? null);
 
+/** The launch mode's words, from its manifest; its switch is inverted (on while `gwonmacTools` is off). */
+const PLAIN_GAME = featureSettingText("gwonmacTools");
 const plain = computed(() => !tools.value.configured);
 /** Turned off the plain game in this launcher session: Features load after a launcher restart. */
 const waitingForRestart = computed(() => tools.value.configured && !tools.value.loaded);
@@ -214,13 +216,13 @@ onBeforeUnmount(() => { notice.value = null; });
       <div class="plain-strip" :class="{ warn: plain || waitingForRestart }">
         <span class="strip-icon" aria-hidden="true"><AlertCircle v-if="plain || waitingForRestart" /><Check v-else /></span>
         <span class="strip-copy">
-          <strong id="plain-label">Play the plain game</strong>
-          <small id="plain-help">Turns off every Feature. Your Feature choices stay saved.</small>
+          <strong id="plain-label">{{ PLAIN_GAME.label }}</strong>
+          <small id="plain-help">{{ PLAIN_GAME.help }}</small>
           <small class="strip-status" role="status">{{ plainStatus }}</small>
           <small v-if="waitingForRestart && gamesOpen">Close every game window before restarting the launcher.</small>
         </span>
         <button v-if="waitingForRestart" class="primary small" :disabled="gamesOpen" @click="restart">Restart launcher</button>
-        <FeatureSwitch :checked="plain" label="Play the plain game" describedby="plain-help" @change="setPlain" />
+        <FeatureSwitch :checked="plain" :label="PLAIN_GAME.label" describedby="plain-help" @change="setPlain" />
       </div>
 
       <div class="catalog-tools">
