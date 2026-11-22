@@ -331,7 +331,7 @@
     "Meta+Backspace": "Home | focus search | sel settings | q \"settings\" | action - | life outpost | canvas down 0 up 0 pointer 0",
     "ArrowDown": "Settings | focus button | sel settings | q \"settings\" | action - | life outpost | canvas down 0 up 0 pointer 0",
     "ArrowUp": "Settings | focus button | sel settings | q \"settings\" | action - | life outpost | canvas down 0 up 0 pointer 0",
-    "Tab": "Settings | focus summary[Call target shortcut options] | sel settings | q \"settings\" | action - | life outpost | canvas down 0 up 0 pointer 0",
+    "Tab": "Settings | focus summary[Call Target shortcut options] | sel settings | q \"settings\" | action - | life outpost | canvas down 0 up 0 pointer 0",
     "Shift+Tab": "Settings | focus button | sel settings | q \"settings\" | action - | life outpost | canvas down 0 up 0 pointer 0",
     "Home": "Settings | focus input | sel settings | q \"settings\" | action - | life outpost | canvas down 0 up 0 pointer 0",
     "End": "Settings | focus input | sel settings | q \"settings\" | action - | life outpost | canvas down 0 up 0 pointer 0",

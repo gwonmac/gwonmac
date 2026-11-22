@@ -163,7 +163,7 @@ saved choice, so the Feature returns by itself when a release proves the build.
 not change that line. The switches wait as stored. The build check still
 matters the next time they turn Features on.
 
-**Features that name no capability** (Build Library, Call target, Trade Chat
+**Features that name no capability** (Build Library, Call Target, Trade Chat
 today; see each `feature.ts`) have nothing to refuse from the client's side, so
 `resolve` never reads the build check for them. They stay on. Maps names no
 capability either, but the verifier has a Cartography stage for it that
