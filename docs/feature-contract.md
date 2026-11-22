@@ -53,6 +53,9 @@ Then fill in the summary, the README and the game part, and run `pnpm check` aga
 
 ## The folder
 
+A Feature folder holds every file that only that Feature uses. A group A Feature has the
+first seven rows; the others belong to a Feature with a window, a Hub page or a main part.
+
 | File | Owns |
 | --- | --- |
 | `feature.ts` | The manifest (`defineFeature`), read by every process. Data only. |
@@ -60,12 +63,22 @@ Then fill in the summary, the README and the game part, and run `pnpm check` aga
 | `README.md` | What it does, for players: the launcher's Feature page and `/docs/<folder>` on the website. |
 | `CHANGELOG.md` | One `- ` bullet per player-facing change under `## Unreleased`. |
 | `media/` | `shot-1.webp`, `shot-2.webp`, … one per `shots` caption (`.gitkeep` while empty). |
-| `renderer/` | Other renderer-only modules of the Feature (DOM, formatting). No Node.js. |
-| `shared/` | Pure logic or types that two processes read. |
+| `renderer/` | Other renderer-only modules of the Feature (DOM, formatting, overlays, stylesheets). No Node.js. |
+| `shared/` | Contracts and pure logic that two processes read. |
+| `renderer/host.ts` | The one entry for a Feature the game host starts itself (Maps' certified stage, Character Switch's `hubPage` part). |
+| `renderer/window.ts` | Its window part (`windowPart`): the link that opens it and the lazy start of its view. |
+| `ui/` | Its own views, built into the Tools bundle: its window view, its Hub source and its Hub pages. |
+| `main.ts` | Its main part (`mainPart`). |
+| `main/` | Main-process-only modules: stores (`app/features/json-document.ts` keeps a JSON file), files, IPC parsing. |
+| `shared/ipc.ts` | Its channel table and its `window.gwNative` namespace. |
+| `shared/link.ts` | The types of the link it offers other Features (`offers`). |
 
-A Feature beyond group A may also have `main.ts` and `main/` (its main part), `renderer/window.ts`
-(its window part) and `ui/` (its views in the Tools bundle);
-[enhancement development](enhancement-development.md) describes the full folder.
+Code that several Features use stays where it is: the capability registry and proofs in
+`app/client/certification/`, the kernels, the shared substrates, `app/shared/`, and the shared
+Vue kit in `app/ui/tools/`. A module in `app/shared/` that only one Feature imports belongs in
+that Feature's folder (the `sharedFeatureModules` metric counts them).
+[Core and Tools development](enhancement-development.md#internal-feature-extension-contract)
+says which layer owns what beyond the folder.
 
 Every module under `app/` starts with a block comment that says what it owns.
 
@@ -252,7 +265,8 @@ capability, and a product setting cannot either.
 - the contract on every folder (`tests/policy/feature-contract.test.ts`), each message naming
   the file and what to change;
 - `tests/unit/every-companion-part-is-registered.test.ts`: a `companion.ts` with no line in
-  `companion-parts.ts`, or with another Feature's id;
+  `companion-parts.ts` (it prints the line to add) or with another Feature's id, a `window`
+  part with no line in `window-parts.ts`, and a `hubPage` part the game host does not start;
 - `tests/policy/feature-docs.test.ts`: the website page and `$docs.<page>` links;
 - ESLint import boundaries: renderer code outside the folder reaches only `feature.ts`,
   `renderer/host.ts` and `shared/`;
