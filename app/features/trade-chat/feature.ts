@@ -37,7 +37,7 @@ export default defineFeature({
   },
   hub: {
     command: "trade", order: 4, keyOrder: 3,
-    row: { detail: "Find offers and contact sellers", iconKind: "trade", open: { show: true } },
+    row: { detail: "Find offers and contact sellers", iconKind: "trade", open: {} },
   },
   shortcuts: [{ action: "trade.toggle", binding: { key: "k", shift: false, option: false }, menuItem: "toggle-trade" }],
   /** Whisper on an offer: Whispers owns the conversation. */

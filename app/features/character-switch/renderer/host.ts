@@ -3,23 +3,37 @@
  * owned by Core even when the current game build is unsupported: a certified
  * installation may replace only the source, never shortcut ownership. The Core
  * companion installation builds that source with the controller exported here.
+ * The part provides the Feature's link (../shared/link.ts) for its whole life, and
+ * tells the game host when a switch starts, so Core's automatic return to a
+ * character stops pressing keys (app/renderer/automatic-character-return.ts).
  */
 import { matchHubRows, parseHubQuery, type HubRow, type HubSource } from '../../../shared/hub.js';
 import { professionPresentation } from '../../../shared/profession-assets.js';
 import { currentCharacterIndex, type CharacterSwitchSource } from "./character-switch-model.js";
 import { characterSwitchRefusal, createCharacterSwitchPalette } from "./character-switch-palette.js";
 import { hubPagePart } from "../../../renderer/hub.js";
+import { provideLink } from "../../../renderer/feature-links.js";
 
 export { createCharacterSwitchController, type CharacterSwitchController } from "./character-switch-controller.js";
 export { characterSwitchContext, type CharacterSwitchContext, type CharacterSwitchSource } from "./character-switch-model.js";
 
 export interface CharacterSwitchHost {
   attach(source: CharacterSwitchSource): () => void;
+  /** Calls `listener` each time a switch starts, before it waits for anything. Returns the unsubscribe. */
+  onSwitchStart(listener: () => void): () => void;
   stop(): void;
 }
 
 export default hubPagePart("characterSwitch", ({ parent, hub }): CharacterSwitchHost => {
   const listeners = new Set<() => void>();
+  const switchStartListeners = new Set<() => void>();
+  /** Runs `ask` (a request or a confirmation) and tells the listeners when it started a switch. */
+  const switching = () => source.action.status === "switching";
+  const asking = (ask: () => void) => {
+    const before = switching();
+    ask();
+    if (!before && switching()) for (const listener of switchStartListeners) listener();
+  };
   const unavailable: CharacterSwitchSource = Object.freeze({
     characters: Object.freeze({ status: "waiting", reason: "memory" }),
     action: Object.freeze({
@@ -41,14 +55,15 @@ export default hubPagePart("characterSwitch", ({ parent, hub }): CharacterSwitch
     get characters() { return source.characters; },
     get action() { return source.action; },
     get context() { return source.context; },
-    request(characterKey: string) { source.request(characterKey); },
-    confirm() { source.confirm(); },
+    request(characterKey: string) { asking(() => source.request(characterKey)); },
+    confirm() { asking(() => source.confirm()); },
     cancelConfirmation() { source.cancelConfirmation(); },
     reset() { source.reset(); },
     diagnostics() { return source.diagnostics(); },
     subscribe(listener: () => void) { listeners.add(listener); listener(); return () => { listeners.delete(listener); }; },
   });
   const palette = createCharacterSwitchPalette(parent, proxy);
+  const stopLink = provideLink("characterSwitch", { toggle: () => palette.toggle() });
   const hubSource: HubSource = {
     feature: 'characterSwitchEnabled',
     context() {
@@ -96,6 +111,10 @@ export default hubPagePart("characterSwitch", ({ parent, hub }): CharacterSwitch
         for (const listener of listeners) listener();
       };
     },
-    stop() { detachHub?.(); detachSource(); listeners.clear(); palette.dispose(); },
+    onSwitchStart(listener: () => void) {
+      switchStartListeners.add(listener);
+      return () => { switchStartListeners.delete(listener); };
+    },
+    stop() { stopLink(); detachHub?.(); detachSource(); listeners.clear(); switchStartListeners.clear(); palette.dispose(); },
   });
 });

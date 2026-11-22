@@ -21,17 +21,17 @@ import type { HubIconKind } from "../shared/ui/hub-icon.js";
 
 /**
  * A Tools row Core draws for a tool without loading its code: its detail, its icon, its action
- * name (`Open <name>` by default) and how it opens; it matches the tool's `keywords`. A tool
- * opens through its own `event` or its Feature's link `toggle` (`offers`), asked to `show` (never
- * to close), as a Hub page (`page`, so Right Arrow opens it too) or after the Hub closes
- * (`closesHub`); or at its own Feature page in the Hub's Settings (`featurePage`).
+ * name (`Open <name>` by default) and how it opens; it matches the tool's `keywords`. A row
+ * opens its tool through its Feature's link `toggle` (`offers`), asked to `show` (never to
+ * close): in place (`{}`), as a Hub page (`page`, so Right Arrow opens it too) or after the Hub
+ * closes (`closesHub`); or it opens its own Feature page in the Hub's Settings (`featurePage`).
  */
 export type HubToolRow = Readonly<{
   detail: string;
   iconKind: HubIconKind;
   action?: string;
   aliases?: readonly string[];
-  open: Readonly<{ show?: true; page?: true; closesHub?: true }> | Readonly<{ featurePage: true }>;
+  open: Readonly<{ page?: true; closesHub?: true }> | Readonly<{ featurePage: true }>;
 }>;
 
 /**
@@ -144,8 +144,8 @@ export type FeatureDefinition = Readonly<{
     /** Extra words Settings search and the tool's Hub row match. */
     keywords?: string;
     /**
-     * The renderer event that runs this tool. Its shortcut's command fires it
-     * (app/renderer/commands.ts), and so does its Hub row. A feature that offers `toggle` opens
+     * The renderer event that runs this tool, for a tool the input host runs (Call Target). Its
+     * shortcut's command fires it (app/renderer/commands.ts). A feature that offers `toggle` opens
      * its tool through that link instead and names no event. A listener cancels the event to
      * claim it and, given an object detail, sets `error` on it to refuse.
      */

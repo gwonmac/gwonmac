@@ -296,7 +296,7 @@ test('Character Switch\'s host stops without leaving anything, after its page op
   settings = { ...DEFAULT_SETTINGS, ...ALL_ON };
   const page = await baseline();
   const host = characterSwitchHub.start({ parent: document.body, hub: window.gwHub ?? null });
-  window.dispatchEvent(new CustomEvent('gw:character-toggle', { cancelable: true }));
+  toggleTool('characterSwitch', 'toggle');
   await settle();
   host.stop();
   expect(await page.leftOver()).toEqual([]);

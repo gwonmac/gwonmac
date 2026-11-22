@@ -265,7 +265,6 @@ export function createCharacterSwitchController(options: Readonly<{
     initialKeys: readonly string[],
     startsAtSelector: boolean,
   ) => {
-    window.dispatchEvent(new Event("gw:character-switch-claim"));
     if (!startsAtSelector) {
       publish({ status: "switching", stage: "logout" }, "logout:queued");
       const logout = await settle("logout", 2_000);

@@ -57,7 +57,7 @@ export default defineFeature({
   },
   hub: {
     command: "whispers", order: 2, keyOrder: 4,
-    row: { detail: "Conversations, friends and drafts", iconKind: "whispers", open: { show: true } },
+    row: { detail: "Conversations, friends and drafts", iconKind: "whispers", open: {} },
   },
   shortcuts: [{ action: "whispers.toggle", binding: { key: "d", shift: false, option: false }, menuItem: "open-whispers" }],
   /**

@@ -265,20 +265,15 @@ test("menu commands reach the game renderer as events", async () => {
   const fixture = harness(TOOLS_ARGV);
   fixture.deliver(1, { type: "input.reset" });
   fixture.deliver(2, { type: "diagnostics.toggle" });
-  fixture.listen("gw:character-toggle");
-  fixture.deliver(3, { type: "character.toggle" });
-  await fixture.settled(3);
+  await fixture.settled(2);
   assert.deepEqual(fixture.dispatched, [
     "gw:input-reset",
     "gw:diagnostics-toggle",
-    "gw:character-toggle",
   ]);
   assert.deepEqual(fixture.acknowledgements(), [
     [1, "completed"],
     [2, "completed"],
-    [3, "completed"],
   ]);
-  // Character Switch is a palette of its own and leaves the others alone.
   assert.equal(fixture.transientDismissals(), 1,
     "explicit interface commands dismiss transient palettes before dispatch");
 });
@@ -302,7 +297,6 @@ test("key release, trace state and text editing cross preload with their values 
 // Each tool command and the event its tool's manifest names. A typo or a
 // missing `event` in a manifest leaves the command dispatching nothing.
 const TOOL_COMMANDS = [
-  ["character.toggle", "gw:character-toggle"],
   ["game.call-target", "gw:call-target"],
 ] as const;
 
@@ -359,6 +353,7 @@ test("a tool that opens through its Feature's link is toggled through it, and is
 // makes a new toggle Feature extend this table, so the test below covers it.
 const TOGGLE_ONLY: { [Target in ToolLinkTarget]: (toggle: ToolLink["toggle"]) => FeatureLinkApis[Target] } = {
   buildLibrary: (toggle) => ({ toggle, load: () => "unavailable", save: () => "unavailable", list: () => "unavailable" }),
+  characterSwitch: (toggle) => ({ toggle }),
   resign: (toggle) => ({ toggle }),
   tradeChat: (toggle) => ({ toggle, search: () => "unavailable", marketRates: () => "unavailable", traderQuotes: () => "unavailable" }),
   travel: (toggle) => ({ toggle, friendTripBlocked: () => "unavailable", toFriend: () => "unavailable", showProgress: () => "unavailable" }),

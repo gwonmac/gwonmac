@@ -230,10 +230,6 @@ let characterSwitchHost:
   | null = null;
 let characterSwitchPart:
   typeof import('../features/character-switch/renderer/host.js').default;
-const cancelAutomaticReturnForCharacterSwitch = () => {
-  automaticCharacterReturn?.cancelForCharacterSwitch();
-};
-window.addEventListener('gw:character-switch-claim', cancelAutomaticReturnForCharacterSwitch);
 const diagnosticProfile = native().init.diagnosticProfile;
 const glOverridesEnabled = diagnosticProfile === 'standard';
 const presentationPath = diagnosticProfile === 'direct-canvas'
@@ -662,10 +658,6 @@ addEventListener('beforeunload', () => {
   characterSwitchHost?.stop();
   characterSwitchHost = null;
   delete window.gwCharacterSwitchHost;
-  window.removeEventListener(
-    'gw:character-switch-claim',
-    cancelAutomaticReturnForCharacterSwitch,
-  );
   delete window.gwVirtualGamepad;
   delete window.gwControllerPromptTextureStats;
 });
@@ -1196,6 +1188,8 @@ function loadGlue(isProxyRouteLabel: (route: string) => boolean) {
   );
   gamepadTrace = host.installGamepadTrace(inputTrace);
   characterSwitchHost = characterSwitchPart.start({ parent: document.body, hub: window.gwHub ?? null });
+  // A switch drives the pre-game screens itself, so the automatic return stops pressing keys.
+  characterSwitchHost.onSwitchStart(() => automaticCharacterReturn?.cancelForCharacterSwitch());
   window.gwCharacterSwitchHost = characterSwitchHost;
   native().inputTrace.onEntry((entry) => inputTrace?.record(entry));
   window.addEventListener('gw:input-trace', (event) => {

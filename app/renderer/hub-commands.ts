@@ -1,8 +1,8 @@
 /**
  * Owns the Hub's built-in commands: the rows that open a tool, the Commands page (the Hub's
  * cheatsheet), the typed-only commands, and the search that hands a typed item to Trade. The tool
- * rows come from their manifests (app/shared/hub-tools.ts); a tool opens through its own event or
- * its Feature's link `toggle`, so Core names a tool without loading its code. The Hub matches
+ * rows come from their manifests (app/shared/hub-tools.ts); a tool opens through its Feature's
+ * link `toggle`, so Core names a tool without loading its code. The Hub matches
  * these rows against the query itself (HubSource `commands`); this module attaches them as one
  * built-in source (hub-builtins.ts).
  */
@@ -19,10 +19,6 @@ import { featureOn } from './feature-on.js';
 import type { Hub } from './hub.js';
 import type { HubIconKind } from '../shared/ui/hub-icon.js';
 
-/** A tool's event: a tool that is not running leaves it unhandled, and the action refuses. */
-const dispatch = (name: string, detail?: unknown) => {
-  if (window.dispatchEvent(new CustomEvent(name, { cancelable: true, detail }))) throw new Error(UNAVAILABLE_HERE);
-};
 /** A tool that opens through its link asks it to show, never to close (Whispers); a refusal says why. */
 const show = (target: ToolLinkTarget) => {
   const answer = toggleTool(target, 'show');
@@ -44,9 +40,8 @@ export function createHubCommands(hub: CommandsHub, openSettings: (target?: Sett
         const open = tool.open;
         const run = 'featurePage' in open ? openSettings({ section: 'features', feature: tool.feature })
           // A tool that opens after the Hub closes never refuses: the Hub is gone (Xunlai Storage).
-          : 'link' in open && open.closesHub ? () => { hub.close(); toggleTool(open.link, 'show'); }
-          : 'link' in open ? () => show(open.link)
-          : () => dispatch(open.event, open.show ? 'show' : undefined);
+          : open.closesHub ? () => { hub.close(); toggleTool(open.link, 'show'); }
+          : () => show(open.link);
         return { id: tool.id, title: tool.title, keywords: tool.keywords, detail: tool.detail, iconKind: tool.iconKind, ...(tool.aliases ? { aliases: tool.aliases } : {}), group: 'Tools',
           action: tool.action ?? `Open ${tool.title}`, ...('page' in open && open.page ? { navigate: run } : {}), run };
       }),

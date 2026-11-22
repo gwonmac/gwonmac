@@ -36,7 +36,6 @@ export default defineFeature({
   uses: ["characterSwitchAction"],
   tool: {
     id: "character-switch",
-    event: "gw:character-toggle",
     keywords: "characters relog alts profession",
   },
   hub: {
@@ -44,6 +43,8 @@ export default defineFeature({
     row: { detail: "Choose another character", iconKind: "character", action: "Choose character", open: { page: true } },
   },
   shortcuts: [{ action: "character.switch", binding: { key: "e", shift: false, option: false }, menuItem: "switch-character" }],
+  /** ⌘E, its menu item and its Hub row open Characters through `toggle` (shared/link.ts). */
+  offers: ["toggle"],
   shots: [],
   parts: ["game", "hubPage"],
 });
