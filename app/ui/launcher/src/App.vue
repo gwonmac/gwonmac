@@ -149,7 +149,10 @@ async function toggleProfile(id: ProfileId) {
     : [...selected.value, id];
   if (next.length === 0) return;
   selected.value = next;
-  await runAction("The account selection could not be saved.", () => native?.profiles.setSelection(next));
+  // A refused change puts back the saved selection, so Play opens only what the error says is unchanged.
+  if (!await runAction("The account selection could not be saved.", () => native?.profiles.setSelection(next))) {
+    selected.value = [...snapshot.value.selectedProfileIds];
+  }
 }
 
 async function primaryAction() {
