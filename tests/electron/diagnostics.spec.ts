@@ -653,7 +653,7 @@ test.describe("diagnostics", () => {
         window.gwLoading.done();
         const loading = document.getElementById("loading");
         if (loading) loading.style.display = "none";
-        window.gwLoading.failCrash(1);
+        window.gwLoading.failCrash();
       });
       await expect(page.locator("#loading-label")).toHaveText("Guild Wars stopped.");
       await expect(page.locator("#loading-detail")).toHaveText("Reload the game to play on.");

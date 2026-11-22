@@ -141,17 +141,15 @@ declare global {
     fail(message: string, detail?: string): void;
     failFilesystem(): void;
     /**
-     * The running game client crashed; count is per app run. `technicalDetail`
-     * is the abort's own prose plus heap size — it renders behind a disclosure
-     * on the overlay and never leaves the renderer; an omitted value keeps the
-     * text a previous call supplied, so the repeat-crash copy upgrade cannot
-     * erase it.
+     * The running game client stopped. `technicalDetail` is the abort's own
+     * prose plus heap size — it renders behind a disclosure on the overlay and
+     * never leaves the renderer; an omitted value keeps the text a previous
+     * call supplied.
      */
-    failCrash(crashCount: number, technicalDetail?: string): void;
+    failCrash(technicalDetail?: string): void;
     /** True while the start or failure screen covers the game, so nothing beneath it can be seen. */
     covering(): boolean;
     done(): void;
-    waitForClient(): Promise<boolean>;
   }
 
   interface ArenaNetEglImports {
@@ -344,13 +342,7 @@ declare global {
     gwExploration?: ExplorationController;
     /** Unpackaged-development controller used to exercise Guild Wars' real gamepad UI. */
     gwVirtualGamepad?: VirtualGamepadController;
-    gwLog(visible?: boolean): boolean;
-    gwEvictMemory(): number;
     gwStats?(): Record<string, number | boolean>;
-    gwBuildInfo?: Readonly<{
-      programId: number;
-      buildId: number;
-    }>;
     gwCompanionRuntime?: CompanionDeveloperRuntime | CompanionObserverRuntime | null;
     gwPreGameControls?: PreGameControls | null;
     gwCharacterList?: CharacterListSource | null;

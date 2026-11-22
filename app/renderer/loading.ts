@@ -65,15 +65,12 @@ window.gwLoading = (function (): LoadingController {
     set(text, _fraction, explanation) { label.textContent = text; detail.textContent = explanation || ''; },
     fail(text, explanation) { showFailure(text, explanation ?? 'Close this window and try this account again from the launcher.'); },
     failFilesystem() { showFailure('Saved game files could not be opened.', 'Close this window and reset this account’s game storage from the launcher.'); },
-    failCrash(_crashCount, technicalDetail) {
-      // The repeat-crash call follows the first within moments; it must not
-      // pull the keyboard off a button the player already moved to.
-      const firstShow = actions.hidden;
+    failCrash(technicalDetail) {
       if (started) showFailure('Guild Wars stopped.', 'Reload the game to play on.', true);
       else showFailure('Guild Wars stopped before it was ready.', 'Reload the game to try again.', true);
       if (technicalDetail !== undefined) crashText.textContent = technicalDetail;
       crashDetail.hidden = !crashText.textContent;
-      if (firstShow) reloadButton.focus();
+      reloadButton.focus();
     },
     covering() { return !root.classList.contains('gone'); },
     done() {
@@ -85,7 +82,6 @@ window.gwLoading = (function (): LoadingController {
       }, 220);
       required('canvas').focus();
     },
-    async waitForClient() { return true; },
   };
   return api;
 })();

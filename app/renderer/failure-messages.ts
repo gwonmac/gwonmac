@@ -4,8 +4,9 @@
  * The main process sends codes and never prose: it cannot see the UI, its
  * strings cannot be tested against what the player actually reads, and free
  * text on a channel is what let an error message reach the diagnostics export
- * in the first place. So every user-facing failure sentence is written here,
- * beside the surface that shows it, and a unit test executes this file.
+ * in the first place. So every failure sentence the game window shows is
+ * written here, beside the surface that shows it, and a unit test executes
+ * this file.
  *
  * The maps are deliberately partial. Most of the catalogue names a fault in
  * something the player cannot act on, and inventing fifty sentences to say
@@ -13,48 +14,8 @@
  * an entry only when it changes what the player should *do*.
  */
 
-import type { NoticeCode, SteamRefusalReason } from '../shared/contracts.js';
+import type { SteamRefusalReason } from '../shared/contracts.js';
 import type { ErrorCode } from '../shared/errors.js';
-
-/**
- * The launch failed and the game cannot start. The default is the sentence
- * this path has always shown; the entries above it are the cases with a
- * different answer.
- */
-const LAUNCH_FAILURE: Partial<Record<ErrorCode, string>> = {
-  disk_full:
-    'There is not enough free disk space to prepare the game client. Free some space, then choose Retry.',
-  not_ready:
-    'No game client has been downloaded yet, and ArenaNet could not be reached.',
-  artifact_unverified:
-    'The downloaded game client failed verification. Choose Retry to fetch it again.',
-  wrong_profile:
-    'The live probe selected an unexpected profile. No update was started.',
-  net_offline:
-    'This Mac appears to be offline, so ArenaNet could not be reached. Check the connection, then choose Retry — hotel and café networks often need a browser sign-in first.',
-  http_status:
-    'ArenaNet answered with a server error, so the game client could not be fetched. This is usually temporary — choose Retry in a few minutes.',
-};
-
-const LAUNCH_DEFAULT =
-  'ArenaNet is unavailable and no previous game client could be restored.';
-
-/**
- * The full-game download stopped and can be resumed. Verified data is always
- * kept, so every sentence here ends at the same action.
- */
-const DOWNLOAD_FAILURE: Partial<Record<ErrorCode, string>> = {
-  disk_full:
-    'There is not enough free disk space to download the full game. Free some space, then choose Resume Download.',
-  not_ready: 'The game files are not ready yet. Try again in a moment.',
-  net_offline:
-    'The connection to ArenaNet was lost. Check that this Mac is online, then choose Resume Download.',
-  http_status:
-    'ArenaNet answered with a server error. This is usually temporary — choose Resume Download in a few minutes.',
-};
-
-const DOWNLOAD_DEFAULT =
-  'The download could not continue. Check your connection, then choose Resume Download.';
 
 /**
  * A fatal snapshot read: the running client asked for game data that could
@@ -75,24 +36,6 @@ const SNAPSHOT_READ: Partial<Record<ErrorCode, string>> = {
 const SNAPSHOT_DEFAULT =
   'No cached copy of the required game data is available.';
 
-export function describeLaunchFailure(code: ErrorCode): string {
-  return LAUNCH_FAILURE[code] ?? LAUNCH_DEFAULT;
-}
-
-/**
- * `shortfall` is a preformatted size ("2.3 GB") from the caller, which owns
- * the one byte formatter on its surface; a second formatter here would drift.
- */
-export function describeDownloadFailure(
-  code: ErrorCode,
-  context?: { shortfall?: string },
-): string {
-  const text = DOWNLOAD_FAILURE[code] ?? DOWNLOAD_DEFAULT;
-  return code === 'disk_full' && context?.shortfall
-    ? `${text} At least ${context.shortfall} more is needed.`
-    : text;
-}
-
 export function describeSnapshotReadFailure(code: string | null): string {
   return (code && SNAPSHOT_READ[code as ErrorCode]) || SNAPSHOT_DEFAULT;
 }
@@ -112,27 +55,6 @@ const TEMPLATE_EXPORT_DEFAULT =
 
 export function describeTemplateExportFailure(code: ErrorCode): string {
   return TEMPLATE_EXPORT_FAILURE[code] ?? TEMPLATE_EXPORT_DEFAULT;
-}
-
-/**
- * The launch succeeded through a fallback the player may want to know about.
- * A `Record`, not a `Partial`: a notice code without a sentence is a compile
- * error, because a silent notice is a notice that never happened.
- */
-const NOTICE: Record<NoticeCode, string> = {
-  'cached-live-probe': 'The live probe is using the existing cached client.',
-  'rejected-candidate-fallback':
-    'Using the previous game client — a newer one did not start successfully.',
-  'update-failed-previous-restored':
-    'Using the previous game client — the update will retry next launch.',
-  'offline-using-cached-client':
-    "You're offline — starting with the downloaded client.",
-  'interrupted-update-retryable':
-    'An interrupted client update was found — it will finish next launch.',
-};
-
-export function describeNotice(code: NoticeCode): string {
-  return NOTICE[code];
 }
 
 /**
@@ -182,22 +104,6 @@ export function suggestReport(code: string): boolean {
 }
 
 const REPORT_HINT = 'You can retry, or choose Help → Report a Bug.';
-
-/**
- * The running game client died (Emscripten abort, or exit with a non-zero
- * code). One crash is usually transient; from the second crash in the same
- * app run the sentence stops promising that a retry will fix it and leads
- * with reporting, because a repeating crash is the case we need to hear about.
- */
-export interface ClientCrashPresentation {
-  label: string;
-  detail: string;
-  reportButton: string;
-  retryButton: string;
-}
-
-const CRASH_RETRY = 'Retry';
-const CRASH_REPORT = 'Report a Bug…';
 
 export interface MemoryPressurePresentation {
   label: string;
@@ -287,23 +193,6 @@ export function memoryWarningCopy(
       `This session can use up to ${capGb} GB. Reloading starts Guild Wars `
       + 'with fresh memory. With automatic return enabled, gwonmac signs in '
       + 'and returns to the selected character.',
-  };
-}
-
-export function clientCrashPresentation(
-  crashCount: number,
-): ClientCrashPresentation {
-  const repeated = crashCount >= 2;
-  return {
-    label: repeated
-      ? 'The game client keeps stopping unexpectedly.'
-      : 'The game client stopped unexpectedly.',
-    detail: repeated
-      ? 'Retrying alone may not fix this. Choose Report a Bug so we can investigate.'
-      : 'This is usually temporary — choose Retry to start it again. '
-        + 'If it keeps happening, choose Report a Bug.',
-    reportButton: CRASH_REPORT,
-    retryButton: CRASH_RETRY,
   };
 }
 
