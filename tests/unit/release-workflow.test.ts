@@ -271,6 +271,7 @@ describe("release workflow", () => {
       ["another version's branch", "1.0.2", {}, /Run this on hotfix\/1\.0\.2, branched from v1\.0\.1/u],
       ["a registry line that looks like a diff header", "1.0.1", { [REGISTRY]: `${FACTS_REGISTRY_TEXT}++ extra\n` }, /may only add or remove generation entries:\n\+\+\+ extra$/u],
       ["a changed certification test line", "1.0.1", { [POLICY]: "assert.ok(false);\n" }, /these changed:\ntests\/policy\/rule\.test\.ts$/u],
+      ["a changed safety-rule test", "1.0.1", { [RULE]: "assert.ok(true);\n" }, /these changed:\ntests\/certification\/rule\.test\.ts$/u],
       ["an added return in a certification test", "1.0.1", { [PROOF]: `return;\n${PROOF_TEXT}` }, /these changed:\ntests\/client-artifact\/proof\.test\.ts$/u],
       ["a mode-only change to a certification test", "1.0.1", { [PROOF]: EXECUTABLE }, /these changed:\ntests\/client-artifact\/proof\.test\.ts$/u],
       ["a removed certification test", "1.0.1", { [PROOF]: null }, /these changed:\ntests\/client-artifact\/proof\.test\.ts$/u],
@@ -358,6 +359,7 @@ const FACTS_REGISTRY_TEXT = REGISTRY_TEXT
 const FACT = "app/client/certification/reviewed-client-2026-12-01-bbbbbbbbbbbb.ts";
 const POLICY = "tests/policy/rule.test.ts";
 const PROOF = "tests/client-artifact/proof.test.ts";
+const RULE = "tests/certification/rule.test.ts";
 // It imports a fixture (which imports another) and reads one by path.
 const PROOF_TEXT = 'import { roles } from "../fixtures/queue.js";\nconst kernel = "tests/fixtures/kernel.rs";\nassert.ok(roles && kernel);\n';
 /** A change value that sets the executable bit and leaves the content. */
@@ -399,6 +401,7 @@ function factRepository(change: Readonly<Record<string, string | null | typeof E
     // A sample source inside a policy test names a module that does not exist.
     [POLICY]: "assert.ok(true);\nconst sample = 'import { a } from \"./a.js\";';\n",
     [PROOF]: PROOF_TEXT,
+    [RULE]: "assert.equal(1, 1);\n",
     "tests/fixtures/queue.ts": 'import { client } from "./client.js";\nexport const roles = client;\n',
     "tests/fixtures/client.ts": "export const client = 1;\n",
     "tests/fixtures/kernel.rs": "fn main() {}\n",

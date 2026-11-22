@@ -67,11 +67,12 @@ the only human step before the `release` approval.
   `reviewed-facts.ts` generation list, the detector record, a test, a doc, or
   website content, and at least one `reviewed-client-*.ts` file changed;
 - the certification tests, their fixtures and the policy tests only gain new
-  files. The certification tests (`tests/unit/client-certification*`,
-  `tests/unit/enhancement-*`, `tests/client-artifact/`) are Must stay in
-  AGENTS.md; their fixtures are every file under `tests/` that these tests or
-  `tests/policy/` import or name by path. Any existing one must stay
-  byte-identical, mode included;
+  files. The certification tests (`tests/certification/`,
+  `tests/client-artifact/`) are Must stay in AGENTS.md: they guard the client
+  proofs and the safety rules. Their fixtures are every file under `tests/`
+  that these tests or `tests/policy/` import or name by path. Any existing one
+  must stay byte-identical, mode included, so moving one out of its folder is
+  refused too. Other tests under `tests/` may change;
 - exactly one post has the version's `launcherId`, its title, and `draft: true`;
 - `tests/fixtures/player-data/` holds the files the patched release writes;
 - the branch has no open pull request and no unfinished release or client

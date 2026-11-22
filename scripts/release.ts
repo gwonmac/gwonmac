@@ -547,14 +547,15 @@ const FACT_PATHS: readonly RegExp[] = [
 const FACT_FILE = /^app\/client\/certification\/reviewed-client-[\w.-]+\.ts$/u;
 const FACT_REGISTRY = "app/client/certification/reviewed-facts.ts";
 /**
- * The Must-stay certification tests (AGENTS.md) and the policy tests. In a
- * fact release they, and every test file they import or name by path, only
- * gain new files: an existing one stays byte-identical, mode included, so no
- * added `return;` can switch a check off.
+ * The Must-stay tests (AGENTS.md): the client proofs and safety rules in
+ * tests/certification/ and the real-client tests in tests/client-artifact/,
+ * plus the policy tests. In a fact release they, and every test file they
+ * import or name by path, only gain new files: an existing one stays
+ * byte-identical, mode included, so no added `return;` can switch a check off.
+ * Moving a file out of these folders deletes it here, so a move is refused too.
  */
 const GUARDED_TESTS: readonly RegExp[] = [
-  /^tests\/unit\/client-certification/u,
-  /^tests\/unit\/enhancement-/u,
+  /^tests\/certification\//u,
   /^tests\/client-artifact\//u,
   /^tests\/policy\//u,
 ];
