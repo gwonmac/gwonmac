@@ -222,7 +222,10 @@ export class ChunkStore {
           }
         })
         .catch((err: NodeJS.ErrnoException) => {
-          if (err.code !== "ENOENT") throw err;
+          if (err.code === "ENOENT") return;
+          // A transient read error must not stay cached: the next call scans again.
+          this.residentReady = null;
+          throw err;
         });
     }
     await this.residentReady;
@@ -257,7 +260,7 @@ export class ChunkStore {
   /** One shared promise per content hash; rejected promises are dropped so retries work. */
   ensureHash(
     hash: string,
-    expectedLength?: number,
+    expectedLength: number,
     priority: ChunkPriority = "demand",
     background = false,
   ): Promise<Uint8Array> {
@@ -298,7 +301,7 @@ export class ChunkStore {
 
   private async ensureHashInner(
     hash: string,
-    expectedLength: number | undefined,
+    expectedLength: number,
     priority: ChunkPriority,
     background: boolean,
   ): Promise<Uint8Array> {
@@ -306,7 +309,7 @@ export class ChunkStore {
     try {
       const st = await stat(path);
       if (st.isFile()) {
-        if (expectedLength !== undefined && st.size !== expectedLength) {
+        if (st.size !== expectedLength) {
           this.unmarkResident(hash);
           this.verifiedHashes.delete(hash);
           await unlink(path);
@@ -349,16 +352,13 @@ export class ChunkStore {
     const scheduledPriority = this.demandedHashes.has(hash) ? "demand" : priority;
     const raw = await this.scheduleFetch(
       hash,
-      expectedLength ?? 0,
+      expectedLength,
       scheduledPriority,
       background,
     );
     this.metrics?.count("cache.networkFetches");
     this.metrics?.count("cache.networkBytes", raw.byteLength);
     const decodeStarted = performance.now();
-    if (expectedLength === undefined) {
-      throw new AppError("chunk_length", `missing expected length for ${hash}`);
-    }
     const data = await decodeChunk(raw, this.compression, expectedLength);
     this.metrics?.observe("cache.decode", (performance.now() - decodeStarted) * 1_000);
     const hashStarted = performance.now();
