@@ -5,21 +5,7 @@ import {
   rewriteTemplateSaveWasm,
   type KnownTemplateSaveBuild,
 } from "../../app/client/certification/template-save-compat.js";
-
-function uleb(value: number): number[] {
-  const output: number[] = [];
-  do {
-    let byte = value & 0x7f;
-    value >>>= 7;
-    if (value) byte |= 0x80;
-    output.push(byte);
-  } while (value);
-  return output;
-}
-
-function section(id: number, body: number[]): number[] {
-  return [id, ...uleb(body.length), ...body];
-}
+import { section, uleb } from "../helpers/wasm-builder.ts";
 
 /** The width LLVM uses for call targets, which the transform patches in place. */
 function paddedCall(index: number): number[] {

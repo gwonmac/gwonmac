@@ -4,23 +4,9 @@ import {
   installClientExit,
   type ClientExitImports,
 } from "../../app/renderer/client-exit.js";
+import { section, uleb } from "../helpers/wasm-builder.ts";
 
 type Callback = (...args: number[]) => unknown;
-
-function uleb(value: number): number[] {
-  const bytes: number[] = [];
-  do {
-    let byte = value & 0x7f;
-    value >>>= 7;
-    if (value) byte |= 0x80;
-    bytes.push(byte);
-  } while (value);
-  return bytes;
-}
-
-function section(id: number, body: number[]): number[] {
-  return [id, ...uleb(body.length), ...body];
-}
 
 function realMainLoopInstance(): WebAssembly.Instance {
   const loopName = [

@@ -67,9 +67,6 @@ const VIEWS: Record<KeyboardView, { query?: string; open(page: Page): Promise<vo
   'settings-body': { open: async page => { await openSettings(page); await page.getByRole('switch', { name: 'Play the plain game' }).focus(); } },
 };
 
-/** Two animation frames and the demo hosts' 600 ms travel or apply delays. */
-const settle = (page: Page) => page.waitForTimeout(700);
-
 const observe = (page: Page) => page.evaluate(() => {
   const hub = document.getElementById('hub');
   const open = hub instanceof HTMLDialogElement && hub.open;
@@ -103,6 +100,26 @@ const observe = (page: Page) => page.evaluate(() => {
     .replace(/Current observation [^·|]+(?= ·)/gu, 'Current observation <time>')
     .replace(/[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}/giu, '<profile>');
 });
+
+/**
+ * Waits until the page has stopped changing: its observation is the same for a quiet window
+ * that outlasts a lazy view's import. The window is never shorter than the fixed 700 ms wait it
+ * replaced (a view still loading shows no change until it lands), and it waits longer while the
+ * page keeps changing on a slow runner.
+ */
+const QUIET_MS = 700;
+const settle = async (page: Page) => {
+  const frames = () => page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+  const deadline = Date.now() + 10_000;
+  let last = await observe(page);
+  let since = Date.now();
+  while (Date.now() - since < QUIET_MS) {
+    expect(Date.now(), 'The Hub never settled').toBeLessThan(deadline);
+    await frames();
+    const now = await observe(page);
+    if (now !== last) { last = now; since = Date.now(); }
+  }
+};
 
 test.describe('keyboard contract', () => {
   if (updating) {

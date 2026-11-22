@@ -22,6 +22,7 @@ import { FRIEND_OBSERVER_MANIFEST_SECTION, FRIEND_OBSERVER_SEMANTIC_SHA256, FRIE
 import { NO_FRIENDS, type TravelFriends } from "../../app/shared/friends.ts";
 import { DEFAULT_SETTINGS } from "../../app/shared/settings/index.ts";
 import { provenFacts } from "../helpers/feature-facts.ts";
+import { uleb } from "../helpers/wasm-builder.ts";
 
 const EMPTY_MODULE = new WebAssembly.Module(new Uint8Array([0, 0x61, 0x73, 0x6d, 1, 0, 0, 0]));
 
@@ -32,13 +33,8 @@ function moduleWithFriendManifest(): WebAssembly.Module {
   const payload = encoder.encode(JSON.stringify({
     transformAbi: FRIEND_OBSERVER_TRANSFORM_ABI, inputSha256: "0".repeat(64), semanticSha256: FRIEND_OBSERVER_SEMANTIC_SHA256, root: 4096,
   }));
-  const leb = (value: number) => {
-    const bytes: number[] = [];
-    do { let byte = value & 0x7f; value >>>= 7; if (value !== 0) byte |= 0x80; bytes.push(byte); } while (value !== 0);
-    return bytes;
-  };
-  const body = [...leb(name.length), ...name, ...payload];
-  return new WebAssembly.Module(new Uint8Array([0, 0x61, 0x73, 0x6d, 1, 0, 0, 0, 0, ...leb(body.length), ...body]));
+  const body = [...uleb(name.length), ...name, ...payload];
+  return new WebAssembly.Module(new Uint8Array([0, 0x61, 0x73, 0x6d, 1, 0, 0, 0, 0, ...uleb(body.length), ...body]));
 }
 
 const inOutpost = (characterKey: string): CompanionPlayRegionState => Object.freeze({

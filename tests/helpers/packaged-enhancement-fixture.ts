@@ -58,6 +58,7 @@ import {
   TEST_CLIENT_SHA256,
   TEST_CLIENT_WASM,
 } from "./cached-client.ts";
+import { uleb } from "./wasm-builder.ts";
 
 export { seedCachedClient } from "./cached-client.ts";
 
@@ -277,17 +278,6 @@ export const OBSERVER_RUNTIME_KEYS = Object.freeze(
   [...DEVELOPER_RUNTIME_KEYS, "setHookEnabledForBenchmark"].sort(),
 );
 export const SYNTHETIC_GLUE = TEST_CLIENT_GLUE;
-
-export function uleb(value: number) {
-  const bytes: number[] = [];
-  do {
-    let byte = value & 0x7f;
-    value >>>= 7;
-    if (value !== 0) byte |= 0x80;
-    bytes.push(byte);
-  } while (value !== 0);
-  return bytes;
-}
 
 export function customSectionModule(nameText: string, payload: number[] = []) {
   const name = [...new TextEncoder().encode(nameText)];

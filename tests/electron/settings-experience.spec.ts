@@ -66,8 +66,9 @@ test("settings navigation has one scroll owner and compact controls at supported
         const heading = settings.locator(".settings-content h1");
         // A click on a section keeps the keyboard on its button; only a programmatic open moves it to the heading.
         await expect(settings.locator(".settings-page aside").getByRole("button", { name: section, exact: true })).toBeFocused();
-        expect(await heading.evaluate(el => { const r = el.getBoundingClientRect(); const p = el.closest(".settings-content")!.getBoundingClientRect(); return r.top >= p.top && r.bottom <= p.bottom; })).toBe(true);
-        expect(await settings.locator("main").evaluate(el => el.scrollHeight > el.clientHeight + 1)).toBe(false);
+        // The resize and zoom above relayout the page asynchronously, so poll until the layout holds.
+        await expect.poll(() => heading.evaluate(el => { const r = el.getBoundingClientRect(); const p = el.closest(".settings-content")!.getBoundingClientRect(); return r.top >= p.top && r.bottom <= p.bottom; })).toBe(true);
+        await expect.poll(() => settings.locator("main").evaluate(el => el.scrollHeight > el.clientHeight + 1)).toBe(false);
         const png = await fixture.app.evaluate(async ({ BrowserWindow }) => {
           const win = BrowserWindow.getAllWindows().find(win => win.webContents.getURL().endsWith("launcher/index.html"))!;
           return (await win.webContents.capturePage()).toPNG().toString("base64");
@@ -86,7 +87,7 @@ test("settings navigation has one scroll owner and compact controls at supported
     await options.locator("summary").click();
     const clear = options.getByRole("button", { name: /Clear .* shortcut/ });
     await expect(clear).toBeVisible();
-    expect(await clear.evaluate(el => { const r = el.getBoundingClientRect(); return document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2) === el; })).toBe(true);
+    await expect.poll(() => clear.evaluate(el => { const r = el.getBoundingClientRect(); return document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2) === el; })).toBe(true);
     const menuPng = await fixture.app.evaluate(async ({ BrowserWindow }) => {
       const win = BrowserWindow.getAllWindows().find(win => win.webContents.getURL().endsWith("launcher/index.html"))!;
       return (await win.webContents.capturePage()).toPNG().toString("base64");

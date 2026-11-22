@@ -47,6 +47,7 @@ import {
   sectionById,
   splitSections,
 } from "../../app/main/core/wasm-binary.js";
+import { section, uleb } from "../helpers/wasm-builder.ts";
 
 const NO_CAPABILITIES: EnhancementCapabilities = Object.freeze({
   nativeCursor: false,
@@ -86,21 +87,6 @@ after(async () => {
 
 function sha256(bytes: Uint8Array): string {
   return createHash("sha256").update(bytes).digest("hex");
-}
-
-function uleb(value: number): number[] {
-  const output: number[] = [];
-  do {
-    let byte = value & 0x7f;
-    value >>>= 7;
-    if (value) byte |= 0x80;
-    output.push(byte);
-  } while (value);
-  return output;
-}
-
-function section(id: number, body: number[]): number[] {
-  return [id, ...uleb(body.length), ...body];
 }
 
 function paddedCall(index: number): number[] {
