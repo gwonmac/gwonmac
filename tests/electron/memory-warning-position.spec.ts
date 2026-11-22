@@ -19,6 +19,7 @@ async function showWarning(page: Page) {
       autoRelogAfterReload: false,
       async saveAutoRelog() {},
       reload() {},
+      covered: () => false,
     });
     warning?.present("critical", 2_147_483_648);
     document.getElementById("canvas")?.focus();

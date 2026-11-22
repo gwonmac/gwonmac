@@ -177,6 +177,7 @@ test.describe("renderer keyboard input", { tag: "@journey" }, () => {
         autoRelogAfterReload: false,
           async saveAutoRelog() {},
           reload() {},
+          covered: () => false,
         });
         if (!presenter) throw new Error("memory warning is unavailable");
 

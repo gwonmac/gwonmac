@@ -31,6 +31,8 @@ export type MemoryWarningActions = Readonly<{
   reload(): void | Promise<void>;
   /** Quits this account's game; absent, the panel offers no Quit. */
   quit?(): void | Promise<void>;
+  /** True while the start or crash screen covers the window, so the panel could not be seen. */
+  covered(): boolean;
 }>;
 
 /** One non-modal warning surface. The estimator owns urgency; this owns DOM. */
@@ -222,8 +224,11 @@ export function bindMemoryWarning(
       if (!root.hidden) paintUsage();
     },
     open() {
-      // Without a memory sample yet, or with a reload under way, main's native dialog answers.
-      if (memory === null || (reloadButton as HTMLButtonElement).disabled) return false;
+      // Without a memory sample yet, with a reload under way, or under the start or crash
+      // screen, main's native dialog answers: Command-Q must always reach a visible choice.
+      if (
+        memory === null || (reloadButton as HTMLButtonElement).disabled || actions.covered()
+      ) return false;
       paint(memory.capBytes);
       // Enter must never reload or quit by accident: the keyboard lands on the button that only closes.
       laterButton.focus();

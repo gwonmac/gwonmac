@@ -73,6 +73,7 @@ const warningActions = (
   autoRelogAfterReload,
   async saveAutoRelog() {},
   reload,
+  covered: () => false,
 });
 
 describe("memory warning presenter", () => {
@@ -105,7 +106,12 @@ describe("memory warning presenter", () => {
   it("opens for Command-Q with the memory figure, Quit and Close, whatever was dismissed", async () => {
     const dom = memoryDom();
     let quits = 0;
-    const presenter = bindMemoryWarning(dom.document, { ...warningActions(), quit: () => { quits += 1; } });
+    let covered = false;
+    const presenter = bindMemoryWarning(dom.document, {
+      ...warningActions(),
+      quit: () => { quits += 1; },
+      covered: () => covered,
+    });
     assert.ok(presenter);
     // No memory sample yet: main's native dialog answers instead.
     dom.element("memory-notice").hidden = true;
@@ -118,6 +124,11 @@ describe("memory warning presenter", () => {
     assert.equal(dom.element("memory-notice").hidden, true);
 
     presenter.update(1_503_238_553, 2_147_483_648);
+    // The crash screen covers the window: a panel beneath it could not be seen.
+    covered = true;
+    assert.equal(presenter.open(), false);
+    assert.equal(dom.element("memory-notice").hidden, true);
+    covered = false;
     assert.equal(presenter.open(), true);
     assert.equal(dom.element("memory-notice").hidden, false);
     assert.equal(dom.element("memory-notice-label").textContent, "Quit or reload Guild Wars?");
@@ -178,6 +189,7 @@ describe("memory warning presenter", () => {
         autoRelogAfterReload: false,
         async saveAutoRelog(enabled) { saved.push(enabled); },
         reload() { reloads += 1; },
+        covered: () => false,
       },
     );
     assert.ok(presenter);

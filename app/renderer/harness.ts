@@ -440,6 +440,7 @@ function requestHeapCap() {
             }
           },
           quit: () => native().app.requestQuit(),
+          covered: () => window.gwLoading.covering(),
         },
       );
       window.gwQuitPanel = () => heapWarning?.open() ?? false;
@@ -1395,6 +1396,12 @@ function loadGlue(isProxyRouteLabel: (route: string) => boolean) {
     window.gwSurfaces = host.installSurfaceController(document, {
       doubleClickMs: window.gwNative.init.doubleClickMs,
     });
+    // The crash screen's Reload Game and Quit take keys and clicks the stopped
+    // client must not receive.
+    const loadingScreen = document.getElementById('loading');
+    if (loadingScreen) {
+      (await import('./non-activating-surface.js')).isolateFromGame(loadingScreen);
+    }
     window.gwHub = await (await import('./hub-builtins.js')).loadHub(document.body);
     window.dispatchEvent(new Event('gw:surfaces-ready'));
     characterSwitchPart = characterSwitch.default;
