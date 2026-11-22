@@ -2,15 +2,13 @@
  * Serializes the global Cartography map-knowledge ledger. The records contain
  * reusable revealable-cell masks, never character progress or display counts.
  */
-import { readFile } from "node:fs/promises";
 import { isDigest } from "../../../shared/digest.js";
 import {
   CARTOGRAPHY_MAP_KNOWLEDGE_LIMIT,
   parseCartographyMapKnowledge,
   type CartographyMapKnowledge,
 } from "../../../shared/cartography-map-knowledge.js";
-import { writeAtomicJson } from "../../../main/core/atomic-file.js";
-import { quarantineCorruptDocument } from "../../../main/core/corrupt-document.js";
+import { jsonDocument } from "../../json-document.js";
 
 const FORMAT_VERSION = 1;
 const BASE64 = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/u;
@@ -98,21 +96,8 @@ function parseDocument(value: unknown): StoredDocument {
   });
 }
 
-async function readDocument(path: string): Promise<StoredDocument | null> {
-  let text: string;
-  try {
-    text = await readFile(path, "utf8");
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
-    throw error;
-  }
-  try {
-    return parseDocument(JSON.parse(text) as unknown);
-  } catch {
-    await quarantineCorruptDocument(path);
-    return null;
-  }
-}
+/** The ledger; null while there is none, or after an unreadable one was moved aside. */
+const ledger = jsonDocument<StoredDocument | null>({ parse: parseDocument, empty: null });
 
 function decode(
   records: readonly StoredRecord[],
@@ -134,24 +119,16 @@ function store(record: CartographyMapKnowledge): StoredRecord {
 
 export class CartographyMapKnowledgeStore {
   readonly #path: string;
-  #tail: Promise<void> = Promise.resolve();
 
   constructor(path: string) {
     this.#path = path;
-  }
-
-  #enqueue<T>(operation: () => Promise<T>): Promise<T> {
-    const result = this.#tail.then(operation);
-    this.#tail = result.then(() => undefined, () => undefined);
-    return result;
   }
 
   get(
     clientFingerprint: string,
     kernelSha256: string,
   ): Promise<readonly CartographyMapKnowledge[]> {
-    return this.#enqueue(async () => {
-      const document = await readDocument(this.#path);
+    return ledger.run(this.#path, async (document) => {
       return document?.clientFingerprint === clientFingerprint
         && document.kernelSha256 === kernelSha256
         ? decode(document.records, kernelSha256)
@@ -163,8 +140,7 @@ export class CartographyMapKnowledgeStore {
     clientFingerprint: string,
     value: CartographyMapKnowledge,
   ): Promise<readonly CartographyMapKnowledge[]> {
-    return this.#enqueue(async () => {
-      const document = await readDocument(this.#path);
+    return ledger.run(this.#path, async (document, save) => {
       const records = document?.clientFingerprint === clientFingerprint
         && document.kernelSha256 === value.kernelSha256
         ? [...document.records]
@@ -196,7 +172,7 @@ export class CartographyMapKnowledgeStore {
         kernelSha256: value.kernelSha256,
         records: Object.freeze(bounded),
       });
-      await writeAtomicJson(this.#path, saved, 0o600);
+      await save(saved);
       return decode(saved.records, value.kernelSha256);
     });
   }

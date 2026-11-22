@@ -2,59 +2,43 @@
  * Saves character capture plans atomically within the owning account profile.
  * Serialized actions merge current disk state, so two windows cannot lose a plan.
  */
-import { readFile } from "node:fs/promises";
 import { ELITE_LOCATIONS } from "../../../shared/elite-locations.js";
 import {
   EMPTY_ELITE_TRACKING, changeEliteTracking, parseEliteTracking,
   type EliteTracking, type EliteUpdate,
 } from "../../../shared/elite-skills.js";
 import { isTravelCharacterKey, type TravelCharacterKey } from "../../../shared/travel-history.js";
-import { writeAtomicJson } from "../../../main/core/atomic-file.js";
-import { quarantineCorruptDocument } from "../../../main/core/corrupt-document.js";
-import { Mutex } from "../../../main/core/mutex.js";
+import { jsonDocument } from "../../json-document.js";
 
-type Document = { formatVersion: 1; characters: Record<string, EliteTracking> };
-async function read(path: string): Promise<Document> {
-  let text: string;
-  try { text = await readFile(path, "utf8"); } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return { formatVersion: 1, characters: {} };
-    throw error;
+type Document = Readonly<{ formatVersion: 1; characters: Readonly<Record<string, EliteTracking>> }>;
+const EMPTY: Document = Object.freeze({ formatVersion: 1, characters: Object.freeze({}) });
+
+function parse(value: unknown): Document {
+  const input = value as Document | null;
+  if (input?.formatVersion !== 1 || typeof input.characters !== "object" || !input.characters
+    || Array.isArray(input.characters) || Object.keys(input).length !== 2
+    || Object.keys(input.characters).length > 64) throw new TypeError("Invalid capture plans");
+  const characters: Record<string, EliteTracking> = {};
+  for (const [key, plan] of Object.entries(input.characters)) {
+    if (!isTravelCharacterKey(key)) throw new TypeError("Invalid character");
+    characters[key] = parseEliteTracking(plan, ELITE_LOCATIONS);
   }
-  try {
-    const input = JSON.parse(text) as Document;
-    if (input?.formatVersion !== 1 || typeof input.characters !== "object" || !input.characters
-      || Array.isArray(input.characters) || Object.keys(input).length !== 2
-      || Object.keys(input.characters).length > 64) throw new TypeError("Invalid capture plans");
-    const characters: Record<string, EliteTracking> = {};
-    for (const [key, value] of Object.entries(input.characters)) {
-      if (!isTravelCharacterKey(key)) throw new TypeError("Invalid character");
-      characters[key] = parseEliteTracking(value, ELITE_LOCATIONS);
-    }
-    return { formatVersion: 1, characters };
-  } catch {
-    await quarantineCorruptDocument(path);
-    return { formatVersion: 1, characters: {} };
-  }
+  return { formatVersion: 1, characters };
 }
+
+const plans = jsonDocument({ parse, empty: EMPTY });
+
 export class EliteTrackingStore {
-  readonly #locks = new Map<string, Mutex>();
-  #lock(path: string): Mutex {
-    let lock = this.#locks.get(path);
-    if (!lock) { lock = new Mutex(); this.#locks.set(path, lock); }
-    return lock;
-  }
   get(path: string, characterKey: TravelCharacterKey): Promise<EliteTracking> {
-    return this.#lock(path).run(async () => (await read(path)).characters[characterKey] ?? EMPTY_ELITE_TRACKING);
+    return plans.run(path, async (document) => document.characters[characterKey] ?? EMPTY_ELITE_TRACKING);
   }
   update(path: string, { characterKey, change }: EliteUpdate): Promise<EliteTracking> {
-    return this.#lock(path).run(async () => {
-      const document = await read(path);
+    return plans.run(path, async (document, save) => {
       if (!(characterKey in document.characters) && Object.keys(document.characters).length >= 64) {
         throw new Error("This profile has reached its character tracking limit");
       }
       const next = changeEliteTracking(document.characters[characterKey] ?? EMPTY_ELITE_TRACKING, change, ELITE_LOCATIONS);
-      document.characters[characterKey] = next;
-      await writeAtomicJson(path, document);
+      await save({ formatVersion: 1, characters: { ...document.characters, [characterKey]: next } });
       return next;
     });
   }
