@@ -93,9 +93,10 @@ export const HUB_LINKS = {
 export type HubLinks = LinksOf<typeof HUB_LINKS>;
 
 /*
- * What the registry relies on, checked at compile time: a target's manifest `offers` names
- * exactly the methods of its link type, and every method can answer "unavailable", which a
- * call gets while the target's part is not running.
+ * What the registry relies on, checked at compile time: the Features that list `offers` are
+ * exactly the keys of FeatureLinkApis, a target's manifest `offers` names exactly the methods of
+ * its link type, and every method can answer "unavailable", which a call gets while the
+ * target's part is not running.
  */
 type Offers<Target extends LinkTarget> = Manifest<Target> extends Readonly<{ offers: readonly (infer Method)[] }> ? Method : never;
 type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
@@ -103,7 +104,10 @@ type Answers<Api> = {
   [Method in keyof Api]: Api[Method] extends (...args: never[]) => infer Result ? ("unavailable" extends Result ? true : false) : false
 }[keyof Api];
 type Holds<Check extends true> = Check;
+/** The Features whose manifest lists `offers`: each must have its link type registered above. */
+type Offering = Extract<Feature, Readonly<{ offers: readonly string[] }>>["id"];
 export type LinkDeclarationsHold = [
   Holds<{ [Target in LinkTarget]: Same<Offers<Target>, keyof FeatureLinkApis[Target]> }[LinkTarget]>,
   Holds<{ [Target in LinkTarget]: Answers<FeatureLinkApis[Target]> }[LinkTarget]>,
+  Holds<Same<Offering, LinkTarget>>,
 ];

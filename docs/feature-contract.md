@@ -177,6 +177,14 @@ A Feature with a window of its own that its shortcut and Hub row open offers `to
 (`ToolLink` in [`links.ts`](../app/features/links.ts)) instead of naming a `tool.event`:
 the shortcut calls it with `toggle`, the Hub row with `show`, and it answers `"shown"`,
 `"hidden"` or `"unavailable"`. [`whispers/`](../app/features/whispers/) is the example.
+The type check refuses a manifest with `offers` whose link type is not registered in
+`FeatureLinkApis`, and a unit test refuses a manifest that lists a `window` part without its
+line in [`window-parts.ts`](../app/features/window-parts.ts).
+
+`tool.event` is left only for Call Target: its chord is balanced against the keys the player
+holds, which only the input host knows, so the input host claims `gw:call-target`
+([`input.ts`](../app/renderer/input.ts)) instead of a Feature part offering `toggle`. A new
+tool offers `toggle`; a Hub row never opens through an event.
 
 Shortcuts, menu items and Hub rows open a tool through `toggleTool` in
 [`feature-links.ts`](../app/renderer/feature-links.ts), never the link itself; a Feature that
