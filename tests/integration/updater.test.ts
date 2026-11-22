@@ -18,6 +18,7 @@ import type { PatchFetch } from "../../app/main/core/patch-transport.ts";
 import { createBoundedPatchFetch } from "../../app/main/core/patch-transport.ts";
 import {
   confirmClientCandidate,
+  pendingCandidateFingerprint,
   readRejectedClient,
   rejectClientCandidate,
 } from "../../app/client/client-compatibility.ts";
@@ -127,7 +128,7 @@ describe("integration: patch updater", () => {
     assert.equal(initial.published, true);
     assert.ok(phases.length > 0, "the downloader reported no progress at all");
     assert.deepEqual(phases.filter((phase) => phase === "ready"), []);
-    assert.equal(initial.candidate, false);
+    assert.equal(await pendingCandidateFingerprint(artifacts, initial.fingerprint), null);
     assert.equal((await readFile(join(artifacts, "Gw.jspi.js"))).toString(), js.toString());
     assert.equal((await stat(join(artifacts, "Gw.jspi.wasm"))).size, wasm.length);
     const second = counted();
@@ -146,7 +147,10 @@ describe("integration: patch updater", () => {
     versionEntry.size = nextVersion.length;
     versionEntry.chunkHashes = [nextVersionHash];
     const candidate = await client2.update();
-    assert.equal(candidate.candidate, true);
+    assert.equal(
+      await pendingCandidateFingerprint(artifacts, candidate.fingerprint),
+      candidate.fingerprint,
+    );
     assert.equal(
       (await readFile(join(artifacts, "version.json"))).toString(),
       nextVersion.toString(),
@@ -155,9 +159,14 @@ describe("integration: patch updater", () => {
     assert.ok(await stat(join(artifacts, ".candidate.json")));
 
     // An ordinary restart before the first frame keeps the untested candidate
-    // and its rollback generation. Closing the launcher is not a crash.
+    // and its rollback generation, still confirmable. Closing the launcher is
+    // not a crash.
     const pendingAfterRestart = await client2.update();
-    assert.equal(pendingAfterRestart.candidate, false);
+    assert.equal(pendingAfterRestart.published, false);
+    assert.equal(
+      await pendingCandidateFingerprint(artifacts, pendingAfterRestart.fingerprint),
+      candidate.fingerprint,
+    );
     assert.equal(
       (await readFile(join(artifacts, "version.json"))).toString(),
       nextVersion.toString(),
@@ -174,7 +183,10 @@ describe("integration: patch updater", () => {
     versionEntry.size = thirdVersion.length;
     versionEntry.chunkHashes = [thirdVersionHash];
     const supersedingCandidate = await client2.update();
-    assert.equal(supersedingCandidate.candidate, true);
+    assert.equal(
+      await pendingCandidateFingerprint(artifacts, supersedingCandidate.fingerprint),
+      supersedingCandidate.fingerprint,
+    );
     assert.equal(
       (await readFile(join(artifacts, "version.json"))).toString(),
       thirdVersion.toString(),
@@ -217,7 +229,10 @@ describe("integration: patch updater", () => {
     const freshCandidate = await client2.update({
       blockedFingerprint: supersedingCandidate.fingerprint,
     });
-    assert.equal(freshCandidate.candidate, true);
+    assert.equal(
+      await pendingCandidateFingerprint(artifacts, freshCandidate.fingerprint),
+      freshCandidate.fingerprint,
+    );
     assert.equal(
       await confirmClientCandidate({
         artifacts,
@@ -248,7 +263,7 @@ describe("integration: patch updater", () => {
     assert.equal((await readFile(join(artifacts, "Gw.jspi.js"))).toString(), js.toString());
     assert.equal(repair.counter.fetches, 1);
     assert.equal(repaired.blocked, false);
-    assert.equal(repaired.candidate, false);
+    assert.equal(await pendingCandidateFingerprint(artifacts, repaired.fingerprint), null);
     await assert.rejects(() => stat(`${artifacts}.previous`));
 
     // A matching filename is not proof that a content-addressed chunk is intact.

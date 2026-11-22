@@ -90,7 +90,6 @@ export interface PatchUpdateResult {
   manifest: Manifest;
   fingerprint: string;
   published: boolean;
-  candidate: boolean;
   blocked: boolean;
 }
 
@@ -454,7 +453,6 @@ export class PatchClient {
         manifest: mf,
         fingerprint,
         published: false,
-        candidate: false,
         blocked: true,
       };
     }
@@ -497,7 +495,6 @@ export class PatchClient {
         manifest: mf,
         fingerprint,
         published: false,
-        candidate: false,
         blocked: false,
       };
     }
@@ -646,7 +643,6 @@ export class PatchClient {
       manifest: mf,
       fingerprint,
       published: true,
-      candidate,
       blocked: false,
     };
   }

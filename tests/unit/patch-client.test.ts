@@ -185,7 +185,7 @@ describe("patch-client update", () => {
     const result = await target.client(source).update();
 
     assert.equal(result.published, true);
-    assert.equal(result.candidate, false);
+    assert.equal(existsSync(join(target.artifacts, ".candidate.json")), false);
     assert.equal(result.blocked, false);
     assert.equal(await installedVerifies(target.artifacts), true);
     for (const name of ["Gw.jspi.js", "Gw.jspi.wasm", "version.json"] as const) {
@@ -214,7 +214,7 @@ describe("patch-client update", () => {
     const result = await target.client(source).update();
 
     assert.equal(result.published, false, "an alpha generation was re-published");
-    assert.equal(result.candidate, false);
+    assert.equal(existsSync(join(target.artifacts, ".candidate.json")), false);
     assert.equal(existsSync(`${target.artifacts}.previous`), false);
     assert.deepEqual(await readFile(join(target.artifacts, "Gw.jspi.js")), installed);
     // Nothing rewrote the bare documents either: read old, write new, and the
@@ -345,7 +345,6 @@ describe("patch-client update", () => {
     const result = await target.client(second).update();
 
     assert.equal(result.published, true);
-    assert.equal(result.candidate, true);
     assert.equal(await installedVerifies(target.artifacts), true);
     assert.deepEqual(
       await readFile(join(target.artifacts, "Gw.jspi.js")),
