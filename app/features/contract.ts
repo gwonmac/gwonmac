@@ -30,6 +30,8 @@ export type FeatureContractInput = Readonly<{
 
 const KNOWN_USES: ReadonlySet<string> = new Set(ENHANCEMENT_CAPABILITY_FIELDS);
 const GWONMAC_LINK = /^https:\/\/www\.gwonmac\.com(\/[^\s)]*)?$/;
+/** A docs page by its name, as the website writes it: the website checks the target, the launcher opens its Guide or the page. */
+const DOCS_LINK = /^\$docs\.[a-z0-9]+(-[a-z0-9]+)*(#[a-z0-9-]+)?$/;
 const KEBAB = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const SHOT_FILE = /^media\/shot-(\d+)\.webp$/;
 
@@ -109,8 +111,9 @@ function checkShots(at: string, shots: readonly string[], files: readonly string
 }
 
 /**
- * The Markdown the launcher renders: paragraphs, `###` headings, numbered and bulleted
- * lists, **bold**, links to www.gwonmac.com, <kbd> keys and one `>` note.
+ * The Markdown the launcher renders and the website shows as the Feature's page: paragraphs,
+ * `###` headings, numbered and bulleted lists, **bold**, `code`, links to www.gwonmac.com or to a
+ * docs page (`$docs.<page>`), `:setting[Label]{to="..."}` names, <kbd> keys and one `>` note.
  */
 export function checkReadme(path: string, text: string): string[] {
   const problems: string[] = [];
@@ -132,7 +135,9 @@ export function checkReadme(path: string, text: string): string[] {
     }
     for (const link of line.replace(/!\[[^\]]*\]\([^)]*\)/g, "").matchAll(/\]\(([^)\s]*)\)/g)) {
       const target = link[1] ?? "";
-      if (!GWONMAC_LINK.test(target)) problems.push(`${where}: link to ${target} is not allowed; link only to https://www.gwonmac.com.`);
+      if (!GWONMAC_LINK.test(target) && !DOCS_LINK.test(target)) {
+        problems.push(`${where}: link to ${target} is not allowed; link only to https://www.gwonmac.com or a docs page as $docs.<page>.`);
+      }
     }
     for (const url of line.replace(/\]\([^)]*\)/g, "]").matchAll(/https?:\/\/[^\s)>]+/g)) {
       if (!GWONMAC_LINK.test(url[0])) problems.push(`${where}: ${url[0]} is an external link; link only to https://www.gwonmac.com.`);
