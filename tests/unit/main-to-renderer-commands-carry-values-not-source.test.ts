@@ -335,7 +335,7 @@ test("a tool that opens through its Feature's link is toggled through it, and is
   try {
     const toolLinks = [
       ["whispers.toggle", (toggle: ToolLink["toggle"]) => provideLink("whispers", { open: () => "opened", people: () => "unavailable", toggle })],
-      ["tools.toggle", (toggle: ToolLink["toggle"]) => provideLink("buildLibrary", { toggle })],
+      ["tools.toggle", (toggle: ToolLink["toggle"]) => provideToggle("buildLibrary", toggle)],
     ] as const;
     for (const [type, provide] of toolLinks) for (const provided of [false, true]) {
       const asked: string[] = [];
@@ -358,7 +358,7 @@ test("a tool that opens through its Feature's link is toggled through it, and is
 // Each Feature that offers `toggle`, providing a link that answers only `toggle`. The type
 // makes a new toggle Feature extend this table, so the test below covers it.
 const TOGGLE_ONLY: { [Target in ToolLinkTarget]: (toggle: ToolLink["toggle"]) => FeatureLinkApis[Target] } = {
-  buildLibrary: (toggle) => ({ toggle }),
+  buildLibrary: (toggle) => ({ toggle, load: () => "unavailable", save: () => "unavailable", list: () => "unavailable" }),
   resign: (toggle) => ({ toggle }),
   tradeChat: (toggle) => ({ toggle, search: () => "unavailable", marketRates: () => "unavailable", traderQuotes: () => "unavailable" }),
   travel: (toggle) => ({ toggle, friendTripBlocked: () => "unavailable", toFriend: () => "unavailable", showProgress: () => "unavailable" }),

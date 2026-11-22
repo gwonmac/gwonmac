@@ -25,8 +25,11 @@ export default defineFeature({
   },
   hub: { command: "builds", order: 3, keyOrder: 2 },
   shortcuts: [{ action: "tools.toggle", binding: { key: "b", shift: false, option: false }, menuItem: "toggle-tools" }],
-  /** Its shortcut and game menu item show the window through `toggle` (shared/link.ts). */
-  offers: ["toggle"],
+  /**
+   * Its shortcut and game menu item show the window through `toggle`; `load`, `save` and `list`
+   * reach the saved library through its data part (shared/link.ts).
+   */
+  offers: ["toggle", "load", "save", "list"],
   /**
    * "Find capture locations" on an elite skill opens Maps' Elite Skills planner; applying a team
    * or a build sends Team Apply's certified commands; the storage button opens Xunlai Storage.

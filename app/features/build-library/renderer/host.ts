@@ -3,8 +3,10 @@
  * Library window from the Tools bundle into the host the Tools window gives it. It also owns what
  * only the renderer can do for the Library: write a build where the game's own template dialog
  * finds it, and move template files in and out, when this client lists templates written to its
- * mount. Applying a team reaches Team Apply's certified commands, "Find capture locations"
- * reaches Maps, and the storage button reaches Xunlai Storage, through the links the manifest names.
+ * mount. It reads and writes the saved library through the data part (./library-file.ts), the
+ * same one its link uses. Applying a team reaches Team Apply's certified commands, "Find capture
+ * locations" reaches Maps, and the storage button reaches Xunlai Storage, through the links the
+ * manifest names.
  */
 import type { StorageCommand } from "../../../shared/storage-command.js";
 import type { FeatureLinks } from "../../links.js";
@@ -16,6 +18,7 @@ import { sanitiseTemplateName } from "../../../renderer/template-format.js";
 import { createTemplateFiles } from "../../../renderer/template-files.js";
 import { ensureToolsStylesheet } from "../../../renderer/tools-stylesheet.js";
 import { requireToolsApi } from "../../../renderer/tools-native-api.js";
+import { libraryFile } from "./library-file.js";
 
 /**
  * Writes one build where the game's own template dialog will find it.
@@ -95,8 +98,11 @@ export async function startLibraryWindow(context: WindowContext<"buildLibrary">)
       nativeApi: native,
       initiallyVisible: false,
       onVisibilityChange,
-      openWindow: show,
-      findElite: (skillId) => links.cartography?.findElite(skillId) ?? "unavailable",
+      library: {
+        file: libraryFile(),
+        show,
+        findElite: (skillId) => links.cartography?.findElite(skillId) ?? "unavailable",
+      },
       readTemplates: async () => { const fs = templateFilesystem(); return fs ? exportEntries(fs) : []; },
       publishTemplate: templatePublishing ? publishTemplate : null,
       // The same gate as publishing: a client that cannot discover what is

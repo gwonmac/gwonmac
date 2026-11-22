@@ -18,6 +18,7 @@ import type {
 } from "../../../shared/builds/team-apply";
 import type { StorageCommand } from "../../../shared/storage-command";
 import type {
+  LibraryWindow,
   PublishedTemplate,
   PublishableTemplate,
   TemplateFiles,
@@ -250,6 +251,14 @@ export function createDemoHost(storage: Storage | null = null): ToolsHost {
  */
 const STORAGE_AFTER_UPDATE = "Storage is unavailable after this Guild Wars update.";
 
+/** A host made without the Library's window part (tests): no file, no window of its own, no Maps. */
+const NO_LIBRARY_FILE = (): never => { throw new Error("The Build Library file is not available here."); };
+const NO_LIBRARY_WINDOW: LibraryWindow = Object.freeze({
+  file: Object.freeze({ load: async () => NO_LIBRARY_FILE(), save: async () => NO_LIBRARY_FILE(), list: async () => NO_LIBRARY_FILE() }),
+  show: () => {},
+  findElite: () => "unavailable" as const,
+});
+
 export function createNativeHost(
   api: GwNativeApi,
   publishTemplate:
@@ -274,8 +283,8 @@ export function createNativeHost(
    * for a Guild Wars update.
    */
   missing: Readonly<{ storage: string | null; publish: string | null }> = { storage: null, publish: null },
-  /** What the game host's Tools window does for the Library: show it on its own, and reach Maps. */
-  shell: Pick<ToolsHost, "openWindow" | "findElite"> = { openWindow: () => {}, findElite: () => "unavailable" },
+  /** What the Library's window part gives it: the saved library file, its own window, and Maps. */
+  library: LibraryWindow = NO_LIBRARY_WINDOW,
 ): ToolsHost {
   const storageMissing = missing.storage ?? STORAGE_AFTER_UPDATE;
   const party = ref(unavailableParty());
@@ -398,11 +407,11 @@ export function createNativeHost(
       return storage === null ? storageMissing : storage.unavailable();
     },
     publishUnavailable: publishTemplate === null ? missing.publish ?? PUBLISH_UNAVAILABLE : null,
-    openWindow: shell.openWindow,
-    findElite: shell.findElite,
+    openWindow: library.show,
+    findElite: library.findElite,
     async loadLibrary() {
-      const [library, skills] = await Promise.all([
-        api.buildLibrary.get(),
+      const [saved, skills] = await Promise.all([
+        library.file.load(),
         loadSkills().then(
           () => null,
           (cause: unknown) => {
@@ -414,20 +423,20 @@ export function createNativeHost(
         ),
       ]);
       devTrace(development, "library.loaded", {
-        builds: library.library.builds.length,
-        teams: library.library.teams.length,
-        recovered: library.recovered,
+        builds: saved.library.builds.length,
+        teams: saved.library.teams.length,
+        recovered: saved.recovered,
         skillsAvailable: skills === null,
       });
-      return skills === null ? library : { ...library, skillProblem: skills };
+      return skills === null ? saved : { ...saved, skillProblem: skills };
     },
-    async saveLibrary(library) {
+    async saveLibrary(next) {
       devTrace(development, "library.save.start", {
-        builds: library.builds.length,
-        teams: library.teams.length,
+        builds: next.builds.length,
+        teams: next.teams.length,
       });
       try {
-        const saved = await api.buildLibrary.set(library);
+        const saved = await library.file.save(next);
         devTrace(development, "library.save.complete", {
           builds: saved.builds.length,
           teams: saved.teams.length,

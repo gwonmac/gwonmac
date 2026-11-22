@@ -784,8 +784,9 @@ test('a native held Enter applies one team and owns its repeats and release (HUB
       const unexpected = () => { throw new Error('The mode-only team must not send another game command'); };
       const nativeApi = window.gwNative;
       if (!('buildLibrary' in nativeApi)) throw new Error('Tools native API is missing');
-      const app = mountToolsApp(host, { nativeApi: { ...nativeApi, buildLibrary: { get: async () => ({ library, recovered: false }), set: async value => value } },
-        hub: window.gwHub!, initiallyVisible: false, openWindow: () => {}, findElite: () => 'unavailable', publishTemplate: null, templateFiles: null, storage: null, storageUnavailable: null, publishUnavailable: null, applyUnavailable: null, observationUnavailable: null, development: false,
+      const app = mountToolsApp(host, { nativeApi,
+        library: { file: { load: async () => ({ library, recovered: false }), save: async value => value, list: async () => [] }, show: () => {}, findElite: () => 'unavailable' },
+        hub: window.gwHub!, initiallyVisible: false, publishTemplate: null, templateFiles: null, storage: null, storageUnavailable: null, publishUnavailable: null, applyUnavailable: null, observationUnavailable: null, development: false,
         commands: () => ({ cancelPending() {}, setHardMode(enabled: boolean) { modes.push(enabled); app.update(observation(enabled)); },
           setPlayerSecondary: unexpected, setPlayerSkills: unexpected, setPlayerAttributes: unexpected, addHero: unexpected, kickHero: unexpected,
           setHeroBehaviour: unexpected, setHeroSecondary: unexpected, setHeroSkills: unexpected, setHeroAttributes: unexpected }) });
