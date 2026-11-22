@@ -33,6 +33,12 @@ const enterHub = async (page: Page, query: string) => {
   const search = page.locator('.hub-search input');
   await search.fill(query); await search.press('Enter');
 };
+// The Settings page loads after its view opens; until then the Hub parks the keyboard on Back.
+// A view starts once the page holds the keyboard, as in the DOM half (src/hub-keyboard-contract.ts).
+const openSettings = async (page: Page) => {
+  await enterHub(page, 'settings');
+  await expect(page.locator('.hub-settings-host h1')).toBeFocused();
+};
 const VIEWS: Record<KeyboardView, { query?: string; open(page: Page): Promise<void> }> = {
   'closed': { open: page => page.keyboard.press('Escape') },
   'home': { open: async () => {} },
@@ -47,7 +53,7 @@ const VIEWS: Record<KeyboardView, { query?: string; open(page: Page): Promise<vo
   'build-page': { open: page => enterHub(page, 'build smiter') },
   'person': { open: page => enterHub(page, 'romi') },
   'accounts': { open: async page => { await page.locator('.hub-search input').fill('switch account'); await page.keyboard.press('ArrowDown'); await page.keyboard.press('Enter'); } },
-  'settings': { open: page => enterHub(page, 'settings') },
+  'settings': { open: openSettings },
   'calculator': { open: page => page.locator('.hub-search input').fill('10 ecto in p') },
   'trade': { open: async page => { await page.keyboard.press('Escape'); await page.keyboard.press('Meta+k'); } },
   'whispers': { open: page => page.keyboard.press('Meta+d') },
@@ -58,7 +64,7 @@ const VIEWS: Record<KeyboardView, { query?: string; open(page: Page): Promise<vo
     await page.locator('.hub-search input').fill('team gom afk'); await page.keyboard.press('ArrowRight');
     await page.locator('#hub details summary').first().click();
   } },
-  'settings-body': { open: async page => { await enterHub(page, 'settings'); await page.getByRole('switch', { name: 'Play the plain game' }).focus(); } },
+  'settings-body': { open: async page => { await openSettings(page); await page.getByRole('switch', { name: 'Play the plain game' }).focus(); } },
 };
 
 /** Two animation frames and the demo hosts' 600 ms travel or apply delays. */
