@@ -1,8 +1,8 @@
-/** Settings, native shortcuts, and feature visibility agree through real IPC. */
+/** Feature pages, native shortcuts, and feature visibility agree through real IPC. */
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
 import { expect, test } from "@playwright/test";
-import { closeOffline, launchOffline, openSettings } from "./fixtures.mjs";
+import { closeOffline, launchOffline, openFeatures, openSettings } from "./fixtures.mjs";
 
 test("feature controls preserve preferences and validate native commands", async () => {
   const fixture = await launchOffline("gw-launcher-features-", { GW_TEST_RETURN_LAUNCHER: "1" });
@@ -11,43 +11,47 @@ test("feature controls preserve preferences and validate native commands", async
     await page.evaluate(async () => {
       await window.launcherNative.experience.completeSetup({ enableTools: false });
     });
-    const settings = await openSettings(fixture);
-    const nav = (name: string) => settings.locator(".settings-page aside").getByRole("button", { name, exact: true });
-    await nav("Tools").click();
+    const settings = await openFeatures(fixture);
     // The plain game holds every Feature switch, Switch Character included, until it is turned off.
-    await expect(settings.getByRole("checkbox", { name: /^Play the plain game/ })).toBeChecked();
-    await expect(settings.getByRole("checkbox", { name: "Switch Character", exact: true })).toBeDisabled();
-    await expect(nav("Maps")).toHaveCount(1);
+    await expect(settings.getByRole("switch", { name: "Play the plain game", exact: true })).toBeChecked();
+    await expect(settings.getByRole("switch", { name: "Switch Character", exact: true })).toBeDisabled();
+    await expect(settings.locator('[data-feature="cartography"]')).toHaveCount(1);
     await settings.evaluate(() => window.launcherNative.tools.setFeature({ tool: "character-switch", enabled: false }));
     await expect.poll(() => page.evaluate(async () => (await window.launcherNative.state.get()).tools.features["character-switch"].enabled)).toBe(false);
     await settings.evaluate(async () => {
       await window.launcherNative.tools.setFeature({ tool: "character-switch", enabled: true });
       await window.launcherNative.tools.replaceShortcut({ action: "character.switch", binding: { key: "j", shift: false, option: false } });
     });
-    await expect(settings.getByText("⌘J", { exact: true })).toBeVisible();
+    await settings.locator('[data-feature="characterSwitch"] .card-link').click();
+    await expect(settings.locator(".feature-settings").getByText("⌘J", { exact: true })).toBeVisible();
+    await settings.locator(".feature-page .back").click();
     await settings.evaluate(() => window.launcherNative.tools.setMasterEnabled(true));
-    await expect(settings.getByRole("checkbox", { name: /^Play the plain game/ })).not.toBeChecked();
-    await expect(settings.getByRole("checkbox", { name: "Switch Character", exact: true })).toBeEnabled();
-    const resign = settings.getByRole("checkbox", { name: "Resign", exact: true });
+    await expect(settings.getByRole("switch", { name: "Play the plain game", exact: true })).not.toBeChecked();
+    await expect(settings.getByRole("switch", { name: "Switch Character", exact: true })).toBeEnabled();
+    const resign = settings.getByRole("switch", { name: "Resign", exact: true });
     await expect(resign).not.toBeChecked();
-    await resign.check();
+    await resign.click();
     await expect(resign).toBeChecked();
     await settings.evaluate(() => window.launcherNative.tools.replaceShortcut({ action: "game.resign", binding: { key: "j", shift: true, option: false } }));
+    await settings.locator('[data-feature="resign"] .card-link').click();
     await expect(settings.getByRole("button", { name: "Change Resign shortcut", exact: true }).locator("kbd")).toHaveText(["⇧", "⌘", "J"]);
-    await resign.uncheck();
-    await expect(resign).not.toBeChecked();
-    await settings.screenshot({ path: test.info().outputPath("tools-settings.png") });
-    await nav("Maps").click();
-    await expect(settings.getByRole("heading", { name: "Maps", exact: true })).toBeVisible();
+    await settings.getByRole("button", { name: "Turn off", exact: true }).click();
+    await expect(settings.getByRole("button", { name: "Turn on", exact: true })).toBeVisible();
+    await settings.screenshot({ path: test.info().outputPath("resign-page.png") });
+    await settings.locator(".feature-page .back").click();
+    await settings.locator('[data-feature="cartography"] .card-link').click();
+    await expect(settings.getByRole("heading", { name: "Maps", exact: true, level: 1 })).toBeVisible();
     const shortcuts = await page.evaluate(async () => (await window.launcherNative.state.get()).shortcuts);
     expect(shortcuts["cartography.grid.toggle"]).toBeNull();
     expect(shortcuts["cartography.walkability.toggle"]).toBeNull();
-    await settings.getByRole("checkbox", { name: /Exploration grid/ }).check();
+    await settings.getByRole("switch", { name: "Exploration grid", exact: true }).click();
+    await expect(settings.getByRole("switch", { name: "Exploration grid", exact: true })).toBeChecked();
     await settings.evaluate(() => window.launcherNative.tools.replaceShortcut({ action: "cartography.grid.toggle", binding: { key: "g", shift: false, option: false } }));
-    await settings.screenshot({ path: test.info().outputPath("maps-settings.png") });
+    await settings.screenshot({ path: test.info().outputPath("maps-page.png") });
+    // Turning Maps off keeps its page and every choice on it.
     await settings.evaluate(() => window.launcherNative.tools.setFeature({ tool: "maps", enabled: false }));
-    await expect(settings.getByRole("heading", { name: "Maps", exact: true })).toBeVisible();
-    await expect(nav("Maps")).toHaveCount(1);
+    await expect(settings.getByRole("heading", { name: "Maps", exact: true, level: 1 })).toBeVisible();
+    await expect(settings.getByRole("switch", { name: "Exploration grid", exact: true })).toBeChecked();
     const snapshot = await page.evaluate(() => window.launcherNative.state.get());
     expect(snapshot.settings.cartographyGridEnabled).toBe(true);
     expect(snapshot.shortcuts["cartography.grid.toggle"]?.key).toBe("g");
@@ -97,16 +101,17 @@ test("existing custom map styles can be selected, edited and extended", async ()
     await page.evaluate(async () => {
       await window.launcherNative.experience.completeSetup({ enableTools: false });
     });
-    const settings = await openSettings(fixture);
-    const nav = (name: string) => settings.locator(".settings-page aside").getByRole("button", { name, exact: true });
+    const settings = await openFeatures(fixture, "cartography");
     await settings.evaluate(() => window.launcherNative.tools.setMasterEnabled(true));
-    await nav("Maps").click();
-    const compass = settings.getByRole("checkbox", { name: /Markers on Compass/ });
+    const compass = settings.getByRole("switch", { name: "Markers on Compass", exact: true });
     await expect(compass).not.toBeChecked();
     await expect(compass).toBeDisabled();
-    await settings.getByRole("checkbox", { name: /Exploration grid/ }).check();
-    await compass.check();
-    await compass.uncheck();
+    await settings.getByRole("switch", { name: "Exploration grid", exact: true }).click();
+    await expect(settings.getByRole("switch", { name: "Exploration grid", exact: true })).toBeChecked();
+    await compass.click();
+    await expect(compass).toBeChecked();
+    await compass.click();
+    await expect(compass).not.toBeChecked();
     await expect.poll(() => page.evaluate(async () => (await window.launcherNative.state.get()).settings)).toMatchObject({ cartographyGridEnabled: true, cartographyCompassGridEnabled: false });
     const thickness = settings.getByRole("spinbutton", { name: "Terrain border thickness value" });
     await thickness.fill("4");
@@ -122,14 +127,14 @@ test("existing custom map styles can be selected, edited and extended", async ()
     await settings.getByRole("textbox", { name: "Shaded area color hex" }).press("Tab");
     await expect.poll(() => page.evaluate(async () => (await window.launcherNative.state.get()).settings.cartographyPresetLibrary.customPresets[1]?.style.walkability.veilColor)).toBe("#112233");
     await settings.reload();
-    await openSettings(fixture, { section: "maps" });
+    await openFeatures(fixture, "cartography");
     await settings.getByRole("button", { name: "Edit style" }).click();
     await settings.getByRole("textbox", { name: "Terrain border color hex" }).fill("334455");
     await settings.getByRole("textbox", { name: "Terrain border color hex" }).press("Tab");
     await expect.poll(() => page.evaluate(async () => (await window.launcherNative.state.get()).settings.cartographyPresetLibrary.customPresets[1]?.style.walkability.boundaryColor)).toBe("#334455");
     await expect(settings.getByRole("spinbutton", { name: "Terrain border thickness value" })).toHaveValue("1");
     await settings.getByRole("button", { name: "Done", exact: true }).click();
-    await settings.getByRole("heading", { name: "Maps", exact: true }).scrollIntoViewIfNeeded();
+    await settings.locator('[data-setting="cartographyPresetLibrary"]').scrollIntoViewIfNeeded();
     await settings.screenshot({ path: test.info().outputPath("map-controls.png") });
   } finally { await closeOffline(fixture); }
 });
@@ -142,10 +147,8 @@ test("map styles offer usable color and numeric controls at normal size and 200%
     await page.evaluate(async () => {
       await window.launcherNative.experience.completeSetup({ enableTools: false });
     });
-    const settings = await openSettings(fixture);
-    const nav = (name: string) => settings.locator(".settings-page aside").getByRole("button", { name, exact: true });
+    const settings = await openFeatures(fixture, "cartography");
     await settings.evaluate(() => window.launcherNative.tools.setMasterEnabled(true));
-    await nav("Maps").click();
     await settings.getByRole("button", { name: "Customize style" }).click();
     const hex = settings.getByRole("textbox", { name: "Shaded area color hex" });
     await hex.fill("ABCDEF");
@@ -203,7 +206,7 @@ test("map styles offer usable color and numeric controls at normal size and 200%
       win.webContents.setZoomFactor(1);
       win.setSize(1180, 900);
     });
-    await nav("Appearance").click();
+    await openSettings(fixture, { section: "appearance" });
     await settings.getByRole("combobox", { name: "Panel style", exact: true }).selectOption("custom");
     await settings.getByRole("textbox", { name: "Accent hex", exact: true }).fill("BBCCDD");
     await settings.getByRole("textbox", { name: "Accent hex", exact: true }).press("Tab");

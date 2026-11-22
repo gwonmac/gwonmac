@@ -281,7 +281,7 @@ describe('characters', () => {
 
 describe('a navigational row opens a page whose controls sit under the pointer', () => {
   const toggles = () => JSON.stringify(window.gwToolsSettings?.());
-  const whispers = () => [...document.querySelectorAll<HTMLElement>('.hub-settings-host label strong')].find(element => element.textContent!.trim() === 'Whispers');
+  const whispers = () => document.querySelector<HTMLElement>('.hub-settings-host input[role="switch"][aria-label="Whispers"]');
   test('a double-click that opens Settings never toggles a setting', async () => {
     await mountFixture();
     const before = toggles();

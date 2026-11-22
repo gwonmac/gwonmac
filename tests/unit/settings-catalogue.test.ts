@@ -6,7 +6,7 @@ describe("Settings deep-link targets", () => {
   it("accepts a section, or a control inside its own section", () => {
     assert.deepEqual(parseSettingsTarget({ section: "updates" }), { section: "updates" });
     assert.deepEqual(parseSettingsTarget({ section: "game", control: "showDiagnostics" }), { section: "game", control: "showDiagnostics" });
-    assert.deepEqual(parseSettingsTarget({ section: "tools", control: "tool:quick-travel" }), { section: "tools", control: "tool:quick-travel" });
+    assert.deepEqual(parseSettingsTarget({ section: "features", feature: "travel", control: "tool:quick-travel" }), { section: "features", feature: "travel", control: "tool:quick-travel" });
   });
 
   it("refuses targets a renderer could use to reach anything else", () => {
@@ -20,6 +20,9 @@ describe("Settings deep-link targets", () => {
       { section: "updates", control: "showDiagnostics" },
       { section: "game", control: "extendedMemoryEnabled" },
       { section: "game", control: 1 },
+      { section: "features", control: "tool:quick-travel" },
+      { section: "features", feature: "whispers", control: "tool:quick-travel" },
+      { section: "game", feature: "travel" },
       { section: "game", url: "https://example.com" },
     ]) {
       assert.throws(() => parseSettingsTarget(value), JSON.stringify(value));

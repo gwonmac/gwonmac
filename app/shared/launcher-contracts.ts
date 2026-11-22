@@ -115,7 +115,7 @@ export function parseLauncherProfileAppearance(value: unknown): LauncherProfileA
 
 const toolFeatures = FEATURES.flatMap((feature) => "tool" in feature ? [[feature.tool.id, feature.id] as const] : []);
 
-/** Every feature's switch in Settings › Tools, in FEATURES order. */
+/** Every feature's switch, in FEATURES order. */
 export const GLOBAL_TOOLS: readonly GlobalTool[] = Object.freeze(toolFeatures.map(([tool]) => tool));
 export type { GlobalTool };
 export const GLOBAL_TOOL_FEATURES: Readonly<Record<GlobalTool, FeatureId>> = Object.freeze(Object.fromEntries(toolFeatures) as Record<GlobalTool, FeatureId>);

@@ -10,7 +10,7 @@ The Build Library keeps your skill builds and hero teams in one place, so you ca
 Right after a Guild Wars update, **Save to Guild Wars** can be unavailable for a short time while GWonMac checks the new client. The build stays saved in your library. A saved team goes onto your heroes with [Team Apply]($docs.team-apply).
 
 ### Details
-- **Turn on:** :setting[Build Library]{to="tools/tool:build-management"}, off while you play the :setting[plain game]{to="tools/gwonmacTools"}.
+- **Turn on:** :setting[Build Library]{to="features/tool:build-management"}, off while you play the :setting[plain game]{to="features/gwonmacTools"}.
 - **Open:** <kbd>⌘</kbd> <kbd>B</kbd>, **View → Build Library**, or search `build` or `team` and a name in the [Hub]($docs.hub).
 
 > Guild Wars reads its template list once per session. Choose **Refresh List** in the game’s template panel to see a new build.

@@ -124,6 +124,7 @@ test('Characters: Escape during composition keeps the query (HUB-140)', async ()
 test('closing the Hub with the mouse while a shortcut records gives the next keys back to the game (HUB-038)', async () => {
   await mountFixture();
   fill(search(), 'settings'); press('Enter'); await settle();
+  window.gwHub!.openSettings({ section: 'features', feature: 'travel' }); await settle();
   const record = byRole('button', 'Change Travel shortcut', true)[0]!;
   click(record); await settle();
   expect(record.textContent).toContain('Press keys…');

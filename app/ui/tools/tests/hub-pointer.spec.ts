@@ -102,8 +102,8 @@ test.describe('a navigational row', () => {
     await clicks(page, page.locator('.hub-row').first(), 2);
     await expect(caption(page)).toHaveText('Settings');
     expect(await settings()).toBe(before);
-    // A deliberate single click still toggles exactly once.
-    await page.getByText('Whispers', { exact: true }).first().click();
+    // A deliberate single click on a setting control still toggles exactly once: the Whispers card's switch.
+    await page.getByRole('switch', { name: 'Whispers', exact: true }).click();
     await expect.poll(settings).not.toBe(before);
   });
 

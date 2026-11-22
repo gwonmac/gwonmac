@@ -304,7 +304,8 @@ test('Maps controls save inline without navigating away', async () => {
   send('hub-fixture-settings', { cartographyEnabled: true }); await settle();
   await go('maps');
   expect(caption()).toBe('Settings');
-  click(byRole('checkbox', 'Exploration grid')[0]!); await settle();
+  expect(document.querySelector('.feature-page h1')?.textContent).toBe('Maps');
+  click(byRole('switch', 'Exploration grid')[0]!); await settle();
   const slider = () => narrow(HTMLInputElement, byRole('slider', 'Grid opacity')[0]);
   expect(slider()).toBeDefined();
   fill(slider(), '45'); slider().dispatchEvent(new Event('change', { bubbles: true })); await settle();
@@ -563,14 +564,14 @@ test('Command-F on the Hub Settings page reaches the page and focuses its search
 test('in-game settings stay in Hub and Show Launcher remains explicit', async () => {
   await mountFixture();
   await go('settings');
-  // A page load opens Settings on Tools.
-  expect(document.querySelector('.settings-fields h1')?.textContent).toBe('Tools');
-  const whispers = () => narrow(HTMLInputElement, byRole('checkbox', 'Whispers', true)[0]);
+  // A page load opens Settings on Features.
+  expect(document.querySelector('.settings-fields h1')?.textContent).toBe('Features');
+  const whispers = () => narrow(HTMLInputElement, byRole('switch', 'Whispers', true)[0]);
   click(whispers()); await settle();
   expect(document.querySelector('nav[aria-label="Settings sections"]')).not.toBeNull();
   expect(whispers().checked).toBe(false);
   click(button('Back')); await settle();
-  // The Whispers tool leaves the Hub; its reason row stands for its Tools setting, so it can be turned back on.
+  // The Whispers tool leaves the Hub; its reason row stands for its switch, so it can be turned back on.
   fill(search(), 'whispers'); await settle();
   expect(document.querySelectorAll('.hub-row[data-id="whispers"]').length).toBe(0);
   expect(document.querySelectorAll('.hub-row[data-id="setting:tool:whispers"]').length).toBe(0);
@@ -578,7 +579,7 @@ test('in-game settings stay in Hub and Show Launcher remains explicit', async ()
   expect(document.querySelector('#hub .hub-primary-label')?.textContent).toBe('Turn on Whispers');
   await go('settings');
   // Within one page load, Settings reopens on the section last shown.
-  expect(document.querySelector('.settings-fields h1')?.textContent).toBe('Tools');
+  expect(document.querySelector('.settings-fields h1')?.textContent).toBe('Features');
   click(whispers()); await settle();
   expect(whispers().checked).toBe(true);
   click(button('Appearance')); await settle();

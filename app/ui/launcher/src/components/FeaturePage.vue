@@ -1,32 +1,36 @@
 <script setup lang="ts">
 /**
  * One Feature's page: its header with the switch as a button, its README, what it uses, its
- * options from the manifest's typed settings and shortcuts, what's new from its CHANGELOG, and
- * the facts beside them. Reading happens here, on a page with a way back (DESIGN.md).
+ * Settings (./FeatureSettings.vue), what's new from its CHANGELOG, and the facts beside them.
+ * Reading happens here, on a page with a way back (DESIGN.md). The launcher's Features tab and
+ * the Hub's Features section both draw it; `embedded` is the Hub, which has no launcher links.
  */
-import { computed, ref } from "vue";
+import { computed } from "vue";
 import { Bug, Check, ChevronLeft, Code, Eye, HardDrive, MousePointerClick, PenLine, Globe, ShieldCheck } from "lucide-vue-next";
 import { FEATURE_KIND_LABELS, type FeatureId } from "@shared/feature-contracts";
 import { featureUses } from "@shared/feature-uses";
-import { SHORTCUT_LABELS } from "@shared/keyboard-shortcuts";
-import type { LauncherExternalLink, LauncherNativeApi, LauncherSettingsPatch, LauncherSnapshot } from "@shared/launcher-contracts";
+import type { LauncherExternalLink, LauncherSnapshot } from "@shared/launcher-contracts";
 import type { SettingsTarget } from "@shared/settings-catalogue";
-import { REGION_WORDS, cardFeature, changelogOf, featureOptions, readmeBlocks, type CardFeature, type FeatureOption } from "../features";
-import { runsWith, type FeatureStatus } from "@shared/feature-status";
+import type { InGamePatch, InGameSettings, InGameTools } from "../settings-host";
+import { REGION_WORDS, cardFeature, changelogOf, readmeBlocks, type CardFeature } from "../features";
+import { runsWith, switchOf, type FeatureStatus } from "@shared/feature-status";
 import FeatureArt from "./FeatureArt.vue";
-import FeatureSwitch from "./FeatureSwitch.vue";
+import FeatureSettings from "./FeatureSettings.vue";
 import MarkdownBody from "./MarkdownBody.vue";
 import MarkdownInline from "./MarkdownInline.vue";
-import RangeControl from "./RangeControl.vue";
-import ShortcutSetting from "./ShortcutSetting.vue";
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   feature: CardFeature;
   status: FeatureStatus;
-  snapshot: LauncherSnapshot;
-  native: LauncherNativeApi | undefined;
-  save: (patch: LauncherSettingsPatch) => Promise<void>;
-}>();
+  settings: InGameSettings;
+  shortcuts: LauncherSnapshot["shortcuts"];
+  api?: InGameTools | undefined;
+  save: (patch: InGamePatch) => Promise<void>;
+  performSave?: ((action: () => Promise<unknown>) => Promise<void>) | undefined;
+  appVersion: string;
+  /** Drawn inside the Hub's Settings page: its status line reports saves, and links to the launcher and the web stay text. */
+  embedded?: boolean;
+}>(), { api: undefined, performSave: undefined, embedded: false });
 const emit = defineEmits<{
   back: [];
   toggle: [on: boolean];
@@ -38,24 +42,13 @@ const emit = defineEmits<{
 }>();
 
 const reason = computed(() => props.status.resolution.on ? null : props.status.resolution.reason);
-const readme = computed(() => readmeBlocks(props.feature));
-const versions = computed(() => changelogOf(props.feature));
+const readme = computed(() => readmeBlocks(props.feature, !props.embedded));
+const versions = computed(() => changelogOf(props.feature, !props.embedded));
 const uses = computed(() => featureUses(props.feature));
 const usesGame = computed(() => uses.value.sees.length + uses.value.draws.length + uses.value.does.length > 0);
-const options = computed(() => featureOptions(props.feature));
-const shortcuts = computed(() => "shortcuts" in props.feature ? props.feature.shortcuts : []);
 const needs = computed(() => ("requires" in props.feature ? props.feature.requires : []).flatMap((id) => cardFeature(id) ?? []));
-const settings = computed<Readonly<Record<string, unknown>>>(() => props.snapshot.settings);
-
-const saveNote = ref<{ text: string; failed: boolean }>({ text: "Changes save right away and apply in every game window.", failed: false });
-async function change(option: FeatureOption, value: unknown) {
-  try {
-    await props.save({ [option.key]: value });
-    saveNote.value = { text: `Saved: ${option.label}.`, failed: false };
-  } catch {
-    saveNote.value = { text: `${option.label} could not be saved. Try again.`, failed: true };
-  }
-}
+/** The switch the header button moves; Settings search opens the page at it. */
+const switchSetting = computed(() => `tool:${switchOf(props.feature)}`);
 </script>
 
 <template>
@@ -78,7 +71,7 @@ async function change(option: FeatureOption, value: unknown) {
       <div class="head-action">
         <button v-if="status.needs" class="primary" @click="emit('turnOn', status.needs)">Turn on {{ status.needs.name }}</button>
         <span v-else-if="runsWith(feature)" class="muted">Runs with {{ runsWith(feature)!.name }}</span>
-        <button v-else :class="status.checked ? 'secondary' : 'primary'" :disabled="status.locked" aria-describedby="feature-status" @click="emit('toggle', !status.checked)">{{ status.checked ? "Turn off" : "Turn on" }}</button>
+        <button v-else :class="status.checked ? 'secondary' : 'primary'" :disabled="status.locked" :data-setting="switchSetting" aria-describedby="feature-status" @click="emit('toggle', !status.checked)">{{ status.checked ? "Turn off" : "Turn on" }}</button>
       </div>
     </header>
 
@@ -104,26 +97,12 @@ async function change(option: FeatureOption, value: unknown) {
           <p v-if="usesGame" class="uses-note">Before this Feature runs, GWonMac checks each game item above on this Guild Wars build.</p>
         </section>
 
-        <section v-if="options.length || shortcuts.length" aria-labelledby="settings-title" class="options">
-          <h2 id="settings-title">Settings</h2>
-          <p class="save-note" :class="{ failed: saveNote.failed }" :role="saveNote.failed ? 'alert' : 'status'">{{ saveNote.text }}</p>
-          <div v-for="option in options" :key="option.key" class="row" :data-setting="option.key">
-            <span class="row-label"><span :id="`option-${option.key}`">{{ option.label }}</span><small :id="`option-${option.key}-help`">{{ option.help }}</small></span>
-            <FeatureSwitch v-if="option.kind === 'switch'" :checked="settings[option.key] === true" :label="option.label" :describedby="`option-${option.key}-help`" @change="change(option, $event)" />
-            <RangeControl v-else-if="option.kind === 'range'" :label="option.label" :value="Number(settings[option.key])" :min="option.min" :max="option.max" @change="change(option, $event)" />
-            <button v-else-if="option.kind === 'position'" class="secondary small" :aria-describedby="`option-${option.key}`" @click="change(option, option.fallback)">Put back</button>
-            <button v-else class="secondary small" :aria-describedby="`option-${option.key}`" @click="emit('settings', option.target)">Change in Settings</button>
-          </div>
-          <div v-for="shortcut in shortcuts" :key="shortcut.action" class="row">
-            <span class="row-label"><span>{{ SHORTCUT_LABELS[shortcut.action] }} shortcut</span></span>
-            <ShortcutSetting :action="shortcut.action" :shortcuts="snapshot.shortcuts" :api="native?.tools" />
-          </div>
-        </section>
+        <FeatureSettings :feature="feature" :settings="settings" :shortcuts="shortcuts" :api="api" :save="save" :perform-save="performSave" :show-note="!embedded" />
 
         <section v-if="versions.length" aria-labelledby="new-title">
           <h2 id="new-title">What’s new</h2>
           <div v-for="(entry, index) in versions" :key="entry.version" class="version">
-            <span><strong>{{ entry.version }}</strong><small v-if="index === 0 && entry.version === snapshot.appUpdate.currentVersion">This version</small></span>
+            <span><strong>{{ entry.version }}</strong><small v-if="index === 0 && entry.version === appVersion">This version</small></span>
             <ul><li v-for="(item, itemIndex) in entry.items" :key="itemIndex"><MarkdownInline :parts="item" @link="emit('link', $event)" /></li></ul>
           </div>
         </section>
@@ -137,7 +116,7 @@ async function change(option: FeatureOption, value: unknown) {
           <div v-if="'hub' in feature"><dt>In the Hub</dt><dd>Type <kbd>{{ feature.name.toLowerCase() }}</kbd></dd></div>
           <div v-if="versions.length"><dt>Version</dt><dd>Updated in GWonMac {{ versions[0]!.version }}</dd></div>
         </dl>
-        <div class="fact-links">
+        <div v-if="!embedded" class="fact-links">
           <button class="link-row" @click="emit('external', 'bugReport')"><Bug aria-hidden="true" />Report a problem</button>
           <button class="link-row" @click="emit('external', 'github')"><Code aria-hidden="true" />View the source on GitHub</button>
         </div>
@@ -182,12 +161,6 @@ async function change(option: FeatureOption, value: unknown) {
 .pledges svg { width: 15px; height: 15px; color: var(--success); }
 .uses-note { max-width: 660px; margin: 0; font-size: var(--fs-sm); }
 
-.feature-main section.options { gap: 0; }
-.save-note { margin: 4px 0 6px; font-size: var(--fs-sm); }
-.save-note.failed { color: var(--danger-text); }
-.row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--line); }
-.row-label { display: grid; gap: 3px; font-size: var(--fs-md); }
-.row-label small { color: var(--muted); font-size: var(--fs-sm); line-height: 1.45; }
 .version { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--line); }
 .version > span { display: grid; gap: 4px; align-content: start; font-size: var(--fs-md); }
 .version small { color: var(--gold-text); font-size: var(--fs-xs); }

@@ -13,7 +13,7 @@ import type { FeatureId } from "@shared/feature-contracts";
 import { parseProfileName, profileNameKey } from "@shared/multiple-accounts";
 import { fixtureSnapshotFor } from "./fixtures";
 import AccountsView from "./components/AccountsView.vue";
-import FeaturesView from "./components/FeaturesView.vue";
+import FeaturesView, { type FeaturesFixtureChange, type FeaturesSnapshot } from "./components/FeaturesView.vue";
 import BaseModal from "./components/BaseModal.vue";
 import LauncherHeader from "./components/LauncherHeader.vue";
 import LaunchBar from "./components/LaunchBar.vue";
@@ -36,6 +36,20 @@ const reachable = (page: LauncherRoute): LauncherRoute =>
   simple.value && (page === "home" || page === "news" || page === "features" || page === "help") ? "accounts" : page;
 const newsArticle = ref<string | null>(null);
 const featurePage = ref<FeatureId | null>(null);
+/** Where the Features tab opens next; each request is a new object, so the same control opens again. */
+const featureTarget = ref<SettingsTarget | null>(null);
+const gamesOpen = computed(() => snapshot.value.profiles.some((profile) => profile.state !== "ready" && profile.state !== "failed"));
+/** What the Features tab reads from the launcher's snapshot. */
+const featuresSnapshot = computed<FeaturesSnapshot>(() => ({
+  tools: snapshot.value.tools, features: snapshot.value.features, shortcuts: snapshot.value.shortcuts,
+  settings: snapshot.value.settings, appVersion: snapshot.value.appUpdate.currentVersion, gamesOpen: gamesOpen.value,
+}));
+/** The Settings page reads the in-game fields from the launcher's own snapshot. */
+const settingsSnapshot = computed(() => ({ ...snapshot.value, appVersion: snapshot.value.appUpdate.currentVersion }));
+/** Browser preview only: shows what a Features change would have saved. */
+function showFeaturesFixture(change: FeaturesFixtureChange) {
+  snapshot.value = { ...snapshot.value, ...(change.tools ? { tools: change.tools } : {}), ...(change.features ? { features: change.features } : {}), settings: { ...snapshot.value.settings, ...change.settings } };
+}
 watch(route, (next) => { if (next !== "help") helpPage.value = undefined; });
 
 const WHATS_NEW_KEY = "gwonmac.whatsNewSeen";
@@ -257,7 +271,15 @@ async function archiveAppearanceProfile() {
 const settingsTarget = ref<SettingsTarget | null>(null);
 const settingsSection = ref<SettingsSection | null>(null);
 function openSettings(target?: SettingsSection | SettingsTarget) {
-  settingsTarget.value = typeof target === "string" ? { section: target } : target ? { ...target } : null;
+  const place = typeof target === "string" ? { section: target } : target ? { ...target } : null;
+  // Features is its own tab; the simple launcher has none, so its Settings page draws Features.
+  if (place?.section === "features" && reachable("features") === "features") {
+    featurePage.value = place.feature ?? null;
+    featureTarget.value = place;
+    route.value = "features";
+    return;
+  }
+  settingsTarget.value = place;
   route.value = "settings";
 }
 
@@ -373,9 +395,10 @@ async function updateContent(content: NonNullable<LauncherPreferencesPatch["cont
       <FeaturesView
         v-else-if="route === 'features'"
         v-model:feature="featurePage"
-        :snapshot="snapshot"
+        :snapshot="featuresSnapshot"
         :native="native"
-        @fixture="snapshot = $event"
+        :target="featureTarget"
+        @fixture="showFeaturesFixture"
         @settings="openSettings"
         @external="openExternal"
         @link="followGuideLink"
@@ -398,7 +421,7 @@ async function updateContent(content: NonNullable<LauncherPreferencesPatch["cont
 
       <HelpView v-else-if="route === 'help'" :send="sendFeedback" :page="helpPage" @external="openExternal" @url="openUrl" @settings="openSettings" @link="followGuideLink" />
 
-      <SettingsView v-else :snapshot="snapshot" :native="native" :launcher="{ snapshot, native }" :target="settingsTarget" @fixture="snapshot = $event" @section="settingsSection = $event" />
+      <SettingsView v-else :snapshot="settingsSnapshot" :native="native" :launcher="{ snapshot, native }" :target="settingsTarget" @fixture="snapshot = $event" @section="settingsSection = $event" @features="openSettings" />
     </main>
 
     <LaunchBar

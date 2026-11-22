@@ -5,7 +5,7 @@ Features are the optional extras GWonMac adds to Guild Wars, such as Travel, Whi
 2. Turn on **Play the plain game** at the top.
 3. Start the game again.
 
-You can also turn on :setting[Play the plain game]{to="tools/gwonmacTools"} in Settings → Tools.
+You can also turn on :setting[Play the plain game]{to="features/gwonmacTools"} at the top of Features.
 
 The plain game loads no Feature. Your choice for each Feature stays saved, so turning the plain game off again gives you back every Feature as it was. You can still change Feature settings in the plain game; they take effect once you turn it off.
 

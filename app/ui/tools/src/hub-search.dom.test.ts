@@ -90,11 +90,11 @@ test('a setting row opens Hub Settings at its control; launcher settings, Keys r
   click(row('settings')!); await settle();
   expect(caption()).toBe('Settings');
   expect(shown(q('nav[aria-label="Settings sections"]')!)).toBe(true);
-  // A Keys row names the tool's shortcut control, which is in the Hub's Tools section.
+  // A Keys row names the Feature's shortcut control, on its Feature page in the Hub's Settings.
   back(); await settle();
   await ask('commands'); press('Enter'); await settle();
   click(row('key:travel')!); await settle();
-  expect(q('[data-setting="tool:quick-travel"]')!.classList.contains('setting-focus')).toBe(true);
+  expect(q('[data-setting="shortcut:travel.open"]')!.classList.contains('setting-focus')).toBe(true);
   expect(action()).toBeUndefined();
   // A launcher setting calls the launcher with its target and opens no Hub page.
   back(); await settle(); back(); await settle();

@@ -30,7 +30,7 @@ function view(tools: Tools, checks: Parameters<typeof fixtureFacts>[1], native =
   const wrapper: VueWrapper = mount(FeaturesView, {
     attachTo: document.body,
     props: {
-      snapshot: { ...fixtureSnapshot, profiles, tools, features: fixtureFacts(tools, checks) },
+      snapshot: { ...fixtureSnapshot, tools, features: fixtureFacts(tools, checks), appVersion: fixtureSnapshot.appUpdate.currentVersion, gamesOpen: profiles.some((profile) => profile.state !== "ready" && profile.state !== "failed") },
       native: native as unknown as LauncherNativeApi,
       feature: null,
       "onUpdate:feature": (feature: FeatureId | null) => wrapper.setProps({ feature }),

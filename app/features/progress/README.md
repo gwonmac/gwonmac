@@ -15,7 +15,7 @@ When a quest is selected in your quest log, the Hub’s start page offers **Trav
 The start page leaves the row out when no unlocked outpost is near the quest or you are already there; search `quest` to see why. It reads only which map the quest leads to, not the quest’s name or text.
 
 ### Details
-- **Turn on:** Progress has no switch of its own. It follows :setting[Travel]{to="tools/tool:quick-travel"}.
+- **Turn on:** Progress has no switch of its own. It follows :setting[Travel]{to="features/tool:quick-travel"}.
 - **Open:** search `progress`, a goal word or `quest` in the Hub.
 - **Limits:** at loading screens, in PvP and at character selection it shows a waiting line. A goal whose record cannot be read is left out instead of showing 0%. The goal you last picked is not saved between sessions.
 

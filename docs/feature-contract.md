@@ -76,6 +76,7 @@ the shapes; [`app/features/contract.ts`](../app/features/contract.ts) checks the
 | `kind`, `purpose` | Features tab groups (`FEATURE_KINDS`, `FEATURE_PURPOSES`) | TypeScript; contract: every card names a purpose |
 | `icon` | A Lucide icon name in kebab case | contract: kebab case; launcher test: the name is in [`feature-icon.ts`](../app/ui/launcher/src/feature-icon.ts), which imports only the icons Features use (pick one there, or add a line) |
 | `settings` | The switch, and options (below) | contract: one switch, labels and help |
+| `settingsHelp` | Optional: one line under Settings on its Feature page, for a rule that spans its options (Reminders: an item and a time) | contract: not empty when present |
 | `region` | `any`, `non-pvp` or `pve` | TypeScript; `resolve` applies it |
 | `uses` | Verifier capabilities and certified stages it cannot work without | contract: each one is in `ENHANCEMENT_CAPABILITY_FIELDS` or `STAGE_USES`; a folder that imports a stage's contract (`app/shared/cartography-spike.ts`) names that stage |
 | `requires` | Features that must be on for this one to run | contract: ids exist, no cycles |

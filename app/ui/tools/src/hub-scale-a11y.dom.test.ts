@@ -239,14 +239,15 @@ test('narrowing a large result list retains unchanged rows and their pointer act
 test('Settings describes its controls, and a shortcut label never starts a capture (HUB-115)', async () => {
   await mountFixture();
   fill(search(), 'settings'); press('Enter'); await until(() => document.querySelector('.hub-settings-host h1'));
-  const resign = byRole('checkbox', 'Resign', true)[0]!;
-  const description = (resign.getAttribute('aria-describedby') ?? '').split(/\s+/u).map(id => document.getElementById(id)?.textContent ?? '').join(' ').trim();
-  expect(description).toBe('Ask before sending /resign in PvE. Enter confirms; Escape cancels.');
-  const settingRow = document.querySelector<HTMLElement>('[data-setting="tool:character-switch"]')!;
+  hub().openSettings({ section: 'features', feature: 'characterSwitch' }); await until(() => document.querySelector('.hub-settings-host .feature-page'));
+  const profession = byRole('switch', 'Show profession', true)[0]!;
+  const description = (profession.getAttribute('aria-describedby') ?? '').split(/\s+/u).map(id => document.getElementById(id)?.textContent ?? '').join(' ').trim();
+  expect(description).toBe('Shows each character’s profession icon and profession names.');
+  const settingRow = document.querySelector<HTMLElement>('[data-setting="shortcut:character.switch"]')!;
   const change = exact('button', 'Change Switch Character shortcut');
-  click(settingRow.querySelector('strong')!); await settle();
+  click(settingRow.querySelector('.row-label span')!); await settle();
   expect(change.textContent).not.toContain('Press keys');
-  click(settingRow.querySelector('strong')!); await settle();
+  click(settingRow.querySelector('.row-label span')!); await settle();
   expect(narrow(HTMLButtonElement, change).disabled).toBe(false);
   click(change); press('a'); await settle();
   expect(settingRow.textContent).toContain('Press a key with Command, Control or Option');
@@ -302,9 +303,9 @@ test('status owners are rendered before their first message, and Settings keeps 
   expect(settingsStatus()).not.toBeNull();
   click(exact('button', 'Home')); await settle();
   fill(search(), 'maps'); press('Enter'); await settle();
-  hub().openSettings({ section: 'maps' }); await until(() => caption() === 'Settings');
-  const maps = [...document.querySelectorAll<HTMLButtonElement>('[aria-label="Settings sections"] button')].find(button => button.textContent?.trim() === 'Maps')!;
-  expect(maps.getAttribute('aria-current')).toBe('page');
+  hub().openSettings({ section: 'features', feature: 'cartography' }); await until(() => caption() === 'Settings');
+  const features = [...document.querySelectorAll<HTMLButtonElement>('[aria-label="Settings sections"] button')].find(button => button.textContent?.trim() === 'Features')!;
+  expect(features.getAttribute('aria-current')).toBe('page');
   expect(settingsStatus()).not.toBeNull();
 });
 

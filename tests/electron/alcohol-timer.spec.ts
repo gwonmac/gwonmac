@@ -1,6 +1,6 @@
 /** Exercises the production timer surface and settings through offline Electron. */
 import { expect, test, type Page } from "@playwright/test";
-import { closeOffline, launchOffline, openSettings } from "./fixtures.mjs";
+import { closeOffline, launchOffline, openFeatures } from "./fixtures.mjs";
 
 type OverlayModule = typeof import("../../app/features/alcohol-timer/renderer/alcohol-timer-overlay.js");
 type Timer = ReturnType<OverlayModule["createAlcoholTimerOverlay"]>;
@@ -127,15 +127,14 @@ test("launcher enables the timer and exposes adjust and reset", async () => {
   try {
     const { page } = fixture;
     await page.evaluate(async () => { await window.launcherNative.experience.completeSetup({ enableTools: false }); });
-    const settings = await openSettings(fixture, { section: "tools" });
+    const settings = await openFeatures(fixture, "alcoholTimer");
     await settings.evaluate(() => window.launcherNative.tools.setMasterEnabled(true));
-    const checkbox = settings.getByRole("checkbox", { name: "Alcohol Timer", exact: true });
-    await expect(checkbox).not.toBeChecked(); await checkbox.check();
-    await settings.locator("details.tool-options", { has: settings.getByRole("group", { name: "Alcohol Timer position", includeHidden: true }) }).getByText("Options", { exact: true }).click();
+    await settings.locator(".feature-head").getByRole("button", { name: "Turn on", exact: true }).click();
+    await expect.poll(async () => (await page.evaluate(() => window.launcherNative.state.get())).tools.features["alcohol-timer"].enabled).toBe(true);
     await settings.getByRole("button", { name: "Show to place", exact: true }).click();
     await expect.poll(async () => (await page.evaluate(() => window.launcherNative.state.get())).settings.alcoholTimerPosition.locked).toBe(false);
     await settings.screenshot({ path: test.info().outputPath("alcohol-settings.png") });
-    await settings.getByRole("button", { name: "Reset position", exact: true }).click();
+    await settings.locator('[data-setting="alcoholTimerPosition"]').getByRole("button", { name: "Put back", exact: true }).click();
     await expect.poll(async () => (await page.evaluate(() => window.launcherNative.state.get())).settings.alcoholTimerPosition).toEqual({ corner: "top-left", x: 4, y: 58, locked: true });
   } finally { await closeOffline(fixture); }
 });

@@ -1,14 +1,17 @@
 <script setup lang="ts">
 /**
- * The Features tab: the plain-game strip, the catalog in Large or Compact cards grouped by Kind
- * or Purpose, and each Feature's page. Statuses come from resolve through ../features.ts; the
- * switches write through the launcher bridge, or, in a browser preview, change the shown fixture.
+ * The Features catalog: the plain-game strip, the cards in Large or Compact size grouped by Kind
+ * or Purpose, and each Feature's page. The launcher draws it as its Features tab; the Hub draws it
+ * as the Features section of its Settings page (`embedded`). Statuses come from resolve through
+ * ../features.ts; switches and options write through the host's bridge, or, in a browser preview,
+ * change the shown fixture.
  */
 import { computed, nextTick, ref, watch } from "vue";
 import { AlertCircle, Check, LayoutGrid, List, Search } from "lucide-vue-next";
 import { featureSettingText, type FeatureId } from "@shared/feature-contracts";
-import type { LauncherExternalLink, LauncherNativeApi, LauncherSettingsPatch, LauncherSnapshot } from "@shared/launcher-contracts";
+import type { LauncherExternalLink, LauncherSnapshot } from "@shared/launcher-contracts";
 import type { SettingsTarget } from "@shared/settings-catalogue";
+import type { InGameNative, InGamePatch, InGameSettings } from "../settings-host";
 import {
   CARD_FEATURES,
   REGION_WORDS,
@@ -27,18 +30,37 @@ import {
 } from "../features";
 import { runsWith, showsReason, switchOf } from "@shared/feature-status";
 import { fixtureFacts } from "../fixtures";
+import { revealSetting } from "../reveal-setting";
 import FeatureArt from "./FeatureArt.vue";
 import FeaturePage from "./FeaturePage.vue";
 import FeatureSwitch from "./FeatureSwitch.vue";
 
-const props = defineProps<{
-  snapshot: LauncherSnapshot;
-  native: LauncherNativeApi | undefined;
-}>();
+/** What the catalog reads: the launcher's snapshot, or the Hub's bounded copy (app/shared/hub-settings.ts). */
+export type FeaturesSnapshot = Pick<LauncherSnapshot, "tools" | "features" | "shortcuts"> & Readonly<{
+  settings: InGameSettings;
+  appVersion: string;
+  /** A game window is open, so the launcher cannot restart. Always true in the Hub. */
+  gamesOpen: boolean;
+}>;
+/** Browser preview only: what a change would have saved. */
+export type FeaturesFixtureChange = Partial<Pick<LauncherSnapshot, "tools" | "features">> & Readonly<{ settings?: InGamePatch }>;
+
+const props = withDefaults(defineProps<{
+  snapshot: FeaturesSnapshot;
+  native: InGameNative | undefined;
+  /** Where to open; a new object opens it again, even at the same control. */
+  target?: SettingsTarget | null;
+  /** Saves an option; absent: through `native`, or the fixture. */
+  save?: ((patch: InGamePatch) => Promise<void>) | undefined;
+  /** Wraps every bridge write, so the host's status line can report it. */
+  performSave?: ((action: () => Promise<unknown>) => Promise<void>) | undefined;
+  /** Drawn inside the Hub's Settings page. */
+  embedded?: boolean;
+}>(), { target: null, save: undefined, performSave: undefined, embedded: false });
 const feature = defineModel<FeatureId | null>("feature", { default: null });
 const emit = defineEmits<{
-  /** Browser preview only: the snapshot with a change applied. */
-  fixture: [snapshot: LauncherSnapshot];
+  /** Browser preview only: the change, for the host to show. */
+  fixture: [change: FeaturesFixtureChange];
   settings: [target: SettingsTarget];
   external: [kind: LauncherExternalLink];
   link: [actionId: string];
@@ -63,7 +85,7 @@ const tools = computed(() => props.snapshot.tools);
 const state = computed(() => launcherFeatureState(props.snapshot.features));
 const statuses = computed(() => new Map(CARD_FEATURES.map((each) => [each.id, featureStatus(each, state.value, tools.value)])));
 const statusOf = (each: CardFeature) => statuses.value.get(each.id)!;
-const badges = computed(() => new Map(CARD_FEATURES.map((each) => [each.id, badgeOf(changelogOf(each), props.snapshot.appUpdate.currentVersion)])));
+const badges = computed(() => new Map(CARD_FEATURES.map((each) => [each.id, badgeOf(changelogOf(each), props.snapshot.appVersion)])));
 const groups = computed(() => groupCards(groupBy.value, filter.value, query.value, (each) => statusOf(each).checked));
 const onCount = computed(() => CARD_FEATURES.filter((each) => statusOf(each).checked).length);
 const filters = computed(() => [
@@ -78,7 +100,9 @@ const PLAIN_GAME = featureSettingText("gwonmacTools");
 const plain = computed(() => !tools.value.configured);
 /** Turned off the plain game in this launcher session: Features load after a launcher restart. */
 const waitingForRestart = computed(() => tools.value.configured && !tools.value.loaded);
-const gamesOpen = computed(() => props.snapshot.profiles.some((profile) => profile.state !== "ready" && profile.state !== "failed"));
+const gamesOpen = computed(() => props.snapshot.gamesOpen);
+/** Only the launcher can restart itself; a browser preview pretends it can. */
+const canRestart = computed(() => !props.native || props.native.tools.restartToApply !== undefined);
 const plainStatus = computed(() => plain.value
   ? "Every Feature is off. Turn off the plain game to get each one back as it was."
   : waitingForRestart.value
@@ -86,10 +110,16 @@ const plainStatus = computed(() => plain.value
     : "Features are loaded. Each switch below works at once in supported game areas.");
 
 
+/** One bridge write, through the host's status line when it has one. */
+async function write(action: () => Promise<unknown>) {
+  if (props.performSave) await props.performSave(action);
+  else await action();
+}
 /** Moves saved switches through the bridge, or changes the preview's fixture. */
 async function apply(changes: readonly SwitchChange[]) {
-  if (props.native) {
-    for (const change of changes) await props.native.tools.setFeature(change);
+  const native = props.native;
+  if (native) {
+    for (const change of changes) await write(() => native.tools.setFeature(change));
     return;
   }
   const features = { ...props.snapshot.tools.features };
@@ -98,7 +128,7 @@ async function apply(changes: readonly SwitchChange[]) {
 }
 /** Browser preview only: the fixture with these switches, and the facts main would send for them. */
 function showFixture(tools: LauncherSnapshot["tools"]) {
-  emit("fixture", { ...props.snapshot, tools, features: fixtureFacts(tools, props.snapshot.features.features) });
+  emit("fixture", { tools, features: fixtureFacts(tools, props.snapshot.features.features) });
 }
 async function attempt(action: () => Promise<unknown>) {
   message.value = "";
@@ -114,17 +144,19 @@ async function toggle(each: CardFeature, on: boolean) {
 
 async function setPlain(on: boolean) {
   await attempt(async () => {
-    if (props.native) { await props.native.tools.setMasterEnabled(!on); return; }
+    const native = props.native;
+    if (native) { await write(() => native.tools.setMasterEnabled(!on)); return; }
     const configured = !on;
     showFixture({ ...props.snapshot.tools, configured, restartRequired: configured !== props.snapshot.tools.loaded });
   });
 }
 async function restart() {
-  await attempt(async () => { await props.native?.tools.restartToApply(); });
+  await attempt(async () => { await props.native?.tools.restartToApply?.(); });
 }
-async function saveSettings(patch: LauncherSettingsPatch) {
-  if (props.native) await props.native.settings.update(patch);
-  else emit("fixture", { ...props.snapshot, settings: { ...props.snapshot.settings, ...patch } });
+async function saveSettings(patch: InGamePatch) {
+  if (props.save) await props.save(patch);
+  else if (props.native) { const native = props.native; await write(() => native.settings.update(patch)); }
+  else emit("fixture", { settings: patch });
 }
 
 /** Opens a Feature page and puts the keyboard on its title; back returns it to the card. */
@@ -139,6 +171,18 @@ watch(feature, async (next, previous) => {
   if (next) page.value?.querySelector<HTMLElement>("h1")?.focus({ preventScroll: true });
   else if (previous) page.value?.querySelector<HTMLElement>(`[data-feature="${returnTo ?? previous}"] .card-link`)?.focus();
 });
+
+/** Opens the target's Feature page (or the catalog) and puts its control in view. */
+async function reveal(target: SettingsTarget) {
+  if ((target.feature ?? null) !== feature.value) {
+    returnTo = target.feature ?? feature.value;
+    feature.value = target.feature ?? null;
+  }
+  await nextTick();
+  await nextTick();
+  if (page.value && target.control) revealSetting(page.value, target.control, true);
+}
+watch(() => props.target, (target) => { if (target) void reveal(target); }, { immediate: true });
 
 function clearSearch() {
   query.value = "";
@@ -155,14 +199,18 @@ function pickGroup(next: GroupBy) {
 </script>
 
 <template>
-  <section ref="page" class="page features-page">
+  <section ref="page" class="features-page" :class="{ page: !embedded }">
     <FeaturePage
       v-if="shown"
       :feature="shown"
       :status="statusOf(shown)"
-      :snapshot="snapshot"
-      :native="native"
+      :settings="snapshot.settings"
+      :shortcuts="snapshot.shortcuts"
+      :api="native?.tools"
       :save="saveSettings"
+      :perform-save="performSave"
+      :app-version="snapshot.appVersion"
+      :embedded="embedded"
       @back="feature = null"
       @toggle="toggle(shown, $event)"
       @turn-on="toggle($event, true)"
@@ -184,15 +232,15 @@ function pickGroup(next: GroupBy) {
         </label>
       </div>
 
-      <div class="plain-strip" :class="{ warn: plain || waitingForRestart }">
+      <div class="plain-strip" :class="{ warn: plain || waitingForRestart }" data-setting="gwonmacTools">
         <span class="strip-icon" aria-hidden="true"><AlertCircle v-if="plain || waitingForRestart" /><Check v-else /></span>
         <span class="strip-copy">
           <strong id="plain-label">{{ PLAIN_GAME.label }}</strong>
           <small id="plain-help">{{ PLAIN_GAME.help }}</small>
           <small class="strip-status" role="status">{{ plainStatus }}</small>
-          <small v-if="waitingForRestart && gamesOpen">Close every game window before restarting the launcher.</small>
+          <small v-if="waitingForRestart && gamesOpen && canRestart">Close every game window before restarting the launcher.</small>
         </span>
-        <button v-if="waitingForRestart" class="primary small" :disabled="gamesOpen" @click="restart">Restart launcher</button>
+        <button v-if="waitingForRestart && canRestart" class="primary small" :disabled="gamesOpen" @click="restart">Restart launcher</button>
         <FeatureSwitch :checked="plain" :label="PLAIN_GAME.label" describedby="plain-help" @change="setPlain" />
       </div>
 
@@ -257,7 +305,7 @@ function pickGroup(next: GroupBy) {
         <button class="secondary" @click="clearSearch">Show all Features</button>
       </div>
 
-      <p class="suggest">Missing something you used on Windows? <button class="text-link" @click="emit('external', 'featureRequest')">Suggest a Feature</button></p>
+      <p v-if="!embedded" class="suggest">Missing something you used on Windows? <button class="text-link" @click="emit('external', 'featureRequest')">Suggest a Feature</button></p>
     </div>
 
     <p v-if="message" class="inline-message features-alert" role="alert">{{ message }}</p>
@@ -267,7 +315,10 @@ function pickGroup(next: GroupBy) {
 <style scoped>
 .features-page { display: flex; flex-direction: column; }
 .catalog { width: 100%; max-width: 1176px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
-.catalog .page-head { margin-bottom: 0; flex-wrap: wrap; }
+/* The Hub's Settings page has no launcher page styles, so the head carries its own. */
+.catalog .page-head { min-width: 0; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 24px; margin-bottom: 0; }
+.catalog .page-head h1 { margin: 0 0 6px; font-size: var(--fs-page); line-height: 1.1; }
+.catalog .page-head p { margin: 0; max-width: 620px; font-size: var(--fs-md); text-wrap: pretty; }
 .catalog-search { position: relative; flex: 0 1 280px; display: block; }
 .catalog-search svg { position: absolute; left: 11px; top: 50%; width: 16px; height: 16px; color: var(--muted); transform: translateY(-50%); pointer-events: none; }
 /* Must outweigh style.css's field rule (four :not() tests), whose padding would cover the icon. */

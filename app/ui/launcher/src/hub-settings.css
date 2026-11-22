@@ -1,7 +1,8 @@
 /* The Settings page inside the Hub: the same page, in the player's Hub theme (Classic, Modern or
    their own colours). The page reads launcher tokens; here each one it reads points at the Hub
    token for the same role, so its dialogs, buttons and links follow the theme too and no
-   launcher gold or red is left. Radii and the small type sizes stay the launcher's.
+   launcher gold or red is left. Radii, the small type sizes and the Feature kind colours, which
+   paint each Feature's art, stay the launcher's.
    tests/unit/the-ui-system-has-one-place-to-change-a-colour.test.ts checks that every launcher
    colour the page reads is listed here. Below the tokens: only the space the Hub panel gives. */
 .hub-settings-host { height: 100%; min-height: 0; }
@@ -18,6 +19,10 @@
   --surface-raised: var(--ui-panel-solid);
   --surface-hover: var(--ui-row-hover);
   --surface-selected: var(--ui-selection-fill);
+  --surface-row: var(--ui-well-fill);
+  --picture-floor: var(--ui-well);
+  --badge-ground: var(--ui-overlay-fill);
+  --glow: var(--ui-accent-soft-fill);
   --line: var(--ui-line-soft);
   --line-strong: var(--ui-edge);
   --switch-track: var(--ui-line);
@@ -41,6 +46,9 @@
   --scrollbar: var(--ui-scroll-thumb-color);
   /* Status. */
   --success: var(--ui-success);
+  --success-tint: var(--ui-success-raised-fill);
+  --warning: var(--ui-warning);
+  --warning-tint: var(--ui-warning-panel-fill);
   --danger-text: var(--ui-danger);
   --danger-tint: var(--ui-danger-soft-fill);
   /* Depth. */

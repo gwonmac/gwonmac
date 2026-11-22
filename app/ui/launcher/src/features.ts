@@ -7,17 +7,17 @@
  */
 import {
   FEATURE_KIND_LABELS,
-  FEATURE_SELECTION_POLICIES,
   FEATURE_PURPOSE_LABELS,
   folderForId,
   type FeatureId,
+  type FeatureSettingKey,
 } from "@shared/feature-contracts";
 import type { FeatureState } from "@shared/feature-resolve";
 import { featureStatus as sharedStatus, SWITCH_FEATURES, switchOf, type FeatureStatus, type SwitchFeature } from "@shared/feature-status";
 import type { GlobalTool, LauncherSnapshot } from "@shared/launcher-contracts";
 import { markdownInline, parseMarkdown, type MarkdownBlock, type MarkdownInline } from "@shared/launcher-markdown";
-import { SETTINGS, type SettingsTarget } from "@shared/settings-catalogue";
-import { LAUNCHER_SETTINGS, type LauncherSetting } from "@shared/settings/index";
+import { featureOptionKeys } from "@shared/settings-catalogue";
+import type { SettingSpec } from "@shared/settings/define";
 import { guideLink } from "./guide";
 
 /** A feature with a card: every feature but the launch mode, which is the plain-game strip. */
@@ -76,22 +76,22 @@ const fileOf = (files: Readonly<Record<string, string>>, feature: CardFeature, n
  * The README in the subset app/features/contract.ts allows. Links reach only www.gwonmac.com,
  * images never show, and Vue renders every block as text.
  */
-export const readmeBlocks = (feature: CardFeature): readonly MarkdownBlock[] =>
-  parseMarkdown(fileOf(readmes, feature, "README.md"), { link: (href) => guideLink(href), image: () => null });
+export const readmeBlocks = (feature: CardFeature, links = true): readonly MarkdownBlock[] =>
+  parseMarkdown(fileOf(readmes, feature, "README.md"), { link: (href) => links ? guideLink(href) : null, image: () => null });
 
 export type ChangelogVersion = Readonly<{ version: string; items: readonly (readonly MarkdownInline[])[] }>;
 
 /** The released versions in a CHANGELOG, newest first; `## Unreleased` waits for the release script (plan step 7.2). */
-export function parseChangelog(text: string): readonly ChangelogVersion[] {
+export function parseChangelog(text: string, links = true): readonly ChangelogVersion[] {
   const versions: { version: string; items: (readonly MarkdownInline[])[] }[] = [];
   for (const line of text.split("\n").map((each) => each.trim())) {
     const heading = /^## (.+)$/u.exec(line);
     if (heading) versions.push({ version: heading[1]!, items: [] });
-    else if (line.startsWith("- ") && versions.length > 0) versions.at(-1)!.items.push(markdownInline(line.slice(2), { link: (href) => guideLink(href), image: () => null }));
+    else if (line.startsWith("- ") && versions.length > 0) versions.at(-1)!.items.push(markdownInline(line.slice(2), { link: (href) => links ? guideLink(href) : null, image: () => null }));
   }
   return versions.filter(({ version, items }) => version !== "Unreleased" && items.length > 0);
 }
-export const changelogOf = (feature: CardFeature) => parseChangelog(fileOf(changelogs, feature, "CHANGELOG.md"));
+export const changelogOf = (feature: CardFeature, links = true) => parseChangelog(fileOf(changelogs, feature, "CHANGELOG.md"), links);
 
 /** "New" when this app version brought the feature, "Updated" when it changed it, else nothing. */
 export function badgeOf(versions: readonly ChangelogVersion[], appVersion: string): "New" | "Updated" | null {
@@ -99,30 +99,31 @@ export function badgeOf(versions: readonly ChangelogVersion[], appVersion: strin
   return versions.length === 1 ? "New" : "Updated";
 }
 
-/** One option on the Feature page, drawn from the manifest's typed settings. */
-export type FeatureOption = Readonly<{ key: LauncherSetting; label: string; help: string }> & (
+/** One option on a Feature page, drawn by its type from the manifest's typed settings. */
+export type FeatureOption = Readonly<{
+  key: FeatureSettingKey;
+  label: string;
+  help: string;
+  /** The switch this option works under: while it is off, the option is dimmed. */
+  dependsOn?: string;
+}> & (
   | Readonly<{ kind: "switch" }>
-  | Readonly<{ kind: "range"; min: number; max: number }>
+  | Readonly<{ kind: "range"; min: number; max: number; unit: string }>
+  | Readonly<{ kind: "choice"; choices: readonly Readonly<{ value: string | number; label: string }>[] }>
   | Readonly<{ kind: "position"; fallback: unknown }>
-  /** A setting with its own control (a style, colours, keys): its Settings row changes it. */
-  | Readonly<{ kind: "elsewhere"; target: SettingsTarget }>
+  /** A value with a control of its own (a map style, colours, keys), drawn by its Feature's control. */
+  | Readonly<{ kind: "value" }>
 );
 
-const launcherKeys: ReadonlySet<string> = new Set(LAUNCHER_SETTINGS);
-const isLauncherSetting = (key: string): key is LauncherSetting => launcherKeys.has(key);
-
 export function featureOptions(feature: CardFeature): readonly FeatureOption[] {
-  const options: FeatureOption[] = [];
-  for (const [key, spec] of Object.entries("settings" in feature ? feature.settings : {})) {
-    if (key === FEATURE_SELECTION_POLICIES[feature.id].switch || !isLauncherSetting(key)) continue;
-    const text = { key, label: spec.label, help: spec.help };
-    if (spec.kind === "boolean") options.push({ ...text, kind: "switch" });
-    else if (spec.kind === "integer" && "range" in spec && spec.range) options.push({ ...text, kind: "range", min: spec.range.min, max: spec.range.max });
-    else if (spec.kind === "position") options.push({ ...text, kind: "position", fallback: spec.fallback });
-    else {
-      const entry = SETTINGS.find((candidate) => candidate.id === key);
-      options.push({ ...text, kind: "elsewhere", target: entry ? { section: entry.section, control: entry.id } : { section: "tools" } });
-    }
-  }
-  return options;
+  const specs: Readonly<Record<string, SettingSpec<unknown>>> = "settings" in feature ? feature.settings : {};
+  return featureOptionKeys(feature).map((key): FeatureOption => {
+    const spec = specs[key]!;
+    const text = { key, label: spec.label ?? key, help: spec.help ?? "", ...(spec.dependsOn ? { dependsOn: spec.dependsOn } : {}) };
+    if (spec.kind === "boolean") return { ...text, kind: "switch" };
+    if (spec.kind === "integer" && spec.range) return { ...text, kind: "range", min: spec.range.min, max: spec.range.max, unit: spec.unit ?? "" };
+    if (spec.kind === "enum" && spec.values) return { ...text, kind: "choice", choices: spec.values.map((value) => ({ value, label: spec.choices?.[String(value)] ?? String(value) })) };
+    if (spec.kind === "position") return { ...text, kind: "position", fallback: spec.fallback };
+    return { ...text, kind: "value" };
+  });
 }

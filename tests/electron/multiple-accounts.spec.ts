@@ -13,6 +13,7 @@ import {
   launchOffline,
   launchOfflineAt,
   root,
+  openFeatures,
   openSettings,
   stopElectron,
 } from "./fixtures.mjs";
@@ -359,8 +360,8 @@ test("applies launcher settings to every open profile and reflects in-game chang
     await fixture.page.evaluate(async () => {
       await window.launcherNative.experience.completeSetup({ enableTools: false });
     });
-    await settings.locator(".settings-page aside").getByRole("button", { name: "Maps", exact: true }).click();
-    const grid = settings.getByRole("checkbox", { name: /Exploration grid/ });
+    await openFeatures(fixture, "cartography");
+    const grid = settings.getByRole("switch", { name: "Exploration grid", exact: true });
     await expect(grid).not.toBeChecked();
     await games[0]!.evaluate(() => window.gwNative.settings.set({ cartographyGridEnabled: true }));
     await expect(grid).toBeChecked();
@@ -470,7 +471,7 @@ test("Show never duplicates a game and companion close policy stays profile-loca
     await fixture.app.evaluate(({ Menu }) => {
       Menu.getApplicationMenu()?.getMenuItemById("show-settings")?.click();
     });
-    await expect(fixture.page.locator(".settings-content h1")).toHaveText("Tools");
+    await expect(fixture.page.locator(".settings-content h1")).toHaveText("Appearance");
 
     const profileId = await fixture.page.evaluate(() =>
       window.launcherNative.state.get().then((snapshot) => snapshot.profiles[0]!.id));
@@ -566,18 +567,20 @@ test("global map settings live in the launcher and survive restart", { tag: "@jo
   try {
     await first.page.getByRole("button", { name: "Continue" }).click();
     await first.page.getByRole("button", { name: "Play the plain game" }).click();
-    const settings = await openSettings(first);
-    const nav = (name: string) => settings.locator(".settings-page aside").getByRole("button", { name, exact: true });
-    await nav("Maps").click();
-    await expect(settings.getByText("The plain game is on", { exact: true })).toBeVisible();
-    await settings.getByRole("checkbox", { name: /^Exploration grid/ }).check();
+    const settings = await openFeatures(first, "cartography");
+    await expect(settings.locator(".feature-head").getByText("Off while you play the plain game.", { exact: true })).toBeVisible();
+    const grid = settings.getByRole("switch", { name: "Exploration grid", exact: true });
+    await grid.click();
+    await expect(grid).toBeChecked();
     await settings.getByRole("button", { name: "Customize style" }).click();
     await expect(settings.getByRole("region", { name: "Edit Cartographer custom" })).toBeVisible();
-    await settings.getByRole("button", { name: "Open Tools settings" }).click();
-    await settings.getByRole("checkbox", { name: /^Play the plain game/ }).uncheck();
-    await nav("Maps").click();
-    await expect(settings.getByRole("heading", { name: "Maps" })).toBeVisible();
-    await expect(settings.getByText("Restart the launcher to enable Maps", { exact: true })).toBeVisible();
+    await settings.locator(".feature-page .back").click();
+    const plain = settings.getByRole("switch", { name: "Play the plain game", exact: true });
+    await plain.click();
+    await expect(plain).not.toBeChecked();
+    await settings.locator('[data-feature="cartography"] .card-link').click();
+    await expect(settings.getByRole("heading", { name: "Maps", level: 1 })).toBeVisible();
+    await expect(settings.locator(".feature-head").getByText("Starts the next time you open Guild Wars.", { exact: true })).toBeVisible();
     const beforeRestart = await first.page.evaluate(() => window.launcherNative.state.get());
     expect(beforeRestart.settings.cartographyGridEnabled).toBe(true);
     expect(beforeRestart.settings.cartographyPresetLibrary.activePreset.kind).toBe("custom");
