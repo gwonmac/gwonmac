@@ -119,7 +119,7 @@ main.artwork-only { grid-template-columns: 1fr; }
 .archived-accounts { margin-top: 24px; padding: 16px; border: 1px solid var(--line); border-radius: var(--radius-lg); }
 .archived-accounts summary { color: var(--muted); }
 .archived-accounts article { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 10px; padding-top: 14px; }
-.account-edit-error { padding: 10px 12px; border-radius: var(--radius-sm); color: var(--danger-text); background: var(--danger-tint); font-size: var(--fs-sm); }
+.dialog-error { padding: 10px 12px; border-radius: var(--radius-sm); color: var(--danger-text); background: var(--danger-tint); font-size: var(--fs-sm); }
 .account-edit-fields { min-width: 0; display: grid; gap: 16px; border: 0; padding: 0; margin: 0; }
 
 /* Help. */

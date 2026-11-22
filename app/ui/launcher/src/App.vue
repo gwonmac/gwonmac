@@ -2,16 +2,15 @@
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from "vue";
 import {
   AlertTriangle,
-  Archive,
   Check,
   X,
 } from "lucide-vue-next";
-import { DEFAULT_PROFILE_COLOR, DEFAULT_PROFILE_ICON, type LauncherDestination, type LauncherFeedback, type LauncherPreferencesPatch, type LauncherProfileIcon, type LauncherSnapshot } from "@shared/launcher-contracts";
+import type { LauncherDestination, LauncherFeedback, LauncherPreferencesPatch, LauncherSnapshot } from "@shared/launcher-contracts";
 import type { SettingsSection, SettingsTarget } from "@shared/settings-catalogue";
 import type { ProfileId } from "@shared/multiple-accounts";
 import type { FeatureId } from "@shared/feature-contracts";
-import { parseProfileName, profileNameKey } from "@shared/multiple-accounts";
 import { fixtureSnapshotFor } from "./fixtures";
+import AccountDialogs from "./components/AccountDialogs.vue";
 import AccountsView from "./components/AccountsView.vue";
 import FeaturesView, { type FeaturesFixtureChange, type FeaturesSnapshot } from "./components/FeaturesView.vue";
 import BaseModal from "./components/BaseModal.vue";
@@ -23,7 +22,6 @@ import { releaseNotesFor } from "./release-notes";
 import { parseGuideAction } from "./guide";
 import NewsView from "./components/NewsView.vue";
 import SettingsView from "./components/SettingsView.vue";
-import ProfileAppearanceFields from "./components/ProfileAppearanceFields.vue";
 import type { LauncherRoute } from "./routes";
 
 const route = ref<LauncherRoute>("home");
@@ -69,17 +67,11 @@ function firstLaunchOf(version: string): boolean {
 }
 const selected = ref<ProfileId[]>([...snapshot.value.selectedProfileIds]);
 const addOpen = ref(false);
-const appearanceProfile = ref<ProfileId | null>(null);
-const appearanceName = ref("");
-const appearanceError = ref("");
-const appearanceSaving = ref(false);
-const appearanceIcon = ref<LauncherProfileIcon>(DEFAULT_PROFILE_ICON);
-const appearanceColor = ref<string>(DEFAULT_PROFILE_COLOR);
-const newName = ref("");
-const newIcon = ref<LauncherProfileIcon>(DEFAULT_PROFILE_ICON);
-const newColor = ref<string>(DEFAULT_PROFILE_COLOR);
+const editedProfile = ref<ProfileId | null>(null);
 const busy = ref(false);
 const setupStep = ref<1 | 2>(1);
+/** Setup's dialog cannot be dismissed, so its failure shows inside it. */
+const setupError = ref("");
 const updateBannerDismissed = ref(false);
 const operationError = ref("");
 const startupError = ref(false);
@@ -147,13 +139,6 @@ watch([synchronized, () => snapshot.value.experience.showMigrationNotice], ([rea
 }, { immediate: true });
 
 const visibleProfiles = computed(() => snapshot.value.profiles.filter((profile) => !profile.archived));
-const appearanceProfileDetails = computed(() => snapshot.value.profiles.find((profile) => profile.id === appearanceProfile.value) ?? null);
-const canArchiveAppearanceProfile = computed(() => {
-  const profile = appearanceProfileDetails.value;
-  return profile !== null
-    && profile.id !== visibleProfiles.value[0]?.id
-    && (profile.state === "ready" || profile.state === "failed");
-});
 const selectedProfiles = computed(() => visibleProfiles.value.filter((profile) => selected.value.includes(profile.id)));
 const openSelected = computed(() => selectedProfiles.value.filter((profile) => profile.state === "running"));
 const closedSelected = computed(() => selectedProfiles.value.filter((profile) => profile.state !== "running"));
@@ -207,66 +192,6 @@ async function showProfile(id: ProfileId) {
   );
 }
 
-async function createProfile() {
-  const name = newName.value.trim();
-  if (!name) return;
-  await runAction("The account could not be added. Try another name or try again.", async () => {
-    await native?.profiles.create({ name, appearance: { icon: newIcon.value, color: newColor.value } });
-    newName.value = "";
-    newIcon.value = DEFAULT_PROFILE_ICON;
-    newColor.value = DEFAULT_PROFILE_COLOR;
-    addOpen.value = false;
-  });
-}
-
-function editAppearance(profile: LauncherSnapshot["profiles"][number]) {
-  appearanceProfile.value = profile.id;
-  appearanceName.value = profile.name;
-  appearanceError.value = "";
-  appearanceIcon.value = profile.appearance.icon;
-  appearanceColor.value = profile.appearance.color;
-}
-
-async function saveAppearance() {
-  const id = appearanceProfile.value;
-  if (!id || appearanceSaving.value) return;
-  appearanceError.value = "";
-  let name: string;
-  try {
-    name = parseProfileName(appearanceName.value);
-    if (snapshot.value.profiles.some(profile => profile.id !== id && profileNameKey(profile.name) === profileNameKey(name))) {
-      appearanceError.value = "Another account already uses this name.";
-      return;
-    }
-  } catch {
-    appearanceError.value = "Enter a name of 1–48 characters without control characters.";
-    return;
-  }
-  appearanceSaving.value = true;
-  try {
-    if (native) await native.profiles.update({ id, name, icon: appearanceIcon.value, color: appearanceColor.value });
-    else snapshot.value = {
-      ...snapshot.value,
-      profiles: snapshot.value.profiles.map(profile => profile.id === id
-        ? { ...profile, name, appearance: { icon: appearanceIcon.value, color: appearanceColor.value } }
-        : profile),
-    };
-    appearanceProfile.value = null;
-  } catch {
-    appearanceError.value = "The account could not be fully saved. Some changes may already be saved. Try again.";
-  } finally {
-    appearanceSaving.value = false;
-  }
-}
-
-async function archiveAppearanceProfile() {
-  const profile = appearanceProfileDetails.value;
-  if (!profile || !canArchiveAppearanceProfile.value) return;
-  if (await runAction("The account could not be archived.", () => native?.profiles.archive(profile.id))) {
-    appearanceProfile.value = null;
-  }
-}
-
 /** Where Settings opens next; each request is a new object, so the same control opens again. */
 const settingsTarget = ref<SettingsTarget | null>(null);
 const settingsSection = ref<SettingsSection | null>(null);
@@ -307,7 +232,9 @@ async function runAction(message: string, action: () => Promise<unknown> | undef
 
 async function completeSetup(enableTools: boolean) {
   if (native) {
-    await runAction("Setup could not be saved. Try again.", () => native.experience.completeSetup({ enableTools }));
+    setupError.value = "";
+    try { await native.experience.completeSetup({ enableTools }); }
+    catch { setupError.value = "Setup could not be saved. Try again."; }
     return;
   }
   snapshot.value = { ...snapshot.value, experience: { ...snapshot.value.experience, setup: "complete" } };
@@ -411,7 +338,7 @@ async function updateContent(content: NonNullable<LauncherPreferencesPatch["cont
         :readiness="snapshot.readiness"
         @toggle="toggleProfile"
         @add="addOpen = true"
-        @customize="editAppearance"
+        @customize="editedProfile = $event.id"
         @show="showProfile"
         @play="playProfile"
         @cancel="cancelProfile"
@@ -443,13 +370,7 @@ async function updateContent(content: NonNullable<LauncherPreferencesPatch["cont
       @install-update="runAction('The update could not be installed.', () => native?.updates.restartAndInstall())"
     />
 
-    <BaseModal v-if="addOpen" labelledby="add-account-title" @close="addOpen = false">
-      <form @submit.prevent="createProfile"><div class="modal-head"><h2 id="add-account-title">Add account</h2><button type="button" class="icon-button" aria-label="Close" @click="addOpen = false"><X /></button></div><p>This opens another separate Guild Wars window. Sign-in stays inside the game.</p><label>Name<input v-model="newName" autofocus maxlength="48" placeholder="Second account" /></label><details><summary>Appearance</summary><ProfileAppearanceFields v-model:icon="newIcon" v-model:color="newColor" /></details><div class="form-actions"><button type="button" class="secondary" @click="addOpen = false">Cancel</button><button class="primary" :disabled="!newName.trim()">Add account</button></div></form>
-    </BaseModal>
-
-    <BaseModal v-if="appearanceProfile" labelledby="appearance-title" :dismissible="!appearanceSaving" @close="appearanceProfile = null">
-      <form @submit.prevent="saveAppearance"><fieldset class="account-edit-fields" :disabled="appearanceSaving"><div class="modal-head"><h2 id="appearance-title">Edit account</h2><button type="button" class="icon-button" aria-label="Close" :disabled="appearanceSaving" @click="appearanceProfile = null"><X /></button></div><p>Choose a name and appearance you can recognize at a glance.</p><label>Name<input v-model="appearanceName" maxlength="48" required :disabled="appearanceSaving" :aria-invalid="!!appearanceError" :aria-describedby="appearanceError ? 'account-edit-error' : undefined" /></label><p v-if="appearanceError" id="account-edit-error" class="account-edit-error" role="alert">{{ appearanceError }}</p><ProfileAppearanceFields v-model:icon="appearanceIcon" v-model:color="appearanceColor" /><div v-if="canArchiveAppearanceProfile" class="archive-account-row"><span><strong>Archive account</strong><small>Hide this account without deleting its data.</small></span><button type="button" class="secondary" @click="archiveAppearanceProfile"><Archive />Archive</button></div><div class="form-actions"><button type="button" class="secondary" :disabled="appearanceSaving" @click="appearanceProfile = null">Cancel</button><button class="primary" :disabled="appearanceSaving">{{ appearanceSaving ? 'Saving…' : 'Save changes' }}</button></div></fieldset></form>
-    </BaseModal>
+    <AccountDialogs v-model:adding="addOpen" v-model:editing="editedProfile" :profiles="snapshot.profiles" :native="native" @preview="snapshot = { ...snapshot, profiles: $event }" />
 
     <div v-if="snapshot.experience.preferencesReset" class="toast"><AlertTriangle /><div><strong>Launcher preferences were reset.</strong><span>Your accounts, saved login, game files, builds, and templates were not changed.</span></div><button class="icon-button" aria-label="Dismiss" @click="dismissPreferencesReset"><X /></button></div>
     <div v-else-if="snapshot.experience.showMigrationNotice" class="toast"><Check /><div><strong>{{ snapshot.experience.installationKind === 'migrated-single' ? 'Your existing account is ready.' : 'Your accounts are ready.' }}</strong><span>We kept your saved login, settings, builds, templates, and game files.</span></div><button class="icon-button" aria-label="Dismiss" @click="dismissMigrationNotice"><X /></button></div>
@@ -457,7 +378,7 @@ async function updateContent(content: NonNullable<LauncherPreferencesPatch["cont
     <BaseModal v-if="snapshot.experience.setup === 'pending'" labelledby="setup-title" :dismissible="false" wide>
       <div class="setup-card">
         <template v-if="setupStep === 1"><h2 id="setup-title">Welcome to Guild Wars Reforged</h2><p>Guild Wars Reforged runs Guild Wars on your Mac. It is an unofficial community project and is not affiliated with ArenaNet or NCSOFT.</p><div class="form-actions"><button class="primary" @click="setupStep = 2">Continue</button></div></template>
-        <template v-else><h2 id="setup-title">Features</h2><p>Features add to the game. Build Library saves team builds. Travel opens a map search. Xunlai Storage opens storage in supported outposts.</p><p><strong>Features apply to every account.</strong> You can change this later in Settings.</p><p class="setup-note">If you turn on Features, the app restarts once to finish setup.</p><div class="form-actions spread"><button class="secondary" @click="setupStep = 1">Back</button><span /><button class="secondary" @click="completeSetup(false)">Play the plain game</button><button class="primary" @click="completeSetup(true)">Turn on Features</button></div></template>
+        <template v-else><h2 id="setup-title">Features</h2><p>Features add to the game. Build Library saves team builds. Travel opens a map search. Xunlai Storage opens storage in supported outposts.</p><p><strong>Features apply to every account.</strong> You can change this later in Settings.</p><p class="setup-note">If you turn on Features, the app restarts once to finish setup.</p><p v-if="setupError" class="dialog-error" role="alert">{{ setupError }}</p><div class="form-actions spread"><button class="secondary" @click="setupStep = 1">Back</button><span /><button class="secondary" @click="completeSetup(false)">Play the plain game</button><button class="primary" @click="completeSetup(true)">Turn on Features</button></div></template>
       </div>
     </BaseModal>
   </div>
