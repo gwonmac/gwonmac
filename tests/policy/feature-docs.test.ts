@@ -26,7 +26,7 @@ test("every Feature has one page built from its README, titled with its manifest
     assert.ok(page, folder);
     assert.match(page.file, GENERATED_PAGE);
     assert.ok(page.text.startsWith(`---\ntitle: ${JSON.stringify(feature.name)}\ndescription: ${JSON.stringify(feature.summary)}\nicon: "lucide:${feature.icon}"\n`), folder);
-    assert.ok(page.text.endsWith(`\n---\n\n${readme(folder).trim()}\n`), `${folder}: the page text is its README`);
+    assert.ok(page.text.endsWith(`\n---\n\n${readme(folder).trim().replace(/<kbd>([^<]+)<\/kbd>/gu, ":kbd[$1]")}\n`), `${folder}: the page text is its README, with keys as :kbd`);
   }
 });
 
