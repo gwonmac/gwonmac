@@ -103,10 +103,11 @@ const observe = (page: Page) => page.evaluate(() => {
 
 /**
  * Waits until the page has stopped changing: its observation is the same for a quiet window
- * that outlasts a lazy view's import. A sleep tuned to one delay breaks when a slow runner
- * takes longer; this waits for the condition the sleep stood for and ends sooner when it holds.
+ * that outlasts a lazy view's import. The window is never shorter than the fixed 700 ms wait it
+ * replaced (a view still loading shows no change until it lands), and it waits longer while the
+ * page keeps changing on a slow runner.
  */
-const QUIET_MS = 250;
+const QUIET_MS = 700;
 const settle = async (page: Page) => {
   const frames = () => page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
   const deadline = Date.now() + 10_000;
