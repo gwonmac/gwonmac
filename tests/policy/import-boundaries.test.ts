@@ -318,7 +318,7 @@ const REJECTED = [
     what: "app/ui/tools imports a feature's renderer half",
     file: "app/ui/tools/src/probe.ts",
     source:
-      'import { installResignCommand } from "../../../features/resign/renderer/resign-command";\nexport const probe = installResignCommand;\n',
+      'import { resignCommand } from "../../../features/resign/renderer/resign-command";\nexport const probe = resignCommand;\n',
   },
   {
     what: "an website .vue SFC imports app/main",

@@ -10,12 +10,14 @@
  * A Feature whose tool opens through its link offers `toggle` (`ToolLink`): its shortcut, game
  * menu item and Hub row call it (app/shared/hub-tools.ts) instead of firing a window event.
  */
+import type { ResignLink } from "./resign/shared/link.js";
 import type { TravelLink } from "./travel/shared/link.js";
 import type { WhispersLink } from "./whispers/shared/link.js";
 import type { Feature, FeatureId } from "./index.js";
 
 /** The link each Feature offers, by id. */
 export type FeatureLinkApis = {
+  resign: ResignLink;
   travel: TravelLink;
   whispers: WhispersLink;
 };

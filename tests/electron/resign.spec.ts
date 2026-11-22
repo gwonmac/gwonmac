@@ -23,13 +23,18 @@ test("Resign uses the shared modal and submits only on Enter or its button", asy
     }, key);
     await page.evaluate(async () => {
       const modulePath = "gw://app/features/resign/renderer/resign-command.js";
-      const { installResignCommand } = await import(modulePath);
+      const { resignCommand } = await import(modulePath);
       let count = 0;
-      const resign = installResignCommand({
+      const resign = resignCommand({
         enhancement_configure_resign() { return 1; },
         enhancement_resign() { document.body.dataset.resignCount = String(++count); return 1; },
       });
-      const sync = () => resign.update(window.gwToolsSettings().gwonmacTools && window.gwToolsSettings().resignEnabled);
+      // Runs while Resign is on, as its featurePart does.
+      let running: { stop(): void } | null = null;
+      const sync = () => {
+        if (window.gwToolsSettings().gwonmacTools && window.gwToolsSettings().resignEnabled) running ??= resign.start();
+        else { running?.stop(); running = null; }
+      };
       sync();
       window.addEventListener("gw:tools-settings", sync);
       document.body.dataset.resignCount = "0";

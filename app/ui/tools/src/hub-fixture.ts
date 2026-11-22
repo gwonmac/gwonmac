@@ -29,7 +29,7 @@ import { installSurfaceController } from '../../../renderer/surface-controller';
 // eslint-disable-next-line no-restricted-imports
 import { askLeaveArea, leaveAreaCopy } from '../../../renderer/leave-area';
 // eslint-disable-next-line no-restricted-imports
-import { installResignCommand } from '../../../features/resign/renderer/resign-command';
+import { resignCommand } from '../../../features/resign/renderer/resign-command';
 // eslint-disable-next-line no-restricted-imports
 import '../../../renderer/hub.css';
 // eslint-disable-next-line no-restricted-imports
@@ -216,11 +216,17 @@ export function mountHubFixture(target: HTMLElement) {
   window.gwCharacterSwitch = characterSource;
   characterSwitchHub.start({ parent: document.body, hub }).attach(characterSource);
   // The production Resign owner over a synthetic command queue: /resign is a recorded game action.
-  const resign = installResignCommand({
+  const resignOwner = resignCommand({
     enhancement_configure_resign: () => 0,
     enhancement_resign: () => { record('RESIGN'); return 1; },
   } as unknown as WebAssembly.Exports);
-  resign.update(onWhereAllowed('resign', facts()));
+  let resign: ReturnType<typeof resignOwner.start> | null = null;
+  // Runs while resolve has Resign on, as its featurePart does in a game window.
+  const syncResign = () => {
+    if (onWhereAllowed('resign', facts())) resign ??= resignOwner.start();
+    else { resign?.stop(); resign = null; }
+  };
+  syncResign();
   const foundation = createToolboxFoundation(document.body, {
     async mountTool(element, onVisibilityChange) {
       const app = mountToolsApp(element, { host: game.host, hub, mode: 'embedded', initiallyVisible: false, onVisibilityChange });
@@ -338,7 +344,7 @@ export function mountHubFixture(target: HTMLElement) {
     settings = { ...settings, ...event.detail }; for (const listener of settingsListeners) listener(settings);
     foundation.setAvailable({ builds: onWhereAllowed('buildLibrary', facts()), trade: onWhereAllowed('tradeChat', facts()) });
     people.setEnabled(onWhereAllowed('travel', facts()) || onWhereAllowed('whispers', facts()));
-    resign.update(onWhereAllowed('resign', facts()));
+    syncResign();
     window.dispatchEvent(new Event('gw:tools-settings'));
   } });
   const controls = document.createElement('div'); controls.className = 'hub-fixture-controls';
