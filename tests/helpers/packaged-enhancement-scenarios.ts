@@ -13,6 +13,7 @@ import { STORAGE_DATA_WINDOW_BYTES } from "../../app/features/xunlai-storage/ren
 import { TRAVEL_PAYLOAD_BYTES } from "../../app/features/travel/renderer/enhancement-travel-command.ts";
 import { COMPANION_PLAY_REGION_BYTES } from "../../app/renderer/companion-play-region-snapshot.ts";
 import { COMPANION_ABI } from "../../app/shared/companion-abi.ts";
+import type { EnhancementCapabilities, EnhancementProgram } from "../../app/shared/enhancement-contracts.ts";
 import {
   closePackaged,
   CONFIG_BYTES,
@@ -49,12 +50,37 @@ async function clearProductionCompanion(page: Page): Promise<void> {
     document.querySelectorAll("#toolbox-foundation, #enhancement-target").length === 0);
 }
 
+/**
+ * The probes install a synthetic companion in the page, standing in for main's certification of
+ * the served build, and set `gwToolsSettings` in the page, standing in for main's settings. The
+ * stand-in client proves nothing, so main's Feature facts keep every Feature off; each probe
+ * therefore also stands in for main's facts through the same page global the harness exposes
+ * (`gwFeatureFacts`): they prove exactly the capabilities the probe installs, for its program,
+ * with the settings the page reads. Nothing in main or the packaged app changes.
+ */
+async function standInForMainFacts(
+  page: Page,
+  capabilities: EnhancementCapabilities,
+  program: EnhancementProgram,
+): Promise<void> {
+  await page.evaluate(({ capabilities, program }) => {
+    const features = {
+      gameFileSaving: { status: "available" },
+      nativeDoubleClick: { status: "available" },
+      ...Object.fromEntries(Object.entries(capabilities).map(([capability, proved]) =>
+        [capability, proved ? { status: "available" } : { status: "unavailable", reason: "game-update" }])),
+    } as NonNullable<ReturnType<NonNullable<typeof window.gwFeatureFacts>>>["features"];
+    window.gwFeatureFacts = () => ({ toolsAtLaunch: true, settings: window.gwToolsSettings(), program, features });
+  }, { capabilities, program });
+}
+
 async function installTargetReadout(
   page: Page,
   moduleBytes: Uint8Array,
   capabilities = TARGET_ONLY,
 ) {
   await clearProductionCompanion(page);
+  await standInForMainFacts(page, capabilities, "target-observer");
   return page.evaluate(async ({
     bytes,
     tableSize,
@@ -661,6 +687,7 @@ export async function assertToolboxFoundationLifecycle() {
       return typeof Module?.socket?.connect === "function";
     });
     await clearProductionCompanion(fixture.page);
+    await standInForMainFacts(fixture.page, TARGET_OFF_PRODUCT_CAPABILITIES, "none");
     const result = await fixture.page.evaluate(async ({
       bytes,
       layout,
@@ -1375,6 +1402,7 @@ export async function assertRollbackAfterTablePublication() {
       return typeof Module?.socket?.connect === "function";
     });
     await clearProductionCompanion(fixture.page);
+    await standInForMainFacts(fixture.page, TOOLBOX_PROGRAM_CAPABILITIES, "toolbox-foundation");
     const result = await fixture.page.evaluate(async ({ bytes, tableSize, capabilities }: {
       bytes: number[];
       tableSize: number;
