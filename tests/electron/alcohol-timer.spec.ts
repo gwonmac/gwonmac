@@ -19,6 +19,7 @@ async function showTimer(page: Page) {
       window.alcoholFixture.setPosition(value);
     });
     window.alcoholFixture.setPosition((await window.gwNative.settings.get()).alcoholTimerPosition);
+    window.alcoholFixture.setInPve(true);
     window.alcoholFixture.setAlcohol({ gameTimer: 0, remainingMs: 123000 });
     canvas.focus();
   });
