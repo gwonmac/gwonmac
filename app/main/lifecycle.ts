@@ -2,8 +2,8 @@
  * Quit ordering: the registry of cleanup tasks and the one pass that runs them.
  *
  * Tasks run in reverse registration order, so a subsystem is torn down before
- * whatever it was built on. The pass runs at most once and cannot be re-entered
- * by a second quit request, and a task that throws is recorded and stepped over
+ * whatever it was built on. The pass runs at most once; a second quit request or an
+ * update install awaits the pass already running, and a task that throws is recorded and stepped over
  * rather than abandoning the tasks behind it — a socket left open because a
  * settings write failed is exactly the quit that strands a process. Diagnostics
  * are flushed last, once every task has had its chance to record something.
@@ -47,9 +47,19 @@ export function onAppQuit(task: CleanupTask): () => void {
  */
 export const QUIT_CLEANUP_DEADLINE_MS = 6_000;
 
-export async function runQuitCleanup(): Promise<void> {
-  if (quitting) return;
+let cleanupPass: Promise<void> | undefined;
+
+/**
+ * Runs the pass once. Every later caller gets the same promise, so one that
+ * must not proceed until cleanup is done (an update install that is about to
+ * exit the process) waits for the pass already running instead of racing it.
+ */
+export function runQuitCleanup(): Promise<void> {
   quitting = true;
+  return (cleanupPass ??= runCleanupPass());
+}
+
+async function runCleanupPass(): Promise<void> {
   logEvent({ k: "quit.cleanupStarted" });
   const tasks = [...cleanups].reverse();
   cleanups.length = 0;
