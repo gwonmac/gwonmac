@@ -64,35 +64,6 @@ const KEYS = "keys shortcut hotkey keyboard";
 
 const game = (key: keyof typeof GAME_SETTINGS): SettingEntry => ({ id: key, section: "game", ...GAME_SETTINGS[key] });
 
-/** The extra words search matches for a Feature's option, beyond its label and help. */
-const OPTION_KEYWORDS: Readonly<Partial<Record<FeatureSettingKey, string>>> = {
-  characterSwitchProfession: "character details", characterSwitchLevel: "character details", characterSwitchLocation: "character details",
-  chatFilterAllyDrops: "chat filter spam", chatFilterHallOfHeroes: "chat filter spam", chatFilterTitleAchievements: "chat filter spam",
-  reminderCons: "reminder", reminderPcons: "reminder", reminderAlcohol: "reminder", reminderBeforeEnd: "reminder", reminderAtEnd: "reminder", reminderSound: "reminder",
-  skillCooldownColor: "skill cooldown colour",
-  alcoholTimerPosition: "move reset position",
-  targetReadoutPosition: "move drag reset position",
-  whispersIcon: "hide whisper button icon unread",
-  whispersIconPosition: "move drag reset whisper icon position",
-  skillKeyBindings: "skill key labels bindings",
-  cartographyGridEnabled: `cartographer explore ${KEYS}`,
-  cartographyCompassGridEnabled: "unexplored cells",
-  compassRangeIndicatorsEnabled: "earshot shout cast casting spirit aggro rings",
-  compassRangeTheme: "compass ranges rings appearance monochrome",
-  cartographyRouteEnabled: `path navigate waypoint target ${KEYS}`,
-  cartographyQuestRouteEnabled: "quest objective marker path",
-  cartographyOverlayEnabled: `walkability ${KEYS}`,
-  eliteSkillsEnabled: "elite capture hunt boss signet",
-  eliteMissionMapMarkers: "elite hunt",
-  cartographyPresetLibrary: "colors theme cartographer",
-  cartographyGridOpacity: "transparency",
-  cartographyRevealMode: "explore stand diamonds",
-  cartographyWalkabilityOpacity: "transparency",
-  compassButtonsShown: "hide compass buttons controls map",
-  compassButtonsOffset: "move drag reset compass buttons",
-  cartographyControlIdleOpacity: "compass opacity idle",
-};
-
 const launcherKeys: ReadonlySet<string> = new Set(LAUNCHER_SETTINGS);
 /**
  * A Feature's options, in manifest order: every setting it declares that a settings page draws,
@@ -113,7 +84,7 @@ const toolEntry = (tool: GlobalTool): SettingEntry => {
 const featureEntries = (feature: SwitchFeature): SettingEntry[] => [
   ...featureOptionKeys(feature).flatMap((key): SettingEntry[] => {
     const { label, help } = featureSettingText(key);
-    const keywords = OPTION_KEYWORDS[key];
+    const keywords = specs.get(key)?.keywords;
     const entry: SettingEntry = { id: key, section: "features", feature: feature.id, label, detail: help, ...(keywords ? { keywords } : {}) };
     // The terrain border is part of the map style, so it is found beside it.
     return key === "cartographyPresetLibrary"

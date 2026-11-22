@@ -26,6 +26,7 @@ export default defineFeature({
         launcherError: "Skill key labels are invalid",
         label: "Skill labels",
         help: "The key name drawn on each of the eight slots. It does not change your Guild Wars controls.",
+        keywords: "skill key labels bindings",
       },
     ),
     /** Show the configured skill-key labels over the eight player skill slots. */

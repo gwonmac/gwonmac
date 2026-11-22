@@ -18,18 +18,21 @@ export default defineFeature({
       ...DETAIL,
       label: "Show profession",
       help: "Shows each character’s profession icon and profession names.",
+      keywords: "character details",
     }),
     /** Show the character's certified level in Character Switch. */
     characterSwitchLevel: setting.boolean(true, {
       ...DETAIL,
       label: "Show level",
       help: "Shows each character’s level.",
+      keywords: "character details",
     }),
     /** Show a location only when Travel's reviewed catalogue names its map. */
     characterSwitchLocation: setting.boolean(true, {
       ...DETAIL,
       label: "Show location",
       help: "Shows where each character is, when the map is a known Travel place.",
+      keywords: "character details",
     }),
   },
   region: "any",

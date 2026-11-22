@@ -28,6 +28,7 @@ export default defineFeature({
         launcherError: "Cooldown color is invalid",
         label: "Timer color",
         help: "One color for all eight timers: a preset or your own.",
+        keywords: "skill cooldown colour",
       },
     ),
   },
