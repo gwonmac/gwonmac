@@ -28,7 +28,7 @@ const ONE_SESSION = { available: true, subscribe: (listener: (session: { id: num
 /** A task on a page that still shows: its receipt is what closing the Hub shows. */
 const task: HubTask = { live: () => true, progress() {}, done(receipt) { if (receipt) currentReceipts.push(receipt); } };
 function withPeople(settings: Record<string, boolean>, run: (people: Harness) => void | Promise<void>, party: PartyInvite | null = null,
-  travel: TravelLink = { friendTripBlocked: () => null, toFriend: async () => {} }) {
+  travel: TravelLink = { friendTripBlocked: () => null, toFriend: async () => {}, toggle: () => 'shown', showProgress: () => 'shown' }) {
   const originalWindow = globalThis.window;
   const browserWindow = Object.assign(new EventTarget(), { gwToolsSettings: () => settings, gwFeatureFacts: () => provenFacts(settings) });
   Object.defineProperty(globalThis, 'window', { configurable: true, value: browserWindow });
@@ -96,7 +96,7 @@ test('Hub without Whispers keeps friend search only', () => withPeople({ gwonmac
 const invitePort = (overrides: Partial<PartyInvite> = {}) => {
   const calls: string[] = [];
   const party: PartyInvite = {
-    pending: null, subscribe: () => () => {}, cancel() {}, travelFailed() {},
+    pending: null, subscribe: () => () => {}, cancel() {},
     unavailable: () => null, travelUnavailable: () => null,
     invite: async name => { calls.push(`invite:${name}`); },
     travelAndInvite: async (friend) => { calls.push(`travel:${friend.character}`); return { invited: Promise.resolve() }; },
@@ -222,7 +222,7 @@ test('Invite points to Travel and invite only when that row is shown and can sta
     assert.equal(page().find(row => row.id === 'person:travel-invite')!.unavailable, 'Travel is busy');
     assert.equal(inviteReason(page), elsewhere, 'an unavailable Travel is never pointed to');
     assert.equal(source.search('invite Mo Kaiser')[0]!.unavailable, elsewhere);
-  }, lionsArchInvite(), { friendTripBlocked: () => 'Travel is busy', toFriend: async () => {} });
+  }, lionsArchInvite(), { friendTripBlocked: () => 'Travel is busy', toFriend: async () => {}, toggle: () => 'shown', showProgress: () => 'shown' });
   await withPeople(ALL_TOOLS, ({ source, page, setFriends }) => {
     setFriends([{ key: 'f', character: 'Mo Kaiser', alias: 'Kai Account', status: 'online', mapId: 188 }]);
     void source.search('mo kaiser')[0]!.run(task);
@@ -348,18 +348,17 @@ test('Travel failure withdraws the pending invite within five seconds with its o
   const region: CompanionPlayRegionState = { status: 'ready', sequence: 1, mapId: 55, instanceType: 0, playRegion: 'pve', travelContext: 'world', characterKey: 'a', unlockedMapWords: null, guildHall: false, hasGuildHall: false };
   const sent: string[] = [];
   const listeners = new Set<() => void>();
+  let tripFailed: ((message: string) => void) | null = null;
   const party = createPartyInvite({ region: () => region, session: ONE_SESSION, subscribeRegion: listener => { listeners.add(listener); return () => listeners.delete(listener); },
-    chatReady: () => true, invite: async name => { sent.push(name); }, travel: async () => {} });
+    chatReady: () => true, invite: async name => { sent.push(name); }, travel: async (_friend, _generation, failed) => { tripFailed = failed; } });
   await withPeople(ALL_TOOLS, async ({ source, page, receipts }) => {
     try {
       source.search('mo kaiser')[0]!.run(task);
       await page().find(row => row.id === 'person:travel-invite')!.run(task);
       receipts.length = 0;
       context.mock.timers.tick(3_000);
-      // Travel's canonical host signal when a started trip fails.
-      window.dispatchEvent(new CustomEvent('gw:travel-failed', { detail: {
-        mapId: 449, message: 'Guild Wars did not confirm arrival. Travel is ready to try again.',
-      } }));
+      // Travel tells the trip's caller when the started trip fails.
+      tripFailed!('Guild Wars did not confirm arrival. Travel is ready to try again.');
       await new Promise<void>(resolve => setImmediate(resolve));
       assert.deepEqual(receipts, ['Guild Wars did not confirm arrival. Travel is ready to try again.']);
       assert.equal(party.pending, null);

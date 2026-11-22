@@ -35,13 +35,16 @@ export default defineFeature({
   optInWithTools: true,
   tool: {
     id: "quick-travel",
-    event: "gw:travel-toggle",
     keywords: "travel outposts map progress vanquish cartographer",
   },
   hub: { command: "travel", order: 0, keyOrder: 0 },
   shortcuts: [{ action: "travel.open", binding: { key: "t", shift: false, option: false }, menuItem: "open-travel" }],
-  /** Hub people and party invites travel to a friend's outpost (shared/link.ts). */
-  offers: ["friendTripBlocked", "toFriend"],
+  /**
+   * Hub people and party invites travel to a friend's outpost; its shortcut and menu item open
+   * Travel through `toggle`; Progress shows its state on the page Travel's Hub app hosts
+   * (shared/link.ts).
+   */
+  offers: ["friendTripBlocked", "toFriend", "toggle", "showProgress"],
   shots: [],
   parts: ["game", "main"],
 });

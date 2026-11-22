@@ -491,7 +491,9 @@ test("the modal confirms PvE departure, blocks click-through, and retains post-l
         unavailable: () => null,
       });
       palette.setEnabled(true);
-      window.dispatchEvent(new CustomEvent("gw:travel-toggle", { cancelable: true, detail: {} }));
+      // Travel's link `toggle`, which ⌘T calls.
+      Object.assign(window, { travelToggle: () => palette.toggle("toggle") });
+      palette.toggle("toggle");
     });
     const travel = page.getByRole("dialog", { name: /^Hub(?: — .+)?$/u });
     await expect(travel).toBeVisible();
@@ -500,9 +502,7 @@ test("the modal confirms PvE departure, blocks click-through, and retains post-l
     ));
     await expect(travel).toBeVisible();
     await expect(dialog).toBeVisible();
-    await page.evaluate(() => window.dispatchEvent(
-      new CustomEvent("gw:travel-toggle", { cancelable: true, detail: {} }),
-    ));
+    await page.evaluate(() => (window as typeof window & { travelToggle(): unknown }).travelToggle());
     await expect(dialog).toBeHidden();
     await expect(travel).toBeVisible();
   } finally {

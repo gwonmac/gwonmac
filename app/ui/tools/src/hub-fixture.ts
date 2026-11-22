@@ -305,11 +305,14 @@ export function mountHubFixture(target: HTMLElement) {
       if (params.has('invite-fail')) throw new Error(params.get('invite-fail') || 'Guild Wars chat is not ready');
       invites.push(name); target.dataset.invites = invites.join('|'); record(`PARTY.INVITE ${name}`);
     },
-    travel: async friend => { await travel.travel(friend.mapId); record(`PARTY.TRAVEL ${friend.character}`); },
+    travel: async (friend, _generation, failed) => { await travel.travel(friend.mapId, failed); record(`PARTY.TRAVEL ${friend.character}`); },
   });
   // Travel's link, as its companion part provides it: Hub people travels to a friend through it.
   provideLink('travel', { friendTripBlocked: friend => { const region = lifecycle.region(); return region.status === 'ready' && region.mapId === friend.mapId ? 'You are already in this outpost' : null; },
-    toFriend: async friend => { await travel.travel(friend.mapId); record(`FRIEND.TRAVEL ${friend.character}`); } });
+    toFriend: async friend => { await travel.travel(friend.mapId); record(`FRIEND.TRAVEL ${friend.character}`); },
+    // As `travel-palette.ts` answers its link's `toggle`, over the fixture's host.
+    toggle: () => { if (!onWhereAllowed('travel', facts())) return 'unavailable'; hub.direct('travel', travel.open); return 'shown'; },
+    showProgress: progress => { travel.updateProgress(progress); return 'shown'; } });
   const people = createHubPeople(hub, hubLinks(), partyInvite);
   people.setEnabled(true);
   // Romi waits in the player's starting outpost, so `invite Romi` is ready to send there.
@@ -334,12 +337,6 @@ export function mountHubFixture(target: HTMLElement) {
   window.addEventListener('hub-fixture-lifecycle', event => { if (event instanceof CustomEvent && isFixtureLifecycle(event.detail)) lifecycle.set(event.detail); });
   window.addEventListener('hub-fixture-party', event => { if (event instanceof CustomEvent) setParty(event.detail !== false); });
   window.addEventListener('hub-fixture-withdraw', () => people.updateFriends({ status: 'waiting', reason: 'unavailable' }));
-  // The Travel owner's command listener (`travel-palette.ts`), over the fixture's host.
-  window.addEventListener('gw:travel-toggle', event => {
-    if (!onWhereAllowed('travel', facts())) return;
-    event.preventDefault();
-    hub.direct('travel', travel.open);
-  });
   window.addEventListener('hub-fixture-settings', event => { if (event instanceof CustomEvent) {
     settings = { ...settings, ...event.detail }; for (const listener of settingsListeners) listener(settings);
     foundation.setAvailable({ builds: onWhereAllowed('buildLibrary', facts()), trade: onWhereAllowed('tradeChat', facts()) });

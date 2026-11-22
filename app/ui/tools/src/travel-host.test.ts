@@ -174,12 +174,9 @@ describe("native Travel host", () => {
     vi.useFakeTimers();
     const { host } = fixture();
     const failures = vi.fn();
-    window.addEventListener("gw:travel-failed", failures);
 
-    try {
-      await host.travel({ mapId: 449 });
-      await vi.advanceTimersByTimeAsync(3_000);
-    } finally { window.removeEventListener("gw:travel-failed", failures); }
+    await host.travel({ mapId: 449 }, failures);
+    await vi.advanceTimersByTimeAsync(3_000);
     expect(failures).not.toHaveBeenCalled();
     expect(host.attempt.value).toEqual({ status: "idle" });
     expect(host.notice.value).toMatchObject({ level: "info" });
@@ -244,10 +241,13 @@ describe("native Travel host", () => {
     expect(expired.notice.value?.message).toContain("ready to try again");
   });
 
-  it("reports an unconfirmed arrival when loading ends on another map", async () => {
+  // Wrong behavior: the trip's caller (a party invite waiting to invite on arrival) is not told
+  // and keeps waiting for its own 60 s timeout, or hears of it more than once.
+  it("reports an unconfirmed arrival when loading ends on another map, to the trip's caller too", async () => {
     vi.useFakeTimers();
     const { host } = fixture();
-    await host.travel({ mapId: 449 });
+    const failed = vi.fn();
+    await host.travel({ mapId: 449 }, failed);
     host.updateGameState({ status: "waiting", reason: "loading" });
 
     host.updateGameState(ready());
@@ -255,6 +255,8 @@ describe("native Travel host", () => {
     expect(host.attempt.value).toEqual({ status: "idle" });
     expect(host.notice.value).toMatchObject({ level: "warning" });
     expect(host.notice.value?.message).toContain("did not confirm arrival");
+    expect(failed).toHaveBeenCalledOnce();
+    expect(failed).toHaveBeenCalledWith(host.notice.value?.message);
     await vi.runAllTimersAsync();
     expect(host.notice.value?.message).toContain("did not confirm arrival");
 

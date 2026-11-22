@@ -1,8 +1,9 @@
 /**
  * Travel in the game host. The installation owns its exports, memory, palette
  * and teardown; this part places it in the companion phases, reads friends
- * through `game.friends` for the palette, and offers Travel's link (a trip to a
- * friend) to Hub people and party invites.
+ * through `game.friends` for the palette, and offers Travel's link: a trip to a
+ * friend (Hub people, party invites), opening Travel (its shortcut and menu
+ * item) and Progress's state for the Progress page.
  */
 import { NO_FRIENDS } from "../../shared/friends.js";
 import { travelGameState } from "../../shared/travel-command.js";
@@ -18,7 +19,7 @@ export default {
       ? (await import("./renderer/enhancement-travel-installation.js")).createTravelInstallation(exports, true)
       : null;
     return {
-      /** The palette Progress reports to. */
+      /** The installation; tests/unit/game-friends.test.ts watches what its palette is handed. */
       installation: travel,
       allocate: (malloc) => travel?.allocate(malloc),
       allocated: () => travel === null || Boolean(travel.region().pointer),

@@ -10,6 +10,8 @@ export default defineFeature({
   icon: "list-checks",
   region: "pve",
   requires: ["travel"],
+  /** Its page lives in Travel's Hub app, which gets the state through Travel's link. */
+  links: { travel: ["showProgress"] },
   uses: ["progressObservation"],
   programs: ["toolbox-commands", "xunlai-storage"],
   shots: [],

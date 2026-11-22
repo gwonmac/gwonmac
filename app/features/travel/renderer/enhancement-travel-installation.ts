@@ -5,6 +5,7 @@
 import type { TravelFriend, TravelFriends } from "../../../shared/friends.js";
 import type { GameProgressState } from "../../../shared/game-progress.js";
 import type { TravelCommand } from "../../../shared/travel-command.js";
+import type { ToolIntent, ToolLink } from "../../links.js";
 import type {
   EnhancementTravelConfigure,
   EnhancementTravelEnqueue,
@@ -30,7 +31,9 @@ export interface TravelInstallation {
   updateFriends(friends: TravelFriends): void;
   updateProgress(progress: GameProgressState): void;
   command(): TravelCommand | null;
-  travelToFriend(friend: TravelFriend, generation: number): Promise<void>;
+  /** Opens the Travel page (its link's `toggle`); "unavailable" before it mounts or while Travel cannot act. */
+  toggle(intent: ToolIntent): ReturnType<ToolLink["toggle"]>;
+  travelToFriend(friend: TravelFriend, generation: number, failed?: (message: string) => void): Promise<void>;
   dispose(free: (pointer: number) => void): void;
 }
 
@@ -81,13 +84,15 @@ export function createTravelInstallation(
     updateProgress(progress) { palette?.updateProgress(progress); },
     observingFriends() { return palette?.observingFriends() ?? false; },
     poll() {
-      if (takeToggle() === 1 && controller?.command.unavailable() === null) {
-        window.dispatchEvent(new CustomEvent("gw:travel-toggle"));
-      }
+      // The game's own Travel command (`/tp`) opens the page as the shortcut does.
+      if (takeToggle() === 1 && controller?.command.unavailable() === null) palette?.toggle("show");
     },
-    async travelToFriend(friend, generation) {
+    toggle(intent) {
+      return palette?.toggle(intent) ?? "unavailable";
+    },
+    async travelToFriend(friend, generation, failed) {
       if (!palette) throw new Error("Travel is unavailable");
-      await palette.travelToFriend(friend, generation);
+      await palette.travelToFriend(friend, generation, failed);
     },
     command() {
       return controller?.command ?? null;

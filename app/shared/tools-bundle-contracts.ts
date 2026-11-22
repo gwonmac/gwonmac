@@ -153,7 +153,8 @@ export type EmbeddedToolsBundle<Target> = Readonly<{
     open(): void;
     /** A new Travel page's content, for a page that was shown before the bundle loaded. */
     page(): HubViewMount<Target>;
-    travel(mapId: number): Promise<void>;
+    /** Starts one trip; `failed` hears if it fails after it started, with the message Travel shows. */
+    travel(mapId: number, failed?: (message: string) => void): Promise<void>;
     update(state: TravelGameState): void;
     updateFriends(friends: TravelFriends): void;
     /** The character's mission, vanquish and title progress for the Progress page. */

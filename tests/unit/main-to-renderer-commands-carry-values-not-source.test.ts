@@ -295,7 +295,6 @@ test("key release, trace state and text editing cross preload with their values 
 const TOOL_COMMANDS = [
   ["tools.toggle", "gw:tools-toggle"],
   ["storage.open", "gw:storage-open"],
-  ["travel.toggle", "gw:travel-toggle"],
   ["character.toggle", "gw:character-toggle"],
   ["game.call-target", "gw:call-target"],
 ] as const;
@@ -349,7 +348,7 @@ test("a tool that opens through its Feature's link is toggled through it, and is
 test("no tool command acts in a launch that did not select Tools, even with its listener present", async () => {
   // Main gates on the live settings; the launch's selection is the renderer's to hold. Call
   // target's listener presses keys in the client, so it must never be reached here.
-  for (const [type, event] of [["game.call-target", "gw:call-target"], ["travel.toggle", "gw:travel-toggle"]] as const) {
+  for (const [type, event] of [["game.call-target", "gw:call-target"]] as const) {
     const fixture = harness(ARGV);
     fixture.listen(event);
     fixture.deliver(1, { type });

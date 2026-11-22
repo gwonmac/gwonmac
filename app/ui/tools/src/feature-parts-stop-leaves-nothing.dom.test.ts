@@ -260,7 +260,10 @@ async function startGameParts(): Promise<() => void> {
 
 /** What a player can open: every feature tool's shortcut event or link toggle (app/features/<id>/feature.ts). */
 const TOOL_EVENTS = FEATURES.flatMap(feature => 'tool' in feature && 'event' in feature.tool ? [feature.tool.event] : []);
-const TOOL_LINKS = [...TOOL_COMMANDS.values()].flatMap(opener => 'link' in opener ? [opener.link] : []);
+// Whispers last: it opens over the Hub and suspends it, so the Hub pages opened before it (Travel)
+// stay mounted under it, as after a player's last shortcut.
+const TOOL_LINKS = [...TOOL_COMMANDS.values()].flatMap(opener => 'link' in opener ? [opener.link] : [])
+  .sort((a, b) => Number(a === 'whispers') - Number(b === 'whispers'));
 const openEverything = async () => {
   for (const type of TOOL_EVENTS) window.dispatchEvent(new CustomEvent(type, { cancelable: true, detail: { show: true } }));
   for (const target of TOOL_LINKS) toggleTool(target, 'show');

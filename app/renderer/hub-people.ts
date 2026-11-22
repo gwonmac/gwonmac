@@ -27,8 +27,8 @@ const TRAVEL_UNAVAILABLE = 'Travel is unavailable';
 const NO_WHISPERS = emptyWhisperSessionState();
 
 /** Starts the trip to a friend's outpost through Travel's link; rejects while Travel cannot take it. */
-async function travelToFriend(links: Pick<HubLinks, 'travel'>, friend: TravelFriend, generation: number): Promise<void> {
-  const started = links.travel?.toFriend(friend, generation) ?? 'unavailable';
+async function travelToFriend(links: Pick<HubLinks, 'travel'>, friend: TravelFriend, generation: number, failed?: (message: string) => void): Promise<void> {
+  const started = links.travel?.toFriend(friend, generation, failed) ?? 'unavailable';
   if (started === 'unavailable') throw new Error('Friend travel is unavailable');
   await started;
 }
@@ -72,13 +72,6 @@ export function createHubPeople(hub: Pick<Hub, 'attach' | 'showRows' | 'notify'>
     const answer = link === null ? 'unavailable' : link.friendTripBlocked(friend);
     return answer === 'unavailable' ? TRAVEL_UNAVAILABLE : answer;
   };
-  const travelFailed = (event: Event) => {
-    if (!(event instanceof CustomEvent)) return;
-    const detail: unknown = event.detail;
-    if (detail && typeof detail === 'object' && 'mapId' in detail && typeof detail.mapId === 'number'
-      && 'message' in detail && typeof detail.message === 'string') party?.travelFailed(detail.mapId, detail.message);
-  };
-  window.addEventListener('gw:travel-failed', travelFailed);
   /** Why Travel to a friend cannot start; `current` is false once the selected friend changed. */
   function travelReason(friend: TravelFriend | undefined, current: boolean): string | null {
     return !friend ? 'Waiting for a fresh friend location'
@@ -263,7 +256,7 @@ export function createHubPeople(hub: Pick<Hub, 'attach' | 'showRows' | 'notify'>
       else { detach?.(); detach = null; friends = NO_FRIENDS; }
     },
     updateFriends(next: TravelFriends) { friends = next; refresh(); },
-    dispose() { disposed = true; window.removeEventListener('gw:travel-failed', travelFailed); detach?.(); stopFollowing?.(); unsubscribeParty?.(); listeners.clear(); },
+    dispose() { disposed = true; detach?.(); stopFollowing?.(); unsubscribeParty?.(); listeners.clear(); },
   };
 }
 
@@ -286,7 +279,7 @@ export function mountHubPeople(context: Pick<ToolsActivation, 'game' | 'playRegi
     session: context.game.session,
     chatReady: chat.ready,
     invite: name => chat.send({ kind: 'invite', name }),
-    travel: (friend, generation) => travelToFriend(links, friend, generation),
+    travel: (friend, generation, failed) => travelToFriend(links, friend, generation, failed),
   }) : null;
   const people = createHubPeople(hub, links, party);
   const followFriends = subscribeWhile(friends, null, list => people.updateFriends(list ?? NO_FRIENDS));

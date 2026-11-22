@@ -109,10 +109,10 @@ export function createHubTravel(host: TravelHost, hub: HubPresenter<HTMLElement>
    * Starts one trip; the Hub task that asked for it ends the Hub session. A trip out of an
    * explorable area asks first, whichever row, person page or invite asked for it (D-27).
    */
-  async function travel(mapId: number) {
+  async function travel(mapId: number, failed?: (message: string) => void) {
     const reason = refusal(mapId);
     if (reason) throw new Error(reason);
-    const trip = () => host.travel({ mapId });
+    const trip = () => host.travel({ mapId }, failed);
     if (explorable()) await leaveArea(travelDestination(mapId)?.name ?? guildWarsMapName(mapId), trip);
     else await trip();
   }

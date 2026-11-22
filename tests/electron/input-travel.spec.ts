@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
 import {
@@ -7,6 +7,10 @@ import {
   launchPlayableClient,
 } from "./fixtures.mjs";
 import { startGameInput } from "./input-helpers.js";
+
+/** Calls Travel's link `toggle`, as ⌘T does; the palette under test sets `travelToggle`. */
+const toggleTravel = (page: Page) =>
+  page.evaluate(() => (window as typeof window & { travelToggle(): unknown }).travelToggle());
 
 test.describe("renderer Travel input", () => {
   test("opens from the certified one-shot chat request", async () => {
@@ -88,6 +92,8 @@ test.describe("renderer Travel input", () => {
           unavailable: () => null,
         });
         palette.setEnabled(true);
+        // Travel's link `toggle`, which its shortcut calls.
+        Object.assign(window, { travelToggle: () => palette.toggle("toggle") });
         window.addEventListener("test-travel-dispose", () => palette.dispose(), { once: true });
       });
 
@@ -112,12 +118,7 @@ test.describe("renderer Travel input", () => {
         });
       });
 
-      await page.evaluate(() => {
-        window.dispatchEvent(new CustomEvent("gw:travel-toggle", {
-          cancelable: true,
-          detail: {},
-        }));
-      });
+      await toggleTravel(page);
       await expect(palette).toBeVisible();
       await expect.poll(() => isDomActiveElement(search)).toBe(true);
       const viewport = await page.evaluate(() => ({
@@ -144,20 +145,10 @@ test.describe("renderer Travel input", () => {
       await expect(palette.locator(".travel-favorite-grid .travel-favorite")).toHaveCount(6);
 
       // A direct shortcut keeps the current page open and restores its focus.
-      await page.evaluate(() => {
-        window.dispatchEvent(new CustomEvent("gw:travel-toggle", {
-          cancelable: true,
-          detail: {},
-        }));
-      });
+      await toggleTravel(page);
       await expect(palette).toBeVisible();
       await expect.poll(() => isDomActiveElement(search)).toBe(true);
-      await page.evaluate(() => {
-        window.dispatchEvent(new CustomEvent("gw:travel-toggle", {
-          cancelable: true,
-          detail: {},
-        }));
-      });
+      await toggleTravel(page);
       await expect(palette).toBeVisible();
 
       // Travel is the one transient game surface and closes on an outside click.
@@ -169,12 +160,7 @@ test.describe("renderer Travel input", () => {
       );
       await expect.poll(() => isDomActiveElement(canvas)).toBe(true);
 
-      await page.evaluate(() => {
-        window.dispatchEvent(new CustomEvent("gw:travel-toggle", {
-          cancelable: true,
-          detail: {},
-        }));
-      });
+      await toggleTravel(page);
       await expect.poll(() => isDomActiveElement(search)).toBe(true);
       await page.keyboard.press("Tab");
       await expect.poll(() => page.evaluate(() =>
@@ -201,12 +187,7 @@ test.describe("renderer Travel input", () => {
         }).show();
       });
       await expect(page.locator("#stubborn-transient-dialog")).toHaveAttribute("open", "");
-      await page.evaluate(() => {
-        window.dispatchEvent(new CustomEvent("gw:travel-toggle", {
-          cancelable: true,
-          detail: {},
-        }));
-      });
+      await toggleTravel(page);
       await expect(page.locator("#stubborn-transient-dialog")).not.toHaveAttribute("open", "");
       await expect(palette).toBeVisible();
 
