@@ -36,10 +36,15 @@ export type SettingOptions = SettingScope & SettingMessages & Readonly<{
    * read only when the setting's own key is absent, and never written back.
    */
   alias?: string;
+  /** The row label players see. Every feature setting has one (app/features/define.ts). */
+  label?: string;
+  /** One line under the label that says what the setting does. Every feature setting has one. */
+  help?: string;
 }>;
 
 export type SettingSpec<T> = SettingOptions & Readonly<{
-  kind: "boolean" | "integer" | "enum" | "value";
+  /** How the value is read, and how a settings page draws it: switch, number, choice, position, or its owner's own control. */
+  kind: "boolean" | "integer" | "enum" | "position" | "value";
   fallback: T;
   /** The value to store, or `undefined` when the value is not this setting's shape. */
   read(value: unknown): T | undefined;
@@ -105,6 +110,16 @@ export const setting = {
     read: (value: unknown) => T | undefined,
     options: Options = {} as Options,
   ): SettingSpec<T> & Options => ({ ...options, kind: "value", fallback, read }),
+  /**
+   * Where the player dragged something over the game, read by its owner's validator like
+   * `value`. Its own kind lets a settings page draw it as a position with Reset; the stored
+   * shape is unchanged.
+   */
+  position: <T, const Options extends SettingOptions = NoOptions>(
+    fallback: NoInfer<T>,
+    read: (value: unknown) => T | undefined,
+    options: Options = {} as Options,
+  ): SettingSpec<T> & Options => ({ ...options, kind: "position", fallback, read }),
 };
 
 /** The settings-file refusal for an invalid value of `key`. */

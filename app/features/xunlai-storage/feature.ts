@@ -3,9 +3,17 @@ import { defineFeature } from "../define.js";
 
 export default defineFeature({
   id: "xunlaiStorage",
+  name: "Xunlai Storage",
+  summary: "Open storage in supported outposts.",
+  kind: "items",
+  icon: "archive",
   settings: {
     /** Allow the explicit local Xunlai window command in supported outposts. */
-    xunlaiStorage: setting.boolean(false, { tools: true }),
+    xunlaiStorage: setting.boolean(false, {
+      tools: true,
+      label: "Xunlai Storage",
+      help: "Allows opening your storage from anywhere in a supported outpost.",
+    }),
   },
   activation: { kind: "setting", setting: "xunlaiStorage", master: "gwonmacTools" },
   // The storage controller still owns the stronger, fresh access gate and its
@@ -17,14 +25,14 @@ export default defineFeature({
   optInWithTools: true,
   tool: {
     id: "xunlai-storage",
-    label: "Xunlai Storage",
     event: "gw:storage-open",
-    description: "Open storage in supported outposts.",
     keywords: "chest bank storage",
-    hub: {
-      command: "storage", order: 5,
-      row: { detail: "Open your storage chest", iconKind: "storage", aliases: ["Open Xunlai Storage"], open: { closesHub: true } },
-    },
+  },
+  hub: {
+    command: "storage", order: 5,
+    row: { detail: "Open your storage chest", iconKind: "storage", aliases: ["Open Xunlai Storage"], open: { closesHub: true } },
   },
   shortcuts: [{ action: "storage.open", binding: { key: "s", shift: false, option: false }, menuItem: "open-xunlai-storage" }],
+  shots: [],
+  parts: ["game"],
 });

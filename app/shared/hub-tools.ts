@@ -1,5 +1,5 @@
 /**
- * Every tool's one entry from its manifest (`tool`, app/features): the Hub's Tools rows, their
+ * Every tool's one entry from its manifest (`tool` and `hub`, app/features): the Hub's Tools rows, their
  * order on a root search, the Commands page's shortcut rows and the shortcut each row shows,
  * and the renderer event each tool command fires (app/renderer/commands.ts). A manifest-only
  * Hub entry needs no other edit: hub-commands.ts draws the rows, rankHubRows
@@ -12,8 +12,13 @@ import { isShortcutCommandAction, SHORTCUT_COMMANDS } from "./shortcut-commands.
 import { TOOL_PRESENTATION } from "./tool-presentation.js";
 
 /** Each tool with its feature and its own shortcut (TOOL_PRESENTATION's `action`). */
-const tools = FEATURES.flatMap((feature) => "tool" in feature ? [{ feature: feature.id, tool: feature.tool, action: TOOL_PRESENTATION[feature.tool.id].action }] : []);
-const hubTools = tools.flatMap((entry) => "hub" in entry.tool ? [{ ...entry, hub: entry.tool.hub }] : [])
+const tools = FEATURES.flatMap((feature) => "tool" in feature
+  ? [{ feature: feature.id, name: feature.name, tool: feature.tool, action: TOOL_PRESENTATION[feature.tool.id].action }] : []);
+const hubTools = FEATURES.flatMap((feature) => "hub" in feature ? [feature] : []).map((feature) => {
+  const entry = tools.find((each) => each.feature === feature.id);
+  if (entry === undefined) throw new Error(`The ${feature.id} Hub row needs a tool.`);
+  return { ...entry, hub: feature.hub };
+})
   .sort((left, right) => left.hub.order - right.hub.order);
 
 /** A Tools row's id: the command its tool's manifest names, or Core's own Accounts row. */
@@ -30,8 +35,8 @@ export function hubToolShortcut(command: string): ShortcutAction | undefined {
 export type HubToolKey = Readonly<{ command: HubToolCommand; tool: GlobalTool; action: ShortcutAction; label: string }>;
 /** The Hub Commands page's shortcut rows, in `keyOrder`. */
 export const HUB_TOOL_KEYS: readonly HubToolKey[] = Object.freeze(hubTools
-  .flatMap(({ hub, tool, action }) => action !== undefined && "keyOrder" in hub
-    ? [{ keyOrder: hub.keyOrder, key: Object.freeze({ command: hub.command, tool: tool.id, action, label: tool.label }) }] : [])
+  .flatMap(({ hub, tool, name, action }) => action !== undefined && "keyOrder" in hub
+    ? [{ keyOrder: hub.keyOrder, key: Object.freeze({ command: hub.command, tool: tool.id, action, label: name }) }] : [])
   .sort((left, right) => left.keyOrder - right.keyOrder)
   .map(({ key }) => key));
 
@@ -59,7 +64,7 @@ export type HubToolEntry = Readonly<{
 }> & Omit<HubToolRow, "open">;
 
 /** The Tools rows Core draws, in their order. */
-export const HUB_TOOL_ROWS: readonly HubToolEntry[] = Object.freeze(hubTools.flatMap(({ feature, tool, hub }): HubToolEntry[] => {
+export const HUB_TOOL_ROWS: readonly HubToolEntry[] = Object.freeze(hubTools.flatMap(({ feature, name, tool, hub }): HubToolEntry[] => {
   if (!("row" in hub)) return [];
   const row: HubToolRow = hub.row;
   const event = "event" in tool ? tool.event : undefined;
@@ -68,5 +73,5 @@ export const HUB_TOOL_ROWS: readonly HubToolEntry[] = Object.freeze(hubTools.fla
   else if (event !== undefined) open = { ...row.open, event };
   else throw new Error(`The ${feature} Hub row opens through an event its tool does not name.`);
   return [{ detail: row.detail, iconKind: row.iconKind, open, ...(row.action ? { action: row.action } : {}), ...(row.aliases ? { aliases: row.aliases } : {}),
-    id: hub.command, feature, title: tool.label, keywords: "keywords" in tool ? tool.keywords : "" }];
+    id: hub.command, feature, title: name, keywords: "keywords" in tool ? tool.keywords : "" }];
 }));

@@ -2,10 +2,11 @@
  * Owns where every setting lives and how a player finds it: its section, a stable control
  * ID, its label and the words players search with. Settings search and deep links (Hub search,
  * the memory warning) use these IDs; each rendered control carries `data-setting="<id>"`.
- * Labels, descriptions and tool keywords come from their owners (setting-copy, tool-presentation), so a
+ * Labels, descriptions and tool keywords come from their owners (feature manifests, setting-copy, tool-presentation), so a
  * setting has one name everywhere (docs/settings.md).
  */
 import { CHARACTER_DETAILS, CHAT_FILTERS, GAME_SETTINGS, REMINDER_GROUPS, REMINDER_SOUND, REMINDER_TIMING, type SettingApplies } from "./setting-copy.js";
+import { featureSettingText, type FeatureSettingKey } from "./feature-contracts.js";
 import { GLOBAL_TOOLS, type GlobalTool } from "./launcher-contracts.js";
 import { TOOL_KEYWORDS, TOOL_PRESENTATION } from "./tool-presentation.js";
 
@@ -56,6 +57,8 @@ const toolEntry = (tool: GlobalTool): SettingEntry => {
 const option = (tool: GlobalTool, entries: readonly { key: string; label: string; detail?: string }[], keywords: string): SettingEntry[] =>
   entries.map(({ key, label, detail }) => ({ id: key, section: "tools", label, keywords, tool, ...(detail ? { detail } : {}) }));
 const game = (key: keyof typeof GAME_SETTINGS): SettingEntry => ({ id: key, section: "game", ...GAME_SETTINGS[key] });
+/** A feature setting, under the label its manifest gives it. */
+const feature = (key: FeatureSettingKey) => ({ id: key, label: featureSettingText(key).label });
 
 /** Every setting a player can find by name, in display order within its section. */
 export const SETTINGS: readonly SettingEntry[] = [
@@ -65,28 +68,28 @@ export const SETTINGS: readonly SettingEntry[] = [
   ...option("character-switch", CHARACTER_DETAILS, "character details"),
   ...option("chat-filters", CHAT_FILTERS, "chat filter spam"),
   ...option("reminders", [...REMINDER_GROUPS, ...REMINDER_TIMING, REMINDER_SOUND], "reminder"),
-  { id: "skillCooldownColor", section: "tools", label: "Timer color", tool: "skill-cooldowns", keywords: "skill cooldown colour" },
-  { id: "alcoholTimerPosition", section: "tools", label: "Alcohol Timer position", tool: "alcohol-timer", keywords: "move reset position" },
-  { id: "targetReadoutPosition", section: "tools", label: "Target Distance position", tool: "target-readout", keywords: "move drag reset position" },
-  { id: "whispersIcon", section: "tools", label: "Show the Whispers icon", tool: "whispers", keywords: "hide whisper button icon unread" },
-  { id: "skillKeyBindings", section: "tools", label: "Skill labels", tool: "skill-key-labels", keywords: "skill key labels bindings" },
+  { ...feature("skillCooldownColor"), section: "tools", tool: "skill-cooldowns", keywords: "skill cooldown colour" },
+  { ...feature("alcoholTimerPosition"), section: "tools", tool: "alcohol-timer", keywords: "move reset position" },
+  { ...feature("targetReadoutPosition"), section: "tools", tool: "target-readout", keywords: "move drag reset position" },
+  { ...feature("whispersIcon"), section: "tools", tool: "whispers", keywords: "hide whisper button icon unread" },
+  { ...feature("skillKeyBindings"), section: "tools", tool: "skill-key-labels", keywords: "skill key labels bindings" },
 
-  { id: "cartographyGridEnabled", section: "maps", label: "Exploration grid", detail: "Shows remaining exploration on the Mission Map and World Map.", keywords: `cartographer explore ${KEYS}` },
-  { id: "cartographyCompassGridEnabled", section: "maps", label: "Markers on Compass", keywords: "unexplored cells" },
-  { id: "compassRangeIndicatorsEnabled", section: "maps", label: "Compass ranges", detail: "Range rings on the Compass.", keywords: "earshot shout cast casting spirit aggro rings" },
-  { id: "cartographyRouteEnabled", section: "maps", label: "Walking route", detail: "Right-click the Mission Map or World Map to set a target. Right-click the target to remove it.", keywords: `path navigate waypoint target ${KEYS}` },
-  { id: "cartographyQuestRouteEnabled", section: "maps", label: "Route to quest", detail: "Without your own target, the walking route leads to your active quest.", keywords: "quest objective marker path" },
-  { id: "cartographyOverlayEnabled", section: "maps", label: "Walkable terrain", detail: "Shade areas you cannot walk on.", keywords: `walkability ${KEYS}` },
-  { id: "eliteSkillsEnabled", section: "maps", label: "Elite skill planner", detail: "Adds the planner to the World Map and your Hunt list to the Mission Map.", keywords: "elite capture hunt boss signet" },
-  { id: "eliteMissionMapMarkers", section: "maps", label: "Mission Map markers", keywords: "elite hunt" },
-  { id: "cartographyPresetLibrary", section: "maps", label: "Map style", keywords: "colors theme cartographer" },
+  { ...feature("cartographyGridEnabled"), section: "maps", detail: "Shows remaining exploration on the Mission Map and World Map.", keywords: `cartographer explore ${KEYS}` },
+  { ...feature("cartographyCompassGridEnabled"), section: "maps", keywords: "unexplored cells" },
+  { ...feature("compassRangeIndicatorsEnabled"), section: "maps", detail: "Range rings on the Compass.", keywords: "earshot shout cast casting spirit aggro rings" },
+  { ...feature("cartographyRouteEnabled"), section: "maps", detail: "Right-click the Mission Map or World Map to set a target. Right-click the target to remove it.", keywords: `path navigate waypoint target ${KEYS}` },
+  { ...feature("cartographyQuestRouteEnabled"), section: "maps", detail: "Without your own target, the walking route leads to your active quest.", keywords: "quest objective marker path" },
+  { ...feature("cartographyOverlayEnabled"), section: "maps", detail: "Shade areas you cannot walk on.", keywords: `walkability ${KEYS}` },
+  { ...feature("eliteSkillsEnabled"), section: "maps", detail: "Adds the planner to the World Map and your Hunt list to the Mission Map.", keywords: "elite capture hunt boss signet" },
+  { ...feature("eliteMissionMapMarkers"), section: "maps", keywords: "elite hunt" },
+  { ...feature("cartographyPresetLibrary"), section: "maps", keywords: "colors theme cartographer" },
   { id: "cartographyBoundaryWidth", section: "maps", label: "Terrain border thickness", keywords: "outline" },
-  { id: "cartographyGridOpacity", section: "maps", label: "Grid opacity", keywords: "transparency" },
-  { id: "cartographyRevealMode", section: "maps", label: "Reveal range", keywords: "explore stand diamonds" },
-  { id: "cartographyWalkabilityOpacity", section: "maps", label: "Walkable terrain opacity", keywords: "transparency" },
-  { id: "compassButtonsShown", section: "maps", label: "Show compass buttons", keywords: "hide compass buttons controls map" },
-  { id: "compassButtonsOffset", section: "maps", label: "Compass buttons position", keywords: "move drag reset compass buttons" },
-  { id: "cartographyControlIdleOpacity", section: "maps", label: "Compass control visibility", keywords: "compass opacity idle" },
+  { ...feature("cartographyGridOpacity"), section: "maps", keywords: "transparency" },
+  { ...feature("cartographyRevealMode"), section: "maps", keywords: "explore stand diamonds" },
+  { ...feature("cartographyWalkabilityOpacity"), section: "maps", keywords: "transparency" },
+  { ...feature("compassButtonsShown"), section: "maps", keywords: "hide compass buttons controls map" },
+  { ...feature("compassButtonsOffset"), section: "maps", keywords: "move drag reset compass buttons" },
+  { ...feature("cartographyControlIdleOpacity"), section: "maps", keywords: "compass opacity idle" },
 
   { id: "uiStyle", section: "appearance", label: "Panel style", keywords: "theme modern classic look custom colors colours" },
   { id: "uiFont", section: "appearance", label: "Panel font", keywords: "text typeface" },

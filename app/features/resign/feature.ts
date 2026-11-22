@@ -3,18 +3,26 @@ import { defineFeature } from "../define.js";
 
 export default defineFeature({
   id: "resign",
+  name: "Resign",
+  summary: "Ask before sending /resign in PvE. Enter confirms; Escape cancels.",
+  kind: "helpers",
+  icon: "flag",
   settings: {
     /** Allow the confirmed PvE resign shortcut when Tools are enabled. */
-    resignEnabled: setting.boolean(false, { tools: true }),
+    resignEnabled: setting.boolean(false, {
+      tools: true,
+      label: "Resign",
+      help: "Allows the Resign shortcut and menu item. A dialog asks before /resign is sent.",
+    }),
   },
   activation: { kind: "setting", setting: "resignEnabled", master: "gwonmacTools" },
   region: "pve",
   capabilities: ["resignAction"],
   tool: {
     id: "resign",
-    label: "Resign",
     event: "gw:resign-show",
-    description: "Ask before sending /resign in PvE. Enter confirms; Escape cancels.",
   },
   shortcuts: [{ action: "game.resign", binding: null, menuItem: "resign-game" }],
+  shots: [],
+  parts: ["game"],
 });

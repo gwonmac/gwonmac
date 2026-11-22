@@ -3,6 +3,10 @@ import { defineFeature } from "../define.js";
 
 export default defineFeature({
   id: "buildLibrary",
+  name: "Build Library",
+  summary: "Save and load skill builds.",
+  kind: "party",
+  icon: "book-open",
   settings: {
     /**
      * Show the saved Build Library and allow its app shortcut. Stable releases
@@ -10,7 +14,12 @@ export default defineFeature({
      * for the same player opt-out; dormant profiles can retain that released
      * shape indefinitely, so the read alias is permanent.
      */
-    buildLibrary: setting.boolean(true, { tools: true, alias: "teamManagement" }),
+    buildLibrary: setting.boolean(true, {
+      tools: true,
+      alias: "teamManagement",
+      label: "Build Library",
+      help: "Shows your saved builds and teams, and allows the Build Library shortcut.",
+    }),
   },
   activation: { kind: "setting", setting: "buildLibrary", master: "gwonmacTools" },
   region: "non-pvp",
@@ -18,11 +27,11 @@ export default defineFeature({
   optInWithTools: true,
   tool: {
     id: "build-management",
-    label: "Build Library",
     event: "gw:tools-toggle",
-    description: "Save and load skill builds.",
     keywords: "builds templates skills",
-    hub: { command: "builds", order: 3, keyOrder: 2 },
   },
+  hub: { command: "builds", order: 3, keyOrder: 2 },
   shortcuts: [{ action: "tools.toggle", binding: { key: "b", shift: false, option: false }, menuItem: "toggle-tools" }],
+  shots: [],
+  parts: ["window", "main"],
 });

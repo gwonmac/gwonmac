@@ -3,7 +3,7 @@
  * (app/features). Native capabilities and lifecycle behavior stay in their
  * owning modules until a coordinator can consume those contracts directly.
  */
-import type { FeatureDefinition } from "../features/define.js";
+import type { FeatureDefinition, FeatureSettingText } from "../features/define.js";
 import { FEATURES, type Feature, type FeatureId } from "../features/index.js";
 import type { AppSettings } from "./settings/index.js";
 
@@ -34,6 +34,21 @@ export const FEATURE_SELECTION_POLICIES = Object.freeze(Object.fromEntries(defin
   feature.id,
   Object.freeze({ activation: Object.freeze({ ...feature.activation }), region: feature.region }),
 ]))) as Readonly<Record<FeatureId, FeatureSelectionPolicy>>;
+
+/** A setting some feature owns. */
+export type FeatureSettingKey = Feature extends infer Each
+  ? Each extends Readonly<{ settings: infer Specs }> ? keyof Specs & string : never
+  : never;
+
+const settingTexts = new Map<string, FeatureSettingText>(definitions.flatMap((feature) =>
+  Object.entries(feature.settings ?? {}).map(([key, { label, help }]) => [key, Object.freeze({ label, help })] as const)));
+
+/** A feature setting's label and help, as its manifest names it: one name everywhere. */
+export function featureSettingText(key: FeatureSettingKey): FeatureSettingText {
+  const text = settingTexts.get(key);
+  if (text === undefined) throw new Error(`${key} is not a feature setting`);
+  return text;
+}
 
 export type FeatureActivationSettings = Pick<
   AppSettings,

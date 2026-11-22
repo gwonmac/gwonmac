@@ -123,7 +123,10 @@ section but edits only the in-game ones; the others (↗) open the launcher.
    `tools`, `rendererWritable`). `app/shared/settings/index.ts` derives the
    `AppSettings` type, the defaults, the file reader, the launcher patch parser
    and every scope list from it. Never write a second list by hand.
-2. **Name it.** Add its label, detail and "when it applies" note to
+2. **Name it.** A feature setting names itself in its declaration with `label`
+   and `help`; the contract check fails without them, and setting-copy and the
+   catalogue read the label through `featureSettingText`. A core setting gets
+   its label, detail and "when it applies" note in
    `app/shared/setting-copy.ts`. For an enum, the option labels are a record
    keyed by the enum's values, so a value without a label does not compile.
 3. **Make it findable.** Add one entry to `app/shared/settings-catalogue.ts`
