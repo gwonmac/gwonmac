@@ -73,7 +73,7 @@ Run `node scripts/feature-metrics.mjs [revision]` after each phase and record th
 | `policy().` reads in app/features | 30 | 0 |
 | `plainGame` reads in app (no tests) | 0 (26 in PR #24) | only the launch decision |
 | Distinct `gw:*` window event names in app | 89 | only input/menu plumbing; 0 between features |
-| Feature names in shared substrates (`attachWhispers`, `attachTravel`) | 2 | 0 |
+| Lines naming any Feature id in shared substrates (first measured as `attachWhispers`/`attachTravel` only) | 2 | 0 |
 | Feature-domain files under `app/renderer/` (skill, whisper, trade, people, party, alcohol, effect, cartography) | 14 | 0 feature logic (blocks only) |
 | Files outside a feature's folder that name its id (no tests) | travel 17, cartography 9, quick-item-move 9, whispers 9, progress 8, team-apply 8, xunlai-storage 8, build-library 7, skill-cooldowns 6, trade-chat 5, 9 more ≤ 3 | registry + tests only |
 | `localStorage` uses in Tools UI (positions etc.) | 21 | only true per-viewer conveniences; positions in settings |
