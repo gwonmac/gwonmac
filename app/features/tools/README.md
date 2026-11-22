@@ -1,11 +1,11 @@
-Features are the optional extras GWonMac adds to Guild Wars, such as Travel, Whispers and the timers. This switch loads them when the game starts. Turn it off to play the plain game.
+Features are the optional extras GWonMac adds to Guild Wars, such as Travel, Whispers and the timers. **Play the plain game** starts Guild Wars with none of them.
 
 ### Play the plain game
 1. Open **Features** in the launcher’s top bar.
 2. Turn on **Play the plain game** at the top.
 3. Start the game again.
 
-You can also turn off :setting[Load Features]{to="tools/gwonmacTools"} in Settings → Tools.
+You can also turn on :setting[Play the plain game]{to="tools/gwonmacTools"} in Settings → Tools.
 
 The plain game loads no Feature. Your choice for each Feature stays saved, so turning the plain game off again gives you back every Feature as it was. You can still change Feature settings in the plain game; they take effect once you turn it off.
 

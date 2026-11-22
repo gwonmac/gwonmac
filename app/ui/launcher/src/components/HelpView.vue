@@ -17,7 +17,7 @@ import MarkdownInline from "./MarkdownInline.vue";
 export type HelpPage = GuidePageId | "report";
 
 const props = defineProps<{ send: (feedback: LauncherFeedback) => Promise<void>; page?: HelpPage | undefined }>();
-const emit = defineEmits<{ external: [kind: LauncherExternalLink]; url: [url: string]; settings: [target: SettingsTarget] }>();
+const emit = defineEmits<{ external: [kind: LauncherExternalLink]; url: [url: string]; settings: [target: SettingsTarget]; link: [actionId: string] }>();
 
 const active = ref<HelpPage>(props.page ?? "known-issues");
 const content = ref<HTMLElement | null>(null);
@@ -38,6 +38,7 @@ function follow(actionId: string) {
   if (action?.kind === "guide") void show(action.page, action.anchor);
   else if (action?.kind === "settings") emit("settings", action.target);
   else if (action?.kind === "url") emit("url", action.url);
+  else if (action?.kind === "feature") emit("link", actionId);
 }
 
 // A known issue is a `##` section of the known-issues page; its
