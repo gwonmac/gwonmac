@@ -37,7 +37,7 @@ export default defineFeature({
   },
   activation: { kind: "setting", setting: "characterSwitchEnabled", master: "gwonmacTools" },
   region: "any",
-  capabilities: ["characterSwitchAction"],
+  uses: ["characterSwitchAction"],
   tool: {
     id: "character-switch",
     event: "gw:character-toggle",

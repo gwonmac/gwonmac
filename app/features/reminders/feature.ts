@@ -48,7 +48,7 @@ export default defineFeature({
   },
   activation: { kind: "setting", setting: "remindersEnabled", master: "gwonmacTools" },
   region: "pve",
-  capabilities: ["chatPrint"],
+  uses: ["chatPrint"],
   tool: {
     id: "reminders",
     keywords: "cons pcons alcohol reminder chime",

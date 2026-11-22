@@ -10,7 +10,7 @@ export default defineFeature({
   activation: { kind: "setting", setting: "buildLibrary", master: "gwonmacTools" },
   region: "pve",
   requires: ["buildLibrary"],
-  capabilities: ["teamApply"],
+  uses: ["teamApply"],
   programs: ["toolbox-commands"],
   shots: [],
   parts: ["game"],

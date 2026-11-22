@@ -33,7 +33,7 @@ export default defineFeature({
   },
   activation: { kind: "setting", setting: "targetReadout", master: "gwonmacTools" },
   region: "pve",
-  capabilities: ["targetObservation"],
+  uses: ["targetObservation"],
   programs: ["target-observer"],
   tool: {
     id: "target-readout",

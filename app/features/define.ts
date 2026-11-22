@@ -59,7 +59,11 @@ export type FeatureSettingText = Readonly<{ label: string; help: string }>;
 export type FeatureSettingSpecs = Readonly<Record<string, SettingSpec<unknown> & FeatureSettingText>>;
 
 export type FeatureDefinition = Readonly<{
-  /** The folder name in camelCase: folder `alcohol-timer` holds `alcoholTimer` (./contract.ts). */
+  /**
+   * The folder name in camelCase: folder `alcohol-timer` holds `alcoholTimer` (./contract.ts).
+   * The id keys the runtime policy, which tests/unit/enhancement-runtime-policy.test.ts pins
+   * (an AGENTS.md "Must stay" test), so it stays camelCase.
+   */
   id: string;
   /** The player name: card title, Feature page title, Settings › Tools, Hub row. */
   name: string;
@@ -79,10 +83,9 @@ export type FeatureDefinition = Readonly<{
   /**
    * What it uses: verifier capabilities without which this feature does nothing. A feature
    * that still does part of its job without a capability (saved builds without live party
-   * data) leaves it out. The contract names this `uses`; the rename is a follow-up
-   * (docs/feature-platform-plan.md, step 4.3).
+   * data) leaves it out.
    */
-  capabilities?: readonly EnhancementCapability[];
+  uses?: readonly EnhancementCapability[];
   /** Developer programs that select this feature regardless of its saved setting. */
   programs?: readonly EnhancementProgram[];
   /** The internet hosts its `main` part reaches. Absent: it reaches none. */

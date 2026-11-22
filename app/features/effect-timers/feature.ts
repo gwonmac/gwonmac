@@ -17,7 +17,7 @@ export default defineFeature({
   },
   activation: { kind: "setting", setting: "effectTimersEnabled", master: "gwonmacTools" },
   region: "pve",
-  capabilities: ["nativeHudRendering", "effectIconGeometry"],
+  uses: ["nativeHudRendering", "effectIconGeometry"],
   programs: ["effect-observer"],
   tool: {
     id: "effect-timers",
