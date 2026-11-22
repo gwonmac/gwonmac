@@ -190,6 +190,16 @@ export const APP_AND_UPDATE_EVENT_SCHEMA = {
    * on a launch that did not ask for the capability, and the only trace a
    * player would otherwise get of a menu item that did nothing.
    */
+  /**
+   * Bringing the Feature gates up to date in the background failed (a client phase change or a
+   * failed Feature installation started it): a Tools main part did not start or stop.
+   */
+  "features.gateRefreshFailed": {
+    scope: "app",
+    subsystem: "app",
+    level: "error",
+    fields: { code },
+  },
   "tools.toggleRefused": {
     scope: "owner",
     subsystem: "app",
