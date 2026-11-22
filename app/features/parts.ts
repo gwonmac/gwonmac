@@ -5,10 +5,11 @@
  *
  * - game: the Tools companion installer runs `start` while resolve has the feature on and
  *   stops it when resolve turns it off (`featurePart`, app/renderer/tools-companion-part.ts);
- * - window: the game host's Tools window starts it when the player first opens it and stops
- *   it when the window goes (`WindowContext`, app/renderer/toolbox-foundation.ts);
+ * - window: the game host's Tools window provides its link for its whole life and starts it
+ *   when the player first opens it, and stops it when the window goes (`windowPart` and
+ *   `WindowContext`, app/renderer/window-part.ts);
  * - hubPage: the game host starts it with the Hub and stops it at teardown; the Hub hides its
- *   rows while resolve has it off (`HubPageContext`, app/renderer/hub.ts);
+ *   rows while resolve has it off (`hubPagePart` and `HubPageContext`, app/renderer/hub.ts);
  * - main: the Tools runtime runs `start` while resolve has the feature on (`mainPart`,
  *   app/main/tools-main-part.ts).
  *
@@ -24,14 +25,3 @@ export type RunningPart = Readonly<{ stop(): void }>;
 export type PartOwner<Kind extends FeaturePartKind> = Feature extends infer Each
   ? Each extends Readonly<{ id: infer Id; parts: readonly (infer Kinds)[] }> ? (Kind extends Kinds ? Id : never) : never
   : never;
-
-/**
- * A part whose host calls `start` itself (window, hubPage). A window loads its bundle lazily,
- * so its `start` may resolve later, with null when it could not load (it says so in its host).
- */
-export const definePart = <
-  Kind extends FeaturePartKind,
-  Id extends PartOwner<Kind>,
-  Context,
-  Running extends RunningPart | Promise<RunningPart | null>,
->(kind: Kind, id: Id, start: (context: Context) => Running) => Object.freeze({ kind, id, start });

@@ -179,7 +179,6 @@ let gameWasmModule: WebAssembly.Module | null = null;
 let runtimeInitialized = false;
 let enhancementInstallationStarted = false;
 let hostOnlyToolsInstallationStarted = false;
-let templatePublishingAvailable = false;
 let rendererUnloading = false;
 let crashRecorded = false;
 
@@ -285,10 +284,7 @@ function installHostOnlyTools(): void {
   void import('./tools-host.js')
     .then(({ mountHostOnlyTools }) => {
       if (rendererUnloading) return;
-      const dispose = mountHostOnlyTools(
-        document.body,
-        templatePublishingAvailable,
-      );
+      const dispose = mountHostOnlyTools(document.body);
       if (rendererUnloading) {
         dispose();
         return;
@@ -1483,8 +1479,6 @@ function loadGlue(isProxyRouteLabel: (route: string) => boolean) {
         );
       }
     }
-    templatePublishingAvailable =
-      session.compatibility?.features.gameFileSaving.status === 'available';
     applyAppearance(
       appSettings,
       document.documentElement,

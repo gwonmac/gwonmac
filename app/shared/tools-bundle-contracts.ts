@@ -13,7 +13,11 @@ import type { TeamApplyCommands } from "./builds/team-apply-runner.js";
 import type { StorageCommand } from "./storage-command.js";
 import type { TravelCommand, TravelGameState } from "./travel-command.js";
 import type { ToolsGwNativeApi } from "./contracts.js";
-import type { FeatureLinks, ToolLink } from "../features/links.js";
+import type { ToolLink } from "../features/links.js";
+import type { TradeLinks } from "../features/trade-chat/shared/link.js";
+
+/** The links Trade's window view gets, owned by Trade Chat (its shared/link.ts). */
+export type { TradeLinks };
 import type { CornerPosition } from "./corner-position.js";
 import type { FloatingWindowPlacementStore } from "./ui/window-placement.js";
 
@@ -105,16 +109,6 @@ export type TradeChatHandle = Readonly<{
   hide: () => void;
   toggle: () => void;
   dispose: () => void;
-}>;
-
-/**
- * The links Trade's manifest names (Whispers owns the conversation with a seller), read live
- * from the game window's registry (app/renderer/feature-links.ts), and when they may change.
- */
-export type TradeLinks = Readonly<{
-  links: FeatureLinks<"tradeChat">;
-  /** Calls back when a link may have turned on or off; returns the unsubscribe. */
-  onLinksChange(listener: () => void): () => void;
 }>;
 
 /**

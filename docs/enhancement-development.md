@@ -356,8 +356,8 @@ Use only the layers the feature needs:
 | Domain behavior | A named renderer or command module | Own decoding, formatting, state transitions, and user-facing refusal in the feature domain. |
 | Game-host code of a feature | `app/features/<id>/companion.ts` and one export line in [`companion-parts.ts`](../app/features/companion-parts.ts) | A part says what it does in each installer phase ([contract](../app/renderer/tools-companion-part.ts)). Feeds that several features read stay in the [shared substrates](../app/renderer/tools-companion-substrates.ts); a part adds its demand to them. New code reads a value through a typed [building block](../app/renderer/game-blocks.ts) on `context.game` (`target`, `region`, `session`, `skillbar`, `chat`, `effects`, `alcohol`, `progress`, `friends`) and draws through one on `context.ui` (`skillLabels`, `skillKeys`, `effectLabels`) when one exists: subscribing (or claiming) is the demand, and the returned stop withdraws it. A part that needs a value only while something holds (a panel is open) checks it each frame with `subscribeWhile`. A substrate names no feature; what one feature or the Hub needs from another goes through a typed link. A feature that needs only blocks builds its part with `featurePart(id, start)`: `start` runs while the feature is on and every capability its manifest `uses` is proven, and returns its stop (Target Distance and Skill Cooldowns are the examples). The order of the parts does not matter; a part that allocates has its place in `COMPANION_HEAP_LAYOUT` ([contract](../app/renderer/tools-companion-part.ts)), a new one at the end, and [a unit test](../tests/unit/the-companion-heap-layout-stays-fixed.test.ts) pins it. A part's id is its feature's id or a substrate's; a unit test fails when a feature's `companion.ts` has no line. |
 | IPC channels of a feature | `app/features/<id>/shared/ipc.ts` and one line in [`TOOL_CONTRACTS`](../app/shared/ipc/tools.ts) | The contract declares each channel's string, arguments, and result once, and the `window.gwNative` namespace the Tools preload builds from them ([kernel](../app/shared/ipc/channel-table.ts)). |
-| Main-process channels and files of a feature | `app/features/<id>/main.ts` and one line in [`MAIN_PARTS`](../app/features/main-parts.ts) | The part owns its stores and answers its contract's channels ([contract](../app/main/tools-main-part.ts)); the runtime gives it a file gate. A Tools channel without exactly one owner, a parser that produces other arguments, or a handler that answers another result fails to compile. `mainPart` adds the shared `start → stop`: `start` runs while the feature is on (Trade Chat closes its feed in the stop). |
-| Part kinds | The manifest's `parts` and [`app/features/parts.ts`](../app/features/parts.ts) | Every kind (`game`, `window`, `hubPage`, `main`) has one shape: `start` gets what its kind hands it and returns what stops it, and a part builds only for a feature whose `parts` lists its kind (it fails to compile otherwise). `game` is `featurePart`, `main` is `mainPart`; a `window` or `hubPage` part is `definePart(kind, id, start)` in the feature's `renderer/host.ts` (Trade Chat's window, Character Switch's Hub page). |
+| Main-process channels and files of a feature | `app/features/<id>/main.ts` and one line in [`MAIN_PARTS`](../app/features/main-parts.ts) | The part owns its stores and answers its contract's channels ([contract](../app/main/tools-main-part.ts)); the runtime gives it a file gate. A Tools channel without exactly one owner, a parser that produces other arguments, or a handler that answers another result fails to compile. `mainPart` adds the shared `start → stop` for a part with work between requests: `start` runs while the feature is on (Trade Chat closes its feed in the stop); a part that only answers requests (the Build Library, Travel) returns no `start`. |
+| Part kinds | The manifest's `parts` and [`app/features/parts.ts`](../app/features/parts.ts) | Every kind (`game`, `window`, `hubPage`, `main`) has one shape: `start` gets what its kind hands it and returns what stops it, and a part builds only for a feature whose `parts` lists its kind (it fails to compile otherwise). Each kind's `start` gets a typed context: `game` is `featurePart` with `FeatureBlocks`, `main` is `mainPart` with `ToolsMainInput`, `window` is `windowPart` with `WindowContext` in the feature's `renderer/window.ts` and one line in [`WINDOW_PARTS`](../app/features/window-parts.ts) ([kind](../app/renderer/window-part.ts)), and `hubPage` is `hubPagePart` with `HubPageContext` ([hub.ts](../app/renderer/hub.ts)) in its `renderer/host.ts` (Character Switch's Hub page). |
 | Calling another feature | The caller's manifest `links` (`{ whispers: ["open"] }`), the target's `offers` and its `shared/link.ts`, one line in [`FeatureLinkApis`](../app/features/links.ts) | A part gets `links.whispers`, typed from the target's declaration and null while `resolve` has the target off; a call while the target's part is not running answers `"unavailable"`. The target provides its link while its part runs ([registry](../app/renderer/feature-links.ts)). Features never call each other through window events. |
 | Composition and safety order | [`installCertifiedCompanion`](../app/renderer/certified-companion-installation.ts) | Allocate and validate first, enable the game hook last, disable it first, and tear down in explicit dependency-safe phases. |
 
@@ -377,7 +377,8 @@ app/features/<id>/
   main.ts        the main-process part (mainPart)
   renderer/      renderer-only modules: DOM, game host, overlays, stylesheets (no Node.js)
   renderer/host.ts  the one entry for a feature the game host starts itself (Maps, Character Switch's
-                 hubPage part, the Build Library's and Trade Chat's window parts)
+                 hubPage part)
+  renderer/window.ts  its window part (windowPart): the link that opens it and the lazy start of its view
   hub-views/     the feature's own Hub pages: Vue components the kit draws, their props and an index.ts
   main/          main-process-only modules: stores, files, IPC parsing
   shared/        contracts and pure logic that two processes use
@@ -405,15 +406,20 @@ its Core Hub row. A feature that offers `toggle` (`ToolLink` in
 [`links.ts`](../app/features/links.ts)) names no event: its shortcut, game menu
 item and Hub row call its link instead (`toggleTool` in
 [`feature-links.ts`](../app/renderer/feature-links.ts)), `toggle` from the
-shortcut and `show` from the Hub row. Whispers, Trade Chat and the Build Library
-open this way; a tool still on an event moves the same way. A `window` part
-starts only when its window first opens, so it cannot provide the link that
-opens it: its host, the Tools window
-([`toolbox-foundation.ts`](../app/renderer/toolbox-foundation.ts)), provides
-Trade Chat's link (`toggle`, `search`) and `toggle` for the Feature whose link
-is only that (`WindowToolTarget`, the Build Library). A window part's context
-also has `show()`, which shows the window on its own over the game, out of an
-open Hub.
+shortcut and `show` from the Hub row. Whispers, Trade Chat, the Build Library
+and Xunlai Storage open this way; a tool still on an event moves the same way.
+A `window` part's view loads only when its window first opens, so its
+declaration ([`windowPart`](../app/renderer/window-part.ts)) builds its link
+from the Tools window's control (show, toggle, close, and `whenRunning` for a
+call that needs the loaded view, such as Trade's `search`), and the Tools
+window ([`toolbox-foundation.ts`](../app/renderer/toolbox-foundation.ts))
+provides it for every part in `WINDOW_PARTS` for its whole life. The Tools
+window names no Feature: a new window Feature adds its `renderer/window.ts` and
+one line in `WINDOW_PARTS`. Its declaration also says whether it draws the party
+feed (`party`), starts with the Hub (`startWithHub`) and opens in every area
+its switch allows (`anyArea`, the Build Library's saved authoring). A window
+part's context has `show()`, which shows the window on its own over the game,
+out of an open Hub.
 
 Code that several features use stays where it is: the capability registry and
 the proofs in `app/client/certification/`, the kernels, the shared substrates,
@@ -425,7 +431,8 @@ file. ESLint enforces this for `app/renderer/`: inside a feature folder it
 reaches only the manifest (`feature.ts`), `renderer/host.ts`, and `shared/`.
 `shared/` is open because it holds the contracts the feature's main and
 renderer halves both read; re-exporting them through the host would be a
-second path. `companion.ts` is reached through `companion-parts.ts`, and the
+second path. `companion.ts` is reached through `companion-parts.ts`,
+`renderer/window.ts` through `window-parts.ts`, and the
 other renderer modules, `main.ts` and `main/` are the feature's own.
 `tests/policy/import-boundaries.test.ts` proves the rule rejects a crossing. A
 feature's stylesheet is listed in `scripts/copy-renderer.mjs`. tsconfig.renderer.json

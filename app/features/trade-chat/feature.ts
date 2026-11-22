@@ -44,9 +44,10 @@ export default defineFeature({
   links: { whispers: ["open"] },
   /**
    * Its shortcut, menu item, chat alias and Hub row open the window through `toggle`; the Hub's
-   * "Search Trade for …" row through `search` (shared/link.ts).
+   * "Search Trade for …" row through `search`; the Hub's calculator reads its prices through
+   * `marketRates` and `traderQuotes` (shared/link.ts).
    */
-  offers: ["toggle", "search"],
+  offers: ["toggle", "search", "marketRates", "traderQuotes"],
   shots: [],
   parts: ["game", "window", "main"],
 });

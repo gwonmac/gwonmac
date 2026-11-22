@@ -61,12 +61,6 @@ export type ToolAnswer = "shown" | "hidden" | FeatureOff;
 /** The Features whose tool opens through their link's `toggle`. */
 export type ToolLinkTarget = { [Target in LinkTarget]: FeatureLinkApis[Target] extends ToolLink ? Target : never }[LinkTarget];
 
-/**
- * The Features whose window the Tools window hosts (the `window` part kind): their link is only
- * `toggle`, and the host provides it, because the window part starts only when first opened.
- */
-export type WindowToolTarget = { [Target in LinkTarget]: Same<FeatureLinkApis[Target], ToolLink> extends true ? Target : never }[LinkTarget];
-
 /** Links named by target, each with the methods called: a manifest's `links`, or HUB_LINKS. */
 export type NamedLinks = Readonly<{ [Target in LinkTarget]?: readonly (keyof FeatureLinkApis[Target] & string)[] }>;
 
@@ -86,12 +80,12 @@ export type FeatureLinks<Id extends FeatureId> = LinksOf<Named<Id>>;
 /**
  * The links the Hub calls: Hub people (app/renderer/hub-people.ts) opens a conversation, reads who
  * Whispers knows and travels to a friend's outpost; its commands (app/renderer/hub-commands.ts)
- * hand a typed item to Trade's search.
+ * hand a typed item to Trade's search; its calculator (hub-builtins.ts) reads Trade's prices.
  */
 export const HUB_LINKS = {
   whispers: ["open", "people"],
   travel: ["friendTripBlocked", "toFriend"],
-  tradeChat: ["search"],
+  tradeChat: ["search", "marketRates", "traderQuotes"],
 } as const satisfies NamedLinks;
 
 export type HubLinks = LinksOf<typeof HUB_LINKS>;

@@ -61,37 +61,19 @@ test.describe("renderer Tools input", () => {
         if (!(canvas instanceof globalThis.HTMLCanvasElement)) {
           throw new Error("#canvas is missing");
         }
-        const specifier = "./toolbox-foundation.js";
-        const module = (await import(specifier)) as {
-          createToolboxFoundation(
-            parent: HTMLElement,
-            options: {
-              mountTool(
-                host: HTMLElement,
-                onVisibilityChange: (visible: boolean) => void,
-              ): Promise<{
-                setVisible(visible: boolean): void;
-                setActive?(active: boolean): void;
-                requestClose(): void;
-                update(state: object): void;
-                stop(): void;
-              } | null>;
-              mountTrade?(
-                host: HTMLElement,
-                onVisibilityChange: (visible: boolean) => void,
-              ): Promise<{
-                setVisible(visible: boolean): void;
-                setActive?(active: boolean): void;
-                requestClose(): void;
-                update(state: object): void;
-                stop(): void;
-              } | null>;
-            },
-          ): {
-            update(state: object): void;
-            openBuilds(intent: "show" | "toggle"): string;
-          };
-        };
+        // The production window parts with stub views: their links and the Tools window are the game's.
+        const specifiers = [
+          "./toolbox-foundation.js",
+          "./window-part.js",
+          "./features/build-library/renderer/window.js",
+          "./features/trade-chat/renderer/window.js",
+        ];
+        const [module, parts, library, trade] = await Promise.all(specifiers.map((specifier) => import(specifier))) as [
+          typeof import("../../app/renderer/toolbox-foundation.js"),
+          typeof import("../../app/renderer/window-part.js"),
+          typeof import("../../app/features/build-library/renderer/window.js"),
+          typeof import("../../app/features/trade-chat/renderer/window.js"),
+        ];
         let gameKeys = 0;
         let gameKeyUps = 0;
         let gameMouseDowns = 0;
@@ -100,14 +82,11 @@ test.describe("renderer Tools input", () => {
           inputResets += 1;
           document.body.dataset.toolboxInputResets = String(inputResets);
         });
-        const toolbox = module.createToolboxFoundation(document.body, {
+        const toolbox = module.createToolboxFoundation(document.body, { parts: [
           // A tool draws its own window against the viewport and is handed the
           // overlay's layer to attach to. Everything else — the event stops,
           // the cursor mirror, the non-activating surface — it inherits.
-          mountTool: (
-            host: HTMLElement,
-            onVisibilityChange: (visible: boolean) => void,
-          ) => {
+          parts.windowPart({ ...library.default, start: ({ host, onVisibilityChange }) => {
             const panel = document.createElement("div");
             panel.dataset.testid = "stub-tool";
             panel.style.cssText =
@@ -155,11 +134,8 @@ test.describe("renderer Tools input", () => {
               },
               stop: () => panel.remove(),
             });
-          },
-          mountTrade: (
-            host: HTMLElement,
-            onVisibilityChange: (visible: boolean) => void,
-          ) => {
+          } }),
+          parts.windowPart({ ...trade.default, start: ({ host, onVisibilityChange }) => {
             const panel = document.createElement("div");
             panel.dataset.testid = "stub-trade";
             panel.style.cssText =
@@ -189,16 +165,16 @@ test.describe("renderer Tools input", () => {
                 panel.dataset.active = String(active);
               },
               requestClose: hide,
-              update: () => undefined,
+              search: () => undefined,
               stop: () => panel.remove(),
             });
-          },
-        });
+          } }),
+        ] });
         // The observer publishes from the moment the game runs; a tool mounts on
         // first open, which is minutes later. Exposed so the test can publish
         // again once the tool exists.
         (globalThis as unknown as { publishToolbox(state: object): void })
-          .publishToolbox = (state: object) => toolbox.update(state);
+          .publishToolbox = (state: Parameters<typeof toolbox.update>[0]) => toolbox.update(state);
         // The stand-in client proves nothing and this launch plays the plain game, so main's facts
         // keep Trade Chat off. Stand in for them with Features on and Trade Chat switched on, as the
         // packaged probes do; Trade Chat names no verifier capability.
@@ -211,17 +187,19 @@ test.describe("renderer Tools input", () => {
         });
         // Trade opens through its link `toggle`, as its shortcut, chat alias and Hub row call it.
         const linksPath = "./feature-links.js";
-        const links = (await import(linksPath)) as {
-          toggleTool(target: "tradeChat", intent: "show" | "toggle"): "shown" | "hidden" | { reason: string };
-        };
+        const links = (await import(linksPath)) as typeof import("../../app/renderer/feature-links.js");
         (globalThis as unknown as { tradeToggle(intent: "show" | "toggle"): void })
           .tradeToggle = (intent) => {
             const answer = links.toggleTool("tradeChat", intent);
             if (typeof answer === "object") throw new Error(`Trade Chat's link is unavailable: ${answer.reason}`);
           };
-        // The Build Library's link `toggle`, which its shortcut and menu item call.
+        // The Build Library's link `toggle`, which its shortcut and menu item call; "unavailable"
+        // when it did not open.
         (globalThis as unknown as { openBuilds(intent: "show" | "toggle"): string })
-          .openBuilds = (intent) => toolbox.openBuilds(intent);
+          .openBuilds = (intent) => {
+            const answer = links.toggleTool("buildLibrary", intent);
+            return typeof answer === "object" ? "unavailable" : answer;
+          };
         // The projection still takes what the observer feeds it. What those
         // values mean is pinned at the real boundary by
         // tests/packaged-enhancement-runtime.ts, which reads them back through
@@ -757,39 +735,34 @@ test.describe("renderer Tools input", () => {
     const fixture = await launchOffline("gw-toolbox-late-mount-e2e-");
     try {
       const disposed = await fixture.page.evaluate(async () => {
-        const specifier = "./toolbox-foundation.js";
-        const surfaceSpecifier = "./surface-controller.js";
-        const [module, surfaces] = await Promise.all([
-          import(specifier),
-          import(surfaceSpecifier),
-        ]) as [{
-          createToolboxFoundation(
-            parent: HTMLElement,
-            options: { mountTool(): Promise<{
-              setVisible(visible: boolean): void;
-              requestClose(): void;
-              update(state: object): void;
-              stop(): void;
-            }> },
-          ): { dispose(): void; openBuilds(intent: "show" | "toggle"): string };
-        }, typeof import("../../app/renderer/surface-controller.js")];
+        const specifiers = ["./toolbox-foundation.js", "./surface-controller.js", "./window-part.js", "./features/build-library/renderer/window.js"];
+        const [module, surfaces, parts, library] = await Promise.all(specifiers.map((specifier) => import(specifier))) as [
+          typeof import("../../app/renderer/toolbox-foundation.js"),
+          typeof import("../../app/renderer/surface-controller.js"),
+          typeof import("../../app/renderer/window-part.js"),
+          typeof import("../../app/features/build-library/renderer/window.js"),
+        ];
         window.gwSurfaces = surfaces.installSurfaceController(document);
-        let resolveMount!: (tool: {
-          setVisible(visible: boolean): void;
-          requestClose(): void;
-          update(state: object): void;
-          stop(): void;
-        }) => void;
+        type Running = Awaited<ReturnType<typeof library.default.start>>;
+        let resolveMount!: (tool: Running) => void;
         let count = 0;
+        // The window's own control, as the part's link gets it; this launch has no facts to open it through toggleTool.
+        let control!: Parameters<typeof library.default.link>[0];
+        // Opened where `on` says so, not everywhere its switch allows (`anyArea`): this launch has no facts.
         const foundation = module.createToolboxFoundation(document.body, {
-          mountTool: () => new Promise((resolve) => { resolveMount = resolve; }),
+          on: () => true,
+          parts: [parts.windowPart({
+            id: library.default.id,
+            element: library.default.element,
+            link: (window) => { control = window; return library.default.link(window); },
+            start: () => new Promise<Running>((resolve) => { resolveMount = resolve; }),
+          })],
         });
-        foundation.openBuilds("toggle");
+        control.toggle();
         foundation.dispose();
         resolveMount({
           setVisible: () => undefined,
           requestClose: () => undefined,
-          update: () => undefined,
           stop: () => { count += 1; },
         });
         await Promise.resolve();

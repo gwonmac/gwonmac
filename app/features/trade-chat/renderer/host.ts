@@ -1,16 +1,18 @@
 /**
- * Trade Chat's window part, its one entry for the game host: loads the read-only Trade
- * window from the Tools bundle into the host the Tools window gives it, with the Whispers
- * link its manifest names and its place kept in settings.
+ * Trade Chat's window view, which its window part (./window.ts) starts lazily: loads the
+ * read-only Trade window from the Tools bundle into the host the Tools window gives it, with the
+ * Whispers link its manifest names and its place kept in settings.
  */
 import type { EmbeddedToolsBundle } from "../../../shared/tools-bundle-contracts.js";
-import { definePart } from "../../parts.js";
-import type { MountedTool, WindowContext } from "../../../renderer/toolbox-foundation.js";
+import type { WindowContext, WindowRunning } from "../../../renderer/window-part.js";
 import { ensureToolsStylesheet } from "../../../renderer/tools-stylesheet.js";
 import { requireToolsApi } from "../../../renderer/tools-native-api.js";
 import { tradeWindowPlacement } from "./window-placement.js";
 
-export default definePart("window", "tradeChat", async ({ host, onVisibilityChange, links, onLinksChange }: WindowContext<"tradeChat">): Promise<MountedTool | null> => {
+/** The running Trade window: what every window does, and the search its link hands it. */
+export type TradeWindowRunning = WindowRunning & Readonly<{ search(query: string): void }>;
+
+export async function startTradeWindow({ host, onVisibilityChange, links, onLinksChange }: WindowContext<"tradeChat">): Promise<TradeWindowRunning | null> {
   const native = requireToolsApi();
   ensureToolsStylesheet(host.ownerDocument);
   const specifier = "../../../tools/tools-app.js";
@@ -31,7 +33,6 @@ export default definePart("window", "tradeChat", async ({ host, onVisibilityChan
       requestClose: app.hide,
       stepBack: app.stepBack,
       search: app.search,
-      update: () => {},
       stop: app.dispose,
     };
   } catch (cause: unknown) {
@@ -39,4 +40,4 @@ export default definePart("window", "tradeChat", async ({ host, onVisibilityChan
     host.textContent = "Trade Chat could not be loaded — see the console.";
     return null;
   }
-});
+}

@@ -1,11 +1,11 @@
 /**
  * Owns the list of the Hub's built-in sources and attaches them as a feature attaches its own:
- * saved accounts, the calculator, the Hub's commands, its preferences, Settings and the rows of
- * Features that are off. The Hub itself (hub.ts) names none of them. Also loads the Hub's Vue
+ * saved accounts, the calculator (with Trade's prices through Trade's link), the Hub's commands,
+ * its preferences, Settings and the rows of Features that are off. The Hub itself (hub.ts) names none of them. Also loads the Hub's Vue
  * view and creates the Hub the game runs, with these sources.
  */
 import { DEFAULT_CALCULATOR_RATES } from '../shared/hub-calculator.js';
-import { featureOn } from './feature-on.js';
+import { hubLinks } from './feature-links.js';
 import type { SettingsTarget } from '../shared/settings-catalogue.js';
 import type { EmbeddedHubView } from '../shared/ui/hub-view.js';
 import { createHub, type Hub } from './hub.js';
@@ -16,6 +16,10 @@ import { createHubFeatures } from './hub-features.js';
 import { createHubPreferences } from './hub-preferences.js';
 import { createHubSettings } from './hub-settings-page.js';
 
+/** A price Trade's link answers, or the calculator's refusal while Trade is off or not running. */
+const rate = <Value>(answer: Promise<Value> | "unavailable" | undefined): Promise<Value> =>
+  answer === undefined || answer === "unavailable" ? Promise.reject(new Error('Rate unavailable')) : answer;
+
 /** Attaches the built-in sources, in the order the Hub lists their rows, and adds `openSettings`. */
 export function withHubBuiltins(hub: Hub) {
   hub.attach(createHubAccounts(hub, { get: () => window.gwNative.accounts.get(), open: request => window.gwNative.accounts.open(request), manage: () => window.gwNative.app.showLauncher() }));
@@ -25,10 +29,10 @@ export function withHubBuiltins(hub: Hub) {
     saveRates: async calculatorRates => { await window.gwNative.settings.set({ calculatorRates }); },
     // A copy names what it put on the clipboard in the status line (D-8); it is never silent.
     copy: async (value, label = value) => { await window.gwNative.clipboard.writeText(value); hub.notify(`Copied “${label}”`); },
-    marketEnabled: () => featureOn('tradeChat'),
+    marketEnabled: () => hubLinks().tradeChat !== null,
     enabled: () => window.gwToolsSettings?.().hubCalculators !== false,
-    market: () => 'trade' in window.gwNative ? window.gwNative.trade.getMarketRates() : Promise.reject(new Error('Rate unavailable')),
-    quotes: () => 'trade' in window.gwNative ? window.gwNative.trade.getTraderQuotes() : Promise.reject(new Error('Rate unavailable')),
+    market: () => rate(hubLinks().tradeChat?.marketRates()),
+    quotes: () => rate(hubLinks().tradeChat?.traderQuotes()),
   }));
   const settings = createHubSettings(hub);
   hub.attach(createHubCommands(hub, settings.open));

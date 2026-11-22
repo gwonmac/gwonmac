@@ -8,8 +8,7 @@ import { matchHubRows, parseHubQuery, type HubRow, type HubSource } from '../../
 import { professionPresentation } from '../../../shared/profession-assets.js';
 import { currentCharacterIndex, type CharacterSwitchSource } from "./character-switch-model.js";
 import { characterSwitchRefusal, createCharacterSwitchPalette } from "./character-switch-palette.js";
-import type { HubPageContext } from "../../../renderer/hub.js";
-import { definePart } from "../../parts.js";
+import { hubPagePart } from "../../../renderer/hub.js";
 
 export { createCharacterSwitchController, type CharacterSwitchController } from "./character-switch-controller.js";
 export { characterSwitchContext, type CharacterSwitchContext, type CharacterSwitchSource } from "./character-switch-model.js";
@@ -19,7 +18,7 @@ export interface CharacterSwitchHost {
   stop(): void;
 }
 
-export default definePart("hubPage", "characterSwitch", ({ parent, hub }: HubPageContext): CharacterSwitchHost => {
+export default hubPagePart("characterSwitch", ({ parent, hub }): CharacterSwitchHost => {
   const listeners = new Set<() => void>();
   const unavailable: CharacterSwitchSource = Object.freeze({
     characters: Object.freeze({ status: "waiting", reason: "memory" }),
