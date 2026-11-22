@@ -723,20 +723,15 @@ test('reopening Characters focuses the current character after any close', async
 });
 
 // Enter switches to the selected character row, whether or not other characters match.
-test('a char prefix that matches several characters switches to the selected one', async () => {
+test.each([
+  ['char fixture r', 'Fixture Ranger', 'ranger'],
+  ['char toe', 'Toefte', 'toefte'],
+])('a char search %j switches to the selected character', async (query, name, key) => {
   await mountFixture();
-  fill(search(), 'char fixture r'); await flush();
-  expect(primary().textContent).toMatch(/^Switch to Fixture Ranger/u);
+  fill(search(), query); await flush();
+  expect(primary().textContent).toMatch(new RegExp(`^Switch to ${name}`, 'u'));
   press('Enter'); await flush();
-  expect(action()).toBe('Character ranger');
-});
-
-test('a char search with one match switches to it', async () => {
-  await mountFixture();
-  fill(search(), 'char toe'); await flush();
-  expect(primary().textContent).toMatch(/^Switch to Toefte/u);
-  press('Enter'); await flush();
-  expect(action()).toBe('Character toefte');
+  expect(action()).toBe(`Character ${key}`);
 });
 
 // HUB-073: a state that refuses switching says so on open, in plain words, and Enter asks nothing.
