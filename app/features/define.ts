@@ -96,8 +96,8 @@ export const featureSwitch = <const Options extends SettingScope & Partial<Featu
 export type FeatureDefinition = Readonly<{
   /**
    * The folder name in camelCase: folder `alcohol-timer` holds `alcoholTimer` (./contract.ts).
-   * The id keys the runtime policy, which tests/unit/enhancement-runtime-policy.test.ts pins
-   * (an AGENTS.md "Must stay" test), so it stays camelCase.
+   * The id keys the runtime policy, which tests name by id (tests/unit/feature-selection.test.ts
+   * and the AGENTS.md "Must stay" tests/certification/feature-region-gating.test.ts), so it stays camelCase.
    */
   id: string;
   /** The player name: card title, Feature page title, Settings › Tools, Hub row. */

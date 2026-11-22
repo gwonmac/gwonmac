@@ -15,7 +15,10 @@ export type OptionalToolSettings = FeatureSwitchSettings;
 
 export type RuntimePlayRegion = "pve" | "pvp" | "unknown";
 
-/** Which Features the switches, the program and the area select (tests/unit/enhancement-runtime-policy.test.ts). */
+/**
+ * Which Features the switches, the program and the area select (rules over every Feature in
+ * tests/certification/feature-region-gating.test.ts, values in tests/unit/feature-selection.test.ts).
+ */
 export function enhancementRuntimePolicy(
   program: EnhancementProgram,
   settings: OptionalToolSettings,
