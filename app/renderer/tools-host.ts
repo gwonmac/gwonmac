@@ -32,7 +32,7 @@ export function mountBuildsInto(
   templatePublishing: boolean,
 ): Promise<MountedTool | null> {
   return buildLibraryWindow.start({
-    host, onVisibilityChange, show, links: featureLinks("buildLibrary"), onLinksChange, commands, storage, templatePublishing,
+    host, onVisibilityChange, show, links: featureLinks(buildLibraryWindow.id), onLinksChange, commands, storage, templatePublishing,
   });
 }
 
@@ -42,7 +42,7 @@ export function mountTradeInto(
   onVisibilityChange: (visible: boolean) => void,
   show: () => void,
 ): Promise<MountedTool | null> {
-  return tradeWindow.start({ host, onVisibilityChange, show, links: featureLinks("tradeChat"), onLinksChange });
+  return tradeWindow.start({ host, onVisibilityChange, show, links: featureLinks(tradeWindow.id), onLinksChange });
 }
 
 /**
@@ -64,8 +64,8 @@ export function mountHostOnlyTools(
   const syncEnabled = () => {
     lifecycle.setEnabled(featureOn("tools"));
     lifecycle.setAvailable({
-      builds: featureOn("buildLibrary"),
-      trade: featureOn("tradeChat"),
+      builds: featureOn(buildLibraryWindow.id),
+      trade: featureOn(tradeWindow.id),
     });
   };
   window.addEventListener("gw:tools-settings", syncEnabled);

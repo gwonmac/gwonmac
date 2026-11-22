@@ -172,7 +172,9 @@ export function createToolboxFoundation(
   const ensure = (slot: Slot) => {
     if (slot.requested) return;
     slot.requested = true;
-    void slot.mount(slot.host, (visible) => setOpen(slot, visible), () => openFloating(slot))
+    // A pop-out from the window's own page does nothing once its Feature is off.
+    const show = () => { if (!disposed && availability[slot.name]) openFloating(slot); };
+    void slot.mount(slot.host, (visible) => setOpen(slot, visible), show)
       .then((mounted) => {
         if (disposed) {
           mounted?.stop();
