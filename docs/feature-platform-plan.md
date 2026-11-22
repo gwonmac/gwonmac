@@ -68,16 +68,29 @@ All work happens on this Mac, by us.
 Run `node scripts/feature-metrics.mjs [revision]` after each phase and record the result here.
 `pnpm check` fails when a metric is above its ceiling in `scripts/feature-metrics-ceilings.json`; when a change lowers a metric, lower that ceiling to the new value in the same PR.
 
+Four metrics have hits that are correct where they are: a certified stage with the Feature's
+name, a kernel region, input plumbing, a test fixture, or the same word meaning something else
+(the Hub scope `travel`, the tone `progress`). `scripts/feature-metrics-allowed.json` lists each
+such hit with a category and a one-line reason. These metrics count only the hits not on the list,
+their target is 0, and the script prints each remaining hit. Rules for the list:
+
+- Allow a hit only when it stays correct after the plan is finished. Never allow one to lower a
+  number; when unsure, leave it remaining and say so in the PR.
+- The categories are fixed in the script: registry or contract, certified stage or verifier,
+  kernel or block, host plumbing, test helper, same word, inside one Feature.
+- A change that removes an allowed hit removes its entry: `pnpm check` fails on an entry that
+  matches nothing, so the list cannot hide a later hit.
+
 | Metric | Baseline (8618d115) | Target |
 |---|---|---|
 | `featureActivationRequested(` calls in app (no tests) | 38 | 1 (inside `resolve`) |
 | `policy().` reads in app/features | 30 | 0 |
 | `plainGame` reads in app (no tests) | 0 (26 in PR #24) | only the launch decision |
-| Distinct `gw:*` window event names in app | 89 | only input/menu plumbing; 0 between features |
+| Distinct `gw:*` window event names in app (IPC channels excluded) | 89 (counted the IPC channels and each quote style apart) | 0 not allowed (allowed: input, menu, graphics and surface plumbing; one certified stage event) |
 | Lines naming any Feature id in shared substrates (first measured as `attachWhispers`/`attachTravel` only) | 2 | 0 |
-| Feature-domain files under `app/renderer/` (skill, whisper, trade, people, party, alcohol, effect, cartography) | 14 | 0 feature logic (blocks only) |
-| Files outside a feature's folder that name its id (no tests) | travel 17, cartography 9, quick-item-move 9, whispers 9, progress 8, team-apply 8, xunlai-storage 8, build-library 7, skill-cooldowns 6, trade-chat 5, 9 more ≤ 3 | registry + tests only |
-| `localStorage` uses in Tools UI (positions etc.) | 21 | only true per-viewer conveniences; positions in settings |
+| Feature-domain files under `app/renderer/` (skill, whisper, trade, people, party, alcohol, effect, cartography) | 14 | 0 not allowed (allowed: kernel readers and blocks) |
+| Files outside a feature's folder that name its id (no tests) | travel 17, cartography 9, quick-item-move 9, whispers 9, progress 8, team-apply 8, xunlai-storage 8, build-library 7, skill-cooldowns 6, trade-chat 5, 9 more ≤ 3 | 0 not allowed (allowed: registry, certified stages, kernel, test helpers, same word) |
+| `localStorage` uses in Tools UI (positions etc.) | 21 | 0 not allowed (allowed: preview and test fixtures); positions in settings |
 | Per-feature `v-if="tool === …"` in launcher and Tools UI | 7 (9 in PR #24) | 0 |
 | Files touched to add a group A feature | not measured | 1 folder + 1 line |
 
@@ -99,6 +112,36 @@ After 7.1 (`df3e7c92`): `featureActivationRequested(` 38 → 0, `policy().` read
 IPC channels of the Feature facts; the metric counts IPC channel names with window events, 8.1 splits them). The rest unchanged.
 
 After 3.4 and the Foo fixes (`b7e23690`): substrate feature names 2 → 0, feature-domain renderer files 12 → 11, `gw:*` names 91; the rest unchanged. Ids named outside their folder: travel 17, whispers 11, quick-item-move 10, cartography 9, progress 9, build-library 8, team-apply 8, trade-chat 8, xunlai-storage 8, skill-cooldowns 6, nine more ≤ 4.
+
+With the allowed list (`e21c4958`, after 5.4, 5.5 and 6.3; not allowed / allowed): `gw:*` window events
+2 / 13 (the script's old count, 79, included 56 IPC channel names and counted a name written in both
+quote styles twice; 15 window events are left), feature-domain renderer files 2 / 9, files outside a
+Feature's folder naming its id 17 / 86 (now a ceiling of its own), `localStorage` lines 6 / 13,
+`v-if` cases 0. The other metrics keep their raw count, which is the work.
+
+### Remaining work (`e21c4958`)
+
+`node scripts/feature-metrics.mjs` prints the exact list. No 5.x row owns any of it; each item needs a
+decision before 8.1 can remove it or move it to the allowed list:
+
+- Character Switch: `gw:character-toggle` (its open event) and `gw:character-switch-claim` (it
+  tells the harness to stop the automatic return).
+- The Tools window host names Trade Chat and the Build Library: `app/features/tools/companion.ts`,
+  `app/renderer/toolbox-foundation.ts` (provides Trade's link before its part loads),
+  `tools-bundle-contracts.ts`, and `hub-builtins.ts` (the calculator reads Trade's market rates);
+  its window placement is in `localStorage` (`use-floating-window.ts`, 2 lines), not in settings.
+- `cartography` in `app/renderer/harness.ts`: the harness loads the Maps host itself, not through
+  a part. `resign` in `app/main/window-menu.ts`: a menu gate in main.
+- The Hub's People page and party invite (`hub-people.ts`, `party-invite.ts`) and its example list
+  (`hub-commands.ts`) name Travel and Whispers: a Feature-owned Hub part, or Core using typed links
+  only (then allowed).
+- Feature views in the Tools UI bundle: `hub-library.ts`, `hub-travel.ts` (also names `progress`),
+  `TravelPalette.vue`. The lint boundary lets `app/ui/tools` import only `app/shared`, so they cannot
+  move into their folders as they are (#83).
+- Unsure: `pending: "travel"` in `preferences-coordinator.ts` and `contracts.ts` (Core's settings
+  reset knows Travel's preferences file; a Travel main part could own it, or it is Core's player data
+  and allowed), and the skill catalogue's two filters in `localStorage` (`catalogue-preferences.ts`,
+  4 lines: a per-viewer convenience, then allowed, or a setting).
 
 ## Phase 0 · Baseline and decisions (S)
 

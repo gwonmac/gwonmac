@@ -1,0 +1,661 @@
+{
+  "namesOutsideFolder": [
+    {
+      "file": "app/ui/launcher/src/fixtures.ts",
+      "name": "alcoholTimer",
+      "category": "test helper",
+      "reason": "Launcher preview and test scenes; a new Feature needs no line here."
+    },
+    {
+      "file": "app/features/team-apply/feature.ts",
+      "name": "buildLibrary",
+      "category": "registry or contract",
+      "reason": "Team Apply's manifest `requires` the Build Library."
+    },
+    {
+      "file": "app/shared/hub.ts",
+      "name": "buildLibrary",
+      "category": "registry or contract",
+      "reason": "HUB_SCOPE_FEATURES: the Feature that answers the `team` and `build` scope words."
+    },
+    {
+      "file": "app/ui/tools/src/hub-fixture.ts",
+      "name": "buildLibrary",
+      "category": "test helper",
+      "reason": "Hub fixture: the browser preview and Tools UI tests wire every Feature by hand."
+    },
+    {
+      "file": "app/ui/tools/src/hub-keyboard-contract.ts",
+      "name": "buildLibrary",
+      "category": "test helper",
+      "reason": "Keyboard contract cells: a view name in the shared keyboard golden."
+    },
+    {
+      "file": "app/ui/tools/tests/keyboard-contract-keys.ts",
+      "name": "buildLibrary",
+      "category": "test helper",
+      "reason": "Keyboard contract cells: a view name in the shared keyboard golden."
+    },
+    {
+      "file": "app/renderer/input.ts",
+      "name": "callTarget",
+      "category": "host plumbing",
+      "reason": "Only the input host knows the held keys, so it sends Call Target's chord (#84)."
+    },
+    {
+      "file": "app/ui/launcher/src/fixtures.ts",
+      "name": "callTarget",
+      "category": "test helper",
+      "reason": "Launcher preview and test scenes; a new Feature needs no line here."
+    },
+    {
+      "file": "app/client/certification/client-verification-pass.ts",
+      "name": "cartography",
+      "category": "certified stage or verifier",
+      "reason": "The certified `cartography` stage."
+    },
+    {
+      "file": "app/client/certification/local-client-verifier-process.ts",
+      "name": "cartography",
+      "category": "certified stage or verifier",
+      "reason": "The verifier's `cartography` stage result."
+    },
+    {
+      "file": "app/client/client-runtime-values.ts",
+      "name": "cartography",
+      "category": "certified stage or verifier",
+      "reason": "Diagnostics value of the verified `cartography` stage."
+    },
+    {
+      "file": "app/client/client-verdict.ts",
+      "name": "cartography",
+      "category": "certified stage or verifier",
+      "reason": "The stored verdict of the certified `cartography` stage."
+    },
+    {
+      "file": "app/shared/contracts.ts",
+      "name": "cartography",
+      "category": "certified stage or verifier",
+      "reason": "`cartography` as a preparation failure stage of the certified client."
+    },
+    {
+      "file": "app/tools-cli/client-qualification.ts",
+      "name": "cartography",
+      "category": "certified stage or verifier",
+      "reason": "Release qualification runs the certified `cartography` stage."
+    },
+    {
+      "file": "app/tools-cli/diagnostics/common.ts",
+      "name": "cartography",
+      "category": "certified stage or verifier",
+      "reason": "Diagnostics name the certified `cartography` failure stage."
+    },
+    {
+      "file": "app/tools-cli/watch-report.ts",
+      "name": "cartography",
+      "category": "certified stage or verifier",
+      "reason": "Client watch reports the certified `cartography` stage."
+    },
+    {
+      "file": "app/shared/hub.ts",
+      "name": "characterSwitch",
+      "category": "registry or contract",
+      "reason": "HUB_SCOPE_FEATURES: the Feature that answers the `char` scope word."
+    },
+    {
+      "file": "app/ui/launcher/src/fixtures.ts",
+      "name": "characterSwitch",
+      "category": "test helper",
+      "reason": "Launcher preview and test scenes; a new Feature needs no line here."
+    },
+    {
+      "file": "app/ui/launcher/src/fixtures.ts",
+      "name": "chatFilters",
+      "category": "test helper",
+      "reason": "Launcher preview and test scenes; a new Feature needs no line here."
+    },
+    {
+      "file": "app/ui/launcher/src/fixtures.ts",
+      "name": "effectTimers",
+      "category": "test helper",
+      "reason": "Launcher preview and test scenes; a new Feature needs no line here."
+    },
+    {
+      "file": "app/client/certification/enhancement-build-model.ts",
+      "name": "progress",
+      "category": "certified stage or verifier",
+      "reason": "`progress` is a layout owner of the certified build model."
+    },
+    {
+      "file": "app/renderer/companion-progress-snapshot.ts",
+      "name": "progress",
+      "category": "kernel or block",
+      "reason": "Reads the kernel region named `progress`."
+    },
+    {
+      "file": "app/shared/companion-kernel-contract.ts",
+      "name": "progress",
+      "category": "kernel or block",
+      "reason": "Kernel init argument `progress` (a kernel region)."
+    },
+    {
+      "file": "app/shared/enhancement-config.ts",
+      "name": "progress",
+      "category": "certified stage or verifier",
+      "reason": "`progress` is a layout owner of the certified config."
+    },
+    {
+      "file": "app/shared/enhancement-contracts.ts",
+      "name": "progress",
+      "category": "certified stage or verifier",
+      "reason": "`progress` is a config owner of the certified `progressObservation` capability."
+    },
+    {
+      "file": "app/shared/ui/components.css",
+      "name": "progress",
+      "category": "same word, not the Feature",
+      "reason": "`data-tone=\"progress\"`: a status tone."
+    },
+    {
+      "file": "app/ui/tools/src/styles/build.css",
+      "name": "progress",
+      "category": "same word, not the Feature",
+      "reason": "`data-tone=\"progress\"`: a status tone."
+    },
+    {
+      "file": "app/ui/tools/src/use-library.ts",
+      "name": "progress",
+      "category": "same word, not the Feature",
+      "reason": "`tone: \"progress\"`: a status tone."
+    },
+    {
+      "file": "app/client/certification/enhancement-evidence-types.ts",
+      "name": "quickItemMove",
+      "category": "certified stage or verifier",
+      "reason": "Certified stage or its verifier (Must stay); the certified capability or stage has the Feature's name."
+    },
+    {
+      "file": "app/client/certification/enhancement-feature-acceptance.ts",
+      "name": "quickItemMove",
+      "category": "certified stage or verifier",
+      "reason": "Certified stage or its verifier (Must stay); the certified capability or stage has the Feature's name."
+    },
+    {
+      "file": "app/client/certification/enhancement-local-actions-proof.ts",
+      "name": "quickItemMove",
+      "category": "certified stage or verifier",
+      "reason": "Certified stage or its verifier (Must stay); the certified capability or stage has the Feature's name."
+    },
+    {
+      "file": "app/client/certification/enhancement-quick-item-move-transform.ts",
+      "name": "quickItemMove",
+      "category": "certified stage or verifier",
+      "reason": "Certified stage or its verifier (Must stay); the certified capability or stage has the Feature's name."
+    },
+    {
+      "file": "app/client/certification/local-client-verification-boundary.ts",
+      "name": "quickItemMove",
+      "category": "certified stage or verifier",
+      "reason": "Certified stage or its verifier (Must stay); the certified capability or stage has the Feature's name."
+    },
+    {
+      "file": "app/client/certification/local-client-verification-contract.ts",
+      "name": "quickItemMove",
+      "category": "certified stage or verifier",
+      "reason": "Certified stage or its verifier (Must stay); the certified capability or stage has the Feature's name."
+    },
+    {
+      "file": "app/renderer/tools-companion-part.ts",
+      "name": "quickItemMove",
+      "category": "registry or contract",
+      "reason": "COMPANION_HEAP_LAYOUT: the fixed order of memory owners, pinned so a player's game memory never moves."
+    },
+    {
+      "file": "app/shared/enhancement-contracts.ts",
+      "name": "quickItemMove",
+      "category": "certified stage or verifier",
+      "reason": "The certified capability `quickItemMove`."
+    },
+    {
+      "file": "app/tools-cli/fact-review.ts",
+      "name": "quickItemMove",
+      "category": "certified stage or verifier",
+      "reason": "Fact review of the certified capability `quickItemMove`."
+    },
+    {
+      "file": "app/ui/launcher/src/fixtures.ts",
+      "name": "quickItemMove",
+      "category": "test helper",
+      "reason": "Launcher preview and test scenes; a new Feature needs no line here."
+    },
+    {
+      "file": "app/ui/tools/src/fixture-facts.ts",
+      "name": "quickItemMove",
+      "category": "test helper",
+      "reason": "Tools UI fixture facts: the patch-day scenario refuses this capability."
+    },
+    {
+      "file": "app/renderer/tools-companion-part.ts",
+      "name": "reminders",
+      "category": "registry or contract",
+      "reason": "COMPANION_HEAP_LAYOUT: the fixed order of memory owners, pinned so a player's game memory never moves."
+    },
+    {
+      "file": "app/ui/tools/src/hub-fixture.ts",
+      "name": "resign",
+      "category": "test helper",
+      "reason": "Hub fixture: the browser preview and Tools UI tests wire every Feature by hand."
+    },
+    {
+      "file": "app/renderer/certified-companion-tools-installation.ts",
+      "name": "skillCooldowns",
+      "category": "kernel or block",
+      "reason": "Kernel observer slot `skillCooldowns` (the recharge feed)."
+    },
+    {
+      "file": "app/renderer/tools-companion-part.ts",
+      "name": "skillCooldowns",
+      "category": "kernel or block",
+      "reason": "Kernel observer slot `skillCooldowns` (the recharge feed)."
+    },
+    {
+      "file": "app/shared/companion-kernel-contract.ts",
+      "name": "skillCooldowns",
+      "category": "kernel or block",
+      "reason": "Kernel init argument `skillCooldowns` (a kernel region)."
+    },
+    {
+      "file": "app/ui/launcher/src/fixtures.ts",
+      "name": "skillCooldowns",
+      "category": "test helper",
+      "reason": "Launcher preview and test scenes; a new Feature needs no line here."
+    },
+    {
+      "file": "app/ui/launcher/src/fixtures.ts",
+      "name": "skillKeyLabels",
+      "category": "test helper",
+      "reason": "Launcher preview and test scenes; a new Feature needs no line here."
+    },
+    {
+      "file": "app/ui/launcher/src/fixtures.ts",
+      "name": "targetReadout",
+      "category": "test helper",
+      "reason": "Launcher preview and test scenes; a new Feature needs no line here."
+    },
+    {
+      "file": "app/client/certification/enhancement-evidence-types.ts",
+      "name": "teamApply",
+      "category": "certified stage or verifier",
+      "reason": "Certified stage or its verifier (Must stay); the certified capability or stage has the Feature's name."
+    },
+    {
+      "file": "app/client/certification/enhancement-local-actions-proof.ts",
+      "name": "teamApply",
+      "category": "certified stage or verifier",
+      "reason": "Certified stage or its verifier (Must stay); the certified capability or stage has the Feature's name."
+    },
+    {
+      "file": "app/client/certification/enhancement-party-team-proof.ts",
+      "name": "teamApply",
+      "category": "certified stage or verifier",
+      "reason": "Certified stage or its verifier (Must stay); the certified capability or stage has the Feature's name."
+    },
+    {
+      "file": "app/client/certification/local-client-verification-boundary.ts",
+      "name": "teamApply",
+      "category": "certified stage or verifier",
+      "reason": "Certified stage or its verifier (Must stay); the certified capability or stage has the Feature's name."
+    },
+    {
+      "file": "app/client/certification/local-client-verification-contract.ts",
+      "name": "teamApply",
+      "category": "certified stage or verifier",
+      "reason": "Certified stage or its verifier (Must stay); the certified capability or stage has the Feature's name."
+    },
+    {
+      "file": "app/client/certification/local-client-verifier.ts",
+      "name": "teamApply",
+      "category": "certified stage or verifier",
+      "reason": "Certified stage or its verifier (Must stay); the certified capability or stage has the Feature's name."
+    },
+    {
+      "file": "app/shared/enhancement-contracts.ts",
+      "name": "teamApply",
+      "category": "certified stage or verifier",
+      "reason": "The certified capability `teamApply`."
+    },
+    {
+      "file": "app/shared/tools-unavailable-copy.ts",
+      "name": "teamApply",
+      "category": "certified stage or verifier",
+      "reason": "Words for the certified capability status `teamApply`."
+    },
+    {
+      "file": "app/shared/hub.ts",
+      "name": "tradeChat",
+      "category": "registry or contract",
+      "reason": "HUB_SCOPE_FEATURES: the Feature that answers the `trade` scope word."
+    },
+    {
+      "file": "app/ui/launcher/src/fixtures.ts",
+      "name": "tradeChat",
+      "category": "test helper",
+      "reason": "Launcher preview and test scenes; a new Feature needs no line here."
+    },
+    {
+      "file": "app/ui/tools/src/hub-fixture.ts",
+      "name": "tradeChat",
+      "category": "test helper",
+      "reason": "Hub fixture: the browser preview and Tools UI tests wire every Feature by hand."
+    },
+    {
+      "file": "app/client/certification/enhancement-build-model.ts",
+      "name": "travel",
+      "category": "certified stage or verifier",
+      "reason": "`travel` is a layout owner of the certified build model."
+    },
+    {
+      "file": "app/features/progress/feature.ts",
+      "name": "travel",
+      "category": "registry or contract",
+      "reason": "Progress's manifest `requires` Travel."
+    },
+    {
+      "file": "app/renderer/leave-area.ts",
+      "name": "travel",
+      "category": "same word, not the Feature",
+      "reason": "`\"travel\" | \"switch\"`: the leave-area question Travel and Character Switch share."
+    },
+    {
+      "file": "app/renderer/tools-companion-part.ts",
+      "name": "travel",
+      "category": "registry or contract",
+      "reason": "COMPANION_HEAP_LAYOUT: the fixed order of memory owners, pinned so a player's game memory never moves."
+    },
+    {
+      "file": "app/shared/enhancement-config.ts",
+      "name": "travel",
+      "category": "certified stage or verifier",
+      "reason": "`travel` is a layout owner of the certified config."
+    },
+    {
+      "file": "app/shared/enhancement-contracts.ts",
+      "name": "travel",
+      "category": "certified stage or verifier",
+      "reason": "`travel` is a config owner of the certified `travelAction` capability."
+    },
+    {
+      "file": "app/shared/hub-preferences.ts",
+      "name": "travel",
+      "category": "same word, not the Feature",
+      "reason": "The Hub scope word `travel` (place pins)."
+    },
+    {
+      "file": "app/shared/hub.ts",
+      "name": "travel",
+      "category": "registry or contract",
+      "reason": "The Hub scope word `travel` and HUB_SCOPE_FEATURES, which maps it to the Feature."
+    },
+    {
+      "file": "app/ui/tools/src/hub-fixture.ts",
+      "name": "travel",
+      "category": "test helper",
+      "reason": "Hub fixture: the browser preview and Tools UI tests wire every Feature by hand."
+    },
+    {
+      "file": "app/ui/tools/src/hub-keyboard-contract.ts",
+      "name": "travel",
+      "category": "test helper",
+      "reason": "Keyboard contract cells: a view name in the shared keyboard golden."
+    },
+    {
+      "file": "app/ui/tools/src/standalone.ts",
+      "name": "travel",
+      "category": "test helper",
+      "reason": "Standalone dev page: picks a preview by its URL parameter."
+    },
+    {
+      "file": "app/ui/tools/tests/keyboard-contract-keys.ts",
+      "name": "travel",
+      "category": "test helper",
+      "reason": "Keyboard contract cells: a view name in the shared keyboard golden."
+    },
+    {
+      "file": "app/renderer/chat-installation.ts",
+      "name": "whispers",
+      "category": "kernel or block",
+      "reason": "Kernel region named `whispers` (the private chat region)."
+    },
+    {
+      "file": "app/shared/companion-kernel-contract.ts",
+      "name": "whispers",
+      "category": "kernel or block",
+      "reason": "Kernel init argument `whispers` (a kernel region)."
+    },
+    {
+      "file": "app/shared/hub.ts",
+      "name": "whispers",
+      "category": "registry or contract",
+      "reason": "HUB_SCOPE_FEATURES: the Feature that answers the `whisper` scope word."
+    },
+    {
+      "file": "app/ui/tools/src/hub-fixture.ts",
+      "name": "whispers",
+      "category": "test helper",
+      "reason": "Hub fixture: the browser preview and Tools UI tests wire every Feature by hand."
+    },
+    {
+      "file": "app/ui/tools/src/hub-keyboard-contract.ts",
+      "name": "whispers",
+      "category": "test helper",
+      "reason": "Keyboard contract cells: a view name in the shared keyboard golden."
+    },
+    {
+      "file": "app/ui/tools/src/standalone.ts",
+      "name": "whispers",
+      "category": "test helper",
+      "reason": "Standalone dev page: picks a preview by its URL parameter."
+    },
+    {
+      "file": "app/ui/tools/tests/keyboard-contract-keys.ts",
+      "name": "whispers",
+      "category": "test helper",
+      "reason": "Keyboard contract cells: a view name in the shared keyboard golden."
+    },
+    {
+      "file": "app/features/build-library/feature.ts",
+      "name": "xunlaiStorage",
+      "category": "registry or contract",
+      "reason": "Manifest `programs`: the developer launch program `xunlai-storage`, not the Feature."
+    },
+    {
+      "file": "app/features/progress/feature.ts",
+      "name": "xunlaiStorage",
+      "category": "registry or contract",
+      "reason": "Manifest `programs`: the developer launch program `xunlai-storage`, not the Feature."
+    },
+    {
+      "file": "app/features/tools/feature.ts",
+      "name": "xunlaiStorage",
+      "category": "registry or contract",
+      "reason": "Manifest `programs`: the developer launch program `xunlai-storage`, not the Feature."
+    },
+    {
+      "file": "app/features/trade-chat/feature.ts",
+      "name": "xunlaiStorage",
+      "category": "registry or contract",
+      "reason": "Manifest `programs`: the developer launch program `xunlai-storage`, not the Feature."
+    },
+    {
+      "file": "app/features/travel/feature.ts",
+      "name": "xunlaiStorage",
+      "category": "registry or contract",
+      "reason": "Manifest `programs`: the developer launch program `xunlai-storage`, not the Feature."
+    },
+    {
+      "file": "app/renderer/harness.ts",
+      "name": "xunlaiStorage",
+      "category": "registry or contract",
+      "reason": "Label of the developer launch program `xunlai-storage`."
+    },
+    {
+      "file": "app/renderer/tools-companion-part.ts",
+      "name": "xunlaiStorage",
+      "category": "registry or contract",
+      "reason": "COMPANION_HEAP_LAYOUT: the fixed order of memory owners, pinned so a player's game memory never moves."
+    },
+    {
+      "file": "app/shared/enhancement-contracts.ts",
+      "name": "xunlaiStorage",
+      "category": "registry or contract",
+      "reason": "ENHANCEMENT_PROGRAMS: the developer launch program `xunlai-storage`."
+    },
+    {
+      "file": "app/ui/launcher/src/fixtures.ts",
+      "name": "xunlaiStorage",
+      "category": "test helper",
+      "reason": "Launcher preview and test scenes; a new Feature needs no line here."
+    }
+  ],
+  "gwEvents": [
+    {
+      "name": "gw:call-target",
+      "category": "host plumbing",
+      "reason": "Input host: sends Call Target's chord against the held keys only it knows (#84)."
+    },
+    {
+      "name": "gw:compass-control-open",
+      "category": "inside one Feature",
+      "reason": "Maps only: one compass control closes the other; no code outside Maps sees it."
+    },
+    {
+      "name": "gw:diagnostics-toggle",
+      "category": "host plumbing",
+      "reason": "Menu command to the diagnostics overlay."
+    },
+    {
+      "name": "gw:graphics-context-reset",
+      "category": "host plumbing",
+      "reason": "Graphics: every GL layer rebuilds after a lost WebGL context."
+    },
+    {
+      "name": "gw:graphics-resized",
+      "category": "host plumbing",
+      "reason": "Graphics: the canvas changed size."
+    },
+    {
+      "name": "gw:hub-visible",
+      "category": "host plumbing",
+      "reason": "Surfaces: the Hub opened, so Tools windows step back."
+    },
+    {
+      "name": "gw:input-release",
+      "category": "host plumbing",
+      "reason": "Input: release held game keys when focus leaves the canvas."
+    },
+    {
+      "name": "gw:input-reset",
+      "category": "host plumbing",
+      "reason": "Input: reset game input when a surface takes the keyboard."
+    },
+    {
+      "name": "gw:input-trace",
+      "category": "host plumbing",
+      "reason": "Input: the diagnostics input trace."
+    },
+    {
+      "name": "gw:storage-open",
+      "category": "certified stage or verifier",
+      "reason": "The certified storage controller claims it; the Must-stay test enhancement-storage-controller.test.ts dispatches it (#86)."
+    },
+    {
+      "name": "gw:surfaces-ready",
+      "category": "host plumbing",
+      "reason": "Harness: the game surfaces exist."
+    },
+    {
+      "name": "gw:text-edit",
+      "category": "host plumbing",
+      "reason": "Edit menu commands to the focused text field."
+    },
+    {
+      "name": "gw:tools-settings",
+      "category": "host plumbing",
+      "reason": "Harness broadcast of new settings and Feature facts to every renderer part."
+    }
+  ],
+  "rendererFeatureFiles": [
+    {
+      "file": "app/renderer/companion-alcohol-snapshot.ts",
+      "category": "kernel or block",
+      "reason": "Decoder of the kernel alcohol region behind `game.*` blocks."
+    },
+    {
+      "file": "app/renderer/companion-effect-snapshot.ts",
+      "category": "kernel or block",
+      "reason": "Decoder of the kernel effect regions behind `game.*` blocks."
+    },
+    {
+      "file": "app/renderer/companion-skill-snapshot.ts",
+      "category": "kernel or block",
+      "reason": "Decoder of the kernel skill-slot region behind `game.skillbar` and `ui.skill*`."
+    },
+    {
+      "file": "app/renderer/player-effect-state-installation.ts",
+      "category": "kernel or block",
+      "reason": "Kernel effect region feed (substrate)."
+    },
+    {
+      "file": "app/renderer/skill-cooldown-state-installation.ts",
+      "category": "kernel or block",
+      "reason": "Kernel recharge region feed (substrate)."
+    },
+    {
+      "file": "app/renderer/skill-key-artwork.ts",
+      "category": "kernel or block",
+      "reason": "Keycap art of the native HUD layer that `ui.skillKeys` draws on."
+    },
+    {
+      "file": "app/renderer/skill-overlays-installation.ts",
+      "category": "kernel or block",
+      "reason": "The skill HUD substrate that runs the feeds blocks need."
+    },
+    {
+      "file": "app/renderer/skill-slot-geometry-installation.ts",
+      "category": "kernel or block",
+      "reason": "Kernel skill-slot geometry feed (substrate)."
+    },
+    {
+      "file": "app/renderer/skill-slot-projection.ts",
+      "category": "kernel or block",
+      "reason": "The one game-to-viewport conversion behind `ui.skill*` blocks."
+    }
+  ],
+  "toolsUiLocalStorage": [
+    {
+      "file": "app/ui/tools/src/elite-fixture.ts",
+      "category": "test helper",
+      "reason": "Browser preview or test fixture data, never the player's."
+    },
+    {
+      "file": "app/ui/tools/src/hub-fixture-harness.ts",
+      "category": "test helper",
+      "reason": "Browser preview or test fixture data, never the player's."
+    },
+    {
+      "file": "app/ui/tools/src/hub-fixture.ts",
+      "category": "test helper",
+      "reason": "Browser preview or test fixture data, never the player's."
+    },
+    {
+      "file": "app/ui/tools/src/hub-game-fixture.ts",
+      "category": "test helper",
+      "reason": "Browser preview or test fixture data, never the player's."
+    },
+    {
+      "file": "app/ui/tools/src/standalone.ts",
+      "category": "test helper",
+      "reason": "Browser preview or test fixture data, never the player's."
+    }
+  ]
+}

@@ -203,7 +203,9 @@ capability, and a product setting cannot either.
 - `tests/policy/feature-docs.test.ts`: the website page and `$docs.<page>` links;
 - ESLint import boundaries: renderer code outside the folder reaches only `feature.ts`,
   `renderer/host.ts` and `shared/`;
-- the metric ceilings in `scripts/feature-metrics-ceilings.json` (never raise one);
+- the metric ceilings in `scripts/feature-metrics-ceilings.json` (never raise one); a hit that
+  is correct where it is (a certified stage, a kernel region, a fixture) goes in
+  `scripts/feature-metrics-allowed.json` with a category and a reason;
 - `tests/certification/feature-region-gating.test.ts`: the safety rules over every Feature in
   `FEATURES` (a confirmed PvP map turns it off unless its `region` is `any`, an unknown area
   keeps a `pve` Feature off, a developer program replaces the saved switches, and without a
