@@ -2,7 +2,8 @@
  * Maps in the game host: Elite Skills inside the native maps, and the player
  * state and live play region the Maps stage reads. Both follow the shared
  * snapshot and party feeds. While the walking route leads to the active quest,
- * it reads the quest's marker from `game.progress`.
+ * it reads the quest's marker from `game.progress`. Its link `findElite` opens the Elite Skills
+ * planner for the Build Library.
  */
 import {
   clearCartographyPlayerState,
@@ -11,6 +12,7 @@ import {
   updateCartographyQuest,
 } from "./renderer/cartography-player-state.js";
 import { createEliteMapInstallation } from "./renderer/elite-map-installation.js";
+import { provideLink } from "../../renderer/feature-links.js";
 import type { ToolsCompanionPart } from "../../renderer/tools-companion-part.js";
 
 export default {
@@ -27,6 +29,7 @@ export default {
                 && state.mapId === region.mapId && state.onWorldMap };
           },
         });
+        const stopLink = provideLink("cartography", { findElite: (skillId) => eliteMaps.find(skillId) });
         let identity = "";
         const wanted = () => context.on("cartography");
         observation.observeStateWhen(wanted);
@@ -48,7 +51,7 @@ export default {
               stopQuest ??= context.game.progress.subscribe(updateCartographyQuest);
             } else stopQuestRoute();
           },
-          disposePresentation: [stopQuestRoute, clearCartographyPlayerState, () => eliteMaps.dispose()],
+          disposePresentation: [stopLink, stopQuestRoute, clearCartographyPlayerState, () => eliteMaps.dispose()],
         };
       },
     };

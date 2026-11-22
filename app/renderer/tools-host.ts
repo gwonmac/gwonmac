@@ -1,171 +1,48 @@
 /**
- * Loads the independently-built Tools application and mounts it inside the
- * Toolbox overlay.
+ * Starts the Tools window's window parts (the Build Library's and Trade Chat's) with what each
+ * one's context needs, and mounts the saved-library-only Tools window for a client with no
+ * usable companion. The game host imports it lazily, so the parts load only with Tools.
  *
- * This module is deliberately thin. The overlay already owns the boundary —
- * the toggle command, the event stops, pointer-lock release, the cursor mirror,
- * focus transfer and teardown — so a tool needs none of that again. An earlier
- * version of this file created its own root element beside the canvas and
- * re-implemented the input protection; two boundaries around one panel is how
- * a held movement key ends up stuck when only one of them is torn down.
- *
- * The window furniture is the tool's own: it draws and drags its own window,
- * and reports back when it closes itself so the overlay does not go on
- * believing it is open.
- *
- * What is left is what the Vue bundle genuinely cannot reach on its
- * own: where a build is written so Guild Wars can load it, whether a team may be
- * applied to the running game, the named storage action, and the companion's
- * observation of that game — which passes straight through, unread. The bundle
- * owns what a party means.
+ * The Tools window already owns the boundary — the toggle, the event stops, pointer-lock
+ * release, the cursor mirror, focus transfer and teardown — so a window part needs none of that
+ * again. Two boundaries around one panel is how a held movement key ends up stuck when only one
+ * of them is torn down.
  */
 import type { TeamApplyCommands } from "../shared/builds/team-apply-runner.js";
 import type { StorageCommand } from "../shared/storage-command.js";
-import type {
-  PublishedTemplate,
-  PublishableTemplate,
-  EmbeddedToolsBundle,
-} from "../shared/tools-bundle-contracts.js";
-import {
-  createToolboxLifecycle,
-  type MountedTool,
-} from "./toolbox-foundation.js";
-import {
-  exportEntries,
-  applyImport,
-  planImport,
-  templateFilesystem,
-} from "./template-store.js";
-import { sanitiseTemplateName } from "./template-format.js";
-import { createTemplateFiles } from "./template-files.js";
-import { ensureToolsStylesheet } from "./tools-stylesheet.js";
-import { requireToolsApi } from "./tools-native-api.js";
+import { createToolboxLifecycle, type MountedTool } from "./toolbox-foundation.js";
 import { featureLinks, onLinksChange } from "./feature-links.js";
+import buildLibraryWindow from "../features/build-library/renderer/host.js";
 import tradeWindow from "../features/trade-chat/renderer/host.js";
 import { featureOn } from "./feature-on.js";
-import { toolsUnavailableCopy } from "../shared/tools-unavailable-copy.js";
 
 /**
- * Writes one build where the game's own template dialog will find it.
- *
- * The store decides everything before it writes, so a name already holding
- * this exact code is not a write and re-publishing is idempotent. The client
- * caches its template scan, which is why the returned location is worded for a
- * player who will have to press Refresh List before the build appears.
+ * Starts the Build Library's window part. `commands` and `storage` are the certified Team Apply
+ * and Xunlai Storage commands, or null for a module derived without them: only the complete Tools
+ * profile carries a call to a packet builder, so null is an absence in the bytes rather than a
+ * disabled JavaScript switch. They are handed straight through.
  */
-async function publishTemplate(
-  { name: raw, code }: PublishableTemplate,
-): Promise<PublishedTemplate> {
-  const fs = templateFilesystem();
-  if (fs === null) {
-    throw new Error("Guild Wars template storage is not available yet.");
-  }
-  const name = sanitiseTemplateName(raw);
-  // The type root, never a subfolder: the client's scan does not descend, so a
-  // template one level down is saved, exported, and listed by nothing in game.
-  const candidate = { kind: "skills" as const, folder: null, name, code };
-  const plan = planImport(fs, [candidate], "replace");
-  if (plan.unsafe > 0) {
-    throw new Error("That build name cannot be used as a file name.");
-  }
-  if (plan.full > 0) {
-    throw new Error(
-      "The Skills template folder is at the limit Guild Wars can list.",
-    );
-  }
-  if (plan.writes.length > 0) await applyImport(fs, plan);
-  return Object.freeze({
-    fileName: `${name}.txt`,
-    location: "Skills — press Refresh List in Guild Wars to see it",
-  });
-}
-
-/**
- * Loads the Tools bundle and hands the overlay a handle to it.
- *
- * The application draws its own window against the viewport, so all it needs
- * from here is somewhere inside the overlay to attach — the overlay's root is
- * where the event stops and the cursor mirror already are.
- *
- * A failure is reported rather than swallowed. An empty panel that explains
- * nothing costs a debugging session; this one says what went wrong and leaves
- * the reason in the console.
- */
-export function mountToolsInto(
+export function mountBuildsInto(
   host: HTMLElement,
   onVisibilityChange: (visible: boolean) => void,
-  /**
-   * The certified commands, or `null` for a module derived without them.
-   * Only the complete Tools profile carries a call to a packet builder, so
-   * `null` is an absence in the bytes rather than a disabled JavaScript switch.
-   *
-   * Handed straight through. This module is a courier and does not learn what
-   * a hero is — the sequence that turns a plan into commands lives beside the
-   * domain it reasons about, in `app/shared/builds`, which this bundle cannot
-   * import at run time and the Tools bundle compiles in.
-   */
+  show: () => void,
   commands: TeamApplyCommands | null,
   storage: StorageCommand | null,
   /** Whether this session's client can discover templates written to IDBFS. */
-  templatePublishingAvailable: boolean,
+  templatePublishing: boolean,
 ): Promise<MountedTool | null> {
-  const native = requireToolsApi();
-  ensureToolsStylesheet(host.ownerDocument);
-  // A build artifact, not a source module: vite writes it beside this emit at
-  // package time. The specifier goes through a variable so the compiler does
-  // not try to resolve a file that only exists after the build step.
-  const specifier = "./tools/tools-app.js";
-  return Promise.all([import(specifier), native.client.session()])
-    .then(([bundle, session]: [EmbeddedToolsBundle<HTMLElement>, Awaited<ReturnType<typeof window.gwNative.client.session>>]) => {
-      const unavailable = toolsUnavailableCopy(session.compatibility?.features, {
-        teamApply: commands !== null,
-        storage: storage !== null,
-        publish: templatePublishingAvailable,
-      });
-      const app = bundle.mountToolsApp(host, {
-        ...(window.gwHub ? { hub: window.gwHub } : {}),
-        nativeApi: native,
-        initiallyVisible: false,
-        onVisibilityChange,
-        readTemplates: async () => { const fs = templateFilesystem(); return fs ? exportEntries(fs) : []; },
-        publishTemplate: templatePublishingAvailable ? publishTemplate : null,
-        // The same gate as publishing: a client that cannot discover what is
-        // written to the mount would list none of an import.
-        templateFiles: templatePublishingAvailable
-          ? createTemplateFiles({ filesystem: templateFilesystem, exportToDisk: (entries) => window.gwNative.templates.export(entries) })
-          : null,
-        commands,
-        storage,
-        storageUnavailable: unavailable.storage,
-        publishUnavailable: unavailable.publish,
-        applyUnavailable: unavailable.apply,
-        observationUnavailable: unavailable.observation,
-        development: window.gwNative.init.development,
-      });
-      return {
-        setVisible: (visible: boolean) => {
-          if (visible) app.show();
-          else app.hide();
-        },
-        setActive: app.setActive,
-        requestClose: app.requestClose,
-        update: app.update,
-        stop: app.dispose,
-      };
-    })
-    .catch((cause: unknown) => {
-      console.error("[tools] the Tools application failed to load", cause);
-      host.textContent = "Tools could not be loaded — see the console.";
-      return null;
-    });
+  return buildLibraryWindow.start({
+    host, onVisibilityChange, show, links: featureLinks(buildLibraryWindow.id), onLinksChange, commands, storage, templatePublishing,
+  });
 }
 
 /** Starts Trade Chat's window part with the links its manifest names. */
 export function mountTradeInto(
   host: HTMLElement,
   onVisibilityChange: (visible: boolean) => void,
+  show: () => void,
 ): Promise<MountedTool | null> {
-  return tradeWindow.start({ host, onVisibilityChange, links: featureLinks("tradeChat"), onLinksChange });
+  return tradeWindow.start({ host, onVisibilityChange, show, links: featureLinks(tradeWindow.id), onLinksChange });
 }
 
 /**
@@ -179,21 +56,16 @@ export function mountHostOnlyTools(
   templatePublishingAvailable: boolean,
 ): () => void {
   const lifecycle = createToolboxLifecycle(parent, {
-    mountTool: (host, onVisibilityChange) =>
-      mountToolsInto(
-        host,
-        onVisibilityChange,
-        null,
-        null,
-        templatePublishingAvailable,
-      ),
+    buildsLink: buildLibraryWindow.id,
+    mountTool: (host, onVisibilityChange, show) =>
+      mountBuildsInto(host, onVisibilityChange, show, null, null, templatePublishingAvailable),
     mountTrade: mountTradeInto,
   });
   const syncEnabled = () => {
     lifecycle.setEnabled(featureOn("tools"));
     lifecycle.setAvailable({
-      builds: featureOn("buildLibrary"),
-      trade: featureOn("tradeChat"),
+      builds: featureOn(buildLibraryWindow.id),
+      trade: featureOn(tradeWindow.id),
     });
   };
   window.addEventListener("gw:tools-settings", syncEnabled);

@@ -68,6 +68,10 @@ export type ToolsAppMountOptions = Readonly<{
   readTemplates?: () => Promise<readonly { path: string; contents: string }[]>;
   initiallyVisible?: boolean;
   onVisibilityChange?: (visible: boolean) => void;
+  /** Shows the Library as its own window over the game, out of an open Hub. */
+  openWindow: () => void;
+  /** Maps' link `findElite`: opens the Elite Skills planner on a skill's capture locations. */
+  findElite: (skillId: number) => "opened" | "unavailable";
   publishTemplate:
     | ((template: PublishableTemplate) => Promise<PublishedTemplate>)
     | null;

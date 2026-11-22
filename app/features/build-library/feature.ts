@@ -21,11 +21,14 @@ export default defineFeature({
   optInWithTools: true,
   tool: {
     id: "build-management",
-    event: "gw:tools-toggle",
     keywords: "builds templates skills",
   },
   hub: { command: "builds", order: 3, keyOrder: 2 },
   shortcuts: [{ action: "tools.toggle", binding: { key: "b", shift: false, option: false }, menuItem: "toggle-tools" }],
+  /** Its shortcut and game menu item show the window through `toggle` (shared/link.ts). */
+  offers: ["toggle"],
+  /** "Find capture locations" on an elite skill opens Maps' Elite Skills planner. */
+  links: { cartography: ["findElite"] },
   shots: [],
   parts: ["window", "main"],
 });

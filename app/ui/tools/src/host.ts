@@ -96,6 +96,10 @@ export interface ToolsHost {
   readonly observationUnavailable: string | null;
   openStorage(): Promise<void>;
   readonly storageUnavailable: string | null;
+  /** Shows the Library as its own window over the game, out of an open Hub. */
+  openWindow(): void;
+  /** Opens Maps' Elite Skills planner on a skill's capture locations (Maps' link). */
+  findElite(skillId: number): "opened" | "unavailable";
   reset?(): Promise<LibraryLoad>;
 }
 
@@ -193,6 +197,8 @@ export function createDemoHost(storage: Storage | null = null): ToolsHost {
     observationUnavailable: null,
     storageUnavailable: null,
     publishUnavailable: null,
+    openWindow: () => {},
+    findElite: () => "unavailable",
     async loadLibrary() {
       memory = read();
       return { library: cloneLibrary(memory), recovered: false };
@@ -267,6 +273,8 @@ export function createNativeHost(
    * for a Guild Wars update.
    */
   missing: Readonly<{ storage: string | null; publish: string | null }> = { storage: null, publish: null },
+  /** What the game host's Tools window does for the Library: show it on its own, and reach Maps. */
+  shell: Pick<ToolsHost, "openWindow" | "findElite"> = { openWindow: () => {}, findElite: () => "unavailable" },
 ): ToolsHost {
   const storageMissing = missing.storage ?? STORAGE_AFTER_UPDATE;
   const party = ref(unavailableParty());
@@ -388,6 +396,8 @@ export function createNativeHost(
       return storage === null ? storageMissing : storage.unavailable();
     },
     publishUnavailable: publishTemplate === null ? missing.publish ?? PUBLISH_UNAVAILABLE : null,
+    openWindow: shell.openWindow,
+    findElite: shell.findElite,
     async loadLibrary() {
       const [library, skills] = await Promise.all([
         api.buildLibrary.get(),

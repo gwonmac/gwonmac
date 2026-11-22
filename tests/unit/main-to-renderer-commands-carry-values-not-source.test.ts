@@ -265,24 +265,20 @@ test("menu commands reach the game renderer as events", async () => {
   const fixture = harness(TOOLS_ARGV);
   fixture.deliver(1, { type: "input.reset" });
   fixture.deliver(2, { type: "diagnostics.toggle" });
-  fixture.listen("gw:tools-toggle");
-  fixture.deliver(3, { type: "tools.toggle" });
   fixture.listen("gw:storage-open");
-  fixture.deliver(4, { type: "storage.open" });
-  await fixture.settled(4);
+  fixture.deliver(3, { type: "storage.open" });
+  await fixture.settled(3);
   assert.deepEqual(fixture.dispatched, [
     "gw:input-reset",
     "gw:diagnostics-toggle",
-    "gw:tools-toggle",
     "gw:storage-open",
   ]);
   assert.deepEqual(fixture.acknowledgements(), [
     [1, "completed"],
     [2, "completed"],
     [3, "completed"],
-    [4, "completed"],
   ]);
-  assert.equal(fixture.transientDismissals(), 3,
+  assert.equal(fixture.transientDismissals(), 2,
     "explicit interface commands dismiss transient palettes before dispatch");
 });
 
@@ -305,7 +301,6 @@ test("key release, trace state and text editing cross preload with their values 
 // Each tool command and the event its tool's manifest names. A typo or a
 // missing `event` in a manifest leaves the command dispatching nothing.
 const TOOL_COMMANDS = [
-  ["tools.toggle", "gw:tools-toggle"],
   ["storage.open", "gw:storage-open"],
   ["character.toggle", "gw:character-toggle"],
   ["game.call-target", "gw:call-target"],
@@ -332,24 +327,27 @@ test("a tool command is unhandled when no listener claims its event, and fails w
 });
 
 test("a tool that opens through its Feature's link is toggled through it, and is unhandled while nothing provides it", async () => {
-  // Whispers offers `toggle` (ToolLink, app/features/links.ts): its shortcut calls the link, and
-  // no window event is fired. A link the part does not provide is the answer of a launch without it.
+  // Whispers and the Build Library offer `toggle` (ToolLink, app/features/links.ts): the shortcut
+  // calls the link, and no window event is fired. A link nothing provides is the answer of a
+  // launch without it.
   const previous = Object.getOwnPropertyDescriptor(globalThis, "window");
-  Object.defineProperty(globalThis, "window", { configurable: true, value: { gwFeatureFacts: () => provenFacts({ gwonmacTools: true, whispersEnabled: true }) } });
+  Object.defineProperty(globalThis, "window", { configurable: true, value: { gwFeatureFacts: () => provenFacts({ gwonmacTools: true, whispersEnabled: true, buildLibrary: true }) } });
   try {
-    for (const provided of [false, true]) {
+    const toolLinks = [
+      ["whispers.toggle", (toggle: ToolLink["toggle"]) => provideLink("whispers", { open: () => "opened", people: () => "unavailable", toggle })],
+      ["tools.toggle", (toggle: ToolLink["toggle"]) => provideLink("buildLibrary", { toggle })],
+    ] as const;
+    for (const [type, provide] of toolLinks) for (const provided of [false, true]) {
       const asked: string[] = [];
-      const stop = provided
-        ? provideLink("whispers", { open: () => "opened", people: () => "unavailable", toggle: (intent) => { asked.push(intent); return "shown"; } })
-        : () => {};
+      const stop = provided ? provide((intent) => { asked.push(intent); return "shown"; }) : () => {};
       const fixture = harness(TOOLS_ARGV);
-      fixture.deliver(1, { type: "whispers.toggle" });
+      fixture.deliver(1, { type });
       await fixture.settled(1);
       stop();
       assert.deepEqual(
         { dispatched: fixture.dispatched.filter((name) => name !== "gw:input-reset"), asked, acknowledged: fixture.acknowledgements() },
         { dispatched: [], asked: provided ? ["toggle"] : [], acknowledged: [[1, provided ? "completed" : "unhandled"]] },
-        provided ? "provided" : "not provided",
+        `${type} ${provided ? "provided" : "not provided"}`,
       );
     }
   } finally {
@@ -360,6 +358,7 @@ test("a tool that opens through its Feature's link is toggled through it, and is
 // Each Feature that offers `toggle`, providing a link that answers only `toggle`. The type
 // makes a new toggle Feature extend this table, so the test below covers it.
 const TOGGLE_ONLY: { [Target in ToolLinkTarget]: (toggle: ToolLink["toggle"]) => FeatureLinkApis[Target] } = {
+  buildLibrary: (toggle) => ({ toggle }),
   resign: (toggle) => ({ toggle }),
   tradeChat: (toggle) => ({ toggle, search: () => "unavailable" }),
   travel: (toggle) => ({ toggle, friendTripBlocked: () => "unavailable", toFriend: () => "unavailable", showProgress: () => "unavailable" }),

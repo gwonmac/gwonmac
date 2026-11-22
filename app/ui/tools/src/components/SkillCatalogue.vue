@@ -21,11 +21,6 @@ import {
   saveCataloguePreferences,
 } from "../catalogue-preferences";
 
-const captureProblem = ref("");
-function findCapture(skill: SkillPresentation): void {
-  const unhandled = window.dispatchEvent(new CustomEvent("gw:elite-find", { cancelable: true, detail: { skillId: skill.id } }));
-  captureProblem.value = unhandled ? "Capture maps need Maps enabled and a supported PvE session." : "";
-}
 
 const props = defineProps<{
   editor: BuildDraftController;
@@ -34,11 +29,18 @@ const props = defineProps<{
   unlocks: SkillUnlockObservation | null;
   unlockScope: "account" | "character";
   dragSession: SkillDragSession;
+  /** Maps' link: opens the Elite Skills planner on a skill's capture locations. */
+  findElite: (skillId: number) => "opened" | "unavailable";
 }>();
 const emit = defineEmits<{
   close: [];
   place: [slot: number, skill: SkillPresentation["id"]];
 }>();
+
+const captureProblem = ref("");
+function findCapture(skill: SkillPresentation): void {
+  captureProblem.value = props.findElite(skill.id) === "unavailable" ? "Capture maps need Maps enabled and a supported PvE session." : "";
+}
 
 const search = ref("");
 const filter = ref<"all" | "primary" | "secondary" | "elite" | "player">("all");

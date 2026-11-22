@@ -7,11 +7,15 @@
  *
  * The Trade window opens before its window part has loaded, so this host
  * provides Trade Chat's link (`toggle`, `search`) while its Trade slot exists.
+ *
+ * The Build Library opens through its link `toggle` (its shortcut and game menu item), which
+ * this host provides while it exists: the window part starts only when first opened, so it
+ * cannot provide the link that opens it.
  */
 import { createNonActivatingSurface, isolateFromGame } from "./non-activating-surface.js";
 import { LIBRARY_UNAVAILABLE } from "../shared/hub-preferences.js";
 import type { ToolboxObservation } from "../shared/builds/live-party.js";
-import type { FeatureLinks, ToolIntent } from "../features/links.js";
+import type { FeatureLinks, ToolIntent, ToolLink, WindowToolTarget } from "../features/links.js";
 import type { RunningPart } from "../features/parts.js";
 import type { FeatureId } from "../shared/feature-contracts.js";
 import type { TradeChatLink } from "../features/trade-chat/shared/link.js";
@@ -47,11 +51,13 @@ export interface MountedTool extends RunningPart {
 
 /**
  * What a window part's `start` gets: its host element, how it reports that it closed
- * itself, and the links its manifest names with their change signal (feature-links.ts).
+ * itself, how it asks to show on its own over the game (out of an open Hub), and the links
+ * its manifest names with their change signal (feature-links.ts).
  */
 export type WindowContext<Id extends FeatureId> = Readonly<{
   host: HTMLElement;
   onVisibilityChange(visible: boolean): void;
+  show(): void;
   links: FeatureLinks<Id>;
   onLinksChange(listener: () => void): () => void;
 }>;
@@ -59,6 +65,7 @@ export type WindowContext<Id extends FeatureId> = Readonly<{
 type MountTool = (
   host: HTMLElement,
   onVisibilityChange: (visible: boolean) => void,
+  show: () => void,
 ) => Promise<MountedTool | null>;
 
 type FoundationOptions = {
@@ -165,7 +172,9 @@ export function createToolboxFoundation(
   const ensure = (slot: Slot) => {
     if (slot.requested) return;
     slot.requested = true;
-    void slot.mount(slot.host, (visible) => setOpen(slot, visible))
+    // A pop-out from the window's own page does nothing once its Feature is off.
+    const show = () => { if (!disposed && availability[slot.name]) openFloating(slot); };
+    void slot.mount(slot.host, (visible) => setOpen(slot, visible), show)
       .then((mounted) => {
         if (disposed) {
           mounted?.stop();
@@ -233,14 +242,17 @@ export function createToolboxFoundation(
       }
     });
   }
-  const onBuildsCommand = (event: Event) => {
-    if (!availability.builds) return;
-    event.preventDefault();
-    if (event instanceof CustomEvent && event.detail === 'workspace') openFloating(builds);
+  /** The Build Library's link `toggle`: its shortcut and game menu item. */
+  const openBuilds = (intent: ToolIntent): ReturnType<ToolLink["toggle"]> => {
+    if (disposed || !availability.builds) return "unavailable";
     // An open Hub, or one suspended on the Build Library's pages, takes ⌘B as a direct shortcut.
-    else if (window.gwHub?.visible || window.gwHub?.suspendedOn('builds')) window.gwHub.openRow('builds', 'builds', LIBRARY_UNAVAILABLE);
-    else if (event instanceof CustomEvent && event.detail === "show") openFloating(builds);
+    if (window.gwHub?.visible || window.gwHub?.suspendedOn('builds')) {
+      window.gwHub.openRow('builds', 'builds', LIBRARY_UNAVAILABLE);
+      return "shown";
+    }
+    if (intent === "show") openFloating(builds);
     else toggle(builds);
+    return builds.visible ? "shown" : "hidden";
   };
   const openTrade = (intent: ToolIntent, query?: string): "shown" | "hidden" | "unavailable" => {
     if (!trade || !availability.trade) return "unavailable";
@@ -271,11 +283,11 @@ export function createToolboxFoundation(
   mirrorCursor();
   const onHub = () => { if (availability.builds) ensure(builds); };
   window.addEventListener("gw:hub-visible", onHub);
-  window.addEventListener("gw:tools-toggle", onBuildsCommand);
   // The client may finish mounting Tools after Hub has already opened.
   if (window.gwHub?.visible) onHub();
 
   return {
+    openBuilds,
     update(next: ToolboxState) {
       state = next;
       builds.tool?.update(next);
@@ -299,7 +311,6 @@ export function createToolboxFoundation(
       nonActivating.dispose();
       cursorMirror.disconnect();
       window.removeEventListener("gw:hub-visible", onHub);
-      window.removeEventListener("gw:tools-toggle", onBuildsCommand);
       stopTradeLink();
       window.dispatchEvent(new CustomEvent("gw:input-reset"));
       if (root.contains(document.activeElement)) canvas.focus({ preventScroll: true });
@@ -311,12 +322,16 @@ export function createToolboxFoundation(
 
 export function createToolboxLifecycle(
   parent: HTMLElement,
-  options: FoundationOptions,
+  { buildsLink, ...options }: FoundationOptions & Readonly<{
+    /** The Feature whose window the builds slot holds; this host provides its link `toggle`. */
+    buildsLink: WindowToolTarget;
+  }>,
 ) {
   let foundation: ReturnType<typeof createToolboxFoundation> | null = null;
   let state: ToolboxState = Object.freeze({ status: "waiting" });
   let availability: ToolboxAvailability = { builds: true, trade: true };
   let disposed = false;
+  const stopLink = provideLink(buildsLink, { toggle: (intent) => foundation?.openBuilds(intent) ?? "unavailable" });
   return {
     setEnabled(enabled: boolean) {
       if (disposed) return;
@@ -342,6 +357,7 @@ export function createToolboxLifecycle(
     dispose() {
       if (disposed) return;
       disposed = true;
+      stopLink();
       foundation?.dispose();
       foundation = null;
     },

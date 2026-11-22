@@ -89,6 +89,7 @@ test.describe("renderer Tools input", () => {
             },
           ): {
             update(state: object): void;
+            openBuilds(intent: "show" | "toggle"): string;
           };
         };
         let gameKeys = 0;
@@ -218,6 +219,9 @@ test.describe("renderer Tools input", () => {
             const answer = links.toggleTool("tradeChat", intent);
             if (typeof answer === "object") throw new Error(`Trade Chat's link is unavailable: ${answer.reason}`);
           };
+        // The Build Library's link `toggle`, which its shortcut and menu item call.
+        (globalThis as unknown as { openBuilds(intent: "show" | "toggle"): string })
+          .openBuilds = (intent) => toolbox.openBuilds(intent);
         // The projection still takes what the observer feeds it. What those
         // values mean is pinned at the real boundary by
         // tests/packaged-enhancement-runtime.ts, which reads them back through
@@ -298,7 +302,7 @@ test.describe("renderer Tools input", () => {
       await page.keyboard.down("KeyW");
       await expect(body).toHaveAttribute("data-toolbox-game-keys", "1");
       await page.evaluate(() => {
-        window.dispatchEvent(new CustomEvent("gw:tools-toggle", { cancelable: true }));
+        (globalThis as unknown as { openBuilds(intent: string): string }).openBuilds("toggle");
       });
       await expect(root).toHaveAttribute("data-open", "true");
       await expect(tool).toBeVisible();
@@ -342,7 +346,7 @@ test.describe("renderer Tools input", () => {
       await expect(trade).toHaveAttribute("data-active", "true");
       await expect(tool).toHaveAttribute("data-active", "false");
       // Hub's explicit Open action raises an existing tool instead of toggling it off.
-      await page.evaluate(() => window.dispatchEvent(new CustomEvent('gw:tools-toggle', { cancelable: true, detail: 'show' })));
+      await page.evaluate(() => (globalThis as unknown as { openBuilds(intent: string): string }).openBuilds("show"));
       await expect(tool).toBeVisible();
       await expect(tool).toHaveAttribute('data-active', 'true');
       await expect(trade).toHaveAttribute('data-active', 'false');
@@ -364,7 +368,7 @@ test.describe("renderer Tools input", () => {
         window.requestAnimationFrame = callback => { pending.set(++next, callback); return next; };
         window.cancelAnimationFrame = handle => { pending.delete(handle); };
         try {
-          window.dispatchEvent(new CustomEvent('gw:tools-toggle', { cancelable: true, detail: 'show' }));
+          (globalThis as unknown as { openBuilds(intent: string): string }).openBuilds("show");
           const { tradeToggle } = globalThis as unknown as { tradeToggle(intent: string): void };
           tradeToggle("show");
           tradeToggle("toggle");
@@ -443,9 +447,7 @@ test.describe("renderer Tools input", () => {
       await expect(tool).toBeHidden();
       await expect(body).toHaveAttribute("data-toolbox-game-keys", "4");
 
-      await page.evaluate(() => window.dispatchEvent(
-        new CustomEvent("gw:tools-toggle", { cancelable: true }),
-      ));
+      await page.evaluate(() => (globalThis as unknown as { openBuilds(intent: string): string }).openBuilds("toggle"));
       await expect(tool).toBeVisible();
 
       // Target calling belongs to Guild Wars, with the library open or closed.
@@ -461,9 +463,7 @@ test.describe("renderer Tools input", () => {
           delete document.body.dataset.toolboxSpaceUp;
         });
       }
-      await page.evaluate(() => window.dispatchEvent(
-        new CustomEvent("gw:tools-toggle", { cancelable: true }),
-      ));
+      await page.evaluate(() => (globalThis as unknown as { openBuilds(intent: string): string }).openBuilds("toggle"));
 
       // The same Escape closes Tools after a game click left focus on canvas.
       const gameKeysBeforeCanvasEscape = await body.getAttribute(
@@ -477,9 +477,7 @@ test.describe("renderer Tools input", () => {
       );
 
       // The app command toggles from anywhere.
-      await page.evaluate(() => window.dispatchEvent(
-        new CustomEvent("gw:tools-toggle", { cancelable: true }),
-      ));
+      await page.evaluate(() => (globalThis as unknown as { openBuilds(intent: string): string }).openBuilds("toggle"));
       await expect(tool).toBeVisible();
 
       // A tool that hides itself has to say so, because the overlay cannot see
@@ -487,19 +485,15 @@ test.describe("renderer Tools input", () => {
       // and the next toggle closes an already-hidden tool.
       await page.getByRole("button", { name: "Close tool" }).click();
       await expect(tool).toBeHidden();
-      await page.evaluate(() => window.dispatchEvent(
-        new CustomEvent("gw:tools-toggle", { cancelable: true }),
-      ));
+      await page.evaluate(() => (globalThis as unknown as { openBuilds(intent: string): string }).openBuilds("toggle"));
       await expect(tool).toBeVisible();
 
       // The menu route: the main process sends `tools.toggle`, and the renderer
-      // command handler needs to know whether anything was listening. The
-      // overlay answers by cancelling the event — an uncancelled one is how
-      // `commands.ts` tells a player the capability is not installed.
+      // command handler needs to know whether anything answered. The overlay's
+      // link answers — "unavailable" is how `commands.ts` tells a player the
+      // capability is not installed.
       const claimed = await page.evaluate(() =>
-        !window.dispatchEvent(
-          new CustomEvent("gw:tools-toggle", { cancelable: true }),
-        ),
+        (globalThis as unknown as { openBuilds(intent: string): string }).openBuilds("toggle") !== "unavailable",
       );
       expect(claimed).toBe(true);
       await expect(tool).toBeHidden();
@@ -613,10 +607,11 @@ test.describe("renderer Tools input", () => {
       const root = page.locator("#toolbox-foundation");
       const panel = page.locator(".tools-window");
       const canvas = page.locator("#canvas");
-      const toggleTools = () => page.evaluate(() => {
-        window.dispatchEvent(new CustomEvent("gw:tools-toggle", {
-          cancelable: true,
-        }));
+      // The Build Library's link `toggle`, which its shortcut and menu item call.
+      const toggleTools = () => page.evaluate(async () => {
+        const linksPath = "./feature-links.js";
+        const links = await import(linksPath) as typeof import("../../app/renderer/feature-links.js");
+        links.toggleTool("buildLibrary", "toggle");
       });
       const settleEmbeddedShow = async () => {
         // Tools sizes itself on the frame after it becomes visible. Cross that
@@ -772,7 +767,7 @@ test.describe("renderer Tools input", () => {
               update(state: object): void;
               stop(): void;
             }> },
-          ): { dispose(): void };
+          ): { dispose(): void; openBuilds(intent: "show" | "toggle"): string };
         }, typeof import("../../app/renderer/surface-controller.js")];
         window.gwSurfaces = surfaces.installSurfaceController(document);
         let resolveMount!: (tool: {
@@ -785,7 +780,7 @@ test.describe("renderer Tools input", () => {
         const foundation = module.createToolboxFoundation(document.body, {
           mountTool: () => new Promise((resolve) => { resolveMount = resolve; }),
         });
-        window.dispatchEvent(new CustomEvent("gw:tools-toggle", { cancelable: true }));
+        foundation.openBuilds("toggle");
         foundation.dispose();
         resolveMount({
           setVisible: () => undefined,

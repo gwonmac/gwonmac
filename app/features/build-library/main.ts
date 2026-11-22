@@ -4,11 +4,11 @@
 import { channel } from "../../main/ipc-channel-registry.js";
 import { BuildLibraryCoordinator } from "./main/build-library-coordinator.js";
 import { nothing, one } from "../../main/ipc-values.js";
-import type { ToolsMainPart } from "../../main/tools-main-part.js";
+import { mainPart } from "../../main/tools-main-part.js";
 import contract from "./shared/ipc.js";
 import { parseBuildLibrary } from "../../shared/builds/parse-library.js";
 
-export default {
+export default mainPart({
   feature: "buildLibrary",
   label: "build library",
   contract,
@@ -23,6 +23,8 @@ export default {
           () => libraries.set(win, accounts.buildLibraryPathFor(win), library),
         )),
       },
+      // The library is read and written per request; nothing runs between them.
+      start: () => ({ stop: () => {} }),
     };
   },
-} satisfies ToolsMainPart<typeof contract>;
+});

@@ -134,18 +134,15 @@ export function createEliteMapInstallation(options: {
       console.error("[maps] Elite Skills could not start", error);
     } finally { pending = false; }
   }
-  const find = (event: Event) => {
-    if (!enabled || !(event instanceof CustomEvent)) return;
-    const value: unknown = event.detail;
-    if (!value || typeof value !== "object" || !("skillId" in value)
-      || typeof value.skillId !== "number" || !Number.isSafeInteger(value.skillId)) return;
-    event.preventDefault();
-    if (app) app.find(value.skillId);
-    else { requestedSkill = value.skillId; void mount(); }
+  /** Maps' link `findElite`: opens the planner on the skill, mounting it first when needed. */
+  const find = (skillId: number): "opened" | "unavailable" => {
+    if (!enabled || !Number.isSafeInteger(skillId)) return "unavailable";
+    if (app) app.find(skillId);
+    else { requestedSkill = skillId; void mount(); }
+    return "opened";
   };
-  window.addEventListener("gw:elite-find", find);
   function stop() { cancelAnimationFrame(frame); app?.dispose(); app = null; cleanup?.(); cleanup = null; }
-  return { update(next: boolean) { enabled = next && !disposed; if (enabled) void mount(); else stop(); },
-    dispose() { disposed = true; enabled = false; stop(); window.removeEventListener("gw:elite-find", find); },
+  return { find, update(next: boolean) { enabled = next && !disposed; if (enabled) void mount(); else stop(); },
+    dispose() { disposed = true; enabled = false; stop(); },
   };
 }

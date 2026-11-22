@@ -228,7 +228,9 @@ export function mountHubFixture(target: HTMLElement) {
   };
   syncResign();
   const foundation = createToolboxFoundation(document.body, {
-    async mountTool(element, onVisibilityChange) {
+    async mountTool(element, onVisibilityChange, show) {
+      // The Library pops out of the Hub through its window's `show`, as in the game.
+      game.host.openWindow = show;
       const app = mountToolsApp(element, { host: game.host, hub, mode: 'embedded', initiallyVisible: false, onVisibilityChange });
       window.addEventListener('hub-fixture-withdraw-library', app.dispose, { once: true });
       return { setVisible: visible => visible ? app.show() : app.hide(), setActive: app.setActive, requestClose: app.requestClose, update() {}, stop: app.dispose };
@@ -249,6 +251,8 @@ export function mountHubFixture(target: HTMLElement) {
       return { setVisible: visible => visible ? app.show() : app.hide(), requestClose: app.hide, stepBack: app.stepBack, search: app.search, update() {}, stop: app.dispose };
     },
   });
+  // The Build Library's link `toggle`, as the game's Tools window provides it (createToolboxLifecycle).
+  provideLink('buildLibrary', { toggle: foundation.openBuilds });
   const travel = createHubTravel(travelHost, hub, (place, leave) => askLeaveArea(hub, leaveAreaCopy('travel', place), leave), () => onWhereAllowed('travel', facts()));
   // Progress follows the fixture's map, as the companion republishes it after each map change.
   watch(() => travelHost.state.value, state => travel.updateProgress(state.status === 'ready' ? progressFixture(state.mapId) : { status: 'waiting', reason: state.reason === 'loading' ? 'loading' : 'unavailable' }), { immediate: true });

@@ -434,6 +434,7 @@ defineExpose({
           :unlocks="skillUnlocks"
           :unlock-scope="unlockScope"
           :drag-session="dragSession"
+          :find-elite="controller.findElite"
           @close="closeCatalogue"
           @place="placeSkill"
         />
