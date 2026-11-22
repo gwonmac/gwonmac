@@ -17,6 +17,8 @@ import { createHub } from '../../../../../renderer/hub';
 import { withHubBuiltins, type GameHub } from '../../../../../renderer/hub-builtins';
 // eslint-disable-next-line no-restricted-imports
 import { askLeaveArea, leaveAreaCopy } from '../../../../../renderer/leave-area';
+// eslint-disable-next-line no-restricted-imports
+import { provideLink } from '../../../../../renderer/feature-links';
 import { DEFAULT_SETTINGS, type AppSettings } from '../../../../../shared/settings/index';
 import type { HubRow, HubSource } from '../../../../../shared/hub';
 import type { HubShortcut } from '../../../../../shared/hub-preferences';
@@ -47,6 +49,7 @@ const primary = () => field<HTMLButtonElement>('.hub-primary');
 
 let settings: AppSettings;
 let hub: GameHub;
+let stopTrade = () => {};
 beforeEach(() => {
   vi.useFakeTimers({ now: new Date('2026-11-07T12:00:00Z'), toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date', 'requestAnimationFrame', 'cancelAnimationFrame', 'performance'] });
   // Price details print local dates; the snapshot must not depend on the machine's time zone or locale.
@@ -73,13 +76,17 @@ beforeEach(() => {
       settings: { set: async (patch: Partial<AppSettings>) => { settings = { ...settings, ...patch }; return settings; } },
       clipboard: { writeText: async () => {} },
       client: { session: async () => ({ compatibility: null }) },
-      trade: { getMarketRates: async () => estimateMarketRates(market), getTraderQuotes: async () => ({ updatedAt: Date.now(), quotes: [] }) },
     },
+  });
+  // The calculator reads Trade's prices through Trade's link, which its window part provides in a game window.
+  stopTrade = provideLink('tradeChat', {
+    toggle: () => 'unavailable', search: () => 'unavailable',
+    marketRates: async () => estimateMarketRates(market), traderQuotes: async () => ({ updatedAt: Date.now(), quotes: [] }),
   });
   hub = withHubBuiltins(createHub(document.body, { mountHubView }));
   window.gwHub = hub;
 });
-afterEach(() => { hub.dispose(); vi.useRealTimers(); vi.restoreAllMocks(); });
+afterEach(() => { hub.dispose(); stopTrade(); vi.useRealTimers(); vi.restoreAllMocks(); });
 
 /** The account's build and team references, as the Build Library's source owns them. */
 function library(entries: HubShortcut[]): HubSource {

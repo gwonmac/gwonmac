@@ -91,6 +91,7 @@ test("the Core renderer graph cannot evaluate optional Tools implementation", ()
     "app/renderer/companion-skill-snapshot.ts",
     "app/features/target-readout/renderer/enhancement-readout.ts",
     "app/renderer/toolbox-foundation.ts",
+    "app/features/window-parts.ts",
     "app/renderer/skill-overlays-installation.ts",
     "app/renderer/companion-policy-source.ts",
     "app/renderer/tools-host.ts",

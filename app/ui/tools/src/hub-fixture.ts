@@ -49,6 +49,12 @@ import characterSwitchHub from '../../../features/character-switch/renderer/host
 import '../../../features/character-switch/renderer/character-switch.css';
 // eslint-disable-next-line no-restricted-imports
 import { createToolboxFoundation } from '../../../renderer/toolbox-foundation';
+// eslint-disable-next-line no-restricted-imports
+import { windowPart } from '../../../renderer/window-part';
+// eslint-disable-next-line no-restricted-imports
+import buildLibraryWindow from '../../../features/build-library/renderer/window';
+// eslint-disable-next-line no-restricted-imports
+import tradeChatWindow from '../../../features/trade-chat/renderer/window';
 import { createDemoTradeHost } from './trade-host';
 import { mountTradeChat } from './trade-mount';
 import { createHubGameFixture } from './hub-game-fixture';
@@ -227,15 +233,16 @@ export function mountHubFixture(target: HTMLElement) {
     else { resign?.stop(); resign = null; }
   };
   syncResign();
-  const foundation = createToolboxFoundation(document.body, {
-    async mountTool(element, onVisibilityChange, show) {
+  // The production window parts with the fixture's views: their links, Hub rules and Tools window are the game's.
+  const foundation = createToolboxFoundation(document.body, { parts: [
+    windowPart({ ...buildLibraryWindow, async start({ host: element, onVisibilityChange, show }) {
       // The Library pops out of the Hub through its window's `show`, as in the game.
       game.host.openWindow = show;
       const app = mountToolsApp(element, { host: game.host, hub, mode: 'embedded', initiallyVisible: false, onVisibilityChange });
       window.addEventListener('hub-fixture-withdraw-library', app.dispose, { once: true });
-      return { setVisible: visible => visible ? app.show() : app.hide(), setActive: app.setActive, requestClose: app.requestClose, update() {}, stop: app.dispose };
-    },
-    async mountTrade(element, onVisibilityChange) {
+      return { setVisible: (visible: boolean) => visible ? app.show() : app.hide(), setActive: app.setActive, requestClose: app.requestClose, stop: app.dispose };
+    } }),
+    windowPart({ ...tradeChatWindow, async start({ host: element, onVisibilityChange }) {
       const loadMs = Number(params.get("trade-load-ms")) || 0;
       if (loadMs) await new Promise(resolve => setTimeout(resolve, loadMs));
       const demo = createDemoTradeHost({ links: featureLinks('tradeChat'), onLinksChange });
@@ -248,11 +255,9 @@ export function mountHubFixture(target: HTMLElement) {
       // A seller's re-post, as the feed sends it: a new message that replaces their older one.
       window.gwTradeFixture = { repost: host.repost };
       const app = mountTradeChat(element, { host, mode: 'embedded', initiallyVisible: false, onVisibilityChange });
-      return { setVisible: visible => visible ? app.show() : app.hide(), requestClose: app.hide, stepBack: app.stepBack, search: app.search, update() {}, stop: app.dispose };
-    },
-  });
-  // The Build Library's link `toggle`, as the game's Tools window provides it (createToolboxLifecycle).
-  provideLink('buildLibrary', { toggle: foundation.openBuilds });
+      return { setVisible: (visible: boolean) => visible ? app.show() : app.hide(), requestClose: app.hide, stepBack: app.stepBack, search: app.search, stop: app.dispose };
+    } }),
+  ] });
   const travel = createHubTravel(travelHost, hub, (place, leave) => askLeaveArea(hub, leaveAreaCopy('travel', place), leave), () => onWhereAllowed('travel', facts()));
   // Progress follows the fixture's map, as the companion republishes it after each map change.
   watch(() => travelHost.state.value, state => travel.updateProgress(state.status === 'ready' ? progressFixture(state.mapId) : { status: 'waiting', reason: state.reason === 'loading' ? 'loading' : 'unavailable' }), { immediate: true });
@@ -343,7 +348,7 @@ export function mountHubFixture(target: HTMLElement) {
   window.addEventListener('hub-fixture-withdraw', () => people.updateFriends({ status: 'waiting', reason: 'unavailable' }));
   window.addEventListener('hub-fixture-settings', event => { if (event instanceof CustomEvent) {
     settings = { ...settings, ...event.detail }; for (const listener of settingsListeners) listener(settings);
-    foundation.setAvailable({ builds: onWhereAllowed('buildLibrary', facts()), trade: onWhereAllowed('tradeChat', facts()) });
+    foundation.sync();
     people.setEnabled(onWhereAllowed('travel', facts()) || onWhereAllowed('whispers', facts()));
     syncResign();
     window.dispatchEvent(new Event('gw:tools-settings'));

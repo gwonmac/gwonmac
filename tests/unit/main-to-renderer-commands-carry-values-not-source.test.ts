@@ -360,7 +360,7 @@ test("a tool that opens through its Feature's link is toggled through it, and is
 const TOGGLE_ONLY: { [Target in ToolLinkTarget]: (toggle: ToolLink["toggle"]) => FeatureLinkApis[Target] } = {
   buildLibrary: (toggle) => ({ toggle }),
   resign: (toggle) => ({ toggle }),
-  tradeChat: (toggle) => ({ toggle, search: () => "unavailable" }),
+  tradeChat: (toggle) => ({ toggle, search: () => "unavailable", marketRates: () => "unavailable", traderQuotes: () => "unavailable" }),
   travel: (toggle) => ({ toggle, friendTripBlocked: () => "unavailable", toFriend: () => "unavailable", showProgress: () => "unavailable" }),
   whispers: (toggle) => ({ toggle, open: () => "unavailable", people: () => "unavailable" }),
   xunlaiStorage: (toggle) => ({ toggle, blocked: () => "unavailable" }),

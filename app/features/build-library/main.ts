@@ -23,8 +23,6 @@ export default mainPart({
           () => libraries.set(win, accounts.buildLibraryPathFor(win), library),
         )),
       },
-      // The library is read and written per request; nothing runs between them.
-      start: () => ({ stop: () => {} }),
     };
   },
 });

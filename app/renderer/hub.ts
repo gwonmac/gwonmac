@@ -28,6 +28,7 @@ import { HUB_FALLBACK, hubAtHome, hubInitialState, hubKey, hubReduce, hubRunning
 import { createHoverSelection } from '../shared/ui/hover-selection.js';
 import { FEATURES, FEATURE_SELECTION_POLICIES } from '../shared/feature-contracts.js';
 import { featureOn } from './feature-on.js';
+import type { PartOwner, RunningPart } from '../features/parts.js';
 import { HUB_LOCATED_DESTINATIONS, hubMatch, isHubCalculation, parseHubQuery, normaliseHubQuery, type HubAction, type HubDestination, type HubRow, type HubSource, type HubSummary, type HubTask, type HubViewAction, type HubViewFooter, type HubViewMount } from '../shared/hub.js';
 import { hubRowPaintsSame, type EmbeddedHubView, type HubFocusTarget, type HubMenuItem, type HubPrimary, type HubViewModel } from '../shared/ui/hub-view.js';
 
@@ -851,3 +852,7 @@ export type Hub = ReturnType<typeof createHub>;
  * rows while resolve has its feature off, so the part need not ask.
  */
 export type HubPageContext = Readonly<{ parent: HTMLElement; hub: Pick<Hub, 'attach'> | null }>;
+
+/** Declares a Feature's hubPage part (app/features/parts.ts): the game host starts it with the Hub. */
+export const hubPagePart = <Id extends PartOwner<'hubPage'>, Running extends RunningPart>(id: Id, start: (context: HubPageContext) => Running) =>
+  Object.freeze({ kind: 'hubPage' as const, id, start });

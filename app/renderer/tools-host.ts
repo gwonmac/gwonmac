@@ -1,40 +1,13 @@
 /**
- * Starts the Tools window's window parts (the Build Library's and Trade Chat's) with what each
- * one's context needs, and mounts the saved-library-only Tools window for a client with no
- * usable companion. The game host imports it lazily, so the parts load only with Tools.
+ * Mounts the saved-library-only Tools window for a client with no usable companion. The game
+ * host imports it lazily, so the window parts load only with Tools.
  *
  * The Tools window already owns the boundary — the toggle, the event stops, pointer-lock
  * release, the cursor mirror, focus transfer and teardown — so a window part needs none of that
  * again. Two boundaries around one panel is how a held movement key ends up stuck when only one
  * of them is torn down.
  */
-import { createToolboxLifecycle, type MountedTool } from "./toolbox-foundation.js";
-import { featureLinks, onLinksChange } from "./feature-links.js";
-import buildLibraryWindow from "../features/build-library/renderer/host.js";
-import tradeWindow from "../features/trade-chat/renderer/host.js";
-import { featureOn } from "./feature-on.js";
-
-/** Starts the Build Library's window part. */
-export function mountBuildsInto(
-  host: HTMLElement,
-  onVisibilityChange: (visible: boolean) => void,
-  show: () => void,
-  /** Whether this session's client can discover templates written to IDBFS. */
-  templatePublishing: boolean,
-): Promise<MountedTool | null> {
-  return buildLibraryWindow.start({
-    host, onVisibilityChange, show, links: featureLinks(buildLibraryWindow.id), onLinksChange, templatePublishing,
-  });
-}
-
-/** Starts Trade Chat's window part with the links its manifest names. */
-export function mountTradeInto(
-  host: HTMLElement,
-  onVisibilityChange: (visible: boolean) => void,
-  show: () => void,
-): Promise<MountedTool | null> {
-  return tradeWindow.start({ host, onVisibilityChange, show, links: featureLinks(tradeWindow.id), onLinksChange });
-}
+import { createToolboxLifecycle } from "./toolbox-foundation.js";
 
 /**
  * Mounts the saved-library-only Tools experience for an official client that
@@ -42,27 +15,13 @@ export function mountTradeInto(
  * so it also owns the matching settings listener and teardown; the Emscripten
  * bootstrap only decides when this fallback is needed.
  */
-export function mountHostOnlyTools(
-  parent: HTMLElement,
-  templatePublishingAvailable: boolean,
-): () => void {
-  const lifecycle = createToolboxLifecycle(parent, {
-    buildsLink: buildLibraryWindow.id,
-    mountTool: (host, onVisibilityChange, show) =>
-      mountBuildsInto(host, onVisibilityChange, show, templatePublishingAvailable),
-    mountTrade: mountTradeInto,
-  });
-  const syncEnabled = () => {
-    lifecycle.setEnabled(featureOn("tools"));
-    lifecycle.setAvailable({
-      builds: featureOn(buildLibraryWindow.id),
-      trade: featureOn(tradeWindow.id),
-    });
-  };
-  window.addEventListener("gw:tools-settings", syncEnabled);
-  syncEnabled();
+export function mountHostOnlyTools(parent: HTMLElement): () => void {
+  const lifecycle = createToolboxLifecycle(parent);
+  const sync = () => lifecycle.sync();
+  window.addEventListener("gw:tools-settings", sync);
+  sync();
   return () => {
-    window.removeEventListener("gw:tools-settings", syncEnabled);
+    window.removeEventListener("gw:tools-settings", sync);
     lifecycle.dispose();
   };
 }

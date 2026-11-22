@@ -57,15 +57,15 @@ export type ToolsMainPart<Contract extends AnyToolContract> = Readonly<{
 /**
  * The `main` kind of app/features/parts.ts, for a feature whose manifest lists "main". `create`
  * builds its stores and answers every channel of its contract: the channels stay registered
- * and the file gate refuses them while the feature is off. `start` runs while the Feature
- * decision has the feature on; what it returns is stopped when the decision turns it off and
- * when Tools stops.
+ * and the file gate refuses them while the feature is off. A part with work between requests
+ * also returns `start`, which runs while the Feature decision has the feature on; what it
+ * returns is stopped when the decision turns it off and when Tools stops.
  */
 export function mainPart<Contract extends AnyToolContract, Running extends RunningPart>(part: Readonly<{
   feature: PartOwner<"main">;
   label: string;
   contract: Contract;
-  create(input: ToolsMainInput): Readonly<{ channels: Handlers<Contract["channels"]>; start(): Running }>;
+  create(input: ToolsMainInput): Readonly<{ channels: Handlers<Contract["channels"]>; start?(): Running }>;
 }>): ToolsMainPart<Contract> {
   return Object.freeze({
     feature: part.feature,
@@ -73,6 +73,7 @@ export function mainPart<Contract extends AnyToolContract, Running extends Runni
     contract: part.contract,
     create(input: ToolsMainInput) {
       const { channels, start } = part.create(input);
+      if (start === undefined) return { channels };
       let running: Running | null = null;
       const stop = () => {
         const stopping = running;

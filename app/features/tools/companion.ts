@@ -1,12 +1,11 @@
 /**
- * The Tools window in the game host: Build Library and Trade Chat over the shared
- * party feed. The Library reaches Team Apply and Xunlai Storage through their links.
+ * The Tools window in the game host: the window parts (app/features/window-parts.ts) over the
+ * shared party feed, open where resolve has each Feature on in the live play region.
  */
 import type { ToolboxObservation } from "../../shared/builds/live-party.js";
 import { COMPANION_FEATURE_BITS } from "../../shared/companion-abi.js";
-import { onWhereAllowed } from "../../shared/feature-resolve.js";
 import type { ToolsCompanionPart } from "../../renderer/tools-companion-part.js";
-import { createToolboxLifecycle } from "../../renderer/toolbox-foundation.js";
+import { createToolboxLifecycle, windowPartsObserveParty } from "../../renderer/toolbox-foundation.js";
 
 export default {
   id: "tools",
@@ -15,26 +14,16 @@ export default {
     return {
       activate(context) {
         let toolbox: ReturnType<typeof createToolboxLifecycle> | null = null;
-        observation.observePartyWhen(() => context.on("buildLibrary"));
+        observation.observePartyWhen(() => windowPartsObserveParty(context.on));
         observation.onParty((party) => toolbox?.update(party));
         return {
           activeFeatures: () => foundation && context.on("tools") ? COMPANION_FEATURE_BITS.toolboxFoundation : 0,
           mount() {
             if (!foundation) return;
-            toolbox = createToolboxLifecycle(document.body, {
-              buildsLink: "buildLibrary",
-              mountTool: (host, visible, show) => import("../../renderer/tools-host.js").then(({ mountBuildsInto }) =>
-                mountBuildsInto(host, visible, show, true)),
-              mountTrade: (host, visible, show) => import("../../renderer/tools-host.js").then(({ mountTradeInto }) =>
-                mountTradeInto(host, visible, show)),
-            });
+            toolbox = createToolboxLifecycle(document.body, { on: context.on });
           },
           syncAfterHook() {
-            // Saved authoring stays available outside its area; native observation and Apply
-            // keep their region gates. This is the same answer as the host-only Library.
-            const authoring = onWhereAllowed("buildLibrary", context.snapshot().facts);
-            toolbox?.setEnabled(context.on("tools") || authoring);
-            toolbox?.setAvailable({ builds: context.on("buildLibrary") || authoring, trade: context.on("tradeChat") });
+            toolbox?.sync();
             if (!observation.observingParty()) {
               const party: ToolboxObservation = { status: "waiting", party: { status: "waiting", playRegion: context.playRegion() } };
               observation.setParty(party);

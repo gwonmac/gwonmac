@@ -19,12 +19,6 @@
       "reason": "HUB_SCOPE_FEATURES: the Feature that answers the `team` and `build` scope words."
     },
     {
-      "file": "app/ui/tools/src/hub-fixture.ts",
-      "name": "buildLibrary",
-      "category": "test helper",
-      "reason": "Hub fixture: the browser preview and Tools UI tests wire every Feature by hand."
-    },
-    {
       "file": "app/ui/tools/src/hub-keyboard-contract.ts",
       "name": "buildLibrary",
       "category": "test helper",

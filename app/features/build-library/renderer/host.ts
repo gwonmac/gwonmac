@@ -1,29 +1,21 @@
 /**
- * The Build Library's window part, its one entry for the game host: loads the Library window
- * from the Tools bundle into the host the Tools window gives it. It also owns what only the
- * renderer can do for the Library: write a build where the game's own template dialog finds it,
- * and move template files in and out. Applying a team reaches Team Apply's certified commands, and
- * "Find capture locations" reaches Maps, through the links the manifest names.
- *
- * Its storage button opens Xunlai Storage through Xunlai's link. The Tools window also hands it
- * whether this client lists templates written to its mount.
+ * The Build Library's window view, which its window part (./window.ts) starts lazily: loads the
+ * Library window from the Tools bundle into the host the Tools window gives it. It also owns what
+ * only the renderer can do for the Library: write a build where the game's own template dialog
+ * finds it, and move template files in and out, when this client lists templates written to its
+ * mount. Applying a team reaches Team Apply's certified commands, "Find capture locations"
+ * reaches Maps, and the storage button reaches Xunlai Storage, through the links the manifest names.
  */
 import type { StorageCommand } from "../../../shared/storage-command.js";
 import type { FeatureLinks } from "../../links.js";
 import type { EmbeddedToolsBundle, PublishableTemplate, PublishedTemplate } from "../../../shared/tools-bundle-contracts.js";
 import { toolsUnavailableCopy } from "../../../shared/tools-unavailable-copy.js";
-import { definePart } from "../../parts.js";
-import type { MountedTool, WindowContext } from "../../../renderer/toolbox-foundation.js";
+import type { WindowContext, WindowRunning } from "../../../renderer/window-part.js";
 import { applyImport, exportEntries, planImport, templateFilesystem } from "../../../renderer/template-store.js";
 import { sanitiseTemplateName } from "../../../renderer/template-format.js";
 import { createTemplateFiles } from "../../../renderer/template-files.js";
 import { ensureToolsStylesheet } from "../../../renderer/tools-stylesheet.js";
 import { requireToolsApi } from "../../../renderer/tools-native-api.js";
-
-export type BuildLibraryWindowContext = WindowContext<"buildLibrary"> & Readonly<{
-  /** Whether this session's client discovers templates written to its mount. */
-  templatePublishing: boolean;
-}>;
 
 /**
  * Writes one build where the game's own template dialog will find it.
@@ -68,8 +60,8 @@ function storageThrough(links: FeatureLinks<"buildLibrary">): StorageCommand {
  * A failure is reported rather than swallowed: an empty panel that explains nothing costs a
  * debugging session, so this one says what went wrong and leaves the reason in the console.
  */
-export default definePart("window", "buildLibrary", async (context: BuildLibraryWindowContext): Promise<MountedTool | null> => {
-  const { host, onVisibilityChange, links, show, templatePublishing } = context;
+export async function startLibraryWindow(context: WindowContext<"buildLibrary">): Promise<WindowRunning | null> {
+  const { host, onVisibilityChange, links, show } = context;
   // Read at each Apply: Team Apply may turn on after this window started (its build check
   // arrives later). Null is a module derived without the command queue, or Team Apply off.
   const commands = () => {
@@ -87,6 +79,8 @@ export default definePart("window", "buildLibrary", async (context: BuildLibrary
       import(specifier) as Promise<EmbeddedToolsBundle<HTMLElement>>,
       native.client.session(),
     ]);
+    // Whether this session's client discovers templates written to its mount.
+    const templatePublishing = session.compatibility?.features.gameFileSaving.status === "available";
     // Null is a module derived without the storage command: an absence in the bytes, worded by its reason.
     const storage = session.compatibility?.features.xunlaiAction.status === "available" ? storageThrough(links) : null;
     const unavailable = toolsUnavailableCopy(session.compatibility?.features, {
@@ -130,4 +124,4 @@ export default definePart("window", "buildLibrary", async (context: BuildLibrary
     host.textContent = "Build Library could not be loaded — see the console.";
     return null;
   }
-});
+}
