@@ -642,10 +642,13 @@ test.describe("diagnostics", () => {
     const fixture = await launchOffline("gw-crash-panel-e2e-");
     try {
       const { app, page } = fixture;
+      // The offline fixture has no client, so boot ends in this failure. Wait for
+      // it first: a real crash can only come later, from the client boot never
+      // reached, and a crash injected earlier would be overwritten by it.
+      await expect(page.locator("#loading-label")).toHaveText("Game data could not be prepared.");
       // A crash usually arrives after the game has started and the loading
       // surface has been dismissed. One synchronous step reproduces the state
-      // done() leaves after its fade, so the fixture's own asynchronous client
-      // failure cannot interleave.
+      // done() leaves after its fade.
       await page.evaluate(() => {
         window.gwLoading.done();
         const loading = document.getElementById("loading");
