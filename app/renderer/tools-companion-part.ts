@@ -9,7 +9,9 @@
  *
  * A feature that runs on the building blocks alone builds its part with
  * `featurePart`: it gives one `start` that returns what stops it, and never asks
- * whether it is on.
+ * whether it is on. A feature that also hosts memory on a pinned COMPANION_PARTS
+ * line (Reminders, Progress) writes that line by hand and hands its session to
+ * the featurePart it prepares.
  *
  * It also names the narrow surfaces that shared Tools code borrows from a
  * feature, so shared code imports this contract and never a feature file.
@@ -135,17 +137,23 @@ export type FeatureBlocks = Readonly<{
   settings: Block<ToolsPolicySnapshot["settings"]>;
 }>;
 
+/** A part built by `featurePart`: it prepares at once and always activates. */
+export type FeaturePart = Readonly<{
+  id: FeatureId;
+  prepare(input: ToolsPrepareInput): Required<Pick<PreparedToolsPart, "activate">>;
+}>;
+
 /**
  * The game part of a feature that runs on the building blocks. `start` runs while
  * the runtime policy has the feature on and the verifier proved every capability
- * its manifest names; what it returns is stopped when either ends or the game part
+ * its manifest `uses`; what it returns is stopped when either ends or the game part
  * stops. `runtime` names developer runtime fields read from the running feature.
  */
 export function featurePart<Running extends Readonly<{ stop(): void }>>(
   id: FeatureId,
   start: (blocks: FeatureBlocks) => Running,
   runtime: Readonly<Record<string, (running: Running | null) => unknown>> = {},
-): ToolsCompanionPart {
+): FeaturePart {
   const feature = FEATURES.find((candidate) => candidate.id === id);
   const needs = feature !== undefined && "uses" in feature ? feature.uses : [];
   return Object.freeze({

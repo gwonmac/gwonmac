@@ -138,7 +138,7 @@ describe("the quest marker Maps receives", () => {
     updateCartographyQuest({ ...ready, quest: { ...ready.quest, marker: null } });
     assert.equal(readCartographyQuestMarker(), null);
     updateCartographyQuest(ready);
-    updateCartographyQuest({ status: "waiting", reason: "loading" });
+    updateCartographyQuest(null);
     assert.equal(readCartographyQuestMarker(), null);
   });
 });

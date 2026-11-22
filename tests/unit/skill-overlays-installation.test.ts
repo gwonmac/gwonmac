@@ -1,31 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { COMPANION_FEATURE_BITS } from "../../app/shared/companion-abi.ts";
-import { DEFAULT_SETTINGS } from "../../app/shared/settings/index.ts";
 import { createSkillOverlaysInstallation } from "../../app/renderer/skill-overlays-installation.ts";
-
-const binding = Object.freeze({
-  input: Object.freeze({ kind: "keyboard" as const, code: "KeyC" }),
-  modifiers: Object.freeze({
-    control: false,
-    option: false,
-    shift: false,
-    command: false,
-  }),
-});
-const withBinding = Object.freeze({
-  ...DEFAULT_SETTINGS,
-  skillKeyBindings: Object.freeze([
-    binding,
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-  ] as const),
-});
 
 test("the skill feeds run only for what needs them", () => {
   const skills = createSkillOverlaysInstallation({
@@ -33,12 +9,12 @@ test("the skill feeds run only for what needs them", () => {
     skillSlotGeometry: true,
     skillCooldownObservation: true,
   });
-  skills.sync(DEFAULT_SETTINGS, false);
   assert.equal(skills.geometry.active, false);
   assert.equal(skills.cooldowns.active, false);
   assert.equal(skills.activeFeatureFlags, 0);
 
-  skills.sync(withBinding, true);
+  // Skill Key Labels claims ui.skillKeys (game-blocks.ts).
+  skills.wantSlots(true);
   assert.equal(skills.geometry.active, true, "a key badge needs geometry");
   assert.equal(skills.cooldowns.active, false);
   assert.equal(
@@ -60,9 +36,9 @@ test("the skill feeds run only for what needs them", () => {
   });
   assert.equal(skills.geometry.state.status, "ready");
 
-  skills.sync(DEFAULT_SETTINGS, false);
+  skills.wantSlots(false);
   assert.deepEqual(skills.geometry.state, { status: "waiting", reason: "stale" });
-  skills.sync(withBinding, true);
+  skills.wantSlots(true);
   skills.geometry.sink?.update({
     status: "ready",
     sequence: 2,
@@ -97,7 +73,6 @@ test("the skill feeds run only for what needs them", () => {
   assert.equal(skills.geometry.state.status, "ready");
 
   // Skill Cooldowns claims ui.skillLabels and reads game.skillbar (game-blocks.ts).
-  skills.sync(DEFAULT_SETTINGS, false);
   skills.wantSlots(true);
   skills.wantCooldowns(true);
   assert.equal(skills.geometry.active, true, "cooldowns also need geometry");
@@ -107,7 +82,6 @@ test("the skill feeds run only for what needs them", () => {
     COMPANION_FEATURE_BITS.skillSlotGeometry
       | COMPANION_FEATURE_BITS.skillCooldownObservation,
   );
-  skills.disposePresentation();
   skills.geometry.dispose();
   skills.cooldowns.dispose();
 });
@@ -117,7 +91,6 @@ test("a refused native renderer leaves the slot geometry inactive", () => {
   const skills = createSkillOverlaysInstallation({
     nativeHudRendering: false, skillSlotGeometry: true, skillCooldownObservation: true,
   });
-  skills.sync(withBinding, true);
   skills.wantSlots(true);
   assert.equal(skills.activeFeatureFlags, 0);
   assert.equal(skills.geometry.active, false);

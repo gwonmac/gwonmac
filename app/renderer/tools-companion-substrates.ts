@@ -557,8 +557,8 @@ function reportSkillGeometry(state: CompanionSkillSlotState): void {
 }
 
 /**
- * The skill HUD feeds' place in the heap layout. Skill Key Labels still draws here;
- * Skill Cooldowns reads the feeds through `game.skillbar` and `ui.skillLabels`.
+ * The skill HUD feeds' place in the heap layout. Skill Key Labels and Skill Cooldowns
+ * read them through `ui.skillKeys`, `game.skillbar` and `ui.skillLabels`.
  */
 export const skillHudPart = {
   id: "skillHud",
@@ -582,18 +582,11 @@ export const skillHudPart = {
           ? {} : { skillCooldowns: { pointer: cooldowns.pointer, bytes: cooldowns.bytes } }),
       }),
       rollback: [(free) => slots?.release(free), (free) => cooldowns?.release(free)],
-      activate(context) {
-        const sync = () => skills.sync(context.snapshot().settings, context.policy().skillKeyLabels);
+      activate() {
         return {
-          mount() {
-            if (context.hud) skills.mount(document.body, context.hud);
-            sync();
-          },
-          syncFeeds: sync,
           activeFeatures: () => skills.activeFeatureFlags,
           observer: {
-            // Geometry is shared by both HUDs. Cooldowns must keep the slot feed
-            // alive even when custom key labels are disabled.
+            // Geometry is shared by the skill labels and the skill keys.
             skillSlots: slots?.sink == null ? null : { enabled: () => slots.active,
               inactive: () => reportSkillGeometry(Object.freeze({
                 status: "waiting", reason: "inactive",
@@ -608,11 +601,7 @@ export const skillHudPart = {
           },
           pointers: { skillSlots: slots?.pointer ?? 0, skillCooldowns: cooldowns?.pointer ?? 0 },
           runtime: { skillCooldowns: () => cooldowns?.state ?? null },
-          disposePresentation: [
-            () => skills.disposePresentation(),
-            () => slots?.dispose(),
-            () => cooldowns?.dispose(),
-          ],
+          disposePresentation: [() => slots?.dispose(), () => cooldowns?.dispose()],
           releaseObserverMemory: [(free) => slots?.release(free), (free) => cooldowns?.release(free)],
         };
       },

@@ -1,12 +1,14 @@
 /**
  * Maps in the game host: Elite Skills inside the native maps, and the player
  * state and live play region the Maps stage reads. Both follow the shared
- * snapshot and party feeds.
+ * snapshot and party feeds. While the walking route leads to the active quest,
+ * it reads the quest's marker from `game.progress`.
  */
 import {
   clearCartographyPlayerState,
   updateCartographyPlayerState,
   connectCartographyPlayRegion,
+  updateCartographyQuest,
 } from "./renderer/cartography-player-state.js";
 import { createEliteMapInstallation } from "./renderer/elite-map-installation.js";
 import type { ToolsCompanionPart } from "../../renderer/tools-companion-part.js";
@@ -32,14 +34,21 @@ export default {
         observation.observeTargetWhen(wanted);
         observation.onState(updateCartographyPlayerState);
         connectCartographyPlayRegion(() => context.playRegion());
+        let stopQuest: (() => void) | null = null;
+        const stopQuestRoute = () => { stopQuest?.(); stopQuest = null; updateCartographyQuest(null); };
         return {
           sync() {
             const region = context.snapshot().playRegionState;
             const next = region.status === "ready" ? `${region.characterKey}:${region.mapId}` : "";
             if (next !== identity) { observation.setParty(null); identity = next; }
-            eliteMaps.update(context.policy().cartography && context.snapshot().settings.eliteSkillsEnabled);
+            const { settings } = context.snapshot();
+            const on = wanted();
+            eliteMaps.update(on && settings.eliteSkillsEnabled);
+            if (on && settings.cartographyRouteEnabled && settings.cartographyQuestRouteEnabled) {
+              stopQuest ??= context.game.progress.subscribe(updateCartographyQuest);
+            } else stopQuestRoute();
           },
-          disposePresentation: [clearCartographyPlayerState, () => eliteMaps.dispose()],
+          disposePresentation: [stopQuestRoute, clearCartographyPlayerState, () => eliteMaps.dispose()],
         };
       },
     };

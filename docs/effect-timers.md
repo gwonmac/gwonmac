@@ -25,7 +25,11 @@ invalid rectangles, or unsupported clients. Neither snapshot publishes pointers.
 
 ## Presentation
 
-The renderer joins the two complete snapshots only at the presentation edge.
+The feature ([`companion.ts`](../app/features/effect-timers/companion.ts)) reads
+the player records through the `game.effects` building block and writes its text
+through `ui.effectLabels`, which joins it with the icon geometry
+([`game-blocks.ts`](../app/renderer/game-blocks.ts)); the text rules live in
+[`effect-timer-labels.ts`](../app/features/effect-timers/renderer/effect-timer-labels.ts).
 For repeated records with one skill ID it shows the longest finite remaining
 duration. It does not show a multiplier because reapplication normally refreshes
 an effect instead of stacking it. Indefinite or unknown durations show no number.
@@ -68,7 +72,7 @@ condition/hex state flags.
 
 ## Alcohol Timer
 
-Alcohol Timer is a separate, optional PvE Tool. It observes the certified native
+Alcohol Timer is a separate, optional Tool. It observes the certified native
 post-processing notification without changing the message or the game's visual
 effects. The proof fixes the tint/intensity payload and its level conversion.
 A changed producer or dispatch destination withdraws this capability.
@@ -82,8 +86,12 @@ accepted only after a Brandy level-four notification. This conservative filter
 can omit an ambiguous drink. It never triggers automatic consumption.
 
 Same-character loading hides the readout while its deadline continues. Logout,
-character changes, unsupported regions, or disabling the Tool clear the estimate.
-No alcohol state is saved to disk.
+character changes, a PvP map, or disabling the Tool clear the estimate.
+No alcohol state is saved to disk. The kernel clears the estimate whenever
+nothing reads it, so the feature's region is `non-pvp`: it keeps running through
+a map load, where the area is unknown, and stops only on a confirmed PvP map.
+The feature ([`companion.ts`](../app/features/alcohol-timer/companion.ts)) reads
+the estimate through the `game.alcohol` building block.
 
 The renderer places a small beer icon and `m:ss` near the game viewport’s
 top-left corner by default, below one standard Effects row. Its position stays
