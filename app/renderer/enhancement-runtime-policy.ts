@@ -8,10 +8,10 @@
  * cannot disagree with it about selection.
  */
 import type { EnhancementProgram } from "../shared/enhancement-contracts.js";
-import { FEATURES, type FeatureActivationSettings, type FeatureId } from "../shared/feature-contracts.js";
+import { FEATURES, type FeatureSwitchSettings, type FeatureId } from "../shared/feature-contracts.js";
 import { EVERY_CAPABILITY_PROVED, resolve } from "../shared/feature-resolve.js";
 
-export type OptionalToolSettings = FeatureActivationSettings;
+export type OptionalToolSettings = FeatureSwitchSettings;
 
 export type RuntimePlayRegion = "pve" | "pvp" | "unknown";
 

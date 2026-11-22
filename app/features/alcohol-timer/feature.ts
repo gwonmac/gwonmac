@@ -4,7 +4,7 @@ import {
   type AlcoholTimerPosition,
 } from "../../shared/alcohol-timer.js";
 import { setting } from "../../shared/settings/define.js";
-import { defineFeature } from "../define.js";
+import { defineFeature, featureSwitch } from "../define.js";
 
 export default defineFeature({
   id: "alcoholTimer",
@@ -14,11 +14,7 @@ export default defineFeature({
   purpose: "characters",
   icon: "wine",
   settings: {
-    alcoholTimerEnabled: setting.boolean(false, {
-      tools: true,
-      label: "Alcohol Timer",
-      help: "Shows an estimated countdown while you are drunk, one minute per alcohol level.",
-    }),
+    alcoholTimerEnabled: featureSwitch(false, { tools: true }),
     alcoholTimerPosition: setting.position(
       DEFAULT_ALCOHOL_TIMER_POSITION,
       (value): AlcoholTimerPosition | undefined => isAlcoholTimerPosition(value) ? { ...value } : undefined,
@@ -33,7 +29,6 @@ export default defineFeature({
       },
     ),
   },
-  activation: { kind: "setting", setting: "alcoholTimerEnabled", master: "gwonmacTools" },
   region: "non-pvp",
   uses: ["alcoholObservation"],
   tool: {

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { InGameNative, InGamePatch, InGameSnapshot } from "../settings-host";
 import { CHARACTER_DETAILS, CHAT_FILTERS, REMINDER_GROUPS, REMINDER_SOUND, REMINDER_TIMING } from "@shared/setting-copy";
+import { featureSettingText } from "@shared/feature-contracts";
 import { DEFAULT_ALCOHOL_TIMER_POSITION } from "@shared/alcohol-timer";
 import { computed, ref } from "vue";
 import { GLOBAL_TOOLS, type GlobalTool, type LauncherSnapshot } from "@shared/launcher-contracts";
@@ -18,6 +19,8 @@ const emit = defineEmits<{ maps: [] }>();
 const message = ref("");
 // In a game window (no profiles) a game is running by definition.
 const hasActiveGames = computed(() => !props.profiles || props.profiles.some(profile => profile.state !== "ready" && profile.state !== "failed"));
+/** The launch mode's words, from its manifest; its control is inverted (checked while `gwonmacTools` is off). */
+const PLAIN_GAME = featureSettingText("gwonmacTools");
 /** `configured` false is the plain game: every Feature is off and its switch waits as stored. */
 const enabled = (tool: GlobalTool) => props.snapshot.tools.features[tool].enabled && props.snapshot.tools.configured;
 async function perform(action: () => Promise<unknown> | undefined, nativeSave = false) {
@@ -56,7 +59,7 @@ function customColor(value: string) {
       </div>
     </div>
     <div class="setting-group tools-master">
-      <label data-setting="gwonmacTools"><span><strong>Play the plain game</strong><small>Turns off every Feature. Your Feature choices stay saved.</small></span><input type="checkbox" :checked="!snapshot.tools.configured" @change="perform(() => api?.tools.setMasterEnabled(!($event.target as HTMLInputElement).checked), true)" /></label>
+      <label data-setting="gwonmacTools"><span><strong>{{ PLAIN_GAME.label }}</strong><small>{{ PLAIN_GAME.help }}</small></span><input type="checkbox" :checked="!snapshot.tools.configured" @change="perform(() => api?.tools.setMasterEnabled(!($event.target as HTMLInputElement).checked), true)" /></label>
       <div v-if="snapshot.tools.restartRequired" class="restart-row"><span><strong>Restart the launcher</strong><small>{{ !snapshot.tools.configured ? 'Features are off in every game window. Restart the launcher to unload them completely.' : 'Your choices are saved. Restart the launcher to load Features. Restarting only a game window does not load them.' }}</small><small v-if="hasActiveGames">Close every game window before restarting the launcher.</small></span><button v-if="api?.tools.restartToApply" class="primary small" :disabled="hasActiveGames" @click="perform(() => api?.tools.restartToApply?.())">Restart launcher</button></div>
       <p v-else class="tools-state">{{ !snapshot.tools.configured ? 'Every Feature is off. Turn off the plain game to get each one back as it was.' : 'Features are loaded. Each switch below works at once in supported game areas.' }}</p>
     </div>

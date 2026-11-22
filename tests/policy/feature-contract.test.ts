@@ -42,6 +42,7 @@ test("every feature folder keeps the contract", async () => {
   assert.deepEqual(checkFeatureContract({ folders, registered: FEATURES }), []);
 });
 
+const aSwitch = { kind: "boolean" as const, fallback: false, read: () => false, switch: true as const };
 const manifest = (id: string, more: Partial<FeatureDefinition> = {}): FeatureDefinition => ({
   id,
   name: "Example",
@@ -49,7 +50,7 @@ const manifest = (id: string, more: Partial<FeatureDefinition> = {}): FeatureDef
   kind: "helpers",
   purpose: "fight",
   icon: "bell",
-  activation: { kind: "setting", setting: `${id}Enabled`, master: "gwonmacTools" },
+  settings: { [`${id}Enabled`]: aSwitch },
   region: "pve",
   shots: [],
   parts: ["game"],
@@ -68,17 +69,37 @@ const label = { label: "Example", help: "Turns Example on." };
 const option = <const More extends object>(more: More) => ({ kind: "boolean" as const, fallback: false, read: () => false, ...more });
 
 type Case = Readonly<{ check: string; folders: FeatureFolder[]; message: string }>;
-const valid = manifest("quickNote", { settings: { quickNoteEnabled: option(label) } });
+const valid = manifest("quickNote", { settings: { quickNoteEnabled: aSwitch, quickNoteSound: option(label) } });
 const cases: readonly Case[] = [
   {
     check: "labels",
-    folders: [folder(manifest("quickNote", { settings: { quickNoteEnabled: option({ help: "Turns it on." }) } as never }))],
-    message: "app/features/quick-note/feature.ts: setting quickNoteEnabled has no label; players see it as a row name.",
+    folders: [folder(manifest("quickNote", { settings: { quickNoteEnabled: aSwitch, quickNoteSound: option({ help: "Plays a sound." }) } as never }))],
+    message: "app/features/quick-note/feature.ts: setting quickNoteSound has no label; players see it as a row name.",
   },
   {
     check: "help",
-    folders: [folder(manifest("quickNote", { settings: { quickNoteEnabled: option({ label: "Quick Note", help: " " }) } }))],
-    message: "app/features/quick-note/feature.ts: setting quickNoteEnabled has no help; say in one line what it does.",
+    folders: [folder(manifest("quickNote", { settings: { quickNoteEnabled: aSwitch, quickNoteSound: option({ label: "Sound", help: " " }) } }))],
+    message: "app/features/quick-note/feature.ts: setting quickNoteSound has no help; say in one line what it does.",
+  },
+  {
+    check: "a card's switch takes the feature's words",
+    folders: [folder(manifest("quickNote", { settings: { quickNoteEnabled: { ...aSwitch, ...label } } }))],
+    message: "app/features/quick-note/feature.ts: switch quickNoteEnabled names itself; players see it under the feature's name and summary, so remove its label and help.",
+  },
+  {
+    check: "one switch",
+    folders: [folder(manifest("quickNote", { settings: { quickNoteEnabled: aSwitch, quickNoteShown: aSwitch } }))],
+    message: "app/features/quick-note/feature.ts: quickNoteEnabled and quickNoteShown are all switches; a feature has one switch.",
+  },
+  {
+    check: "a switch, or features to run with",
+    folders: [folder(manifest("quickNote", { settings: { quickNoteSound: option(label) } }))],
+    message: "app/features/quick-note/feature.ts: no switch; declare one with featureSwitch, or list in requires the features it runs with.",
+  },
+  {
+    check: "the launch mode's switch names itself",
+    folders: [folder(withoutPurpose(manifest("quickNote", { kind: "mode", settings: { quickNoteEnabled: { ...aSwitch, help: "Turns off every feature." } } })))],
+    message: "app/features/quick-note/feature.ts: setting quickNoteEnabled has no label; players see it as a row name.",
   },
   {
     check: "shots per caption",
@@ -185,7 +206,7 @@ const cases: readonly Case[] = [
   },
   {
     check: "the launch mode names no purpose",
-    folders: [folder(manifest("quickNote", { kind: "mode" }))],
+    folders: [folder(manifest("quickNote", { kind: "mode", settings: { quickNoteEnabled: { ...aSwitch, ...label } } }))],
     message: "app/features/quick-note/feature.ts: the launch mode is the plain-game strip, not a card; remove purpose.",
   },
   {

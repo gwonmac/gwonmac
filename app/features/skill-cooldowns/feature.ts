@@ -5,7 +5,7 @@ import {
   isSkillCooldownColor,
   type SkillCooldownColor,
 } from "../../shared/skill-cooldowns.js";
-import { defineFeature } from "../define.js";
+import { defineFeature, featureSwitch } from "../define.js";
 
 export default defineFeature({
   id: "skillCooldowns",
@@ -16,11 +16,7 @@ export default defineFeature({
   icon: "timer",
   settings: {
     /** Show Guild Wars' observed recharge state as display-only countdowns. */
-    skillCooldownOverlayEnabled: setting.boolean(true, {
-      tools: true,
-      label: "Skill Cooldowns",
-      help: "Shows the seconds left on each recharging skill, with tenths in the last 3 seconds.",
-    }),
+    skillCooldownOverlayEnabled: featureSwitch(true, { tools: true }),
     /** One curated or exact RGB color shared by all eight cooldown labels. */
     skillCooldownColor: setting.value(
       DEFAULT_SKILL_COOLDOWN_COLOR,
@@ -35,7 +31,6 @@ export default defineFeature({
       },
     ),
   },
-  activation: { kind: "setting", setting: "skillCooldownOverlayEnabled", master: "gwonmacTools" },
   region: "pve",
   uses: ["nativeHudRendering", "skillSlotGeometry", "skillCooldownObservation"],
   tool: {

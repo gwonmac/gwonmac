@@ -16,8 +16,10 @@ import type { ClientCompatibility, OptionalFeatureStatus } from "./contracts.js"
 import { capabilityRecord, type EnhancementCapability, type EnhancementProgram } from "./enhancement-contracts.js";
 import {
   FEATURES,
+  FEATURE_SELECTION_POLICIES,
+  LAUNCH_MODE_SWITCH,
   featureRegionAllowsRequest,
-  type FeatureActivationSettings,
+  type FeatureSwitchSettings,
   type FeatureId,
 } from "./feature-contracts.js";
 
@@ -61,7 +63,7 @@ export type FeatureState = Readonly<{
   /** Whether this game session started with Features loaded (not a plain-game Core launch). */
   toolsAtLaunch: boolean;
   /** The saved switches, read live: turning a feature off takes effect at once. */
-  settings: Partial<FeatureActivationSettings>;
+  settings: Partial<FeatureSwitchSettings>;
   /** The developer program; packaged apps always run `none`. */
   program: EnhancementProgram;
   /** Where the character is now, from the certified play-region reader. */
@@ -114,13 +116,10 @@ function capabilityReason(
 }
 
 export function resolve(feature: Feature, state: FeatureState): FeatureResolution {
-  const { activation } = feature;
   const programSelects = state.program !== "none"
     && "programs" in feature && feature.programs.some((program) => program === state.program);
-  const master = activation.kind === "master" ? activation.setting
-    : activation.kind === "setting" ? activation.master : null;
-  if (master !== null && !programSelects && state.settings[master] !== true) return off("plain-game");
-  if (master !== null && !state.toolsAtLaunch) return off("needs-restart");
+  if (!programSelects && state.settings[LAUNCH_MODE_SWITCH] !== true) return off("plain-game");
+  if (!state.toolsAtLaunch) return off("needs-restart");
   for (const required of "requires" in feature ? feature.requires : []) {
     const resolution = resolve(featureOf(required), state);
     if (resolution.on) continue;
@@ -130,8 +129,10 @@ export function resolve(feature: Feature, state: FeatureState): FeatureResolutio
     }
     return resolution;
   }
-  // The plain-game switch was checked above, so only the feature's own switch is left.
-  if (!programSelects && state.settings[activation.setting] !== true) return off("switched-off");
+  // The plain-game switch was checked above, so only the feature's own switch is left; a feature
+  // without one runs while the features it requires run.
+  const own = FEATURE_SELECTION_POLICIES[feature.id].switch;
+  if (own !== null && !programSelects && state.settings[own] !== true) return off("switched-off");
   const capability = capabilityReason("uses" in feature ? feature.uses : [], state.features);
   if (capability !== null) return off(capability);
   if (!featureRegionAllowsRequest(feature.id, state.playRegion)) return off("wrong-area");

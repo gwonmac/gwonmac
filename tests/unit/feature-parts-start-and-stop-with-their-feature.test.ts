@@ -24,7 +24,7 @@ import { createToolsSubstrates } from "../../app/renderer/tools-companion-substr
 import { CHAT_PRINT_MAILBOX, CHAT_PRINT_STATUS } from "../../app/shared/chat-print.ts";
 import type { OptionalFeatureStatus } from "../../app/shared/contracts.ts";
 import { capabilityRecord, type EnhancementCapability } from "../../app/shared/enhancement-contracts.ts";
-import { FEATURES, featureActivationSettings, type FeatureId } from "../../app/shared/feature-contracts.ts";
+import { FEATURES, FEATURE_SELECTION_POLICIES, featureSwitchSettings, type FeatureId } from "../../app/shared/feature-contracts.ts";
 import { resolveFeature, type FeatureFacts } from "../../app/shared/feature-resolve.ts";
 import type { GameProgressState } from "../../app/shared/game-progress.ts";
 import { DEFAULT_SETTINGS, type AppSettings } from "../../app/shared/settings/index.ts";
@@ -44,6 +44,12 @@ type Options = Readonly<{
  * resolve, with facts as main sends them: Features loaded, the feature switched on, and every
  * capability proved but those `without` names, which this build changed.
  */
+/** The switch that runs a feature: its own, or for one without (Progress), the switch of the feature it requires. */
+function switchThatRuns(id: FeatureId): string {
+  const feature = FEATURES.find((each) => each.id === id)!;
+  return FEATURE_SELECTION_POLICIES[id].switch ?? switchThatRuns(("requires" in feature ? feature.requires : [])[0]!);
+}
+
 function start(t: test.TestContext, part: ToolsCompanionPart, id: FeatureId, { without = [], notInstalled = [], settings: patch = {} }: Options = {}) {
   const capabilities = capabilityRecord((capability) => !without.includes(capability) && !notInstalled.includes(capability));
   const substrates = createToolsSubstrates(EMPTY_MODULE, capabilities, "none");
@@ -73,10 +79,10 @@ function start(t: test.TestContext, part: ToolsCompanionPart, id: FeatureId, { w
   const trips: GameProgressState[] = [];
   const syncObservers = () => {};
   let settings: AppSettings = { ...DEFAULT_SETTINGS, ...patch };
-  const { activation } = FEATURES.find((feature) => feature.id === id)!;
+  const own = switchThatRuns(id);
   let facts: FeatureFacts = {
     toolsAtLaunch: true,
-    settings: { ...featureActivationSettings(settings), gwonmacTools: true, [activation.setting]: true },
+    settings: { ...featureSwitchSettings(settings), gwonmacTools: true, [own]: true },
     program: "none",
     features: {
       gameFileSaving: { status: "available" },
@@ -112,7 +118,7 @@ function start(t: test.TestContext, part: ToolsCompanionPart, id: FeatureId, { w
     /** Hands queued chat lines to the game, one per frame. */
     frames(count: number) { for (let frame = 0; frame < count; frame += 1) for (const poller of session.pollers ?? []) poller.poll(); },
     /** The feature's own switch, as main's facts carry it. */
-    turn(next: boolean) { facts = { ...facts, settings: { ...facts.settings, [activation.setting]: next } }; sync(); },
+    turn(next: boolean) { facts = { ...facts, settings: { ...facts.settings, [own]: next } }; sync(); },
     /** The plain-game switch. */
     plainGame(next: boolean) { facts = { ...facts, settings: { ...facts.settings, gwonmacTools: !next } }; sync(); },
     /** The verifier's status of one capability for this build, as main's facts carry it. */

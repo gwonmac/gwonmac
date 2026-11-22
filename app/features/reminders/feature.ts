@@ -1,5 +1,5 @@
 import { setting } from "../../shared/settings/define.js";
-import { defineFeature } from "../define.js";
+import { defineFeature, featureSwitch } from "../define.js";
 
 const OPTION = { hub: true, tools: true } as const;
 
@@ -11,11 +11,7 @@ export default defineFeature({
   purpose: "fight",
   icon: "bell",
   settings: {
-    remindersEnabled: setting.boolean(false, {
-      tools: true,
-      label: "Reminders",
-      help: "Prints a line in your own chat before an effect you choose runs out.",
-    }),
+    remindersEnabled: featureSwitch(false, { tools: true }),
     reminderCons: setting.boolean(true, {
       ...OPTION,
       label: "Cons",
@@ -47,7 +43,6 @@ export default defineFeature({
       help: "One short chime, even when several reminders arrive together.",
     }),
   },
-  activation: { kind: "setting", setting: "remindersEnabled", master: "gwonmacTools" },
   region: "pve",
   uses: ["chatPrint"],
   tool: {

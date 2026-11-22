@@ -1,5 +1,4 @@
-import { setting } from "../../shared/settings/define.js";
-import { defineFeature } from "../define.js";
+import { defineFeature, featureSwitch } from "../define.js";
 
 export default defineFeature({
   id: "buildLibrary",
@@ -15,14 +14,8 @@ export default defineFeature({
      * for the same player opt-out; dormant profiles can retain that released
      * shape indefinitely, so the read alias is permanent.
      */
-    buildLibrary: setting.boolean(true, {
-      tools: true,
-      alias: "teamManagement",
-      label: "Build Library",
-      help: "Shows your saved builds and teams, and allows the Build Library shortcut.",
-    }),
+    buildLibrary: featureSwitch(true, { tools: true, alias: "teamManagement" }),
   },
-  activation: { kind: "setting", setting: "buildLibrary", master: "gwonmacTools" },
   region: "non-pvp",
   programs: ["toolbox-foundation", "toolbox-commands", "xunlai-storage"],
   optInWithTools: true,

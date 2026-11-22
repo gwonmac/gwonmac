@@ -1,5 +1,4 @@
-import { setting } from "../../shared/settings/define.js";
-import { defineFeature } from "../define.js";
+import { defineFeature, featureSwitch } from "../define.js";
 
 export default defineFeature({
   id: "tools",
@@ -8,14 +7,16 @@ export default defineFeature({
   kind: "mode",
   icon: "sparkles",
   settings: {
-    /** The launch mode: on loads Features at the next start, off is the plain game (a Core launch). */
-    gwonmacTools: setting.boolean(false, {
+    /**
+     * The launch mode: true loads Features at the next start, false is the plain game (a Core
+     * launch). Players see the control inverted, as "Play the plain game", checked while false.
+     */
+    gwonmacTools: featureSwitch(false, {
       tools: true,
-      label: "Load Features",
-      help: "Loads your Features at the next game start. Off plays the plain game, and your Feature choices stay saved.",
+      label: "Play the plain game",
+      help: "Turns off every Feature. Your Feature choices stay saved.",
     }),
   },
-  activation: { kind: "master", setting: "gwonmacTools" },
   region: "non-pvp",
   // This value gates native consumers. The Library host separately keeps
   // saved authoring selected without requiring live observation.

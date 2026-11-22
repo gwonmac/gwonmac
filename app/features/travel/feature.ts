@@ -4,7 +4,7 @@ import {
   isStoredTravelShortcuts,
   type StoredTravelShortcuts,
 } from "../../shared/travel.js";
-import { defineFeature } from "../define.js";
+import { defineFeature, featureSwitch } from "../define.js";
 
 export default defineFeature({
   id: "travel",
@@ -15,11 +15,7 @@ export default defineFeature({
   icon: "map-pin",
   settings: {
     /** Allow the focused Travel palette and its explicit map command. */
-    travelPalette: setting.boolean(true, {
-      tools: true,
-      label: "Travel",
-      help: "Allows Travel, its shortcut and the /tp command. Progress follows this switch.",
-    }),
+    travelPalette: featureSwitch(true, { tools: true }),
     /** Ordered destinations for the palette's direct 1–9 shortcuts. */
     travelShortcuts: setting.value(
       DEFAULT_STORED_TRAVEL_SHORTCUTS,
@@ -33,7 +29,6 @@ export default defineFeature({
       },
     ),
   },
-  activation: { kind: "setting", setting: "travelPalette", master: "gwonmacTools" },
   region: "pve",
   uses: ["travelAction"],
   programs: ["toolbox-commands", "xunlai-storage"],

@@ -18,7 +18,7 @@ import type { Invoke, Subscribe } from "./ipc/channel-table.js";
 import type { LauncherChannels as C } from "./ipc/launcher.js";
 import type { MarkdownBlock, MarkdownInline } from "./launcher-markdown.js";
 import { isShortcutBinding, parseShortcutAction, type ShortcutAction, type ShortcutBinding } from "./keyboard-shortcuts.js";
-import { FEATURE_SELECTION_POLICIES, type FeatureId } from "./feature-contracts.js";
+import { featureSwitchOf, type FeatureId } from "./feature-contracts.js";
 import { LAUNCHER_SETTINGS, SETTING_TABLE, type AppSettings, type LauncherSetting } from "./settings/index.js";
 import { launcherSettingError } from "./settings/define.js";
 import type { ProfileId } from "./multiple-accounts.js";
@@ -389,15 +389,15 @@ export function launcherSettings(settings: AppSettings): LauncherSettings {
   return Object.fromEntries(LAUNCHER_SETTINGS.map((key) => [key, settings[key]])) as LauncherSettings;
 }
 
-/** Each tool's switch, read from the setting that activates its feature. */
+/** Each tool's switch: its feature's own switch setting. */
 export function launcherToolSettings(settings: AppSettings): GlobalToolSettings {
   return Object.freeze(Object.fromEntries(GLOBAL_TOOLS.map((tool) => [tool, Object.freeze({
-    enabled: settings[FEATURE_SELECTION_POLICIES[GLOBAL_TOOL_FEATURES[tool]].activation.setting],
+    enabled: settings[featureSwitchOf(GLOBAL_TOOL_FEATURES[tool])],
   })]))) as GlobalToolSettings;
 }
 
 export function globalToolPatch(tool: GlobalTool, enabled: boolean): AppSettingsPatch {
-  return { [FEATURE_SELECTION_POLICIES[GLOBAL_TOOL_FEATURES[tool]].activation.setting]: enabled };
+  return { [featureSwitchOf(GLOBAL_TOOL_FEATURES[tool])]: enabled };
 }
 
 export function parseGlobalToolUpdate(value: unknown): GlobalToolUpdate {

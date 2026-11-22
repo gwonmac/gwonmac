@@ -9,6 +9,7 @@ import { BUILD_CHECK_FAILED } from "@shared/contracts";
 import {
   FEATURES,
   FEATURE_KIND_LABELS,
+  FEATURE_SELECTION_POLICIES,
   FEATURE_PURPOSE_LABELS,
   folderForId,
   type FeatureId,
@@ -28,15 +29,12 @@ const byId = new Map<FeatureId, CardFeature>(CARD_FEATURES.map((feature) => [fea
 export const cardFeature = (id: FeatureId): CardFeature | undefined => byId.get(id);
 
 /**
- * The saved switch each card moves. Until plan step 4.4 gives every feature its own key, Progress
- * and Team Apply move the switch of the feature they need, because they share its setting.
+ * The saved switch each card moves: its own tool's, or for a feature with no switch of its own
+ * (Progress, Team Apply), the switch of the feature it runs with.
  */
-const toolBySetting = new Map<string, GlobalTool>(GLOBAL_TOOLS.map((tool) => {
-  const feature = FEATURES.find((candidate) => candidate.id === GLOBAL_TOOL_FEATURES[tool])!;
-  return [feature.activation.setting, tool];
-}));
+const toolByFeature = new Map<FeatureId, GlobalTool>(GLOBAL_TOOLS.map((tool) => [GLOBAL_TOOL_FEATURES[tool], tool]));
 export function switchOf(feature: CardFeature): GlobalTool {
-  const tool = toolBySetting.get(feature.activation.setting);
+  const tool = [feature, ...requiredFeatures(feature)].map((each) => toolByFeature.get(each.id)).find((each) => each !== undefined);
   if (tool === undefined) throw new Error(`${feature.id} has no switch`);
   return tool;
 }
@@ -208,7 +206,7 @@ const isLauncherSetting = (key: string): key is LauncherSetting => launcherKeys.
 export function featureOptions(feature: CardFeature): readonly FeatureOption[] {
   const options: FeatureOption[] = [];
   for (const [key, spec] of Object.entries("settings" in feature ? feature.settings : {})) {
-    if (key === feature.activation.setting || !isLauncherSetting(key)) continue;
+    if (key === FEATURE_SELECTION_POLICIES[feature.id].switch || !isLauncherSetting(key)) continue;
     const text = { key, label: spec.label, help: spec.help };
     if (spec.kind === "boolean") options.push({ ...text, kind: "switch" });
     else if (spec.kind === "integer" && "range" in spec && spec.range) options.push({ ...text, kind: "range", min: spec.range.min, max: spec.range.max });

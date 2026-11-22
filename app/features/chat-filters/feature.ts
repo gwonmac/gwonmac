@@ -1,5 +1,5 @@
 import { setting } from "../../shared/settings/define.js";
-import { defineFeature } from "../define.js";
+import { defineFeature, featureSwitch } from "../define.js";
 
 const OPTION = { hub: true, tools: true } as const;
 
@@ -12,11 +12,7 @@ export default defineFeature({
   icon: "funnel",
   settings: {
     /** Enable the certified in-client filter for selected system chat notices. */
-    chatFiltersEnabled: setting.boolean(false, {
-      tools: true,
-      label: "Chat Filters",
-      help: "Hides the notices you choose below before they reach your chat log.",
-    }),
+    chatFiltersEnabled: featureSwitch(false, { tools: true }),
     /** Hide item-drop notices assigned to another party member. */
     chatFilterAllyDrops: setting.boolean(true, {
       ...OPTION,
@@ -36,7 +32,6 @@ export default defineFeature({
       help: "Hides the notice when another player earns a title.",
     }),
   },
-  activation: { kind: "setting", setting: "chatFiltersEnabled", master: "gwonmacTools" },
   region: "non-pvp",
   uses: ["chatFiltering"],
   tool: {

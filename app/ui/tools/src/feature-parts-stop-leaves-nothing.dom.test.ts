@@ -23,7 +23,7 @@ import { prepareToolsCompanionExtension } from '../../../renderer/certified-comp
 // eslint-disable-next-line no-restricted-imports
 import { installSurfaceController } from '../../../renderer/surface-controller';
 import { RELEASE_ENHANCEMENT_CAPABILITIES } from '../../../shared/enhancement-contracts';
-import { FEATURES } from '../../../shared/feature-contracts';
+import { FEATURES, FEATURE_SELECTION_POLICIES } from '../../../shared/feature-contracts';
 import { DEFAULT_SETTINGS, type AppSettings } from '../../../shared/settings/index';
 import { installLeakLedger, type Leak, type LeakLedger } from '../../../../tests/helpers/leak-ledger';
 import { fixtureFacts } from './fixture-facts';
@@ -67,9 +67,9 @@ vi.mock('./trade-mount', () => ({ mountTradeChat: () => mounted('mountTradeChat'
 
 /** Every feature's switch on, so every part starts what it shows. */
 const ALL_ON: Record<string, boolean> = {};
-for (const { activation } of FEATURES) {
-  ALL_ON[activation.setting] = true;
-  if (activation.kind === 'setting') ALL_ON[activation.master] = true;
+for (const { id } of FEATURES) {
+  const own = FEATURE_SELECTION_POLICIES[id].switch;
+  if (own !== null) ALL_ON[own] = true;
 }
 let settings: AppSettings = { ...DEFAULT_SETTINGS, ...ALL_ON };
 const changeSettings = (patch: Partial<AppSettings>) => {

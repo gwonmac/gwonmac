@@ -39,3 +39,7 @@ These are permanent readers, not migrations. Keep them.
   (`app/shared/travel-map-id.ts`).
 - The settings parser reads the legacy `teamManagement` shape into
   `buildLibrary`. `AppSettings` must stay free of `teamManagement`.
+- Feature switches keep the keys released apps store (`whispersEnabled`,
+  `travelPalette`, `skillCooldownOverlayEnabled`, …): each manifest marks its
+  switch with `featureSwitch`, so no key was converted and nothing needs a
+  migration ([Feature switches](settings.md#feature-switches)).

@@ -6,7 +6,7 @@ import { isAppShortcutCaptureActive } from "./launcher-shortcut-capture.js";
 import type { BrowserWindow } from "electron";
 import type { GameTextEditCommand, TextEditCommand } from "../shared/contracts.js";
 import type { AppSettings } from "../shared/settings/index.js";
-import type { FeatureActivationSettings } from "../shared/feature-contracts.js";
+import type { FeatureSwitchSettings } from "../shared/feature-contracts.js";
 import { featureOn } from "./feature-decision.js";
 import {
   resolveShortcuts,
@@ -293,7 +293,7 @@ class WindowShortcuts {
     win.on("closed", () => this.cancelCapture());
   }
 
-  update(settings: FeatureActivationSettings & Pick<AppSettings, "shortcutOverrides">): void {
+  update(settings: FeatureSwitchSettings & Pick<AppSettings, "shortcutOverrides">): void {
     this.#hubAvailable = hubShortcutAvailable(settings.shortcutOverrides);
     this.#shortcuts = resolveShortcuts(settings.shortcutOverrides);
     this.#enabled = new Set(SHORTCUT_ACTIONS.filter((action) => featureOn(SHORTCUT_FEATURES[action], settings, this.#win)));

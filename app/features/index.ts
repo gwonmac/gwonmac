@@ -23,6 +23,7 @@ import tradeChat from "./trade-chat/feature.js";
 import travel from "./travel/feature.js";
 import whispers from "./whispers/feature.js";
 import xunlaiStorage from "./xunlai-storage/feature.js";
+import type { FeatureSwitchKey } from "./define.js";
 
 export const FEATURES = [
   tools,
@@ -54,7 +55,7 @@ export type GlobalTool = ToolFeature["tool"]["id"];
 export type FeatureShortcut = Extract<Feature, { shortcuts: unknown }>["shortcuts"][number];
 export type ShortcutAction = FeatureShortcut["action"];
 /**
- * The setting of each Hub source: a tool whose Hub command is listed on the Commands
+ * The switch of each Hub source: a tool whose Hub command is listed on the Commands
  * page (`hub.keyOrder`). A command row alone, such as Xunlai Storage, is not a source.
  */
-export type HubFeatureSetting = Extract<ToolFeature, { hub: { keyOrder: number } }>["activation"]["setting"];
+export type HubFeatureSetting = FeatureSwitchKey<Extract<ToolFeature, { hub: { keyOrder: number } }>>;

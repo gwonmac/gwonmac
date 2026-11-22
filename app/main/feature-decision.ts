@@ -13,8 +13,8 @@ import type { BrowserWindow } from "electron";
 import type { ClientCompatibility } from "../shared/contracts.js";
 import type { EnhancementProgram } from "../shared/enhancement-contracts.js";
 import {
-  featureActivationSettings,
-  type FeatureActivationSettings,
+  featureSwitchSettings,
+  type FeatureSwitchSettings,
   type FeatureId,
 } from "../shared/feature-contracts.js";
 import { EVERY_CAPABILITY_PROVED, onWhereAllowed, type FeatureFacts } from "../shared/feature-resolve.js";
@@ -47,12 +47,12 @@ export function attachFeatureLaunch(next: FeatureLaunch | null): void {
 
 /** The facts for one game window, or for the app (launcher, menus, Tools main parts) without one. */
 export function featureFacts(
-  settings: Partial<FeatureActivationSettings>,
+  settings: Partial<FeatureSwitchSettings>,
   win?: BrowserWindow,
 ): FeatureFacts {
   return Object.freeze({
     toolsAtLaunch: launch?.toolsAtLaunch ?? false,
-    settings: featureActivationSettings(settings),
+    settings: featureSwitchSettings(settings),
     program: launch?.program ?? "none",
     features: launch === null ? null : launch.provenForTests ? EVERY_CAPABILITY_PROVED : launch.checks(win),
   });
@@ -61,7 +61,7 @@ export function featureFacts(
 /** Main's gates: whether a feature is on wherever its region allows (main stands in no area). */
 export function featureOn(
   id: FeatureId,
-  settings: Partial<FeatureActivationSettings>,
+  settings: Partial<FeatureSwitchSettings>,
   win?: BrowserWindow,
 ): boolean {
   return onWhereAllowed(id, featureFacts(settings, win));

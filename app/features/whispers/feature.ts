@@ -1,5 +1,5 @@
 import { setting } from "../../shared/settings/define.js";
-import { defineFeature } from "../define.js";
+import { defineFeature, featureSwitch } from "../define.js";
 
 export default defineFeature({
   id: "whispers",
@@ -9,11 +9,7 @@ export default defineFeature({
   purpose: "talk",
   icon: "message-circle",
   settings: {
-    whispersEnabled: setting.boolean(false, {
-      tools: true,
-      label: "Whispers",
-      help: "Shows the whisper panel and allows its shortcut.",
-    }),
+    whispersEnabled: featureSwitch(false, { tools: true }),
     /** Draw the small unread icon; the panel still opens from its shortcut and the Hub. */
     whispersIcon: setting.boolean(true, {
       hub: true,
@@ -22,7 +18,6 @@ export default defineFeature({
       help: "Draws the small unread icon. The shortcut and the Hub still open Whispers.",
     }),
   },
-  activation: { kind: "setting", setting: "whispersEnabled", master: "gwonmacTools" },
   region: "pve",
   uses: ["whisperChat"],
   tool: {
