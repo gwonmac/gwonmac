@@ -40,13 +40,13 @@ export type FeatureUses = Readonly<Record<FeatureUseGroup, readonly string[]> & 
 }>;
 
 /**
- * What a feature uses, in player words. `capabilities` lists only what the feature cannot run
+ * What a feature uses, in player words. `uses` lists only what the feature cannot run
  * without (app/features/define.ts), so a feature that still does part of its job without the game
  * lists less than it reads.
  */
 export function featureUses(feature: FeatureDefinition): FeatureUses {
   const groups: Record<FeatureUseGroup, string[]> = { sees: [], draws: [], does: [] };
-  for (const capability of feature.capabilities ?? []) {
+  for (const capability of feature.uses ?? []) {
     const { group, text } = CAPABILITY_WORDS[capability];
     if (!groups[group].includes(text)) groups[group].push(text);
   }
