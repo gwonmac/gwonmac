@@ -296,6 +296,10 @@ notes`) then, in step 1:
   stays as it is. A Beta or RC writes only the post: its changes stay under
   `## Unreleased`, so the Stable release that ships them lists them too.
 
+A release lists only the Features and options its stage shows
+([Release stages](feature-contract.md#release-stages)): Stable leaves out `beta` and `dev`
+ones, Beta and RC leave out `dev` ones, and their bullets stay under `## Unreleased`.
+
 It refuses, and writes nothing, when a changelog has no `## Unreleased`, holds
 text that is not a bullet, or already has `## <version>`; when the version has
 no draft post; or when the post with these notes is a story the news feed would

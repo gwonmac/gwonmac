@@ -111,7 +111,7 @@ function storedSwitchesOf(id: string): string[] {
 /** The Features a loaded settings file turns on, in a game started with Features, on a proved build, in PvE. */
 const featuresOn = (settings: AppSettings): FeatureId[] => FEATURES
   .filter((feature) => resolve(feature, {
-    toolsAtLaunch: true, settings, program: "none", playRegion: "pve", features: EVERY_CAPABILITY_PROVED,
+    stage: "stable", toolsAtLaunch: true, settings, program: "none", playRegion: "pve", features: EVERY_CAPABILITY_PROVED,
   }).on)
   .map((feature) => feature.id);
 

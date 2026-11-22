@@ -5,6 +5,7 @@
  * (app/shared/feature-status.ts). This module adds only what the tab itself decides: how cards
  * group, and the switch changes that turn a feature on together with what it needs.
  */
+import type { FeatureDefinition } from "../../../features/define";
 import {
   FEATURE_KIND_LABELS,
   FEATURE_PURPOSE_LABELS,
@@ -12,11 +13,13 @@ import {
   type FeatureId,
   type FeatureSettingKey,
 } from "@shared/feature-contracts";
-import type { FeatureState } from "@shared/feature-resolve";
+import { featureShown, type FeatureState } from "@shared/feature-resolve";
 import { featureStatus as sharedStatus, SWITCH_FEATURES, switchOf, type FeatureStatus, type SwitchFeature } from "@shared/feature-status";
 import type { GlobalTool, LauncherSnapshot } from "@shared/launcher-contracts";
 import { markdownInline, parseMarkdown, type MarkdownBlock, type MarkdownInline } from "@shared/launcher-markdown";
+import type { ManifestStage, ReleaseStage } from "@shared/release";
 import { featureOptionKeys } from "@shared/settings-catalogue";
+import { settingShown } from "@shared/settings/index";
 import type { SettingSpec } from "@shared/settings/define";
 import { guideLink } from "./guide";
 
@@ -25,6 +28,18 @@ export type CardFeature = SwitchFeature;
 export const CARD_FEATURES: readonly CardFeature[] = SWITCH_FEATURES;
 const byId = new Map<FeatureId, CardFeature>(CARD_FEATURES.map((feature) => [feature.id, feature]));
 export const cardFeature = (id: FeatureId): CardFeature | undefined => byId.get(id);
+/** The cards a build at `stage` shows: a Feature with a later manifest `stage` is not in this release. */
+export const cardsAt = (stage: ReleaseStage): readonly CardFeature[] => CARD_FEATURES.filter((feature) => featureShown(feature, stage));
+
+/**
+ * The label beside the name of a Feature or option still in development, where the build shows it:
+ * "Beta" in Beta and development builds, "Dev" only in development builds.
+ */
+export const STAGE_LABELS: Readonly<Record<ManifestStage, string>> = { beta: "Beta", dev: "Dev" };
+export const featureStageLabel = (feature: CardFeature): string | null => {
+  const { stage }: FeatureDefinition = feature;
+  return stage === undefined ? null : STAGE_LABELS[stage];
+};
 
 /**
  * resolve's state as the launcher sees it: main's facts (app/main/feature-decision.ts), which
@@ -51,18 +66,19 @@ export function groupsFor(by: GroupBy): readonly Readonly<{ id: string; name: st
   return Object.entries(labels).map(([id, name]) => ({ id, name }));
 }
 
-/** The groups to show, each with its matching cards; empty groups are left out. */
+/** The groups to show, each with its matching cards in a build at `stage`; empty groups are left out. */
 export function groupCards(
   by: GroupBy,
   filter: FeatureFilter,
   query: string,
   checked: (feature: CardFeature) => boolean,
+  stage: ReleaseStage,
 ): readonly Readonly<{ id: string; name: string; features: readonly CardFeature[] }>[] {
   const words = query.trim().toLowerCase();
   const matches = (feature: CardFeature) => (filter === "all" || (filter === "on" ? checked(feature) : groupName(feature, by) === filter))
     && (!words || `${feature.name} ${feature.summary}`.toLowerCase().includes(words));
   return groupsFor(by)
-    .map((group) => ({ ...group, features: CARD_FEATURES.filter((feature) => groupName(feature, by) === group.id && matches(feature)) }))
+    .map((group) => ({ ...group, features: cardsAt(stage).filter((feature) => groupName(feature, by) === group.id && matches(feature)) }))
     .filter((group) => group.features.length > 0);
 }
 
@@ -106,6 +122,8 @@ export type FeatureOption = Readonly<{
   help: string;
   /** The switch this option works under: while it is off, the option is dimmed. */
   dependsOn?: string;
+  /** The label beside its name while it is still in development (STAGE_LABELS). */
+  stageLabel?: string;
 }> & (
   | Readonly<{ kind: "switch" }>
   | Readonly<{ kind: "range"; min: number; max: number; unit: string }>
@@ -115,11 +133,13 @@ export type FeatureOption = Readonly<{
   | Readonly<{ kind: "value" }>
 );
 
-export function featureOptions(feature: CardFeature): readonly FeatureOption[] {
+/** The options a build at `stage` shows: an option with a later manifest `stage` is not in this release. */
+export function featureOptions(feature: CardFeature, stage: ReleaseStage): readonly FeatureOption[] {
   const specs: Readonly<Record<string, SettingSpec<unknown>>> = "settings" in feature ? feature.settings : {};
-  return featureOptionKeys(feature).map((key): FeatureOption => {
+  return featureOptionKeys(feature).filter((key) => settingShown(key, stage)).map((key): FeatureOption => {
     const spec = specs[key]!;
-    const text = { key, label: spec.label ?? key, help: spec.help ?? "", ...(spec.dependsOn ? { dependsOn: spec.dependsOn } : {}) };
+    const text = { key, label: spec.label ?? key, help: spec.help ?? "", ...(spec.dependsOn ? { dependsOn: spec.dependsOn } : {}),
+      ...(spec.stage ? { stageLabel: STAGE_LABELS[spec.stage] } : {}) };
     if (spec.kind === "boolean") return { ...text, kind: "switch" };
     if (spec.kind === "integer" && spec.range) return { ...text, kind: "range", min: spec.range.min, max: spec.range.max, unit: spec.unit ?? "" };
     if (spec.kind === "enum" && spec.values) return { ...text, kind: "choice", choices: spec.values.map((value) => ({ value, label: spec.choices?.[String(value)] ?? String(value) })) };

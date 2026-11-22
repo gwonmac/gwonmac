@@ -7,10 +7,12 @@
  * launcher and every game window, which add only where the character stands.
  *
  * Reasons are checked in the order FeatureOffReason lists them, and the first that
- * applies wins: what the player can change (a switch, another feature) before what an
- * update changes, before where the character stands. A required feature that is off
+ * applies wins: whether the Feature is in this release at all, then what the player can
+ * change (a switch, another feature) before what an update changes, before where the
+ * character stands. A required feature that is off
  * for a reason the player cannot switch passes that reason on.
  */
+import type { FeatureDefinition } from "../features/define.js";
 import type { Feature } from "../features/index.js";
 import type { ClientCompatibility, FeatureUse, OptionalFeatureStatus } from "./contracts.js";
 import { capabilityRecord, type EnhancementProgram } from "./enhancement-contracts.js";
@@ -22,6 +24,7 @@ import {
   type FeatureSwitchSettings,
   type FeatureId,
 } from "./feature-contracts.js";
+import { shownAt, type ReleaseStage } from "./release.js";
 
 /** A required feature must be a known feature id. */
 type RequiredFeature = Extract<Feature, { requires: unknown }>["requires"][number];
@@ -33,6 +36,11 @@ void requiresNameFeatures;
  * one to player text, so add one only for a new thing a player can do or wait for.
  */
 export type FeatureOffReason =
+  /**
+   * The Feature's manifest `stage` is later than this build's (app/shared/release.ts): it is
+   * not in this release. No player sees this reason: every surface leaves such a Feature out.
+   */
+  | "not-in-release"
   /**
    * The player plays the plain game (`gwonmacTools` off): every Feature is off and its own
    * switch waits as stored. Player text: "Off while you play the plain game."
@@ -63,6 +71,8 @@ export type FeatureOff = Extract<FeatureResolution, Readonly<{ on: false }>>;
 
 /** Everything `resolve` reads besides the manifest. */
 export type FeatureState = Readonly<{
+  /** The stage this build shows (app/shared/release.ts); main derives it once at startup. */
+  stage: ReleaseStage;
   /** Whether this game session started with Features loaded (not a plain-game Core launch). */
   toolsAtLaunch: boolean;
   /** The saved switches, read live: turning a feature off takes effect at once. */
@@ -119,7 +129,11 @@ function capabilityReason(
   return statuses.every((status) => status.status === "available") ? null : "not-proven";
 }
 
+/** Whether a Feature is in this build's release at all (its manifest `stage`). */
+export const featureShown = (feature: FeatureDefinition, stage: ReleaseStage): boolean => shownAt(feature.stage, stage);
+
 export function resolve(feature: Feature, state: FeatureState): FeatureResolution {
+  if (!featureShown(feature, state.stage)) return off("not-in-release");
   const programSelects = state.program !== "none"
     && "programs" in feature && feature.programs.some((program) => program === state.program);
   if (!programSelects && state.settings[LAUNCH_MODE_SWITCH] !== true) return off("plain-game");

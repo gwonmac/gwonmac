@@ -20,5 +20,5 @@ export function provenChecks(
 }
 
 export function provenFacts(settings: Partial<FeatureSwitchSettings>): FeatureFacts {
-  return { toolsAtLaunch: true, settings: featureSwitchSettings(settings), program: "none", features: provenChecks() };
+  return { stage: "stable", toolsAtLaunch: true, settings: featureSwitchSettings(settings), program: "none", features: provenChecks() };
 }

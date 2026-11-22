@@ -35,7 +35,7 @@ export type FeatureStatus = Readonly<{
  * A player can always turn a Feature off: a build check that failed, changed or has not run yet
  * leaves the switch working, and only the plain game holds the switches.
  */
-const REASONS: Readonly<Record<Exclude<FeatureOffReason, "needs" | "wrong-area">, Readonly<{ text: string; tone: ReasonTone; locked: boolean }>>> = {
+const REASONS: Readonly<Record<Exclude<FeatureOffReason, "needs" | "wrong-area" | "not-in-release">, Readonly<{ text: string; tone: ReasonTone; locked: boolean }>>> = {
   "plain-game": { text: "Off while you play the plain game.", tone: "muted", locked: true },
   "needs-restart": { text: "Starts the next time you open Guild Wars.", tone: "warning", locked: false },
   "switched-off": { text: "Off", tone: "muted", locked: false },
@@ -53,9 +53,16 @@ const needsText = (needs: SwitchFeature) => `Needs ${needs.name}. Turn it on fir
  */
 export const UNAVAILABLE_HERE = "Unavailable in the current game state.";
 
+/**
+ * `not-in-release` has no words: every surface leaves a Feature that is not in this release out
+ * (featureShown in app/shared/feature-resolve.ts), so a player never reads why.
+ */
+const NOT_IN_RELEASE = { text: "", tone: "muted", locked: true } as const;
+
 /** The reason line for an off resolution, as the Features tab and the Hub word it. */
 export function offReasonText(off: FeatureOff): string {
   if (off.reason === "needs") return needsText(byId.get(off.feature)!);
+  if (off.reason === "not-in-release") return NOT_IN_RELEASE.text;
   return off.reason === "wrong-area" ? UNAVAILABLE_HERE : REASONS[off.reason].text;
 }
 
@@ -74,6 +81,7 @@ export function featureStatus(feature: SwitchFeature, state: FeatureState, check
     const needs = byId.get(resolution.feature)!;
     return { resolution, checked, text: needsText(needs), tone: "warning", locked: false, needs };
   }
+  if (resolution.reason === "not-in-release") return { resolution, checked, ...NOT_IN_RELEASE };
   return { resolution, checked, ...REASONS[resolution.reason] };
 }
 

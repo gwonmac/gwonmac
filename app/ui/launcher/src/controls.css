@@ -25,3 +25,8 @@
 :where(:root[data-launcher]) .form-actions, .settings-view .form-actions { display: flex; justify-content: flex-end; gap: 10px; }
 :where(:root[data-launcher]) .form-actions.spread, .settings-view .form-actions.spread { justify-content: initial; }
 :where(:root[data-launcher]) .form-actions.spread > span, .settings-view .form-actions.spread > span { flex: 1; }
+
+/* A small label beside a name: a Feature's region, a Beta news story or a Feature still in
+   development. Both windows load it, so the Hub's Settings page draws the same label. */
+:where(:root[data-launcher]) .chip, .settings-view .chip { display: inline-flex; align-items: center; gap: 6px; width: fit-content; padding: 4px 10px; border-radius: var(--radius-pill); color: var(--muted); background: var(--control); font-size: var(--fs-xs); white-space: nowrap; }
+:where(:root[data-launcher]) .chip.accent, .settings-view .chip.accent { color: var(--gold-text); background: var(--gold-tint-strong); }

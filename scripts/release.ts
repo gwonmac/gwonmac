@@ -48,10 +48,13 @@ import type { FeatureDefinition } from "../app/features/define.js";
 import { parseNewsStory, type ProjectNewsStory } from "../app/shared/launcher-news-feed.js";
 import { RELEASE_REPO, releaseAssetUrl } from "../app/shared/project-identity.js";
 import {
+  buildStage,
   formatReleaseVersion,
   isPrerelease,
   parseReleaseVersion,
   releaseAssetNames,
+  shownAt,
+  type ManifestStage,
 } from "../app/shared/release.js";
 import { parseReleaseManifest } from "../app/shared/release-manifest.js";
 import { readFrontMatter } from "../app/shared/website-content.js";
@@ -156,20 +159,37 @@ const FEATURE_NOTES = "## Features";
 /** The last line of every release post (docs/launcher-news.md). */
 const TECHNICAL_RECORD = "[Technical release record]";
 
+/**
+ * A change to one option of a Feature starts with the option's setting key in brackets,
+ * `- [cartographyQuestRouteEnabled] Leads to your quest.`, so it waits while the option has a
+ * `stage` (docs/feature-contract.md#release-stages). The release that ships it drops the key.
+ */
+const OPTION_CHANGE = /^\[([a-z][A-Za-z0-9]*)\]\s+/u;
+
 export interface StampedChangelog {
-  /** The changes under `## Unreleased`, one per `- ` bullet, without the bullet. */
+  /** The changes under `## Unreleased` this release ships, one per `- ` bullet, without the bullet or an option key. */
   readonly entries: readonly string[];
-  /** Those changes under `## <version>` below a fresh empty `## Unreleased`; the input when there were none. */
+  /**
+   * Those changes under `## <version>` below `## Unreleased`, which keeps only the changes this
+   * release leaves out; the input when it ships none.
+   */
   readonly text: string;
 }
 
 /**
  * Moves a feature changelog's `## Unreleased` changes under `## <version>` and
- * puts an empty `## Unreleased` on top for the next release. An empty section
- * stays as it is, so a feature without changes gets no empty version heading.
- * Each change is one `- ` bullet; indented lines continue it.
+ * leaves `## Unreleased` on top for the next release. An empty section stays as
+ * it is, so a feature without changes gets no empty version heading. Each change
+ * is one `- ` bullet; indented lines continue it. `ships` answers for each change,
+ * by the option key it starts with or null, whether this release ships it; a
+ * change it leaves out stays under `## Unreleased`.
  */
-export function stampChangelog(text: string, version: string, file: string): StampedChangelog {
+export function stampChangelog(
+  text: string,
+  version: string,
+  file: string,
+  ships: (option: string | null) => boolean = () => true,
+): StampedChangelog {
   const lines = text.split("\n");
   const start = lines.indexOf(UNRELEASED);
   if (start < 0) {
@@ -177,22 +197,33 @@ export function stampChangelog(text: string, version: string, file: string): Sta
   }
   const next = lines.findIndex((line, index) => index > start && line.startsWith("## "));
   const end = next < 0 ? lines.length : next;
-  const section = lines.slice(start + 1, end);
-  const entries: string[] = [];
-  for (const line of section) {
-    const last = entries.length - 1;
-    if (line.startsWith("- ") && line.slice(2).trim()) entries.push(line.slice(2).trim());
-    else if (/^\s+\S/u.test(line) && last >= 0) entries[last] = `${entries[last]} ${line.trim()}`;
-    else if (line.trim()) {
+  const changes: { entry: string; option: string | null; written: string[]; shipped: string[] }[] = [];
+  for (const line of lines.slice(start + 1, end)) {
+    const last = changes.at(-1);
+    if (line.startsWith("- ") && line.slice(2).trim()) {
+      const body = line.slice(2).trim();
+      const option = OPTION_CHANGE.exec(body);
+      const entry = option ? body.slice(option[0].length) : body;
+      changes.push({ entry, option: option?.[1] ?? null, written: [line], shipped: [option ? `- ${entry}` : line] });
+    } else if (/^\s+\S/u.test(line) && last) {
+      last.entry = `${last.entry} ${line.trim()}`;
+      last.written.push(line);
+      last.shipped.push(line);
+    } else if (line.trim()) {
       throw new Error(`${file}: write each change under "${UNRELEASED}" as one "- " bullet, not ${JSON.stringify(line)}.`);
     }
   }
+  const shipped = changes.filter(({ option }) => ships(option));
+  const entries = shipped.map(({ entry }) => entry);
   if (entries.length === 0) return { entries, text };
   if (lines.includes(`## ${version}`)) {
     throw new Error(`${file}: "## ${version}" is already stamped; move these changes into it by hand or release them in the next version.`);
   }
-  const changes = section.join("\n").trim().split("\n");
-  const stamped = [...lines.slice(0, start), UNRELEASED, "", `## ${version}`, ...changes, "", ...lines.slice(end)];
+  const waiting = changes.filter((change) => !shipped.includes(change)).flatMap(({ written }) => written);
+  const stamped = [
+    ...lines.slice(0, start), UNRELEASED, ...(waiting.length ? ["", ...waiting] : []),
+    "", `## ${version}`, ...shipped.flatMap(({ shipped: written }) => written), "", ...lines.slice(end),
+  ];
   return { entries, text: `${stamped.join("\n").trimEnd()}\n` };
 }
 
@@ -267,6 +298,9 @@ export interface ReleaseFile {
 export interface FeatureChangelog extends ReleaseFile {
   /** The feature's player name: `name` in its feature.ts. */
   readonly name: string;
+  /** The Feature's `stage` and its settings from feature.ts: a release leaves out what its stage does not show. */
+  readonly stage?: ManifestStage | undefined;
+  readonly settings?: Readonly<Record<string, Readonly<{ stage?: ManifestStage }>>> | undefined;
 }
 
 export interface ReleaseNotesPlan {
@@ -282,6 +316,9 @@ export interface ReleaseNotesPlan {
  * and the version's draft release post with its `## Features` section. A
  * pre-release writes only the post: its changes stay under `## Unreleased`
  * until the Stable release that ships them, so that release lists them too.
+ * A release lists only what its stage shows (app/shared/release.ts): Stable
+ * leaves out beta and dev Features and options, Beta leaves out dev ones, and
+ * their changes stay under `## Unreleased` until the item ships.
  */
 export function releaseNotesPlan(
   version: string,
@@ -294,7 +331,16 @@ export function releaseNotesPlan(
   const page = post && others.length === 0 ? readFrontMatter(post.text) : null;
   if (!post || !page?.draft || page.fields.title !== `GWonMac ${version}`) throw missingReleasePost(version);
 
-  const stamped = changelogs.map((changelog) => ({ ...changelog, ...stampChangelog(changelog.text, version, changelog.file) }));
+  const stage = buildStage(true, version);
+  const stamped = changelogs.map((changelog) => ({ ...changelog, ...stampChangelog(changelog.text, version, changelog.file, (option) => {
+    if (!shownAt(changelog.stage, stage)) return false;
+    if (option === null) return true;
+    const setting = changelog.settings?.[option];
+    if (setting === undefined) {
+      throw new Error(`${changelog.file}: "[${option}]" names no setting of this Feature; start the change with the key of one of its options in feature.ts, or drop the brackets.`);
+    }
+    return shownAt(setting.stage, stage);
+  }) }));
   const notes = featureReleaseNotes(stamped);
   if (!notes) return { notes, writes: [] };
   const text = withFeatureNotes(post.text, notes);
@@ -322,7 +368,8 @@ async function featureChangelogs(root: string): Promise<FeatureChangelog[]> {
   return Promise.all(folders.map(async (folder) => {
     const manifest = await import(pathToFileURL(path.join(features, folder, "feature.ts")).href) as { default: FeatureDefinition };
     const file = `app/features/${folder}/CHANGELOG.md`;
-    return { file, name: manifest.default.name, text: readFileSync(path.join(root, file), "utf8") };
+    const { name, stage, settings } = manifest.default;
+    return { file, name, stage, settings, text: readFileSync(path.join(root, file), "utf8") };
   }));
 }
 

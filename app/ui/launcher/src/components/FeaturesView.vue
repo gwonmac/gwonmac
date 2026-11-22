@@ -14,9 +14,9 @@ import type { SettingsTarget } from "@shared/settings-catalogue";
 import type { InGameNative, InGamePatch, InGameSettings } from "../settings-host";
 import {
   CARD_FEATURES,
+  cardsAt,
   REGION_WORDS,
   badgeOf,
-  cardFeature,
   changelogOf,
   featureStatus,
   groupCards,
@@ -83,17 +83,20 @@ const searchField = ref<HTMLInputElement | null>(null);
 
 const tools = computed(() => props.snapshot.tools);
 const state = computed(() => launcherFeatureState(props.snapshot.features));
+/** The stage this build shows (app/shared/release.ts): a Feature or option with a later one is not in this release. */
+const stage = computed(() => props.snapshot.features.stage);
+const cards = computed(() => cardsAt(stage.value));
 const statuses = computed(() => new Map(CARD_FEATURES.map((each) => [each.id, featureStatus(each, state.value, tools.value)])));
 const statusOf = (each: CardFeature) => statuses.value.get(each.id)!;
 const badges = computed(() => new Map(CARD_FEATURES.map((each) => [each.id, badgeOf(changelogOf(each), props.snapshot.appVersion)])));
-const groups = computed(() => groupCards(groupBy.value, filter.value, query.value, (each) => statusOf(each).checked));
-const onCount = computed(() => CARD_FEATURES.filter((each) => statusOf(each).checked).length);
+const groups = computed(() => groupCards(groupBy.value, filter.value, query.value, (each) => statusOf(each).checked, stage.value));
+const onCount = computed(() => cards.value.filter((each) => statusOf(each).checked).length);
 const filters = computed(() => [
   { id: "all", name: "All" },
   { id: "on", name: `On (${onCount.value})` },
   ...groupsFor(groupBy.value),
 ]);
-const shown = computed(() => (feature.value ? cardFeature(feature.value) : undefined) ?? null);
+const shown = computed(() => cards.value.find((each) => each.id === feature.value) ?? null);
 
 /** The launch mode's words, from its manifest; its switch is inverted (on while `gwonmacTools` is off). */
 const PLAIN_GAME = featureSettingText("gwonmacTools");
@@ -210,6 +213,7 @@ function pickGroup(next: GroupBy) {
       :save="saveSettings"
       :perform-save="performSave"
       :app-version="snapshot.appVersion"
+      :stage="stage"
       :embedded="embedded"
       @back="feature = null"
       @toggle="toggle(shown, $event)"
@@ -251,7 +255,7 @@ function pickGroup(next: GroupBy) {
             <button class="pill" :class="{ selected: filter === each.id }" :aria-pressed="filter === each.id" @click="filter = each.id">{{ each.name }}</button>
           </template>
         </div>
-        <span class="count">{{ CARD_FEATURES.length }} Features</span>
+        <span class="count">{{ cards.length }} Features</span>
         <span id="group-label" class="group-label">Group by</span>
         <div class="segment" role="group" aria-labelledby="group-label">
           <button :class="{ selected: groupBy === 'kind' }" :aria-pressed="groupBy === 'kind'" @click="pickGroup('kind')">Kind</button>

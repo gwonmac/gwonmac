@@ -33,7 +33,7 @@ describe("Settings deep-link targets", () => {
 describe("Settings search", () => {
   it("finds the plain game switch by its own words and by the words of the switch it replaced", () => {
     for (const query of ["plain game", "vanilla", "enable tools", "tools beta"]) {
-      assert.equal(searchSettings(query)[0]?.id, "gwonmacTools", query);
+      assert.equal(searchSettings(query, "stable")[0]?.id, "gwonmacTools", query);
     }
   });
 });

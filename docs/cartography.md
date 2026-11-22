@@ -281,6 +281,9 @@ marker is the search target as it is, and it counts only on that map. The
 progress feed runs while this route wants it, even with Travel off. A client
 without a reviewed quest lookup has no marker and draws no quest line. The
 player's own target always wins; the quest line is solid, the own one dashed.
+The option has `stage: "dev"` while it is polished: only development builds show
+or run it, and its player text waits in `app/features/cartography/STAGED.md`
+([Release stages](feature-contract.md#release-stages)).
 
 The reachability kernel searches the route (`cartography_reachability_route`)
 over the same trapezoids, portals, blocked planes, and doorway rule as the

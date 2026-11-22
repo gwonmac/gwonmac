@@ -62,7 +62,7 @@ export function createCompanionPolicySource<Settings extends OptionalToolSetting
   let disposed = false;
   // Before main's facts arrive nothing is loaded, so every Feature reads off.
   const readFacts = (): FeatureFacts => input.readFacts()
-    ?? { toolsAtLaunch: false, settings: {}, program: input.program, features: null };
+    ?? { stage: "stable", toolsAtLaunch: false, settings: {}, program: input.program, features: null };
   let settings = input.readSettings();
   let facts = readFacts();
   let playRegionState = input.readPlayRegion();

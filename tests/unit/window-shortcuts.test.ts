@@ -16,7 +16,7 @@ import { attachFeatureLaunch } from "../../app/main/feature-decision.js";
 import { provenChecks } from "../helpers/feature-facts.js";
 
 // A launch that loaded Features on a build that proved every capability: the switches decide.
-attachFeatureLaunch({ toolsAtLaunch: true, program: "none", checks: () => provenChecks(), provenForTests: false });
+attachFeatureLaunch({ stage: "stable", toolsAtLaunch: true, program: "none", checks: () => provenChecks(), provenForTests: false });
 
 type ShortcutInput = Pick<
   Electron.Input,
@@ -138,13 +138,13 @@ describe("window shortcut input", () => {
     const press = () => dispatch({ preventDefault() {} }, { type: "keyDown", code: "KeyJ", key: "j", meta: true, control: false, shift: true, alt: false, isAutoRepeat: false });
     const enabled = { ...DEFAULT_SETTINGS, gwonmacTools: true, resignEnabled: true, shortcutOverrides: { "game.resign": { key: "j", shift: true, option: false } } };
     try {
-      attachFeatureLaunch({ toolsAtLaunch: true, program: "none", provenForTests: false,
+      attachFeatureLaunch({ stage: "stable", toolsAtLaunch: true, program: "none", provenForTests: false,
         checks: () => provenChecks({ resignAction: { status: "unavailable", reason: "game-update" } }) });
       updateWindowShortcuts(win, enabled);
       press();
       assert.deepEqual(actions, []);
     } finally {
-      attachFeatureLaunch({ toolsAtLaunch: true, program: "none", checks: () => provenChecks(), provenForTests: false });
+      attachFeatureLaunch({ stage: "stable", toolsAtLaunch: true, program: "none", checks: () => provenChecks(), provenForTests: false });
     }
     updateWindowShortcuts(win, enabled);
     press();

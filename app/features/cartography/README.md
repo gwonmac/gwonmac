@@ -16,8 +16,6 @@ Hold Shift over a Mission Map cell to see the 3×3 area standing there reveals. 
 
 The line follows walkable ground and updates when you leave it. When no walkable way reaches the point, the line ends on the nearest ground and a dotted line shows the rest. The point stays when you travel to another area of the same continent, so you can set it on the World Map and follow it across several areas. It is removed when you reach another continent or close the game. In another area, the line leads to the ground nearest the point, which is not always the exit you need.
 
-Without a point of your own, the line leads to your active quest, the same place the game’s quest marker shows. When the quest is in another area, it leads to the exit the game marks. Your own point always wins; remove it to follow the quest again. Turn this off with :setting[Route to quest]{to="features/cartographyQuestRouteEnabled"}.
-
 ### Elite skill planner
 The planner helps you capture elite skills. It lists every elite skill with its boss, where to find the boss, and whether this character has learned the skill. Open the World Map and select the control in its upper-right corner. From the Build Library’s skill view, **Find capture locations** opens the same details.
 
@@ -33,5 +31,3 @@ A skill counts as learned only when the game reports it for the current characte
 - **Settings:** :setting[Map style]{to="features/cartographyPresetLibrary"} (Cartographer, Synthwave, Monochrome, or your own), :setting[Terrain border thickness]{to="features/cartographyBoundaryWidth"}, :setting[Grid opacity]{to="features/cartographyGridOpacity"}, :setting[Reveal range]{to="features/cartographyRevealMode"} (Off, Normal · 3×3, Bird’s Eye · 7×7), :setting[Walkable terrain opacity]{to="features/cartographyWalkabilityOpacity"}, :setting[Compass control visibility]{to="features/cartographyControlIdleOpacity"} and :setting[Mission Map markers]{to="features/eliteMissionMapMarkers"} for the planner (**Hunt list**, **All planner matches** or **Off**). Compass ranges can be set to Color or Monochrome, and each ring can be turned off.
 - **Compass buttons:** the two buttons beside the Compass are optional. Turn :setting[Show compass buttons]{to="features/compassButtonsShown"} off to hide them; every choice they offer stays on the Feature page. To move them, drag either button in a game window at any time; :setting[Compass buttons position]{to="features/compassButtonsOffset"} has **Put back**. They keep following the Compass.
 - **Limits:** supported PvE maps only. The grid covers Pre-Searing, Tyria, Cantha and Elona. In dungeons, underground maps, the Battle Isles and the Realm of Torment, the grid hides and only walkable terrain stays. The layers return after you travel to a fully supported area. You can edit Maps settings in the plain game; the layers show once you turn off the plain game and turn on Maps.
-
-> The route to your quest is solid. The route to your own point is dashed.

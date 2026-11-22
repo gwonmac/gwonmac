@@ -41,8 +41,9 @@ function actionOf(feature: SwitchFeature, status: FeatureStatus): Readonly<{ lab
 export function featureOffReason(id: SwitchFeature['id']): string {
   const feature = SWITCH_FEATURES.find(each => each.id === id);
   const facts = window.gwFeatureFacts?.() ?? null;
-  if (feature === undefined) return 'This Feature is off.';
-  const status = facts === null ? null : featureStatus(feature, { ...facts, playRegion: 'unknown' }, switchedOn(feature, facts.settings));
+  const status = feature === undefined || facts === null ? null : featureStatus(feature, { ...facts, playRegion: 'unknown' }, switchedOn(feature, facts.settings));
+  // A Feature not in this release keeps its name to itself.
+  if (feature === undefined || (status !== null && !status.resolution.on && status.resolution.reason === 'not-in-release')) return 'This Feature is off.';
   return status === null || status.resolution.on || status.resolution.reason === 'switched-off' ? `${feature.name} is off.` : status.text;
 }
 
@@ -58,7 +59,8 @@ export function createHubFeatures(open: (target: SettingsTarget) => (task: HubTa
       return SWITCH_FEATURES.flatMap((feature): HubRow[] => {
         if (feature.id !== scoped && !named(feature, query)) return [];
         const status = featureStatus(feature, state, switchedOn(feature, facts.settings));
-        if (status.resolution.on) return [];
+        // A Feature not in this release has no row at all: players never learn it exists.
+        if (status.resolution.on || status.resolution.reason === 'not-in-release') return [];
         const action = actionOf(feature, status);
         const iconKind = HUB_TOOL_ROWS.find(row => row.feature === feature.id)?.iconKind;
         return [{ id: `feature:${feature.id}`, title: feature.name, detail: status.text, group: HUB_FEATURES_GROUP, ...(iconKind ? { iconKind } : {}),

@@ -24,7 +24,7 @@ const SETTINGS = { ...DEFAULT_SETTINGS, gwonmacTools: true, quickItemMove: true,
 test("the facts main sends carry the verifier's statuses, so a patch day reads as a needed update", (t) => {
   const failedWindow = {} as BrowserWindow;
   attachFeatureLaunch({
-    toolsAtLaunch: true,
+    stage: "stable", toolsAtLaunch: true,
     program: "none",
     checks: (win) => win === failedWindow
       ? provenChecks({ whisperChat: { status: "unavailable", reason: "preparation-failed" } })

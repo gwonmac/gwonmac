@@ -11,6 +11,7 @@ import { COMPASS_RANGE_INDICATORS } from "@shared/compass-ranges";
 import { optionFor } from "@shared/setting-copy";
 import { SHORTCUT_LABELS } from "@shared/keyboard-shortcuts";
 import type { LauncherSnapshot } from "@shared/launcher-contracts";
+import type { ReleaseStage } from "@shared/release";
 import type { InGamePatch, InGameSettings, InGameTools } from "../settings-host";
 import { featureOptions, type CardFeature, type FeatureOption } from "../features";
 import FeatureSwitch from "./FeatureSwitch.vue";
@@ -24,6 +25,8 @@ import MapStyleControl from "./feature-controls/MapStyleControl.vue";
 
 const props = withDefaults(defineProps<{
   feature: CardFeature;
+  /** The stage this build shows: an option with a later manifest `stage` gets no row (app/shared/release.ts). */
+  stage: ReleaseStage;
   settings: InGameSettings;
   shortcuts: LauncherSnapshot["shortcuts"];
   api?: InGameTools | undefined;
@@ -58,7 +61,7 @@ const claimed = new Set(Object.values(CONTROLS).flatMap((control) => control?.cl
 
 const values = computed<Readonly<Record<string, unknown>>>(() => props.settings);
 /** The options this host may change; a value without a control has none here (Travel favourites live in Travel). */
-const options = computed(() => featureOptions(props.feature).filter((option) => option.key in values.value
+const options = computed(() => featureOptions(props.feature, props.stage).filter((option) => option.key in values.value
   && (CONTROLS[option.key] !== undefined || (!claimed.has(option.key) && option.kind !== "value"))));
 const shortcutRows = computed(() => "shortcuts" in props.feature ? props.feature.shortcuts : []);
 const dimmed = (option: FeatureOption) => option.dependsOn !== undefined && values.value[option.dependsOn] === false;
@@ -97,7 +100,7 @@ function choose(option: FeatureOption & { kind: "choice" }, event: Event) {
         <component :is="CONTROLS[option.key]!.component" v-else v-bind="CONTROLS[option.key]!.props?.(settings, controlSave(option)) ?? { settings, save: controlSave(option) }" />
       </template>
       <div v-else class="row" :class="{ dimmed: dimmed(option) }" :data-setting="option.key">
-        <span class="row-label"><span :id="`option-${option.key}`">{{ option.label }}</span><small :id="`option-${option.key}-help`">{{ option.help }}</small></span>
+        <span class="row-label"><span :id="`option-${option.key}`">{{ option.label }}<span v-if="option.stageLabel" class="chip accent stage-label">{{ option.stageLabel }}</span></span><small :id="`option-${option.key}-help`">{{ option.help }}</small></span>
         <FeatureSwitch v-if="option.kind === 'switch'" :checked="values[option.key] === true" :label="option.label" :locked="dimmed(option)" :describedby="`option-${option.key}-help`" @change="set(option, $event)" />
         <RangeControl v-else-if="option.kind === 'range'" :label="option.label" :value="Number(values[option.key])" :min="option.min" :max="option.max" :unit="option.unit" @change="set(option, $event)" />
         <select v-else-if="option.kind === 'choice'" :aria-labelledby="`option-${option.key}`" :aria-describedby="`option-${option.key}-help`" :value="String(values[option.key])" :disabled="dimmed(option)" @change="choose(option, $event)">
@@ -124,6 +127,7 @@ function choose(option: FeatureOption & { kind: "choice" }, event: Event) {
 .feature-settings .row.dimmed .row-label { opacity: .55; }
 .feature-settings .row-label { display: grid; gap: 3px; font-size: var(--fs-md); }
 .feature-settings .row-label small { color: var(--muted); font-size: var(--fs-sm); line-height: 1.45; }
+.feature-settings .stage-label { margin-left: 8px; padding: 2px 8px; vertical-align: 1px; }
 .feature-settings .row-controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px 12px; }
 .feature-settings .control-block { display: grid; gap: 8px; padding: 14px 0 0; border-bottom: 1px solid var(--line); }
 </style>

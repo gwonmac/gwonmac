@@ -10,9 +10,10 @@ import { Bug, Check, ChevronLeft, Code, Eye, HardDrive, MousePointerClick, PenLi
 import { FEATURE_KIND_LABELS, type FeatureId } from "@shared/feature-contracts";
 import { featureUses } from "@shared/feature-uses";
 import type { LauncherExternalLink, LauncherSnapshot } from "@shared/launcher-contracts";
+import type { ReleaseStage } from "@shared/release";
 import type { SettingsTarget } from "@shared/settings-catalogue";
 import type { InGamePatch, InGameSettings, InGameTools } from "../settings-host";
-import { REGION_WORDS, cardFeature, changelogOf, readmeBlocks, type CardFeature } from "../features";
+import { REGION_WORDS, cardFeature, changelogOf, featureStageLabel, readmeBlocks, type CardFeature } from "../features";
 import { runsWith, switchOf, type FeatureStatus } from "@shared/feature-status";
 import FeatureArt from "./FeatureArt.vue";
 import FeatureSettings from "./FeatureSettings.vue";
@@ -28,6 +29,8 @@ const props = withDefaults(defineProps<{
   save: (patch: InGamePatch) => Promise<void>;
   performSave?: ((action: () => Promise<unknown>) => Promise<void>) | undefined;
   appVersion: string;
+  /** The stage this build shows: which options the page draws (app/shared/release.ts). */
+  stage: ReleaseStage;
   /** Drawn inside the Hub's Settings page: its status line reports saves, and links to the launcher and the web stay text. */
   embedded?: boolean;
 }>(), { api: undefined, performSave: undefined, embedded: false });
@@ -49,6 +52,8 @@ const usesGame = computed(() => uses.value.sees.length + uses.value.draws.length
 const needs = computed(() => ("requires" in props.feature ? props.feature.requires : []).flatMap((id) => cardFeature(id) ?? []));
 /** The switch the header button moves; Settings search opens the page at it. */
 const switchSetting = computed(() => `tool:${switchOf(props.feature)}`);
+/** "Beta" or "Dev" beside the name of a Feature still in development; the catalog shows it only in builds at that stage. */
+const stageLabel = computed(() => featureStageLabel(props.feature));
 </script>
 
 <template>
@@ -58,7 +63,7 @@ const switchSetting = computed(() => `tool:${switchOf(props.feature)}`);
     <header class="feature-head">
       <FeatureArt :feature="feature" variant="head" />
       <div class="head-copy">
-        <h1 tabindex="-1">{{ feature.name }}</h1>
+        <h1 tabindex="-1">{{ feature.name }}<span v-if="stageLabel" class="chip accent stage-label">{{ stageLabel }}</span></h1>
         <p class="head-summary">{{ feature.summary }}</p>
         <p class="head-meta">{{ FEATURE_KIND_LABELS[feature.kind] }} · {{ REGION_WORDS[feature.region] }} · by the GWonMac project</p>
         <p id="feature-status" class="head-status" :class="status.resolution.on ? 'on' : status.tone">
@@ -97,7 +102,7 @@ const switchSetting = computed(() => `tool:${switchOf(props.feature)}`);
           <p v-if="usesGame" class="uses-note">Before this Feature runs, GWonMac checks each game item above on this Guild Wars build.</p>
         </section>
 
-        <FeatureSettings :feature="feature" :settings="settings" :shortcuts="shortcuts" :api="api" :save="save" :perform-save="performSave" :show-note="!embedded" />
+        <FeatureSettings :feature="feature" :stage="stage" :settings="settings" :shortcuts="shortcuts" :api="api" :save="save" :perform-save="performSave" :show-note="!embedded" />
 
         <section v-if="versions.length" aria-labelledby="new-title">
           <h2 id="new-title">What’s new</h2>
@@ -134,6 +139,7 @@ const switchSetting = computed(() => `tool:${switchOf(props.feature)}`);
 .head-copy h1 { margin: 0; font-size: var(--fs-page); line-height: 1.1; }
 .head-copy p { margin: 0; }
 .head-summary { color: var(--text-soft); font-size: 15px; }
+.stage-label { margin-left: 12px; font-weight: 600; vertical-align: middle; }
 .head-meta { font-size: var(--fs-sm); }
 /* Inline flow, not flex: a flex gap would split "Needs Travel." around its link. */
 .head-status { font-size: var(--fs-sm); }

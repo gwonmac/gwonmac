@@ -89,6 +89,33 @@ export function isPrerelease(version: ReleaseVersion): boolean {
   return version.channel !== "stable";
 }
 
+/**
+ * How far along a Feature or one option is (its manifest `stage`), and which items a build shows.
+ * An item without a stage is stable and shows everywhere; `beta` shows in Beta and RC builds and in
+ * development builds; `dev` only in development builds. A build's own stage comes from whether it
+ * is packaged and its version (docs/feature-contract.md#release-stages).
+ */
+export type ReleaseStage = "stable" | "beta" | "dev";
+/** The stage a manifest names; leaving it out means stable. */
+export type ManifestStage = Exclude<ReleaseStage, "stable">;
+
+const STAGE_ORDER: Readonly<Record<ReleaseStage, number>> = { stable: 0, beta: 1, dev: 2 };
+
+/**
+ * The stage a build shows: every development build (`!app.isPackaged`) is `dev`, a packaged
+ * prerelease (Beta, RC) is `beta`, and Stable, or a version this project would not publish, is
+ * `stable`.
+ */
+export function buildStage(packaged: boolean, version: string): ReleaseStage {
+  if (!packaged) return "dev";
+  const parsed = parseReleaseVersion(version);
+  return parsed !== null && isPrerelease(parsed) ? "beta" : "stable";
+}
+
+/** Whether an item at `item` (absent: stable) shows in a build at `build`. */
+export const shownAt = (item: ManifestStage | undefined, build: ReleaseStage): boolean =>
+  STAGE_ORDER[item ?? "stable"] <= STAGE_ORDER[build];
+
 /** GitHub's release flag must describe the same stage as the canonical tag. */
 export function releaseMetadataMatchesStage(
   version: ReleaseVersion,

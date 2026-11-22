@@ -80,7 +80,7 @@ const featuresSnapshot = computed<FeaturesSnapshot>(() => ({
   gamesOpen: props.launcher ? props.launcher.snapshot.profiles.some(profile => profile.state !== "ready" && profile.state !== "failed") : true,
 }));
 const query = ref("");
-const results = computed(() => searchSettings(query.value));
+const results = computed(() => searchSettings(query.value, props.snapshot.features.stage));
 const content = ref<HTMLElement | null>(null);
 const page = ref<HTMLElement | null>(null);
 const searchField = ref<HTMLInputElement | null>(null);

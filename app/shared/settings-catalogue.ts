@@ -7,11 +7,14 @@
  * everywhere (docs/settings.md): a Feature's option takes its manifest's label and help, word for word.
  */
 import { GAME_SETTINGS, type SettingApplies } from "./setting-copy.js";
+import type { FeatureDefinition } from "../features/define.js";
 import { FEATURE_SELECTION_POLICIES, featureSettingText, type FeatureId, type FeatureSettingKey } from "./feature-contracts.js";
 import { SWITCH_FEATURES, type SwitchFeature } from "./feature-status.js";
 import { SHORTCUT_LABELS } from "./keyboard-shortcuts.js";
 import { GLOBAL_TOOLS, GLOBAL_TOOL_FEATURES, type GlobalTool } from "./launcher-contracts.js";
-import { LAUNCHER_SETTINGS } from "./settings/index.js";
+import { shownAt, type ManifestStage, type ReleaseStage } from "./release.js";
+import { LAUNCHER_SETTINGS, SETTING_TABLE } from "./settings/index.js";
+import type { SettingSpec } from "./settings/define.js";
 import { TOOL_KEYWORDS, TOOL_PRESENTATION } from "./tool-presentation.js";
 
 /**
@@ -53,6 +56,8 @@ export type SettingEntry = Readonly<{
   keywords?: string;
   /** When a change takes effect; absent means now. */
   applies?: SettingApplies;
+  /** The stage of its Feature or its option (app/shared/release.ts): search finds it only in builds at that stage. */
+  stage?: ManifestStage;
 }>;
 
 const KEYS = "keys shortcut hotkey keyboard";
@@ -120,8 +125,16 @@ const featureEntries = (feature: SwitchFeature): SettingEntry[] => [
   })),
 ];
 
-/** Every setting a player can find by name, in display order within its section. */
-export const SETTINGS: readonly SettingEntry[] = [
+const specs: ReadonlyMap<string, SettingSpec<unknown>> = SETTING_TABLE;
+const features: readonly FeatureDefinition[] = SWITCH_FEATURES;
+const featureStages = new Map(features.flatMap(({ id, stage }) => stage === undefined ? [] : [[id, stage] as const]));
+/** An entry with the stage it waits for: its option's own, else its Feature's. */
+function withStage(entry: SettingEntry): SettingEntry {
+  const stage = specs.get(entry.id)?.stage ?? (entry.feature === undefined ? undefined : featureStages.get(entry.feature));
+  return stage === undefined ? entry : { ...entry, stage };
+}
+
+const ENTRIES: readonly SettingEntry[] = [
   { ...featureSettingText("gwonmacTools"), detail: featureSettingText("gwonmacTools").help, id: "gwonmacTools", section: "features", keywords: "plain vanilla original official features optional tools beta enable disable all off" },
   ...GLOBAL_TOOLS.map(toolEntry),
   ...SWITCH_FEATURES.flatMap(featureEntries),
@@ -151,6 +164,8 @@ export const SETTINGS: readonly SettingEntry[] = [
   { id: "pasteSettings", section: "advanced", label: "Paste settings", keywords: "import restore move transfer another mac computer" },
   { id: "resetAllSettings", section: "advanced", label: "Reset all app settings", keywords: "reset defaults" },
 ];
+/** Every setting a player can find by name, in display order within its section, with the stage it waits for. */
+export const SETTINGS: readonly SettingEntry[] = ENTRIES.map(withStage);
 
 /** Where a player finds a setting, as a few words: "Features › Maps", "Game". */
 export function settingPlace(entry: SettingEntry): string {
@@ -197,11 +212,15 @@ export function settingsLinkTarget(path: string): SettingsTarget {
   return settingTarget(entry);
 }
 
+/** The settings a player can find in a build at `stage`: an item with a later stage stays out. */
+export const settingsAt = (stage: ReleaseStage): readonly SettingEntry[] => SETTINGS.filter((entry) => shownAt(entry.stage, stage));
+
 /**
  * Settings whose label, words, description or section contain every typed word, best
  * first: a label that starts with the query, then a label that contains it, then the rest.
+ * Only what a build at `stage` shows.
  */
-export function searchSettings(query: string): SettingEntry[] {
+export function searchSettings(query: string, stage: ReleaseStage): SettingEntry[] {
   const words = query.toLowerCase().split(/\s+/).filter(Boolean);
   if (!words.length) return [];
   const phrase = words.join(" ");
@@ -209,7 +228,7 @@ export function searchSettings(query: string): SettingEntry[] {
     const label = entry.label.toLowerCase();
     return label.startsWith(phrase) ? 0 : label.includes(phrase) ? 1 : 2;
   };
-  return SETTINGS
+  return settingsAt(stage)
     .filter(entry => {
       const text = `${entry.label} ${entry.keywords ?? ""} ${entry.detail ?? ""} ${settingPlace(entry)}`.toLowerCase();
       return words.every(word => text.includes(word));

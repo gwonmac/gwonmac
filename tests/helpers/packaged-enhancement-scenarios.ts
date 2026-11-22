@@ -83,7 +83,7 @@ async function standInForMainFacts(
       ...Object.fromEntries(Object.entries(capabilities).map(([capability, proved]) =>
         [capability, proved ? { status: "available" } : { status: "unavailable", reason: "game-update" }])),
     } as NonNullable<ReturnType<NonNullable<typeof window.gwFeatureFacts>>>["features"];
-    window.gwFeatureFacts = () => ({ toolsAtLaunch: true, settings: window.gwToolsSettings(), program, features });
+    window.gwFeatureFacts = () => ({ stage: "stable", toolsAtLaunch: true, settings: window.gwToolsSettings(), program, features });
   }, { capabilities, program });
 }
 

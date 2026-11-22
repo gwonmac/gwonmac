@@ -11,7 +11,7 @@ import { capabilityRecord } from "../../app/shared/enhancement-contracts.ts";
 
 /** resolve's answer with Features loaded, every capability proved and the character in PvE: only the switches decide. */
 const switchedOn = (id: FeatureId, settings: Partial<FeatureSwitchSettings>) => resolveFeature(id, {
-  toolsAtLaunch: true, settings, program: "none", playRegion: "pve",
+  stage: "stable", toolsAtLaunch: true, settings, program: "none", playRegion: "pve",
   features: { gameFileSaving: { status: "available" }, nativeDoubleClick: { status: "available" }, cartography: { status: "available" },
     ...capabilityRecord(() => ({ status: "available" as const })) },
 }).on;

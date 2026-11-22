@@ -5,6 +5,7 @@
  */
 import type { FeatureDefinition } from "../../features/define.js";
 import { FEATURES, type Feature } from "../../features/index.js";
+import { shownAt, type ReleaseStage } from "../release.js";
 import { CORE_SETTINGS } from "./core.js";
 import { settingError, type SettingSpec, type SettingValue } from "./define.js";
 
@@ -61,10 +62,22 @@ export type ToolsSetting = KeysWith<"tools">;
 export type ToolsSettings = Readonly<Pick<AppSettings, ToolsSetting>>;
 export const TOOLS_SETTINGS = settingKeys((spec) => spec.tools === true) as readonly ToolsSetting[];
 
-/** The renderer's view of `settings`; before the first settings arrive, of the defaults. */
-export function toolsSettings(settings: AppSettings | null): ToolsSettings {
+/** Whether a setting is in a build at `stage`: an option with a manifest `stage` waits for it (app/shared/release.ts). */
+export const settingShown = (key: SettingKey, stage: ReleaseStage): boolean => shownAt(SETTING_TABLE.get(key)?.stage, stage);
+
+/**
+ * The value a setting that is not in this build reads as: every staged option is a boolean
+ * (app/features/contract.ts), and off keeps the code behind it from running.
+ */
+export const HIDDEN_SETTING_VALUE = false;
+
+/**
+ * The renderer's view of `settings` in a build at `stage`; before the first settings arrive, of the
+ * defaults. An option not in this build reads as off; the stored value stays as it is.
+ */
+export function toolsSettings(settings: AppSettings | null, stage: ReleaseStage): ToolsSettings {
   const source = settings ?? DEFAULT_SETTINGS;
-  return Object.freeze(Object.fromEntries(TOOLS_SETTINGS.map((key) => [key, source[key]]))) as ToolsSettings;
+  return Object.freeze(Object.fromEntries(TOOLS_SETTINGS.map((key) => [key, settingShown(key, stage) ? source[key] : HIDDEN_SETTING_VALUE]))) as ToolsSettings;
 }
 
 /** A stored field whose value no setting accepts; `field` is the name in the document. */

@@ -82,7 +82,7 @@ function start(t: test.TestContext, part: ToolsCompanionPart, id: FeatureId, { w
   let settings: AppSettings = { ...DEFAULT_SETTINGS, ...patch };
   const own = switchThatRuns(id);
   let facts: FeatureFacts = {
-    toolsAtLaunch: true,
+    stage: "dev", toolsAtLaunch: true,
     settings: { ...featureSwitchSettings(settings), gwonmacTools: true, [own]: true },
     program: "none",
     features: {
