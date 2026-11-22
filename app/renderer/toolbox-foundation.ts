@@ -175,23 +175,25 @@ export function createToolboxFoundation(parent: HTMLElement, { parts = WINDOW_PA
         } catch {
           starting = Promise.resolve(failed());
         }
-        void starting.catch(failed)
-          .then((mounted) => {
-            if (disposed) {
-              mounted?.stop();
-              return;
-            }
-            running = mounted;
-            slot.tool = mounted;
-            if (mounted) for (const use of waiting.splice(0)) use(mounted);
-            mounted?.setVisible(slot.visible);
-            mounted?.setActive?.(active === slot);
-            if (slot.party) mounted?.update?.(state);
-            if (pendingFocus === slot) {
-              if (mounted) focusFloating(slot);
-              else pendingFocus = null;
-            }
-          });
+        const arrived = (mounted: Running | null) => {
+          if (disposed) {
+            mounted?.stop();
+            return;
+          }
+          running = mounted;
+          slot.tool = mounted;
+          if (mounted) for (const use of waiting.splice(0)) use(mounted);
+          mounted?.setVisible(slot.visible);
+          mounted?.setActive?.(active === slot);
+          if (slot.party) mounted?.update?.(state);
+          if (pendingFocus === slot) {
+            if (mounted) focusFloating(slot);
+            else pendingFocus = null;
+          }
+        };
+        // One step after the view resolves, as before: a view that arrives after its window is
+        // gone is stopped in the same microtask that delivers it.
+        void starting.then(arrived, () => arrived(failed()));
       };
       const control: WindowControl<Running> = Object.freeze({
         get available() { return available(slot); },
