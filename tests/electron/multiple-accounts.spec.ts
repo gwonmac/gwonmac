@@ -512,10 +512,15 @@ test("Show never duplicates a game and companion close policy stays profile-loca
 
     const game = fixture.app.windows().find((page) => page.url() === "gw://app/");
     if (!game) throw new Error("game window is required");
+    // close() on the titled game window runs AppKit's performClose:, which holds
+    // main for 100-230 ms while main's timers and IPC can run inside it. Called
+    // inside the inspector evaluate, that sometimes failed the evaluate with
+    // "Execution context was destroyed". Ask for the close after the evaluate
+    // returns, then wait for the window to go.
     await fixture.app.evaluate(({ BrowserWindow }) => {
-      BrowserWindow.getAllWindows()
-        .find((win) => win.webContents.getURL() === "gw://app/")
-        ?.close();
+      const win = BrowserWindow.getAllWindows()
+        .find((candidate) => candidate.webContents.getURL() === "gw://app/");
+      setImmediate(() => win?.close());
     });
     await expect.poll(() => fixture.app.windows().length).toBe(1);
     await expect(fixture.page.locator("body")).toBeVisible();
