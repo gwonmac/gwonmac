@@ -1,7 +1,7 @@
 /**
  * The typed building blocks that features use (docs/feature-platform-plan.md,
- * Phase 3): `game.target`, `game.region` and `game.skillbar` to read, and
- * `ui.skillLabels` to draw on the game's skill bar.
+ * Phase 3): `game.target`, `game.region`, `game.session` and `game.skillbar` to
+ * read, and `ui.skillLabels` to draw on the game's skill bar.
  *
  * A block is one read-only value with a subscription. It wraps a substrate that
  * already exists and owns no memory, so the heap layout and the proofs stay as
@@ -52,6 +52,15 @@ export type GameRegion = Readonly<{
   mapId: number;
 }>;
 
+/**
+ * One character's time in the game. A feature that keeps per-character state (a
+ * conversation, a pending invite) drops it when the session it started in ends.
+ */
+export type GameSession = Readonly<{
+  /** Equal ids are the same session; every new session gets an id not used before. */
+  id: number;
+}>;
+
 /** The player's skill bar. */
 export type GameSkillbar = Readonly<{
   /** Milliseconds until each of the eight slots can be used again; 0 when it is ready. */
@@ -63,6 +72,11 @@ export type GameBlocks = Readonly<{
   target: Block<GameTarget | null>;
   /** The current area; null while a map loads, at character select, or when unknown. */
   region: Block<GameRegion | null>;
+  /**
+   * The character in the game; a new value when a different character enters,
+   * null before the first map or after leaving the game (rules at `followSession`).
+   */
+  session: Block<GameSession | null>;
   /** The skill bar's recharge times; null while the game has not published all eight slots. */
   skillbar: Block<GameSkillbar | null>;
 }>;
@@ -164,6 +178,42 @@ function regionOf(state: CompanionPlayRegionState): GameRegion | null {
 const sameRegion = (a: GameRegion | null, b: GameRegion | null) =>
   a === b || (a !== null && b !== null && a.area === b.area && a.instance === b.instance && a.mapId === b.mapId);
 
+/**
+ * Follows the play region to one session at a time. Login, relog and character
+ * select all pass through the game reading unavailable, and so does a moment of an
+ * ordinary zone change; only the character key tells them apart:
+ *
+ * - The first map with or without a character key starts a session. The first
+ *   outpost after login can publish no key yet; the first key that arrives is
+ *   adopted by that session.
+ * - A different known key starts a new session (relog or switch to another character).
+ * - Leaving the game ends the session only while its key is unknown, because only
+ *   then could a relog pass for the same character. Once the key is known, the same
+ *   character coming back (a zone change, or a relog of the same character) keeps
+ *   its session, and a different one starts a new session on its first key.
+ *
+ * Loading and every other waiting state change nothing.
+ */
+function followSession(nextId: () => number, publish: (session: GameSession | null) => void) {
+  let session: GameSession | null = null;
+  let character: string | null = null;
+  return (state: CompanionPlayRegionState) => {
+    if (state.status === "ready") {
+      const key = state.characterKey;
+      if (session !== null && (key === null || character === null || key === character)) {
+        character ??= key;
+        return;
+      }
+      session = Object.freeze({ id: nextId() });
+      character = key;
+      publish(session);
+    } else if (state.reason === "game" && session !== null && character === null) {
+      session = null;
+      publish(null);
+    }
+  };
+}
+
 function skillbarOf(state: CompanionSkillCooldownState): GameSkillbar | null {
   if (state.status !== "ready" || state.rechargeTimestamps.length !== 8) return null;
   // Both are the game's 32-bit millisecond timer, so the signed difference survives its wrap;
@@ -190,6 +240,14 @@ export function createGameBlocks({ capabilities, observation, playRegions, skill
     stopRegion = wanted ? playRegions.subscribe((state) => region.publish(regionOf(state))) : null;
   });
 
+  // Ids stay unique across subscriptions, so a value seen before is never a new session.
+  let sessions = 0;
+  let stopSession: (() => void) | null = null;
+  const session = createBlock<GameSession | null>(capabilities.playRegionObservation, null, Object.is, (wanted) => {
+    stopSession?.();
+    stopSession = wanted ? playRegions.subscribe(followSession(() => ++sessions, (next) => session.publish(next))) : null;
+  });
+
   let stopSkillbar: (() => unknown) | null = null;
   const skillbar = createBlock<GameSkillbar | null>(capabilities.skillCooldownObservation, null, sameSkillbar, (wanted) => {
     stopSkillbar?.();
@@ -198,7 +256,7 @@ export function createGameBlocks({ capabilities, observation, playRegions, skill
     syncObservers();
   });
 
-  return Object.freeze({ target: target.block, region: region.block, skillbar: skillbar.block });
+  return Object.freeze({ target: target.block, region: region.block, session: session.block, skillbar: skillbar.block });
 }
 
 type UiInput = Readonly<{

@@ -1,12 +1,14 @@
-// game.target, game.region, game.skillbar and ui.skillLabels over the real
+// game.target, game.region, game.session, game.skillbar and ui.skillLabels over the real
 // substrates and feeds. What would go wrong without these tests: the kernel keeps
 // computing target or skill data with nobody listening (or never starts), a
 // listener sees a stale value from before it subscribed, every game tick reaches a
 // feature as a "change", the skill text lands on the wrong slot or repaints every
-// frame, or a build without the proof hands out values anyway.
+// frame, a zone change reads as a new character (and drops a feature's state), a
+// relog to another character keeps the old one's state, or a build without the
+// proof hands out values anyway.
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createGameBlocks, createUiBlocks, type GameRegion, type GameSkillbar, type GameTarget } from "../../app/renderer/game-blocks.ts";
+import { createGameBlocks, createUiBlocks, type GameRegion, type GameSession, type GameSkillbar, type GameTarget } from "../../app/renderer/game-blocks.ts";
 import type { NativeHudChannel, NativeHudItem, NativeHudLayer } from "../../app/renderer/native-hud-layer.ts";
 import type { CompanionPlayRegionState } from "../../app/renderer/companion-play-region-snapshot.ts";
 import type { CompanionSnapshot } from "../../app/renderer/companion-snapshot.ts";
@@ -150,9 +152,73 @@ test("game.region gives the area once per change and null while it is unknown", 
   ]);
 });
 
+const GAME = Object.freeze({ status: "waiting", reason: "game" } as const);
+const MAP_LOADING = Object.freeze({ status: "waiting", reason: "loading" } as const);
+/** A ready map; `character` is the key the game publishes, null while it has not yet. */
+const map = (mapId: number, character: string | null, playRegion: "pve" | "pvp" = "pve") => (sequence: number) =>
+  Object.freeze({
+    status: "ready", sequence, mapId, instanceType: 0, playRegion, travelContext: "world", characterKey: character,
+    unlockedMapWords: null, guildHall: false, hasGuildHall: false,
+  } as const) satisfies CompanionPlayRegionState;
+const MO = "000000010000000a";
+const KAI = "000000010000000b";
+
+test("game.session gives one session per character through login, relog, character select and zone changes", async (t) => {
+  // Each row is what the play region publishes; the expected list names each session
+  // the block gave by letter, in the order it gave them.
+  const rows: readonly (readonly [string, readonly (CompanionPlayRegionState | ((sequence: number) => CompanionPlayRegionState))[], readonly (string | null)[]])[] = [
+    ["login: the first outpost adopts the key it publishes later",
+      [GAME, MAP_LOADING, map(248, null), map(248, MO)], [null, "A"]],
+    ["zone change: loading and a moment of unavailable game keep the session",
+      [map(248, MO), MAP_LOADING, GAME, MAP_LOADING, map(249, null), map(249, MO)], [null, "A"]],
+    ["relog to another character starts a new session on its first key",
+      [map(248, MO), GAME, MAP_LOADING, map(248, null), map(248, KAI)], [null, "A", "B"]],
+    ["relog to the same character keeps the session",
+      [map(248, MO), GAME, MAP_LOADING, map(248, MO)], [null, "A"]],
+    ["character select before the key is known ends the session",
+      [map(248, null), GAME, MAP_LOADING, map(248, KAI)], [null, "A", null, "B"]],
+    ["a different key without character select starts a new session",
+      [map(248, MO), map(248, KAI)], [null, "A", "B"]],
+    ["a PvP map is in the game too",
+      [map(249, MO, "pvp"), MAP_LOADING, map(248, MO)], [null, "A"]],
+  ];
+  for (const [name, states, expected] of rows) {
+    await t.test(name, (t) => {
+      const run = setup(t);
+      const seen: (GameSession | null)[] = [];
+      const stop = run.game.session.subscribe((session) => seen.push(session));
+      states.forEach((state, index) => run.region(typeof state === "function" ? state(2 + index * 2) : state));
+      stop();
+      const letters = new Map<number, string>();
+      assert.deepEqual(seen.map((session) => session === null ? null
+        : letters.get(session.id) ?? (letters.set(session.id, String.fromCharCode(65 + letters.size)), letters.get(session.id)!)), expected);
+    });
+  }
+});
+
+test("game.session reads the region only while someone listens and never repeats an id", (t) => {
+  const run = setup(t);
+  run.region(map(248, MO)(2));
+  const first: (GameSession | null)[] = [];
+  const stop = run.game.session.subscribe((session) => first.push(session));
+  const late: (GameSession | null)[] = [];
+  const stopLate = run.game.session.subscribe((session) => late.push(session));
+  assert.equal(first.length, 1);
+  assert.deepEqual(late, first, "a later listener starts from the current session");
+  stop();
+  stopLate();
+  run.region(map(248, KAI)(4));
+  assert.equal(first.length, 1, "a stopped listener hears nothing more");
+
+  const again: (GameSession | null)[] = [];
+  run.game.session.subscribe((session) => again.push(session))();
+  assert.equal(again.length, 1);
+  assert.notEqual(again[0]?.id, first[0]?.id);
+});
+
 test("a build without the proof offers no value and asks the kernel for nothing", (t) => {
   const run = setup(t, ["targetObservation", "playRegionObservation"]);
-  for (const block of [run.game.target, run.game.region]) {
+  for (const block of [run.game.target, run.game.region, run.game.session]) {
     assert.deepEqual({ available: block.available, reason: block.available ? null : block.reason },
       { available: false, reason: "not-proven" });
     const seen: unknown[] = [];
