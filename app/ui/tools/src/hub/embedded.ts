@@ -30,7 +30,13 @@ export const mountHubView: EmbeddedHubView['mountHubView'] = (parent, model) => 
   };
   const layout: HubLayoutReader = {
     frame: () => { const { left, bottom, width } = elements.panel.getBoundingClientRect(); return { left, bottom, width }; },
-    scrollTop: () => elements.results.scrollTop,
+    scrollPlace: () => {
+      const list = elements.results;
+      if (list.scrollTop <= 0) return null;
+      const top = list.getBoundingClientRect().top;
+      const row = [...list.querySelectorAll<HTMLElement>('.hub-row')].find(candidate => candidate.getBoundingClientRect().bottom > top);
+      return row?.dataset.id ? { id: row.dataset.id, offset: top - row.getBoundingClientRect().top } : null;
+    },
     pageRows: () => Math.max(1, Math.floor(elements.results.clientHeight / (elements.results.querySelector<HTMLElement>('.hub-row')?.offsetHeight || 40)) - 1),
   };
   return {

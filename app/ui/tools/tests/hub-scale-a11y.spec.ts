@@ -1,51 +1,74 @@
-import { writeFile } from 'node:fs/promises';
-import { expect, test } from '@playwright/test';
-import { timeBudget } from './performance-budget.js';
+import { expect, test, type Page } from '@playwright/test';
+import { reportTimings } from './performance-budget.js';
 import type { HubSource } from '../../../shared/hub.js';
 import { openHub } from './hub-page.js';
 
-test('root typing and complete library entry stay within the scale budget (HUB-110, 112, 169)', { tag: '@macos' }, async ({ page }, info) => {
+declare global { interface Window { hubRowDraws?: () => { added: number; redrawn: number } } }
+/**
+ * Installs `window.hubRowDraws()`: the result rows Vue added and redrew since the last call.
+ * Vue's dev build, which the fixture server runs, replaces the vnode it keeps on an element on
+ * every redraw, even one that changes no attribute (the vitest twin:
+ * src/hub-scale-a11y.dom.test.ts). The 1000-row specs gate on these counts, not on time.
+ */
+async function countRowDraws(page: Page) {
+  await page.evaluate(() => {
+    let drawn = new WeakMap<Element, unknown>();
+    window.hubRowDraws = () => {
+      const next = new WeakMap<Element, unknown>();
+      let added = 0, redrawn = 0;
+      for (const row of document.querySelectorAll('.hub-row')) {
+        const vnode = (row as Element & { __vnode?: unknown }).__vnode;
+        if (vnode === undefined) throw new Error('The Hub fixture runs Vue\'s dev build, which keeps a vnode on each element.');
+        if (!drawn.has(row)) added++; else if (drawn.get(row) !== vnode) redrawn++;
+        next.set(row, vnode);
+      }
+      drawn = next;
+      return { added, redrawn };
+    };
+    window.hubRowDraws();
+  });
+}
+
+test('root typing and the whole 1000-build Library add at most one chunk of rows a task (HUB-110, 112, 169)', { tag: '@macos' }, async ({ page }, info) => {
   await openHub(page, '&library=1000');
-  const timings = await page.evaluate(async () => {
+  await countRowDraws(page);
+  const { draws, ...timings } = await page.evaluate(async () => {
+    const rowDraws = window.hubRowDraws!;
     const input = document.querySelector<HTMLInputElement>('.hub-search input')!;
     const longTasks: number[] = [];
     const observer = new PerformanceObserver(entries => longTasks.push(...entries.getEntries().map(entry => entry.duration)));
     observer.observe({ type: 'longtask' });
-    const typing: number[] = [];
-    const paints: number[] = [];
-    // The first keystroke also pays one-time costs (first search, cold code) that take several
-    // frames on a slow CI runner; the long-task budget bounds it. Only later keys get the frame budget.
+    const typing: number[] = [], paints: number[] = [];
+    const draws = { typing: [] as number[], entry: { added: 0, redrawn: 0 }, frames: [] as { added: number; redrawn: number }[] };
     for (const query of ['m', '', 'm', 'mo', 'mon', 'mo', 'm', '']) {
       const key = query.length < input.value.length ? 'Backspace' : query.at(-1) ?? 'Backspace';
       const started = performance.now();
-      // Real typing runs the key handler before input; include its layout cost in the budget.
+      // Real typing runs the key handler before input; include its layout cost in the report.
       input.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
       input.value = query; input.dispatchEvent(new Event('input', { bubbles: true }));
-      typing.push(performance.now() - started);
-      await new Promise(requestAnimationFrame); paints.push(performance.now() - started);
+      typing.push(performance.now() - started); draws.typing.push(rowDraws().added);
+      await new Promise(requestAnimationFrame); paints.push(performance.now() - started); rowDraws();
     }
     await new Promise(resolve => setTimeout(resolve, 100));
     const rootLongTasks = [...longTasks, ...observer.takeRecords().map(record => record.duration)];
-    longTasks.length = 0;
+    longTasks.length = 0; rowDraws();
     const started = performance.now(); window.gwHub!.openRow('builds', 'builds', 'Build Library is unavailable.');
     const entry = performance.now() - started;
-    // Observe every deferred batch, including those beyond the first 100 ms.
-    while (document.querySelectorAll('.hub-build-row').length < 1000) await new Promise(requestAnimationFrame);
-    const row = document.querySelector<HTMLElement>('.hub-build-row')!;
-    const height = row.getBoundingClientRect().height;
-    // Long-task delivery is asynchronous; wait for the observer before judging its evidence.
+    draws.entry = rowDraws();
+    // Count every frame's rows until the whole Library is in the DOM.
+    while (document.querySelectorAll('.hub-build-row').length < 1000) { await new Promise(requestAnimationFrame); draws.frames.push(rowDraws()); }
+    // Long-task delivery is asynchronous; wait for the observer before reporting it.
     await new Promise(resolve => setTimeout(resolve, 100));
     longTasks.push(...observer.takeRecords().map(record => record.duration));
     observer.disconnect();
-    return { typing, paints, entry, rootLongTasks, libraryLongTasks: longTasks, height };
+    return { draws, typing, paints, entry, rootLongTasks, libraryLongTasks: longTasks };
   });
-  await writeFile(info.outputPath('scale-timings.json'), JSON.stringify(timings, null, 2));
-  await info.attach('scale-timings.json', { body: JSON.stringify(timings, null, 2), contentType: 'application/json' });
-  expect(Math.max(...timings.typing.slice(2))).toBeLessThan(timeBudget(32));
-  expect(Math.max(...timings.paints.slice(2))).toBeLessThanOrEqual(timeBudget(32));
-  expect(timings.rootLongTasks.filter(duration => duration > timeBudget(50))).toEqual([]);
-  expect(timings.entry).toBeLessThan(timeBudget(100));
-  expect(timings.libraryLongTasks.filter(duration => duration > timeBudget(50))).toEqual([]);
+  await reportTimings(info, 'scale-timings', timings);
+  // One chunk is ten rows (app/renderer/hub.ts). A frame that fills in rows redraws none of the rows already drawn.
+  expect(Math.max(...draws.typing)).toBeLessThanOrEqual(10);
+  expect(draws.entry.added).toBeLessThanOrEqual(10);
+  expect(Math.max(...draws.frames.map(frame => frame.added))).toBeLessThanOrEqual(10);
+  expect(draws.frames.filter(frame => frame.redrawn > 0)).toEqual([]);
 });
 
 test('suspension retains the selected row across a resume (HUB-171)', async ({ page }) => {
@@ -93,7 +116,7 @@ test('source bursts coalesce while typing stays synchronous and opening searches
   expect(result).toEqual({ beforeFrame: 0, afterFrame: 1, typing: 1, opening: 1, afterOpeningFrame: 1 });
 });
 
-test('End scrolls its row into view and Back restores the scroll in the 1000-build Library (HUB-112)', async ({ page }) => {
+test('End scrolls its row into view and Back returns to the same place in the 1000-build Library (HUB-112)', async ({ page }) => {
   await openHub(page, '&library=1000');
   // Entry and End in one task: later frames cannot have painted the last row yet.
   const end = await page.evaluate(() => {
@@ -108,22 +131,30 @@ test('End scrolls its row into view and Back restores the scroll in the 1000-bui
       visible: !!box && box.top >= list.top - 1 && box.bottom <= list.bottom + 1 };
   });
   expect(end.heightAfter).toBe(end.height);
-  expect(end.visible).toBe(true);
-  // A place far below the first painted rows; the row opened there ends above the list's end.
+  expect([end.last, end.selected, end.visible]).toEqual([true, 'true', true]);
+  // A place far below the first painted rows, once every row is in; the row opened there ends above the list's end.
   const search = page.locator('.hub-search input');
   await search.press('Home');
+  await expect(page.locator('.hub-build-row')).toHaveCount(1000);
   const list = page.locator('#hub-results');
   await list.evaluate(element => { element.scrollTop = element.scrollHeight / 2; });
-  const scroll = await list.evaluate(element => element.scrollTop);
-  const id = await list.evaluate(element => {
+  const middle = () => list.evaluate(element => {
     const box = element.getBoundingClientRect();
-    return document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2)!.closest<HTMLElement>('.hub-row')!.dataset.id!;
+    const row = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2)!.closest<HTMLElement>('.hub-row')!;
+    return { id: row.dataset.id!, top: row.getBoundingClientRect().top - box.top };
   });
-  await page.locator(`.hub-row[data-id="${id}"]`).click();
+  const place = await middle();
+  // The same row at the same height, give or take the browser rounding a scroll offset to a pixel.
+  const atPlace = async () => { const now = await middle(); return now.id === place.id && Math.abs(now.top - place.top) <= 1; };
+  await page.locator(`.hub-row[data-id="${place.id}"]`).click();
   await expect(page.locator('.hub-caption')).not.toHaveText('Build Library');
   await page.keyboard.press('Meta+Backspace');
   await expect(page.locator('.hub-caption')).toHaveText('Build Library');
-  expect(await list.evaluate(element => element.scrollTop)).toBe(scroll);
+  // Back paints the rows around the place first and fills in the rows above it while scroll
+  // anchoring holds the rows in view, so the same row stands at the same height at once and stays.
+  expect(await atPlace()).toBe(true);
+  await expect(page.locator('.hub-build-row')).toHaveCount(1000);
+  expect(await atPlace()).toBe(true);
 });
 
 test('placement moves 48px with Shift and 16px without, and the footer keeps its height (HUB-164)', async ({ page }) => {
@@ -159,37 +190,40 @@ test('breadcrumb focus leaves space around its text and outline (HUB-165)', asyn
 });
 
 
-test('twenty opens and resumes stay within the time budget (HUB-111, 171)', { tag: '@macos' }, async ({ page }, info) => {
+test('twenty opens and resumes search once and add at most one chunk of rows each (HUB-111, 171)', { tag: '@macos' }, async ({ page }, info) => {
   await openHub(page, '&library=1000&templates-ms=1000');
-  const result = await page.evaluate(async () => {
-    const hub = window.gwHub!;
+  await countRowDraws(page);
+  const { passes, added, remaining, ...timings } = await page.evaluate(async () => {
+    const hub = window.gwHub!, rowDraws = window.hubRowDraws!;
     let calls = 0;
     const detach = hub.attach({ search() { calls++; return []; }, setVisible() {}, subscribe() { return () => {}; } } satisfies HubSource);
-    const opens: number[] = [], paints: number[] = [], resumes: number[] = [], passes: number[] = [];
+    const opens: number[] = [], paints: number[] = [], resumes: number[] = [], passes: number[] = [], added: number[] = [];
     const input = document.querySelector<HTMLInputElement>('.hub-search input')!;
     for (let cycle = 0; cycle < 20; cycle++) {
-      hub.close(); calls = 0;
+      hub.close(); calls = 0; rowDraws();
       const started = performance.now(); hub.show(); opens.push(performance.now() - started);
-      passes.push(calls); await new Promise(requestAnimationFrame); paints.push(performance.now() - started);
+      passes.push(calls); added.push(rowDraws().added); await new Promise(requestAnimationFrame); paints.push(performance.now() - started);
       input.value = 'm'; input.dispatchEvent(new Event('input', { bubbles: true }));
-      hub.suspend(); calls = 0;
+      hub.suspend(); calls = 0; rowDraws();
       const resumed = performance.now(); hub.resume(); resumes.push(performance.now() - resumed);
-      passes.push(calls); await new Promise(requestAnimationFrame);
+      passes.push(calls); added.push(rowDraws().added); await new Promise(requestAnimationFrame);
     }
     hub.close(); const remaining = document.querySelectorAll('#hub-results .hub-row').length;
-    detach(); return { opens, paints, resumes, passes, remaining };
+    detach(); return { opens, paints, resumes, passes, added, remaining };
   });
-  await info.attach('twenty-open-timings.json', { body: JSON.stringify(result, null, 2), contentType: 'application/json' });
-  expect(Math.max(...result.opens)).toBeLessThanOrEqual(timeBudget(16));
-  expect(Math.max(...result.paints)).toBeLessThanOrEqual(timeBudget(32));
-  expect(Math.max(...result.resumes)).toBeLessThanOrEqual(timeBudget(32));
+  await reportTimings(info, 'twenty-open-timings', timings);
+  expect(passes).toEqual(Array(40).fill(1));
+  expect(Math.max(...added)).toBeLessThanOrEqual(10);
+  expect(remaining).toBe(0);
 });
 
 
-test('incoming bursts keep a deep build scrolled and cause no long task (HUB-111, 112)', { tag: '@macos' }, async ({ page }, info) => {
+test('incoming bursts keep a deep build scrolled and draw no row (HUB-111, 112)', { tag: '@macos' }, async ({ page }, info) => {
   await openHub(page, '&library=1000');
   const search = page.locator('.hub-search input');
   await search.fill('build library'); await search.press('Enter');
+  await expect(page.locator('.hub-build-row')).toHaveCount(1000);
+  await countRowDraws(page);
   const deep = page.locator('.hub-row[data-id="build:scale-500"]');
   await deep.scrollIntoViewIfNeeded();
   await deep.dispatchEvent('pointermove', { movementX: 1 });
@@ -200,11 +234,12 @@ test('incoming bursts keep a deep build scrolled and cause no long task (HUB-111
     const tasks: number[] = [], mutations: number[] = [];
     const observer = new PerformanceObserver(entries => tasks.push(...entries.getEntries().map(entry => entry.duration)));
     await new Promise(requestAnimationFrame); await new Promise(requestAnimationFrame);
-    observer.observe({ type: 'longtask' });
+    observer.observe({ type: 'longtask' }); window.hubRowDraws!();
     for (let message = 0; message < 40; message++) {
       window.dispatchEvent(new Event('hub-fixture-incoming'));
       await new Promise(resolve => setTimeout(resolve, 125));
     }
+    const burst = window.hubRowDraws!();
     const selected = list.querySelector<HTMLElement>('[aria-selected="true"]')!.dataset.id;
     const scroll = list.scrollTop;
     for (let arrow = 0; arrow < 10; arrow++) {
@@ -213,9 +248,12 @@ test('incoming bursts keep a deep build scrolled and cause no long task (HUB-111
       mutations.push(changes.takeRecords().length); changes.disconnect(); await new Promise(requestAnimationFrame);
     }
     await new Promise(resolve => setTimeout(resolve, 100)); tasks.push(...observer.takeRecords().map(record => record.duration)); observer.disconnect();
-    return { selected, scroll, mutations, tasks };
+    return { selected, scroll, mutations, burst, tasks };
   });
-  await info.attach('incoming-burst.json', { body: JSON.stringify(result, null, 2), contentType: 'application/json' });
+  await reportTimings(info, 'incoming-burst', { tasks: result.tasks });
   expect(result.scroll).toBeGreaterThan(0);
-  expect(result.tasks.filter(duration => duration > timeBudget(50))).toEqual([]);
+  expect(result.selected).toBe('build:scale-500');
+  // The Library's rows draw the same, so the burst draws none of them; an arrow changes only the old and new rows.
+  expect(result.burst).toEqual({ added: 0, redrawn: 0 });
+  expect(Math.max(...result.mutations)).toBeLessThanOrEqual(4);
 });
