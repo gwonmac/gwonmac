@@ -38,14 +38,6 @@ export function createHubPeople(hub: Pick<Hub, 'attach' | 'showRows' | 'notify'>
     session.open(name, { visible: false });
     window.dispatchEvent(new CustomEvent('gw:whispers-toggle', { cancelable: true, detail: 'show' }));
   };
-  // Another tool asks for a conversation (Trade's Whisper). Accepting cancels the event; while
-  // Whispers cannot open, nothing is queued for a later ⌘D and the caller says why (HUB-129).
-  const contact = (event: Event) => {
-    if (!(event instanceof CustomEvent) || typeof event.detail !== 'string' || !toolEnabled('whispers') || !session.state.available) return;
-    event.preventDefault();
-    whisper(event.detail);
-  };
-  window.addEventListener('gw:whisper-person', contact);
   const travelFailed = (event: Event) => {
     if (!(event instanceof CustomEvent)) return;
     const detail: unknown = event.detail;
@@ -234,6 +226,6 @@ export function createHubPeople(hub: Pick<Hub, 'attach' | 'showRows' | 'notify'>
       else { detach?.(); detach = null; friends = { status: 'waiting', reason: 'unavailable' }; }
     },
     updateFriends(next: TravelFriends) { friends = next; refresh(); },
-    dispose() { disposed = true; window.removeEventListener('gw:travel-failed', travelFailed); window.removeEventListener('gw:whisper-person', contact); detach?.(); unsubscribe(); unsubscribeParty?.(); listeners.clear(); },
+    dispose() { disposed = true; window.removeEventListener('gw:travel-failed', travelFailed); detach?.(); unsubscribe(); unsubscribeParty?.(); listeners.clear(); },
   };
 }

@@ -104,7 +104,7 @@ const { panel, resizeGrip, panelStyle, startDrag } = useFloatingWindow({
   placementStorageKey: "gwonmac.trade-window-placement",
 });
 
-const whispersEnabled = ref(props.host.whispers.available());
+const whispersEnabled = ref(props.host.links.whispers !== null);
 let stopWhispers: (() => void) | null = null;
 
 const current = computed(() => states[source.value]);
@@ -380,11 +380,12 @@ function closeDetail(restoreFocus = ownsFocus()): void {
 function whisper(message: TradeMessage, event?: MouseEvent): void {
   if (event && event.detail > 1) return;
   if (event?.currentTarget instanceof HTMLElement) event.currentTarget.focus({ preventScroll: true });
-  if (!whispersEnabled.value) {
+  const whispers = props.host.links.whispers;
+  if (whispers === null) {
     showNotice(`Turn on Whispers in Settings to write to ${message.sender}.`, "warning");
     return;
   }
-  if (props.host.whispers.open(message.sender) === "unavailable") showNotice("Whispers is unavailable. Wait for Guild Wars chat, then try again.", "warning");
+  if (whispers.open(message.sender) === "unavailable") showNotice("Whispers is unavailable. Wait for Guild Wars chat, then try again.", "warning");
 }
 
 async function openPlayer(sender: string, origin: number | null, restoreFocus = ownsFocus()): Promise<void> {
@@ -800,7 +801,7 @@ watch(() => props.visible, (visible) => {
 });
 
 onMounted(() => {
-  stopWhispers = props.host.whispers.onChange(() => { whispersEnabled.value = props.host.whispers.available(); });
+  stopWhispers = props.host.onLinksChange(() => { whispersEnabled.value = props.host.links.whispers !== null; });
   stopEvents = props.host.onEvent(onTradeEvent);
   clock = setInterval(() => { now.value = Date.now(); }, 30_000);
   if (props.visible) void subscribe(source.value);

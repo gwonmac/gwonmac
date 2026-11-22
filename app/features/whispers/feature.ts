@@ -35,6 +35,8 @@ export default defineFeature({
     row: { detail: "Conversations, friends and drafts", iconKind: "whispers", open: { show: true } },
   },
   shortcuts: [{ action: "whispers.toggle", binding: { key: "d", shift: false, option: false }, menuItem: "open-whispers" }],
+  /** Trade Chat opens a conversation with a seller (shared/link.ts). */
+  offers: ["open"],
   shots: [],
   parts: ["game"],
 });

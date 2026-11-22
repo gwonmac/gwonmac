@@ -8,8 +8,8 @@
  * stay unchanged.
  *
  * A feature that runs on the building blocks alone builds its part with
- * `featurePart`: it gives one `start` that returns what stops it, and never asks
- * whether it is on. A feature that also hosts memory on a pinned COMPANION_PARTS
+ * `featurePart`, the `game` kind of app/features/parts.ts: it gives one `start`
+ * that returns what stops it, and never asks whether it is on. A feature that also hosts memory on a pinned COMPANION_PARTS
  * line (Reminders, Progress) writes that line by hand and hands its session to
  * the featurePart it prepares. A hand-written part asks `on(id)`; both answer
  * from resolve (app/shared/feature-resolve.ts) with main's facts and the live
@@ -19,6 +19,8 @@
  * feature, so shared code imports this contract and never a feature file.
  */
 import type { EnhancementCapabilities, EnhancementProgram } from "../shared/enhancement-contracts.js";
+import type { FeatureLinks } from "../features/links.js";
+import type { PartOwner, RunningPart } from "../features/parts.js";
 import { FEATURES, type FeatureId } from "../shared/feature-contracts.js";
 import type { TravelFriend } from "../shared/friends.js";
 import type { TravelCommand } from "../shared/travel-command.js";
@@ -28,6 +30,7 @@ import type {
   PreparedCompanionExtension,
 } from "./certified-companion-extension.js";
 import type { CompanionOwnedRegion } from "./companion-owned-regions.js";
+import { featureLinks } from "./feature-links.js";
 import { createBlock, type Block, type GameBlocks, type UiBlocks } from "./game-blocks.js";
 import type { NativeHudLayer } from "./native-hud-layer.js";
 import type { ToolsPolicySnapshot, ToolsSubstrates } from "./tools-companion-substrates.js";
@@ -132,12 +135,14 @@ export type ToolsPartSession = Readonly<{
   releaseCallbackResources?: readonly ((free: Free) => void)[];
 }>;
 
-/** What a feature's `start` gets: the building blocks and the saved settings. */
-export type FeatureBlocks = Readonly<{
+/** What a feature's `start` gets: the building blocks, the saved settings and its links. */
+export type FeatureBlocks<Id extends FeatureId = FeatureId> = Readonly<{
   game: GameBlocks;
   ui: UiBlocks;
   /** The saved settings, again after every change. */
   settings: Block<ToolsPolicySnapshot["settings"]>;
+  /** The links its manifest names, each null while resolve has its target off (feature-links.ts). */
+  links: FeatureLinks<Id>;
 }>;
 
 /** A part built by `featurePart`: it prepares at once and always activates. */
@@ -153,9 +158,9 @@ export type FeaturePart = Readonly<{
  * returns is stopped when resolve turns it off or the game part stops. `runtime`
  * names developer runtime fields read from the running feature.
  */
-export function featurePart<Running extends Readonly<{ stop(): void }>>(
-  id: FeatureId,
-  start: (blocks: FeatureBlocks) => Running,
+export function featurePart<Id extends PartOwner<"game">, Running extends RunningPart>(
+  id: Id,
+  start: (blocks: FeatureBlocks<Id>) => Running,
   runtime: Readonly<Record<string, (running: Running | null) => unknown>> = {},
 ): FeaturePart {
   const feature = FEATURES.find((candidate) => candidate.id === id);
@@ -179,7 +184,7 @@ export function featurePart<Running extends Readonly<{ stop(): void }>>(
         const sync = () => {
           if (settings.wanted) settings.publish(context.snapshot().settings);
           if (!installed || !context.on(id)) stop();
-          else running ??= start({ game: context.game, ui: context.ui, settings: settings.block });
+          else running ??= start({ game: context.game, ui: context.ui, settings: settings.block, links: featureLinks(id) });
         };
         return {
           mount: sync,

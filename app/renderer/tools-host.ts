@@ -40,7 +40,8 @@ import { sanitiseTemplateName } from "./template-format.js";
 import { createTemplateFiles } from "./template-files.js";
 import { ensureToolsStylesheet } from "./tools-stylesheet.js";
 import { requireToolsApi } from "./tools-native-api.js";
-import { createTradeWhispers } from "./trade-whispers.js";
+import { featureLinks, onLinksChange } from "./feature-links.js";
+import tradeWindow from "../features/trade-chat/renderer/host.js";
 import { featureOn } from "./feature-on.js";
 import { toolsUnavailableCopy } from "../shared/tools-unavailable-copy.js";
 
@@ -149,7 +150,7 @@ export function mountToolsInto(
         setActive: app.setActive,
         requestClose: app.requestClose,
         update: app.update,
-        dispose: app.dispose,
+        stop: app.dispose,
       };
     })
     .catch((cause: unknown) => {
@@ -159,38 +160,12 @@ export function mountToolsInto(
     });
 }
 
-/** Loads the independent read-only Trade Chat window into its own host. */
+/** Starts Trade Chat's window part with the links its manifest names. */
 export function mountTradeInto(
   host: HTMLElement,
   onVisibilityChange: (visible: boolean) => void,
 ): Promise<MountedTool | null> {
-  const native = requireToolsApi();
-  ensureToolsStylesheet(host.ownerDocument);
-  const specifier = "./tools/tools-app.js";
-  return import(specifier)
-    .then((bundle: EmbeddedToolsBundle<HTMLElement>) => {
-      const app = bundle.mountTradeChat(host, {
-        nativeApi: native,
-        whispers: createTradeWhispers(),
-        initiallyVisible: false,
-        onVisibilityChange,
-        mode: "embedded",
-        development: native.init.development,
-      });
-      return {
-        setVisible: (visible: boolean) => visible ? app.show() : app.hide(),
-        requestClose: app.hide,
-        stepBack: app.stepBack,
-        search: app.search,
-        update: () => {},
-        dispose: app.dispose,
-      };
-    })
-    .catch((cause: unknown) => {
-      console.error("[tools] Trade Chat failed to load", cause);
-      host.textContent = "Trade Chat could not be loaded — see the console.";
-      return null;
-    });
+  return tradeWindow.start({ host, onVisibilityChange, links: featureLinks("tradeChat"), onLinksChange });
 }
 
 /**

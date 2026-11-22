@@ -8,6 +8,9 @@
 import { createNonActivatingSurface, isolateFromGame } from "./non-activating-surface.js";
 import { LIBRARY_UNAVAILABLE } from "../shared/hub-preferences.js";
 import type { ToolboxObservation } from "../shared/builds/live-party.js";
+import type { FeatureLinks } from "../features/links.js";
+import type { RunningPart } from "../features/parts.js";
+import type { FeatureId } from "../shared/feature-contracts.js";
 
 type ToolboxState = ToolboxObservation;
 
@@ -26,7 +29,8 @@ const OVERLAY_CSS = `
 }
 `;
 
-export interface MountedTool {
+/** A window part as this host runs it (the `window` kind, app/features/parts.ts). */
+export interface MountedTool extends RunningPart {
   setVisible(visible: boolean): void;
   setActive?(active: boolean): void;
   requestClose(): void;
@@ -34,8 +38,18 @@ export interface MountedTool {
   stepBack?(): boolean;
   search?(query: string): void;
   update(state: ToolboxState): void;
-  dispose(): void;
 }
+
+/**
+ * What a window part's `start` gets: its host element, how it reports that it closed
+ * itself, and the links its manifest names with their change signal (feature-links.ts).
+ */
+export type WindowContext<Id extends FeatureId> = Readonly<{
+  host: HTMLElement;
+  onVisibilityChange(visible: boolean): void;
+  links: FeatureLinks<Id>;
+  onLinksChange(listener: () => void): () => void;
+}>;
 
 type MountTool = (
   host: HTMLElement,
@@ -149,7 +163,7 @@ export function createToolboxFoundation(
     void slot.mount(slot.host, (visible) => setOpen(slot, visible))
       .then((mounted) => {
         if (disposed) {
-          mounted?.dispose();
+          mounted?.stop();
           return;
         }
         slot.tool = mounted;
@@ -267,7 +281,7 @@ export function createToolboxFoundation(
       window.removeEventListener("keydown", cancelPendingFocus, true);
       window.removeEventListener("pointerdown", cancelPendingFocus, true);
       for (const slot of slots()) {
-        slot.tool?.dispose();
+        slot.tool?.stop();
         slot.surface.dispose();
       }
       nonActivating.dispose();

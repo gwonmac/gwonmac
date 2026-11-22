@@ -139,6 +139,26 @@ const cases: readonly Case[] = [
     message: "app/features/quick-note/feature.ts: requires forms a cycle: quickNote → noteBoard → quickNote. A feature cannot need itself.",
   },
   {
+    check: "a link names a feature",
+    folders: [folder(manifest("quickNote", { links: { noteBoard: ["open"] } }))],
+    message: "app/features/quick-note/feature.ts: links to \"noteBoard\", which is not a feature id.",
+  },
+  {
+    check: "a link target offers a link",
+    folders: [folder(manifest("quickNote", { links: { noteBoard: ["open"] } })), folder(manifest("noteBoard"))],
+    message: "app/features/quick-note/feature.ts: links to \"noteBoard\", which offers no link; add offers to app/features/note-board/feature.ts.",
+  },
+  {
+    check: "a link calls only offered methods",
+    folders: [folder(manifest("quickNote", { links: { noteBoard: ["open", "close"] } })), folder(manifest("noteBoard", { offers: ["open"] }))],
+    message: "app/features/quick-note/feature.ts: calls \"noteBoard.close\", which noteBoard does not offer (it offers open).",
+  },
+  {
+    check: "a link to itself",
+    folders: [folder(manifest("quickNote", { offers: ["open"], links: { quickNote: ["open"] } }))],
+    message: "app/features/quick-note/feature.ts: links to itself; call your own code directly.",
+  },
+  {
     check: "known uses",
     folders: [folder(manifest("quickNote", { uses: ["teleport"] as never }))],
     message: "app/features/quick-note/feature.ts: uses \"teleport\", which the verifier does not know (ENHANCEMENT_CAPABILITY_FIELDS in app/shared/enhancement-contracts.ts).",

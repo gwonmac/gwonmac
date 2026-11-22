@@ -1,23 +1,25 @@
 /**
- * Character Switch's one entry for the game host. Keeps Command-E owned by Core
- * even when the current game build is unsupported: a certified installation may
- * replace only the source, never shortcut ownership. The Core companion
- * installation builds that source with the controller exported here.
+ * Character Switch's hubPage part, its one entry for the game host. Keeps Command-E
+ * owned by Core even when the current game build is unsupported: a certified
+ * installation may replace only the source, never shortcut ownership. The Core
+ * companion installation builds that source with the controller exported here.
  */
 import { matchHubRows, parseHubQuery, type HubRow, type HubSource } from '../../../shared/hub.js';
 import { professionPresentation } from '../../../shared/profession-assets.js';
 import { currentCharacterIndex, type CharacterSwitchSource } from "./character-switch-model.js";
 import { characterSwitchRefusal, createCharacterSwitchPalette } from "./character-switch-palette.js";
+import type { HubPageContext } from "../../../renderer/hub.js";
+import { definePart } from "../../parts.js";
 
 export { createCharacterSwitchController, type CharacterSwitchController } from "./character-switch-controller.js";
 export { characterSwitchContext, type CharacterSwitchContext, type CharacterSwitchSource } from "./character-switch-model.js";
 
 export interface CharacterSwitchHost {
   attach(source: CharacterSwitchSource): () => void;
-  dispose(): void;
+  stop(): void;
 }
 
-export function installCharacterSwitchHost(parent: HTMLElement): CharacterSwitchHost {
+export default definePart("hubPage", "characterSwitch", ({ parent, hub }: HubPageContext): CharacterSwitchHost => {
   const listeners = new Set<() => void>();
   const unavailable: CharacterSwitchSource = Object.freeze({
     characters: Object.freeze({ status: "waiting", reason: "memory" }),
@@ -80,7 +82,7 @@ export function installCharacterSwitchHost(parent: HTMLElement): CharacterSwitch
       return matched;
     },
   };
-  const detachHub = window.gwHub?.attach(hubSource);
+  const detachHub = hub?.attach(hubSource);
   return Object.freeze({
     attach(next: CharacterSwitchSource) {
       detachSource();
@@ -95,6 +97,6 @@ export function installCharacterSwitchHost(parent: HTMLElement): CharacterSwitch
         for (const listener of listeners) listener();
       };
     },
-    dispose() { detachHub?.(); detachSource(); listeners.clear(); palette.dispose(); },
+    stop() { detachHub?.(); detachSource(); listeners.clear(); palette.dispose(); },
   });
-}
+});

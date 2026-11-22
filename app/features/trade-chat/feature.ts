@@ -31,6 +31,8 @@ export default defineFeature({
     row: { detail: "Find offers and contact sellers", iconKind: "trade", open: { show: true } },
   },
   shortcuts: [{ action: "trade.toggle", binding: { key: "k", shift: false, option: false }, menuItem: "toggle-trade" }],
+  /** Whisper on an offer: Whispers owns the conversation. */
+  links: { whispers: ["open"] },
   shots: [],
-  parts: ["game", "main"],
+  parts: ["game", "window", "main"],
 });

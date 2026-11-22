@@ -844,3 +844,10 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
 }
 /** The Hub without its built-in sources (hub-builtins.ts adds them). */
 export type Hub = ReturnType<typeof createHub>;
+
+/**
+ * What a hubPage part's `start` gets (app/features/parts.ts): where it draws its own surfaces,
+ * and the Hub its source attaches to (null in a window without one). The Hub hides the source's
+ * rows while resolve has its feature off, so the part need not ask.
+ */
+export type HubPageContext = Readonly<{ parent: HTMLElement; hub: Pick<Hub, 'attach'> | null }>;

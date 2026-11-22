@@ -351,7 +351,9 @@ Use only the layers the feature needs:
 | Domain behavior | A named renderer or command module | Own decoding, formatting, state transitions, and user-facing refusal in the feature domain. |
 | Game-host code of a feature | `app/features/<id>/companion.ts` and one line in [`COMPANION_PARTS`](../app/features/companion-parts.ts) | A part says what it does in each installer phase ([contract](../app/renderer/tools-companion-part.ts)). Feeds that several features read stay in the [shared substrates](../app/renderer/tools-companion-substrates.ts); a part adds its demand to them. New code reads a value through a typed [building block](../app/renderer/game-blocks.ts) on `context.game` (`target`, `region`, `session`, `skillbar`, `chat`, `effects`, `alcohol`, `progress`) and draws through one on `context.ui` (`skillLabels`, `skillKeys`, `effectLabels`) when one exists: subscribing (or claiming) is the demand, and the returned stop withdraws it. A feature that needs only blocks builds its part with `featurePart(id, start)`: `start` runs while the feature is on and every capability its manifest `uses` is proven, and returns its stop (Target Distance and Skill Cooldowns are the examples). A part that allocates keeps its registry place, which is the heap layout; [a unit test](../tests/unit/the-companion-heap-layout-stays-fixed.test.ts) pins it. A part's id is its feature's id or a substrate's; a unit test fails when a feature's `companion.ts` has no line. |
 | IPC channels of a feature | `app/features/<id>/shared/ipc.ts` and one line in [`TOOL_CONTRACTS`](../app/shared/ipc/tools.ts) | The contract declares each channel's string, arguments, and result once, and the `window.gwNative` namespace the Tools preload builds from them ([kernel](../app/shared/ipc/channel-table.ts)). |
-| Main-process channels and files of a feature | `app/features/<id>/main.ts` and one line in [`MAIN_PARTS`](../app/features/main-parts.ts) | The part owns its stores and answers its contract's channels ([contract](../app/main/tools-main-part.ts)); the runtime gives it a file gate. A Tools channel without exactly one owner, a parser that produces other arguments, or a handler that answers another result fails to compile. |
+| Main-process channels and files of a feature | `app/features/<id>/main.ts` and one line in [`MAIN_PARTS`](../app/features/main-parts.ts) | The part owns its stores and answers its contract's channels ([contract](../app/main/tools-main-part.ts)); the runtime gives it a file gate. A Tools channel without exactly one owner, a parser that produces other arguments, or a handler that answers another result fails to compile. `mainPart` adds the shared `start → stop`: `start` runs while the feature is on (Trade Chat closes its feed in the stop). |
+| Part kinds | The manifest's `parts` and [`app/features/parts.ts`](../app/features/parts.ts) | Every kind (`game`, `window`, `hubPage`, `main`) has one shape: `start` gets what its kind hands it and returns what stops it, and a part builds only for a feature whose `parts` lists its kind (it fails to compile otherwise). `game` is `featurePart`, `main` is `mainPart`; a `window` or `hubPage` part is `definePart(kind, id, start)` in the feature's `renderer/host.ts` (Trade Chat's window, Character Switch's Hub page). |
+| Calling another feature | The caller's manifest `links` (`{ whispers: ["open"] }`), the target's `offers` and its `shared/link.ts`, one line in [`FeatureLinkApis`](../app/features/links.ts) | A part gets `links.whispers`, typed from the target's declaration and null while `resolve` has the target off; a call while the target's part is not running answers `"unavailable"`. The target provides its link while its part runs ([registry](../app/renderer/feature-links.ts)). Features never call each other through window events. |
 | Composition and safety order | [`installCertifiedCompanion`](../app/renderer/certified-companion-installation.ts) | Allocate and validate first, enable the game hook last, disable it first, and tear down in explicit dependency-safe phases. |
 
 A feature folder holds every file that only that feature uses:
@@ -367,13 +369,15 @@ app/features/<id>/
                  stamps the version and builds the release notes (docs/releasing.md#feature-notes)
   media/         shot-1.webp … one per `shots` caption (.gitkeep while empty)
   companion.ts   the game-host part (renderer)
-  main.ts        the main-process part
+  main.ts        the main-process part (mainPart)
   renderer/      renderer-only modules: DOM, game host, overlays, stylesheets (no Node.js)
-  renderer/host.ts  the one entry for a feature the game host starts itself (Maps, Character Switch)
+  renderer/host.ts  the one entry for a feature the game host starts itself (Maps, Character Switch's
+                 hubPage part, Trade Chat's window part)
   hub-views/     the feature's own Hub pages: Vue components the kit draws, their props and an index.ts
   main/          main-process-only modules: stores, files, IPC parsing
   shared/        contracts and pure logic that two processes use
   shared/ipc.ts  the feature's channel table and its window.gwNative namespace
+  shared/link.ts the types of the link it offers other features (manifest `offers`)
 ```
 
 The folder name is the feature id in kebab case (`alcohol-timer` holds
@@ -381,8 +385,8 @@ The folder name is the feature id in kebab case (`alcohol-timer` holds
 a "Must stay" test pins. [`tests/policy/feature-contract.test.ts`](../tests/policy/feature-contract.test.ts)
 runs [the contract checks](../app/features/contract.ts) on every folder in `pnpm check`:
 id and folder, labels and help, one shot per caption, the README subset, `## Unreleased`,
-no `requires` cycles, known `uses`, and `main` in `parts` exactly when `main.ts`
-exists. A launcher test checks each `icon` against lucide-vue-next.
+no `requires` cycles, known `uses`, `main` in `parts` exactly when `main.ts`
+exists, and every `links` target a feature that offers each method called. A launcher test checks each `icon` against lucide-vue-next.
 
 The website builds one docs page per feature from its README
 ([`scripts/feature-docs.ts`](../scripts/feature-docs.ts), run before every website

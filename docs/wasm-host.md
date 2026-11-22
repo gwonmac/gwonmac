@@ -308,6 +308,13 @@ main's `featureOn`; the game host, the Hub and the companion parts ask the same
 a reason the Features tab shows. The companion publishes skill-slot geometry, not bindings, and the
 renderer never turns a label into game input.
 
+A Feature reaches another Feature through a typed link, not a window event
+(`app/renderer/feature-links.ts`). The caller names the link in its manifest
+(`links: { whispers: ["open"] }`); in its game window the link is null while
+`resolve` has the target off, so the caller handles "not available", and a call
+while the target's part is not running answers "unavailable" and reaches
+nothing. Trade Chat opens a conversation with a seller this way.
+
 Native skill and effect drawing has a separate `nativeHudRendering` capability.
 The local verifier checks its exact draw owners, traversal, and resource functions.
 The transform rechecks those owners before it installs native HUD hooks. Core

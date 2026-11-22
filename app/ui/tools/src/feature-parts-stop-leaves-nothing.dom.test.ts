@@ -28,7 +28,7 @@ import { DEFAULT_SETTINGS, type AppSettings } from '../../../shared/settings/ind
 import { installLeakLedger, type Leak, type LeakLedger } from '../../../../tests/helpers/leak-ledger';
 import { fixtureFacts } from './fixture-facts';
 // eslint-disable-next-line no-restricted-imports
-import { installCharacterSwitchHost } from '../../../features/character-switch/renderer/host';
+import characterSwitchHub from '../../../features/character-switch/renderer/host';
 // eslint-disable-next-line no-restricted-imports
 import { installCartographyHost } from '../../../features/cartography/renderer/host';
 import { mountHubView } from './hub/embedded';
@@ -287,10 +287,10 @@ test('every game part stops without leaving anything after its feature was switc
 test('Character Switch\'s host stops without leaving anything, after its page opened', async () => {
   settings = { ...DEFAULT_SETTINGS, ...ALL_ON };
   const page = await baseline();
-  const host = installCharacterSwitchHost(document.body);
+  const host = characterSwitchHub.start({ parent: document.body, hub: window.gwHub ?? null });
   window.dispatchEvent(new CustomEvent('gw:character-toggle', { cancelable: true }));
   await settle();
-  host.dispose();
+  host.stop();
   expect(await page.leftOver()).toEqual([]);
 });
 

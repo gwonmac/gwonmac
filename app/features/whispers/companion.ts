@@ -1,14 +1,16 @@
 /**
  * Whispers in the game host: the whisper session and its surface over
  * `game.chat`. The session reads friends from the shared friends substrate and
- * lends itself to Hub people.
+ * lends itself to Hub people; other Features reach it through its link.
  *
  * This line also hosts the chat region's memory phases (the chat substrate in
  * tools-companion-substrates.ts): the region keeps the place in COMPANION_PARTS
  * it had when Whispers owned it, and that place is the heap layout.
  */
 import { createWhisperSession } from "../../shared/whisper-session.js";
+import { provideLink } from "../../renderer/feature-links.js";
 import type { ToolsCompanionPart } from "../../renderer/tools-companion-part.js";
+import { whispersLink } from "./renderer/link.js";
 import { createWhisperSurface } from "./renderer/whisper-surface.js";
 
 export default {
@@ -38,6 +40,7 @@ export default {
           update: (list) => session.updateFriends(list),
         });
         friends.attachWhispers(session);
+        const stopLink = provideLink("whispers", whispersLink(session));
         return {
           ...chat.session,
           sync() {
@@ -67,7 +70,7 @@ export default {
             }
           },
           disposePresentation: [() => {
-            listen(false); surface?.dispose(); surface = null; session.dispose();
+            stopLink(); listen(false); surface?.dispose(); surface = null; session.dispose();
           }],
         };
       },

@@ -20,7 +20,9 @@ import { createHub } from '../../../renderer/hub';
 // eslint-disable-next-line no-restricted-imports
 import { withHubBuiltins } from '../../../renderer/hub-builtins';
 // eslint-disable-next-line no-restricted-imports
-import { createTradeWhispers } from '../../../renderer/trade-whispers';
+import { featureLinks, onLinksChange, provideLink } from '../../../renderer/feature-links';
+// eslint-disable-next-line no-restricted-imports
+import { whispersLink } from '../../../features/whispers/renderer/link';
 import { mountHubView } from './hub/embedded';
 // eslint-disable-next-line no-restricted-imports
 import { installSurfaceController } from '../../../renderer/surface-controller';
@@ -38,7 +40,7 @@ import { createPartyInvite } from '../../../renderer/party-invite';
 import type { CharacterSwitchActionState, CharacterSwitchFailureCode, CharacterSwitchSource } from '../../../features/character-switch/renderer/character-switch-model';
 import { createFixtureLifecycle, FIXTURE_LIFECYCLES, isFixtureLifecycle } from './hub-fixture-lifecycle';
 // eslint-disable-next-line no-restricted-imports
-import { installCharacterSwitchHost } from '../../../features/character-switch/renderer/host';
+import characterSwitchHub from '../../../features/character-switch/renderer/host';
 // eslint-disable-next-line no-restricted-imports
 import '../../../features/character-switch/renderer/character-switch.css';
 // eslint-disable-next-line no-restricted-imports
@@ -205,7 +207,7 @@ export function mountHubFixture(target: HTMLElement) {
   };
   window.addEventListener('hub-fixture-character-refusal', () => publishCharacter({ status: 'failed', code: 'current-target', retryable: false }));
   window.gwCharacterSwitch = characterSource;
-  installCharacterSwitchHost(document.body).attach(characterSource);
+  characterSwitchHub.start({ parent: document.body, hub }).attach(characterSource);
   // The production Resign owner over a synthetic command queue: /resign is a recorded game action.
   const resign = installResignCommand({
     enhancement_configure_resign: () => 0,
@@ -216,12 +218,12 @@ export function mountHubFixture(target: HTMLElement) {
     async mountTool(element, onVisibilityChange) {
       const app = mountToolsApp(element, { host: game.host, hub, mode: 'embedded', initiallyVisible: false, onVisibilityChange });
       window.addEventListener('hub-fixture-withdraw-library', app.dispose, { once: true });
-      return { setVisible: visible => visible ? app.show() : app.hide(), setActive: app.setActive, requestClose: app.requestClose, update() {}, dispose: app.dispose };
+      return { setVisible: visible => visible ? app.show() : app.hide(), setActive: app.setActive, requestClose: app.requestClose, update() {}, stop: app.dispose };
     },
     async mountTrade(element, onVisibilityChange) {
       const loadMs = Number(params.get("trade-load-ms")) || 0;
       if (loadMs) await new Promise(resolve => setTimeout(resolve, loadMs));
-      const demo = createDemoTradeHost(createTradeWhispers());
+      const demo = createDemoTradeHost({ links: featureLinks('tradeChat'), onLinksChange });
       const offerCount = Number(params.get('trade-offers'));
       const host = offerCount > 0 ? { ...demo, subscribe: async (source: import('../../../shared/trade-chat').TradeSource) => ({
         source, status: 'live' as const, messages: Array.from({ length: offerCount }, (_, index) => ({
@@ -231,7 +233,7 @@ export function mountHubFixture(target: HTMLElement) {
       // A seller's re-post, as the feed sends it: a new message that replaces their older one.
       window.gwTradeFixture = { repost: host.repost };
       const app = mountTradeChat(element, { host, mode: 'embedded', initiallyVisible: false, onVisibilityChange });
-      return { setVisible: visible => visible ? app.show() : app.hide(), requestClose: app.hide, stepBack: app.stepBack, search: app.search, update() {}, dispose: app.dispose };
+      return { setVisible: visible => visible ? app.show() : app.hide(), requestClose: app.hide, stepBack: app.stepBack, search: app.search, update() {}, stop: app.dispose };
     },
   });
   const travel = createHubTravel(travelHost, hub, (place, leave) => askLeaveArea(hub, leaveAreaCopy('travel', place), leave), () => onWhereAllowed('travel', fixtureFacts(settings)));
@@ -263,6 +265,9 @@ export function mountHubFixture(target: HTMLElement) {
   });
   messenger.addEventListener('pointerdown', () => whisperSurface.raise(), true);
   mountWhispers(messenger, { session });
+  // Whispers' link, as its companion part provides it; every name Trade opens is recorded for the specs.
+  const link = whispersLink(session);
+  provideLink('whispers', { open(name) { target.dataset.whisperOpens = `${target.dataset.whisperOpens ?? ''}${name}|`; return link.open(name); } });
   window.addEventListener('hub-fixture-failure', () => { failSend = true; });
   window.addEventListener('hub-fixture-reset', () => session.reset());
   window.addEventListener('hub-fixture-incoming', () => session.observe([{ id: ++id, sender: 'Romi Ranger', message: 'Ready for another mission?', direction: 'incoming' }]));
