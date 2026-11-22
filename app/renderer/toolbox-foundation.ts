@@ -167,7 +167,16 @@ export function createToolboxFoundation(parent: HTMLElement, { parts = WINDOW_PA
         requested = true;
         // A pop-out from the window's own page does nothing once its Feature is off.
         const show = () => { if (available(slot)) openFloating(slot); };
-        void part.start({ host, onVisibilityChange: (visible) => setOpen(slot, visible), show, links: featureLinks(part.id), onLinksChange })
+        // A view that throws or fails to load counts as one that could not load (null): its window
+        // stays closed and the other windows are untouched. One line, no error text.
+        const failed = () => { console.error(`[err] the ${part.id} window could not start`); return null; };
+        let starting: Promise<Running | null>;
+        try {
+          starting = part.start({ host, onVisibilityChange: (visible) => setOpen(slot, visible), show, links: featureLinks(part.id), onLinksChange });
+        } catch {
+          starting = Promise.resolve(failed());
+        }
+        void starting.catch(failed)
           .then((mounted) => {
             if (disposed) {
               mounted?.stop();
