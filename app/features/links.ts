@@ -19,6 +19,7 @@ import type { TeamApplyLink } from "./team-apply/shared/link.js";
 import type { TradeChatLink } from "./trade-chat/shared/link.js";
 import type { TravelLink } from "./travel/shared/link.js";
 import type { WhispersLink } from "./whispers/shared/link.js";
+import type { XunlaiStorageLink } from "./xunlai-storage/shared/link.js";
 import type { FeatureOff } from "../shared/feature-resolve.js";
 import type { Feature, FeatureId } from "./index.js";
 
@@ -31,6 +32,7 @@ export type FeatureLinkApis = {
   tradeChat: TradeChatLink;
   travel: TravelLink;
   whispers: WhispersLink;
+  xunlaiStorage: XunlaiStorageLink;
 };
 
 export type LinkTarget = keyof FeatureLinkApis;

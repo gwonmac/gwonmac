@@ -43,9 +43,9 @@ export function createHubCommands(hub: CommandsHub, openSettings: (target?: Sett
       ...HUB_TOOL_ROWS.filter(tool => on(tool.feature)).map((tool): HubRow => {
         const open = tool.open;
         const run = 'featurePage' in open ? openSettings({ section: 'features', feature: tool.feature })
-          : 'link' in open ? () => show(open.link)
           // A tool that opens after the Hub closes never refuses: the Hub is gone (Xunlai Storage).
-          : open.closesHub ? () => { hub.close(); window.dispatchEvent(new CustomEvent(open.event, { cancelable: true })); }
+          : 'link' in open && open.closesHub ? () => { hub.close(); toggleTool(open.link, 'show'); }
+          : 'link' in open ? () => show(open.link)
           : () => dispatch(open.event, open.show ? 'show' : undefined);
         return { id: tool.id, title: tool.title, keywords: tool.keywords, detail: tool.detail, iconKind: tool.iconKind, ...(tool.aliases ? { aliases: tool.aliases } : {}), group: 'Tools',
           action: tool.action ?? `Open ${tool.title}`, ...('page' in open && open.page ? { navigate: run } : {}), run };

@@ -199,9 +199,6 @@ function activateParts(
       }),
       ui: createUiBlocks({ capabilities, hud, substrates: input.substrates, document, syncObservers: syncBlockDemand }),
       syncObservers,
-      // The map holds each part's own prepare result, so the key fixes the value's type.
-      prepared: <Prepared extends PreparedToolsPart>(part: ToolsCompanionPart<Prepared>) =>
-        (prepared.get(part) ?? null) as Prepared | null,
     });
     const activated = new Map<PreparedToolsPart, ToolsPartSession>();
     for (const [part, value] of prepared) {

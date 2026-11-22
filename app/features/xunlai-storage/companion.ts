@@ -1,8 +1,9 @@
 /**
  * Xunlai Storage in the game host. The installation owns the command's exports,
- * memory and teardown; this part follows the shared game snapshot and lends its
- * command to the Tools window.
+ * memory and teardown; this part follows the shared game snapshot and provides
+ * the storage controller's link (shared/link.ts) while the controller is mounted.
  */
+import { provideLink } from "../../renderer/feature-links.js";
 import type { ToolsCompanionPart } from "../../renderer/tools-companion-part.js";
 
 export default {
@@ -13,8 +14,6 @@ export default {
           .createStorageInstallation(exports, true, window.gwNative.init.development)
       : null;
     return {
-      /** The installation whose command the Tools window offers. */
-      installation: storage,
       allocate: (malloc) => storage?.allocate(malloc),
       allocated: () => storage === null || Boolean(storage.region().pointer),
       initialize: (memory) => storage?.initialize(memory),
@@ -26,9 +25,15 @@ export default {
         });
         observation.observeStateWhen(() => context.on("xunlaiStorage"));
         observation.onState(() => sync());
+        let stopLink = () => {};
         return {
-          mount() { storage?.mount(); },
+          mount() {
+            storage?.mount();
+            const link = storage?.link();
+            if (link) stopLink = provideLink("xunlaiStorage", link);
+          },
           sync,
+          disposePresentation: [() => stopLink()],
           releaseCallbackResources: [(free) => storage?.dispose(free)],
         };
       },

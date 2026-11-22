@@ -265,20 +265,21 @@ test("menu commands reach the game renderer as events", async () => {
   const fixture = harness(TOOLS_ARGV);
   fixture.deliver(1, { type: "input.reset" });
   fixture.deliver(2, { type: "diagnostics.toggle" });
-  fixture.listen("gw:storage-open");
-  fixture.deliver(3, { type: "storage.open" });
+  fixture.listen("gw:character-toggle");
+  fixture.deliver(3, { type: "character.toggle" });
   await fixture.settled(3);
   assert.deepEqual(fixture.dispatched, [
     "gw:input-reset",
     "gw:diagnostics-toggle",
-    "gw:storage-open",
+    "gw:character-toggle",
   ]);
   assert.deepEqual(fixture.acknowledgements(), [
     [1, "completed"],
     [2, "completed"],
     [3, "completed"],
   ]);
-  assert.equal(fixture.transientDismissals(), 2,
+  // Character Switch is a palette of its own and leaves the others alone.
+  assert.equal(fixture.transientDismissals(), 1,
     "explicit interface commands dismiss transient palettes before dispatch");
 });
 
@@ -301,7 +302,6 @@ test("key release, trace state and text editing cross preload with their values 
 // Each tool command and the event its tool's manifest names. A typo or a
 // missing `event` in a manifest leaves the command dispatching nothing.
 const TOOL_COMMANDS = [
-  ["storage.open", "gw:storage-open"],
   ["character.toggle", "gw:character-toggle"],
   ["game.call-target", "gw:call-target"],
 ] as const;
@@ -363,6 +363,7 @@ const TOGGLE_ONLY: { [Target in ToolLinkTarget]: (toggle: ToolLink["toggle"]) =>
   tradeChat: (toggle) => ({ toggle, search: () => "unavailable" }),
   travel: (toggle) => ({ toggle, friendTripBlocked: () => "unavailable", toFriend: () => "unavailable", showProgress: () => "unavailable" }),
   whispers: (toggle) => ({ toggle, open: () => "unavailable", people: () => "unavailable" }),
+  xunlaiStorage: (toggle) => ({ toggle, blocked: () => "unavailable" }),
 };
 const provideToggle = <Target extends ToolLinkTarget>(target: Target, toggle: ToolLink["toggle"]) =>
   provideLink(target, TOGGLE_ONLY[target](toggle));

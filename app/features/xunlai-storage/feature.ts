@@ -20,9 +20,6 @@ export default defineFeature({
   optInWithTools: true,
   tool: {
     id: "xunlai-storage",
-    // Not a link `toggle`: the certified storage controller claims this event, and its Must-stay
-    // test (tests/unit/enhancement-storage-controller.test.ts) dispatches it (plan step 5.5).
-    event: "gw:storage-open",
     keywords: "chest bank storage",
   },
   hub: {
@@ -30,6 +27,11 @@ export default defineFeature({
     row: { detail: "Open your storage chest", iconKind: "storage", aliases: ["Open Xunlai Storage"], open: { closesHub: true } },
   },
   shortcuts: [{ action: "storage.open", binding: { key: "s", shift: false, option: false }, menuItem: "open-xunlai-storage" }],
+  /**
+   * Its shortcut, menu item and Hub row open the chest through `toggle`; the Build Library's
+   * storage button reads why it cannot open through `blocked` (shared/link.ts).
+   */
+  offers: ["toggle", "blocked"],
   shots: [],
   parts: ["game"],
 });

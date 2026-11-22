@@ -585,21 +585,15 @@ async function runXunlaiStorage({ page }: AutomationContext) {
   const xunlaiAccess = await page.evaluate(
     () => window.gwCompanionRuntime?.xunlaiAccess ?? null,
   );
-  const attempt = () => page.evaluate(() => {
-    const detail: { error?: unknown } = {};
-    const event = new CustomEvent("gw:storage-open", {
-      cancelable: true,
-      detail,
-    });
-    window.dispatchEvent(event);
-    return {
-      handled: event.defaultPrevented,
-      error: detail.error instanceof Error
-        ? detail.error.message
-        : detail.error
-          ? String(detail.error)
-          : null,
-    };
+  // Storage opens through Xunlai's link `toggle`, as its shortcut calls it. A refusal while the
+  // controller runs answers `wrong-area`; any other reason means the Feature is off.
+  const attempt = () => page.evaluate(async () => {
+    const linksPath = "./feature-links.js";
+    const links = await import(linksPath) as typeof import("../../app/renderer/feature-links.js");
+    const answer = links.toggleTool("xunlaiStorage", "toggle");
+    return typeof answer === "object"
+      ? { handled: answer.reason === "wrong-area", error: answer.reason as string | null }
+      : { handled: true, error: null };
   });
   const commandOutcomes: Awaited<ReturnType<typeof attempt>>[] = [];
   const recoveries: Awaited<ReturnType<typeof runMovement>>[] = [];

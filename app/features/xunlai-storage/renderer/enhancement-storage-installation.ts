@@ -2,7 +2,7 @@
  * Feature-local ownership of the Xunlai command's exports, allocation,
  * initialization, live policy, and teardown.
  */
-import type { StorageCommand } from "../../../shared/storage-command.js";
+import type { XunlaiStorageLink } from "../shared/link.js";
 import type {
   EnhancementStorageConfigure,
   EnhancementStorageOpen,
@@ -21,7 +21,8 @@ export interface StorageInstallation {
   initialize(memory: WebAssembly.Memory): void;
   mount(): void;
   update(availability: StorageAvailability): void;
-  command(): StorageCommand | null;
+  /** Xunlai Storage's link while the controller is mounted; null before `mount` and after `dispose`. */
+  link(): XunlaiStorageLink | null;
   dispose(free: (pointer: number) => void): void;
 }
 
@@ -61,8 +62,8 @@ export function createStorageInstallation(
     update(availability) {
       controller?.update(availability);
     },
-    command() {
-      return controller?.command ?? null;
+    link() {
+      return controller?.link ?? null;
     },
     dispose(free) {
       const failures: unknown[] = [];

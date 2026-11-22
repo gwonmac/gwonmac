@@ -111,8 +111,6 @@ export type ToolsActivation = CompanionExtensionActivation & Readonly<{
   ui: UiBlocks;
   /** Publishes the active-feature bitmask that every part's `activeFeatures` builds. */
   syncObservers(): void;
-  /** Another part's prepared state; null when that part is not registered. */
-  prepared<Prepared extends PreparedToolsPart>(part: ToolsCompanionPart<Prepared>): Prepared | null;
 }>;
 
 /**
