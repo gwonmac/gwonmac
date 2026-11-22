@@ -47,6 +47,7 @@ import { isCanonicalRendererUrl } from "./core/renderer-trust.js";
 import { isQuitting } from "./lifecycle.js";
 import { gamePaths, preloadPath } from "./paths.js";
 import { editWindowText, runShortcut, sendRendererCommand } from "./renderer-commands.js";
+import { SHORTCUT_FEATURES } from "../shared/keyboard-shortcuts.js";
 import { isMapLayerShortcut, SHORTCUT_MAP_LAYERS } from "../shared/shortcut-commands.js";
 import {
   installApplicationMenu,
@@ -666,7 +667,7 @@ export function createMainWindow(
       else if (action === "game.resign") return showResignGame(host, win);
       else if (isMapLayerShortcut(action)) {
         void host.getSettings().then((settings) => {
-          if (!featureOn("cartography", settings, win)) return;
+          if (!featureOn(SHORTCUT_FEATURES[action], settings, win)) return;
           const key = SHORTCUT_MAP_LAYERS[action];
           return host.updateSettings({ [key]: !settings[key] });
         }).catch((error) => console.error("Map layer shortcut failed", error));

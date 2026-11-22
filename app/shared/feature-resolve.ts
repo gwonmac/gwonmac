@@ -12,8 +12,8 @@
  * for a reason the player cannot switch passes that reason on.
  */
 import type { Feature } from "../features/index.js";
-import type { ClientCompatibility, OptionalFeatureStatus } from "./contracts.js";
-import { capabilityRecord, type EnhancementCapability, type EnhancementProgram } from "./enhancement-contracts.js";
+import type { ClientCompatibility, FeatureUse, OptionalFeatureStatus } from "./contracts.js";
+import { capabilityRecord, type EnhancementProgram } from "./enhancement-contracts.js";
 import {
   FEATURES,
   FEATURE_SELECTION_POLICIES,
@@ -89,6 +89,7 @@ export type FeatureFacts = Omit<FeatureState, "playRegion">;
 export const EVERY_CAPABILITY_PROVED: NonNullable<FeatureState["features"]> = Object.freeze({
   gameFileSaving: { status: "available" },
   nativeDoubleClick: { status: "available" },
+  cartography: { status: "available" },
   ...capabilityRecord(() => ({ status: "available" as const })),
 });
 
@@ -104,7 +105,7 @@ const featureOf = (id: FeatureId): Feature => {
 
 /** The worst status among the capabilities the feature needs: an update outranks a retry. */
 function capabilityReason(
-  needed: readonly EnhancementCapability[],
+  needed: readonly FeatureUse[],
   features: FeatureState["features"],
 ): "needs-update" | "not-proven" | "checking" | null {
   if (needed.length === 0) return null;

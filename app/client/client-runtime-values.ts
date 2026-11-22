@@ -40,26 +40,31 @@ export function optionalFeatureStatus(
   };
 }
 
-/** Which served features a reason replaces: the upstream chain, or native double-click alone. */
+/**
+ * Which served features a reason replaces: the upstream chain, or a stage proved on the
+ * Enhancement output (Cartography, native double-click) alone.
+ */
 export interface StageScope {
-  /** Any stage before native double-click: file saving and every capability. */
+  /** Any stage before native double-click: file saving, every capability and Cartography. */
   readonly upstream: boolean;
+  readonly cartography: boolean;
   readonly nativeDoubleClick: boolean;
 }
 
-const WHOLE_CHAIN: StageScope = { upstream: true, nativeDoubleClick: true };
+const WHOLE_CHAIN: StageScope = { upstream: true, cartography: true, nativeDoubleClick: true };
 
 /**
  * The features of a launch whose named stages failed to check. A later stage
  * is proved on the output of the last stage that passed, so a failure reaches
- * only its own features; a failure before native double-click names no single
- * served feature and covers every capability.
+ * only its own features; a failure before Cartography names no single served
+ * feature and covers every capability.
  */
 export function failedStageScope(stages: readonly ClientVerificationStage[]): StageScope {
   return {
     // The sound decode repair reports no feature, so its failure re-attributes nothing.
     upstream: stages.some((stage) =>
-      stage !== "nativeDoubleClick" && stage !== "soundDecodeRepair"),
+      stage !== "cartography" && stage !== "nativeDoubleClick" && stage !== "soundDecodeRepair"),
+    cartography: stages.includes("cartography"),
     nativeDoubleClick: stages.includes("nativeDoubleClick"),
   };
 }
@@ -86,6 +91,7 @@ export function withStageReason(
         features.nativeDoubleClick,
         scope.upstream || scope.nativeDoubleClick,
       ),
+      cartography: replace(features.cartography, scope.upstream || scope.cartography),
       ...capabilityRecord((capability) => replace(features[capability], scope.upstream)),
     },
   };
@@ -112,7 +118,7 @@ export function servedReasons(
   if (failedStages === null) return withFailedCheck(compatibility);
   const checked = withStageReason(compatibility, "check-failed", failedStageScope(failedStages));
   return enhancementDiverged
-    ? withStageReason(checked, "preparation-failed", { upstream: false, nativeDoubleClick: true })
+    ? withStageReason(checked, "preparation-failed", { upstream: false, cartography: true, nativeDoubleClick: true })
     : checked;
 }
 

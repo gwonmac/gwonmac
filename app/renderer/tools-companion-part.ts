@@ -21,7 +21,11 @@
  * Shared Tools code never borrows from a feature: what one feature (or the Hub)
  * needs from another goes through a typed link (feature-links.ts).
  */
-import type { EnhancementCapabilities, EnhancementProgram } from "../shared/enhancement-contracts.js";
+import {
+  ENHANCEMENT_CAPABILITY_FIELDS,
+  type EnhancementCapabilities,
+  type EnhancementProgram,
+} from "../shared/enhancement-contracts.js";
 import type { FeatureLinks } from "../features/links.js";
 import type { PartOwner, RunningPart } from "../features/parts.js";
 import { FEATURES, type FeatureId } from "../shared/feature-contracts.js";
@@ -173,7 +177,9 @@ export function featurePart<Id extends PartOwner<"game">, Running extends Runnin
   runtime: Readonly<Record<string, (running: Running | null) => unknown>> = {},
 ): FeaturePart {
   const feature = FEATURES.find((candidate) => candidate.id === id);
-  const needs = feature !== undefined && "uses" in feature ? feature.uses : [];
+  // A certified stage is no capability of the companion installation; resolve gates it.
+  const needs = (feature !== undefined && "uses" in feature ? feature.uses : [])
+    .flatMap((use) => ENHANCEMENT_CAPABILITY_FIELDS.find((capability) => capability === use) ?? []);
   return Object.freeze({
     id,
     // A renderer runs a part only with the capabilities its installation actually carries,

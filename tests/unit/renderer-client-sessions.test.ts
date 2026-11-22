@@ -10,6 +10,7 @@ const base: ClientSession = {
     features: {
       gameFileSaving: { status: "available" },
       nativeDoubleClick: { status: "available" },
+      cartography: { status: "available" },
       nativeCursor: { status: "available" },
       targetObservation: { status: "available" },
       partyObservation: { status: "available" },

@@ -36,6 +36,7 @@ const folder = (feature: FeatureDefinition, more: Partial<FeatureFolder> = {}): 
   files: ["feature.ts", "README.md", "CHANGELOG.md", "media/.gitkeep"],
   readme: `Example does one thing.\n\n### Use it\n1. Press <kbd>⌘</kbd> <kbd>X</kbd> or search \`note\` in the [Hub]($docs.hub#what-you-can-search).\n${details}\n> Only you see it.\n`,
   changelog: "## Unreleased\n",
+  imports: [],
   ...more,
 });
 const withoutPurpose = ({ purpose, ...rest }: FeatureDefinition): FeatureDefinition => (void purpose, rest);
@@ -156,7 +157,12 @@ const cases: readonly Case[] = [
   {
     check: "known uses",
     folders: [folder(manifest("quickNote", { uses: ["teleport"] as never }))],
-    message: "app/features/quick-note/feature.ts: uses \"teleport\", which the verifier does not know (ENHANCEMENT_CAPABILITY_FIELDS in app/shared/enhancement-contracts.ts).",
+    message: "app/features/quick-note/feature.ts: uses \"teleport\", which the verifier does not know (ENHANCEMENT_CAPABILITY_FIELDS in app/shared/enhancement-contracts.ts, STAGE_USES in app/shared/contracts.ts).",
+  },
+  {
+    check: "a Feature on a certified stage names it in uses",
+    folders: [folder(valid, { imports: ["app/shared/cartography-spike.ts"] })],
+    message: "app/features/quick-note/feature.ts: the folder imports app/shared/cartography-spike.ts, so it runs on the certified cartography stage; add \"cartography\" to uses so a refused stage turns it off with a reason.",
   },
   {
     check: "## Unreleased",

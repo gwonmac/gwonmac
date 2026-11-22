@@ -15,6 +15,7 @@ const facts = (settings: FeatureFacts["settings"]): FeatureFacts => ({
   features: {
     gameFileSaving: { status: "available" },
     nativeDoubleClick: { status: "available" },
+    cartography: { status: "available" },
     ...capabilityRecord(() => ({ status: "available" as const })),
   },
 });

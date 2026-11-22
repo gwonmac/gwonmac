@@ -122,7 +122,7 @@ it("the plain game stops every feature, and turning it off brings back each one 
   const chosen = await coordinator.getSettings();
   const playing = (settings: AppSettings): FeatureState => ({
     toolsAtLaunch: true, settings, program: "none", playRegion: "pve",
-    features: { gameFileSaving: { status: "available" }, nativeDoubleClick: { status: "available" }, ...capabilityRecord(() => ({ status: "available" as const })) },
+    features: { gameFileSaving: { status: "available" }, nativeDoubleClick: { status: "available" }, cartography: { status: "available" }, ...capabilityRecord(() => ({ status: "available" as const })) },
   });
   const before = FEATURES.map((feature) => resolve(feature, playing(chosen)));
   assert.ok(before.some((resolution) => resolution.on), "some features run before the plain game");

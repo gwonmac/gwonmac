@@ -79,6 +79,7 @@ async function standInForMainFacts(
     const features = {
       gameFileSaving: { status: "available" },
       nativeDoubleClick: { status: "available" },
+      cartography: { status: "available" },
       ...Object.fromEntries(Object.entries(capabilities).map(([capability, proved]) =>
         [capability, proved ? { status: "available" } : { status: "unavailable", reason: "game-update" }])),
     } as NonNullable<ReturnType<NonNullable<typeof window.gwFeatureFacts>>>["features"];

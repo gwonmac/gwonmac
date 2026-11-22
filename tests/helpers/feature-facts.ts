@@ -14,6 +14,7 @@ export function provenChecks(
   return {
     gameFileSaving: { status: "available" },
     nativeDoubleClick: { status: "available" },
+    cartography: { status: "available" },
     ...capabilityRecord((capability) => changed[capability] ?? { status: "available" }),
   };
 }

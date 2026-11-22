@@ -488,6 +488,15 @@ export type OptionalFeatureStatus =
   | RequiredFeatureStatus
   | Readonly<{ status: "off" }>;
 
+/**
+ * The certified client stages a Feature can name in `uses` besides the Enhancement capabilities:
+ * each is its own transform of the official module, proved by the verifier on its own.
+ */
+export const STAGE_USES = Object.freeze(["cartography"] as const);
+export type StageUse = (typeof STAGE_USES)[number];
+/** What a Feature can name in `uses`: an Enhancement capability or a certified stage. */
+export type FeatureUse = EnhancementCapability | StageUse;
+
 export interface ClientCompatibility {
   /**
    * sha256 of ArenaNet's official module for this session. It names the build,
@@ -498,7 +507,7 @@ export interface ClientCompatibility {
   features: Readonly<{
     gameFileSaving: RequiredFeatureStatus;
     nativeDoubleClick: OptionalFeatureStatus;
-  } & Record<EnhancementCapability, OptionalFeatureStatus>>;
+  } & Record<FeatureUse, OptionalFeatureStatus>>;
 }
 
 export const ENHANCEMENT_RUNTIME_FEATURES = ENHANCEMENT_CAPABILITY_FIELDS;

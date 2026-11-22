@@ -19,6 +19,7 @@ function features(changed: Partial<Record<EnhancementCapability, OptionalFeature
   return {
     gameFileSaving: AVAILABLE,
     nativeDoubleClick: AVAILABLE,
+    cartography: AVAILABLE,
     ...capabilityRecord((capability) => changed[capability] ?? AVAILABLE),
   };
 }
