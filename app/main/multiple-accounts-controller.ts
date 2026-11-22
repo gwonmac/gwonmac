@@ -352,7 +352,8 @@ export class MultipleAccountsController {
     return failures;
   }
 
-  create(request: AccountProfileCreateRequest): Promise<AccountsState> {
+  /** Creates the profile and returns its id; the new state is published to every listener. */
+  create(request: AccountProfileCreateRequest): Promise<ProfileId> {
     return this.accountsLock.run(async () => {
       const workspace = this.activeWorkspace();
       const { paths } = this.options;
@@ -374,7 +375,7 @@ export class MultipleAccountsController {
       }
       this.workspace = next as AccountWorkspace;
       this.publish();
-      return this.state();
+      return next.profiles.at(-1)!.id;
     });
   }
 

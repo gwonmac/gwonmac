@@ -48,6 +48,8 @@ export function createLauncherService(input: Readonly<{
     toolsLoaded: () => input.toolsLoaded,
     featureFacts: (current) => featureFacts(current),
     getTexturePacks: () => texturePacks.snapshot(),
+    resetSettings: () => input.toolsRuntime?.resetSettings() ?? shell.preferences.resetCoreSettings(),
+    selectTexturePack: (id) => texturePacks.select(id),
     allowUnreadyLaunch: input.allowUnreadyLaunch,
     publish: (snapshot) => {
       const launcher = windowRegistry.launcherWindow();

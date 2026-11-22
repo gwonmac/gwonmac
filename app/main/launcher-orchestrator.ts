@@ -3,7 +3,8 @@
  * owner's launch queue may drain. The queue itself, its order, the Play rule
  * and every profile's launch state live in `core/profile-runtime.ts`, owned by
  * MultipleAccountsController; this module only projects them and never moves
- * launch decisions into the renderer.
+ * launch decisions into the renderer. It also owns the launcher's multi-step
+ * writes (create, update and reset), so the IPC handlers only confirm and call.
  */
 import type { AppUpdateState, DownloadProgress } from "../shared/contracts.js";
 import type { AccountsState } from "../shared/accounts-contracts.js";
@@ -15,9 +16,11 @@ import {
   type LauncherSnapshot,
 } from "../shared/launcher-contracts.js";
 import type { FeatureFacts } from "../shared/feature-resolve.js";
+import type { LauncherProfileCreateInput, LauncherProfileUpdate } from "../shared/launcher-contracts.js";
 import type { ProfileId } from "../shared/multiple-accounts.js";
 import type { TexturePackSnapshot } from "../shared/texture-packs.js";
 import type { LauncherStateStore } from "./core/launcher-state.js";
+import { logEvent } from "./diagnostics.js";
 import { resolveShortcuts } from "../shared/keyboard-shortcuts.js";
 
 interface LauncherAccountsOwner {
@@ -31,6 +34,8 @@ interface LauncherAccountsOwner {
   drain(ids: readonly ProfileId[]): Promise<void>;
   readonly draining: boolean;
   show(id: ProfileId): boolean;
+  create(request: { readonly name: string }): Promise<ProfileId>;
+  rename(id: ProfileId, name: string): Promise<unknown>;
 }
 
 export interface LauncherOrchestratorOptions {
@@ -44,6 +49,9 @@ export interface LauncherOrchestratorOptions {
   readonly toolsLoaded: () => boolean;
   /** Main's facts for the Feature decision, for these settings (app/main/feature-decision.ts). */
   readonly featureFacts: (settings: AppSettings) => FeatureFacts;
+  /** Resets the app settings (Tools and Core, or Core alone when Tools did not load). */
+  readonly resetSettings: () => Promise<unknown>;
+  readonly selectTexturePack: (id: string | null) => Promise<unknown>;
   readonly getTexturePacks?: () => TexturePackSnapshot;
   /** Unpackaged Electron tests only: lets renderer-focused suites bypass client preparation. */
   readonly allowUnreadyLaunch?: boolean;
@@ -191,6 +199,54 @@ export class LauncherOrchestrator {
     this.options.accounts.validateOpenable([profileId]);
     await this.options.state.updateAppearance(profileId, appearance);
     this.publish();
+  }
+
+  /** Creates the profile and gives it its look; returns the new id. */
+  async createProfile({ name, appearance }: LauncherProfileCreateInput): Promise<ProfileId> {
+    const id = await this.options.accounts.create({ name });
+    if (appearance) await this.updateAppearance(id, appearance);
+    return id;
+  }
+
+  /**
+   * Renames and restyles one profile as a unit: if the look cannot be saved,
+   * the name goes back, so the player never sees half of what they asked for.
+   */
+  async updateProfile({ id, name, icon, color }: LauncherProfileUpdate): Promise<void> {
+    const previousName = this.options.accounts.state().profiles.find((profile) => profile.id === id)?.name;
+    await this.options.accounts.rename(id, name);
+    try {
+      await this.updateAppearance(id, { icon, color });
+    } catch (error) {
+      if (previousName !== undefined) await this.options.accounts.rename(id, previousName).catch(() => undefined);
+      throw error;
+    }
+  }
+
+  /**
+   * Resets settings, the launcher's presentation and the texture pack choice.
+   * They live in three stores that cannot share one transaction, so every step
+   * runs even when an earlier one fails, the snapshot is always republished,
+   * and the first failure is rethrown. The reset is idempotent: running it
+   * again finishes whatever a failure left.
+   */
+  async resetSettings(): Promise<void> {
+    const steps = [
+      () => this.options.resetSettings(),
+      () => this.options.state.resetPresentation(),
+      () => this.options.selectTexturePack(null),
+    ];
+    const failures: unknown[] = [];
+    for (const step of steps) {
+      try {
+        await step();
+      } catch (error) {
+        failures.push(error);
+      }
+    }
+    this.publish();
+    if (failures.length > 0) throw failures[0];
+    logEvent({ k: "settings.reset" });
   }
 
   async updatePreferences(patch: LauncherPreferencesPatch): Promise<void> {

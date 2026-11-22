@@ -8,7 +8,7 @@
  * that completed write into a false failure response.
  */
 import { session, type Session } from "electron";
-import { readFile, rm, stat } from "node:fs/promises";
+import { readFile, rm, stat, writeFile } from "node:fs/promises";
 import type { RendererSettingsPatch } from "../shared/contracts.js";
 import type { AppSettings } from "../shared/settings/index.js";
 import { errorCode } from "../shared/errors.js";
@@ -37,10 +37,18 @@ async function pendingMarkerExists(markerPath: string): Promise<boolean> {
   }
 }
 
+/** What the marker holds when the player asked to redownload the whole client, not just the chunk store. */
+const FULL_RESET_MARKER = "launcher-full-reset-v1";
+
+/** Asks the next start to clear the chunk store and the client artifacts (see `applyPendingCacheClear`). */
+export async function requestFullGameFilesReset(paths: GamePaths): Promise<void> {
+  await writeFile(paths.cacheClearRequest, FULL_RESET_MARKER, { mode: 0o600 });
+}
+
 export async function applyPendingCacheClear(paths: GamePaths): Promise<void> {
   if (!(await pendingMarkerExists(paths.cacheClearRequest))) return;
   const fullReset = await readFile(paths.cacheClearRequest, "utf8")
-    .then((value) => value === "launcher-full-reset-v1")
+    .then((value) => value === FULL_RESET_MARKER)
     .catch(() => false);
   await rm(paths.chunks, { recursive: true, force: true });
   if (fullReset) {
