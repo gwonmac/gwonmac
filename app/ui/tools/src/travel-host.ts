@@ -160,7 +160,8 @@ export function createNativeTravelHost(
     },
     loadHistory: historyObservation.load,
     async travel(request, failed) {
-      if (attempt.value.status !== "idle") return;
+      // A caller waiting on this trip (a party invite) must hear at once that it did not start.
+      if (attempt.value.status !== "idle") throw new Error("Travel is already in progress");
       const contextRefusal = travelContextRefusal(state.value, request.mapId);
       if (contextRefusal !== null) {
         notice.value = { message: contextRefusal, level: "warning" };
