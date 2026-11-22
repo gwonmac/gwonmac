@@ -67,7 +67,10 @@ export type FeatureStatus = Readonly<{
   /** The reason line players read; empty when the feature runs. */
   text: string;
   tone: ReasonTone;
-  /** The switch does nothing for this reason: the player cannot change it here. */
+  /**
+   * The switch shows the saved choice but cannot change it: only in the plain game, which keeps
+   * every choice for when it is turned off (as Settings › Tools does since #44).
+   */
   locked: boolean;
   /** The feature to turn on first, for `needs`. */
   needs?: CardFeature;
@@ -75,15 +78,15 @@ export type FeatureStatus = Readonly<{
 
 /**
  * The words and look of each reason (canvas States board; text from the 4.1 table in #39).
- * `checking` keeps its switch working: the launcher never receives a build check yet, so a lock
- * would freeze most switches until step 7.1 brings real statuses.
+ * A player can always turn a Feature off: a build check that failed, changed or has not run yet
+ * leaves the switch working, and only the plain game holds the switches.
  */
 const REASONS: Readonly<Record<Exclude<FeatureOffReason, "needs" | "wrong-area">, Readonly<{ text: string; tone: ReasonTone; locked: boolean }>>> = {
   "plain-game": { text: "Off while you play the plain game.", tone: "muted", locked: true },
   "needs-restart": { text: "Starts the next time you open Guild Wars.", tone: "warning", locked: false },
   "switched-off": { text: "Off", tone: "muted", locked: false },
-  "needs-update": { text: "Needs a GWonMac update for this Guild Wars build.", tone: "muted", locked: true },
-  "not-proven": { text: BUILD_CHECK_FAILED, tone: "warning", locked: true },
+  "needs-update": { text: "Needs a GWonMac update for this Guild Wars build.", tone: "muted", locked: false },
+  "not-proven": { text: BUILD_CHECK_FAILED, tone: "warning", locked: false },
   checking: { text: "Checking this Guild Wars build…", tone: "warning", locked: false },
 };
 

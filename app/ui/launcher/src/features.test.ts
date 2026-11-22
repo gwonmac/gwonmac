@@ -35,8 +35,8 @@ describe("Features tab status", () => {
     { state: "switched off while waiting for a restart", id: "whispers", tools: { ...loaded, loaded: false, restartRequired: true }, checks: proved, text: "Off", tone: "muted", locked: false, shown: false },
     { state: "needs another feature", id: "progress", tools: withSwitches(loaded, { "quick-travel": false }), checks: proved, text: "Needs Travel. Turn it on first.", tone: "warning", locked: false, shown: true },
     { state: "switched off", id: "whispers", tools: loaded, checks: proved, text: "Off", tone: "muted", locked: false, shown: false },
-    { state: "needs a GWonMac update", id: "quickItemMove", tools: withSwitches(loaded, { "quick-item-move": true }), checks: patchDay, text: "Needs a GWonMac update for this Guild Wars build.", tone: "muted", locked: true, shown: true },
-    { state: "build check failed", id: "chatFilters", tools: withSwitches(loaded, { "chat-filters": true }), checks: patchDay, text: BUILD_CHECK_FAILED, tone: "warning", locked: true, shown: true },
+    { state: "needs a GWonMac update", id: "quickItemMove", tools: withSwitches(loaded, { "quick-item-move": true }), checks: patchDay, text: "Needs a GWonMac update for this Guild Wars build.", tone: "muted", locked: false, shown: true },
+    { state: "build check failed", id: "chatFilters", tools: withSwitches(loaded, { "chat-filters": true }), checks: patchDay, text: BUILD_CHECK_FAILED, tone: "warning", locked: false, shown: true },
     // The launcher has no build checks until plan step 7.1, so the switch must keep working.
     { state: "checking the build", id: "skillCooldowns", tools: loaded, checks: null, text: "Checking this Guild Wars build…", tone: "warning", locked: false, shown: true },
     // The launcher stands in no game area; a PvE feature is on and starts in PvE.

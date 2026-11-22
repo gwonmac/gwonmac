@@ -47,32 +47,40 @@ afterEach(() => { for (const wrapper of mounted.splice(0)) wrapper.unmount(); })
 
 describe("Features tab", () => {
   // One row per reason a player can meet in the launcher, as the canvas States board draws it.
+  // `sends` is what the card's switch and the page's button ask for; a player can always turn a
+  // Feature off, and only the plain game holds the switches (null: nothing is sent).
   it.each([
-    { state: "plain game", id: "travel", tools: { ...loaded, configured: false }, checks: proved, text: "Off while you play the plain game.", locked: true, action: "Turn off" },
-    { state: "waiting for a restart", id: "travel", tools: { ...loaded, loaded: false, restartRequired: true }, checks: proved, text: "Starts the next time you open Guild Wars.", locked: false, action: "Turn off" },
-    { state: "needs another feature", id: "progress", tools: withSwitches(loaded, { "quick-travel": false }), checks: proved, text: "Needs Travel. Turn it on first.", locked: false, action: "Turn on Travel" },
-    { state: "needs a GWonMac update", id: "quickItemMove", tools: withSwitches(loaded, { "quick-item-move": true }), checks: patchDay, text: "Needs a GWonMac update for this Guild Wars build.", locked: true, action: "Turn off" },
-    { state: "build check failed", id: "chatFilters", tools: withSwitches(loaded, { "chat-filters": true }), checks: patchDay, text: BUILD_CHECK_FAILED, locked: true, action: "Turn off" },
-    { state: "checking the build", id: "skillCooldowns", tools: loaded, checks: null, text: "Checking this Guild Wars build…", locked: false, action: "Turn off" },
-    { state: "on", id: "skillCooldowns", tools: loaded, checks: proved, text: "On", locked: false, action: "Turn off" },
-  ] as const)("shows $state on the card, the row and the page", async ({ id, tools, checks, text, locked, action }) => {
-    const { wrapper } = view(tools, checks);
+    { state: "plain game", id: "travel", tools: { ...loaded, configured: false }, checks: proved, text: "Off while you play the plain game.", stored: true, action: "Turn off", sends: null },
+    { state: "waiting for a restart", id: "travel", tools: { ...loaded, loaded: false, restartRequired: true }, checks: proved, text: "Starts the next time you open Guild Wars.", stored: true, action: "Turn off", sends: { tool: "quick-travel", enabled: false } },
+    { state: "needs another feature", id: "progress", tools: withSwitches(loaded, { "quick-travel": false }), checks: proved, text: "Needs Travel. Turn it on first.", stored: false, action: "Turn on Travel", sends: { tool: "quick-travel", enabled: true } },
+    { state: "needs a GWonMac update", id: "quickItemMove", tools: withSwitches(loaded, { "quick-item-move": true }), checks: patchDay, text: "Needs a GWonMac update for this Guild Wars build.", stored: true, action: "Turn off", sends: { tool: "quick-item-move", enabled: false } },
+    { state: "build check failed", id: "chatFilters", tools: withSwitches(loaded, { "chat-filters": true }), checks: patchDay, text: BUILD_CHECK_FAILED, stored: true, action: "Turn off", sends: { tool: "chat-filters", enabled: false } },
+    { state: "checking the build", id: "skillCooldowns", tools: loaded, checks: null, text: "Checking this Guild Wars build…", stored: true, action: "Turn off", sends: { tool: "skill-cooldowns", enabled: false } },
+    { state: "on", id: "skillCooldowns", tools: loaded, checks: proved, text: "On", stored: true, action: "Turn off", sends: { tool: "skill-cooldowns", enabled: false } },
+  ] as const)("shows $state on the card, the row and the page", async ({ id, tools, checks, text, stored, action, sends }) => {
+    const { wrapper, native } = view(tools, checks);
     const reason = text === "On" ? null : text;
-    const read = () => ({
-      reason: cardOf(wrapper, id).find(`#reason-${id}.warning, #reason-${id}.muted`).exists() ? cardOf(wrapper, id).get(`#reason-${id}`).text() : null,
-      locked: cardOf(wrapper, id).get('[role="switch"]').attributes("aria-disabled") === "true",
-    });
-    expect(read()).toEqual({ reason, locked });
+    const box = () => cardOf(wrapper, id).get('[role="switch"]').element as HTMLInputElement;
+    const reasonOf = () => cardOf(wrapper, id).find(`#reason-${id}.warning, #reason-${id}.muted`).exists() ? cardOf(wrapper, id).get(`#reason-${id}`).text() : null;
+    expect({ reason: reasonOf(), stored: box().checked }).toEqual({ reason, stored });
+    box().click();
+    await flushPromises();
+    expect(native.tools.setFeature.mock.calls).toEqual(sends ? [[sends]] : []);
+    expect(box().checked).toBe(stored);
 
     await pressed(wrapper, "Compact list").trigger("click");
     expect(cardOf(wrapper, id).get("small").text()).toBe(reason ?? cardFeature(id)!.summary);
-    expect(read().locked).toBe(locked);
+    expect(box().checked).toBe(stored);
 
     await cardOf(wrapper, id).get(".card-link").trigger("click");
     await flushPromises();
     expect(wrapper.get("#feature-status").text()).toContain(text.replace(/\.$/u, ""));
     const button = wrapper.get(".head-action button");
-    expect({ action: button.text(), disabled: button.attributes("disabled") !== undefined }).toEqual({ action, disabled: locked && !action.startsWith("Turn on ") });
+    expect({ action: button.text(), disabled: button.attributes("disabled") !== undefined }).toEqual({ action, disabled: sends === null });
+    native.tools.setFeature.mockClear();
+    await button.trigger("click");
+    await flushPromises();
+    expect(native.tools.setFeature.mock.calls).toEqual(sends ? [[sends]] : []);
   });
 
   it.each([
@@ -112,15 +120,16 @@ describe("Features tab", () => {
     expect(document.activeElement).toBe(cardOf(wrapper, "progress").get('[role="switch"]').element);
   });
 
-  it("keeps a locked switch in the Tab order but never sends its click", async () => {
-    const { wrapper, native } = view(withSwitches(loaded, { "quick-item-move": true }), patchDay);
-    const locked = cardOf(wrapper, "quickItemMove").get<HTMLInputElement>('[role="switch"]');
-    expect(locked.attributes("disabled")).toBeUndefined();
-    expect(locked.attributes("aria-describedby")).toBe("reason-quickItemMove");
-    locked.element.click();
+  it("keeps a plain-game switch in the Tab order with its saved choice, held", async () => {
+    const { wrapper, native } = view({ ...loaded, configured: false }, proved);
+    const held = cardOf(wrapper, "travel").get('[role="switch"]');
+    const box = held.element as HTMLInputElement;
+    expect({ disabled: held.attributes("disabled"), aria: held.attributes("aria-disabled"), describedby: held.attributes("aria-describedby") })
+      .toEqual({ disabled: undefined, aria: "true", describedby: "reason-travel" });
+    box.click();
     await flushPromises();
     expect(native.tools.setFeature).not.toHaveBeenCalled();
-    expect(locked.element.checked).toBe(true);
+    expect(box.checked).toBe(true);
   });
 
   it("reaches a card's name before its switch, and the plain-game switch before the catalog", () => {
