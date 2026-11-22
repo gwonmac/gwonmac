@@ -74,9 +74,6 @@ export function offReasonText(off: FeatureOff): string {
 export function featureStatus(feature: SwitchFeature, state: FeatureState, checked: boolean): FeatureStatus {
   const resolution = resolve(feature, state);
   if (resolution.on || resolution.reason === "wrong-area") return { resolution: { on: true }, checked, text: "", tone: "muted", locked: false };
-  // resolve reports the restart before the player's own switch; a switched-off feature will not
-  // start after it, so it reads as Off.
-  if (resolution.reason === "needs-restart" && !checked) return { resolution: { on: false, reason: "switched-off" }, checked, ...REASONS["switched-off"] };
   if (resolution.reason === "needs") {
     const needs = byId.get(resolution.feature)!;
     return { resolution, checked, text: needsText(needs), tone: "warning", locked: false, needs };
