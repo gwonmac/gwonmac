@@ -27,27 +27,22 @@ describe("the sensitive-key vocabulary", () => {
   ];
 
   for (const word of dropped) {
-    it(`treats a field named ${word} as sensitive`, () => {
+    it(`treats a field named ${word} as sensitive, by key and in scanned text`, () => {
       assert.equal(isSensitiveKey(word), true);
       assert.equal(isSensitiveKey(`${word}Name`), true);
       assert.equal(isSensitiveKey(`renderer${word[0]!.toUpperCase()}${word.slice(1)}`), true);
-    });
-  }
-
-  it("leaves the field names the schema already declares alone", () => {
-    for (const key of ["status", "route", "method", "priority", "phase", "code", "bytes"]) {
-      assert.equal(isSensitiveKey(key), false, key);
-    }
-  });
-
-  it("scans text for every sensitive key stem", () => {
-    for (const word of dropped) {
       const output = redactDiagnosticText(`${word}=alice.smith`);
       assert.equal(
         output.includes("alice.smith"),
         false,
         `${word} is recognized by key but not scanned in text: ${output}`,
       );
+    });
+  }
+
+  it("leaves the field names the schema already declares alone", () => {
+    for (const key of ["status", "route", "method", "priority", "phase", "code", "bytes"]) {
+      assert.equal(isSensitiveKey(key), false, key);
     }
   });
 });

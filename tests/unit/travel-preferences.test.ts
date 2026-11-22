@@ -12,10 +12,12 @@ import {
 } from "../../app/shared/travel-preferences.js";
 import { parseTravelPreferencesV1 } from "../../app/main/core/travel-preferences-v1.js";
 
+const preferencesPath = async () =>
+  join(await mkdtemp(join(tmpdir(), "gw-travel-preferences-")), "travel-preferences.json");
+
 describe("Travel preferences", () => {
   it("preserves corrupt bytes before returning defaults and reports the backup", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "gw-travel-preferences-"));
-    const path = join(dir, "travel-preferences.json");
+    const path = await preferencesPath();
     await writeFile(path, "{not travel json");
     let recovered = "";
 
@@ -35,8 +37,7 @@ describe("Travel preferences", () => {
   });
 
   it("stores the Travel-only document without adding Stable-owned settings keys", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "gw-travel-preferences-"));
-    const path = join(dir, "travel-preferences.json");
+    const path = await preferencesPath();
     const saved = await updateTravelPreferences(path, {
       synonyms: [{ term: "home", mapId: 55 }],
     });
@@ -48,8 +49,7 @@ describe("Travel preferences", () => {
   });
 
   it("reads the released shape and drops withdrawn history on first load", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "gw-travel-preferences-"));
-    const path = join(dir, "travel-preferences.json");
+    const path = await preferencesPath();
     await writeFile(path, JSON.stringify({
       formatVersion: 1,
       synonyms: [{ term: "home", mapId: 55 }],
@@ -72,8 +72,7 @@ describe("Travel preferences", () => {
   });
 
   it("reads the released Piken map ID and writes the corrected one", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "gw-travel-preferences-"));
-    const path = join(dir, "travel-preferences.json");
+    const path = await preferencesPath();
     await writeFile(path, JSON.stringify({
       formatVersion: 1,
       synonyms: [{ term: "north", mapId: 778 }],

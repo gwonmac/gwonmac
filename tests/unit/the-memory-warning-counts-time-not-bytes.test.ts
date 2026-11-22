@@ -163,16 +163,27 @@ describe("the memory warning counts time, not bytes", () => {
     // about ten minutes apart at this rate, so a five-minute window contains
     // either no step or one and reports 0 or 1,152 MiB/h for a session
     // spending 555. Both ends of a measurement sit on a step for this reason.
+    // The panel also prints the span behind every rate, and a rate with no span
+    // is the shape of the reading that used to look like a broken instrument.
     for (const rate of [555, 3_500]) {
-      const measured = simulate({ rate })
-        .ticks.map((tick) => tick.bytesPerMinute)
-        .filter((value): value is number => value !== null)
-        .map((value) => (value * 60) / MIB);
-      assert.ok(measured.length > 0, `${rate} MiB/h was never measured at all`);
-      for (const value of measured) {
+      const { ticks } = simulate({ rate });
+      assert.ok(
+        ticks.some((tick) => tick.bytesPerMinute !== null),
+        `${rate} MiB/h was never measured at all`,
+      );
+      for (const tick of ticks) {
+        if (tick.bytesPerMinute === null) {
+          assert.equal(tick.measuredOverMs, null, "a span with no rate");
+          continue;
+        }
+        const value = (tick.bytesPerMinute * 60) / MIB;
         assert.ok(
           Math.abs(value - rate) / rate < 0.1,
           `read ${value.toFixed(0)} MiB/h for a session spending ${rate}`,
+        );
+        assert.ok(
+          tick.measuredOverMs !== null && tick.measuredOverMs >= 10 * 60_000,
+          `${rate} MiB/h: rate measured over ${tick.measuredOverMs} ms`,
         );
       }
     }
@@ -327,24 +338,6 @@ describe("the memory warning counts time, not bytes", () => {
       measured.trulyLeft > 60,
       `first estimate arrived with only ${measured.trulyLeft.toFixed(0)} min left`,
     );
-  });
-
-  it("shows the span behind every rate it reports", () => {
-    // The panel prints this, and a rate with no span behind it is the shape of
-    // the reading that used to be indistinguishable from a broken one.
-    for (const rate of [555, 3_500]) {
-      for (const tick of simulate({ rate }).ticks) {
-        if (tick.bytesPerMinute === null) {
-          assert.equal(tick.measuredOverMs, null, "a span with no rate");
-        } else {
-          assert.ok(
-            tick.measuredOverMs !== null
-              && tick.measuredOverMs >= 10 * 60_000,
-            `${rate} MiB/h: rate measured over ${tick.measuredOverMs} ms`,
-          );
-        }
-      }
-    }
   });
 
   it("falls back to bytes only while there is no rate to read", () => {

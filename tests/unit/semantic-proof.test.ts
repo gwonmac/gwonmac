@@ -6,21 +6,9 @@ import {
   relocationAwareFingerprint,
   verifyLayout,
   type FieldWitnesses,
-  type ProofVerdict,
 } from "../../app/client/certification/semantic-proof.js";
 
 describe("semantic proof primitives", () => {
-  it("binds every verdict to one input and verifier ABI", () => {
-    const verdict: ProofVerdict<{ functionIndex: number }> = {
-      status: "proved",
-      inputSha256: "a".repeat(64),
-      verifierAbi: 1,
-      value: { functionIndex: 42 },
-    };
-    assert.equal(verdict.inputSha256, "a".repeat(64));
-    assert.equal(verdict.verifierAbi, 1);
-  });
-
   it("requires an exact, non-empty witness ledger", () => {
     const layout = { root: 12, field: 20 } as const;
     const witnesses = {

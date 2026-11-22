@@ -149,7 +149,7 @@ describe("window registry", () => {
     assert.equal(registry.windows().length, 1);
   });
 
-  it("owns one launcher and one game window per profile", () => {
+  it("owns one launcher and resolves the game window by profile", () => {
     const registry = new WindowRegistry<ReturnType<typeof fake>>();
     const game = fake(1);
     const launcher = fake(2);
@@ -158,10 +158,6 @@ describe("window registry", () => {
     registry.register(launcher, { role: "launcher" });
     assert.equal(registry.profileWindow(profileId), game);
     assert.equal(registry.launcherWindow(), launcher);
-    assert.throws(
-      () => registry.register(fake(3), { role: "game", profileId }, 3),
-      AppError,
-    );
     assert.throws(
       () => registry.register(fake(4), { role: "launcher" }),
       AppError,

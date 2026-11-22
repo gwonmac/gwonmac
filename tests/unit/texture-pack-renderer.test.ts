@@ -1,34 +1,39 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { texmodHash, texmodRawHash } from "../../app/renderer/controller-prompt-texture.js";
-import { createControllerPromptAtlas, installControllerPromptTexture } from "../../app/renderer/controller-prompt-texture.js";
+import {
+  createControllerPromptAtlas,
+  installControllerPromptTexture,
+  texmodHash,
+  texmodRawHash,
+} from "../../app/renderer/controller-prompt-texture.js";
 import { installTexturePack } from "../../app/renderer/texture-pack.js";
 
-test("replaces an exact RGBA TexMod target only for the synchronous upload", () => {
-  const original = Uint8Array.from([1, 2, 3, 255]);
-  const replacement = Uint8Array.from([20, 30, 40, 200]);
+/** Installs a one-pixel pack and returns what one RGBA upload from heap offset `pointer` sent to GL. */
+function uploadOnePixel(original: Uint8Array, replacement: Uint8Array, pointer: number, order?: "swap-red-blue") {
   const heap = new Uint8Array(128);
-  heap.set(original, 32);
+  heap.set(original, pointer);
   let uploaded: number[] = [];
   const env = {
     glBindTexture: (...args: number[]) => void args,
-    glTexImage2D: (_target: number, _level: number, _internal: number, _width: number, _height: number, _border: number, _format: number, _type: number, pointer: number) => {
-      uploaded = [...heap.subarray(pointer, pointer + 4)];
+    glTexImage2D: (_target: number, _level: number, _internal: number, _width: number, _height: number, _border: number, _format: number, _type: number, at: number) => {
+      uploaded = [...heap.subarray(at, at + 4)];
     },
   };
   const installed = installTexturePack({
     imports: { env },
     module: { HEAPU8: heap },
-    entries: [{
-      target: texmodHash(original, 1, 1),
-      width: 1,
-      height: 1,
-      levels: [replacement],
-    }],
+    entries: [{ target: texmodHash(original, 1, 1, order), width: 1, height: 1, levels: [replacement] }],
     log: () => undefined,
   });
   env.glBindTexture(0x0de1, 9);
-  env.glTexImage2D(0x0de1, 0, 0x1908, 1, 1, 0, 0x1908, 0x1401, 32);
+  env.glTexImage2D(0x0de1, 0, 0x1908, 1, 1, 0, 0x1908, 0x1401, pointer);
+  return { uploaded, heap, installed };
+}
+
+test("replaces an exact RGBA TexMod target only for the synchronous upload", () => {
+  const original = Uint8Array.from([1, 2, 3, 255]);
+  const replacement = Uint8Array.from([20, 30, 40, 200]);
+  const { uploaded, heap, installed } = uploadOnePixel(original, replacement, 32);
   assert.deepEqual(uploaded, [...replacement]);
   assert.deepEqual([...heap.subarray(32, 36)], [...original]);
   assert.equal(installed?.snapshot().replacements, 1);
@@ -66,31 +71,8 @@ test("replaces exact compressed DXT blocks and restores client memory", () => {
 });
 
 test("uses a red-blue swap only to identify a Direct3D hash", () => {
-  const originalWebGl = Uint8Array.from([10, 20, 30, 255]);
   const replacementRgba = Uint8Array.from([240, 12, 5, 255]);
-  const heap = new Uint8Array(64);
-  heap.set(originalWebGl, 16);
-  let uploaded: number[] = [];
-  const env = {
-    glBindTexture: (...args: number[]) => void args,
-    glTexImage2D: (
-      _target: number, _level: number, _internal: number, _width: number, _height: number,
-      _border: number, _format: number, _type: number, pointer: number,
-    ) => { uploaded = [...heap.subarray(pointer, pointer + 4)]; },
-  };
-  installTexturePack({
-    imports: { env },
-    module: { HEAPU8: heap },
-    entries: [{
-      target: texmodHash(originalWebGl, 1, 1, "swap-red-blue"),
-      width: 1,
-      height: 1,
-      levels: [replacementRgba],
-    }],
-    log: () => undefined,
-  });
-  env.glBindTexture(0x0de1, 7);
-  env.glTexImage2D(0x0de1, 0, 0x1908, 1, 1, 0, 0x1908, 0x1401, 16);
+  const { uploaded } = uploadOnePixel(Uint8Array.from([10, 20, 30, 255]), replacementRgba, 16, "swap-red-blue");
 
   assert.deepEqual(uploaded, [...replacementRgba]);
   assert.ok(uploaded[0]! > uploaded[2]!, "the intended red channel must remain red");

@@ -14,29 +14,23 @@ it("withdraws a cooldown publication whose sequence stops advancing", () => {
     cancel: () => { scheduled = null; },
     staleAfterMs: 500,
   });
-  installation.setActive(true);
-  installation.sink?.update(Object.freeze({
-    status: "ready",
+  const publication = (gameTimer: number) => Object.freeze({
+    status: "ready" as const,
     sequence: 2,
     generation: 1,
-    gameTimer: 10_000,
+    gameTimer,
     playerAgentId: 7,
     rechargeTimestamps: Object.freeze([0, 11_000, 0, 0, 0, 0, 0, 0]),
-  }));
+  });
+  installation.setActive(true);
+  installation.sink?.update(publication(10_000));
   assert.equal(installation.state.status, "ready");
   now = 500;
   const expire = scheduled as (() => void) | null;
   assert.ok(expire);
   expire();
   assert.deepEqual(installation.state, { status: "waiting", reason: "stale" });
-  installation.sink?.update(Object.freeze({
-    status: "ready",
-    sequence: 2,
-    generation: 1,
-    gameTimer: 10_100,
-    playerAgentId: 7,
-    rechargeTimestamps: Object.freeze([0, 11_000, 0, 0, 0, 0, 0, 0]),
-  }));
+  installation.sink?.update(publication(10_100));
   assert.deepEqual(
     installation.state,
     { status: "waiting", reason: "stale" },

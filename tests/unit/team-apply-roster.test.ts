@@ -2,12 +2,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  runBuildApply,
   runTeamApply,
   TeamApplyPreflightRefusal,
   type TeamApplyEnvironment,
 } from "../../app/shared/builds/team-apply-runner.ts";
 import { liveParty } from "../../app/shared/builds/live-party.ts";
-import { heroId } from "../../app/shared/builds/library.ts";
+import { heroId, skillBarOf } from "../../app/shared/builds/library.ts";
 import type { TeamApplyRuntimeProblem } from "../../app/shared/builds/team-apply.ts";
 import {
   applyHarness as harness,
@@ -184,16 +185,12 @@ test("the count in a refusal is the work that landed, not the work attempted", a
 });
 
 test('loading one player build never reconciles heroes or changes difficulty', async () => {
-  const { runBuildApply } = await import('../../app/shared/builds/team-apply-runner.ts');
   const game = harness([{ hero: 6, agentId: 11, behaviour: 1, skills: null }]);
-  const { skillBarOf } = await import('../../app/shared/builds/library.ts');
   await runBuildApply({ professions: ['W', 'R'], skills: skillBarOf(() => null), attributes: {} }, null, game.environment, 9);
   assert.deepEqual(game.sent, []);
 });
 
 test('loading one hero build preserves the rest of the party', async () => {
-  const { runBuildApply } = await import('../../app/shared/builds/team-apply-runner.ts');
-  const { skillBarOf } = await import('../../app/shared/builds/library.ts');
   const game = harness([{ hero: 6, agentId: 11, behaviour: 1, skills: [0,0,0,0,0,0,0,0] }, { hero: 7, agentId: 12, behaviour: 1, skills: null }]);
   game.setHard(true);
   await runBuildApply({ professions: ['W', 'R'], skills: skillBarOf(() => null), attributes: {} }, heroId(6), game.environment, 10);
@@ -203,8 +200,6 @@ test('loading one hero build preserves the rest of the party', async () => {
 });
 
 test('a replaced build target is refused before commands are submitted', async () => {
-  const { runBuildApply } = await import('../../app/shared/builds/team-apply-runner.ts');
-  const { skillBarOf } = await import('../../app/shared/builds/library.ts');
   const game = harness([]);
   let reads = 0;
   const environment = { ...game.environment, party() {

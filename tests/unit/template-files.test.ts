@@ -83,9 +83,8 @@ test("explains a difference between what was picked and what will land", () => {
   assert.match(text, /1 code with no name/);
   assert.match(text, /3 names adjusted to characters Guild Wars accepts/);
   assert.ok(text.endsWith("."));
-});
 
-test("a zero bucket contributes no clause", () => {
+  // A zero bucket contributes no clause.
   assert.equal(
     describeSkips(plan({ already: 1 }), parse()),
     "Skipped or adjusted: 1 already saved.",

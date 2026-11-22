@@ -217,29 +217,24 @@ describe("temporary exact-draft testing", () => {
     });
   }
 
-  for (const failure of ["checksum", "attestation", "signature", "launch"] as const) {
+  for (const [failure, message] of [
+    ["auth", /expired GitHub login/u],
+    ["checksum", /checksum mismatch/u],
+    ["attestation", /attestation failed/u],
+    ["signature", /invalid signature/u],
+    ["launch", /candidate launch refused/u],
+  ] as const) {
     it(`removes complete downloads after a pre-launch ${failure} failure`, async () => {
       const test = fixture();
       test.setFailure(failure);
       try {
-        await assert.rejects(runDraftReleaseTest(TAG, test.dependencies));
+        await assert.rejects(runDraftReleaseTest(TAG, test.dependencies), message);
         assert.deepEqual(readdirSync(test.temporaryParent), []);
       } finally {
         test.close();
       }
     });
   }
-
-  it("creates no temporary download when GitHub authentication fails", async () => {
-    const test = fixture();
-    test.setFailure("auth");
-    try {
-      await assert.rejects(runDraftReleaseTest(TAG, test.dependencies), /expired GitHub login/u);
-      assert.deepEqual(readdirSync(test.temporaryParent), []);
-    } finally {
-      test.close();
-    }
-  });
 
   it("retains a launched candidate when it is still running", async () => {
     const test = fixture();

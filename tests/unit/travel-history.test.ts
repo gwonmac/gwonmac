@@ -13,6 +13,9 @@ import {
 const characterA = travelCharacterKey("0123456789abcdef");
 const characterB = travelCharacterKey("fedcba9876543210");
 
+const historyPath = async () =>
+  join(await mkdtemp(join(tmpdir(), "gw-travel-history-")), "travel-history.json");
+
 describe("Travel history", () => {
   it("keeps ten unique reviewed destinations in most-recent order", () => {
     const destinations = [148, 164, 165, 166, 163, 779, 81, 55, 20, 49, 109, 81, 85];
@@ -22,8 +25,7 @@ describe("Travel history", () => {
   });
 
   it("reads the released Piken map ID and writes the corrected one", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "gw-travel-history-"));
-    const path = join(dir, "travel-history.json");
+    const path = await historyPath();
     await writeFile(path, JSON.stringify({
       formatVersion: 2,
       characters: { [characterA]: [778] },
@@ -39,8 +41,7 @@ describe("Travel history", () => {
   });
 
   it("persists histories independently per character across store instances", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "gw-travel-history-"));
-    const path = join(dir, "travel-history.json");
+    const path = await historyPath();
     const first = new TravelHistoryStore(path);
     await first.record(characterA, 55);
     await first.record(characterB, 449);
@@ -56,8 +57,7 @@ describe("Travel history", () => {
   });
 
   it("quarantines an unreadable document instead of sharing invented history", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "gw-travel-history-"));
-    const path = join(dir, "travel-history.json");
+    const path = await historyPath();
     await writeFile(path, "not json");
     assert.deepEqual(await new TravelHistoryStore(path).get(characterA), []);
     await assert.rejects(readFile(path, "utf8"), /ENOENT/u);

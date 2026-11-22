@@ -299,10 +299,6 @@ function build(options: Options = {}): {
 }
 
 describe("template-save re-certification", () => {
-  it("builds a valid fixture module", () => {
-    assert.equal(WebAssembly.validate(build().bytes), true);
-  });
-
   it("derives every target and call site past its decoys", () => {
     const { bytes, at } = build();
     const entry = draftTemplateSaveBuild(bytes);
@@ -465,8 +461,9 @@ describe("template-save re-certification", () => {
     assert.match(report.diagnostics.join(" "), /no create-directory stub/);
   });
 
-  it("keeps the negative fixtures valid, so the throw is the locator's", () => {
+  it("keeps the base and negative fixtures valid, so the throw is the locator's", () => {
     for (const options of [
+      {},
       { ambiguousCreate: true },
       { thirdScan: true },
       { secondOpenPair: true },
@@ -504,7 +501,6 @@ describe("template-save re-certification", () => {
       /File::Open probe\/write pair/,
     );
   });
-
 });
 
 describe("adding a derived entry to the authoring table", () => {

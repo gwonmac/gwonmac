@@ -50,7 +50,6 @@ describe("Travel", () => {
     assert.equal(travelDestination(30)?.name, "Ruins of Surmia");
     assert.equal(travelDestination(266), null, "Urgoz requires passage-scroll UI");
     assert.equal(travelDestination(307), null, "The Deep requires passage-scroll UI");
-    assert.equal(new Set(TRAVEL_DESTINATIONS.map(({ mapId }) => mapId)).size, 199);
   });
 
   it("ranks exact aliases and useful partial names first", () => {

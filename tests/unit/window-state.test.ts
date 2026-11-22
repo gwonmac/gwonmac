@@ -13,10 +13,12 @@ import {
   saveWindowState,
 } from "../../app/main/core/window-state.js";
 
+const statePath = async () =>
+  join(await mkdtemp(join(tmpdir(), "gw-window-state-")), "window-state.json");
+
 describe("window state", () => {
   it("validates and round-trips owner-only state", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "gw-window-state-"));
-    const path = join(dir, "window-state.json");
+    const path = await statePath();
     const value = {
       bounds: { x: -1200, y: 40, width: 1280, height: 800 },
       mode: "fullscreen" as const,
@@ -32,8 +34,7 @@ describe("window state", () => {
   });
 
   it("restores an alpha window written without a format version", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "gw-window-state-"));
-    const path = join(dir, "window-state.json");
+    const path = await statePath();
     const alpha = {
       bounds: { x: 120, y: 64, width: 1024, height: 768 },
       mode: "maximized" as const,
@@ -68,8 +69,7 @@ describe("window state", () => {
   });
 
   it("discards a window-state format this build cannot read", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "gw-window-state-"));
-    const path = join(dir, "window-state.json");
+    const path = await statePath();
     await writeFile(
       path,
       JSON.stringify({
@@ -89,8 +89,7 @@ describe("window state", () => {
   });
 
   it("removes corrupt state and falls back cleanly", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "gw-window-state-"));
-    const path = join(dir, "window-state.json");
+    const path = await statePath();
     await writeFile(path, "{broken");
     assert.equal(await loadWindowState(path), null);
     assert.equal(await loadWindowState(path), null);

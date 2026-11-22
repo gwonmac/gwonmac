@@ -75,6 +75,13 @@ function archive(entries: { fileId: number; slot: number }[], slots = 32) {
   return { bytes, table };
 }
 
+/** The file table and id index the way a caller walks them. */
+function open(bytes: Uint8Array) {
+  const read = readerOver(bytes);
+  const files = readFileTable(read, parseArchiveHeader(read));
+  return { files, index: fileIdIndex(read, files) };
+}
+
 test("the header's offset and size are not read backwards", () => {
   const { bytes } = archive([]);
   const header = parseArchiveHeader(readerOver(bytes));
@@ -106,9 +113,7 @@ test("a file id resolves through the index, not by being a slot number", () => {
   const { bytes, table } = archive([{ fileId: 87236, slot: 20 }]);
   slotBytes(table, 20, { offset: 1234, size: 4288, compressed: true });
 
-  const read = readerOver(bytes);
-  const files = readFileTable(read, parseArchiveHeader(read));
-  const index = fileIdIndex(read, files);
+  const { files, index } = open(bytes);
 
   assert.equal(index.get(87236), 20);
   const found = findStream(files, index, 87236);
@@ -123,9 +128,7 @@ test("a file's streams are followed as a chain", () => {
   slotBytes(table, 20, { offset: 100, size: 10, stream: 0, nextSlot: 21 });
   slotBytes(table, 21, { offset: 200, size: 20, stream: 1, nextSlot: 0 });
 
-  const read = readerOver(bytes);
-  const files = readFileTable(read, parseArchiveHeader(read));
-  const index = fileIdIndex(read, files);
+  const { files, index } = open(bytes);
 
   assert.equal(findStream(files, index, 7, 0)?.offset, 100);
   assert.equal(findStream(files, index, 7, 1)?.offset, 200);
@@ -137,16 +140,13 @@ test("a chain that loops terminates instead of hanging on a 4 GB file", () => {
   slotBytes(table, 20, { offset: 100, size: 10, stream: 9, nextSlot: 21 });
   slotBytes(table, 21, { offset: 200, size: 10, stream: 9, nextSlot: 20 });
 
-  const read = readerOver(bytes);
-  const files = readFileTable(read, parseArchiveHeader(read));
-  const index = fileIdIndex(read, files);
+  const { files, index } = open(bytes);
   assert.equal(findStream(files, index, 7, 0), null);
 });
 
 test("an empty base slot carries no payload and is not a hit", () => {
   const { bytes, table } = archive([{ fileId: 7, slot: 20 }]);
   slotBytes(table, 20, { offset: 100, size: 10, payload: 0 });
-  const read = readerOver(bytes);
-  const files = readFileTable(read, parseArchiveHeader(read));
-  assert.equal(findStream(files, fileIdIndex(read, files), 7), null);
+  const { files, index } = open(bytes);
+  assert.equal(findStream(files, index, 7), null);
 });
