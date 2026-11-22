@@ -4,7 +4,7 @@
  * The shortcut reaches it as `gw:resign-show`, the Hub through its own row.
  */
 import { createResignDialog, type ResignHandoff } from "./resign-dialog.js";
-import { featureActivationRequested } from "../../../shared/feature-contracts.js";
+import { featureOn } from "../../../renderer/feature-on.js";
 import { matchHubRows, type HubSource } from "../../../shared/hub.js";
 
 let active: { enabled: boolean; enqueue(): number; dialog: ReturnType<typeof createResignDialog> | null } | null = null;
@@ -70,7 +70,7 @@ export function installResignCommand(exports: WebAssembly.Exports) {
 
 function unavailable(): string | null {
   const context = window.gwCharacterSwitch?.context;
-  if (!featureActivationRequested("resign", window.gwToolsSettings())
+  if (!featureOn("resign")
     || !active?.enabled || (context !== "outpost" && context !== "pve-explorable")) {
     return "Resign is available with Tools enabled in a PvE area.";
   }
@@ -85,7 +85,7 @@ function unavailable(): string | null {
 /** Shows the confirmation; a Hub row passes the handoff that returns to it on Cancel. */
 function showResignConfirmation(handoff?: ResignHandoff): void {
   const command = active;
-  if (!command?.enabled || !featureActivationRequested("resign", window.gwToolsSettings())) return;
+  if (!command?.enabled || !featureOn("resign")) return;
   command.dialog ??= createResignDialog(document.body, unavailable, () => {
     if (active !== command || command.enqueue() !== 1) {
       throw new Error("Guild Wars command queue is busy. Close this dialog and try again.");

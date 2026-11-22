@@ -12,9 +12,8 @@ import {
   parseChangelog,
   showsReason,
   turnOnChanges,
-  type FeatureChecks,
 } from "./features";
-import { fixtureFeatureChecksFor, fixtureSnapshot } from "./fixtures";
+import { fixtureFacts, fixtureFeatureChecksFor, fixtureSnapshot } from "./fixtures";
 
 type Tools = LauncherSnapshot["tools"];
 const loaded: Tools = { ...fixtureSnapshot.tools, configured: true, loaded: true, restartRequired: false };
@@ -23,7 +22,8 @@ const withSwitches = (tools: Tools, switches: Partial<Record<GlobalTool, boolean
   features: { ...tools.features, ...Object.fromEntries(Object.entries(switches).map(([tool, enabled]) => [tool, { enabled }])) },
 });
 const card = (id: FeatureId) => cardFeature(id)!;
-const statusOf = (id: FeatureId, tools: Tools, checks: FeatureChecks) => featureStatus(card(id), launcherFeatureState(tools, checks), tools);
+type Checks = Parameters<typeof fixtureFacts>[1];
+const statusOf = (id: FeatureId, tools: Tools, checks: Checks) => featureStatus(card(id), launcherFeatureState(fixtureFacts(tools, checks)), tools);
 const proved = fixtureFeatureChecksFor("?checks=proved");
 const patchDay = fixtureFeatureChecksFor("?checks=patch-day");
 

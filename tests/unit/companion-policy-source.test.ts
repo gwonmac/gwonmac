@@ -2,7 +2,22 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { createCompanionPolicySource } from "../../app/renderer/companion-policy-source.js";
 import type { CompanionPlayRegionState } from "../../app/renderer/companion-play-region-snapshot.js";
+import { capabilityRecord } from "../../app/shared/enhancement-contracts.js";
+import { FEATURES } from "../../app/shared/feature-contracts.js";
+import type { FeatureFacts } from "../../app/shared/feature-resolve.js";
 import { DEFAULT_SETTINGS } from "../../app/shared/settings/index.js";
+
+/** Main's facts for a launch with Features loaded and every capability proved. */
+const facts = (settings: FeatureFacts["settings"]): FeatureFacts => ({
+  toolsAtLaunch: true,
+  settings,
+  program: "none",
+  features: {
+    gameFileSaving: { status: "available" },
+    nativeDoubleClick: { status: "available" },
+    ...capabilityRecord(() => ({ status: "available" as const })),
+  },
+});
 
 function fixture() {
   const settingsEvents = new EventTarget();
@@ -16,6 +31,7 @@ function fixture() {
   const source = createCompanionPolicySource({
     program: "none",
     readSettings: () => settings,
+    readFacts: () => facts(settings),
     settingsEvents,
     readPlayRegion: () => region,
     subscribePlayRegion(listener) {
@@ -50,39 +66,38 @@ describe("companion policy source", () => {
       reason: "launch",
       snapshot: {
         settings: DEFAULT_SETTINGS,
+        facts: facts(DEFAULT_SETTINGS),
         playRegion: "unknown",
         playRegionState: { status: "waiting", reason: "memory" },
-        policy: {
-          characterSwitch: false,
-      resign: false,
-      whispers: false,
-      callTarget: false,
-          cartography: false,
-          tools: false,
-          buildLibrary: false,
-          tradeChat: false,
-          targetReadout: false,
-          teamApply: false,
-          xunlaiStorage: false,
-          travel: false,
-          skillKeyLabels: false,
-          skillCooldowns: false,
-          chatFilters: false,
-          quickItemMove: false,
-          effectTimers: false,
-    alcoholTimer: false,
-    progress: false,
-    reminders: false,
-        },
+        // The plain game is the default: every Feature is off for it.
+        features: Object.fromEntries(FEATURES.map(({ id }) => [id, { on: false, reason: "plain-game" }])),
       },
     });
+  });
+
+  it("reads every Feature off until main's facts arrive, and again on the event", () => {
+    let current: FeatureFacts | null = null;
+    const settingsEvents = new EventTarget();
+    const source = createCompanionPolicySource({
+      program: "none",
+      readSettings: () => DEFAULT_SETTINGS,
+      readFacts: () => current,
+      settingsEvents,
+      readPlayRegion: () => ({ status: "waiting", reason: "memory" }),
+      subscribePlayRegion: () => () => {},
+    });
+    const tools: unknown[] = [];
+    source.subscribe(({ snapshot }) => tools.push(snapshot.features.tools));
+    current = facts({ ...DEFAULT_SETTINGS, gwonmacTools: true });
+    settingsEvents.dispatchEvent(new Event("gw:tools-settings"));
+    assert.deepEqual(tools, [{ on: false, reason: "plain-game" }, { on: true }]);
   });
 
   it("rereads settings instead of trusting the event payload", () => {
     const test = fixture();
     const updates: Array<{ reason: string; tools: boolean }> = [];
     test.source.subscribe(({ reason, snapshot }) => {
-      updates.push({ reason, tools: snapshot.policy.tools });
+      updates.push({ reason, tools: snapshot.features.tools.on });
     });
     test.setSettings({ ...DEFAULT_SETTINGS, gwonmacTools: true });
     test.settingsEvents.dispatchEvent(new CustomEvent("gw:tools-settings", {
@@ -202,7 +217,7 @@ describe("companion policy source", () => {
     test.setSettings({ ...DEFAULT_SETTINGS, gwonmacTools: true });
     test.settingsEvents.dispatchEvent(new Event("gw:tools-settings"));
     const tools: boolean[] = [];
-    test.source.subscribe(({ snapshot }) => tools.push(snapshot.policy.tools));
+    test.source.subscribe(({ snapshot }) => tools.push(snapshot.features.tools.on));
 
     test.publishRegion(Object.freeze({
       status: "ready",
@@ -256,6 +271,7 @@ describe("companion policy source", () => {
           settingsReads += 1;
           return DEFAULT_SETTINGS;
         },
+        readFacts: () => null,
         settingsEvents,
         readPlayRegion: () => ({ status: "waiting", reason: "memory" }),
         subscribePlayRegion() {
@@ -304,6 +320,7 @@ describe("companion policy source", () => {
         settingsReads += 1;
         return DEFAULT_SETTINGS;
       },
+      readFacts: () => null,
       settingsEvents,
       readPlayRegion: () => ({ status: "waiting", reason: "memory" }),
       subscribePlayRegion(listener) {

@@ -1,3 +1,5 @@
+import { writeFile } from "node:fs/promises";
+import path from "node:path";
 import { expect, test, type ElectronApplication, type Page } from "@playwright/test";
 import { closeOffline, launchPlayableClient } from "./fixtures.mjs";
 import { startGameInput } from "./input-helpers.js";
@@ -67,7 +69,10 @@ async function expectGameKeyCount(page: Page, count: number): Promise<void> {
 
 test.describe("renderer text editing", () => {
   test("uses custom Edit items and keeps app shortcuts off the native menu", async () => {
-    const fixture = await launchPlayableClient("gw-edit-menu-contract-");
+    // Features load only at launch: a session that starts in the plain game keeps Whispers off
+    // until a restart, so this one starts with Features loaded and Whispers' own switch off.
+    const fixture = await launchPlayableClient("gw-edit-menu-contract-", {}, userData =>
+      writeFile(path.join(userData, "settings.json"), JSON.stringify({ gwonmacTools: true })));
     try {
       expect(await fixture.app.evaluate(({ Menu }) => {
         const menu = Menu.getApplicationMenu();
@@ -109,10 +114,7 @@ test.describe("renderer text editing", () => {
         tradeLabel: "Trade Chat",
       });
       const launcher = fixture.app.windows().find(page => page.url().endsWith('launcher/index.html'))!;
-      await launcher.evaluate(async () => {
-        await window.launcherNative.tools.setMasterEnabled(true);
-        await window.launcherNative.tools.setFeature({tool: 'whispers', enabled: true});
-      });
+      await launcher.evaluate(() => window.launcherNative.tools.setFeature({tool: 'whispers', enabled: true}));
       const whispersEnabled = () => fixture.app.evaluate(({Menu}) => Menu.getApplicationMenu()?.getMenuItemById('open-whispers')?.enabled);
       await expect.poll(whispersEnabled).toBe(true);
       await launcher.evaluate(() => window.launcherNative.tools.setFeature({tool: 'whispers', enabled: false}));

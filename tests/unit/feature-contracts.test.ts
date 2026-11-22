@@ -11,6 +11,7 @@ import {
   enhancementHooksFor,
   intersectEnhancementCapabilities,
   validEnhancementCapabilities,
+  capabilityRecord,
   type EnhancementCapability,
 } from "../../app/shared/enhancement-contracts.ts";
 import {
@@ -22,9 +23,19 @@ import {
 } from "../../app/shared/enhancement-config.ts";
 import {
   FEATURE_SELECTION_POLICIES,
-  featureActivationRequested,
   featureRegionAllowsRequest,
+  type FeatureActivationSettings,
+  type FeatureId,
 } from "../../app/shared/feature-contracts.ts";
+import { resolveFeature } from "../../app/shared/feature-resolve.ts";
+
+/** resolve's answer with Features loaded, every capability proved and the character in PvE: only the switches decide. */
+const switchedOn = (id: FeatureId, settings: Partial<FeatureActivationSettings>) => resolveFeature(id, {
+  toolsAtLaunch: true, settings, program: "none", playRegion: "pve",
+  features: { gameFileSaving: { status: "available" }, nativeDoubleClick: { status: "available" },
+    ...capabilityRecord(() => ({ status: "available" as const })) },
+}).on;
+
 
 test("the capability registry is the ordered wire vocabulary", () => {
   assert.deepEqual(ENHANCEMENT_CAPABILITY_CONTRACTS, [
@@ -263,33 +274,33 @@ test("feature selection policies are deeply immutable", () => {
 });
 
 test("Character Switch and Maps follow the plain game and their own switch", () => {
-  assert.equal(featureActivationRequested("characterSwitch", DEFAULT_SETTINGS), false);
-  assert.equal(featureActivationRequested("characterSwitch", { ...DEFAULT_SETTINGS, gwonmacTools: true }), true);
-  assert.equal(featureActivationRequested("characterSwitch", { ...DEFAULT_SETTINGS, gwonmacTools: true, characterSwitchEnabled: false }), false);
-  assert.equal(featureActivationRequested("cartography", DEFAULT_SETTINGS), false);
-  assert.equal(featureActivationRequested("cartography", { ...DEFAULT_SETTINGS, gwonmacTools: true }), true);
-  assert.equal(featureActivationRequested("cartography", { ...DEFAULT_SETTINGS, gwonmacTools: true, cartographyEnabled: false }), false);
+  assert.equal(switchedOn("characterSwitch", DEFAULT_SETTINGS), false);
+  assert.equal(switchedOn("characterSwitch", { ...DEFAULT_SETTINGS, gwonmacTools: true }), true);
+  assert.equal(switchedOn("characterSwitch", { ...DEFAULT_SETTINGS, gwonmacTools: true, characterSwitchEnabled: false }), false);
+  assert.equal(switchedOn("cartography", DEFAULT_SETTINGS), false);
+  assert.equal(switchedOn("cartography", { ...DEFAULT_SETTINGS, gwonmacTools: true }), true);
+  assert.equal(switchedOn("cartography", { ...DEFAULT_SETTINGS, gwonmacTools: true, cartographyEnabled: false }), false);
   assert.equal(featureRegionAllowsRequest("cartography", "pvp"), false);
   assert.equal(featureRegionAllowsRequest("characterSwitch", "unknown"), true);
 });
 
 test("shared activation and area policy cover required, setting, and content features", () => {
-  assert.equal(featureActivationRequested("tools", DEFAULT_SETTINGS), false);
-  assert.equal(featureActivationRequested("skillCooldowns", DEFAULT_SETTINGS), false);
+  assert.equal(switchedOn("tools", DEFAULT_SETTINGS), false);
+  assert.equal(switchedOn("skillCooldowns", DEFAULT_SETTINGS), false);
   const enabled = { ...DEFAULT_SETTINGS, gwonmacTools: true };
-  assert.equal(featureActivationRequested("tools", enabled), true);
-  assert.equal(featureActivationRequested("skillCooldowns", enabled), true);
-  assert.equal(featureActivationRequested("skillKeyLabels", enabled), false);
-  assert.equal(featureActivationRequested("skillKeyLabels", {
+  assert.equal(switchedOn("tools", enabled), true);
+  assert.equal(switchedOn("skillCooldowns", enabled), true);
+  assert.equal(switchedOn("skillKeyLabels", enabled), false);
+  assert.equal(switchedOn("skillKeyLabels", {
     ...enabled,
     skillKeyLabelsEnabled: true,
   }), true);
-  assert.equal(featureActivationRequested("teamApply", enabled), true);
-  assert.equal(featureActivationRequested("teamApply", {
+  assert.equal(switchedOn("teamApply", enabled), true);
+  assert.equal(switchedOn("teamApply", {
     ...enabled,
     buildLibrary: false,
   }), false);
-  assert.equal(featureActivationRequested("teamApply", parseSettings({
+  assert.equal(switchedOn("teamApply", parseSettings({
     gwonmacTools: true,
     teamManagement: false,
   })), false);

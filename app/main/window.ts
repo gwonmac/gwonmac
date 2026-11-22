@@ -24,7 +24,6 @@ import type {
 import type { AppSettings } from "../shared/settings/index.js";
 import type { LauncherDestination } from "../shared/launcher-contracts.js";
 import { RENDERER_INIT_ARGUMENT } from "../shared/contracts.js";
-import { featureActivationRequested } from "../shared/feature-contracts.js";
 import type {
   EnhancementProgram,
   EnhancementSelection,
@@ -43,6 +42,7 @@ import {
   type WindowState,
 } from "./core/window-state.js";
 import { logEvent, resetRendererDiagnostics } from "./diagnostics.js";
+import { featureOn } from "./feature-decision.js";
 import { isCanonicalRendererUrl } from "./core/renderer-trust.js";
 import { isQuitting } from "./lifecycle.js";
 import { gamePaths, preloadPath } from "./paths.js";
@@ -666,7 +666,7 @@ export function createMainWindow(
       else if (action === "game.resign") return showResignGame(host, win);
       else if (isMapLayerShortcut(action)) {
         void host.getSettings().then((settings) => {
-          if (!featureActivationRequested("cartography", settings)) return;
+          if (!featureOn("cartography", settings, win)) return;
           const key = SHORTCUT_MAP_LAYERS[action];
           return host.updateSettings({ [key]: !settings[key] });
         }).catch((error) => console.error("Map layer shortcut failed", error));

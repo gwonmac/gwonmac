@@ -10,7 +10,6 @@
 import { createWhisperSession } from "../../shared/whisper-session.js";
 import type { ToolsCompanionPart } from "../../renderer/tools-companion-part.js";
 import { createWhisperSurface } from "./renderer/whisper-surface.js";
-import { featureActivationRequested } from "../../shared/feature-contracts.js";
 
 export default {
   id: "whispers",
@@ -34,7 +33,7 @@ export default {
         let surface: ReturnType<typeof createWhisperSurface> | null = null;
         let character: string | null = null;
         friends.connect({
-          observing: () => context.policy().whispers
+          observing: () => context.on("whispers")
             && (window.gwHub?.visible || (session.state.visible && session.state.selected === null)),
           update: (list) => session.updateFriends(list),
         });
@@ -51,7 +50,8 @@ export default {
             } else if (region.status === "waiting" && region.reason === "game") {
               listen(false); session.reset(); friends.withdraw(); character = null;
             }
-            const on = context.policy().whispers && capabilities.whisperChat;
+            const resolution = context.snapshot().features.whispers;
+            const on = resolution.on && capabilities.whisperChat;
             listen(on);
             session.setAvailable(on);
             if (on) {
@@ -60,7 +60,8 @@ export default {
               surface.setIconShown(context.snapshot().settings.whispersIcon);
             } else {
               surface?.setEnabled(false);
-              if (!featureActivationRequested("whispers", context.snapshot().settings)) {
+              // Only the area is missing: keep the conversation for when the character returns.
+              if (resolution.on || resolution.reason !== "wrong-area") {
                 surface?.dispose(); surface = null; session.reset();
               }
             }

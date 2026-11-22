@@ -22,9 +22,9 @@ export default {
       rollback: [(free) => storage?.dispose(free)],
       activate(context) {
         const sync = () => storage?.update({
-          enabled: context.policy().xunlaiStorage, playRegion: context.playRegion(), state: observation.state,
+          enabled: context.on("xunlaiStorage"), playRegion: context.playRegion(), state: observation.state,
         });
-        observation.observeStateWhen(() => context.policy().xunlaiStorage);
+        observation.observeStateWhen(() => context.on("xunlaiStorage"));
         observation.onState(() => sync());
         return {
           mount() { storage?.mount(); },

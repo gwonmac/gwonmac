@@ -1,11 +1,12 @@
-// A feature built with featurePart (app/renderer/tools-companion-part.ts) runs while its
-// feature is on, and only on a build that proved every capability its manifest uses.
+// A feature built with featurePart (app/renderer/tools-companion-part.ts) runs while resolve
+// (app/shared/feature-resolve.ts) has it on: its switch, the plain game, and a build that proved
+// every capability its manifest uses, from main's facts.
 // Each feature runs here on the real blocks and feeds; only the native HUD, the game's
 // exports and Travel's palette are stubs.
 // What would go wrong without this test: a feature draws or prints nothing after it moved
 // onto the blocks, its drawing stays after the player turned it off, a feed keeps running
 // for nobody, a settings change does not reach it, or a build without the native renderer
-// still reads the feeds.
+// still reads the feeds, or a patch day or the plain game leaves it running.
 import assert from "node:assert/strict";
 import test from "node:test";
 import cartography from "../../app/features/cartography/companion.ts";
@@ -21,18 +22,30 @@ import { createPlayRegionObservationInstallation } from "../../app/renderer/play
 import type { PreparedToolsPart, ToolsActivation, ToolsCompanionPart, ToolsPrepareInput } from "../../app/renderer/tools-companion-part.ts";
 import { createToolsSubstrates } from "../../app/renderer/tools-companion-substrates.ts";
 import { CHAT_PRINT_MAILBOX, CHAT_PRINT_STATUS } from "../../app/shared/chat-print.ts";
+import type { OptionalFeatureStatus } from "../../app/shared/contracts.ts";
 import { capabilityRecord, type EnhancementCapability } from "../../app/shared/enhancement-contracts.ts";
+import { FEATURES, featureActivationSettings, type FeatureId } from "../../app/shared/feature-contracts.ts";
+import { resolveFeature, type FeatureFacts } from "../../app/shared/feature-resolve.ts";
 import type { GameProgressState } from "../../app/shared/game-progress.ts";
 import { DEFAULT_SETTINGS, type AppSettings } from "../../app/shared/settings/index.ts";
 import { EMPTY_SKILL_KEY_MODIFIERS } from "../../app/shared/skill-key-bindings.ts";
 
 const EMPTY_MODULE = new WebAssembly.Module(new Uint8Array([0, 0x61, 0x73, 0x6d, 1, 0, 0, 0]));
 
-type Options = Readonly<{ without?: readonly EnhancementCapability[]; settings?: Partial<AppSettings> }>;
+type Options = Readonly<{
+  without?: readonly EnhancementCapability[];
+  /** Capabilities main's facts prove but this renderer's installation does not carry. */
+  notInstalled?: readonly EnhancementCapability[];
+  settings?: Partial<AppSettings>;
+}>;
 
-/** Runs one part the way the installer does: prepare, memory, activate, mount. */
-function start(t: test.TestContext, part: ToolsCompanionPart, id: string, { without = [], settings: patch = {} }: Options = {}) {
-  const capabilities = capabilityRecord((capability) => !without.includes(capability));
+/**
+ * Runs one part the way the installer does: prepare, memory, activate, mount. The part asks
+ * resolve, with facts as main sends them: Features loaded, the feature switched on, and every
+ * capability proved but those `without` names, which this build changed.
+ */
+function start(t: test.TestContext, part: ToolsCompanionPart, id: FeatureId, { without = [], notInstalled = [], settings: patch = {} }: Options = {}) {
+  const capabilities = capabilityRecord((capability) => !without.includes(capability) && !notInstalled.includes(capability));
   const substrates = createToolsSubstrates(EMPTY_MODULE, capabilities, "none");
   const { skills } = substrates;
   const playRegions = createPlayRegionObservationInstallation(capabilities.playRegionObservation);
@@ -60,12 +73,23 @@ function start(t: test.TestContext, part: ToolsCompanionPart, id: string, { with
   const trips: GameProgressState[] = [];
   const syncObservers = () => {};
   let settings: AppSettings = { ...DEFAULT_SETTINGS, ...patch };
-  let on = true;
+  const { activation } = FEATURES.find((feature) => feature.id === id)!;
+  let facts: FeatureFacts = {
+    toolsAtLaunch: true,
+    settings: { ...featureActivationSettings(settings), gwonmacTools: true, [activation.setting]: true },
+    program: "none",
+    features: {
+      gameFileSaving: { status: "available" },
+      nativeDoubleClick: { status: "available" },
+      ...capabilityRecord((capability) => without.includes(capability)
+        ? { status: "unavailable", reason: "game-update" } : { status: "available" }),
+    },
+  };
   const context = {
     memory,
-    snapshot: () => ({ settings, playRegionState: { status: "waiting", reason: "game" } }),
-    policy: () => ({ [id]: on }),
-    playRegion: () => "unknown",
+    snapshot: () => ({ settings, facts, playRegion: "pve", playRegionState: { status: "waiting", reason: "game" } }),
+    on: (feature: FeatureId) => resolveFeature(feature, { ...facts, playRegion: "pve" }).on,
+    playRegion: () => "pve",
     game: createGameBlocks({ capabilities, substrates, playRegions, syncObservers }),
     ui: createUiBlocks({ capabilities, hud, substrates, document, syncObservers }),
     // Travel's palette, which Progress reports to.
@@ -75,9 +99,9 @@ function start(t: test.TestContext, part: ToolsCompanionPart, id: string, { with
   prepared.allocate?.((bytes) => { mailbox = 1024; return bytes > 0 ? mailbox : 0; });
   prepared.initialize?.(memory);
   const session = prepared.activate!(context);
+  const sync = () => { session.syncFeeds?.(); session.sync?.(); };
   session.mount?.();
-  session.syncFeeds?.();
-  session.sync?.();
+  sync();
   return {
     session,
     substrates,
@@ -87,7 +111,15 @@ function start(t: test.TestContext, part: ToolsCompanionPart, id: string, { with
     trips,
     /** Hands queued chat lines to the game, one per frame. */
     frames(count: number) { for (let frame = 0; frame < count; frame += 1) for (const poller of session.pollers ?? []) poller.poll(); },
-    turn(next: boolean) { on = next; session.syncFeeds?.(); session.sync?.(); },
+    /** The feature's own switch, as main's facts carry it. */
+    turn(next: boolean) { facts = { ...facts, settings: { ...facts.settings, [activation.setting]: next } }; sync(); },
+    /** The plain-game switch. */
+    plainGame(next: boolean) { facts = { ...facts, settings: { ...facts.settings, gwonmacTools: !next } }; sync(); },
+    /** The verifier's status of one capability for this build, as main's facts carry it. */
+    check(capability: EnhancementCapability, status: OptionalFeatureStatus) {
+      facts = { ...facts, features: { ...facts.features!, [capability]: status } };
+      sync();
+    },
     change(next: Partial<AppSettings>) { settings = { ...settings, ...next }; session.syncFeeds?.(); session.sync?.(); },
     stop() { for (const stop of session.disposePresentation ?? []) stop(); },
   };
@@ -135,10 +167,39 @@ test("Skill Cooldowns shows the recharge on the skill bar while it is on, and st
 });
 
 test("a feature never starts on a build that did not prove a capability its manifest uses", (t) => {
-  const run = start(t, skillCooldowns, "skillCooldowns", { without: ["nativeHudRendering"] });
-  run.turn(true);
-  assert.deepEqual([run.substrates.skills.geometry.active, run.substrates.skills.cooldowns.active], [false, false]);
-  assert.equal(run.drawn.cooldowns, undefined);
+  for (const options of [
+    { without: ["nativeHudRendering"] },
+    // Main's facts describe the build; a part runs only with what its installation carries.
+    { notInstalled: ["skillCooldownObservation"] },
+  ] satisfies Options[]) {
+    const run = start(t, skillCooldowns, "skillCooldowns", options);
+    run.turn(true);
+    assert.deepEqual([run.substrates.skills.geometry.active, run.substrates.skills.cooldowns.active], [false, false], JSON.stringify(options));
+    assert.equal(run.drawn.cooldowns, undefined, JSON.stringify(options));
+  }
+});
+
+test("a running feature stops when main's facts say this build needs an update, and starts when proved", (t) => {
+  const run = start(t, skillCooldowns, "skillCooldowns");
+  const reading = () => [run.substrates.skills.geometry.active, run.substrates.skills.cooldowns.active];
+  assert.deepEqual(reading(), [true, true]);
+  run.check("skillCooldownObservation", { status: "unavailable", reason: "game-update" });
+  assert.deepEqual(reading(), [false, false]);
+  run.check("skillCooldownObservation", { status: "available" });
+  assert.deepEqual(reading(), [true, true]);
+});
+
+test("the plain game stops every running feature, and turning it off starts them again", (t) => {
+  const cooldowns = start(t, skillCooldowns, "skillCooldowns");
+  const timers = start(t, effectTimers, "effectTimers");
+  const travelProgress = start(t, progress, "progress");
+  const running = () => [cooldowns.substrates.skills.cooldowns.active, timers.substrates.effects.playerEffects.active,
+    travelProgress.substrates.progress.installation.active];
+  assert.deepEqual(running(), [true, true, true]);
+  for (const run of [cooldowns, timers, travelProgress]) run.plainGame(true);
+  assert.deepEqual(running(), [false, false, false]);
+  for (const run of [cooldowns, timers, travelProgress]) run.plainGame(false);
+  assert.deepEqual(running(), [true, true, true]);
 });
 
 test("Skill Key Labels draws the player's key on its slot and 1 to 8 on the others, until it is off", (t) => {

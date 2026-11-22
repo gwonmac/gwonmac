@@ -4,7 +4,7 @@
  */
 import type { ToolboxObservation } from "../../shared/builds/live-party.js";
 import { COMPANION_FEATURE_BITS } from "../../shared/companion-abi.js";
-import { featureActivationRequested } from "../../shared/feature-contracts.js";
+import { onWhereAllowed } from "../../shared/feature-resolve.js";
 import type { ToolsCompanionPart } from "../../renderer/tools-companion-part.js";
 import { createToolboxLifecycle } from "../../renderer/toolbox-foundation.js";
 import teamApply from "../team-apply/companion.js";
@@ -17,10 +17,10 @@ export default {
     return {
       activate(context) {
         let toolbox: ReturnType<typeof createToolboxLifecycle> | null = null;
-        observation.observePartyWhen(() => context.policy().buildLibrary);
+        observation.observePartyWhen(() => context.on("buildLibrary"));
         observation.onParty((party) => toolbox?.update(party));
         return {
-          activeFeatures: () => foundation && context.policy().tools ? COMPANION_FEATURE_BITS.toolboxFoundation : 0,
+          activeFeatures: () => foundation && context.on("tools") ? COMPANION_FEATURE_BITS.toolboxFoundation : 0,
           mount() {
             if (!foundation) return;
             const commands = context.prepared(teamApply)?.commands ?? null;
@@ -33,11 +33,11 @@ export default {
             });
           },
           syncAfterHook() {
-            // Saved authoring stays available; native observation and Apply keep their
-            // region gates. This is the same saved selection as the host-only Library.
-            const authoring = featureActivationRequested("buildLibrary", context.snapshot().settings);
-            toolbox?.setEnabled(context.policy().tools || authoring);
-            toolbox?.setAvailable({ builds: context.policy().buildLibrary || authoring, trade: context.policy().tradeChat });
+            // Saved authoring stays available outside its area; native observation and Apply
+            // keep their region gates. This is the same answer as the host-only Library.
+            const authoring = onWhereAllowed("buildLibrary", context.snapshot().facts);
+            toolbox?.setEnabled(context.on("tools") || authoring);
+            toolbox?.setAvailable({ builds: context.on("buildLibrary") || authoring, trade: context.on("tradeChat") });
             if (!observation.observingParty()) {
               const party: ToolboxObservation = { status: "waiting", party: { status: "waiting", playRegion: context.playRegion() } };
               observation.setParty(party);

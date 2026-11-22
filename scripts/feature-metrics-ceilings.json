@@ -1,8 +1,8 @@
 {
-  "featureActivationRequested": 38,
-  "policyReads": 19,
+  "featureActivationRequested": 0,
+  "policyReads": 0,
   "plainGame": 0,
-  "gwEvents": 91,
+  "gwEvents": 93,
   "substrateFeatureNames": 2,
   "rendererFeatureFiles": 12,
   "toolsUiLocalStorage": 21,

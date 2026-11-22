@@ -9,6 +9,7 @@
  * other's assumptions.
  */
 import type { RendererGwNativeApi } from "../shared/contracts.js";
+import type { FeatureFacts } from "../shared/feature-resolve.js";
 import type { AppSettings, ToolsSettings } from "../shared/settings/index.js";
 import type {
   VisualCaptureFailure,
@@ -310,6 +311,11 @@ declare global {
     gwHub?: GameHub;
     /** Shows the in-game quit-or-reload panel; false while it cannot be shown. */
     gwQuitPanel?(): boolean;
+    /**
+     * Main's facts for this window's Feature decision (app/main/feature-decision.ts); null until
+     * they arrive. app/renderer/feature-on.ts and the companion resolve from them.
+     */
+    gwFeatureFacts?(): FeatureFacts | null;
     /**
      * The Tools settings (app/shared/settings); it throws until boot() has loaded them.
      * The Hub's own fields stay optional, as before, for page-side test doubles.

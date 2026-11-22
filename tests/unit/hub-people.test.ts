@@ -7,6 +7,7 @@ import type { CompanionPlayRegionState } from '../../app/renderer/companion-play
 import type { TravelFriend } from '../../app/shared/friends.ts';
 import { hubTier, type HubRow, type HubSource, type HubTask } from '../../app/shared/hub.ts';
 import { createWhisperSession } from '../../app/shared/whisper-session.ts';
+import { provenFacts } from "../helpers/feature-facts.ts";
 
 const KAISER = 'Kai Account|Mo Kaiser · Online · Kamadan, Jewel of Istan';
 
@@ -21,7 +22,7 @@ const task: HubTask = { live: () => true, progress() {}, done(receipt) { if (rec
 function withPeople(settings: Record<string, boolean>, run: (people: Harness) => void | Promise<void>, party: PartyInvite | null = null,
   travel: FriendTravel = { unavailable: () => null, run: async () => {} }) {
   const originalWindow = globalThis.window;
-  const browserWindow = Object.assign(new EventTarget(), { gwToolsSettings: () => settings });
+  const browserWindow = Object.assign(new EventTarget(), { gwToolsSettings: () => settings, gwFeatureFacts: () => provenFacts(settings) });
   Object.defineProperty(globalThis, 'window', { configurable: true, value: browserWindow });
   let source: HubSource | null = null;
   let page: () => readonly HubRow[] = () => [];

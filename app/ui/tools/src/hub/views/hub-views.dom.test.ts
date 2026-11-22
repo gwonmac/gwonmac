@@ -22,6 +22,7 @@ import type { HubRow, HubSource } from '../../../../../shared/hub';
 import type { HubShortcut } from '../../../../../shared/hub-preferences';
 import { estimateMarketRates } from '../../../../../shared/market-rates';
 import { mountHubView } from '../embedded';
+import { fixtureFacts } from '../../fixture-facts';
 
 const text = (element: Element | null | undefined) => element?.textContent?.replace(/\s+/gu, ' ').trim() ?? null;
 /** The name a screen reader announces for a control: aria-label, its label element, or its text. */
@@ -64,6 +65,7 @@ beforeEach(() => {
   Object.assign(window, {
     gwSurfaces: installSurfaceController(document, { doubleClickMs: 400 }),
     gwToolsSettings: () => settings,
+    gwFeatureFacts: () => fixtureFacts(settings),
     gwNative: {
       init: { development: false },
       accounts: { get: async () => ({ current: 'a', profiles: [{ id: 'a', name: 'Main', state: 'running' }, { id: 'b', name: 'Second', state: 'ready' }] }), open: async () => {} },

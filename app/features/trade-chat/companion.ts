@@ -22,14 +22,14 @@ export default {
         return {
           pollers: take === null ? [] : [{
             poll: () => {
-              if (context.policy().tradeChat && take() === 1) {
+              if (context.on("tradeChat") && take() === 1) {
                 window.dispatchEvent(new CustomEvent("gw:trade-toggle"));
               }
             },
-            enabled: () => context.policy().tradeChat,
+            enabled: () => context.on("tradeChat"),
           }],
           sync() {
-            const next = context.policy().tradeChat;
+            const next = context.on("tradeChat");
             if (next === enabled) return;
             configure?.(next ? 1 : 0);
             // A region/settings transition can withdraw Trade after the native hook

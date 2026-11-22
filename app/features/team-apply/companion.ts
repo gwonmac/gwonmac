@@ -43,7 +43,7 @@ export default {
           development: window.gwNative.init.development,
           ready: () => {
             if (context.isCleaned()) throw new Error("Enhancement installation is no longer active");
-            if (!context.policy().teamApply) throw new Error("Apply team is disabled");
+            if (!context.on("teamApply")) throw new Error("Apply team is disabled");
             const playRegion = context.playRegion();
             if (playRegion !== "pve") {
               throw new Error(playRegion === "pvp"

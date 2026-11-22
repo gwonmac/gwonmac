@@ -7,7 +7,6 @@ import { TradeSavedStore } from "./main/trade-saved-store.js";
 import type { ToolsMainPart } from "../../main/tools-main-part.js";
 import contract from "./shared/ipc.js";
 import { tradeChannelDefinitions } from "./main/trade-ipc.js";
-import { featureActivationRequested } from "../../shared/feature-contracts.js";
 
 export default {
   feature: "tradeChat",
@@ -24,8 +23,8 @@ export default {
         getTradeSaved: () => saved.get(),
         setTradeSaved: (value) => saved.set(value),
       }),
-      applySettings(settings) {
-        const next = featureActivationRequested("tradeChat", settings);
+      applySettings() {
+        const next = isFeatureEnabled("tradeChat");
         if (enabled && !next) tradeChat.dispose();
         enabled = next;
       },

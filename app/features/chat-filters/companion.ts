@@ -34,7 +34,7 @@ export default {
         return {
           sync() {
             if (configure === null) return;
-            const next = configuredChatFilterMask(context.snapshot().settings, context.policy().chatFilters);
+            const next = configuredChatFilterMask(context.snapshot().settings, context.on("chatFilters"));
             if (next === mask) return;
             if (configure(next) !== 1) {
               throw new Error("the chat filter rejected its configuration");

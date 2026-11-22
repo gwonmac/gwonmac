@@ -25,11 +25,11 @@ import {
   turnOnChanges,
   type CardFeature,
   type CardSize,
-  type FeatureChecks,
   type FeatureFilter,
   type GroupBy,
   type SwitchChange,
 } from "../features";
+import { fixtureFacts } from "../fixtures";
 import FeatureArt from "./FeatureArt.vue";
 import FeaturePage from "./FeaturePage.vue";
 import FeatureSwitch from "./FeatureSwitch.vue";
@@ -37,8 +37,6 @@ import FeatureSwitch from "./FeatureSwitch.vue";
 const props = defineProps<{
   snapshot: LauncherSnapshot;
   native: LauncherNativeApi | undefined;
-  /** The build checks of a game session; null in the launcher until plan step 7.1. */
-  checks: FeatureChecks;
 }>();
 const feature = defineModel<FeatureId | null>("feature", { default: null });
 const emit = defineEmits<{
@@ -66,7 +64,7 @@ const page = ref<HTMLElement | null>(null);
 const searchField = ref<HTMLInputElement | null>(null);
 
 const tools = computed(() => props.snapshot.tools);
-const state = computed(() => launcherFeatureState(tools.value, props.checks));
+const state = computed(() => launcherFeatureState(props.snapshot.features));
 const statuses = computed(() => new Map(CARD_FEATURES.map((each) => [each.id, featureStatus(each, state.value, tools.value)])));
 const statusOf = (each: CardFeature) => statuses.value.get(each.id)!;
 const badges = computed(() => new Map(CARD_FEATURES.map((each) => [each.id, badgeOf(changelogOf(each), props.snapshot.appUpdate.currentVersion)])));
@@ -98,7 +96,11 @@ async function apply(changes: readonly SwitchChange[]) {
   }
   const features = { ...props.snapshot.tools.features };
   for (const { tool, enabled } of changes) features[tool] = { enabled };
-  emit("fixture", { ...props.snapshot, tools: { ...props.snapshot.tools, features } });
+  showFixture({ ...props.snapshot.tools, features });
+}
+/** Browser preview only: the fixture with these switches, and the facts main would send for them. */
+function showFixture(tools: LauncherSnapshot["tools"]) {
+  emit("fixture", { ...props.snapshot, tools, features: fixtureFacts(tools, props.snapshot.features.features) });
 }
 async function attempt(action: () => Promise<unknown>) {
   message.value = "";
@@ -140,7 +142,7 @@ async function setPlain(on: boolean) {
   await attempt(async () => {
     if (props.native) { await props.native.tools.setMasterEnabled(!on); return; }
     const configured = !on;
-    emit("fixture", { ...props.snapshot, tools: { ...props.snapshot.tools, configured, restartRequired: configured !== props.snapshot.tools.loaded } });
+    showFixture({ ...props.snapshot.tools, configured, restartRequired: configured !== props.snapshot.tools.loaded });
   });
 }
 async function restart() {

@@ -11,7 +11,7 @@ export default {
       activate(context) {
         const resign = capabilities.resignAction ? installResignCommand(exports) : null;
         return {
-          sync() { resign?.update(context.policy().resign); },
+          sync() { resign?.update(context.on("resign")); },
           disposePresentation: [() => { resign?.dispose(); }],
         };
       },

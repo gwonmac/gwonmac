@@ -446,6 +446,7 @@ const INVOCATIONS: Invocation[] = [
   },
   { path: "client.readyToPresent", args: [], channel: ipc("gameReadyToPresent") },
   { path: "client.session", args: [], channel: ipc("clientSession") },
+  { path: "features.get", args: [], channel: ipc("featuresGet") },
 ];
 
 /** The main→renderer streams, which subscribe instead of invoking. */
@@ -473,6 +474,11 @@ const SUBSCRIPTIONS: Subscription[] = [
     path: "settings.onChange",
     channel: ipc("settingsEvent"),
     subscribe: (api, listener) => api.settings.onChange(listener),
+  },
+  {
+    path: "features.onChange",
+    channel: ipc("featuresEvent"),
+    subscribe: (api, listener) => api.features.onChange(listener),
   },
   {
     path: "inputTrace.onEntry",

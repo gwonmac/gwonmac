@@ -10,7 +10,7 @@ import { MAIN_PARTS } from "../features/main-parts.js";
 import type { BrowserWindow } from "electron";
 import type { ClientSession, SettingsResetOutcome } from "../shared/contracts.js";
 import type { AppSettings } from "../shared/settings/index.js";
-import { featureActivationRequested } from "../shared/feature-contracts.js";
+import { featureOn } from "./feature-decision.js";
 import { AllowlistError } from "../shared/errors.js";
 import type { FeatureId } from "../features/index.js";
 import type { PreferencesCoordinator } from "./core/preferences-coordinator.js";
@@ -37,7 +37,7 @@ export function createToolsRuntime(input: Readonly<{
   getClientSession(win: BrowserWindow): ClientSession;
 }>): ToolsRuntime {
   let settings = input.initialSettings;
-  const isFeatureEnabled = (feature: FeatureId): boolean => featureActivationRequested(feature, settings);
+  const isFeatureEnabled = (feature: FeatureId): boolean => featureOn(feature, settings);
   const fileGates: Mutex[] = [];
   const parts: readonly AnyToolsMainPart[] = MAIN_PARTS;
   const sessions = parts.map((part) => {

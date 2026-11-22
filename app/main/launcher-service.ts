@@ -10,6 +10,7 @@ import type { AppShell } from "./app-shell.js";
 import type { LauncherNewsService } from "./core/launcher-news.js";
 import type { LauncherStateStore } from "./core/launcher-state.js";
 import type { TexturePackManager } from "./core/texture-pack-manager.js";
+import { featureFacts } from "./feature-decision.js";
 import { emit } from "./ipc-channel-registry.js";
 import { registerLauncherIpc } from "./launcher-ipc.js";
 import { LauncherOrchestrator } from "./launcher-orchestrator.js";
@@ -45,6 +46,7 @@ export function createLauncherService(input: Readonly<{
     getSettings: () => shell.currentSettings() ?? settings,
     getNews: (contentPreferences) => launcherNews.snapshot(contentPreferences),
     toolsLoaded: () => input.toolsLoaded,
+    featureFacts: (current) => featureFacts(current),
     getTexturePacks: () => texturePacks.snapshot(),
     allowUnreadyLaunch: input.allowUnreadyLaunch,
     publish: (snapshot) => {

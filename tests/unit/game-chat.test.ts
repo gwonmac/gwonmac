@@ -19,6 +19,9 @@ import { capabilityRecord } from "../../app/shared/enhancement-contracts.ts";
 import type { HubRow, HubSource, HubTask } from "../../app/shared/hub.ts";
 import { DEFAULT_SETTINGS } from "../../app/shared/settings/index.ts";
 import { WHISPER_MAILBOX } from "../../app/shared/whispers.ts";
+import { provenFacts } from "../helpers/feature-facts.ts";
+import type { FeatureId } from "../../app/shared/feature-contracts.ts";
+import { resolveFeature } from "../../app/shared/feature-resolve.ts";
 
 const EMPTY_MODULE = new WebAssembly.Module(new Uint8Array([0, 0x61, 0x73, 0x6d, 1, 0, 0, 0]));
 const CHAT = 4096;
@@ -51,10 +54,13 @@ function start(t: test.TestContext) {
   const previousWindow = globalThis.window;
   Object.defineProperty(globalThis, "window", { configurable: true, value: Object.assign(new EventTarget(), {
     gwToolsSettings: () => settings,
+    gwFeatureFacts: () => provenFacts(settings),
     gwHub: { visible: false, showRows(_title: string, rows: () => readonly HubRow[]) { page = rows; },
       attach(next: HubSource) { source = next; return () => { source = null; }; }, notify(message: string) { receipts.push(message); } },
   }) });
 
+  const facts = provenFacts(settings);
+  const resolved = (id: FeatureId) => resolveFeature(id, { ...facts, playRegion: "pve" });
   const capabilities = capabilityRecord(() => true);
   const substrates = createToolsSubstrates(EMPTY_MODULE, capabilities, "none");
   const playRegions = createPlayRegionObservationInstallation(true);
@@ -68,8 +74,8 @@ function start(t: test.TestContext) {
   const syncObservers = () => { bits.push(sessions.reduce((all, session) => all | (session.activeFeatures?.() ?? 0), 0)); };
   const context = {
     memory, playRegions, syncObservers,
-    snapshot: () => ({ settings, playRegionState: playRegions.state }),
-    policy: () => ({ whispers: false, travel: true }),
+    snapshot: () => ({ settings, facts, playRegionState: playRegions.state, features: { whispers: resolved("whispers"), travel: resolved("travel") } }),
+    on: (id: FeatureId) => resolved(id).on,
     game: createGameBlocks({ capabilities, substrates, playRegions, syncObservers }),
     ui: createUiBlocks({ capabilities, hud: null, substrates, document: {} as Document, syncObservers }),
   } as unknown as ToolsActivation;

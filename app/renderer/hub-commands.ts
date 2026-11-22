@@ -10,7 +10,8 @@ import { HUB_TOOL_KEYS, HUB_TOOL_ROWS } from '../shared/hub-tools.js';
 import { resolveShortcuts, shortcutKeycaps, type ShortcutAction } from '../shared/keyboard-shortcuts.js';
 import { normaliseHubQuery, parseHubQuery, type HubRow, type HubSource, type HubTask } from '../shared/hub.js';
 import type { SettingsTarget } from '../shared/settings-catalogue.js';
-import { featureActivationRequested, type FeatureId } from '../shared/feature-contracts.js';
+import type { FeatureId } from '../shared/feature-contracts.js';
+import { featureOn } from './feature-on.js';
 import type { Hub } from './hub.js';
 import type { HubIconKind } from '../shared/ui/hub-icon.js';
 
@@ -28,8 +29,7 @@ type CommandsHub = Pick<Hub, 'close' | 'resume' | 'showRows' | 'suspend'> & Read
 export function createHubCommands(hub: CommandsHub, openSettings: (target?: SettingsTarget) => (task: HubTask) => Promise<void>): HubSource {
   /** The command rows; launcher, website and reload are for a typed search only. */
   const commands = (query: string): HubRow[] => {
-    const settings = window.gwToolsSettings?.() ?? {};
-    const on = (id: FeatureId) => featureActivationRequested(id, settings);
+    const on = (id: FeatureId) => featureOn(id);
     return [
       // Travel's and Build Library's rows come from their owners; Travel's is attached for its
       // whole life with the command's refusal (HUB-135).
@@ -101,7 +101,7 @@ export function createHubCommands(hub: CommandsHub, openSettings: (target?: Sett
     // The player's own words, in the market Trade has open, with Trade's icon (HUB-124).
     search(query) {
       const parsed = parseHubQuery(query);
-      return parsed.scope === 'trade' && parsed.term && featureActivationRequested('tradeChat', window.gwToolsSettings?.() ?? {})
+      return parsed.scope === 'trade' && parsed.term && featureOn('tradeChat')
         ? [{ id: 'trade:query', iconKind: 'trade', title: `Search Trade for ${parsed.text}`, detail: 'Offers and character names', group: 'Tools', action: `Search Trade for ${parsed.text}`, run: () => dispatch('gw:trade-toggle', { query: parsed.text }) }] : [];
     },
     commands,

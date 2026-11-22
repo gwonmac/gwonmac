@@ -3,6 +3,7 @@
  * Electron main. Domain owners remain in main; this file only names validated
  * commands and the rebuildable projection the Vue application renders.
  */
+import type { FeatureFacts } from "./feature-resolve.js";
 import { FEATURES, type GlobalTool } from "../features/index.js";
 import type {
   AppSettingsPatch,
@@ -226,6 +227,8 @@ export interface LauncherSnapshot {
     restartRequired: boolean;
     features: GlobalToolSettings;
   }>;
+  /** Main's facts for the Feature decision (app/main/feature-decision.ts); the Features tab resolves from them. */
+  readonly features: FeatureFacts;
   readonly settings: LauncherSettings;
   readonly shortcuts: Readonly<Record<ShortcutAction, ShortcutBinding | null>>;
   readonly texturePacks: TexturePackSnapshot;

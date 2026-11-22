@@ -11,6 +11,7 @@ import { FEATURE_SELECTION_POLICIES } from '../../app/shared/feature-contracts.t
 import { createHubCommands } from '../../app/renderer/hub-commands.ts';
 import { HUB_TOOL_ORDER, HUB_TOOL_ROWS } from '../../app/shared/hub-tools.ts';
 import { matchHubRows } from '../../app/shared/hub.ts';
+import { provenFacts } from "../helpers/feature-facts.ts";
 
 test('the Tools rows keep one place each, in the order players know', () => {
   const orders = FEATURES.flatMap(feature => 'hub' in feature ? [feature.hub.order] : []);
@@ -36,7 +37,7 @@ const everyFeature = Object.fromEntries(Object.values(FEATURE_SELECTION_POLICIES
 test('every word a Tools row answered still finds it', () => {
   // The Tools rows as the Hub's built-in commands draw them (hub-commands.ts).
   const previous = Object.getOwnPropertyDescriptor(globalThis, 'window');
-  Object.assign(globalThis, { window: { gwToolsSettings: () => everyFeature } });
+  Object.assign(globalThis, { window: { gwToolsSettings: () => everyFeature, gwFeatureFacts: () => provenFacts(everyFeature) } });
   try {
     const hub = { close() {}, resume() {}, showRows() {}, suspend() {}, shortcuts: { lookup: () => undefined } };
     const { commands } = createHubCommands(hub, () => async () => {});

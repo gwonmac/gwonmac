@@ -22,7 +22,7 @@ export type ToolsMainInput = Readonly<{
   preferences: PreferencesCoordinator;
   clientFingerprint(): string | undefined;
   getClientSession(win: BrowserWindow): ClientSession;
-  /** Whether the current settings select this feature. */
+  /** Whether the Feature decision (app/main/feature-decision.ts) has this feature on now. */
   isFeatureEnabled(feature: FeatureId): boolean;
   /**
    * Runs one operation behind this part's file gate: one at a time, refused

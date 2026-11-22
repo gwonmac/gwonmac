@@ -23,7 +23,7 @@ export default {
       activate(context) {
         if (travel !== null) {
           friends.connect({
-            observing: () => context.policy().travel && travel.observingFriends() === true,
+            observing: () => context.on("travel") && travel.observingFriends() === true,
             update: (list) => travel.updateFriends(list),
           });
           friends.attachTravel(travel);
@@ -31,12 +31,12 @@ export default {
         return {
           pollers: travel === null ? [] : [{
             poll: () => travel.poll(),
-            enabled: () => context.policy().travel,
+            enabled: () => context.on("travel"),
           }],
           mount() { travel?.mount(document.body); },
           sync() {
             travel?.update({
-              enabled: context.policy().travel,
+              enabled: context.on("travel"),
               playRegion: context.playRegion(),
               state: travelGameState(context.snapshot().playRegionState),
             });

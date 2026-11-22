@@ -11,7 +11,7 @@ import type { SettingsSection, SettingsTarget } from "@shared/settings-catalogue
 import type { ProfileId } from "@shared/multiple-accounts";
 import type { FeatureId } from "@shared/feature-contracts";
 import { parseProfileName, profileNameKey } from "@shared/multiple-accounts";
-import { fixtureFeatureChecksFor, fixtureSnapshotFor } from "./fixtures";
+import { fixtureSnapshotFor } from "./fixtures";
 import AccountsView from "./components/AccountsView.vue";
 import FeaturesView from "./components/FeaturesView.vue";
 import BaseModal from "./components/BaseModal.vue";
@@ -75,8 +75,6 @@ let unsubscribeNavigation: (() => void) | undefined;
 let migrationNoticeTimer: ReturnType<typeof setTimeout> | undefined;
 
 const native = window.launcherNative;
-/** No build check reaches the launcher yet (plan step 7.1); a browser preview may show one from its fixture. */
-const featureChecks = native ? null : fixtureFeatureChecksFor(window.location.search);
 let navigationRequested = false;
 // Browser previews remember only navigation in this tab. Native preferences
 // remain the production owner, with no browser-storage fallback.
@@ -377,7 +375,6 @@ async function updateContent(content: NonNullable<LauncherPreferencesPatch["cont
         v-model:feature="featurePage"
         :snapshot="snapshot"
         :native="native"
-        :checks="featureChecks"
         @fixture="snapshot = $event"
         @settings="openSettings"
         @external="openExternal"

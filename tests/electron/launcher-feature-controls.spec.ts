@@ -1,5 +1,6 @@
 /** Settings, native shortcuts, and feature visibility agree through real IPC. */
 import { writeFile } from "node:fs/promises";
+import path from "node:path";
 import { expect, test } from "@playwright/test";
 import { closeOffline, launchOffline, openSettings } from "./fixtures.mjs";
 
@@ -59,7 +60,10 @@ test("feature controls preserve preferences and validate native commands", async
 });
 
 test("the game menu follows the plain game, saved Character Switch enablement and bindings", async () => {
-  const fixture = await launchOffline("gw-feature-menu-");
+  // A session that starts in the plain game waits for a restart before any Feature runs, so this
+  // one starts with Features loaded and turns the plain game on and off again.
+  const fixture = await launchOffline("gw-feature-menu-", {}, userData =>
+    writeFile(path.join(userData, "settings.json"), JSON.stringify({ gwonmacTools: true })));
   try {
     const launcher = fixture.app.windows().find(page => page.url().endsWith("launcher/index.html"));
     if (!launcher) throw new Error("launcher is required");
@@ -67,7 +71,9 @@ test("the game menu follows the plain game, saved Character Switch enablement an
       const item = Menu.getApplicationMenu()?.getMenuItemById("switch-character");
       return item ? { enabled: item.enabled, accelerator: item.accelerator ?? null } : null;
     });
-    // The plain game is the default and stops Character Switch with every other Feature.
+    await expect.poll(menu).toEqual({ enabled: true, accelerator: "Command+E" });
+    // The plain game stops Character Switch with every other Feature.
+    await launcher.evaluate(() => window.launcherNative.tools.setMasterEnabled(false));
     await expect.poll(menu).toEqual({ enabled: false, accelerator: "Command+E" });
     await launcher.evaluate(() => window.launcherNative.tools.setMasterEnabled(true));
     await expect.poll(menu).toEqual({ enabled: true, accelerator: "Command+E" });

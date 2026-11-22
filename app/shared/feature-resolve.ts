@@ -2,7 +2,9 @@
  * Decides whether one feature runs, and when it does not, says why in a word the
  * Features tab and the Hub can show a player. Pure: it reads only the feature's
  * manifest (app/features) and one state object, so main, renderer and the Vue apps
- * all get the same answer from the same facts.
+ * all get the same answer from the same facts. This is the only on/off decision:
+ * main gathers the facts (app/main/feature-decision.ts) and sends them to the
+ * launcher and every game window, which add only where the character stands.
  *
  * Reasons are checked in the order FeatureOffReason lists them, and the first that
  * applies wins: what the player can change (a switch, another feature) before what an
@@ -11,10 +13,9 @@
  */
 import type { Feature } from "../features/index.js";
 import type { ClientCompatibility, OptionalFeatureStatus } from "./contracts.js";
-import type { EnhancementCapability, EnhancementProgram } from "./enhancement-contracts.js";
+import { capabilityRecord, type EnhancementCapability, type EnhancementProgram } from "./enhancement-contracts.js";
 import {
   FEATURES,
-  featureActivationRequested,
   featureRegionAllowsRequest,
   type FeatureActivationSettings,
   type FeatureId,
@@ -69,10 +70,32 @@ export type FeatureState = Readonly<{
   features: ClientCompatibility["features"] | null;
 }>;
 
+/**
+ * The facts main knows and sends (app/main/feature-decision.ts): everything resolve reads but
+ * where the character stands, which only a game window knows.
+ */
+export type FeatureFacts = Omit<FeatureState, "playRegion">;
+
+/**
+ * Verifier statuses with every capability proved, for the places that leave the build out of the
+ * decision on purpose: the unpackaged Electron test seam (app/main/feature-decision.ts) and the
+ * selection view in app/renderer/enhancement-runtime-policy.ts.
+ */
+export const EVERY_CAPABILITY_PROVED: NonNullable<FeatureState["features"]> = Object.freeze({
+  gameFileSaving: { status: "available" },
+  nativeDoubleClick: { status: "available" },
+  ...capabilityRecord(() => ({ status: "available" as const })),
+});
+
 const ON: FeatureResolution = Object.freeze({ on: true });
 const off = (reason: Exclude<FeatureOffReason, "needs">): FeatureResolution => Object.freeze({ on: false, reason });
 
 const byId = new Map<string, Feature>(FEATURES.map((feature) => [feature.id, feature]));
+const featureOf = (id: FeatureId): Feature => {
+  const feature = byId.get(id);
+  if (feature === undefined) throw new Error(`unknown feature ${id}`);
+  return feature;
+};
 
 /** The worst status among the capabilities the feature needs: an update outranks a retry. */
 function capabilityReason(
@@ -99,9 +122,7 @@ export function resolve(feature: Feature, state: FeatureState): FeatureResolutio
   if (master !== null && !programSelects && state.settings[master] !== true) return off("plain-game");
   if (master !== null && !state.toolsAtLaunch) return off("needs-restart");
   for (const required of "requires" in feature ? feature.requires : []) {
-    const requiredFeature = byId.get(required);
-    if (requiredFeature === undefined) throw new Error(`unknown required feature ${required}`);
-    const resolution = resolve(requiredFeature, state);
+    const resolution = resolve(featureOf(required), state);
     if (resolution.on) continue;
     // "Needs X" asks the player to turn X on; anything else X waits for, this one waits for too.
     if (resolution.reason === "switched-off" || resolution.reason === "needs") {
@@ -109,9 +130,24 @@ export function resolve(feature: Feature, state: FeatureState): FeatureResolutio
     }
     return resolution;
   }
-  if (!programSelects && !featureActivationRequested(feature.id, state.settings)) return off("switched-off");
+  // The plain-game switch was checked above, so only the feature's own switch is left.
+  if (!programSelects && state.settings[activation.setting] !== true) return off("switched-off");
   const capability = capabilityReason("uses" in feature ? feature.uses : [], state.features);
   if (capability !== null) return off(capability);
   if (!featureRegionAllowsRequest(feature.id, state.playRegion)) return off("wrong-area");
   return ON;
+}
+
+/** resolve for a feature named by its id. */
+export const resolveFeature = (id: FeatureId, state: FeatureState): FeatureResolution => resolve(featureOf(id), state);
+
+/**
+ * Whether a feature is on once the character stands where its region allows. Surfaces that stand
+ * in no game area (the launcher, menus, shortcuts, Hub rows, palettes) show and run a feature by
+ * this; the feature's own part and commands check the area. resolve tests the area last, so
+ * `wrong-area` means only the area is missing.
+ */
+export function onWhereAllowed(id: FeatureId, facts: FeatureFacts): boolean {
+  const resolution = resolveFeature(id, { ...facts, playRegion: "unknown" });
+  return resolution.on || resolution.reason === "wrong-area";
 }
