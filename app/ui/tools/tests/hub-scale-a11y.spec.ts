@@ -29,6 +29,10 @@ async function countRowDraws(page: Page) {
   });
 }
 
+// Waits for the whole list, which paints 10 rows a frame in the background; headless CI frames
+// are slow, so 1000 rows can take longer than the default 5 s. This is a wait, not a time budget.
+const PAINT_ALL = 20_000;
+
 test('root typing and the whole 1000-build Library add at most one chunk of rows a task (HUB-110, 112, 169)', { tag: '@macos' }, async ({ page }, info) => {
   await openHub(page, '&library=1000');
   await countRowDraws(page);
@@ -135,7 +139,7 @@ test('End scrolls its row into view and Back returns to the same place in the 10
   // A place far below the first painted rows, once every row is in; the row opened there ends above the list's end.
   const search = page.locator('.hub-search input');
   await search.press('Home');
-  await expect(page.locator('.hub-build-row')).toHaveCount(1000);
+  await expect(page.locator('.hub-build-row')).toHaveCount(1000, { timeout: PAINT_ALL });
   const list = page.locator('#hub-results');
   await list.evaluate(element => { element.scrollTop = element.scrollHeight / 2; });
   const middle = () => list.evaluate(element => {
@@ -153,7 +157,7 @@ test('End scrolls its row into view and Back returns to the same place in the 10
   // Back paints the rows around the place first and fills in the rows above it while scroll
   // anchoring holds the rows in view, so the same row stands at the same height at once and stays.
   expect(await atPlace()).toBe(true);
-  await expect(page.locator('.hub-build-row')).toHaveCount(1000);
+  await expect(page.locator('.hub-build-row')).toHaveCount(1000, { timeout: PAINT_ALL });
   expect(await atPlace()).toBe(true);
 });
 
@@ -222,7 +226,7 @@ test('incoming bursts keep a deep build scrolled and draw no row (HUB-111, 112)'
   await openHub(page, '&library=1000');
   const search = page.locator('.hub-search input');
   await search.fill('build library'); await search.press('Enter');
-  await expect(page.locator('.hub-build-row')).toHaveCount(1000);
+  await expect(page.locator('.hub-build-row')).toHaveCount(1000, { timeout: PAINT_ALL });
   await countRowDraws(page);
   const deep = page.locator('.hub-row[data-id="build:scale-500"]');
   await deep.scrollIntoViewIfNeeded();

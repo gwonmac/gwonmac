@@ -26,8 +26,11 @@ test("a refused map edit says so on the Maps page and keeps the saved choice at 
     // The Feature page has no Retry or Revert: its note says the change was not saved, and the next try saves again.
     const feedback = settings.locator(".feature-settings .save-note[role=alert]");
     await expect(feedback).toContainText("could not be saved");
-    await feedback.scrollIntoViewIfNeeded();
-    expect(await feedback.evaluate(el => { const r = el.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight; })).toBe(true);
+    // The resize and zoom above can relayout the page after a first scroll, so scroll until it holds.
+    await expect.poll(async () => {
+      await feedback.scrollIntoViewIfNeeded();
+      return feedback.evaluate(el => { const r = el.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight; });
+    }).toBe(true);
     const png = await fixture.app.evaluate(async ({ BrowserWindow }) => {
       const win = BrowserWindow.getAllWindows().find(win => win.webContents.getURL().endsWith("launcher/index.html"))!;
       return (await win.webContents.capturePage()).toPNG().toString("base64");
