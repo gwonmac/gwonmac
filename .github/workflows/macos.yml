@@ -1,7 +1,8 @@
 # The macOS net under the Linux gate: native build, kernels, integration and
 # release tests, the Electron suite, the @macos Hub specs, and the ad-hoc
-# package. Not a required check. It runs on every push to main, by hand, and on
-# PRs that change what it tests (the `paths` below). PRs run the Electron tests
+# package. Not a required check. It runs by hand, and on pushes to main and PRs
+# that change what it tests (the `paths` below, shared by both, so a docs-only
+# commit does not start five Macs). PRs run the Electron tests
 # tagged @journey; main and manual runs run the whole suite in shards. A red
 # main is fixed forward.
 name: macOS
@@ -9,8 +10,7 @@ name: macOS
 on:
   push:
     branches: [main]
-  pull_request:
-    paths:
+    paths: &tested-paths
       - "app/**"
       - "kernels/**"
       - "packaging/**"
@@ -33,6 +33,8 @@ on:
       - "tsconfig*.json"
       - ".github/actions/setup/**"
       - ".github/workflows/macos.yml"
+  pull_request:
+    paths: *tested-paths
   workflow_dispatch:
 
 permissions:
