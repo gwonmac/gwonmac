@@ -212,7 +212,11 @@ test('Command-D hands the open Hub to Whispers, and its closing release stays ou
       const surface = await import(surfacePath) as typeof import('../../app/features/whispers/renderer/whisper-surface.js');
       const session = model.createWhisperSession(async () => {});
       session.setAvailable(true);
-      surface.createWhisperSurface(document.body, session);
+      const { toggle } = surface.createWhisperSurface(document.body, session);
+      // Command-D reaches the surface through Whispers' link, as its companion part provides it.
+      const linksPath = './feature-links.js';
+      const links = await import(linksPath) as typeof import('../../app/renderer/feature-links.js');
+      links.provideLink('whispers', { toggle, open: () => 'unavailable', people: () => 'unavailable' });
     });
     await expect(page.locator('#whisper-window')).toBeAttached();
     const hub = hubOf(page);
