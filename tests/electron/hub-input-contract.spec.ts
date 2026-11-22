@@ -114,6 +114,10 @@ async function installReadyTravel(page: Page) {
       guildHall: () => undefined, guildHallUnavailable: () => null, unavailable: () => null,
     });
     palette.setEnabled(true);
+    // Command-T reaches the palette through Travel's link, as its companion part provides it.
+    const linksPath = './feature-links.js';
+    const links = await import(linksPath) as typeof import('../../app/renderer/feature-links.js');
+    links.provideLink('travel', { toggle: palette.toggle, friendTripBlocked: () => 'unavailable', toFriend: () => 'unavailable', showProgress: () => 'unavailable' });
     // Beacon's Perch: neither Kamadan nor favourite 1 (Ascalon City), so both are trips.
     palette.update(ready(133));
   });
@@ -176,9 +180,14 @@ test('Command-B and Command-T open their scope in the open Hub and never type in
     await page.evaluate(async () => {
       const specifier = './features/travel/renderer/travel-palette.js';
       const module = await import(specifier) as typeof import('../../app/features/travel/renderer/travel-palette.js');
-      module.createTravelPalette(document.body, {
+      const palette = module.createTravelPalette(document.body, {
         travel: () => undefined, guildHall: () => undefined, guildHallUnavailable: () => null, unavailable: () => null,
-      }).setEnabled(true);
+      });
+      palette.setEnabled(true);
+      // Command-T reaches the palette through Travel's link, as its companion part provides it.
+      const linksPath = './feature-links.js';
+      const links = await import(linksPath) as typeof import('../../app/renderer/feature-links.js');
+      links.provideLink('travel', { toggle: palette.toggle, friendTripBlocked: () => 'unavailable', toFriend: () => 'unavailable', showProgress: () => 'unavailable' });
     });
     const hub = hubOf(page);
     await chord(fixture, 'R', ['meta']);
