@@ -1,10 +1,22 @@
 import { flushPromises } from "@vue/test-utils";
 import { describe, expect, it, vi } from "vitest";
-import { heroId, mapTeamSlots } from "../../../shared/builds/library";
+import { heroId, mapTeamSlots, type Team } from "../../../shared/builds/library";
 import { liveParty, unavailableParty } from "../../../shared/builds/live-party";
 import type { TeamApplyResult } from "../../../shared/builds/team-apply";
 import { createDemoHost, type ToolsHost } from "./host";
 import { applicableHost, workbench } from "./ToolsApp.test-fixture";
+
+const detailButton = (wrapper: Awaited<ReturnType<typeof workbench>>, label: string) =>
+  wrapper.findAll(".detail-actions .ui-button").find((button) => button.text().includes(label))!;
+
+/** Replaces the first saved team the host loads, as a player's own edit would have. */
+function editFirstTeam(host: ToolsHost, edit: (team: Team) => Team) {
+  const load = host.loadLibrary;
+  host.loadLibrary = async () => {
+    const loaded = await load();
+    return { ...loaded, library: { ...loaded.library, teams: loaded.library.teams.map((team, index) => index === 0 ? edit(team) : team) } };
+  };
+}
 
 describe("ToolsApp team management", () => {
   it("assigns heroes and persists their selected build", async () => {
@@ -35,9 +47,7 @@ describe("ToolsApp team management", () => {
       .find((button) => button.text() === "Normal")!
       .trigger("click");
     await flushPromises();
-    const apply = wrapper
-      .findAll(".detail-actions .ui-button")
-      .find((button) => button.text().includes("Apply team"))!;
+    const apply = detailButton(wrapper, "Apply team");
 
     expect(apply.attributes("disabled")).toBeDefined();
     expect(wrapper.text()).toContain("skills this member cannot equip");
@@ -79,15 +89,7 @@ describe("ToolsApp team management", () => {
         ],
       },
     });
-    const baseLoad = host.loadLibrary;
-    host.loadLibrary = async () => {
-      const loaded = await baseLoad();
-      return {
-        ...loaded,
-        library: {
-          ...loaded.library,
-          teams: loaded.library.teams.map((team, teamIndex) => teamIndex === 0
-            ? {
+    editFirstTeam(host, (team) => ({
                 ...team,
                 mode: "normal" as const,
                 slots: mapTeamSlots(team.slots, (slot, slotIndex) => slotIndex === 0
@@ -100,16 +102,10 @@ describe("ToolsApp team management", () => {
                         behaviour: "guard" as const,
                       }
                     : { ...slot, hero: null, build: null, behaviour: null }),
-              }
-            : team),
-        },
-      };
-    };
+              }));
 
     const wrapper = await workbench(host);
-    const apply = wrapper
-      .findAll(".detail-actions .ui-button")
-      .find((button) => button.text().includes("Apply team"))!;
+    const apply = detailButton(wrapper, "Apply team");
     expect(apply.attributes("disabled")).toBeDefined();
     expect(wrapper.get(".apply-readiness").text()).toContain(
       "Your assigned build is for Monk, but the observed primary is Mesmer.",
@@ -170,19 +166,7 @@ describe("ToolsApp team management", () => {
         ],
       },
     });
-    const load = host.loadLibrary;
-    host.loadLibrary = async () => {
-      const loaded = await load();
-      return {
-        ...loaded,
-        library: {
-          ...loaded.library,
-          teams: loaded.library.teams.map((team, index) =>
-            index === 0 ? { ...team, name: "Saved party" } : team
-          ),
-        },
-      };
-    };
+    editFirstTeam(host, (team) => ({ ...team, name: "Saved party" }));
     const wrapper = await workbench(host);
     await wrapper
       .findAll(".live-party .ui-button")
@@ -262,24 +246,12 @@ describe("ToolsApp team management", () => {
         [heroId(24), { availability: "locked" as const, professions: ["Me", "Rt"] as const }],
       ]),
     };
-    const load = host.loadLibrary;
-    host.loadLibrary = async () => {
-      const loaded = await load();
-      return {
-        ...loaded,
-        library: {
-          ...loaded.library,
-          teams: loaded.library.teams.map((team, teamIndex) => teamIndex === 0
-            ? {
+    editFirstTeam(host, (team) => ({
                 ...team,
                 slots: mapTeamSlots(team.slots, (slot, slotIndex) => slotIndex === 2
                   ? { ...slot, hero: heroId(24), build: null, behaviour: "guard" as const }
                   : slot),
-              }
-            : team),
-        },
-      };
-    };
+              }));
     const wrapper = await workbench(host);
     const assigned = wrapper.get<HTMLSelectElement>("#team-hero-2");
     const assignedGwen = assigned.findAll("option").find(
@@ -410,26 +382,15 @@ describe("ToolsApp team management", () => {
     const host = applicableHost(
       async () => ({ commandId: 1, completedChanges: 0, skippedSkills: [] }),
     );
-    const load = host.loadLibrary;
-    host.loadLibrary = async () => {
-      const loaded = await load();
+    editFirstTeam(host, (team) => {
+      const member = team.slots[1]!;
       return {
-        ...loaded,
-        library: {
-          ...loaded.library,
-          teams: loaded.library.teams.map((team, teamIndex) => {
-            if (teamIndex !== 0) return team;
-            const member = team.slots[1]!;
-            return {
-              ...team,
-              slots: mapTeamSlots(team.slots, (slot, slotIndex) => slotIndex === 1
-                ? { hero: null, build: null, behaviour: null }
-                : slotIndex === 2 ? member : slot),
-            };
-          }),
-        },
+        ...team,
+        slots: mapTeamSlots(team.slots, (slot, slotIndex) => slotIndex === 1
+          ? { hero: null, build: null, behaviour: null }
+          : slotIndex === 2 ? member : slot),
       };
-    };
+    });
     const wrapper = await workbench(host);
     const hero = wrapper.get<HTMLSelectElement>("#team-hero-2").element.value;
 
@@ -455,24 +416,12 @@ describe("ToolsApp team management", () => {
     const host = applicableHost(
       async () => ({ commandId: 1, completedChanges: 0, skippedSkills: [] }),
     );
-    const load = host.loadLibrary;
-    host.loadLibrary = async () => {
-      const loaded = await load();
-      return {
-        ...loaded,
-        library: {
-          ...loaded.library,
-          teams: loaded.library.teams.map((team, teamIndex) => teamIndex === 0
-            ? {
+    editFirstTeam(host, (team) => ({
                 ...team,
                 slots: mapTeamSlots(team.slots, (slot, slotIndex) => slotIndex === 1
                   ? { ...slot, build: "b-discord-rot" as typeof slot.build }
                   : slot),
-              }
-            : team),
-        },
-      };
-    };
+              }));
     const unshared = await workbench(host);
     expect(unshared.find(".detail-view .ui-banner").exists()).toBe(false);
     unshared.unmount();
@@ -515,9 +464,7 @@ describe("ToolsApp team management", () => {
     });
     const cancel = vi.spyOn(host, "cancelApply");
     const wrapper = await workbench(host);
-    const apply = wrapper
-      .findAll(".detail-actions .ui-button")
-      .find((button) => button.text().includes("Apply team"))!;
+    const apply = detailButton(wrapper, "Apply team");
 
     await apply.trigger("click");
     await flushPromises();
@@ -542,9 +489,7 @@ describe("ToolsApp team management", () => {
       completedChanges: 1,
       skippedSkills: [354],
     })));
-    await wrapper
-      .findAll(".detail-actions .ui-button")
-      .find((button) => button.text().includes("Apply team"))!
+    await detailButton(wrapper, "Apply team")
       .trigger("click");
     await flushPromises();
 
@@ -560,9 +505,7 @@ describe("ToolsApp team management", () => {
       completedChanges: 1,
       skippedSkills: [208],
     })));
-    await wrapper
-      .findAll(".detail-actions .ui-button")
-      .find((button) => button.text().includes("Apply team"))!
+    await detailButton(wrapper, "Apply team")
       .trigger("click");
     await flushPromises();
 
@@ -610,9 +553,7 @@ describe("ToolsApp team management", () => {
     const wrapper = await workbench(applicableHost(async () => {
       throw new Error("Team management is available only in a PvE outpost.");
     }));
-    await wrapper
-      .findAll(".detail-actions .ui-button")
-      .find((button) => button.text().includes("Apply team"))!
+    await detailButton(wrapper, "Apply team")
       .trigger("click");
     await flushPromises();
 
@@ -712,9 +653,7 @@ describe("ToolsApp team management", () => {
       ...demo,
       writeClipboard: async (text) => { copied = text; },
     });
-    await wrapper
-      .findAll(".detail-actions .ui-button")
-      .find((button) => button.text().includes("Export team"))!
+    await detailButton(wrapper, "Export team")
       .trigger("click");
     await flushPromises();
     const code = wrapper.get<HTMLTextAreaElement>(".share-team textarea").element.value;
@@ -740,9 +679,7 @@ describe("ToolsApp team management", () => {
       }),
       applyUnavailable: refused,
     });
-    const apply = wrapper
-      .findAll(".detail-actions .ui-button")
-      .find((button) => button.text().includes("Apply team"))!;
+    const apply = detailButton(wrapper, "Apply team");
 
     expect(apply.attributes("disabled")).toBeDefined();
     // The reason is on screen, not in a toast the player has to earn.
@@ -756,9 +693,7 @@ describe("ToolsApp team management", () => {
     const wrapper = await workbench(applicableHost(
       async () => ({ commandId: 1, completedChanges: 8, skippedSkills: [] }),
     ));
-    const apply = wrapper
-      .findAll(".detail-actions .ui-button")
-      .find((button) => button.text().includes("Apply team"))!;
+    const apply = detailButton(wrapper, "Apply team");
 
     expect(apply.attributes("disabled")).toBeUndefined();
     expect(wrapper.find(".apply-unavailable").exists()).toBe(false);
@@ -768,9 +703,7 @@ describe("ToolsApp team management", () => {
   it("disables Apply as Already applied when the team matches the party", async () => {
     const applyTeam = vi.fn<ToolsHost["applyTeam"]>();
     const wrapper = await workbench(applicableHost(applyTeam, "normal"));
-    const apply = wrapper
-      .findAll(".detail-actions .ui-button")
-      .find((button) => button.text().includes("Already applied"))!;
+    const apply = detailButton(wrapper, "Already applied");
 
     expect(apply.attributes("disabled")).toBeDefined();
     expect(wrapper.get(".apply-status").text()).toContain(
@@ -787,9 +720,7 @@ describe("ToolsApp team management", () => {
     );
     host.party.value = { ...host.party.value, playRegion: "pvp" };
     const wrapper = await workbench(host);
-    const apply = wrapper
-      .findAll(".detail-actions .ui-button")
-      .find((button) => button.text().includes("Apply team"))!;
+    const apply = detailButton(wrapper, "Apply team");
 
     expect(apply.attributes("disabled")).toBeDefined();
     expect(wrapper.text()).toContain("Apply team is unavailable during PvP play");
@@ -829,8 +760,7 @@ describe("ToolsApp team management", () => {
     // the party rather than about whether one was seen at all.
     expect(section.find(".ui-chip").exists()).toBe(false);
     expect(
-      wrapper.findAll(".detail-actions .ui-button")
-        .find((button) => button.text().includes("Apply team"))!
+      detailButton(wrapper, "Apply team")
         .attributes("disabled"),
     ).toBeDefined();
     wrapper.unmount();

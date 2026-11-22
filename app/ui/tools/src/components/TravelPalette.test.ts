@@ -98,6 +98,19 @@ function fixture(options: Readonly<{
     traceSearch,
   };
 }
+type ReadyState = Extract<TravelHost["state"]["value"], { status: "ready" }>;
+const ALL_UNLOCKED = Array.from({ length: 28 }, () => 0xffff_ffff);
+const unlockedWords = (mapIds: readonly number[]) => {
+  const words = Array.from({ length: 28 }, () => 0);
+  for (const mapId of mapIds) words[Math.floor(mapId / 32)]! |= 1 << (mapId % 32);
+  return words;
+};
+const setReady = (state: { value: TravelHost["state"]["value"] }, overrides: Partial<ReadyState>) => {
+  state.value = {
+    status: "ready", mapId: 55, travelContext: "world", characterKey: travelCharacterKey("0123456789abcdef"),
+    unlockedMapWords: null, guildHall: false, hasGuildHall: false, explorable: false, ...overrides,
+  };
+};
 
 describe("TravelPalette", () => {
   it("finds the own Guild Hall, disables a missing hall, and becomes Leave inside", async () => {
@@ -113,15 +126,12 @@ describe("TravelPalette", () => {
     await wrapper.get("#travel-search-input").setValue("hall");
     expect(wrapper.find("#travel-guild-hall").exists()).toBe(true);
 
-    state.value = {
-      status: "ready", mapId: 55, travelContext: "world", characterKey: null,
-      unlockedMapWords: null, guildHall: false, hasGuildHall: true, explorable: false,
-    };
+    setReady(state, { characterKey: null, hasGuildHall: true });
     await flushPromises();
     await wrapper.get("#travel-guild-hall").trigger("click");
     expect(guildHall).toHaveBeenCalledOnce();
 
-    state.value = { ...state.value, guildHall: true };
+    setReady(state, { characterKey: null, hasGuildHall: true, guildHall: true });
     await flushPromises();
     expect(wrapper.text()).toContain("Leave Guild Hall");
     expect(wrapper.text()).toContain("Return to previous outpost");
@@ -189,18 +199,9 @@ describe("TravelPalette", () => {
     expect(wrapper.text()).toContain("Ruins of Morah");
     expect(wrapper.get(".travel-match").text()).toBe("Search phrase");
     await wrapper.get('[role="option"]').trigger("click");
+    await flushPromises();
     expect(travel).toHaveBeenCalledWith({ mapId: 480 });
-    wrapper.unmount();
-  });
-
-  it("ends the task after submitting a destination", async () => {
-    const { wrapper } = fixture({ synonyms: [{ term: "daily run", mapId: 480 }] });
-    await flushPromises();
-
-    await wrapper.get("#travel-search-input").setValue("daily");
-    await wrapper.get('[role="option"]').trigger("click");
-    await flushPromises();
-
+    // Travelling ends the task: the palette reports it and does not close itself.
     expect(wrapper.emitted("travelled")).toHaveLength(1);
     expect(wrapper.emitted("close")).toBeUndefined();
     wrapper.unmount();
@@ -251,16 +252,7 @@ describe("TravelPalette", () => {
 
   it("lists a locked or current destination with the reason it is no trip (HUB-067, HUB-068)", async () => {
     const { wrapper, state, travel } = fixture();
-    const unlockedMapWords = Array.from({ length: 28 }, () => 0);
-    unlockedMapWords[Math.floor(55 / 32)] = 1 << (55 % 32);
-    state.value = {
-      status: "ready",
-      mapId: 55,
-      travelContext: "world",
-      characterKey: travelCharacterKey("0123456789abcdef"),
-      unlockedMapWords,
-      guildHall: false, hasGuildHall: false, explorable: false,
-    };
+    setReady(state, { unlockedMapWords: unlockedWords([55]) });
     for (const [query, name] of [["Kamadan", "Kamadan, Jewel of Istan"], ["rata", "Rata Sum"]]) {
       await wrapper.get("#travel-search-input").setValue(query);
       const locked = wrapper.findAll('[role="option"]');
@@ -294,21 +286,11 @@ describe("TravelPalette", () => {
       { mapId: 164 }, null, null, null, null, null, null, null, null,
     ];
     const { wrapper, state, travel } = fixture({ history: [164, 165], shortcuts });
-    const unlockedMapWords = Array.from({ length: 28 }, () => 0);
-    for (const mapId of [148, 164, 165, 166, 163, 779]) {
-      unlockedMapWords[Math.floor(mapId / 32)]! |= 1 << (mapId % 32);
-    }
-    for (const mapId of [188, 248, 281, 282, 330, 368, 467, 721, 795, 796, 857]) {
-      unlockedMapWords[Math.floor(mapId / 32)]! |= 1 << (mapId % 32);
-    }
-    state.value = {
-      status: "ready",
+    setReady(state, {
       mapId: 148,
       travelContext: "pre-searing",
-      characterKey: travelCharacterKey("0123456789abcdef"),
-      unlockedMapWords,
-      guildHall: false, hasGuildHall: false, explorable: false,
-    };
+      unlockedMapWords: unlockedWords([148, 164, 165, 166, 163, 779, 188, 248, 281, 282, 330, 368, 467, 721, 795, 796, 857]),
+    });
     await flushPromises();
 
     expect(wrapper.get("#travel-available-title").text()).toBe("Available destinations");
@@ -343,18 +325,10 @@ describe("TravelPalette", () => {
 
   it("uses the same local rule for another early campaign", async () => {
     const { wrapper, state } = fixture();
-    const unlockedMapWords = Array.from({ length: 28 }, () => 0);
-    for (const mapId of [194, 242, 243, 249, 250, 251, 188, 248, 281, 282, 330, 368, 467, 721, 795, 796, 857]) {
-      unlockedMapWords[Math.floor(mapId / 32)]! |= 1 << (mapId % 32);
-    }
-    state.value = {
-      status: "ready",
+    setReady(state, {
       mapId: 242,
-      travelContext: "world",
-      characterKey: travelCharacterKey("0123456789abcdef"),
-      unlockedMapWords,
-      guildHall: false, hasGuildHall: false, explorable: false,
-    };
+      unlockedMapWords: unlockedWords([194, 242, 243, 249, 250, 251, 188, 248, 281, 282, 330, 368, 467, 721, 795, 796, 857]),
+    });
     await flushPromises();
 
     expect(wrapper.get(".travel-available").text()).toContain("6 unlocked");
@@ -365,14 +339,7 @@ describe("TravelPalette", () => {
 
   it("shows the bounded Pre-Searing scope without claiming unknown unlocks", async () => {
     const { wrapper, state } = fixture();
-    state.value = {
-      status: "ready",
-      mapId: 148,
-      travelContext: "pre-searing",
-      characterKey: travelCharacterKey("0123456789abcdef"),
-      unlockedMapWords: null,
-      guildHall: false, hasGuildHall: false, explorable: false,
-    };
+    setReady(state, { mapId: 148, travelContext: "pre-searing" });
     await flushPromises();
 
     expect(wrapper.get("#travel-available-title").text()).toBe("Destinations");
@@ -384,18 +351,9 @@ describe("TravelPalette", () => {
 
   it("shows a ferried current outpost without claiming it is unlocked", async () => {
     const { wrapper, state } = fixture();
-    const unlockedMapWords = Array.from({ length: 28 }, () => 0);
-    for (const mapId of [148, 164, 165, 166, 163]) {
-      unlockedMapWords[Math.floor(mapId / 32)]! |= 1 << (mapId % 32);
-    }
-    state.value = {
-      status: "ready",
-      mapId: 779,
-      travelContext: "pre-searing",
-      guildHall: false, hasGuildHall: false, explorable: false,
-      characterKey: travelCharacterKey("0123456789abcdef"),
-      unlockedMapWords,
-    };
+    setReady(state, {
+      mapId: 779, travelContext: "pre-searing", unlockedMapWords: unlockedWords([148, 164, 165, 166, 163]),
+    });
     await flushPromises();
 
     expect(wrapper.get("#travel-available-title").text()).toBe("Destinations");
@@ -410,18 +368,7 @@ describe("TravelPalette", () => {
 
   it("keeps Recent and Favorites when more than ten destinations are unlocked", async () => {
     const { wrapper, state } = fixture({ history: [81] });
-    const unlockedMapWords = Array.from({ length: 28 }, () => 0);
-    for (const mapId of [81, 55, 20, 49, 109, 85, 133, 136, 57, 155, 159]) {
-      unlockedMapWords[Math.floor(mapId / 32)]! |= 1 << (mapId % 32);
-    }
-    state.value = {
-      status: "ready",
-      mapId: 55,
-      travelContext: "world",
-      characterKey: travelCharacterKey("0123456789abcdef"),
-      unlockedMapWords,
-      guildHall: false, hasGuildHall: false, explorable: false,
-    };
+    setReady(state, { unlockedMapWords: unlockedWords([81, 55, 20, 49, 109, 85, 133, 136, 57, 155, 159]) });
     await flushPromises();
 
     expect(wrapper.find(".travel-available").exists()).toBe(false);
@@ -432,14 +379,7 @@ describe("TravelPalette", () => {
 
   it("keeps typed search inside Pre-Searing and explains excluded matches", async () => {
     const { wrapper, state } = fixture();
-    state.value = {
-      status: "ready",
-      mapId: 148,
-      travelContext: "pre-searing",
-      characterKey: travelCharacterKey("0123456789abcdef"),
-      unlockedMapWords: Array.from({ length: 28 }, () => 0xffff_ffff),
-      guildHall: false, hasGuildHall: false, explorable: false,
-    };
+    setReady(state, { mapId: 148, travelContext: "pre-searing", unlockedMapWords: ALL_UNLOCKED });
 
     await wrapper.get("#travel-search-input").setValue("asc");
     expect(wrapper.get("#travel-results-panel").text()).toContain("Ascalon City (pre-Searing)");
@@ -456,14 +396,7 @@ describe("TravelPalette", () => {
 
   it("shows the Pre-Searing browse scope from an explorable map", async () => {
     const { wrapper, state } = fixture();
-    state.value = {
-      status: "ready",
-      mapId: 149,
-      travelContext: "pre-searing",
-      characterKey: travelCharacterKey("0123456789abcdef"),
-      unlockedMapWords: Array.from({ length: 28 }, () => 0xffff_ffff),
-      guildHall: false, hasGuildHall: false, explorable: false,
-    };
+    setReady(state, { mapId: 149, travelContext: "pre-searing", unlockedMapWords: ALL_UNLOCKED });
     await flushPromises();
 
     expect(wrapper.findAll(".travel-available .travel-recent")).toHaveLength(6);
@@ -476,14 +409,7 @@ describe("TravelPalette", () => {
       { mapId: 330 }, null, null, null, null, null, null, null, null,
     ];
     const { wrapper, state, travel } = fixture({ history: [330], shortcuts });
-    state.value = {
-      status: "ready",
-      mapId: 148,
-      travelContext: "pre-searing",
-      characterKey: travelCharacterKey("0123456789abcdef"),
-      unlockedMapWords: Array.from({ length: 28 }, () => 0xffff_ffff),
-      guildHall: false, hasGuildHall: false, explorable: false,
-    };
+    setReady(state, { mapId: 148, travelContext: "pre-searing", unlockedMapWords: ALL_UNLOCKED });
     await flushPromises();
 
     expect(wrapper.text()).not.toContain("Heroes' Ascent");
@@ -787,10 +713,13 @@ describe("TravelPalette", () => {
     wrapper.unmount();
   });
 
-  it("shows an offline friend as a disabled player result", async () => {
+  it.each([
+    ["offline", "Offline"],
+    ["unknown", "Status unavailable"],
+  ] as const)("shows a %s friend as a disabled player result", async (status, label) => {
     const { wrapper, travel } = fixture({ friends: {
       status: "ready", sequence: 2, generation: 1,
-      friends: [{ key: "0123456789abcdef", status: "offline", mapId: 449,
+      friends: [{ key: "0123456789abcdef", status, mapId: 449,
         alias: "Romi", character: "Example Ranger" }],
     } });
     await flushPromises();
@@ -798,7 +727,7 @@ describe("TravelPalette", () => {
 
     const result = wrapper.get(".travel-result");
     expect(result.text()).toContain("Romi");
-    expect(result.text()).toContain("Offline");
+    expect(result.text()).toContain(label);
     expect(result.attributes()).toHaveProperty("disabled");
     expect(result.attributes("aria-disabled")).toBe("true");
     expect(wrapper.get('[role="combobox"]').attributes("aria-activedescendant")).toBeUndefined();
@@ -828,22 +757,6 @@ describe("TravelPalette", () => {
 
     expect(travel).not.toHaveBeenCalled();
     expect(wrapper.text()).toContain("That destination is no longer available. Choose another destination.");
-    wrapper.unmount();
-  });
-
-  it("shows an unknown friend status as unavailable", async () => {
-    const { wrapper, travel } = fixture({ friends: {
-      status: "ready", sequence: 2, generation: 1,
-      friends: [{ key: "0123456789abcdef", status: "unknown", mapId: 449,
-        alias: "Romi", character: "Example Ranger" }],
-    } });
-    await flushPromises();
-    await wrapper.get('[role="combobox"]').setValue("romi");
-
-    const result = wrapper.get(".travel-result");
-    expect(result.text()).toContain("Status unavailable");
-    expect(result.attributes()).toHaveProperty("disabled");
-    expect(travel).not.toHaveBeenCalled();
     wrapper.unmount();
   });
 
@@ -928,16 +841,8 @@ describe("TravelPalette", () => {
           alias: "Locked Friend", character: "Istan Character" },
       ],
     } });
-    const unlockedMapWords = Array.from({ length: 28 }, () => 0);
-    unlockedMapWords[Math.floor(55 / 32)] = 1 << (55 % 32);
-    state.value = {
-      status: "ready",
-      mapId: 55,
-      travelContext: "world",
-      characterKey: travelCharacterKey("0123456789abcdef"),
-      unlockedMapWords,
-      guildHall: false, hasGuildHall: false, explorable: false,
-    };
+    const unlockedMapWords = unlockedWords([55]);
+    setReady(state, { unlockedMapWords });
     await flushPromises();
 
     await wrapper.get('[role="combobox"]').setValue("friend");
