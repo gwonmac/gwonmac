@@ -547,16 +547,6 @@ export function createCharacterSwitchPalette(
     if (resized) { render(); focusSelected(); }
     else if (changed) render();
   }
-  const onToggle = (event: Event) => {
-    if (!enabled) return;
-    event.preventDefault();
-    // A second request while one runs is answered, never silent (HUB-193).
-    if (source.action.status === "switching") { hub.notify(failureMessage("busy")); return; }
-    // In the Hub, ⌘E follows the Hub's direct-shortcut contract: it focuses or resumes
-    // Characters and never closes the Hub (HUB-049).
-    hub.direct("characters", () => openPalette());
-  };
-  window.addEventListener("gw:character-toggle", onToggle);
   // resolve answers with main's facts (feature-on.ts); the harness announces new facts and new
   // settings with gw:tools-settings, and the display preferences come with the settings.
   const syncEnabled = () => {
@@ -578,6 +568,18 @@ export function createCharacterSwitchPalette(
   }).catch(() => { /* Keep the surface closed until its enable setting is known. */ });
   const unsubscribe = source.subscribe(render);
   return Object.freeze({
+    /**
+     * Its link's `toggle` (../shared/link.ts): ⌘E, its menu item and its Hub row. It follows the
+     * Hub's direct-shortcut contract whatever the intent: it focuses or resumes Characters and
+     * never closes the Hub (HUB-049). A second request while a switch runs is answered with a
+     * notice, never silent (HUB-193); that notice is the answer, so it counts as shown.
+     */
+    toggle(): "shown" | "unavailable" {
+      if (!enabled) return "unavailable";
+      if (source.action.status === "switching") { hub.notify(failureMessage("busy")); return "shown"; }
+      hub.direct("characters", () => openPalette());
+      return "shown";
+    },
     // Hub selects a character directly. The palette appears only when the
     // switch needs PvE departure confirmation; the caller reports a refusal.
     activate(characterKey: string): Error | undefined {
@@ -595,7 +597,6 @@ export function createCharacterSwitchPalette(
       window.removeEventListener("gw:tools-settings", syncEnabled);
       modal.dispose();
       disarm();
-      window.removeEventListener("gw:character-toggle", onToggle);
       veil.remove();
     },
   });

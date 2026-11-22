@@ -1,8 +1,9 @@
 /**
  * Every tool's one entry from its manifest (`tool` and `hub`, app/features): the Hub's Tools rows, their
  * order on a root search, the Commands page's shortcut rows and the shortcut each row shows,
- * and how each tool command opens its tool (app/renderer/commands.ts): the renderer event its
- * manifest names, or its Feature's link `toggle` (app/features/links.ts). A manifest-only
+ * and how each tool command opens its tool (app/renderer/commands.ts): its Feature's link
+ * `toggle` (app/features/links.ts), or the renderer event its manifest names for a tool the
+ * input host runs. A Hub row always opens through `toggle` or a Feature page. A manifest-only
  * Hub entry needs no other edit: hub-commands.ts draws the rows, rankHubRows
  * (app/shared/hub.ts) orders them.
  */
@@ -78,8 +79,8 @@ export type HubToolEntry = Readonly<{
   title: string;
   /** The tool's `keywords`, which Settings search matches too. */
   keywords: string;
-  /** Its Feature page, or how the tool opens and how the row asks it to. */
-  open: Extract<ToolOpen, { featurePage: true }> | (Exclude<ToolOpen, { featurePage: true }> & ToolOpener);
+  /** Its Feature page, or the Feature whose link `toggle` opens it and how the row asks it to. */
+  open: Extract<ToolOpen, { featurePage: true }> | (Exclude<ToolOpen, { featurePage: true }> & Readonly<{ link: ToolLinkTarget }>);
 }> & Omit<HubToolRow, "open">;
 
 /** The Tools rows Core draws, in their order. */
@@ -89,8 +90,8 @@ export const HUB_TOOL_ROWS: readonly HubToolEntry[] = Object.freeze(hubTools.fla
   const opener = openers.get(feature);
   let open: HubToolEntry["open"];
   if ("featurePage" in row.open) open = row.open;
-  else if (opener !== undefined) open = { ...row.open, ...opener };
-  else throw new Error(`The ${feature} Hub row opens through an event its tool does not name, and ${feature} offers no toggle.`);
+  else if (opener !== undefined && "link" in opener) open = { ...row.open, link: opener.link };
+  else throw new Error(`The ${feature} Hub row opens its tool, and ${feature} offers no toggle.`);
   return [{ detail: row.detail, iconKind: row.iconKind, open, ...(row.action ? { action: row.action } : {}), ...(row.aliases ? { aliases: row.aliases } : {}),
     id: hub.command, feature, title: name, keywords: "keywords" in tool ? tool.keywords : "" }];
 }));

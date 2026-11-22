@@ -23,8 +23,7 @@ export type ShortcutCommandAction = Exclude<ShortcutAction, keyof typeof SHORTCU
  * for the shortcut and its menu item alike. An action that opens a surface over the game clears
  * held input first: a sheet or palette takes focus, and ⌘⇧C can lose its modifier releases in
  * AppKit after Chromium forwarded Shift. The overlays (Build Library, Trade Chat, Whispers) take
- * no focus, so a held movement key keeps acting. Resign runs through `showResignGame`
- * (window-menu.ts), which checks its switch again first.
+ * no focus, so a held movement key keeps acting.
  */
 export const SHORTCUT_COMMANDS: Readonly<Record<ShortcutCommandAction, readonly RendererCommand[]>> = {
   "game.call-target": [{ type: "game.call-target" }],

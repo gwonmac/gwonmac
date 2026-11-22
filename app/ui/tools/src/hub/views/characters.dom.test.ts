@@ -18,6 +18,8 @@ import { DEFAULT_SETTINGS, type AppSettings } from '../../../../../shared/settin
 import type { CharacterSwitchActionState, CharacterSwitchContext, CharacterSwitchSource } from '../../../../../features/character-switch/renderer/character-switch-model';
 // eslint-disable-next-line no-restricted-imports
 import characterSwitchHub from '../../../../../features/character-switch/renderer/host';
+// eslint-disable-next-line no-restricted-imports
+import { toggleTool } from '../../../../../renderer/feature-links';
 import { mountHubView } from '../embedded';
 import { narrow } from '../../hub-fixture-harness';
 import { fixtureFacts } from '../../fixture-facts';
@@ -42,7 +44,7 @@ const settle = () => vi.advanceTimersByTimeAsync(1_000);
 const key = (target: Element, init: KeyboardEventInit) => target.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ...init }));
 const field = <T extends Element = HTMLElement>(selector: string) => document.querySelector<T>(selector)!;
 const card = (key: string) => field<HTMLButtonElement>(`button[data-character-key="${key}"]`);
-const openCharacters = async () => { window.dispatchEvent(new CustomEvent('gw:character-toggle', { cancelable: true })); await settle(); };
+const openCharacters = async () => { toggleTool('characterSwitch', 'toggle'); await settle(); };
 
 const ready = {
   status: 'ready', sequence: 1, selectedIndex: 0, characters: [

@@ -54,7 +54,6 @@ import {
   type AccountMenuActions,
   showQuitOrReloadGame,
   updateToolsMenuItems,
-  showResignGame,
 } from "./window-menu.js";
 import {
   installWindowShortcuts,
@@ -664,7 +663,6 @@ export function createMainWindow(
   installWindowShortcuts(win, {
     run(action) {
       if (action === "hub.toggle") void sendRendererCommand(win, { type: "hub.toggle" });
-      else if (action === "game.resign") return showResignGame(host, win);
       else if (isMapLayerShortcut(action)) {
         void host.getSettings().then((settings) => {
           if (!featureOn(SHORTCUT_FEATURES[action], settings, win)) return;

@@ -271,11 +271,6 @@ export function showQuitOrReloadGame(
 }
 
 
-export async function showResignGame(host: WindowHost, win: BrowserWindow): Promise<void> {
-  if (!featureOn("resign", await host.getSettings(), win)) return;
-  await runShortcut(win, "game.resign");
-}
-
 function showReloadGame(host: WindowHost, win: BrowserWindow): Promise<void> {
   return runExclusiveReloadDialog(win, async () => {
     void resetGameInput(win);
@@ -531,7 +526,7 @@ export function installApplicationMenu(actions: ApplicationMenuActions, settings
           id: "resign-game",
           label: "Resign…",
           enabled: false,
-          click: withGameOwner((win) => showResignGame(host, win)),
+          click: withGameOwner((win) => runShortcut(win, "game.resign")),
         },
         {
           id: "reload-game",
