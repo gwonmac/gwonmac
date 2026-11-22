@@ -4,8 +4,11 @@
  * feature's name and summary while every other setting names itself, one shot file per caption, README.md stays inside the
  * small Markdown subset the launcher renders, CHANGELOG.md has `## Unreleased`, every card
  * names a purpose, `requires` has no cycles, `uses` names only capabilities the verifier
- * knows, and every link names a Feature that offers the methods it calls. Pure: the caller reads the folders (tests/policy/feature-contract.test.ts runs it in
- * `pnpm check`), so the same check can run on a scaffold or a planted error.
+ * knows, every link names a Feature that offers the methods it calls, FEATURES lists each id once,
+ * `parts` lists `game` when the folder has companion.ts, and a Feature with a switch of its own
+ * says in its README's `### Details` where to turn it on. Pure: the caller reads the folders
+ * (tests/policy/feature-contract.test.ts runs it in `pnpm check`), so the same check can run on
+ * a scaffold (tests/policy/new-feature-scaffold.test.ts) or a planted error.
  * Each message names the file and says what to change.
  */
 import { ENHANCEMENT_CAPABILITY_FIELDS } from "../shared/enhancement-contracts.js";
@@ -40,7 +43,12 @@ export const folderForId = (id: string): string => id.replace(/[A-Z]/g, (letter)
 
 export function checkFeatureContract({ folders, registered }: FeatureContractInput): string[] {
   const problems: string[] = [];
-  const registeredIds = new Set(registered.map((feature) => feature.id));
+  const ids = registered.map((feature) => feature.id);
+  const registeredIds = new Set(ids);
+  // Two folders cannot share an id: each id has one folder name, and a folder that holds another id fails below.
+  for (const id of new Set(ids.filter((id, index) => ids.indexOf(id) !== index))) {
+    problems.push(`app/features/index.ts: FEATURES lists "${id}" more than once; each Feature has one line.`);
+  }
   for (const each of folders) problems.push(...checkFolder(each, registeredIds));
   const foundIds = new Set(folders.map(({ manifest }) => manifest.id));
   for (const feature of registered) {
@@ -92,6 +100,9 @@ function checkFolder({ folder, manifest, files, readme, changelog }: FeatureFold
     }
   }
 
+  if (files.includes("companion.ts") && !manifest.parts.includes("game")) {
+    problems.push(`${at}/feature.ts: the folder has companion.ts, so parts must list "game".`);
+  }
   const hasMain = files.includes("main.ts");
   if (manifest.parts.includes("main") !== hasMain) {
     problems.push(hasMain
@@ -105,7 +116,12 @@ function checkFolder({ folder, manifest, files, readme, changelog }: FeatureFold
   problems.push(...checkShots(at, manifest.shots, files));
   if (!files.some((file) => file.startsWith("media/"))) problems.push(`${at}/media/: missing; keep the folder (with .gitkeep while it has no pictures).`);
   if (readme === null) problems.push(`${at}/README.md: missing; say what the feature does in one or two sentences, then how to use it.`);
-  else problems.push(...checkReadme(`${at}/README.md`, readme));
+  else {
+    problems.push(...checkReadme(`${at}/README.md`, readme));
+    if (manifest.kind !== "mode" && switches.length === 1 && !/^### Details\n(?:(?!###).*\n)*?- \*\*Turn on:\*\* /m.test(readme)) {
+      problems.push(`${at}/README.md: no "### Details" section with a "- **Turn on:** " line; say there where players turn it on (the scaffold's README shows the line).`);
+    }
+  }
   if (changelog === null) problems.push(`${at}/CHANGELOG.md: missing; start it with a "## Unreleased" heading.`);
   else if (!/^## Unreleased$/m.test(changelog)) problems.push(`${at}/CHANGELOG.md: no "## Unreleased" heading; the release script stamps it with the app version.`);
   return problems;

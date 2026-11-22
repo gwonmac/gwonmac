@@ -102,6 +102,7 @@ Players install 1.0.0 over the old app and keep everything. Do not change:
 - Maintainers: `docs/`. Start with [process-model.md](docs/process-model.md),
   [wasm-host.md](docs/wasm-host.md),
   [enhancement-development.md](docs/enhancement-development.md),
+  [feature-contract.md](docs/feature-contract.md) (add a Feature),
   [diagnostics.md](docs/diagnostics.md), [releasing.md](docs/releasing.md),
   [recertify.md](docs/recertify.md), and [migrations.md](docs/migrations.md).
   Feature contracts sit beside them (accounts, settings, Hub, trade, whispers,

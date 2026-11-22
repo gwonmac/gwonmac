@@ -2,42 +2,14 @@
 // app/features, and each check catches the mistake it exists for: a planted
 // error in an otherwise valid feature gives exactly that check's message.
 import assert from "node:assert/strict";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath } from "node:url";
 import { checkFeatureContract, type FeatureFolder } from "../../app/features/contract.ts";
 import type { FeatureDefinition } from "../../app/features/define.ts";
 import { FEATURES } from "../../app/features/index.ts";
-
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const featuresDirectory = path.join(root, "app/features");
-
-const filesUnder = (directory: string, prefix = ""): string[] => readdirSync(directory, { withFileTypes: true })
-  .flatMap((entry) => entry.isDirectory()
-    ? filesUnder(path.join(directory, entry.name), `${prefix}${entry.name}/`)
-    : [`${prefix}${entry.name}`]);
-const readIfPresent = (file: string): string | null => existsSync(file) ? readFileSync(file, "utf8") : null;
-
-async function realFolders(): Promise<FeatureFolder[]> {
-  const folders = readdirSync(featuresDirectory, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory() && existsSync(path.join(featuresDirectory, entry.name, "feature.ts")))
-    .map((entry) => entry.name);
-  return Promise.all(folders.map(async (folder) => {
-    const directory = path.join(featuresDirectory, folder);
-    const manifest = (await import(path.join(directory, "feature.ts")) as { default: FeatureDefinition }).default;
-    return {
-      folder,
-      manifest,
-      files: filesUnder(directory),
-      readme: readIfPresent(path.join(directory, "README.md")),
-      changelog: readIfPresent(path.join(directory, "CHANGELOG.md")),
-    };
-  }));
-}
+import { featureFolders } from "../helpers/feature-folders.ts";
 
 test("every feature folder keeps the contract", async () => {
-  const folders = await realFolders();
+  const folders = await featureFolders();
   assert.equal(folders.length, FEATURES.length, "one folder per registered feature");
   assert.deepEqual(checkFeatureContract({ folders, registered: FEATURES }), []);
 });
@@ -56,11 +28,13 @@ const manifest = (id: string, more: Partial<FeatureDefinition> = {}): FeatureDef
   parts: ["game"],
   ...more,
 });
+/** The README part that says where players turn a Feature on. */
+const details = "\n### Details\n- **Turn on:** in Settings › Tools.\n";
 const folder = (feature: FeatureDefinition, more: Partial<FeatureFolder> = {}): FeatureFolder => ({
   folder: feature.id.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`),
   manifest: feature,
   files: ["feature.ts", "README.md", "CHANGELOG.md", "media/.gitkeep"],
-  readme: "Example does one thing.\n\n### Use it\n1. Press <kbd>⌘</kbd> <kbd>X</kbd> or search `note` in the [Hub]($docs.hub#what-you-can-search).\n\n> Only you see it.\n",
+  readme: `Example does one thing.\n\n### Use it\n1. Press <kbd>⌘</kbd> <kbd>X</kbd> or search \`note\` in the [Hub]($docs.hub#what-you-can-search).\n${details}\n> Only you see it.\n`,
   changelog: "## Unreleased\n",
   ...more,
 });
@@ -68,7 +42,7 @@ const withoutPurpose = ({ purpose, ...rest }: FeatureDefinition): FeatureDefinit
 const label = { label: "Example", help: "Turns Example on." };
 const option = <const More extends object>(more: More) => ({ kind: "boolean" as const, fallback: false, read: () => false, ...more });
 
-type Case = Readonly<{ check: string; folders: FeatureFolder[]; message: string }>;
+type Case = Readonly<{ check: string; folders: FeatureFolder[]; message: string; registered?: FeatureDefinition[] }>;
 const valid = manifest("quickNote", { settings: { quickNoteEnabled: aSwitch, quickNoteSound: option(label) } });
 const cases: readonly Case[] = [
   {
@@ -113,42 +87,42 @@ const cases: readonly Case[] = [
   },
   {
     check: "README: images",
-    folders: [folder(valid, { readme: "Example does one thing.\n\n![shot](media/shot-1.webp)\n" })],
+    folders: [folder(valid, { readme: "Example does one thing.\n\n![shot](media/shot-1.webp)\n" + details })],
     message: "app/features/quick-note/README.md:3: images are not allowed; put pictures in media/ and caption them in shots.",
   },
   {
     check: "README: external links",
-    folders: [folder(valid, { readme: "Example does one thing. See [the wiki](https://wiki.guildwars.com/wiki/Note).\n" })],
+    folders: [folder(valid, { readme: "Example does one thing. See [the wiki](https://wiki.guildwars.com/wiki/Note).\n" + details })],
     message: "app/features/quick-note/README.md:1: link to https://wiki.guildwars.com/wiki/Note is not allowed; link only to https://www.gwonmac.com or a docs page as $docs.<page>.",
   },
   {
     check: "README: docs links by name",
-    folders: [folder(valid, { readme: "Example does one thing. See [the Hub]($docs/features/hub).\n" })],
+    folders: [folder(valid, { readme: "Example does one thing. See [the Hub]($docs/features/hub).\n" + details })],
     message: "app/features/quick-note/README.md:1: link to $docs/features/hub is not allowed; link only to https://www.gwonmac.com or a docs page as $docs.<page>.",
   },
   {
     check: "README: HTML",
-    folders: [folder(valid, { readme: "Example does <b>one</b> thing.\n" })],
+    folders: [folder(valid, { readme: "Example does <b>one</b> thing.\n" + details })],
     message: "app/features/quick-note/README.md:1: HTML <b> is not allowed; only <kbd> keys.",
   },
   {
     check: "README: tables",
-    folders: [folder(valid, { readme: "Example does one thing.\n\n| Key | Action |\n" })],
+    folders: [folder(valid, { readme: "Example does one thing.\n\n| Key | Action |\n" + details })],
     message: "app/features/quick-note/README.md:3: tables are not allowed.",
   },
   {
     check: "README: heading level",
-    folders: [folder(valid, { readme: "Example does one thing.\n\n## Use it\n" })],
+    folders: [folder(valid, { readme: "Example does one thing.\n\n## Use it\n" + details })],
     message: "app/features/quick-note/README.md:3: only ### headings are allowed.",
   },
   {
     check: "README: one note",
-    folders: [folder(valid, { readme: "Example does one thing.\n\n> One.\n\n> Two.\n" })],
+    folders: [folder(valid, { readme: "Example does one thing.\n\n> One.\n\n> Two.\n" + details })],
     message: "app/features/quick-note/README.md:5: only one > note is allowed.",
   },
   {
     check: "README: starts with what it does",
-    folders: [folder(valid, { readme: "### Example\nExample does one thing.\n" })],
+    folders: [folder(valid, { readme: "### Example\nExample does one thing.\n" + details })],
     message: "app/features/quick-note/README.md:1: start with what the feature does, as a plain sentence.",
   },
   {
@@ -210,6 +184,22 @@ const cases: readonly Case[] = [
     message: "app/features/quick-note/feature.ts: the launch mode is the plain-game strip, not a card; remove purpose.",
   },
   {
+    check: "README: says where to turn it on",
+    folders: [folder(valid, { readme: "Example does one thing.\n\n### Use it\n1. Turn it on.\n" })],
+    message: "app/features/quick-note/README.md: no \"### Details\" section with a \"- **Turn on:** \" line; say there where players turn it on (the scaffold's README shows the line).",
+  },
+  {
+    check: "one registry line per feature",
+    folders: [folder(valid)],
+    registered: [valid, valid],
+    message: "app/features/index.ts: FEATURES lists \"quickNote\" more than once; each Feature has one line.",
+  },
+  {
+    check: "companion.ts needs the game part kind",
+    folders: [folder(manifest("quickNote", { parts: [] }), { files: ["feature.ts", "companion.ts", "README.md", "CHANGELOG.md", "media/.gitkeep"] })],
+    message: "app/features/quick-note/feature.ts: the folder has companion.ts, so parts must list \"game\".",
+  },
+  {
     check: "network needs a main part",
     folders: [folder(manifest("quickNote", { network: ["notes.example.com"] }))],
     message: "app/features/quick-note/feature.ts: network hosts are reached only from a main part; add main.ts and \"main\" to parts.",
@@ -220,9 +210,8 @@ test("a valid feature passes the contract", () => {
   assert.deepEqual(checkFeatureContract({ folders: [folder(valid)], registered: [valid] }), []);
 });
 
-for (const { check, folders, message } of cases) {
+for (const { check, folders, message, registered = folders.map((each) => each.manifest) } of cases) {
   test(`the contract catches a planted error: ${check}`, () => {
-    const registered = folders.map((each) => each.manifest);
     assert.deepEqual(checkFeatureContract({ folders, registered }), [message]);
   });
 }

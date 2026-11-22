@@ -4,9 +4,9 @@
  * run. A manifest is data only, with no side effects, so main, preload, renderer
  * and the Vue apps can all read it.
  *
- * Adding a feature: make the folder app/features/<folder>/ with feature.ts (`defineFeature`),
- * README.md, CHANGELOG.md and media/, and add it to FEATURES in ./index.ts. Every list in
- * app/shared derives from FEATURES. ./contract.ts checks what TypeScript cannot, and
+ * Adding a feature: `pnpm new-feature <id>` writes the folder app/features/<folder>/ with
+ * feature.ts (`defineFeature`), README.md, CHANGELOG.md and media/, and adds it to FEATURES in
+ * ./index.ts (docs/feature-contract.md). Every list in app/shared derives from FEATURES. ./contract.ts checks what TypeScript cannot, and
  * tests/policy/feature-contract.test.ts runs it in `pnpm check`.
  * A manifest may import app/shared/settings/define.ts, value validators, and types;
  * never app/shared/settings/index.ts, contracts.ts or keyboard-shortcuts.ts at

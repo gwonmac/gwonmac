@@ -271,8 +271,13 @@ because macOS can consume a physical modifier release while Command is held.
 
 ## Add or change a feature
 
-Establish the requested behavior and its failure behavior, then extend the
-existing domain owner. Reusing accepted observations or changing host-only UI
+A new Feature starts with `pnpm new-feature <id>`, and
+[Feature contract](feature-contract.md) says what its folder, manifest, game part,
+README and CHANGELOG must hold and which check guards each rule. A Feature that
+runs on the building blocks alone (group A) needs nothing else from this page.
+
+For a Feature that needs more, establish the requested behavior and its failure
+behavior, then extend the existing domain owner. Reusing accepted observations or changing host-only UI
 does not require new native facts, a snapshot region, or a live scenario.
 
 For new native behavior, find candidate facts through static analysis or bounded
@@ -383,10 +388,8 @@ app/features/<id>/
 The folder name is the feature id in kebab case (`alcohol-timer` holds
 `alcoholTimer`). The id stays camelCase because it keys the runtime policy, which
 a "Must stay" test pins. [`tests/policy/feature-contract.test.ts`](../tests/policy/feature-contract.test.ts)
-runs [the contract checks](../app/features/contract.ts) on every folder in `pnpm check`:
-id and folder, labels and help, one shot per caption, the README subset, `## Unreleased`,
-no `requires` cycles, known `uses`, `main` in `parts` exactly when `main.ts`
-exists, and every `links` target a feature that offers each method called. A launcher test checks each `icon` against lucide-vue-next.
+runs [the contract checks](../app/features/contract.ts) on every folder in `pnpm check`;
+[Feature contract](feature-contract.md#the-manifest) lists which check guards each field.
 
 The website builds one docs page per feature from its README
 ([`scripts/feature-docs.ts`](../scripts/feature-docs.ts), run before every website
