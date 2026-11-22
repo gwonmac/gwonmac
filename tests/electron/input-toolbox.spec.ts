@@ -198,6 +198,16 @@ test.describe("renderer Tools input", () => {
         // again once the tool exists.
         (globalThis as unknown as { publishToolbox(state: object): void })
           .publishToolbox = (state: object) => toolbox.update(state);
+        // The stand-in client proves nothing and this launch plays the plain game, so main's facts
+        // keep Trade Chat off. Stand in for them with Features on and Trade Chat switched on, as the
+        // packaged probes do; Trade Chat names no verifier capability.
+        const realFacts = window.gwFeatureFacts?.() ?? null;
+        window.gwFeatureFacts = () => ({
+          toolsAtLaunch: true,
+          program: "none",
+          features: realFacts?.features ?? null,
+          settings: { ...window.gwToolsSettings(), gwonmacTools: true, tradeChat: true },
+        });
         // Trade opens through its link `toggle`, as its shortcut, chat alias and Hub row call it.
         const linksPath = "./feature-links.js";
         const links = (await import(linksPath)) as {
