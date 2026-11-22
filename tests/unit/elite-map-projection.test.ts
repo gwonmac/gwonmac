@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { eliteMapSurfaces } from "../../app/features/cartography/renderer/elite-map-projection.js";
-import { eliteWikiUrl, parseEliteWikiRequest } from "../../app/shared/elite-wiki.js";
+import { eliteWikiUrl, parseEliteWikiRequest } from "../../app/features/cartography/shared/elite-wiki.js";
 import { ELITE_LOCATIONS } from "../../app/shared/elite-locations.js";
 const context = { status: 1, sequence: 2, areaEpoch: 7, mapId: 482, layoutId: 1 } as const;
 const native = { status: 1, generation: 7, frameId: 24, visible: true,

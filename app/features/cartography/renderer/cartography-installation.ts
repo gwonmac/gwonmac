@@ -12,7 +12,7 @@ import type {
 import type { RendererSettingsPatch } from "../../../shared/contracts.js";
 import type { AppSettings } from "../../../shared/settings/index.js";
 import type { CartographyMapKnowledge } from
-  "../../../shared/cartography-map-knowledge.js";
+  "../shared/cartography-map-knowledge.js";
 import type {
   CompassFrameController,
   MissionMapFrameController,

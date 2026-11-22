@@ -325,7 +325,7 @@
       "reason": "The certified capability `teamApply`."
     },
     {
-      "file": "app/shared/tools-unavailable-copy.ts",
+      "file": "app/features/build-library/renderer/tools-unavailable-copy.ts",
       "name": "teamApply",
       "category": "certified stage or verifier",
       "reason": "Words for the certified capability status `teamApply`."

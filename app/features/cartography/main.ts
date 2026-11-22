@@ -12,9 +12,9 @@ import { channel } from "../../main/ipc-channel-registry.js";
 import { one } from "../../main/ipc-values.js";
 import { mainPart } from "../../main/tools-main-part.js";
 import contract from "./shared/ipc.js";
-import { parseCartographyMapKnowledge } from "../../shared/cartography-map-knowledge.js";
+import { parseCartographyMapKnowledge } from "./shared/cartography-map-knowledge.js";
 import { isDigest } from "../../shared/digest.js";
-import { eliteWikiUrl, parseEliteWikiRequest } from "../../shared/elite-wiki.js";
+import { eliteWikiUrl, parseEliteWikiRequest } from "./shared/elite-wiki.js";
 import { parseEliteCharacter, parseEliteUpdate } from "../../shared/elite-skills.js";
 import { ValidationError } from "../../shared/errors.js";
 

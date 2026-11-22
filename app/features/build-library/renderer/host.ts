@@ -11,7 +11,7 @@
 import type { StorageCommand } from "../../../shared/storage-command.js";
 import type { FeatureLinks } from "../../links.js";
 import type { EmbeddedToolsBundle, PublishableTemplate, PublishedTemplate } from "../../../shared/tools-bundle-contracts.js";
-import { toolsUnavailableCopy } from "../../../shared/tools-unavailable-copy.js";
+import { toolsUnavailableCopy } from "./tools-unavailable-copy.js";
 import type { WindowContext, WindowRunning } from "../../../renderer/window-part.js";
 import { applyImport, exportEntries, planImport, templateFilesystem } from "../../../renderer/template-store.js";
 import { sanitiseTemplateName } from "../../../renderer/template-format.js";

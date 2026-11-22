@@ -2,7 +2,7 @@
  * Resolves only reviewed boss and skill wiki pages; callers cannot supply URLs.
  * Both IPC validation and its refusal tests use this closed destination policy.
  */
-import { ELITE_LOCATIONS } from "./elite-locations.js";
+import { ELITE_LOCATIONS } from "../../../shared/elite-locations.js";
 export type EliteWikiRequest = Readonly<{ locationId: string; page: "boss" | "skill" }>;
 /** The IPC boundary's rule: exactly a reviewed location and a page, nothing else. */
 export function parseEliteWikiRequest(value: unknown): EliteWikiRequest {

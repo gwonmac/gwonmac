@@ -7,7 +7,7 @@ import {
   CARTOGRAPHY_MAP_KNOWLEDGE_LIMIT,
   parseCartographyMapKnowledge,
   type CartographyMapKnowledge,
-} from "../../../shared/cartography-map-knowledge.js";
+} from "../shared/cartography-map-knowledge.js";
 import { jsonDocument } from "../../json-document.js";
 
 const FORMAT_VERSION = 1;

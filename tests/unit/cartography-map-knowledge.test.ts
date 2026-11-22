@@ -7,7 +7,7 @@ import { describe, it } from "node:test";
 import { CartographyMapKnowledgeStore } from
   "../../app/features/cartography/main/cartography-map-knowledge.js";
 import { parseCartographyMapKnowledge } from
-  "../../app/shared/cartography-map-knowledge.js";
+  "../../app/features/cartography/shared/cartography-map-knowledge.js";
 
 const FIRST_CLIENT = "a".repeat(64);
 const NEXT_CLIENT = "b".repeat(64);

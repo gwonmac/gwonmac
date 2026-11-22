@@ -7,9 +7,9 @@ import type {
   CartographyEvidenceCapture,
   CartographyEvidenceExportResult,
 } from "../../../shared/cartography-evidence.js";
-import type { CartographyMapKnowledge } from "../../../shared/cartography-map-knowledge.js";
+import type { CartographyMapKnowledge } from "./cartography-map-knowledge.js";
 import type { EliteTracking, EliteUpdate } from "../../../shared/elite-skills.js";
-import type { EliteWikiRequest } from "../../../shared/elite-wiki.js";
+import type { EliteWikiRequest } from "./elite-wiki.js";
 import { invoke, toolContract, type Invoke } from "../../../shared/ipc/channel-table.js";
 
 const channels = {
