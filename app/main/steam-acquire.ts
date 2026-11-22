@@ -20,6 +20,7 @@
  * Never throws into the caller: a player whose sign-in failed belongs back at
  * the client's login screen, not looking at an unhandled rejection.
  */
+import { HARDENED_WEB_PREFERENCES, denyAllPermissions, lockDownWebContents } from "./hardened-web-contents.js";
 import { BrowserWindow, session, type Session } from "electron";
 import { randomUUID } from "node:crypto";
 import type { SteamRefusalReason } from "../shared/contracts.js";
@@ -78,10 +79,7 @@ function createSignInWindow(
 
   // Deny-by-default, matching the game window: no permission is granted, no
   // permission check passes, and no download is allowed to start.
-  signIn.setPermissionRequestHandler((_contents, _permission, callback) =>
-    callback(false),
-  );
-  signIn.setPermissionCheckHandler(() => false);
+  denyAllPermissions(signIn);
   signIn.on("will-download", (event) => {
     event.preventDefault();
     record({ k: "blocked", what: "download" });
@@ -110,14 +108,7 @@ function createSignInWindow(
     ...(parent ? { parent, modal: true } : {}),
     webPreferences: {
       session: signIn,
-      nodeIntegration: false,
-      contextIsolation: true,
-      sandbox: true,
-      webSecurity: true,
-      webviewTag: false,
-      spellcheck: false,
-      allowRunningInsecureContent: false,
-      experimentalFeatures: false,
+      ...HARDENED_WEB_PREFERENCES,
     },
   });
   return { signIn, win };
@@ -199,13 +190,10 @@ export async function acquireSteamToken(
         });
     };
 
-    win.webContents.setWindowOpenHandler(() => {
-      record({ k: "blocked", what: "popup" });
-      return { action: "deny" };
-    });
-    win.webContents.on("will-attach-webview", (event) => {
-      event.preventDefault();
-      record({ k: "blocked", what: "webview" });
+    // Navigation is decided by `guard` below, which also reads the token out of
+    // the return URL, so the helper locks only popups and webviews here.
+    lockDownWebContents(win.webContents, (action) => {
+      if (action === "popup" || action === "webview") record({ k: "blocked", what: action });
     });
 
     const guard = (event: Electron.Event, url: string): void => {

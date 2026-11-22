@@ -6,6 +6,7 @@
  * transition of window state is written here and a menu handler can only ask
  * for one.
  */
+import { HARDENED_WEB_PREFERENCES, lockDownWebContents, type BlockedWebContentsAction } from "./hardened-web-contents.js";
 import {
   app,
   BrowserWindow,
@@ -153,6 +154,13 @@ export function updateLongRunningTaskFeedback(
   win.setProgressBar(feedback.dockProgress);
   return preventingAppSuspension;
 }
+
+const SECURITY_REFUSALS = {
+  popup: "security.windowOpenBlocked",
+  webview: "security.webviewBlocked",
+  navigation: "security.navigationBlocked",
+  redirect: "security.redirectBlocked",
+} as const satisfies Record<BlockedWebContentsAction, string>;
 
 function workAreas(): WindowBounds[] {
   return screen.getAllDisplays().map((display) => ({ ...display.workArea }));
@@ -480,14 +488,7 @@ export function createMainWindow(
       // Keep game simulation, network delivery, and enabled background audio
       // running when macOS fully covers or minimizes this window.
       backgroundThrottling: false,
-      nodeIntegration: false,
-      contextIsolation: true,
-      sandbox: true,
-      webSecurity: true,
-      webviewTag: false,
-      spellcheck: false,
-      allowRunningInsecureContent: false,
-      experimentalFeatures: false,
+      ...HARDENED_WEB_PREFERENCES,
       ...(options.session ? { session: options.session } : {}),
     },
   });
@@ -627,10 +628,11 @@ export function createMainWindow(
   win.on("resized", () => logEvent({ k: "window.resized" }, diagnosticOwnerId));
   win.on("moved", () => logEvent({ k: "window.moved" }, diagnosticOwnerId));
 
-  win.webContents.setWindowOpenHandler(() => {
-    logEvent({ k: "security.windowOpenBlocked" }, diagnosticOwnerId);
-    return { action: "deny" };
-  });
+  lockDownWebContents(win.webContents, (action) => {
+    logEvent({
+      k: SECURITY_REFUSALS[action],
+    }, diagnosticOwnerId);
+  }, isCanonicalRendererUrl);
 
   // App shortcuts are decided in the main process before the page sees the key.
   //
@@ -690,20 +692,6 @@ export function createMainWindow(
     logEvent({ k: "settings.loadFailed", code: errorCode(error) });
   });
 
-  win.webContents.on("will-navigate", (event, url) => {
-    if (!isCanonicalRendererUrl(url)) {
-      event.preventDefault();
-      logEvent({ k: "security.navigationBlocked" }, diagnosticOwnerId);
-    }
-  });
-
-  win.webContents.on("will-redirect", (event, url) => {
-    if (!isCanonicalRendererUrl(url)) {
-      event.preventDefault();
-      logEvent({ k: "security.redirectBlocked" }, diagnosticOwnerId);
-    }
-  });
-
   const mayLockPointer = (
     webContents: Electron.WebContents | null,
     permission: string,
@@ -722,11 +710,6 @@ export function createMainWindow(
     (webContents, permission, _origin, details) =>
       mayLockPointer(webContents, permission, details.isMainFrame),
   );
-  win.webContents.on("will-attach-webview", (event) => {
-    event.preventDefault();
-    logEvent({ k: "security.webviewBlocked" }, diagnosticOwnerId);
-  });
-
   win.webContents.on("destroyed", () => {
     logEvent({ k: "webContents.destroyed" }, diagnosticOwnerId);
     host.sockets.closeAll(rendererId);
