@@ -354,6 +354,16 @@ The renderer allocates one bounded private block for the companion's data and
 stack. A separate private table satisfies the side-module ABI. The companion
 does not consume an existing game table entry for its own table.
 
+The Tools companion's own regions (friends, chat, skill HUD, alcohol, progress,
+effects, and the regions some features own) are allocated with the game's
+`malloc`, and freed, in one fixed order, `COMPANION_HEAP_LAYOUT` in
+`app/renderer/tools-companion-part.ts`. The kernel receives each region's
+pointer at install, after the owned-region check, and no certificate or proof
+stores an offset, so the order is a stability rule, not a proof input: a new
+region takes the last place, so the memory that already works never moves. The
+installer refuses a part that owns memory without a place in the table; every
+other part's order is free.
+
 The build verifies the kernel's ABI, imports, exports, private memory, lack of a
 start function, and reproducible output. The renderer checks its hash before
 compilation.

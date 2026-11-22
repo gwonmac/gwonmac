@@ -67,7 +67,7 @@ test("the scaffold writes one folder plus its registry lines", () => {
     return scaffold.get(file)?.split("\n").filter((line) => !before.has(line));
   };
   assert.deepEqual(added(REGISTRY), [`import quickNote from "./quick-note/feature.js";`, "  quickNote,"]);
-  assert.deepEqual(added(PART_REGISTRY), [`import quickNote from "./quick-note/companion.js";`, "  quickNote,"]);
+  assert.deepEqual(added(PART_REGISTRY), [`export { default as quickNote } from "./quick-note/companion.js";`]);
 });
 
 test("the scaffolded Feature keeps the contract as written", async () => {

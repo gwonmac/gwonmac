@@ -4,12 +4,9 @@
  * resolve turns Whispers off for any reason but the area, and it stays through map loads and
  * PvP. While resolve has Whispers on, its `featurePart` listens to `game.chat` and shows the
  * surface. The session reads friends through `game.friends` while its people picker shows; other
- * Features, the Hub and its shortcut reach it through its link.
- *
- * This line also hosts the chat region's memory phases (the chat substrate in
- * tools-companion-substrates.ts): the region keeps the place in COMPANION_PARTS it had when
- * Whispers owned it, and that place is the heap layout. So the line is written by hand and hands
- * the session to the feature's `featurePart`.
+ * Features, the Hub and its shortcut reach it through its link. The part is written by hand
+ * because the session outlives the `featurePart` it prepares; the chat region is the chat
+ * substrate's (tools-companion-substrates.ts).
  */
 import { NO_FRIENDS } from "../../shared/friends.js";
 import { createWhisperSession, type WhisperSession } from "../../shared/whisper-session.js";
@@ -39,9 +36,7 @@ function startWhispers({ game, settings }: FeatureBlocks<"whispers">, session: W
 export default {
   id: "whispers",
   prepare(input) {
-    const { exports, substrates: { chat } } = input;
     return {
-      ...chat.prepare(exports),
       activate(context) {
         const { chat: gameChat, friends } = context.game;
         const session = createWhisperSession((to, text) => gameChat.send({ kind: "whisper", to, text }));
@@ -64,9 +59,8 @@ export default {
         const followFriends = subscribeWhile(friends, null, (list) => session.updateFriends(list ?? NO_FRIENDS));
         const stopLink = provideLink("whispers", whispersLink(session, (intent: ToolIntent) => surface?.toggle(intent) ?? "unavailable"));
         return {
-          ...chat.session,
           ...feature,
-          pollers: [...chat.session.pollers, {
+          pollers: [{
             poll: () => followFriends(context.on("whispers") && session.state.visible && session.state.selected === null),
           }],
           sync() {

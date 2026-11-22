@@ -1,8 +1,7 @@
 // game.chat (app/renderer/game-blocks.ts): the whispers the game shows and its one
 // chat send slot, which the chat substrate owns. Party invites go through it, so they
-// need no Whispers. This runs the real Whispers part (which hosts the chat region's
-// memory), the real friends substrate and Hub people over a fake certified export set
-// and a real memory.
+// need no Whispers. This runs the real chat and friends substrates, the real Whispers part
+// and Hub people over a fake certified export set and a real memory.
 // What would go wrong without these tests: an invite from Hub is missing or says
 // "chat is not ready" while Whispers is off, the kernel never gets the chat bit and
 // refuses the line, the chat slot stays open (reading the player's whispers) when
@@ -66,9 +65,10 @@ function start(t: test.TestContext) {
   const playRegions = createPlayRegionObservationInstallation(true);
   playRegions.setActive(true);
 
-  const prepared = whispers.prepare({ exports, capabilities, substrates } as unknown as ToolsPrepareInput) as PreparedToolsPart;
-  prepared.allocate!(() => CHAT);
-  prepared.initialize!(memory);
+  const chat: PreparedToolsPart = substrates.chat.prepare(exports);
+  chat.allocate!(() => CHAT);
+  chat.initialize!(memory);
+  const whispersPart = whispers.prepare({ exports, capabilities, substrates } as unknown as ToolsPrepareInput) as PreparedToolsPart;
   const sessions: ToolsPartSession[] = [];
   const bits: number[] = [];
   const syncObservers = () => { bits.push(sessions.reduce((all, session) => all | (session.activeFeatures?.() ?? 0), 0)); };
@@ -79,7 +79,7 @@ function start(t: test.TestContext) {
     game: createGameBlocks({ capabilities, substrates, playRegions, syncObservers }),
     ui: createUiBlocks({ capabilities, hud: null, substrates, document: {} as Document, syncObservers }),
   } as unknown as ToolsActivation;
-  sessions.push(prepared.activate!(context), substrates.friends.prepared.activate(context));
+  sessions.push(chat.activate!(context), whispersPart.activate!(context), substrates.friends.prepared.activate(context));
   for (const session of sessions) session.mount?.();
   for (const session of sessions) session.sync?.();
   t.after(() => {

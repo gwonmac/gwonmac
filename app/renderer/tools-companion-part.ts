@@ -3,17 +3,20 @@
  *
  * A part is one feature's renderer code (app/features/<id>/companion.ts) or one
  * shared substrate (tools-companion-substrates.ts). The installer runs every
- * part through Core's phases in COMPANION_PARTS order, so a part only says what
- * it does in each phase. Adding a feature adds a part; the installer and Core
- * stay unchanged.
+ * part through Core's phases, so a part only says what it does in each phase.
+ * The order of the parts does not matter: the parts that own memory allocate and
+ * free it in COMPANION_HEAP_LAYOUT order, and no other phase depends on another
+ * part's place. Adding a feature adds a part; the installer and Core stay unchanged.
  *
  * A feature that runs on the building blocks alone builds its part with
  * `featurePart`, the `game` kind of app/features/parts.ts: it gives one `start`
- * that returns what stops it, and never asks whether it is on. A feature that also hosts memory on a pinned COMPANION_PARTS
- * line (Reminders, Progress) or calls its certified stage's exports (Chat Filters, Resign) writes that
- * line by hand and hands its session to the featurePart it prepares. A hand-written part asks `on(id)`; both answer
- * from resolve (app/shared/feature-resolve.ts) with main's facts and the live
- * play region, never from the settings alone.
+ * that returns what stops it, and never asks whether it is on. A feature that
+ * also owns memory (Reminders' chat print) or calls its certified stage's
+ * exports (Chat Filters, Resign) writes its part by hand and hands its session
+ * to the featurePart it prepares; one that owns memory also takes a place in
+ * COMPANION_HEAP_LAYOUT. A hand-written part asks `on(id)`; both answer from
+ * resolve (app/shared/feature-resolve.ts) with main's facts and the live play
+ * region, never from the settings alone.
  *
  * Shared Tools code never borrows from a feature: what one feature (or the Hub)
  * needs from another goes through a typed link (feature-links.ts).
@@ -46,7 +49,21 @@ export type ToolsPrepareInput = Readonly<{
 }>;
 
 /** The shared substrates in tools-companion-substrates.ts. */
-export type SubstrateId = "observation" | "friends" | "alcohol" | "effects" | "skillHud";
+export type SubstrateId = "observation" | "friends" | "chat" | "alcohol" | "effects" | "gameProgress" | "skillHud";
+
+/**
+ * The heap layout: every part that owns memory, in the order it allocates and
+ * frees it. It is the one source of that order. A part that allocates, names
+ * regions or frees memory without a place here is refused, and a new memory owner
+ * takes the last place, so the memory that already works never moves. The
+ * kernel gets each region's pointer at install, and no proof stores an offset;
+ * the order is fixed so a change never shifts memory that a player's game already
+ * runs with (tests/unit/the-companion-heap-layout-stays-fixed.test.ts pins it).
+ */
+export const COMPANION_HEAP_LAYOUT = [
+  "friends", "quickItemMove", "chat", "reminders", "skillHud", "alcohol", "gameProgress", "effects",
+  "xunlaiStorage", "travel",
+] as const satisfies readonly (FeatureId | SubstrateId)[];
 
 export type ToolsCompanionPart<Prepared extends PreparedToolsPart = PreparedToolsPart> = Readonly<{
   /** The feature this part belongs to, or the shared substrate it is. */
@@ -64,7 +81,7 @@ export type PreparedToolsPart = Readonly<{
   /** Certified kernel features this part installs. */
   featureFlags?: number;
   memoryNeeds?: Partial<PreparedCompanionExtension["memoryNeeds"]>;
-  /** Allocates in COMPANION_PARTS order, which is the heap layout. */
+  /** Allocates in COMPANION_HEAP_LAYOUT order; only a part with a place there may own memory. */
   allocate?(malloc: Malloc): void;
   /** False when an allocation this part needs did not succeed. */
   allocated?(): boolean;
@@ -95,8 +112,8 @@ export type ToolsActivation = CompanionExtensionActivation & Readonly<{
 }>;
 
 /**
- * One activated part. The installer calls each member across all parts in
- * COMPANION_PARTS order. On a change of settings, facts or region it runs every `syncAfterHook`
+ * One activated part. The installer calls each member across all parts; no member
+ * may depend on another part's place. On a change of settings, facts or region it runs every `syncAfterHook`
  * (not at launch), then every `syncFeeds`, then dispatches the active features,
  * then every `sync`.
  */
@@ -104,7 +121,7 @@ export type ToolsPartSession = Readonly<{
   /** Reads of the part's own regions into its feeds; they run before every other poller. */
   feedPollers?: readonly CompanionPoller[];
   pollers?: readonly CompanionPoller[];
-  /** Observer consumers. Each slot has one owner; the first part that fills it wins. */
+  /** Observer consumers. Each slot has one owner, a substrate; no feature part fills one. */
   observer?: Partial<Pick<CompanionObserverExtension,
     "state" | "toolbox" | "observeState" | "skillSlots" | "skillCooldowns" | "playerEffects" | "effectIcons">>;
   pointers?: Partial<CompanionObserverExtension["pointers"]>;

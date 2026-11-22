@@ -17,8 +17,8 @@
  *   `ui.skillLabels` and `ui.skillKeys`;
  * - the frame: the policy source, the native HUD layer and the policy trace.
  *
- * Each substrate that owns memory is a part in COMPANION_PARTS, so its
- * allocation keeps its place in the heap layout.
+ * Each substrate is a part (SUBSTRATE_PARTS, at the end); the ones that own
+ * memory have their place in COMPANION_HEAP_LAYOUT (tools-companion-part.ts).
  */
 import { COMPANION_ABI, COMPANION_FEATURE_BITS } from "../shared/companion-abi.js";
 import type { EnhancementCapabilities, EnhancementProgram } from "../shared/enhancement-contracts.js";
@@ -45,7 +45,6 @@ import { createSkillOverlaysInstallation } from "./skill-overlays-installation.j
 import {
   type PreparedToolsPart,
   type ToolsCompanionPart,
-  type ToolsPartSession,
 } from "./tools-companion-part.js";
 
 type Demand = () => boolean;
@@ -264,11 +263,7 @@ function createChat(capabilities: EnhancementCapabilities) {
   const available = capabilities.whisperChat;
   let installation: ChatInstallation | null = null;
   return Object.freeze({
-    /**
-     * The region's memory phases. A pinned line in COMPANION_PARTS hosts them (its
-     * part says so): the region keeps the place it always had, and that place is
-     * the heap layout.
-     */
+    /** The region needs the certified exports, so the chat part creates it when it prepares. */
     prepare(exports: WebAssembly.Exports) {
       const chat = createChatInstallation(exports, available);
       installation = chat;
@@ -279,15 +274,14 @@ function createChat(capabilities: EnhancementCapabilities) {
         ownedRegions: () => chat.region === null ? [] : [chat.region],
         kernelRegions: () => ({ whispers: { pointer: chat.pointer, bytes: chat.bytes } }),
         rollback: [(free) => chat.dispose(free)],
+        activate: () => ({
+          pollers: [{ poll: () => chat.poll(), enabled: () => true }],
+          activeFeatures: () => chat.enabled ? COMPANION_FEATURE_BITS.whisperObservation : 0,
+          releaseCallbackResources: [(free) => chat.dispose(free)],
+        }),
       } satisfies PreparedToolsPart;
     },
-    /** What the hosting part's session adds: the read, the kernel bit while the slot is open, and the release. */
-    session: Object.freeze({
-      pollers: [{ poll: () => installation?.poll(), enabled: () => true }],
-      activeFeatures: () => installation?.enabled ? COMPANION_FEATURE_BITS.whisperObservation : 0,
-      releaseCallbackResources: [(free) => installation?.dispose(free)],
-    } satisfies ToolsPartSession),
-    /** Null until the hosting part prepares; `game.chat` is its one user. */
+    /** Null until the chat part prepares; `game.chat` is its one user. */
     get installation() { return installation; },
   });
 }
@@ -417,24 +411,17 @@ function createProgress(capabilities: EnhancementCapabilities) {
   const installation = createProgressObservationInstallation(capabilities.progressObservation);
   const demand: Demand[] = [];
   const observed = () => capabilities.progressObservation && any(demand);
-  return Object.freeze({
-    /**
-     * The region's memory phases. A pinned line in COMPANION_PARTS hosts them (its
-     * part says so): the region keeps the place it always had (the heap layout).
-     */
-    prepared: {
-      featureFlags: capabilities.progressObservation ? COMPANION_FEATURE_BITS.progressObservation : 0,
-      allocate: (malloc) => installation.allocate(malloc),
-      allocated: () => installation.allocated,
-      ownedRegions: () => installation.region == null ? [] : [installation.region],
-      kernelRegions: () => ({
-        ...(installation.region === null
-          ? {} : { progress: { pointer: installation.pointer, bytes: installation.bytes } }),
-      }),
-      rollback: [(free) => installation.release(free)],
-    } satisfies PreparedToolsPart,
-    /** What the hosting part's session adds: the read, the demand, the kernel bit and the release. */
-    session({ memory }: Pick<CompanionExtensionActivation, "memory">) {
+  const prepared = {
+    featureFlags: capabilities.progressObservation ? COMPANION_FEATURE_BITS.progressObservation : 0,
+    allocate: (malloc) => installation.allocate(malloc),
+    allocated: () => installation.allocated,
+    ownedRegions: () => installation.region == null ? [] : [installation.region],
+    kernelRegions: () => ({
+      ...(installation.region === null
+        ? {} : { progress: { pointer: installation.pointer, bytes: installation.bytes } }),
+    }),
+    rollback: [(free) => installation.release(free)],
+    activate({ memory }) {
       const read = createCompanionProgressReader();
       return {
         feedPollers: [{
@@ -444,8 +431,11 @@ function createProgress(capabilities: EnhancementCapabilities) {
         syncFeeds: () => installation.setActive(observed()),
         activeFeatures: () => observed() ? COMPANION_FEATURE_BITS.progressObservation : 0,
         releaseObserverMemory: [(free) => { installation.release(free); installation.dispose(); }],
-      } satisfies ToolsPartSession;
+      };
     },
+  } satisfies PreparedToolsPart;
+  return Object.freeze({
+    prepared,
     installation,
     /** The progress region is read while any of these holds. */
     observeWhen(next: Demand) { demand.push(next); },
@@ -472,26 +462,36 @@ export function createToolsSubstrates(
 
 export type ToolsSubstrates = ReturnType<typeof createToolsSubstrates>;
 
-// ---- the substrates' places in COMPANION_PARTS ----------------------------
+// ---- the substrates as parts -----------------------------------------------
 
-export const observationPart = {
+const observationPart = {
   id: "observation",
   prepare: ({ substrates }) => substrates.observation.prepared,
 } satisfies ToolsCompanionPart;
 
-export const friendsPart = {
+const friendsPart = {
   id: "friends",
   prepare: ({ substrates }) => substrates.friends.prepared,
 } satisfies ToolsCompanionPart;
 
-export const alcoholPart = {
+const chatPart = {
+  id: "chat",
+  prepare: ({ exports, substrates }) => substrates.chat.prepare(exports),
+} satisfies ToolsCompanionPart;
+
+const alcoholPart = {
   id: "alcohol",
   prepare: ({ substrates }) => substrates.alcohol.prepared,
 } satisfies ToolsCompanionPart;
 
-export const effectsPart = {
+const effectsPart = {
   id: "effects",
   prepare: ({ substrates }) => substrates.effects.prepared,
+} satisfies ToolsCompanionPart;
+
+const gameProgressPart = {
+  id: "gameProgress",
+  prepare: ({ substrates }) => substrates.progress.prepared,
 } satisfies ToolsCompanionPart;
 
 function reportSkillGeometry(state: CompanionSkillSlotState): void {
@@ -513,11 +513,8 @@ function reportSkillGeometry(state: CompanionSkillSlotState): void {
   ).catch(() => {});
 }
 
-/**
- * The skill HUD feeds' place in the heap layout. Features read them through
- * `ui.skillKeys`, `game.skillbar` and `ui.skillLabels`.
- */
-export const skillHudPart = {
+/** The skill HUD feeds. Features read them through `ui.skillKeys`, `game.skillbar` and `ui.skillLabels`. */
+const skillHudPart = {
   id: "skillHud",
   prepare({ substrates: { skills } }) {
     const slots = skills.geometry;
@@ -565,3 +562,8 @@ export const skillHudPart = {
     };
   },
 } satisfies ToolsCompanionPart;
+
+/** Every substrate part; the installer runs them with the feature parts (app/features/companion-parts.ts). */
+export const SUBSTRATE_PARTS: readonly ToolsCompanionPart[] = [
+  observationPart, friendsPart, chatPart, skillHudPart, alcoholPart, gameProgressPart, effectsPart,
+];

@@ -2,7 +2,7 @@
  * Scaffolds a new Feature (docs/feature-contract.md): the folder app/features/<folder>/ with a
  * manifest, a game part that does nothing visible, README.md, CHANGELOG.md and media/, plus its
  * registry entries in app/features/index.ts (FEATURES) and app/features/companion-parts.ts
- * (FEATURE_PARTS). The result passes the contract checks as written
+ * (one export line). The result passes the contract checks as written
  * (tests/policy/new-feature-scaffold.test.ts).
  *
  *   pnpm new-feature <id> [--kind <kind>] [--purpose <purpose>] [--dry-run]
@@ -76,7 +76,7 @@ export function newFeatureFiles(options: NewFeatureOptions, read: (file: string)
     [`${at}/CHANGELOG.md`, "## Unreleased\n"],
     [`${at}/media/.gitkeep`, ""],
     [REGISTRY, register(registry, REGISTRY, id, `./${folder}/feature.js`, "export const FEATURES = [", "] as const;")],
-    [PART_REGISTRY, register(partRegistry, PART_REGISTRY, id, `./${folder}/companion.js`, "export const FEATURE_PARTS: readonly ToolsCompanionPart[] = [", "];")],
+    [PART_REGISTRY, registerPart(partRegistry, id, `./${folder}/companion.js`)],
   ]);
 }
 
@@ -143,6 +143,16 @@ function register(text: string, file: string, id: string, specifier: string, ope
   const end = start === -1 ? -1 : lines.indexOf(close, start);
   if (end === -1) throw new Error(`${file}: found no "${open}" … "${close}" list; add the Feature by hand (docs/feature-contract.md).`);
   lines.splice(end, 0, `  ${id},`);
+  return lines.join("\n");
+}
+
+/** Adds `export { default as <id> } from "<specifier>";` among the part registry's lines, sorted by specifier. */
+function registerPart(text: string, id: string, specifier: string): string {
+  const lines = text.split("\n");
+  const parts = lines.flatMap((line, index) => /^export \{ default as \w+ \} from "\.\/[^"]+";$/.test(line) ? [index] : []);
+  if (parts.length === 0) throw new Error(`${PART_REGISTRY}: found no part lines; add the Feature by hand (docs/feature-contract.md).`);
+  const after = parts.filter((index) => (/"([^"]+)"/.exec(lines[index] ?? "")?.[1] ?? "") < specifier).at(-1);
+  lines.splice(after === undefined ? parts[0] ?? 0 : after + 1, 0, `export { default as ${id} } from "${specifier}";`);
   return lines.join("\n");
 }
 

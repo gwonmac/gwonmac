@@ -2,11 +2,12 @@
  * Prepares the optional half of a certified companion installation. Core owns
  * the shared kernel transaction and calls this extension only in Tools mode.
  *
- * This module names no feature: it runs every part in COMPANION_PARTS, then
- * FEATURE_PARTS, through each of Core's phases, in registry order
- * (tools-companion-part.ts).
+ * This module names no feature: it runs every substrate and feature part through
+ * each of Core's phases (tools-companion-part.ts). The memory phases, from
+ * allocation to release, run in COMPANION_HEAP_LAYOUT order; the order of the
+ * other phases does not matter.
  */
-import { COMPANION_PARTS, FEATURE_PARTS } from "../features/companion-parts.js";
+import * as featureParts from "../features/companion-parts.js";
 import { COMPANION_DISPATCH_KINDS, COMPANION_FEATURE_BITS } from "../shared/companion-abi.js";
 import type { EnhancementCapabilities, EnhancementProgram } from "../shared/enhancement-contracts.js";
 import type {
@@ -17,14 +18,23 @@ import type {
 } from "./certified-companion-extension.js";
 import * as observerReaders from "./companion-tools-observer-readers.js";
 import { createGameBlocks, createUiBlocks } from "./game-blocks.js";
-import { type PreparedToolsPart, type ToolsActivation, type ToolsCompanionPart, type ToolsPartSession } from "./tools-companion-part.js";
+import {
+  COMPANION_HEAP_LAYOUT,
+  type PreparedToolsPart,
+  type ToolsActivation,
+  type ToolsCompanionPart,
+  type ToolsPartSession,
+} from "./tools-companion-part.js";
 import {
   createPolicyTrace,
   createToolsHud,
   createToolsPolicySource,
   createToolsSubstrates,
+  SUBSTRATE_PARTS,
   type ToolsSubstrates,
 } from "./tools-companion-substrates.js";
+
+const PARTS: readonly ToolsCompanionPart[] = [...SUBSTRATE_PARTS, ...Object.values(featureParts)];
 
 type Free = (pointer: number) => void;
 
@@ -59,6 +69,20 @@ function mergeMemoryNeeds(parts: readonly PreparedToolsPart[]): PreparedCompanio
   return needs;
 }
 
+const MEMORY_MEMBERS = ["allocate", "allocated", "initialize", "ownedRegions", "kernelRegions", "rollback"] as const;
+
+/** The prepared parts that own memory, in heap-layout order; a memory owner without a place is refused. */
+function inHeapLayout(prepared: ReadonlyMap<ToolsCompanionPart, PreparedToolsPart>): PreparedToolsPart[] {
+  const layout: readonly string[] = COMPANION_HEAP_LAYOUT;
+  for (const [part, value] of prepared) {
+    if (!layout.includes(part.id) && MEMORY_MEMBERS.some((member) => value[member] !== undefined)) {
+      throw new Error(`Companion part ${part.id} owns memory but has no place in COMPANION_HEAP_LAYOUT`);
+    }
+  }
+  const byId = new Map([...prepared].map(([part, value]) => [part.id as string, value]));
+  return layout.flatMap((id) => byId.get(id) ?? []);
+}
+
 export async function prepareToolsCompanionExtension(
   exports: WebAssembly.Exports,
   module: WebAssembly.Module,
@@ -70,8 +94,9 @@ export async function prepareToolsCompanionExtension(
     substrates: createToolsSubstrates(module, capabilities, program),
   });
   const prepared = new Map<ToolsCompanionPart, PreparedToolsPart>();
-  for (const part of [...COMPANION_PARTS, ...FEATURE_PARTS]) prepared.set(part, await part.prepare(input));
+  for (const part of PARTS) prepared.set(part, await part.prepare(input));
   const parts = [...prepared.values()];
+  const owners = inHeapLayout(prepared);
   let allocated = false;
   let activated = false;
   return Object.freeze({
@@ -79,29 +104,29 @@ export async function prepareToolsCompanionExtension(
     memoryNeeds: mergeMemoryNeeds(parts),
     allocate(malloc) {
       allocated = true;
-      for (const part of parts) part.allocate?.(malloc);
-      if (parts.some((part) => part.allocated?.() === false)) {
+      for (const part of owners) part.allocate?.(malloc);
+      if (owners.some((part) => part.allocated?.() === false)) {
         throw new Error("Companion Tools allocation failed");
       }
     },
     initialize(memory) {
-      for (const part of parts) part.initialize?.(memory);
+      for (const part of owners) part.initialize?.(memory);
     },
-    ownedRegions: () => parts.flatMap((part) => part.ownedRegions?.() ?? []),
+    ownedRegions: () => owners.flatMap((part) => part.ownedRegions?.() ?? []),
     get kernelRegions() {
       const regions: PreparedCompanionExtension["kernelRegions"] = { friendRoot: 0 };
-      for (const part of parts) Object.assign(regions, part.kernelRegions?.());
+      for (const part of owners) Object.assign(regions, part.kernelRegions?.());
       return regions;
     },
     activate(context) {
-      const session = activateParts(input, context, prepared);
+      const session = activateParts(input, context, prepared, owners);
       activated = true;
       return session;
     },
     rollback(free) {
       if (!allocated || activated) return;
       runCleanupSteps("Companion Tools allocation rollback failed",
-        parts.flatMap((part) => freeing(part.rollback ?? [], free)));
+        owners.flatMap((part) => freeing(part.rollback ?? [], free)));
     },
   });
 }
@@ -117,12 +142,15 @@ function activateParts(
   }>,
   context: CompanionExtensionActivation,
   prepared: ReadonlyMap<ToolsCompanionPart, PreparedToolsPart>,
+  owners: readonly PreparedToolsPart[],
 ): CompanionExtensionSession {
   const { capabilities, program } = input;
   const source = createToolsPolicySource(context);
   const snapshot = () => source.snapshot;
   const trace = createPolicyTrace(context, snapshot);
   const sessions: ToolsPartSession[] = [];
+  /** The memory owners' sessions in heap-layout order: they free what they allocated. */
+  const releasing: ToolsPartSession[] = [];
   let hud: ReturnType<typeof createToolsHud> = null;
   const syncObservers = () => context.kernel.dispatch(
     COMPANION_DISPATCH_KINDS.activeFeatures,
@@ -175,10 +203,17 @@ function activateParts(
       prepared: <Prepared extends PreparedToolsPart>(part: ToolsCompanionPart<Prepared>) =>
         (prepared.get(part) ?? null) as Prepared | null,
     });
-    for (const part of prepared.values()) {
-      const session = part.activate?.(activation);
-      if (session !== undefined) sessions.push(session);
+    const activated = new Map<PreparedToolsPart, ToolsPartSession>();
+    for (const [part, value] of prepared) {
+      const session = value.activate?.(activation);
+      if (session === undefined) continue;
+      if (!owners.includes(value) && (session.releaseObserverMemory ?? session.releaseCallbackResources) !== undefined) {
+        throw new Error(`Companion part ${part.id} frees memory but has no place in COMPANION_HEAP_LAYOUT`);
+      }
+      sessions.push(session);
+      activated.set(value, session);
     }
+    releasing.push(...owners.flatMap((owner) => activated.get(owner) ?? []));
     for (const session of sessions) session.mount?.();
   } catch (cause) {
     abortActivation(cause);
@@ -252,11 +287,11 @@ function activateParts(
     disposePresentation,
     releaseObserverMemory(free) {
       runCleanupSteps("Companion Tools observer memory cleanup failed",
-        sessions.flatMap((session) => freeing(session.releaseObserverMemory ?? [], free)));
+        releasing.flatMap((session) => freeing(session.releaseObserverMemory ?? [], free)));
     },
     releaseCallbackResources(free) {
       runCleanupSteps("Companion Tools callback cleanup failed",
-        sessions.flatMap((session) => freeing(session.releaseCallbackResources ?? [], free)));
+        releasing.flatMap((session) => freeing(session.releaseCallbackResources ?? [], free)));
     },
   });
 }
