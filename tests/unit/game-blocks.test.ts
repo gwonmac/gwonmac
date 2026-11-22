@@ -1,4 +1,5 @@
-// game.target, game.region, game.session, game.skillbar and ui.skillLabels over the real
+// game.target, game.region, game.session, game.skillbar, game.effects, game.alcohol,
+// game.progress, ui.skillLabels, ui.skillKeys and ui.effectLabels over the real
 // substrates and feeds. What would go wrong without these tests: the kernel keeps
 // computing target or skill data with nobody listening (or never starts), a
 // listener sees a stale value from before it subscribed, every game tick reaches a
@@ -8,7 +9,7 @@
 // proof hands out values anyway.
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createGameBlocks, createUiBlocks, type GameRegion, type GameSession, type GameSkillbar, type GameTarget } from "../../app/renderer/game-blocks.ts";
+import { createGameBlocks, createUiBlocks, type Block, type GameRegion, type GameSession, type GameSkillbar, type GameTarget } from "../../app/renderer/game-blocks.ts";
 import type { NativeHudChannel, NativeHudItem, NativeHudLayer } from "../../app/renderer/native-hud-layer.ts";
 import type { CompanionPlayRegionState } from "../../app/renderer/companion-play-region-snapshot.ts";
 import type { CompanionSnapshot } from "../../app/renderer/companion-snapshot.ts";
@@ -21,7 +22,8 @@ const EMPTY_MODULE = new WebAssembly.Module(new Uint8Array([0, 0x61, 0x73, 0x6d,
 
 function setup(t: test.TestContext, without: readonly EnhancementCapability[] = []) {
   const capabilities = capabilityRecord((capability) => !without.includes(capability));
-  const { observation, chat, skills } = createToolsSubstrates(EMPTY_MODULE, capabilities, "none");
+  const substrates = createToolsSubstrates(EMPTY_MODULE, capabilities, "none");
+  const { observation, skills } = substrates;
   t.after(() => { skills.geometry.dispose(); skills.cooldowns.dispose(); });
   const pointer = { pointer: 0 };
   // The installer hands each part Core's activation; observation reads only Core's pointers.
@@ -33,20 +35,23 @@ function setup(t: test.TestContext, without: readonly EnhancementCapability[] = 
   t.after(() => playRegions.dispose());
   let syncs = 0;
   const syncObservers = () => { syncs += 1; };
-  const game = createGameBlocks({ capabilities, observation, chat, playRegions, skills, syncObservers });
+  const game = createGameBlocks({ capabilities, substrates, playRegions, syncObservers });
   // The game's canvas fills an 800 × 600 window.
   const view = new EventTarget();
   const canvas = { getBoundingClientRect: () => ({ left: 0, top: 0, width: 800, height: 600 }) };
   const document = { defaultView: view, getElementById: (id: string) => id === "canvas" ? canvas : null };
-  const drawn: (readonly (NativeHudItem | null)[])[] = [];
-  const hud: NativeHudLayer = { update(channel: NativeHudChannel, items) { if (channel === "cooldowns") drawn.push(items); }, dispose() {} };
-  const ui = createUiBlocks({ capabilities, hud, skills, document: document as unknown as Document, syncObservers });
+  const painted: Record<NativeHudChannel, (readonly (NativeHudItem | null)[])[]> = { cooldowns: [], keys: [], effects: [] };
+  const drawn = painted.cooldowns;
+  const hud: NativeHudLayer = { update(channel: NativeHudChannel, items) { painted[channel].push(items); }, dispose() {} };
+  const ui = createUiBlocks({ capabilities, hud, substrates, document: document as unknown as Document, syncObservers });
   return {
     game,
     ui,
     view,
     drawn,
+    painted,
     skills,
+    substrates,
     get syncs() { return syncs; },
     /** What the kernel is asked to compute: the target bit and the game snapshot. */
     observing: () => ({
@@ -302,5 +307,110 @@ test("a build without the skill proofs offers no skill values and draws nothing"
   assert.deepEqual(run.drawn, []);
   assert.equal(run.skills.cooldowns.active, false);
   assert.equal(run.skills.geometry.active, false);
+  assert.equal(run.syncs, 0);
+});
+
+const effectsReady = (gameTimer: number, applied: readonly (readonly [skillId: number, durationMs: number, appliedAtGameMs: number])[]) =>
+  Object.freeze({
+    status: "ready", sequence: gameTimer, generation: 1, gameTimer, playerAgentId: 7,
+    effects: Object.freeze(applied.map(([skillId, durationMs, appliedAtGameMs], index) => Object.freeze({
+      effectId: 100 + index, skillId, attributeLevel: 0, maintainerAgentId: 0, durationMs, appliedAtGameMs }))),
+  } as const);
+// The decoder reuses one area list while the rows do not change.
+const AREAS = Object.freeze([]);
+const progressReady = (sequence: number, mapId: number) => Object.freeze({
+  status: "ready", sequence, mapId, characterKey: "000000010000000a", missions: null, vanquished: null,
+  cartographer: null, areas: AREAS, quest: null,
+} as const);
+
+test("game.effects, game.alcohol and game.progress read their feed only while someone listens and give each change once", (t) => {
+  const run = setup(t);
+  const { effects, alcohol, progress } = run.substrates;
+  const rows = [
+    ["game.effects", run.game.effects, () => effects.playerEffects.active, (state: unknown) => effects.playerEffects.sink?.update(state as never),
+      [effectsReady(1_000, [[2522, 600_000, 900]]), effectsReady(1_000, [[2522, 600_000, 900]]), effectsReady(1_100, [[2522, 600_000, 900]])],
+      [{ gameTimer: 1_000, effects: [{ skillId: 2522, durationMs: 600_000, appliedAtGameMs: 900 }] },
+        { gameTimer: 1_100, effects: [{ skillId: 2522, durationMs: 600_000, appliedAtGameMs: 900 }] }]],
+    ["game.alcohol", run.game.alcohol, () => alcohol.installation.active, (state: unknown) => alcohol.installation.sink?.update(state as never),
+      [{ status: "ready", sequence: 2, gameTimer: 5_000, remainingMs: 180_000 }, { status: "ready", sequence: 3, gameTimer: 5_000, remainingMs: 180_000 },
+        { status: "ready", sequence: 4, gameTimer: 6_000, remainingMs: 179_000 }],
+      [{ gameTimer: 5_000, remainingMs: 180_000 }, { gameTimer: 6_000, remainingMs: 179_000 }]],
+    ["game.progress", run.game.progress, () => progress.installation.active, (state: unknown) => progress.installation.sink?.update(state as never),
+      [progressReady(2, 248), progressReady(3, 248), progressReady(4, 249)],
+      [{ mapId: 248, characterKey: "000000010000000a", missions: null, vanquished: null, cartographer: null, areas: [], quest: null },
+        { mapId: 249, characterKey: "000000010000000a", missions: null, vanquished: null, cartographer: null, areas: [], quest: null }]],
+  ] as const;
+  for (const [name, block, reading, feed, states, expected] of rows) {
+    assert.equal(reading(), false, `${name} reads nothing before anyone listens`);
+    const seen: unknown[] = [];
+    const stop = (block as Block<unknown>).subscribe((value) => seen.push(value));
+    assert.equal(reading(), true, `${name} reads while someone listens`);
+    for (const state of states) feed(state);
+    stop();
+    assert.equal(reading(), false, `${name} stops reading with the last listener`);
+    assert.deepEqual(seen, [null, ...expected], name);
+  }
+});
+
+test("ui.skillKeys draws each binding on its own slot and shares the slot positions with ui.skillLabels", (t) => {
+  const run = setup(t);
+  const keys = run.ui.skillKeys.claim();
+  const labels = run.ui.skillLabels.claim();
+  run.skills.geometry.sink?.update(bar(2));
+  const binding = Object.freeze({ input: Object.freeze({ kind: "keyboard", code: "KeyQ" }), modifiers: Object.freeze({ shift: false, control: false, option: false, command: false }) });
+  const bindings = [binding, null, null, null, null, null, null, null] as const;
+  keys.show(bindings as never);
+  const painted = run.painted.keys.length;
+  assert.deepEqual(run.painted.keys.at(-1)?.map((item) => item && [item.parent, item.child, item.binding, item.width]),
+    [[43, 0, binding, 48], null, null, null, null, null, null, null]);
+  keys.show([...bindings] as never);
+  assert.equal(run.painted.keys.length, painted, "the same bindings cost no repaint");
+
+  labels.stop();
+  assert.equal(run.skills.geometry.active, true, "the keys still need the slot positions");
+  keys.stop();
+  assert.equal(run.skills.geometry.active, false);
+  assert.deepEqual(run.painted.keys.at(-1), []);
+});
+
+test("ui.effectLabels draws each text on the icon of its skill, scaled to the canvas, and cleans up", (t) => {
+  const run = setup(t);
+  const icons = run.substrates.effects.effectIcons;
+  const labels = run.ui.effectLabels.claim();
+  assert.throws(() => run.ui.effectLabels.claim(), /already claimed/u);
+  assert.equal(icons.active, true, "the icon positions are read while claimed");
+  // The game draws at 400 × 300, so the 800 × 600 canvas doubles every size.
+  icons.sink?.update(Object.freeze({
+    status: "ready", sequence: 2, generation: 1, frameId: 77, viewportWidth: 400, viewportHeight: 300,
+    anchor: Object.freeze({ left: 0, bottom: 0, right: 100, top: 300 }),
+    icons: Object.freeze([Object.freeze({ skillId: 2522, left: 10, bottom: 270, right: 30, top: 290 }),
+      Object.freeze({ skillId: 1945, left: 32, bottom: 270, right: 52, top: 290 })]),
+  } as const));
+  labels.show([{ skillId: 1945, text: "42", color: "#eadcc2" }, { skillId: 9999, text: "9", color: "#eadcc2" }]);
+  const painted = run.painted.effects.length;
+  assert.deepEqual(run.painted.effects.at(-1), [{ parent: 77, child: 1949, width: 40, height: 40, text: "42", color: "#eadcc2" }],
+    "a skill without an icon draws nothing");
+  labels.show([{ skillId: 1945, text: "42", color: "#eadcc2" }, { skillId: 9999, text: "9", color: "#eadcc2" }]);
+  assert.equal(run.painted.effects.length, painted, "the same labels cost no repaint");
+
+  labels.stop();
+  labels.stop();
+  assert.equal(icons.active, false);
+  assert.deepEqual(run.painted.effects.at(-1), []);
+  run.ui.effectLabels.claim().stop();
+});
+
+test("a build without the effect, alcohol and progress proofs offers no values and draws nothing", (t) => {
+  const run = setup(t, ["playerEffectObservation", "effectIconGeometry", "alcoholObservation", "progressObservation", "nativeHudRendering"]);
+  for (const block of [run.game.effects, run.game.alcohol, run.game.progress, run.ui.effectLabels, run.ui.skillKeys]) {
+    assert.deepEqual({ available: block.available, reason: block.available ? null : block.reason },
+      { available: false, reason: "not-proven" });
+  }
+  const seen: unknown[] = [];
+  for (const block of [run.game.effects, run.game.alcohol, run.game.progress] as Block<unknown>[]) block.subscribe((value) => seen.push(value))();
+  run.ui.effectLabels.claim().show([{ skillId: 1, text: "1", color: "#fff" }]);
+  run.ui.skillKeys.claim().show([]);
+  assert.deepEqual(seen, [null, null, null]);
+  assert.deepEqual(run.painted, { cooldowns: [], keys: [], effects: [] });
   assert.equal(run.syncs, 0);
 });

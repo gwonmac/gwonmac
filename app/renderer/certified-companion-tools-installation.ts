@@ -165,13 +165,11 @@ function activateParts(
       hud,
       game: createGameBlocks({
         capabilities,
-        observation: input.substrates.observation,
-        chat: input.substrates.chat,
+        substrates: input.substrates,
         playRegions: context.playRegions,
-        skills: input.substrates.skills,
         syncObservers: syncBlockDemand,
       }),
-      ui: createUiBlocks({ capabilities, hud, skills: input.substrates.skills, document, syncObservers: syncBlockDemand }),
+      ui: createUiBlocks({ capabilities, hud, substrates: input.substrates, document, syncObservers: syncBlockDemand }),
       syncObservers,
       // The map holds each part's own prepare result, so the key fixes the value's type.
       prepared: <Prepared extends PreparedToolsPart>(part: ToolsCompanionPart<Prepared>) =>

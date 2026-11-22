@@ -66,13 +66,12 @@ function start(t: test.TestContext) {
   const sessions: ToolsPartSession[] = [];
   const bits: number[] = [];
   const syncObservers = () => { bits.push(sessions.reduce((all, session) => all | (session.activeFeatures?.() ?? 0), 0)); };
-  const { observation, chat, skills } = substrates;
   const context = {
     memory, playRegions, syncObservers,
     snapshot: () => ({ settings, playRegionState: playRegions.state }),
     policy: () => ({ whispers: false, travel: true }),
-    game: createGameBlocks({ capabilities, observation, chat, playRegions, skills, syncObservers }),
-    ui: createUiBlocks({ capabilities, hud: null, skills, document: {} as Document, syncObservers }),
+    game: createGameBlocks({ capabilities, substrates, playRegions, syncObservers }),
+    ui: createUiBlocks({ capabilities, hud: null, substrates, document: {} as Document, syncObservers }),
   } as unknown as ToolsActivation;
   sessions.push(prepared.activate!(context), substrates.friends.prepared.activate(context));
   for (const session of sessions) session.mount?.();
