@@ -140,6 +140,11 @@ export type FeatureDefinition = Readonly<{
   optInWithTools?: true;
   /** The feature's switch on its card and Feature page, shown with `name` and `summary`; GLOBAL_TOOLS keeps FEATURES order. */
   tool?: Readonly<{
+    /**
+     * The stable id of its switch control, `tool:<id>`: players' Hub pins and phrases
+     * (`setting:tool:<id>`) and README links (`features/tool:<id>`) store it, so it never
+     * changes, even where it differs from the folder (Travel's `quick-travel`).
+     */
     id: string;
     /** Extra words Settings search and the tool's Hub row match. */
     keywords?: string;
