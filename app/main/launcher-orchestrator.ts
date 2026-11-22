@@ -20,7 +20,6 @@ import type { LauncherProfileCreateInput, LauncherProfileUpdate } from "../share
 import type { ProfileId } from "../shared/multiple-accounts.js";
 import type { TexturePackSnapshot } from "../shared/texture-packs.js";
 import type { LauncherStateStore } from "./core/launcher-state.js";
-import { logEvent } from "./diagnostics.js";
 import { resolveShortcuts } from "../shared/keyboard-shortcuts.js";
 
 interface LauncherAccountsOwner {
@@ -246,7 +245,6 @@ export class LauncherOrchestrator {
     }
     this.publish();
     if (failures.length > 0) throw failures[0];
-    logEvent({ k: "settings.reset" });
   }
 
   async updatePreferences(patch: LauncherPreferencesPatch): Promise<void> {

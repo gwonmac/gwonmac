@@ -93,6 +93,14 @@ class AccountsFixture {
   show(id: ProfileId): boolean {
     return this.openProfiles.has(id);
   }
+
+  async create(): Promise<ProfileId> {
+    throw new Error("not used by these tests");
+  }
+
+  async rename(): Promise<void> {
+    throw new Error("not used by these tests");
+  }
 }
 
 async function fixture(options: { allowUnreadyLaunch?: boolean } = {}) {
@@ -120,6 +128,8 @@ async function fixture(options: { allowUnreadyLaunch?: boolean } = {}) {
     getSettings: () => DEFAULT_SETTINGS,
     getNews: () => ({ status: "loading", stories: [] }),
     toolsLoaded: () => false,
+    resetSettings: async () => undefined,
+    selectTexturePack: async () => undefined,
     featureFacts: () => ({ stage: "stable", toolsAtLaunch: false, settings: {}, program: "none", features: null }),
     ...(options.allowUnreadyLaunch === undefined
       ? {}

@@ -175,6 +175,7 @@ function settings(input: LauncherIpcInput) {
         });
         if (response !== 0) return;
         await orchestrator.resetSettings();
+        logEvent({ k: "settings.reset" });
       }),
       settingsCopy: channel(nothing, async () => {
         clipboard.writeText(settingsToText(await preferences.getSettings(), launcherState.get().preferences.content));
