@@ -21,60 +21,29 @@ describe("Companion snapshot ABI", () => {
     assert.equal(state.onWorldMap, true);
   });
 
-  it("rejects torn, incompatible, loading, and absent-target snapshots", () => {
-    assert.equal(
-      rejected(readCompanionSnapshot(snapshot({ sequence: 3 }), 0)),
-      "writing",
-    );
-    const corrupt = snapshot();
-    new DataView(corrupt).setUint16(4, 1, true);
-    assert.equal(rejected(readCompanionSnapshot(corrupt, 0)), "snapshot");
-    assert.equal(
-      rejected(readCompanionSnapshot(snapshot({ flags: 8 }), 0)),
-      "loading",
-    );
-    const noTarget = decoded(readCompanionSnapshot(snapshot({ flags: 3 }), 0));
-    assert.equal(noTarget.status, "ready");
-    assert.equal(noTarget.targetValid, false);
+  it("decodes the Xunlai access tri-state and an absent target", () => {
+    const state = (flags: number) => decoded(readCompanionSnapshot(snapshot({ flags }), 0));
+    assert.equal(state(3).targetValid, false);
+    assert.equal(state(3 | 0x10).xunlaiAccess, false);
+    assert.equal(state(3 | 0x10 | 0x20).xunlaiAccess, true);
   });
 
-  it("decodes the Xunlai access tri-state and rejects impossible flags", () => {
-    assert.equal(
-      decoded(readCompanionSnapshot(snapshot({ flags: 3 | 0x10 }), 0))
-        .xunlaiAccess,
-      false,
-    );
-    assert.equal(
-      decoded(readCompanionSnapshot(snapshot({ flags: 3 | 0x10 | 0x20 }), 0))
-        .xunlaiAccess,
-      true,
-    );
-    assert.equal(
-      rejected(readCompanionSnapshot(snapshot({ flags: 3 | 0x20 }), 0)),
-      "snapshot",
-    );
-  });
-
-  it("rejects unknown flags, invalid identities, bands, and non-finite values", () => {
-    assert.equal(
-      rejected(readCompanionSnapshot(snapshot({ flags: 0x80 }), 0)),
-      "snapshot",
-    );
-    assert.equal(
-      rejected(readCompanionSnapshot(snapshot({ flags: 0x40 }), 0)),
-      "snapshot",
-    );
-    assert.equal(
-      rejected(readCompanionSnapshot(snapshot({ playerId: 0 }), 0)),
-      "corrupt",
-    );
-    assert.equal(
-      rejected(readCompanionSnapshot(snapshot({ rangeBand: 9 }), 0)),
-      "corrupt",
-    );
-    assert.equal(
-      rejected(readCompanionSnapshot(snapshot({ distance: Number.NaN }), 0)),
-      "corrupt",
-    );
+  it("rejects torn, incompatible, loading, impossible, and non-finite snapshots", () => {
+    const corruptAbi = snapshot();
+    new DataView(corruptAbi).setUint16(4, 1, true);
+    const cases: [name: string, buffer: ArrayBuffer, reason: string][] = [
+      ["odd sequence", snapshot({ sequence: 3 }), "writing"],
+      ["wrong ABI", corruptAbi, "snapshot"],
+      ["loading flag", snapshot({ flags: 8 }), "loading"],
+      ["Xunlai bit 0x20 without 0x10", snapshot({ flags: 3 | 0x20 }), "snapshot"],
+      ["unknown flag 0x80", snapshot({ flags: 0x80 }), "snapshot"],
+      ["unknown flag 0x40", snapshot({ flags: 0x40 }), "snapshot"],
+      ["player id 0", snapshot({ playerId: 0 }), "corrupt"],
+      ["range band 9", snapshot({ rangeBand: 9 }), "corrupt"],
+      ["NaN distance", snapshot({ distance: Number.NaN }), "corrupt"],
+    ];
+    for (const [name, buffer, reason] of cases) {
+      assert.equal(rejected(readCompanionSnapshot(buffer, 0)), reason, name);
+    }
   });
 });

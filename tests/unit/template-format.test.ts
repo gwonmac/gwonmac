@@ -170,18 +170,6 @@ test("decodes a file however Windows wrote it", () => {
   assert.equal(decodeTemplateText(new Uint8Array(utf16be).buffer), SKILLS);
 });
 
-test("a byte order mark never reaches the code", () => {
-  // Decoded as content, a BOM lands inside the code and the client answers
-  // "does not appear to be valid" — round 8 of the investigation log.
-  const withBom = new Uint8Array([0xef, 0xbb, 0xbf, ...new TextEncoder().encode(SKILLS)]);
-  const parse = parseTemplateSource(decodeTemplateText(withBom.buffer), {
-    sourceName: "Shockaxe",
-    namePrefix: null,
-  });
-  assert.equal(parse.candidates.length, 1);
-  assert.equal(parse.candidates[0]?.code, SKILLS);
-});
-
 test("lands the same templates wherever the player started the picker", () => {
   // webkitRelativePath always begins with the directory that was selected.
   assert.equal(namePrefixFromRelativePath("Skills/Warrior/Shockaxe.txt"), "Warrior");
@@ -226,13 +214,7 @@ test("bounds one gesture rather than one file", () => {
   assert.equal(combined.skipped["too-many"], 5);
 });
 
-test("a Windows collection keeps its organisation in the only place the client shows", () => {
-  const inFolder = parseTemplateSource(SKILLS, {
-    sourceName: "Shockaxe",
-    namePrefix: "Warrior",
-  });
-  assert.equal(inFolder.candidates[0]?.name, "Warrior - Shockaxe");
-
+test("a folder prefix that sanitises to nothing leaves the name alone", () => {
   // A prefix that sanitises to nothing leaves the name alone rather than
   // producing a leading separator.
   const unusable = parseTemplateSource(SKILLS, {

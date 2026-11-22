@@ -360,7 +360,6 @@ describe("Companion kernel", () => {
     const state = kernel.playRegion();
     assert.equal(state.status, "ready");
     if (state.status !== "ready") return;
-    assert.equal(state.unlockedMapWords?.length, 28);
     assert.equal(
       (state.unlockedMapWords?.[Math.floor(133 / 32)] ?? 0) >>> (133 % 32) & 1,
       1,
@@ -411,17 +410,6 @@ describe("Companion kernel", () => {
       duplicateDirty.init({ features: TOOLBOX_FEATURES }),
       0,
     );
-  });
-
-  it("observes Toolbox heroes and the exact player agent", async () => {
-    const kernel = await createKernel();
-    installGameGraph(kernel.view);
-    assert.equal(kernel.init({ features: TOOLBOX_FEATURES }), 1);
-    kernel.tick();
-    const toolbox = readyToolbox(kernel.toolbox());
-    assert.equal(toolbox.heroAvailable, true);
-    assert.equal(toolbox.firstHeroId, 1);
-    assert.equal(toolbox.firstHeroAgentId, 77);
   });
 
   // The party region is the toolbox region's argument taken to its conclusion:
@@ -533,68 +521,54 @@ describe("Companion kernel", () => {
     // outpost-only operation — so the flag has to survive the walk rather than
     // being something the interface assumes.
     assert.equal(party.inOutpost, true);
+    assert.deepEqual(party.playerProfessionProbe, {
+      statePrimary: 3,
+      stateSecondary: 5,
+      attributeIdsLow: 122_894,
+      attributeIdsHigh: 0,
+      stateRowObserved: true,
+      stateAccepted: true,
+      attributeRowObserved: true,
+    });
+
+    // A party nobody walked cannot say where it is standing, and the
+    // difference decides whether Apply refuses or explains it does not know.
+    kernel.view.setUint32(ADDRESSES.game + 0x4c, 0xffff_fffc, true);
+    kernel.uiEvent(0x1000_011f, 0, 0);
+    kernel.tick();
+    const rejected = readyParty(kernel.party());
+    assert.equal(rejected.rosterObserved, false);
+    assert.equal(rejected.inOutpost, null, "not false: nobody looked");
   });
 
   it("keeps the roster and unrelated facts when one detail table rejects", async () => {
+    // Every group the fixture publishes, read back as plain values. Each case
+    // overrides only what its rejected table is allowed to change.
+    const facts = (party: ReturnType<typeof readyParty>) => ({
+      playerProfessions: party.slots[0]?.professions,
+      heroProfessions: party.slots[1]?.professions,
+      behaviour: party.slots[1]?.behaviour,
+      skills: party.slots[1]?.skills?.slice(0, 2) ?? null,
+      disabled: party.slots[1]?.disabled,
+      attributes: party.slots[1]?.attributes,
+      unlockObserved: party.unlockObserved,
+    });
+    const intact = {
+      playerProfessions: [3, 5],
+      heroProfessions: [1, 2],
+      behaviour: 1,
+      skills: [100, 101],
+      disabled: 0b101,
+      attributes: [[17, 7], [19, 12], [24, 3]],
+      unlockObserved: true,
+    };
     const cases = [
-      {
-        name: "profession states",
-        offset: DETAIL.professionStates,
-        verify(party: ReturnType<typeof readyParty>) {
-          assert.equal(party.slots[0]?.professions, null);
-          assert.deepEqual(party.slots[1]?.professions, [1, 2], "HeroInfo fallback");
-          assert.equal(party.slots[1]?.behaviour, 1);
-          assert.deepEqual(party.slots[1]?.skills?.slice(0, 2), [100, 101]);
-          assert.deepEqual(party.slots[1]?.attributes, [[17, 7], [19, 12], [24, 3]]);
-          assert.equal(party.unlockObserved, true);
-        },
-      },
-      {
-        name: "hero info",
-        offset: DETAIL.heroInfo,
-        verify(party: ReturnType<typeof readyParty>) {
-          assert.equal(party.unlockObserved, false);
-          assert.deepEqual(party.slots[0]?.professions, [3, 5]);
-          assert.deepEqual(party.slots[1]?.professions, [1, 2]);
-          assert.equal(party.slots[1]?.behaviour, 1);
-          assert.deepEqual(party.slots[1]?.skills?.slice(0, 2), [100, 101]);
-          assert.deepEqual(party.slots[1]?.attributes, [[17, 7], [19, 12], [24, 3]]);
-        },
-      },
-      {
-        name: "hero flags",
-        offset: DETAIL.heroFlags,
-        verify(party: ReturnType<typeof readyParty>) {
-          assert.equal(party.slots[1]?.behaviour, null);
-          assert.deepEqual(party.slots[1]?.professions, [1, 2]);
-          assert.deepEqual(party.slots[1]?.skills?.slice(0, 2), [100, 101]);
-          assert.deepEqual(party.slots[1]?.attributes, [[17, 7], [19, 12], [24, 3]]);
-          assert.equal(party.unlockObserved, true);
-        },
-      },
-      {
-        name: "skill bars",
-        offset: DETAIL.skillbars,
-        verify(party: ReturnType<typeof readyParty>) {
-          assert.equal(party.slots[1]?.skills, null);
-          assert.equal(party.slots[1]?.disabled, null);
-          assert.deepEqual(party.slots[1]?.professions, [1, 2]);
-          assert.equal(party.slots[1]?.behaviour, 1);
-          assert.deepEqual(party.slots[1]?.attributes, [[17, 7], [19, 12], [24, 3]]);
-          assert.equal(party.unlockObserved, true);
-        },
-      },
-      {
-        name: "attributes",
-        offset: DETAIL.attributes,
-        verify(party: ReturnType<typeof readyParty>) {
-          assert.equal(party.slots[1]?.attributes, null);
-          assert.deepEqual(party.slots[1]?.professions, [1, 2]);
-          assert.equal(party.slots[1]?.behaviour, 1);
-          assert.deepEqual(party.slots[1]?.skills?.slice(0, 2), [100, 101]);
-          assert.equal(party.unlockObserved, true);
-        },
-      },
+      // The hero keeps its HeroInfo professions as the fallback.
+      { name: "profession states", offset: DETAIL.professionStates, expected: { playerProfessions: null } },
+      { name: "hero info", offset: DETAIL.heroInfo, expected: { unlockObserved: false } },
+      { name: "hero flags", offset: DETAIL.heroFlags, expected: { behaviour: null } },
+      { name: "skill bars", offset: DETAIL.skillbars, expected: { skills: null, disabled: null } },
+      { name: "attributes", offset: DETAIL.attributes, expected: { attributes: null } },
     ] as const;
 
     for (const detail of cases) {
@@ -605,7 +579,7 @@ describe("Companion kernel", () => {
       // certified bound makes that group reject without damaging the roster.
       kernel.view.setUint32(ADDRESSES.world + detail.offset + 4, 65, true);
       kernel.view.setUint32(ADDRESSES.world + detail.offset + 8, 65, true);
-    assert.equal(kernel.init({ features: TOOLBOX_FEATURES }), 1);
+      assert.equal(kernel.init({ features: TOOLBOX_FEATURES }), 1);
       kernel.tick();
 
       const party = readyParty(kernel.party());
@@ -613,30 +587,8 @@ describe("Companion kernel", () => {
       assert.equal(party.slotCount, 1, `${detail.name}: complete owned roster`);
       assert.equal(party.slots[0]?.agentId, 7, `${detail.name}: player`);
       assert.equal(party.slots[1]?.hero, 1, `${detail.name}: hero`);
-      detail.verify(party);
+      assert.deepEqual(facts(party), { ...intact, ...detail.expected }, detail.name);
     }
-  });
-
-  it("reads player professions from the canonical party state", async () => {
-    const kernel = await createKernel({ partyDetail: true });
-    installGameGraph(kernel.view);
-    installPartyDetailGraph(kernel.view);
-    assert.equal(kernel.init({ features: TOOLBOX_FEATURES }), 1);
-    kernel.tick();
-
-    const party = readyParty(kernel.party());
-    const player = party.slots[0];
-    assert.deepEqual(player?.professions, [3, 5]);
-    assert.deepEqual(player?.attributes, [[1, 3], [14, 10], [16, 8]]);
-    assert.deepEqual(party.playerProfessionProbe, {
-      statePrimary: 3,
-      stateSecondary: 5,
-      attributeIdsLow: 122_894,
-      attributeIdsHigh: 0,
-      stateRowObserved: true,
-      stateAccepted: true,
-      attributeRowObserved: true,
-    });
   });
 
   it("keeps live hero professions ahead of stale account metadata", async () => {
@@ -699,24 +651,6 @@ describe("Companion kernel", () => {
       unlocked: [202, 216],
     });
     assert.equal(party.rosterObserved, true);
-  });
-
-  // A party nobody walked cannot say where it is standing, and the difference
-  // decides whether Apply refuses or explains that it does not know yet.
-  it("says nothing about the instance when the walk was rejected", async () => {
-    const kernel = await createKernel({ partyDetail: true });
-    installGameGraph(kernel.view);
-    installPartyDetailGraph(kernel.view);
-    assert.equal(kernel.init({ features: TOOLBOX_FEATURES }), 1);
-    kernel.tick();
-    assert.equal(readyParty(kernel.party()).inOutpost, true);
-
-    kernel.view.setUint32(ADDRESSES.game + 0x4c, 0xffff_fffc, true);
-    kernel.uiEvent(0x1000_011f, 0, 0);
-    kernel.tick();
-    const rejected = readyParty(kernel.party());
-    assert.equal(rejected.rosterObserved, false);
-    assert.equal(rejected.inOutpost, null, "not false: nobody looked");
   });
 
   // The anomaly the live session turned up, as a regression: `index == id` is

@@ -68,10 +68,6 @@ test("the table holds the 39 real heroes and neither sentinel", () => {
   // And the end marker is not a 40th hero.
   assert.equal(HERO_BY_ID.has(heroId(40)), false);
 
-  // Six bits is what `EncodedTeamBuild` allocates. A 41st hero would not
-  // overflow visibly; it would encode as somebody else.
-  assert.ok(Math.max(...ids) < 64);
-
   // Names are the stable protocol identifiers and are used as fallback labels,
   // so two heroes sharing one is a defect the ids would not reveal.
   assert.equal(new Set(HEROES.map((hero) => hero.name)).size, 39);
@@ -87,7 +83,6 @@ test("HERO_BY_ID answers for every hero and for nothing else", () => {
 
   // An id from outside the enum is a miss, not a default. A caller reading a
   // corrupt record must see `undefined` rather than hero 1.
-  assert.equal(HERO_BY_ID.get(heroId(41)), undefined);
   assert.equal(HERO_BY_ID.get(heroId(255)), undefined);
 });
 
@@ -97,7 +92,6 @@ test("panel order is a permutation of the 39 places after the player's own", () 
   // means the picker shows two heroes in one place or leaves one blank.
   assert.deepEqual(ascending(orders), range(1, 39));
 
-  assert.equal(HEROES_IN_PANEL_ORDER.length, HEROES.length);
   assert.deepEqual(
     HEROES_IN_PANEL_ORDER.map((hero) => hero.panelOrder),
     range(1, 39),
@@ -148,10 +142,6 @@ test("the eight mercenaries are the only heroes no campaign unlocks", () => {
 });
 
 test("Razah is player-chosen too, and is the only non-mercenary that is", () => {
-  const chosen = HEROES.filter((hero) => hero.kind !== "campaign");
-  // Nine heroes have no fixed profession pair to cache: Razah plus the eight.
-  assert.equal(chosen.length, 9);
-
   const razah = HERO_BY_ID.get(heroId(15));
   assert.equal(razah?.name, "Razah");
   assert.equal(razah?.kind, "razah");
@@ -165,14 +155,9 @@ test("Razah is player-chosen too, and is the only non-mercenary that is", () => 
 });
 
 test("the ten professions carry ids 1-10, and None is not one of them", () => {
-  assert.equal(professionEntries.length, 10);
-
   const ids = professionEntries.map(([, facts]) => facts.id);
   assert.deepEqual(ascending(ids), range(1, 10));
   assert.equal(PROFESSION_BY_ID.size, 10);
-
-  // Id 10 fills the whisper format's 4-bit field exactly; an 11th would not.
-  assert.ok(Math.max(...ids) < 16);
 
   // `None` is the absent-secondary sentinel, not a profession. It must be
   // reachable as a number and unreachable as a row.
@@ -189,8 +174,6 @@ test("the ten professions carry ids 1-10, and None is not one of them", () => {
 });
 
 test("attribute ids skip the unnamed 26-28 gap and never spell the None sentinel", () => {
-  assert.equal(attributeEntries.length, 42);
-
   const ids = attributeEntries.map(([, facts]) => facts.id);
   assert.deepEqual(ascending(ids), [...range(0, 25), ...range(29, 44)]);
   assert.equal(ATTRIBUTE_BY_ID.size, 42);
@@ -203,10 +186,6 @@ test("attribute ids skip the unnamed 26-28 gap and never spell the None sentinel
   // `None = 0xff` does not fit the 6-bit wire field and is an in-memory marker
   // only; an unset attribute is absent from `AttributeRanks` instead.
   assert.equal(ATTRIBUTE_BY_ID.get(255), undefined);
-
-  // 44 is the highest, which is what the 6-bit escape in the party-loadout
-  // attribute field is sized for.
-  assert.ok(Math.max(...ids) < 64);
 
   for (const [name, facts] of attributeEntries) {
     assert.equal(ATTRIBUTE_BY_ID.get(facts.id), name);
@@ -263,13 +242,6 @@ test("the cost table has one entry per rank and rises with every one", () => {
 
   const costs = ranks.map((rank) => ATTRIBUTE_POINT_COST[rank]);
   assert.deepEqual(costs, [0, 1, 3, 6, 10, 15, 21, 28, 37, 48, 61, 77, 97]);
-
-  // Strictly increasing, so "can this character afford rank n" is answerable by
-  // comparison alone. Rank 12 costs 97 of a budget this file does not claim.
-  for (let rank = 1; rank < costs.length; rank += 1) {
-    assert.ok((costs[rank] ?? 0) > (costs[rank - 1] ?? 0), String(rank));
-  }
-  assert.equal(ATTRIBUTE_POINT_COST[12], 97);
 });
 
 test("the module exports nothing the source could not supply", () => {

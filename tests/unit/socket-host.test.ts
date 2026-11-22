@@ -435,7 +435,6 @@ describe("main-process socket queue budget", () => {
 
     await fixture.manager.close(doomed.id, owner);
     await turn();
-    assert.equal(doomedSend.settled, true);
     assert.equal(doomedSend.settlements, 1);
     assert.match(
       String(doomedSend.error),
@@ -468,7 +467,6 @@ describe("main-process socket queue budget", () => {
 
     survivor.socket.flushPendingWrites();
     await turn();
-    assert.equal(survivorSend.settled, true);
     assert.equal(survivorSend.settlements, 1);
     assert.equal(survivorSend.error, undefined);
     assert.equal(fixture.manager.queuedBytesByOwner().size, 0);
@@ -487,7 +485,6 @@ describe("main-process socket queue budget", () => {
       new Error("write EPIPE 203.0.113.9:6112 /Users/private"),
     );
     await turn();
-    assert.equal(callbackFailure.settled, true);
     assert.equal(callbackFailure.settlements, 1);
     assert.match(String(callbackFailure.error), /socket send failed/);
     assert.doesNotMatch(
@@ -503,7 +500,6 @@ describe("main-process socket queue budget", () => {
       fixture.manager.send(opened.id, ONE_BYTE, owner),
     );
     await turn();
-    assert.equal(synchronousFailure.settled, true);
     assert.equal(synchronousFailure.settlements, 1);
     assert.match(String(synchronousFailure.error), /socket send failed/);
     assert.doesNotMatch(
@@ -557,7 +553,6 @@ describe("main-process socket queue budget", () => {
     ] as const;
     await turn();
     for (const [label, send] of interrupted) {
-      assert.equal(send.settled, true, label);
       assert.equal(send.settlements, 1, label);
       assert.match(
         String(send.error),

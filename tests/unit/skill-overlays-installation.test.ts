@@ -3,6 +3,20 @@ import { test } from "node:test";
 import { COMPANION_FEATURE_BITS } from "../../app/shared/companion-abi.ts";
 import { createSkillOverlaysInstallation } from "../../app/renderer/skill-overlays-installation.ts";
 
+const geometry = (sequence: number, frameId: number) => ({
+  status: "ready" as const,
+  sequence,
+  frameId,
+  viewportWidth: 800,
+  viewportHeight: 600,
+  slots: Object.freeze(Array.from({ length: 8 }, (_, index) => Object.freeze({
+    left: index * 50,
+    bottom: 20,
+    right: index * 50 + 48,
+    top: 68,
+  }))),
+});
+
 test("the skill feeds run only for what needs them", () => {
   const skills = createSkillOverlaysInstallation({
     nativeHudRendering: true,
@@ -21,55 +35,19 @@ test("the skill feeds run only for what needs them", () => {
     skills.activeFeatureFlags,
     COMPANION_FEATURE_BITS.skillSlotGeometry,
   );
-  skills.geometry.sink?.update({
-    status: "ready",
-    sequence: 2,
-    frameId: 1,
-    viewportWidth: 800,
-    viewportHeight: 600,
-    slots: Object.freeze(Array.from({ length: 8 }, (_, index) => Object.freeze({
-      left: index * 50,
-      bottom: 20,
-      right: index * 50 + 48,
-      top: 68,
-    }))),
-  });
+  skills.geometry.sink?.update(geometry(2, 1));
   assert.equal(skills.geometry.state.status, "ready");
 
   skills.wantSlots(false);
   assert.deepEqual(skills.geometry.state, { status: "waiting", reason: "stale" });
   skills.wantSlots(true);
-  skills.geometry.sink?.update({
-    status: "ready",
-    sequence: 2,
-    frameId: 2,
-    viewportWidth: 800,
-    viewportHeight: 600,
-    slots: Object.freeze(Array.from({ length: 8 }, (_, index) => Object.freeze({
-      left: index * 50,
-      bottom: 20,
-      right: index * 50 + 48,
-      top: 68,
-    }))),
-  });
+  skills.geometry.sink?.update(geometry(2, 2));
   assert.deepEqual(
     skills.geometry.state,
     { status: "waiting", reason: "stale" },
     "re-enabling cannot revive the withdrawn publication",
   );
-  skills.geometry.sink?.update({
-    status: "ready",
-    sequence: 4,
-    frameId: 2,
-    viewportWidth: 800,
-    viewportHeight: 600,
-    slots: Object.freeze(Array.from({ length: 8 }, (_, index) => Object.freeze({
-      left: index * 50,
-      bottom: 20,
-      right: index * 50 + 48,
-      top: 68,
-    }))),
-  });
+  skills.geometry.sink?.update(geometry(4, 2));
   assert.equal(skills.geometry.state.status, "ready");
 
   // Skill Cooldowns claims ui.skillLabels and reads game.skillbar (game-blocks.ts).
@@ -85,7 +63,6 @@ test("the skill feeds run only for what needs them", () => {
   skills.geometry.dispose();
   skills.cooldowns.dispose();
 });
-
 
 test("a refused native renderer leaves the slot geometry inactive", () => {
   const skills = createSkillOverlaysInstallation({

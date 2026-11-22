@@ -109,95 +109,40 @@ describe("reading the token back", () => {
   const STATE = "the-generated-nonce";
   const RETURN = "https://www.guildwars.com/app/live/auth";
 
-  it("accepts a fragment token whose state matches", () => {
-    const r = inspectRedirect(
-      STEAM_OAUTH,
-      `${RETURN}#access_token=abc123&state=${STATE}&token_type=bearer`,
-      STATE,
-    );
-    assert.deepEqual(r, {
-      kind: "redirect",
-      result: { ok: true, token: "abc123" },
-    });
-  });
-
-  it("accepts a query token as well as a fragment token", () => {
-    const r = inspectRedirect(
-      STEAM_OAUTH,
-      `${RETURN}?access_token=q99&state=${STATE}`,
-      STATE,
-    );
-    assert.deepEqual(r, {
-      kind: "redirect",
-      result: { ok: true, token: "q99" },
-    });
-  });
-
-  it("accepts a bare `token` key as well as `access_token`", () => {
-    // Both spellings are read, fragment first. Untested, a typo or wrong
+  it("reads a token from the fragment or the query, under either key, access_token first", () => {
+    // Both key spellings are read, fragment first. Untested, a typo or wrong
     // precedence here would only surface against a live server that happens to
     // use the alternate name.
-    assert.deepEqual(inspectRedirect(STEAM_OAUTH, `${RETURN}#token=abc123&state=${STATE}`, STATE), {
-      kind: "redirect",
-      result: { ok: true, token: "abc123" },
-    });
-    assert.deepEqual(inspectRedirect(STEAM_OAUTH, `${RETURN}?token=q99&state=${STATE}`, STATE), {
-      kind: "redirect",
-      result: { ok: true, token: "q99" },
-    });
+    for (const [suffix, token] of [
+      [`#access_token=abc123&state=${STATE}&token_type=bearer`, "abc123"],
+      [`?access_token=q99&state=${STATE}`, "q99"],
+      [`#token=abc123&state=${STATE}`, "abc123"],
+      [`?token=q99&state=${STATE}`, "q99"],
+      [`#access_token=primary&token=secondary&state=${STATE}`, "primary"],
+    ] as const) {
+      assert.deepEqual(
+        inspectRedirect(STEAM_OAUTH, `${RETURN}${suffix}`, STATE),
+        { kind: "redirect", result: { ok: true, token } },
+        suffix,
+      );
+    }
   });
 
-  it("prefers access_token when a response carries both", () => {
-    assert.deepEqual(
-      inspectRedirect(
-        STEAM_OAUTH,
-        `${RETURN}#access_token=primary&token=secondary&state=${STATE}`,
-        STATE,
-      ),
-      { kind: "redirect", result: { ok: true, token: "primary" } },
-    );
-  });
-
-  it("rejects a response whose state does not match the attempt", () => {
-    // An unsolicited or replayed response fails before the token
-    // is read, so a token that arrives unasked-for is never trusted.
-    const r = inspectRedirect(
-      STEAM_OAUTH,
-      `${RETURN}#access_token=abc123&state=someone-elses`,
-      STATE,
-    );
-    assert.deepEqual(r, {
-      kind: "redirect",
-      result: { ok: false, reason: "state-mismatch" },
-    });
-  });
-
-  it("rejects a response carrying no state at all", () => {
-    const r = inspectRedirect(STEAM_OAUTH, `${RETURN}#access_token=abc123`, STATE);
-    assert.deepEqual(r, {
-      kind: "redirect",
-      result: { ok: false, reason: "state-mismatch" },
-    });
-  });
-
-  it("rejects a matching-state response that carries no token", () => {
-    const r = inspectRedirect(STEAM_OAUTH, `${RETURN}#state=${STATE}`, STATE);
-    assert.deepEqual(r, {
-      kind: "redirect",
-      result: { ok: false, reason: "no-token" },
-    });
-  });
-
-  it("rejects a matching-state response whose token is empty", () => {
-    const r = inspectRedirect(
-      STEAM_OAUTH,
-      `${RETURN}#access_token=&state=${STATE}`,
-      STATE,
-    );
-    assert.deepEqual(r, {
-      kind: "redirect",
-      result: { ok: false, reason: "no-token" },
-    });
+  it("refuses a response with a wrong or missing state, or no usable token", () => {
+    // An unsolicited or replayed response fails before the token is read, so a
+    // token that arrives unasked-for is never trusted.
+    for (const [suffix, reason] of [
+      ["#access_token=abc123&state=someone-elses", "state-mismatch"],
+      ["#access_token=abc123", "state-mismatch"],
+      [`#state=${STATE}`, "no-token"],
+      [`#access_token=&state=${STATE}`, "no-token"],
+    ] as const) {
+      assert.deepEqual(
+        inspectRedirect(STEAM_OAUTH, `${RETURN}${suffix}`, STATE),
+        { kind: "redirect", result: { ok: false, reason } },
+        suffix,
+      );
+    }
   });
 
   it("does not treat a matching state on another URL as the redirect", () => {

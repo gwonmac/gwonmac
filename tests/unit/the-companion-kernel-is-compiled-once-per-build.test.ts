@@ -132,9 +132,9 @@ describe("scripts/copy-renderer.mjs only copies assets", () => {
     assert.equal(existsSync(path.join(root, "build/preload")), false);
   });
 
-  it("copies no code, because Rollup emits build/renderer's JavaScript", () => {
+  it("copies no code and emits no WebAssembly, because Rollup emits build/renderer's JavaScript", () => {
     const code = filesUnder(path.join(root, "build")).filter(
-      (file) => file.endsWith(".js") || file.endsWith(".ts"),
+      (file) => /\.(?:js|ts|wasm)$/u.test(file),
     );
     assert.deepEqual(code, []);
   });
@@ -185,13 +185,6 @@ describe("scripts/copy-renderer.mjs only copies assets", () => {
       "ui/components.css",
       "ui/tokens.css",
     ]);
-  });
-
-  it("emits no WebAssembly", () => {
-    const emitted = filesUnder(path.join(root, "build")).filter((file) =>
-      file.endsWith(".wasm"),
-    );
-    assert.deepEqual(emitted, []);
   });
 });
 

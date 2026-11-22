@@ -413,23 +413,16 @@ describe("Cartography reachability kernel", () => {
     assert.equal([...kernel.words()].every((word) => word === 0), true);
   });
 
-  it("retains one certified component through a transient missing start", async () => {
-    const kernel = await createKernel();
-    assert.equal(kernel.classify(), 1);
-    const before = kernel.words();
-    kernel.view.setUint32(A.maps + 0x44, 0, true);
-    assert.equal(kernel.classify(), 1);
-    assert.deepEqual(kernel.words(), before);
-  });
-
-  it("retains the component without corrupting its queue at 256x512", async () => {
-    const kernel = await createKernel();
-    assert.equal(kernel.classifyShape(256, 512), 1);
-    const before = kernel.wordsShape(256, 512);
-    kernel.view.setUint32(A.maps + 0x44, 0, true);
-    assert.equal(kernel.classifyShape(256, 512), 1);
-    assert.deepEqual(kernel.wordsShape(256, 512), before);
-  });
+  for (const [width, height] of [[WIDTH, HEIGHT], [256, 512]] as const) {
+    it(`retains one certified component through a transient missing start at ${width}x${height}`, async () => {
+      const kernel = await createKernel();
+      assert.equal(kernel.classifyShape(width, height), 1);
+      const before = kernel.wordsShape(width, height);
+      kernel.view.setUint32(A.maps + 0x44, 0, true);
+      assert.equal(kernel.classifyShape(width, height), 1);
+      assert.deepEqual(kernel.wordsShape(width, height), before);
+    });
+  }
 
   it("adapts complete terrain resolution instead of failing the semantic model", async () => {
     const kernel = await createKernel();

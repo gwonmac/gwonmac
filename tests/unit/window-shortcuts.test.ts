@@ -23,10 +23,23 @@ type ShortcutInput = Pick<
   "type" | "key" | "code" | "meta" | "control" | "shift" | "alt" | "isAutoRepeat"
 >;
 
+type Dispatch = (event: { preventDefault(): void }, input: ShortcutInput) => void;
+
+/** A window whose before-input-event listener is exposed as `dispatch`. */
+function fakeWindow(webContents: object = {}) {
+  let listener: Dispatch = () => undefined;
+  const dispatch: Dispatch = (event, input) => listener(event, input);
+  const win = {
+    isDestroyed: () => false,
+    webContents: { ...webContents, on: (_name: string, l: Dispatch) => { listener = l; } },
+    on() { return win; },
+  } as unknown as BrowserWindow;
+  return { win, dispatch };
+}
+
 describe("window shortcut input", () => {
   it("keeps Call target opt-in, consumes repeats, and supports clearing or rebinding", () => {
-    let dispatch!: (event: { preventDefault(): void }, input: ShortcutInput) => void;
-    const win = { webContents: { on: (_name: string, listener: typeof dispatch) => { dispatch = listener; } }, on() { return win; } } as unknown as BrowserWindow;
+    const { win, dispatch } = fakeWindow();
     const actions: string[] = [];
     installWindowShortcuts(win, { run: action => { actions.push(action); }, edit() {}, quitOrReload() {} });
     const send = (type: "keyDown" | "keyUp", code = "KeyG", repeat = false) => {
@@ -60,8 +73,7 @@ describe("window shortcut input", () => {
   });
 
   it("leaves Whispers off until assigned, and gates, rebinds, and clears it", () => {
-    let dispatch!: (event: { preventDefault(): void }, input: ShortcutInput) => void;
-    const win = { webContents: { on: (_name: string, listener: typeof dispatch) => { dispatch = listener; } }, on() { return win; } } as unknown as BrowserWindow;
+    const { win, dispatch } = fakeWindow();
     const actions: string[] = [];
     installWindowShortcuts(win, { run: action => { actions.push(action); }, edit() {}, quitOrReload() {} });
     const press = (code = "KeyW") => {
@@ -90,8 +102,7 @@ describe("window shortcut input", () => {
   });
 
   it("gates and rebinds Resign, and rearms after a native sheet consumes key-up", async () => {
-    let dispatch!: (event: { preventDefault(): void }, input: ShortcutInput) => void;
-    const win = { webContents: { on: (_name: string, listener: typeof dispatch) => { dispatch = listener; } }, on() { return win; } } as unknown as BrowserWindow;
+    const { win, dispatch } = fakeWindow();
     const actions: string[] = [];
     installWindowShortcuts(win, { run: async action => { actions.push(action); }, edit() {}, quitOrReload() {} });
     const press = (code = "KeyJ") => {
@@ -141,8 +152,7 @@ describe("window shortcut input", () => {
   });
 
   it("gates Core and Maps independently and keeps a hidden layer's shortcut usable", () => {
-    let dispatch!: (event: { preventDefault(): void }, input: ShortcutInput) => void;
-    const win = { webContents: { on: (_name: string, listener: typeof dispatch) => { dispatch = listener; } }, on() { return win; } } as unknown as BrowserWindow;
+    const { win, dispatch } = fakeWindow();
     const actions: string[] = [];
     installWindowShortcuts(win, { run: action => { actions.push(action); }, edit: () => undefined, quitOrReload: async () => undefined });
     const settings = { ...DEFAULT_SETTINGS, shortcutOverrides: { "cartography.grid.toggle": { key: "g", shift: false, option: false }, "cartography.walkability.toggle": { key: "l", shift: false, option: false } } };
@@ -166,20 +176,7 @@ describe("window shortcut input", () => {
     assert.deepEqual(actions, ["hub.toggle", "hub.toggle", "cartography.grid.toggle", "cartography.walkability.toggle"]);
   });
   it("runs one Command action, preserves Control, and contains capture repeats", async () => {
-    let beforeInput: (
-      event: { preventDefault(): void },
-      input: ShortcutInput,
-    ) => void = () => undefined;
-    const win = {
-      webContents: {
-        on(name: string, listener: typeof beforeInput) {
-          if (name === "before-input-event") beforeInput = listener;
-        },
-      },
-      on() {
-        return win;
-      },
-    } as unknown as BrowserWindow;
+    const { win, dispatch: beforeInput } = fakeWindow();
     const actions: string[] = [];
     const edits: string[] = [];
     let quitOrReload = 0;
@@ -395,8 +392,7 @@ describe("window shortcut input", () => {
 });
 
 it("routes Command-K directly to Trade and contains repeats", async () => {
-  let dispatch!: (event: { preventDefault(): void }, input: ShortcutInput) => void;
-  const win = { webContents: { on: (_name: string, listener: typeof dispatch) => { dispatch = listener; } }, on() { return win; } } as unknown as BrowserWindow;
+  const { win, dispatch } = fakeWindow();
   const actions: string[] = [];
   installWindowShortcuts(win, { run: action => { actions.push(action); }, edit() {}, quitOrReload() {} });
   updateWindowShortcuts(win, { ...DEFAULT_SETTINGS, gwonmacTools: true });
@@ -412,8 +408,7 @@ it("routes Command-K directly to Trade and contains repeats", async () => {
 });
 
 it("decides a fresh press again when Chromium dropped the claimed key-up, but holds a native sheet's key", async () => {
-  let dispatch!: (event: { preventDefault(): void }, input: ShortcutInput) => void;
-  const win = { webContents: { on: (_name: string, listener: typeof dispatch) => { dispatch = listener; } }, on() { return win; } } as unknown as BrowserWindow;
+  const { win, dispatch } = fakeWindow();
   const actions: string[] = [];
   const sheets: Array<() => void> = [];
   installWindowShortcuts(win, {
@@ -446,8 +441,7 @@ it("decides a fresh press again when Chromium dropped the claimed key-up, but ho
 
 describe("window shortcut layout and ownership", () => {
   const install = (settings = DEFAULT_SETTINGS) => {
-    let dispatch!: (event: { preventDefault(): void }, input: ShortcutInput) => void;
-    const win = { webContents: { on: (_name: string, listener: typeof dispatch) => { dispatch = listener; } }, on() { return win; } } as unknown as BrowserWindow;
+    const { win, dispatch } = fakeWindow();
     const calls: string[] = [];
     installWindowShortcuts(win, {
       run: action => { calls.push(action); },
@@ -503,9 +497,8 @@ describe("window shortcut layout and ownership", () => {
 });
 
 it("records Hub shortcut down, repeats and release without exposing typed keys (HUB-240)", () => {
-  let dispatch!: (event: { preventDefault(): void }, input: ShortcutInput) => void;
   const sent: unknown[][] = [];
-  const win = { isDestroyed: () => false, webContents: { isDestroyed: () => false, send: (...args: unknown[]) => sent.push(args), on: (_name: string, listener: typeof dispatch) => { dispatch = listener; } }, on() { return win; } } as unknown as BrowserWindow;
+  const { win, dispatch } = fakeWindow({ isDestroyed: () => false, send: (...args: unknown[]) => sent.push(args) });
   const actions: string[] = [];
   installWindowShortcuts(win, { run: action => { actions.push(action); }, edit() {}, quitOrReload() {} });
   updateWindowShortcuts(win, DEFAULT_SETTINGS);

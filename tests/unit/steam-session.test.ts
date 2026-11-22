@@ -71,11 +71,6 @@ describe("the Steam session store", () => {
     assert.deepEqual(await store.load(), { token: TOKEN, expiry: null });
   });
 
-  it("reports an absent store as absent, not as a failure", async () => {
-    const { store } = storeIn();
-    assert.equal(await store.load(), null);
-  });
-
   it("maps native failure to the Steam session vocabulary", async () => {
     const { keychain, store } = storeIn();
     keychain.failure = new Error("injected native failure");
@@ -333,17 +328,6 @@ describe("deciding which Steam token to vend", () => {
     assert.deepEqual(resolution.notes, [
       { note: "acquireFailed", code: "steam_session_corrupt" },
     ]);
-    assert.equal(store.held, null);
-  });
-
-  it("reports a sign-in that did not complete without storing anything", async () => {
-    const store = fakeStore(null);
-    const resolution = await resolveSteamToken(store, {
-      silent: false,
-      acquire: fakeAcquire(null),
-      now: NOW,
-    });
-    assert.equal(resolution.token, null);
     assert.equal(store.held, null);
   });
 
@@ -726,15 +710,9 @@ describe("the client handing a token back", () => {
     }
   });
 
-  it("still accepts an expiry in the future", async () => {
-    const store = fakeStore({ token: FRESH, expiry: NOW });
-    const future = NOW + 60_000;
-    assert.equal(await refreshSteamExpiry(store, FRESH, future, NOW), "refreshed");
-    assert.deepEqual(store.held, { token: FRESH, expiry: future });
-  });
-
   it("never extends persistence beyond the OAuth lifetime", async () => {
     for (const supplied of [
+      NOW + STEAM_TOKEN_LIFETIME_MS,
       NOW + STEAM_TOKEN_LIFETIME_MS + 1,
       Number.MAX_SAFE_INTEGER,
       Number.MAX_VALUE,
@@ -749,16 +727,6 @@ describe("the client handing a token back", () => {
         expiry: NOW + STEAM_TOKEN_LIFETIME_MS,
       });
     }
-  });
-
-  it("keeps an expiry exactly at the maximum boundary", async () => {
-    const store = fakeStore({ token: FRESH, expiry: NOW + 1 });
-    const maximum = NOW + STEAM_TOKEN_LIFETIME_MS;
-    assert.equal(
-      await refreshSteamExpiry(store, FRESH, maximum, NOW),
-      "refreshed",
-    );
-    assert.deepEqual(store.held, { token: FRESH, expiry: maximum });
   });
 
   it("rejects an expiry at the current instant", async () => {

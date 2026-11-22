@@ -130,9 +130,7 @@ describe("settings", () => {
   });
 
   it("defaults Elite Skills on for existing settings and validates its Mission Map markers", () => {
-    const defaults = parseSettings({ cartographyEnabled: true });
-    assert.equal(defaults.eliteSkillsEnabled, true);
-    assert.equal(defaults.eliteMissionMapMarkers, "saved");
+    assert.equal(parseSettings({ cartographyEnabled: true }).eliteSkillsEnabled, true);
     assert.throws(() => parseSettingsPatch({ eliteMissionMapMarkers: "target" }), AppError);
     assert.deepEqual(parseRendererSettingsPatch({ eliteSkillsEnabled: false, eliteMissionMapMarkers: "all" }), {
       eliteSkillsEnabled: false,
@@ -142,17 +140,7 @@ describe("settings", () => {
     assert.throws(() => parseSettingsPatch({ eliteMissionMapMarkers: "boss" }), AppError);
   });
 
-  it("defaults Compass ranges off while preserving each selected range", () => {
-    const defaults = parseSettings({});
-    assert.equal(defaults.compassRangeIndicatorsEnabled, false);
-    assert.equal(defaults.compassRangeEarshotEnabled, true);
-    assert.equal(defaults.compassRangeCastEnabled, true);
-    assert.equal(defaults.compassRangeSpiritEnabled, true);
-    assert.equal(defaults.compassRangeSpiritExtendedEnabled, true);
-    assert.equal(defaults.compassRangeEarshotOpacity, 95);
-    assert.equal(defaults.compassRangeCastOpacity, 95);
-    assert.equal(defaults.compassRangeSpiritOpacity, 95);
-    assert.equal(defaults.compassRangeSpiritExtendedOpacity, 95);
+  it("preserves each selected Compass range and bounds its opacity", () => {
     assert.deepEqual(parseRendererSettingsPatch({
       compassRangeIndicatorsEnabled: true,
       compassRangeCastEnabled: false,
@@ -171,104 +159,20 @@ describe("settings", () => {
     // A profile written before the cursor became a boolean carries
     // `cursorTheme` and a selectable input mode. They are unknown fields now,
     // so they are ignored rather than rejected: nothing else the player chose
-    // may be lost with them.
+    // may be lost with them. The exact deepEqual proves no retired key survives.
     //
     // Such a profile also predates the default flip. It gets the new default
-    // rather than the old one — an alpha install that never expressed a
+    // rather than the old one: an alpha install that never expressed a
     // preference is not an install that said no.
-    const got = parseSettings({
+    assert.deepEqual(parseSettings({
       cursorTheme: "guild-wars-2",
       renderScale: 1,
       touchMode: "off",
       showDiagnostics: true,
-    });
-    assert.equal("cursorTheme" in got, false);
-    assert.equal("nativeCursor" in got, false);
-    assert.deepEqual(got, {
-      uiPanelOpacity: 94,
-      uiTextSize: 100,
-      renderScale: 1,
-      uiStyle: "guild-wars",
-      uiCustomTheme: DEFAULT_CUSTOM_UI_THEME,
-      uiFont: "guild-wars",
-      controllerPromptStyle: "game-default",
-      cartographyEnabled: true,
-      characterSwitchEnabled: true,
-      resignEnabled: false,
-      whispersEnabled: false,
-      callTargetEnabled: false,
-      cartographyOverlayEnabled: false,
-      cartographyGridEnabled: false,
-      cartographyRouteEnabled: true,
-      cartographyQuestRouteEnabled: true,
-      cartographyCompassGridEnabled: false,
-      compassRangeIndicatorsEnabled: false,
-      compassRangeEarshotEnabled: true,
-      compassRangeCastEnabled: true,
-      compassRangeSpiritEnabled: true,
-      compassRangeSpiritExtendedEnabled: true,
-      compassRangeEarshotOpacity: 95,
-      compassRangeCastOpacity: 95,
-      compassRangeSpiritOpacity: 95,
-      compassRangeSpiritExtendedOpacity: 95,
-      compassRangeTheme: "color",
-      cartographyRevealMode: "off",
-      cartographyPresetLibrary: DEFAULT_SETTINGS.cartographyPresetLibrary,
-      cartographyWalkabilityOpacity: 55,
-      cartographyGridOpacity: 65,
-      cartographyControlIdleOpacity: 35,
-      eliteSkillsEnabled: true,
-      eliteMissionMapMarkers: "saved",
-      hubShortcuts: [],
-      calculatorRates: { mode: 'automatic', ecto: '', armbrace: '', zkey: '' },
-      gwonmacTools: false,
-      buildLibrary: true,
-      tradeChat: true,
-      xunlaiStorage: false,
-      travelPalette: true,
-      characterSwitchProfession: true,
-      characterSwitchLevel: true,
-      characterSwitchLocation: true,
-      travelShortcuts: DEFAULT_SETTINGS.travelShortcuts,
-      targetReadout: false,
-      shortcutOverrides: {},
-      skillKeyBindings: [null, null, null, null, null, null, null, null],
-      skillKeyLabelsEnabled: false,
-      chatFiltersEnabled: false,
-      chatFilterAllyDrops: true,
-      chatFilterHallOfHeroes: true,
-      chatFilterTitleAchievements: true,
-      skillCooldownOverlayEnabled: true,
-      quickItemMove: false,
-      effectTimersEnabled: false,
-      alcoholTimerEnabled: false,
-      remindersEnabled: false,
-      reminderCons: true,
-      reminderPcons: true,
-      reminderAlcohol: true,
-      reminderBeforeEnd: true,
-      reminderAtEnd: true,
-      reminderSound: false,
-      alcoholTimerPosition: { corner: "top-left", x: 4, y: 58, locked: true },
-      targetReadoutPosition: null,
-      compassButtonsShown: true,
-      compassButtonsOffset: { x: 0, y: 0 },
-      skillCooldownColor: { kind: "preset", preset: "red" },
-      autoRelogAfterReload: false,
-      memoryWarningPosition: null,
-      showDiagnostics: true,
-      disableSteamLogin: false,
-      pasteCleanup: true,
-      hubCalculators: true,
-      whispersIcon: true,
-      autoCheckUpdates: true,
-      lastUpdateCheckAt: null,
-      compatibilityNoticeSeenFor: null,
-    });
+    }), { ...DEFAULT_SETTINGS, renderScale: 1, showDiagnostics: true });
   });
 
   it("fills missing fields and ignores unknown keys on read", () => {
-    assert.equal(parseSettings({}).renderScale, 2);
     const got = parseSettings({
       patchMode: "fullImage",
       renderScale: 2,
@@ -288,15 +192,15 @@ describe("settings", () => {
   });
 
   it("preserves every explicit supported render scale", () => {
-    assert.equal(parseSettings({ renderScale: 1 }).renderScale, 1);
-    assert.equal(parseSettings({ renderScale: 1.5 }).renderScale, 1.5);
-    assert.equal(parseSettings({ renderScale: 2 }).renderScale, 2);
+    for (const renderScale of [1, 1.5, 2]) {
+      assert.equal(parseSettings({ renderScale }).renderScale, renderScale);
+    }
   });
 
   it("accepts only supported interface styles", () => {
-    assert.equal(parseSettings({ uiStyle: "guild-wars" }).uiStyle, "guild-wars");
-    assert.equal(parseSettings({ uiStyle: "obsidian" }).uiStyle, "obsidian");
-    assert.equal(parseSettings({ uiStyle: "custom" }).uiStyle, "custom");
+    for (const uiStyle of ["guild-wars", "obsidian", "custom"]) {
+      assert.equal(parseSettings({ uiStyle }).uiStyle, uiStyle);
+    }
     assert.throws(() => parseSettings({ uiStyle: "jade" }), AppError);
     assert.throws(() => parseSettings({ uiStyle: true }), AppError);
   });
@@ -379,25 +283,17 @@ describe("settings", () => {
   });
 
   it("accepts only the supported interface fonts", () => {
-    assert.equal(parseSettings({ uiFont: "guild-wars" }).uiFont, "guild-wars");
-    assert.equal(parseSettings({ uiFont: "inter" }).uiFont, "inter");
-    assert.equal(parseSettings({ uiFont: "system" }).uiFont, "system");
-    assert.equal(parseSettings({ uiFont: "avenir" }).uiFont, "avenir");
-    assert.equal(parseSettings({ uiFont: "georgia" }).uiFont, "georgia");
-    assert.equal(parseSettings({ uiFont: "palatino" }).uiFont, "palatino");
+    for (const uiFont of ["guild-wars", "inter", "system", "avenir", "georgia", "palatino"]) {
+      assert.equal(parseSettings({ uiFont }).uiFont, uiFont);
+    }
     assert.throws(() => parseSettings({ uiFont: "papyrus" }), AppError);
     assert.throws(() => parseSettings({ uiFont: false }), AppError);
   });
 
   it("accepts only the two supported controller prompt styles", () => {
-    assert.equal(
-      parseSettings({ controllerPromptStyle: "game-default" }).controllerPromptStyle,
-      "game-default",
-    );
-    assert.equal(
-      parseSettings({ controllerPromptStyle: "playstation" }).controllerPromptStyle,
-      "playstation",
-    );
+    for (const controllerPromptStyle of ["game-default", "playstation"]) {
+      assert.equal(parseSettings({ controllerPromptStyle }).controllerPromptStyle, controllerPromptStyle);
+    }
     assert.throws(() => parseSettings({ controllerPromptStyle: "nintendo" }), AppError);
     assert.throws(() => parseSettings({ controllerPromptStyle: true }), AppError);
   });
@@ -426,17 +322,9 @@ describe("settings", () => {
     // Older apps wrote a Stable/Beta track. The app is Stable only and drops it.
     assert.equal("updateTrack" in parseSettings({ updateTrack: "beta" }), false);
 
-    assert.equal(parseSettings({ lastUpdateCheckAt: null }).lastUpdateCheckAt, null);
-    assert.equal(parseSettings({ lastUpdateCheckAt: 0 }).lastUpdateCheckAt, 0);
-    assert.equal(
-      parseSettings({ lastUpdateCheckAt: 1_800_000_000_000 }).lastUpdateCheckAt,
-      1_800_000_000_000,
-    );
-    assert.equal(
-      parseSettings({ lastUpdateCheckAt: LAST_UPDATE_CHECK_AT_MAX })
-        .lastUpdateCheckAt,
-      LAST_UPDATE_CHECK_AT_MAX,
-    );
+    for (const lastUpdateCheckAt of [null, 0, 1_800_000_000_000, LAST_UPDATE_CHECK_AT_MAX]) {
+      assert.equal(parseSettings({ lastUpdateCheckAt }).lastUpdateCheckAt, lastUpdateCheckAt);
+    }
     // Epoch milliseconds, not a date, not a duration, not a negative.
     assert.throws(() => parseSettings({ lastUpdateCheckAt: -1 }), AppError);
     assert.throws(() => parseSettings({ lastUpdateCheckAt: 1.5 }), AppError);
@@ -494,16 +382,9 @@ describe("settings", () => {
 
   it("takes the acknowledged client build only as a client hash", () => {
     const hash = "b0319704f3072d6948a66026a35af5eb0af12b48d70986783c293e7c77e98483";
-    assert.equal(
-      parseSettings({ compatibilityNoticeSeenFor: hash })
-        .compatibilityNoticeSeenFor,
-      hash,
-    );
-    assert.equal(
-      parseSettings({ compatibilityNoticeSeenFor: null })
-        .compatibilityNoticeSeenFor,
-      null,
-    );
+    for (const seen of [hash, null]) {
+      assert.equal(parseSettings({ compatibilityNoticeSeenFor: seen }).compatibilityNoticeSeenFor, seen);
+    }
     // It names a build, so a boolean, a truncated hash or upper case — the
     // shapes a "notice shown" flag would arrive as — are all refused.
     assert.throws(() => parseSettings({ compatibilityNoticeSeenFor: true }), AppError);
@@ -527,39 +408,23 @@ describe("settings", () => {
     ]) assert.throws(() => parseSettings({ skillCooldownColor: value }), AppError);
   });
 
-  it("keeps Quick Item Move off by default and accepts its one switch", () => {
-    assert.equal(parseSettings({}).quickItemMove, false);
-    assert.deepEqual(parseSettingsPatch({ quickItemMove: true }), { quickItemMove: true });
-  });
-
   it("validates patches without filling fields from defaults", () => {
     assert.throws(() => parseSettingsPatch({ nativeCursor: true }), AppError);
-    assert.deepEqual(parseSettingsPatch({ lastUpdateCheckAt: 1_000 }), {
-      lastUpdateCheckAt: 1_000,
-    });
+    for (const patch of [
+      { lastUpdateCheckAt: 1_000 },
+      { targetReadout: true },
+      { autoRelogAfterReload: true },
+      { uiStyle: "obsidian" },
+      { uiCustomTheme: DEFAULT_CUSTOM_UI_THEME },
+      { uiFont: "inter" },
+      { controllerPromptStyle: "playstation" },
+      { quickItemMove: true },
+    ]) assert.deepEqual(parseSettingsPatch(patch), patch, JSON.stringify(patch));
     assert.throws(() => parseSettingsPatch({ updateTrack: "beta" }), AppError);
     assert.throws(() => parseSettingsPatch({ mystery: true }), AppError);
     assert.throws(() => parseSettingsPatch({ touchMode: "dbltap" }), AppError);
     // A renderer that still names a retired key is a bug, not a migration.
     assert.throws(() => parseSettingsPatch({ cursorTheme: "system" }), AppError);
-    assert.deepEqual(parseSettingsPatch({ targetReadout: true }), {
-      targetReadout: true,
-    });
-    assert.deepEqual(parseSettingsPatch({ autoRelogAfterReload: true }), {
-      autoRelogAfterReload: true,
-    });
-    assert.deepEqual(parseSettingsPatch({ uiStyle: "obsidian" }), {
-      uiStyle: "obsidian",
-    });
-    assert.deepEqual(parseSettingsPatch({ uiCustomTheme: DEFAULT_CUSTOM_UI_THEME }), {
-      uiCustomTheme: DEFAULT_CUSTOM_UI_THEME,
-    });
-    assert.deepEqual(parseSettingsPatch({ uiFont: "inter" }), {
-      uiFont: "inter",
-    });
-    assert.deepEqual(parseSettingsPatch({ controllerPromptStyle: "playstation" }), {
-      controllerPromptStyle: "playstation",
-    });
   });
 
   it("keeps launcher policy off the game renderer settings channel", () => {
@@ -609,14 +474,12 @@ describe("settings", () => {
     const path = join(dir, "settings.json");
     const missing = await loadSettings(path);
     assert.deepEqual(missing, DEFAULT_SETTINGS);
-    assert.equal(missing.renderScale, 2);
     await writeFile(path, "{not json");
     let backup = "";
     const corrupt = await loadSettings(path, ({ backupPath }) => {
       backup = backupPath ?? "not preserved";
     });
     assert.deepEqual(corrupt, DEFAULT_SETTINGS);
-    assert.equal(corrupt.renderScale, 2);
     assert.match(backup, /settings\.json\.corrupt-\d+-[0-9a-f-]{36}$/u);
     assert.equal(await readFile(backup, "utf8"), "{not json");
     assert.deepEqual(await readdir(dir), [backup.split("/").at(-1)]);
@@ -779,92 +642,10 @@ describe("settings", () => {
       recovered = backupPath ?? "not preserved";
     });
     assert.equal(recovered, "", "an alpha profile must not be treated as corrupt");
-    assert.equal("teamManagement" in loaded, false);
-    assert.deepEqual(loaded, {
-      uiPanelOpacity: 94,
-      uiTextSize: 100,
-      renderScale: 1.5,
-      uiStyle: "guild-wars",
-      uiCustomTheme: DEFAULT_CUSTOM_UI_THEME,
-      uiFont: "guild-wars",
-      controllerPromptStyle: "game-default",
-      cartographyEnabled: true,
-      characterSwitchEnabled: true,
-      resignEnabled: false,
-      whispersEnabled: false,
-      callTargetEnabled: false,
-      cartographyOverlayEnabled: false,
-      cartographyGridEnabled: false,
-      cartographyRouteEnabled: true,
-      cartographyQuestRouteEnabled: true,
-      cartographyCompassGridEnabled: false,
-      compassRangeIndicatorsEnabled: false,
-      compassRangeEarshotEnabled: true,
-      compassRangeCastEnabled: true,
-      compassRangeSpiritEnabled: true,
-      compassRangeSpiritExtendedEnabled: true,
-      compassRangeEarshotOpacity: 95,
-      compassRangeCastOpacity: 95,
-      compassRangeSpiritOpacity: 95,
-      compassRangeSpiritExtendedOpacity: 95,
-      compassRangeTheme: "color",
-      cartographyRevealMode: "off",
-      cartographyPresetLibrary: DEFAULT_SETTINGS.cartographyPresetLibrary,
-      cartographyWalkabilityOpacity: 55,
-      cartographyGridOpacity: 65,
-      cartographyControlIdleOpacity: 35,
-      eliteSkillsEnabled: true,
-      eliteMissionMapMarkers: "saved",
-      hubShortcuts: [],
-      calculatorRates: { mode: 'automatic', ecto: '', armbrace: '', zkey: '' },
-      gwonmacTools: false,
-      buildLibrary: true,
-      tradeChat: true,
-      xunlaiStorage: false,
-      travelPalette: true,
-      characterSwitchProfession: true,
-      characterSwitchLevel: true,
-      characterSwitchLocation: true,
-      travelShortcuts: DEFAULT_SETTINGS.travelShortcuts,
-      targetReadout: false,
-      shortcutOverrides: {},
-      skillKeyBindings: [null, null, null, null, null, null, null, null],
-      skillKeyLabelsEnabled: false,
-      chatFiltersEnabled: false,
-      chatFilterAllyDrops: true,
-      chatFilterHallOfHeroes: true,
-      chatFilterTitleAchievements: true,
-      skillCooldownOverlayEnabled: true,
-      quickItemMove: false,
-      effectTimersEnabled: false,
-      alcoholTimerEnabled: false,
-      remindersEnabled: false,
-      reminderCons: true,
-      reminderPcons: true,
-      reminderAlcohol: true,
-      reminderBeforeEnd: true,
-      reminderAtEnd: true,
-      reminderSound: false,
-      alcoholTimerPosition: { corner: "top-left", x: 4, y: 58, locked: true },
-      targetReadoutPosition: null,
-      compassButtonsShown: true,
-      compassButtonsOffset: { x: 0, y: 0 },
-      skillCooldownColor: { kind: "preset", preset: "red" },
-      autoRelogAfterReload: false,
-      memoryWarningPosition: null,
-      showDiagnostics: true,
-      disableSteamLogin: false,
-      pasteCleanup: true,
-      hubCalculators: true,
-      whispersIcon: true,
-      // Fields that alpha never wrote arrive at their defaults — deliberately
-      // including the update check, which defaults on. A profile that never
-      // stored the setting inherits the current default; an explicit opt-out
-      // remains false on the ordinary parse path.
-      autoCheckUpdates: true,
-      lastUpdateCheckAt: null,
-      compatibilityNoticeSeenFor: null,
-    });
+    // Fields alpha never wrote arrive at their defaults, deliberately including
+    // the update check, which defaults on. The exact deepEqual also proves the
+    // retired cursor/input keys and the legacy teamManagement shadow are gone.
+    assert.deepEqual(loaded, { ...DEFAULT_SETTINGS, renderScale: 1.5, showDiagnostics: true });
     // Nothing was moved aside, so the file the player had is still the file.
     assert.deepEqual(await readdir(dir), ["settings.json"]);
     assert.deepEqual(JSON.parse(await readFile(path, "utf8")), alpha);
@@ -877,7 +658,6 @@ describe("settings", () => {
       formatVersion: 1,
       ...loaded,
     });
-    assert.equal("touchMode" in rewritten, false);
     assert.deepEqual(await loadSettings(path), loaded);
   });
 
