@@ -30,6 +30,20 @@ their data.
 - Remove when: two Stable releases after the removal have shipped. Delete the
   two paths from `ensureDirs` and this entry.
 
+## Whispers icon place from localStorage
+
+- Why: the Whispers unread icon's place moved from the game window's
+  localStorage (`gwonmac.whispers-icon-placement`) into the
+  `whispersIconPosition` setting. While the setting is unset, Whispers reads
+  the old entry once as its first value, saves it in settings and removes the
+  entry (`app/features/whispers/renderer/icon-placement.ts`).
+- Introduced: 2026-11-22 with plan step 5.3 (Whispers on the Feature platform).
+- Depends on it: players who moved the icon before this change.
+- Remove when: two Stable releases after the change have shipped. Delete
+  `takeStoredPlace` and its call, its exemption in
+  `tests/policy/source-saved-login-surface.test.ts`, and this entry; an
+  unmoved icon simply starts at its default place.
+
 ## Read aliases for old player data
 
 These are permanent readers, not migrations. Keep them.

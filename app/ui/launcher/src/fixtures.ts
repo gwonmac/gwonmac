@@ -85,6 +85,7 @@ const fixtureBase: Omit<LauncherSnapshot, "features"> = {
     pasteCleanup: true,
     hubCalculators: true,
     whispersIcon: true,
+    whispersIconPosition: null,
     cartographyOverlayEnabled: false,
     cartographyGridEnabled: false,
     cartographyRouteEnabled: true,

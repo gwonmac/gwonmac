@@ -361,6 +361,25 @@ function followSession(nextId: () => number, publish: (session: GameSession | nu
   };
 }
 
+/**
+ * `game.session` over a play-region feed that calls each listener with the current state at once
+ * (rules at `followSession`). It follows the region only while someone listens, and a new
+ * listener after none starts a new session.
+ */
+export function createSessionBlock(
+  available: boolean,
+  playRegions: Readonly<{ subscribe(listener: (state: CompanionPlayRegionState) => void): () => unknown }>,
+): Block<GameSession | null> {
+  // Ids stay unique across subscriptions, so a value seen before is never a new session.
+  let sessions = 0;
+  let stop: (() => unknown) | null = null;
+  const session = createBlock<GameSession | null>(available, null, Object.is, (wanted) => {
+    stop?.();
+    stop = wanted ? playRegions.subscribe(followSession(() => ++sessions, (next) => session.publish(next))) : null;
+  });
+  return session.block;
+}
+
 function skillbarOf(state: CompanionSkillCooldownState): GameSkillbar | null {
   if (state.status !== "ready" || state.rechargeTimestamps.length !== 8) return null;
   // Both are the game's 32-bit millisecond timer, so the signed difference survives its wrap;
@@ -482,13 +501,7 @@ export function createGameBlocks({ capabilities, substrates, playRegions, syncOb
     stopRegion = wanted ? playRegions.subscribe((state) => region.publish(regionOf(state))) : null;
   });
 
-  // Ids stay unique across subscriptions, so a value seen before is never a new session.
-  let sessions = 0;
-  let stopSession: (() => void) | null = null;
-  const session = createBlock<GameSession | null>(capabilities.playRegionObservation, null, Object.is, (wanted) => {
-    stopSession?.();
-    stopSession = wanted ? playRegions.subscribe(followSession(() => ++sessions, (next) => session.publish(next))) : null;
-  });
+  const session = createSessionBlock(capabilities.playRegionObservation, playRegions);
 
   let stopSkillbar: (() => unknown) | null = null;
   const skillbar = createBlock<GameSkillbar | null>(capabilities.skillCooldownObservation, null, sameSkillbar, (wanted) => {
@@ -501,7 +514,7 @@ export function createGameBlocks({ capabilities, substrates, playRegions, syncOb
   return Object.freeze({
     target: target.block,
     region: region.block,
-    session: session.block,
+    session,
     skillbar: skillbar.block,
     chat: createGameChat(capabilities.whisperChat, chat, syncObservers),
     effects: feedBlock(capabilities.playerEffectObservation, sameEffects, effects.playerEffects, effects,

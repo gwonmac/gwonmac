@@ -92,10 +92,12 @@ test("whisper toggle focuses the picker or draft and returns focus to the game",
       const surface = await import(surfacePath);
       const session = model.createWhisperSession(async () => {});
       session.setAvailable(true);
-      surface.createWhisperSurface(document.body, session);
+      // Whispers' link `toggle`, which its shortcut calls.
+      const { toggle } = surface.createWhisperSurface(document.body, session);
+      Object.assign(window, { whispersToggle: () => toggle("toggle") });
     });
     await expect(page.locator("#whisper-window")).toBeAttached();
-    const toggle = () => page.evaluate(() => window.dispatchEvent(new CustomEvent("gw:whispers-toggle", { cancelable: true })));
+    const toggle = () => page.evaluate(() => (window as typeof window & { whispersToggle(): unknown }).whispersToggle());
     await toggle();
     await expect(page.locator("#whisper-person")).toBeFocused();
     await page.locator("#whisper-person").fill("Test Friend");

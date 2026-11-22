@@ -75,6 +75,7 @@ export const SETTINGS: readonly SettingEntry[] = [
   { ...feature("alcoholTimerPosition"), section: "tools", tool: "alcohol-timer", keywords: "move reset position" },
   { ...feature("targetReadoutPosition"), section: "tools", tool: "target-readout", keywords: "move drag reset position" },
   { ...feature("whispersIcon"), section: "tools", tool: "whispers", keywords: "hide whisper button icon unread" },
+  { ...feature("whispersIconPosition"), section: "tools", tool: "whispers", keywords: "move drag reset whisper icon position" },
   { ...feature("skillKeyBindings"), section: "tools", tool: "skill-key-labels", keywords: "skill key labels bindings" },
 
   { ...feature("cartographyGridEnabled"), section: "maps", keywords: `cartographer explore ${KEYS}` },

@@ -55,7 +55,7 @@ async function start(t: test.TestContext, module: WebAssembly.Module) {
   } as unknown as WebAssembly.Exports;
   const settings = { ...DEFAULT_SETTINGS, gwonmacTools: true, whispersEnabled: true, travelPalette: true };
   const previousWindow = globalThis.window;
-  // The Hub shows, so both Whispers and Travel want the friend list.
+  // The Hub shows, so Travel wants the friend list; Whispers reads it only for its own picker.
   Object.defineProperty(globalThis, "window", { configurable: true, value: Object.assign(new EventTarget(), {
     gwToolsSettings: () => settings, gwFeatureFacts: () => provenFacts(settings),
     gwHub: { visible: true, attach: () => () => {}, showRows() {}, notify() {} },
@@ -163,10 +163,10 @@ test("game.friends reads only while someone listens, gives each change once and 
   run.publish(8, 81);
   run.frame();
   assert.deepEqual(keys().slice(3), [null, "Example Ranger@81"]);
-  assert.equal(run.whispersFriends()?.status, "ready", "Whispers, which listens while the Hub shows, has the fresh list");
+  assert.deepEqual(run.whispersFriends(), NO_FRIENDS, "Whispers, whose picker is closed, does not read the list for the Hub (Hub people reads its own)");
   assert.equal(run.travelSaw.at(-1)?.status, "ready", "so does Travel's palette");
 
   stop();
   run.enter("000000020000000b");
-  assert.equal(run.observing(), true, "Whispers and Travel still listen while the Hub shows");
+  assert.equal(run.observing(), true, "Travel still listens while the Hub shows");
 });

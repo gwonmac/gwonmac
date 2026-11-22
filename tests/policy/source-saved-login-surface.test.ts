@@ -29,8 +29,13 @@ const shippedApplication = shippedSources().map(read).join("\n");
 // Geometry is the sole Core browser-storage owner. Remove only these exact calls
 // from the secret-surface check; any new key, argument or storage API still fails.
 const placementCalls = /localStorage\.(?:getItem\(storageKey\)|setItem\(storageKey, intent\)|removeItem\(storageKey\))/gu;
+// The Whispers icon's one-time move into settings may only read and remove its old
+// entry (docs/migrations.md); it never writes browser storage.
+const whispersIconMoveCalls = /localStorage\.(?:getItem\(STORED_KEY\)|removeItem\(STORED_KEY\))/gu;
 const withoutPlacementStorage = shippedSources().map(file => file === "app/renderer/hub-window.ts"
-  ? read(file).replace(placementCalls, "approvedPlacementCall") : read(file)).join("\n");
+  ? read(file).replace(placementCalls, "approvedPlacementCall")
+  : file === "app/features/whispers/renderer/icon-placement.ts"
+    ? read(file).replace(whispersIconMoveCalls, "approvedMoveCall") : read(file)).join("\n");
 const legacyFilenameOwners = shippedSources().filter((file) =>
   /credentials\.bin|steam-session\.bin/u.test(read(file)),
 );

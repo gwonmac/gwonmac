@@ -134,6 +134,11 @@ in `FeatureLinkApis` ([`app/features/links.ts`](../app/features/links.ts)). The 
 refuses a link to an unknown Feature, to one that offers nothing, to a method it does not
 offer, or to itself. Features never call each other through window events.
 
+A Feature with a window of its own that its shortcut and Hub row open offers `toggle`
+(`ToolLink` in [`links.ts`](../app/features/links.ts)) instead of naming a `tool.event`:
+the shortcut calls it with `toggle`, the Hub row with `show`, and it answers `"shown"`,
+`"hidden"` or `"unavailable"`. [`whispers/`](../app/features/whispers/) is the example.
+
 ## README and CHANGELOG
 
 The README is the Feature's only player documentation. The contract allows a small

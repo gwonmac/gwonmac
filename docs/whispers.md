@@ -16,8 +16,15 @@ game messages.
 The default **Command-D** shortcut opens the floating Whispers surface. Existing
 custom bindings and cleared shortcuts are preserved. Person search, the shortcut
 and the unread launcher use the same mounted Vue conversation component. The
-launcher icon can be hidden (`whispersIcon`); the shortcut and Hub still open
-the surface.
+shortcut, the **View → Whispers** menu item, the Hub row, the unread icon and
+other Features (Trade Chat's `open`) reach the surface only through Whispers'
+typed link (`app/features/whispers/shared/link.ts`): the shortcut and the icon
+call `toggle`, the Hub row asks it to `show`. There is no Whispers window event.
+The launcher icon can be hidden (`whispersIcon`); the shortcut and Hub still open
+the surface. Where the player drags the icon is the `whispersIconPosition`
+setting (a distance from the nearest corner, null for the default place), so
+every game window follows a move and Copy settings carries it; Settings ›
+Tools › Whispers resets it.
 Opening it from Hub suspends the Hub page. Returning to Hub resumes that page.
 The session and transcript have one owner; there is no separate quick composer.
 
@@ -50,15 +57,14 @@ friend is before Enter. The caller decides whether it points to Travel and
 invite: `hub-people.ts` adds the pointer only where it shows that row and the
 row can start, so a hidden Travel palette, an unavailable Travel, an
 explorable area or a PvP outpost gets no pointer. Travel and invite
-refuses a known PvP outpost up front. It captures the character, starts the
-existing friend Travel, and invites once after a ready PvE outpost of the
-friend's map stays ready for two seconds. The first outpost after login can
-publish no character key yet; the first known key is adopted, and only two
-different known keys count as a character change. Once a key is known, only an
-arrival with that key counts, so a relogged character never sends the invite; a
-moment of unavailable game state during an ordinary zone change does not
-withdraw it. While no key is known yet, a return to character selection counts
-as a character change. A character
+refuses a known PvP outpost up front. It follows the character through
+`game.session`, starts the existing friend Travel, and invites once after a
+ready PvE outpost of the friend's map stays ready for two seconds. A new
+session (another account or character) or an ended one counts as a character
+change; the session's rules (`followSession` in `app/renderer/game-blocks.ts`)
+keep a moment of unavailable game state during an ordinary zone change from
+withdrawing it. Once a character key was seen, an arrival that reads no key
+waits, so a relogged character never sends the invite. A character
 change, a refused trip, a non-PvE arrival or 60 seconds without arrival withdraws the
 invite; a non-PvE arrival withdraws it at once. Disposing Tools withdraws a
 pending arrival. The friend feed has no district, so an arrival in another
@@ -127,8 +133,13 @@ a person without chatting does not remove them from available friends. An existi
 conversation shows a friend's offline state when known. Friends use the latest
 observed snapshot for this session; pausing the observer does not add friends
 to recent people.
-Temporary loading or PvP hides the surface and disables sending. Leaving the
-game, changing character, or turning the feature off clears its session data.
+Temporary loading or PvP hides the surface and disables sending. The whisper
+session follows `game.session`: another account or character, or turning the
+feature off, clears its session data; map loads, PvP and a relog of the same
+character keep it. Whispers' game part (`app/features/whispers/companion.ts`)
+owns the session for its whole life and runs the surface and the chat listener
+as its `featurePart` while resolve has Whispers on. The surface is created
+again after loading or PvP; the session keeps what it shows.
 
 ## Verification boundary
 

@@ -1,3 +1,5 @@
+import type { CornerPosition } from "../../shared/corner-position.js";
+import { readCornerPlacement } from "../../shared/overlay-placement.js";
 import { setting } from "../../shared/settings/define.js";
 import { defineFeature, featureSwitch } from "../define.js";
 
@@ -17,12 +19,25 @@ export default defineFeature({
       label: "Show the Whispers icon",
       help: "Draws the small unread icon. The shortcut and the Hub still open Whispers.",
     }),
+    /** Where the player dragged the unread icon, as a distance from the nearest corner; null is its default place. */
+    whispersIconPosition: setting.position(
+      null,
+      (value): CornerPosition | null | undefined => value === null ? null : readCornerPlacement(value),
+      {
+        hub: true,
+        rendererWritable: true,
+        tools: true,
+        error: "Whispers icon position is invalid",
+        launcherError: "Whispers icon position is invalid",
+        label: "Whispers icon position",
+        help: "Drag the icon in a game window to move it. Reset puts it back at the top left.",
+      },
+    ),
   },
   region: "pve",
   uses: ["whisperChat"],
   tool: {
     id: "whispers",
-    event: "gw:whispers-toggle",
     keywords: "chat friends messages pm people message",
   },
   hub: {
@@ -30,8 +45,11 @@ export default defineFeature({
     row: { detail: "Conversations, friends and drafts", iconKind: "whispers", open: { show: true } },
   },
   shortcuts: [{ action: "whispers.toggle", binding: { key: "d", shift: false, option: false }, menuItem: "open-whispers" }],
-  /** Trade Chat opens a conversation with a seller; Hub people also reads who Whispers knows (shared/link.ts). */
-  offers: ["open", "people"],
+  /**
+   * Trade Chat opens a conversation with a seller; Hub people also reads who Whispers knows; its
+   * shortcut, menu item and Hub row show the panel through `toggle` (shared/link.ts).
+   */
+  offers: ["open", "people", "toggle"],
   shots: [],
   parts: ["game"],
 });

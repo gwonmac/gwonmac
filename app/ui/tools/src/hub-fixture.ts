@@ -37,6 +37,10 @@ import { createHubPeople } from '../../../renderer/hub-people';
 // eslint-disable-next-line no-restricted-imports
 import { createPartyInvite } from '../../../renderer/party-invite';
 // eslint-disable-next-line no-restricted-imports
+import { createSessionBlock } from '../../../renderer/game-blocks';
+import type { CornerPosition } from '../../../shared/corner-position';
+import type { WhispersMountOptions } from '../../../shared/tools-bundle-contracts';
+// eslint-disable-next-line no-restricted-imports
 import type { CharacterSwitchActionState, CharacterSwitchFailureCode, CharacterSwitchSource } from '../../../features/character-switch/renderer/character-switch-model';
 import { createFixtureLifecycle, FIXTURE_LIFECYCLES, isFixtureLifecycle } from './hub-fixture-lifecycle';
 // eslint-disable-next-line no-restricted-imports
@@ -267,10 +271,19 @@ export function mountHubFixture(target: HTMLElement) {
     if (state.visible !== whispersVisible) returnFocus(whispersVisible = state.visible);
   });
   messenger.addEventListener('pointerdown', () => whisperSurface.raise(), true);
-  mountWhispers(messenger, { session });
+  // Whispers' toggle, as `whisper-surface.ts` answers its link over the fixture's host.
+  const toggleWhispers: NonNullable<WhispersMountOptions['toggle']> = intent => {
+    if (!onWhereAllowed('whispers', facts()) || !session.state.available) return 'unavailable';
+    toggleHubWhispers(intent, hub, messenger, session);
+    if (session.state.visible) whisperSurface.raise();
+    return session.state.visible ? 'shown' : 'hidden';
+  };
+  let iconPosition: CornerPosition | null = null;
+  mountWhispers(messenger, { session, toggle: toggleWhispers, iconPlacement: {
+    subscribe: listener => { listener(iconPosition); return () => {}; }, save: position => { iconPosition = position; } } });
   // Whispers' link, as its companion part provides it; every name Trade opens is recorded for the specs.
-  const link = whispersLink(session);
-  provideLink('whispers', { people: link.people, open(name) { target.dataset.whisperOpens = `${target.dataset.whisperOpens ?? ''}${name}|`; return link.open(name); } });
+  const link = whispersLink(session, toggleWhispers);
+  provideLink('whispers', { people: link.people, toggle: link.toggle, open(name) { target.dataset.whisperOpens = `${target.dataset.whisperOpens ?? ''}${name}|`; return link.open(name); } });
   window.addEventListener('hub-fixture-failure', () => { failSend = true; });
   window.addEventListener('hub-fixture-reset', () => session.reset());
   window.addEventListener('hub-fixture-incoming', () => session.observe([{ id: ++id, sender: 'Romi Ranger', message: 'Ready for another mission?', direction: 'incoming' }]));
@@ -280,6 +293,7 @@ export function mountHubFixture(target: HTMLElement) {
   const invites: string[] = [];
   const partyInvite = createPartyInvite({ region: lifecycle.region, chatReady: () => session.state.available, settleMs: 400,
     subscribeRegion: lifecycle.subscribe,
+    session: createSessionBlock(true, { subscribe: listener => { listener(lifecycle.region()); return lifecycle.subscribe(() => listener(lifecycle.region())); } }),
     invite: async name => {
       await delay('invite-ms');
       if (params.has('invite-fail')) throw new Error(params.get('invite-fail') || 'Guild Wars chat is not ready');
@@ -314,16 +328,11 @@ export function mountHubFixture(target: HTMLElement) {
   window.addEventListener('hub-fixture-lifecycle', event => { if (event instanceof CustomEvent && isFixtureLifecycle(event.detail)) lifecycle.set(event.detail); });
   window.addEventListener('hub-fixture-party', event => { if (event instanceof CustomEvent) setParty(event.detail !== false); });
   window.addEventListener('hub-fixture-withdraw', () => people.updateFriends({ status: 'waiting', reason: 'unavailable' }));
-  // The Travel and Whispers owners' command listeners (`travel-palette.ts`, `whisper-surface.ts`), over the fixture's hosts.
+  // The Travel owner's command listener (`travel-palette.ts`), over the fixture's host.
   window.addEventListener('gw:travel-toggle', event => {
     if (!onWhereAllowed('travel', facts())) return;
     event.preventDefault();
     hub.direct('travel', travel.open);
-  });
-  window.addEventListener('gw:whispers-toggle', event => {
-    if (!onWhereAllowed('whispers', facts()) || !session.state.available) return;
-    toggleHubWhispers(event, hub, messenger, session);
-    if (session.state.visible) whisperSurface.raise();
   });
   window.addEventListener('hub-fixture-settings', event => { if (event instanceof CustomEvent) {
     settings = { ...settings, ...event.detail }; for (const listener of settingsListeners) listener(settings);

@@ -400,8 +400,13 @@ address, or a `$docs.<page>` link names no page.
 
 A tool's `event` is the one name of the renderer event that runs it: its
 shortcut's command fires it through `app/renderer/commands.ts`
-(`TOOL_COMMAND_EVENTS` in `app/shared/hub-tools.ts`), and so does
-its Core Hub row.
+(`TOOL_COMMANDS` in `app/shared/hub-tools.ts`), and so does
+its Core Hub row. A feature that offers `toggle` (`ToolLink` in
+[`links.ts`](../app/features/links.ts)) names no event: its shortcut, game menu
+item and Hub row call its link instead (`toggleTool` in
+[`feature-links.ts`](../app/renderer/feature-links.ts)), `toggle` from the
+shortcut and `show` from the Hub row. Whispers is the first; a tool still on an
+event moves the same way.
 
 Code that several features use stays where it is: the capability registry and
 the proofs in `app/client/certification/`, the kernels, the shared substrates,

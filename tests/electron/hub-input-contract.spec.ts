@@ -212,7 +212,11 @@ test('Command-D hands the open Hub to Whispers, and its closing release stays ou
       const surface = await import(surfacePath) as typeof import('../../app/features/whispers/renderer/whisper-surface.js');
       const session = model.createWhisperSession(async () => {});
       session.setAvailable(true);
-      surface.createWhisperSurface(document.body, session);
+      const { toggle } = surface.createWhisperSurface(document.body, session);
+      // Command-D reaches the surface through Whispers' link, as its companion part provides it.
+      const linksPath = './feature-links.js';
+      const links = await import(linksPath) as typeof import('../../app/renderer/feature-links.js');
+      links.provideLink('whispers', { toggle, open: () => 'unavailable', people: () => 'unavailable' });
     });
     await expect(page.locator('#whisper-window')).toBeAttached();
     const hub = hubOf(page);
@@ -742,7 +746,8 @@ test('a native held Enter sends one invite and owns its repeats and release (HUB
       const { createPartyInvite } = await import(invitePath) as typeof import('../../app/renderer/party-invite.js');
       const sent: string[] = []; Object.assign(window, { acceptanceInvites: sent });
       const party = createPartyInvite({ region: () => ({ status: 'ready', sequence: 1, mapId: 55, instanceType: 0, playRegion: 'pve', travelContext: 'world', characterKey: null, guildHall: false, hasGuildHall: false, unlockedMapWords: null }),
-        subscribeRegion: () => () => {}, chatReady: () => true, invite: async name => { sent.push(name); }, travel: null });
+        subscribeRegion: () => () => {}, session: { available: true, subscribe: listener => { listener({ id: 1 }); return () => {}; } },
+        chatReady: () => true, invite: async name => { sent.push(name); }, travel: null });
       createHubPeople(window.gwHub!, { whispers: null, travel: null }, party).setEnabled(true);
     });
     await chord(fixture, 'R', ['meta']); await searchOf(page).fill('invite Zed Delta');

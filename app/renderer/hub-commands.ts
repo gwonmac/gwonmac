@@ -1,8 +1,8 @@
 /**
  * Owns the Hub's built-in commands: the rows that open a tool, the Commands page (the Hub's
  * cheatsheet), the typed-only commands, and the search that hands a typed item to Trade. The tool
- * rows come from their manifests (app/shared/hub-tools.ts); a tool opens through its own event,
- * so Core names a tool without loading its code. The Hub matches
+ * rows come from their manifests (app/shared/hub-tools.ts); a tool opens through its own event or
+ * its Feature's link `toggle`, so Core names a tool without loading its code. The Hub matches
  * these rows against the query itself (HubSource `commands`); this module attaches them as one
  * built-in source (hub-builtins.ts).
  */
@@ -11,15 +11,15 @@ import { resolveShortcuts, shortcutKeycaps, type ShortcutAction } from '../share
 import { normaliseHubQuery, parseHubQuery, type HubRow, type HubSource, type HubTask } from '../shared/hub.js';
 import type { SettingsTarget } from '../shared/settings-catalogue.js';
 import type { FeatureId } from '../shared/feature-contracts.js';
+import { toggleTool } from './feature-links.js';
 import { featureOn } from './feature-on.js';
 import type { Hub } from './hub.js';
 import type { HubIconKind } from '../shared/ui/hub-icon.js';
 
+const UNAVAILABLE = 'Unavailable in the current game state.';
 /** A tool's event: a tool that is not running leaves it unhandled, and the action refuses. */
 const dispatch = (name: string, detail?: unknown) => {
-  if (window.dispatchEvent(new CustomEvent(name, { cancelable: true, detail }))) {
-    throw new Error('Unavailable in the current game state.');
-  }
+  if (window.dispatchEvent(new CustomEvent(name, { cancelable: true, detail }))) throw new Error(UNAVAILABLE);
 };
 
 /** The Hub as its commands use it: to close, suspend or show it, open a page, and find a saved row. */
@@ -36,6 +36,8 @@ export function createHubCommands(hub: CommandsHub, openSettings: (target?: Sett
       ...HUB_TOOL_ROWS.filter(tool => on(tool.feature)).map((tool): HubRow => {
         const open = tool.open;
         const run = 'settings' in open ? openSettings({ section: open.settings })
+          // A tool that opens through its link asks it to show, never to close (Whispers).
+          : 'link' in open ? () => { if (toggleTool(open.link, 'show') === 'unavailable') throw new Error(UNAVAILABLE); }
           // A tool that opens after the Hub closes never refuses: the Hub is gone (Xunlai Storage).
           : open.closesHub ? () => { hub.close(); window.dispatchEvent(new CustomEvent(open.event, { cancelable: true })); }
           : () => dispatch(open.event, open.show ? 'show' : undefined);

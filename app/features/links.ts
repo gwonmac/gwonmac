@@ -6,6 +6,9 @@
  * that target off. The in-game Hub, which is no Feature, names the links it calls in HUB_LINKS
  * and gets `HubLinks` the same way. app/renderer/feature-links.ts is the registry in one game
  * window; ./contract.ts checks that every named target and method exists.
+ *
+ * A Feature whose tool opens through its link offers `toggle` (`ToolLink`): its shortcut, game
+ * menu item and Hub row call it (app/shared/hub-tools.ts) instead of firing a window event.
  */
 import type { TravelLink } from "./travel/shared/link.js";
 import type { WhispersLink } from "./whispers/shared/link.js";
@@ -18,6 +21,18 @@ export type FeatureLinkApis = {
 };
 
 export type LinkTarget = keyof FeatureLinkApis;
+
+/** What opening a tool asks: `show` never closes it (a Hub row), `toggle` closes an open one (its shortcut). */
+export type ToolIntent = "show" | "toggle";
+
+/** The link method a tool that opens through its link offers. */
+export type ToolLink = Readonly<{
+  /** Shows or toggles the tool; "unavailable" while it cannot open (its part is not running, or the game is not ready). */
+  toggle(intent: ToolIntent): "shown" | "hidden" | "unavailable";
+}>;
+
+/** The Features whose tool opens through their link's `toggle`. */
+export type ToolLinkTarget = { [Target in LinkTarget]: FeatureLinkApis[Target] extends ToolLink ? Target : never }[LinkTarget];
 
 /** Links named by target, each with the methods called: a manifest's `links`, or HUB_LINKS. */
 export type NamedLinks = Readonly<{ [Target in LinkTarget]?: readonly (keyof FeatureLinkApis[Target] & string)[] }>;

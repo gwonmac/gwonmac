@@ -24,6 +24,9 @@ import { prepareToolsCompanionExtension } from '../../../renderer/certified-comp
 import { installSurfaceController } from '../../../renderer/surface-controller';
 import { RELEASE_ENHANCEMENT_CAPABILITIES } from '../../../shared/enhancement-contracts';
 import { FEATURES, FEATURE_SELECTION_POLICIES } from '../../../shared/feature-contracts';
+import { TOOL_COMMANDS } from '../../../shared/hub-tools';
+// eslint-disable-next-line no-restricted-imports
+import { toggleTool } from '../../../renderer/feature-links';
 import { DEFAULT_SETTINGS, type AppSettings } from '../../../shared/settings/index';
 import { installLeakLedger, type Leak, type LeakLedger } from '../../../../tests/helpers/leak-ledger';
 import { fixtureFacts } from './fixture-facts';
@@ -255,10 +258,12 @@ async function startGameParts(): Promise<() => void> {
   };
 }
 
-/** What a player can open: every feature tool's shortcut event (app/features/<id>/feature.ts). */
+/** What a player can open: every feature tool's shortcut event or link toggle (app/features/<id>/feature.ts). */
 const TOOL_EVENTS = FEATURES.flatMap(feature => 'tool' in feature && 'event' in feature.tool ? [feature.tool.event] : []);
+const TOOL_LINKS = [...TOOL_COMMANDS.values()].flatMap(opener => 'link' in opener ? [opener.link] : []);
 const openEverything = async () => {
   for (const type of TOOL_EVENTS) window.dispatchEvent(new CustomEvent(type, { cancelable: true, detail: { show: true } }));
+  for (const target of TOOL_LINKS) toggleTool(target, 'show');
   await settle();
 };
 
