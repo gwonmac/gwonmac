@@ -146,7 +146,7 @@ const fixtureBase: Omit<LauncherSnapshot, "features"> = {
 export function fixtureFacts(tools: LauncherSnapshot["tools"], checks: ClientCompatibility["features"] | null): FeatureFacts {
   const settings: Partial<Record<keyof FeatureSwitchSettings, boolean>> = { [LAUNCH_MODE_SWITCH]: tools.configured };
   for (const tool of GLOBAL_TOOLS) settings[featureSwitchOf(GLOBAL_TOOL_FEATURES[tool])] = tools.features[tool].enabled;
-  return { toolsAtLaunch: tools.loaded, settings, program: "none", features: checks };
+  return { stage: "dev", toolsAtLaunch: tools.loaded, settings, program: "none", features: checks };
 }
 
 export const fixtureSnapshot: LauncherSnapshot = { ...fixtureBase, features: fixtureFacts(fixtureBase.tools, null) };

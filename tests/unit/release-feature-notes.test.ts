@@ -140,6 +140,44 @@ describe("release notes plan", () => {
     assert.deepEqual(plan.writes.map(({ file }) => file), ["website/content/posts/15.gwonmac-1-4-0-beta-1.md"]);
   });
 
+  // Wrong behaviours: a Stable post tells players about a Feature or option they cannot see; a
+  // left-out change is stamped with the version, so it never reaches the release that ships it;
+  // a shipped change keeps its option key in the stamped changelog.
+  it("lists only what the release shows, and keeps the rest under Unreleased", () => {
+    const whispers = [
+      "## Unreleased",
+      "- Opens from the Hub.",
+      "- [whispersSound] Plays a sound.",
+      "- [whispersPreview] Shows a preview.",
+      "",
+    ].join("\n");
+    const staged = [
+      { file: "app/features/whispers/CHANGELOG.md", name: "Whispers", text: whispers,
+        settings: { whispersEnabled: {}, whispersSound: { stage: "beta" as const }, whispersPreview: { stage: "dev" as const } } },
+      { file: "app/features/alcohol-timer/CHANGELOG.md", name: "Alcohol Timer", text: "## Unreleased\n- Counts down.\n", stage: "beta" as const },
+    ];
+    const listed = (version: string) => releaseNotesPlan(version, staged, [post(version)]).notes;
+    assert.equal(listed("1.4.0"), "## Features\n\n- **Whispers:** Opens from the Hub.\n");
+    assert.equal(listed("1.4.0-beta.1"), [
+      "## Features", "",
+      "- **Alcohol Timer:** Counts down.",
+      "- **Whispers:** Opens from the Hub.",
+      "- **Whispers:** Plays a sound.", "",
+    ].join("\n"));
+    assert.equal(
+      releaseNotesPlan("1.4.0", staged, [post("1.4.0")]).writes[0]!.text,
+      "## Unreleased\n\n- [whispersSound] Plays a sound.\n- [whispersPreview] Shows a preview.\n\n## 1.4.0\n- Opens from the Hub.\n",
+    );
+    assert.equal(
+      stampChangelog("## Unreleased\n- [whispersSound] Plays a sound.\n", "1.5.0", "app/features/whispers/CHANGELOG.md").text,
+      "## Unreleased\n\n## 1.5.0\n- Plays a sound.\n",
+    );
+    assert.throws(
+      () => releaseNotesPlan("1.4.0", [{ ...staged[0]!, text: "## Unreleased\n- [whisperSound] Plays a sound.\n" }], [post("1.4.0")]),
+      /whispers\/CHANGELOG\.md: "\[whisperSound\]" names no setting of this Feature/u,
+    );
+  });
+
   it("writes nothing when no feature has changes", () => {
     assert.deepEqual(releaseNotesPlan("1.4.0", changelogs("## Unreleased\n"), [post("1.4.0")]), { notes: "", writes: [] });
   });

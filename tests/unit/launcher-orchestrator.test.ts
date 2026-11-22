@@ -120,7 +120,7 @@ async function fixture(options: { allowUnreadyLaunch?: boolean } = {}) {
     getSettings: () => DEFAULT_SETTINGS,
     getNews: () => ({ status: "loading", stories: [] }),
     toolsLoaded: () => false,
-    featureFacts: () => ({ toolsAtLaunch: false, settings: {}, program: "none", features: null }),
+    featureFacts: () => ({ stage: "stable", toolsAtLaunch: false, settings: {}, program: "none", features: null }),
     ...(options.allowUnreadyLaunch === undefined
       ? {}
       : { allowUnreadyLaunch: options.allowUnreadyLaunch }),

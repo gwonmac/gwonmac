@@ -536,11 +536,13 @@ let inputTrace: InputTrace | null = null;
 let gamepadTrace: import('./gamepad-trace.js').GamepadTraceController | null = null;
 // The Tools view of the settings, defaults included, comes from the one settings
 // table. boot() loads it with the host modules; until then there is nothing to show.
+// An option not in this build's release reads as off; until main's facts name the
+// build's stage, only stable options show.
 let projectToolsSettings:
   typeof import('../shared/settings/index.js').toolsSettings | null = null;
 window.gwToolsSettings = () => {
   if (!projectToolsSettings) throw new Error('Tools settings are not loaded yet');
-  return projectToolsSettings(appSettings);
+  return projectToolsSettings(appSettings, featureFacts?.stage ?? 'stable');
 };
 // Main's facts for this window's Feature decision (app/main/feature-decision.ts); null
 // until the first arrive. New facts are announced like new settings, with

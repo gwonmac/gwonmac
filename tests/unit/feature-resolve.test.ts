@@ -27,7 +27,7 @@ function features(changed: Partial<Record<EnhancementCapability, OptionalFeature
 const SWITCHES = Object.values(FEATURE_SELECTION_POLICIES).flatMap((policy) => policy.switch ?? []);
 
 const PLAYING: FeatureState = Object.freeze({
-  toolsAtLaunch: true,
+  stage: "stable", toolsAtLaunch: true,
   settings: Object.fromEntries(SWITCHES.map((key) => [key, true])),
   program: "none",
   playRegion: "pve",
@@ -70,7 +70,7 @@ test("resolve names the first reason a feature is off", () => {
 });
 
 test("surfaces outside the game area show a feature that waits only for its area", () => {
-  const facts = (state: FeatureState): FeatureFacts => ({ toolsAtLaunch: state.toolsAtLaunch, settings: state.settings, program: state.program, features: state.features });
+  const facts = (state: FeatureState): FeatureFacts => ({ stage: state.stage, toolsAtLaunch: state.toolsAtLaunch, settings: state.settings, program: state.program, features: state.features });
   const cases: readonly [string, FeatureId, FeatureState, boolean][] = [
     ["a PvE feature before a map", "whispers", playing({ playRegion: "unknown" }), true],
     ["a feature this build changed", "quickItemMove", playing({ features: features({ quickItemMove: { status: "unavailable", reason: "game-update" } }) }), false],

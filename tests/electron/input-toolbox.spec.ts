@@ -204,7 +204,7 @@ test.describe("renderer Tools input", () => {
         // packaged probes do; Trade Chat names no verifier capability.
         const realFacts = window.gwFeatureFacts?.() ?? null;
         window.gwFeatureFacts = () => ({
-          toolsAtLaunch: true,
+          stage: "dev", toolsAtLaunch: true,
           program: "none",
           features: realFacts?.features ?? null,
           settings: { ...window.gwToolsSettings(), gwonmacTools: true, tradeChat: true },

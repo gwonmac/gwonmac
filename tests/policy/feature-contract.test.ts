@@ -206,6 +206,18 @@ const cases: readonly Case[] = [
     message: "app/features/quick-note/feature.ts: the folder has companion.ts, so parts must list \"game\".",
   },
   {
+    check: "a staged option reads as off where it is hidden, so it is a boolean",
+    folders: [folder(manifest("quickNote", { settings: { quickNoteEnabled: aSwitch, quickNoteVolume: { ...option(label), kind: "integer", stage: "beta" } } }))],
+    message: "app/features/quick-note/feature.ts: setting quickNoteVolume has a stage but is of kind integer; where it is hidden it reads as false, so only a boolean option, whose false is off, may have one.",
+  },
+  {
+    check: "a staged option's README lines wait in STAGED.md",
+    folders: [folder(manifest("quickNote", { settings: { quickNoteEnabled: aSwitch, quickNoteSound: option({ ...label, stage: "dev" }) } }), {
+      readme: `Example does one thing. Turn on :setting[Sound]{to="features/quickNoteSound"}.\n${details}`,
+    })],
+    message: "app/features/quick-note/README.md: names quickNoteSound, which has stage \"dev\"; keep its lines in STAGED.md beside it until the option ships, so players do not read about it.",
+  },
+  {
     check: "network needs a main part",
     folders: [folder(manifest("quickNote", { network: ["notes.example.com"] }))],
     message: "app/features/quick-note/feature.ts: network hosts are reached only from a main part; add main.ts and \"main\" to parts.",

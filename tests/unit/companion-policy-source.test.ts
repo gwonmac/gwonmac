@@ -9,7 +9,7 @@ import { DEFAULT_SETTINGS } from "../../app/shared/settings/index.js";
 
 /** Main's facts for a launch with Features loaded and every capability proved. */
 const facts = (settings: FeatureFacts["settings"]): FeatureFacts => ({
-  toolsAtLaunch: true,
+  stage: "stable", toolsAtLaunch: true,
   settings,
   program: "none",
   features: {

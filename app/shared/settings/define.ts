@@ -7,6 +7,7 @@
  * This module holds no setting and imports no feature, so a feature manifest can
  * import it without forming a cycle through the table.
  */
+import type { ManifestStage } from "../release.js";
 
 /**
  * Which surfaces see a setting. Absent means none: the setting stays in main.
@@ -46,6 +47,13 @@ export type SettingOptions = SettingScope & SettingMessages & Readonly<{
   unit?: string;
   /** A switch in the same manifest this option works under; a settings page dims the option while that switch is off. `defineFeature` checks the key. */
   dependsOn?: string;
+  /**
+   * A Feature option still in development: shown only in builds at this stage or later
+   * (app/shared/release.ts). Elsewhere no page draws it, search does not find it, and the
+   * runtime reads it as `false`, its off value; the stored value stays. Only a boolean option
+   * may have one (app/features/contract.ts). Delete the line to ship it.
+   */
+  stage?: ManifestStage;
 }>;
 
 export type SettingSpec<T> = SettingOptions & Readonly<{

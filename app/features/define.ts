@@ -14,6 +14,7 @@
  */
 import type { FeatureUse } from "../shared/contracts.js";
 import type { EnhancementProgram } from "../shared/enhancement-contracts.js";
+import type { ManifestStage } from "../shared/release.js";
 import type { ShortcutBinding } from "../shared/keyboard-shortcuts.js";
 import { setting, type SettingScope, type SettingSpec } from "../shared/settings/define.js";
 import type { HubIconKind } from "../shared/ui/hub-icon.js";
@@ -113,6 +114,13 @@ export type FeatureDefinition = Readonly<{
   settings?: FeatureSettingSpecs;
   /** One line under the Settings heading on its Feature page, for a rule that spans its options. */
   settingsHelp?: string;
+  /**
+   * A Feature still in development: it runs and shows only in builds at this stage or later
+   * (app/shared/release.ts). Elsewhere resolve has it off as `not-in-release`, so the catalog, its
+   * Hub rows and shortcuts leave it out, and its website page is not built. Delete the line to
+   * ship it (docs/feature-contract.md#release-stages).
+   */
+  stage?: ManifestStage;
   /** The coarse region rule; a feature's live-state gate stays authoritative. */
   region: "any" | "non-pvp" | "pve";
   /** Features that must be on for this one to run, by id (app/shared/feature-resolve.ts). */

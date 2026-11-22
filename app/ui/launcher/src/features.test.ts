@@ -68,7 +68,7 @@ describe("Features tab CHANGELOG", () => {
 describe("Features tab options", () => {
   it("leaves the on and off switch to the page header", () => {
     const maps = card("cartography");
-    const keys = featureOptions(maps).map((option) => option.key);
+    const keys = featureOptions(maps, "stable").map((option) => option.key);
     expect(keys).not.toContain("cartographyEnabled");
     expect(keys).toContain("cartographyGridEnabled");
   });

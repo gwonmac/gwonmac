@@ -10,6 +10,7 @@ import { app, Menu, systemPreferences } from "electron";
 import { EXTERNAL_URLS } from "../shared/contracts.js";
 import { RELEASE_REPO } from "../shared/project-identity.js";
 import { INITIAL_PROGRESS } from "../shared/progress.js";
+import { buildStage } from "../shared/release.js";
 import { createLauncherWindow, prepareLauncherWindowState } from "./accounts-window.js";
 import type { AppShell } from "./app-shell.js";
 import { wireCaptureControl } from "./capture-control.js";
@@ -108,6 +109,8 @@ export async function startApp(shell: AppShell, hostVersion: string): Promise<vo
   attachFeatureLaunch({
     toolsAtLaunch: launch.enhancementSelection.tools,
     program: launch.enhancementProgram,
+    // The one place the build's release stage is derived: Feature facts carry it to every surface.
+    stage: buildStage(app.isPackaged, hostVersion),
     checks: (win) => (win ? client.clientSession(win) : clientRuntime.session(hostVersion))
       .compatibility?.features ?? null,
     provenForTests: !app.isPackaged && process.env.GW_TEST_FEATURES_PROVEN === "1",

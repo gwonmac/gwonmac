@@ -44,9 +44,12 @@ const quoted = (value: string) => JSON.stringify(value);
 /** The website's Markdown shows raw HTML as text, so a README's `<kbd>` keys become the site's `:kbd[...]` component. */
 const websiteMarkdown = (readme: string) => readme.replace(/<kbd>([^<]+)<\/kbd>/gu, ":kbd[$1]");
 
-/** One page per Feature, in Features tab order (kind, then FEATURES order). Throws when a README is missing. */
+/**
+ * One page per Feature, in Features tab order (kind, then FEATURES order). Throws when a README is missing.
+ * The website serves the Stable release, so a Feature with a manifest `stage` gets no page yet.
+ */
 export function featureDocPages(sources: readonly FeatureDocSource[]): FeatureDocPage[] {
-  const ordered = KIND_ORDER.flatMap((kind) => sources.filter(({ manifest }) => manifest.kind === kind));
+  const ordered = KIND_ORDER.flatMap((kind) => sources.filter(({ manifest }) => manifest.kind === kind && manifest.stage === undefined));
   const sectioned = new Set<string>();
   return ordered.map(({ manifest, readme, updated }, index) => {
     const name = folderForId(manifest.id);

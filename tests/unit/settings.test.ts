@@ -846,5 +846,5 @@ it('saves calculator estimates through real settings without changing unrelated 
 
 // The renderer once kept its own Tools defaults, and Travel and three chat filters drifted to off.
 it("gives the renderer the same Tools defaults as DEFAULT_SETTINGS", () => {
-  assert.deepEqual(toolsSettings(null), Object.fromEntries(TOOLS_SETTINGS.map(key => [key, DEFAULT_SETTINGS[key]])));
+  assert.deepEqual(toolsSettings(null, "dev"), Object.fromEntries(TOOLS_SETTINGS.map(key => [key, DEFAULT_SETTINGS[key]])));
 });

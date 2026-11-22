@@ -35,8 +35,6 @@ h2, h3 { text-wrap: balance; }
 p { color: var(--muted); line-height: 1.5; }
 
 /* Small status and category labels. */
-.chip { display: inline-flex; align-items: center; gap: 6px; width: fit-content; padding: 4px 10px; border-radius: var(--radius-pill); color: var(--muted); background: var(--control); font-size: var(--fs-xs); white-space: nowrap; }
-.chip.accent { color: var(--gold-text); background: var(--gold-tint-strong); }
 
 /* Shell: title bar, page, launch bar. */
 .app-shell { width: 100%; min-width: 0; height: 100%; display: grid; grid-template-rows: 78px minmax(0, 1fr) auto; overflow: hidden; background: radial-gradient(circle at 85% 0%, var(--glow), transparent 35%), var(--bg); }

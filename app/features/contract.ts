@@ -8,13 +8,15 @@
  * (so a refused stage turns the Feature off with a reason), every link names a Feature that
  * offers the methods it calls, FEATURES lists each id once, `parts` lists `game` when the
  * folder has companion.ts, and a Feature with a switch of its own says in its README's
- * `### Details` where to turn it on. Pure: the caller reads the folders
+ * `### Details` where to turn it on, and a staged option (`stage`) is a boolean that is not the switch, so
+ * it reads as off where the build does not show it, and its README does not name it yet. Pure: the caller reads the folders
  * (tests/policy/feature-contract.test.ts runs it in `pnpm check`), so the same check can run on
  * a scaffold (tests/policy/new-feature-scaffold.test.ts) or a planted error.
  * Each message names the file and says what to change.
  */
 import { STAGE_USES, type StageUse } from "../shared/contracts.js";
 import { ENHANCEMENT_CAPABILITY_FIELDS } from "../shared/enhancement-contracts.js";
+import type { SettingSpec } from "../shared/settings/define.js";
 import type { FeatureDefinition } from "./define.js";
 
 /** One app/features/<folder>/ as the caller found it. */
@@ -99,6 +101,7 @@ function checkFolder({ folder, manifest, files, readme, changelog, imports }: Fe
     problems.push(`${at}/feature.ts: tool needs a switch of its own; its card and Feature page turn it, so declare one in settings with featureSwitch.`);
   }
   for (const [key, spec] of settings) {
+    if (spec.stage !== undefined) problems.push(...checkStagedSetting(at, key, spec, switches.includes(key), readme));
     if (switches.includes(key) && manifest.kind !== "mode") {
       if (spec.label !== undefined || spec.help !== undefined) {
         problems.push(`${at}/feature.ts: switch ${key} names itself; players see it under the feature's name and summary, so remove its label and help.`);
@@ -144,6 +147,24 @@ function checkFolder({ folder, manifest, files, readme, changelog, imports }: Fe
   }
   if (changelog === null) problems.push(`${at}/CHANGELOG.md: missing; start it with a "## Unreleased" heading.`);
   else if (!/^## Unreleased$/m.test(changelog)) problems.push(`${at}/CHANGELOG.md: no "## Unreleased" heading; the release script stamps it with the app version.`);
+  return problems;
+}
+
+/**
+ * A staged option reads as false where the build does not show it (HIDDEN_SETTING_VALUE in
+ * app/shared/settings/index.ts), so it must be a boolean, whose false is its off value; a whole
+ * Feature is staged on its manifest, not on its switch. Its README lines wait outside README.md
+ * until it ships (docs/feature-contract.md#release-stages), so the website does not show them.
+ */
+function checkStagedSetting(at: string, key: string, spec: SettingSpec<unknown>, isSwitch: boolean, readme: string | null): string[] {
+  const problems: string[] = [];
+  if (isSwitch) problems.push(`${at}/feature.ts: switch ${key} has a stage; stage the whole Feature with stage on its manifest instead.`);
+  else if (spec.kind !== "boolean") {
+    problems.push(`${at}/feature.ts: setting ${key} has a stage but is of kind ${spec.kind}; where it is hidden it reads as false, so only a boolean option, whose false is off, may have one.`);
+  }
+  if (readme !== null && readme.includes(`/${key}"}`)) {
+    problems.push(`${at}/README.md: names ${key}, which has stage "${spec.stage}"; keep its lines in STAGED.md beside it until the option ships, so players do not read about it.`);
+  }
   return problems;
 }
 

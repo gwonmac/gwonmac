@@ -69,8 +69,11 @@ export default defineFeature({
       label: "Walking route",
       help: "Draws a line along walkable ground to the point you set. Right-click the Mission Map or World Map to set or remove it.",
     }),
-    /** Without the player's own target, lead the walking route to the active quest's marker. */
+    /** Without the player's own target, lead the walking route to the active quest's marker. In
+     * development: a tester found it unpolished, so only development builds show it; its README
+     * lines wait in STAGED.md. */
     cartographyQuestRouteEnabled: setting.boolean(true, {
+      stage: "dev",
       hub: true,
       tools: true,
       label: "Route to quest",

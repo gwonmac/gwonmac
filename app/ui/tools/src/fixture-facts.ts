@@ -39,7 +39,7 @@ const PATCH_DAY: NonNullable<FeatureFacts['features']> = Object.freeze({
 
 export function fixtureFacts(settings: AppSettings, scenario: FixtureFeatureScenario | null = null): FeatureFacts {
   return {
-    toolsAtLaunch: scenario !== 'restart',
+    stage: "dev", toolsAtLaunch: scenario !== 'restart',
     settings,
     program: 'none',
     features: scenario === 'checking' ? null : scenario === 'patch-day' ? PATCH_DAY : EVERY_CAPABILITY_PROVED,

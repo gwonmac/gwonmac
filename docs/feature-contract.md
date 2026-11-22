@@ -128,6 +128,42 @@ Examples: [`skill-cooldowns/`](../app/features/skill-cooldowns/) and
   `app/shared/settings-catalogue.ts` and a control in the launcher
   ([Add a setting](settings.md#add-a-setting)), so it is not yet a one-folder change.
 
+## Release stages
+
+A Feature, or one option of it, that is still in development stays on main with one manifest
+line, `stage: "beta"` or `stage: "dev"`, instead of on a side branch. Without the line it is
+stable and shows everywhere.
+
+| Build | Shows |
+| --- | --- |
+| Development (`pnpm dev`, not packaged) | stable, `beta` and `dev` |
+| Packaged Beta or RC (`1.4.0-beta.1`, `1.4.0-rc.1`) | stable and `beta` |
+| Packaged Stable (`1.4.0`) | stable only |
+
+Bootstrap derives the build's stage once (`buildStage` in
+[`app/shared/release.ts`](../app/shared/release.ts)), and the Feature facts carry it to the
+launcher, the Hub and every game window.
+
+- **A staged Feature** (`stage` on its `defineFeature`): where the build does not show it,
+  `resolve` answers off with `not-in-release`, a reason players never read. The catalog does not
+  list it, its Hub rows and shortcuts do not exist, Settings search does not find it, and its
+  website page is not built.
+- **A staged option** (`stage` in its `setting.boolean(...)` options): no Feature page draws it,
+  Settings search does not find it, and the game reads it as `false`, so its code does not run.
+  The stored value stays as it is. Only a boolean option that is not the switch may have a stage
+  (the contract checks it); stage a whole Feature on its manifest.
+- **The label.** Where it shows, a staged Feature or option has a "Beta" (or, in development
+  builds, "Dev") label beside its name, on its Feature page and its option row.
+- **Words for players wait.** A staged Feature's README stays in place (the website leaves its
+  page out). A staged option's README lines move to `STAGED.md` beside the README, with where they
+  go back; the contract refuses a README that names a staged option. Its CHANGELOG bullet starts
+  with the setting key, `- [cartographyQuestRouteEnabled] Leads to your quest.`; the release
+  notes leave it out, and it stays under `## Unreleased`, until a release shows the option
+  ([releasing](releasing.md#feature-notes)).
+
+**Ship it:** delete the `stage` line. For an option, also move its lines from `STAGED.md` back
+into the README. The next release that shows it lists its CHANGELOG bullet without the key.
+
 ## Links between Features
 
 A Feature that calls another names it in `links` (`{ whispers: ["open"] }`); its part gets
@@ -178,6 +214,7 @@ Markdown subset, so the launcher and the website show the same text:
   one `>` note.
 - Links only to `https://www.gwonmac.com` or a docs page as `$docs.<page>`. No images,
   tables or other HTML.
+- Nothing about an option that still has a `stage` ([Release stages](#release-stages)).
 
 The CHANGELOG keeps a `## Unreleased` heading. Add one `- ` bullet per player-facing change
 under it; `pnpm release:notes` stamps the version and builds the release notes from it
