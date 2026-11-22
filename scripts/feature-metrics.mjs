@@ -18,6 +18,7 @@
  */
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
+import { posix } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const NOT_TESTS = [":!*.test.ts", ":!*.spec.ts", ":!*.golden.json"];
@@ -205,6 +206,25 @@ export function measure(revision) {
     if (!["namesOutsideFolder", "gwEvents", "rendererFeatureFiles", "toolsUiLocalStorage"].includes(key)) stale.push(`${key}: not a metric with an allowed list`);
   }
 
+  // app/shared modules whose only importers (tests aside) sit in one Feature's folder: they belong
+  // in that folder, so deleting the Feature does not leave its logic behind. An importer in
+  // scripts/ or elsewhere in app/ (another layer, app/shared itself) makes the module shared.
+  const sharedModules = new Set(listFiles("app/shared").filter((file) => file.endsWith(".ts")));
+  /** @type {Map<string, Set<string>>} module → the owners of its importers (a Feature folder, or "other") */
+  const sharedOwners = new Map();
+  for (const line of lines(git(["grep", "-oE", ...grepFlag, String.raw`["'](\.{1,2}/|@shared/)[^"']+["']`, ...grepRev, "--", "app", "scripts", ...NOT_TESTS]))) {
+    const at = stripRev(line).indexOf(":");
+    const [file, specifier] = [stripRev(line).slice(0, at), stripRev(line).slice(at + 2, -1)];
+    const target = specifier.startsWith("@shared/")
+      ? `app/shared/${specifier.slice("@shared/".length)}`
+      : posix.normalize(posix.join(posix.dirname(file), specifier));
+    const module = [`${target.replace(/\.(js|ts)$/, "")}.ts`, `${target}/index.ts`].find((each) => sharedModules.has(each));
+    if (module === undefined || module === file) continue;
+    const owner = file.match(/^app\/features\/([^/]+)\//)?.[1] ?? "other";
+    sharedOwners.set(module, (sharedOwners.get(module) ?? new Set()).add(owner));
+  }
+  const sharedFeatureModules = [...sharedOwners].filter(([, owners]) => owners.size === 1 && !owners.has("other")).length;
+
   // Every Feature id (or folder name) quoted in the shared substrates, or an `attach<Id>` call.
   const substrateNames = featureNames
     .map(({ id, names }) => `["'](${names})["']|attach${id.charAt(0).toUpperCase()}${id.slice(1)}\\b`)
@@ -221,6 +241,7 @@ export function measure(revision) {
     { key: "namesOutsideFolder", name: "Files outside a Feature's folder that name its id (no tests)", ...outside },
     { key: "toolsUiLocalStorage", name: "`localStorage` uses in Tools UI", ...localStorageUses },
     { key: "toolVIfCases", name: "Per-feature `v-if=\"tool === …\"` in launcher and Tools UI", value: countLines("v-if=\"tool ===", ["app/ui", ...NOT_TESTS]) },
+    { key: "sharedFeatureModules", name: "app/shared modules that only one Feature's folder imports (no tests)", value: sharedFeatureModules },
   ];
 
   return { metrics, outsideFolder, ipcChannels, stale };
