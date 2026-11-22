@@ -88,6 +88,7 @@ const fixtureBase: Omit<LauncherSnapshot, "features"> = {
     hubCalculators: true,
     whispersIcon: true,
     whispersIconPosition: null,
+    tradeChatWindowPosition: null,
     cartographyOverlayEnabled: false,
     cartographyGridEnabled: false,
     cartographyRouteEnabled: true,

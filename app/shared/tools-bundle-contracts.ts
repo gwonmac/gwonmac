@@ -15,6 +15,7 @@ import type { TravelCommand, TravelGameState } from "./travel-command.js";
 import type { ToolsGwNativeApi } from "./contracts.js";
 import type { FeatureLinks, ToolLink } from "../features/links.js";
 import type { CornerPosition } from "./corner-position.js";
+import type { FloatingWindowPlacementStore } from "./ui/window-placement.js";
 
 export type PublishedTemplate = Readonly<{
   fileName: string;
@@ -129,6 +130,8 @@ export type WhispersMountOptions = Readonly<{
 }>;
 
 export type TradeChatMountOptions = Readonly<{
+  /** Where the window keeps its place and size: the `tradeChatWindowPosition` setting. Absent, a move lasts until the view goes. */
+  placement?: FloatingWindowPlacementStore;
   initiallyVisible?: boolean;
   onVisibilityChange?: (visible: boolean) => void;
   mode: "standalone" | "embedded";

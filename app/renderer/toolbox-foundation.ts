@@ -4,13 +4,18 @@
  * Builds & Teams and Trade Chat mount lazily into explicit hosts. They may be
  * open together; the last interacted host owns visual stacking, Escape and
  * Tab. There is intentionally no registry or general layout system.
+ *
+ * The Trade window opens before its window part has loaded, so this host
+ * provides Trade Chat's link (`toggle`, `search`) while its Trade slot exists.
  */
 import { createNonActivatingSurface, isolateFromGame } from "./non-activating-surface.js";
 import { LIBRARY_UNAVAILABLE } from "../shared/hub-preferences.js";
 import type { ToolboxObservation } from "../shared/builds/live-party.js";
-import type { FeatureLinks } from "../features/links.js";
+import type { FeatureLinks, ToolIntent } from "../features/links.js";
 import type { RunningPart } from "../features/parts.js";
 import type { FeatureId } from "../shared/feature-contracts.js";
+import type { TradeChatLink } from "../features/trade-chat/shared/link.js";
+import { provideLink } from "./feature-links.js";
 
 type ToolboxState = ToolboxObservation;
 
@@ -237,18 +242,26 @@ export function createToolboxFoundation(
     else if (event instanceof CustomEvent && event.detail === "show") openFloating(builds);
     else toggle(builds);
   };
-  const onTradeCommand = (event: Event) => {
-    if (!trade || !availability.trade) return;
-    event.preventDefault();
-    if (event instanceof CustomEvent && typeof event.detail?.query === "string") {
-      if (trade.tool) trade.tool.search?.(event.detail.query);
-      else trade.query = event.detail.query;
+  const openTrade = (intent: ToolIntent, query?: string): "shown" | "hidden" | "unavailable" => {
+    if (!trade || !availability.trade) return "unavailable";
+    if (query !== undefined) {
+      if (trade.tool) trade.tool.search?.(query);
+      else trade.query = query;
     }
     // ⌘K opens Trade with its search focused, from the game as from the Hub, and hides it only
     // when the Hub is not open (HUB-128, HUB-036).
-    if (window.gwHub?.visible || !trade.visible || event instanceof CustomEvent && (event.detail === "show" || typeof event.detail?.query === "string")) openFloating(trade);
-    else requestClose(trade);
+    if (intent === "show" || window.gwHub?.visible || !trade.visible) {
+      openFloating(trade);
+      return "shown";
+    }
+    requestClose(trade);
+    return "hidden";
   };
+  const tradeLink: TradeChatLink = Object.freeze({
+    toggle: (intent: ToolIntent) => openTrade(intent),
+    search: (query: string) => openTrade("show", query) === "shown" ? "shown" : "unavailable",
+  });
+  const stopTradeLink = trade ? provideLink("tradeChat", tradeLink) : () => {};
 
   isolateFromGame(root);
 
@@ -259,11 +272,12 @@ export function createToolboxFoundation(
   const onHub = () => { if (availability.builds) ensure(builds); };
   window.addEventListener("gw:hub-visible", onHub);
   window.addEventListener("gw:tools-toggle", onBuildsCommand);
-  window.addEventListener("gw:trade-toggle", onTradeCommand);
   // The client may finish mounting Tools after Hub has already opened.
   if (window.gwHub?.visible) onHub();
 
   return {
+    /** Trade Chat's link while this host has a Trade slot, as provided to the registry. */
+    trade: trade ? tradeLink : null,
     update(next: ToolboxState) {
       state = next;
       builds.tool?.update(next);
@@ -288,7 +302,7 @@ export function createToolboxFoundation(
       cursorMirror.disconnect();
       window.removeEventListener("gw:hub-visible", onHub);
       window.removeEventListener("gw:tools-toggle", onBuildsCommand);
-      window.removeEventListener("gw:trade-toggle", onTradeCommand);
+      stopTradeLink();
       window.dispatchEvent(new CustomEvent("gw:input-reset"));
       if (root.contains(document.activeElement)) canvas.focus({ preventScroll: true });
       style.remove();

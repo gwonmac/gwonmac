@@ -37,6 +37,7 @@ import { listIndexAfter, listKeyStep, listPage } from "../../../shared/ui/list-k
 import { isHubBackKey } from "../../../shared/keyboard-shortcuts";
 import { characterKey } from "../../../shared/player-text";
 import { useFloatingWindow } from "./use-floating-window";
+import type { FloatingWindowPlacementStore } from "../../../shared/ui/window-placement";
 import TradeIcon from "./TradeIcon.vue";
 import TraderPrices from "./components/TraderPrices.vue";
 
@@ -45,6 +46,8 @@ const props = defineProps<{
   host: TradeHost;
   mode: "standalone" | "embedded";
   visible: boolean;
+  /** Where the window keeps its place and size (TradeChatMountOptions). */
+  placement?: FloatingWindowPlacementStore | undefined;
 }>();
 const emit = defineEmits<{ close: []; ready: [] }>();
 
@@ -101,7 +104,7 @@ const { panel, resizeGrip, panelStyle, startDrag } = useFloatingWindow({
   minWidth: 520,
   minHeight: 400,
   viewportMargin: 32,
-  placementStorageKey: "gwonmac.trade-window-placement",
+  placement: props.placement,
 });
 
 const whispersEnabled = ref(props.host.links.whispers !== null);

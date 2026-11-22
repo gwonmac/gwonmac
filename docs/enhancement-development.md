@@ -405,8 +405,11 @@ its Core Hub row. A feature that offers `toggle` (`ToolLink` in
 [`links.ts`](../app/features/links.ts)) names no event: its shortcut, game menu
 item and Hub row call its link instead (`toggleTool` in
 [`feature-links.ts`](../app/renderer/feature-links.ts)), `toggle` from the
-shortcut and `show` from the Hub row. Whispers is the first; a tool still on an
-event moves the same way.
+shortcut and `show` from the Hub row. Whispers and Trade Chat open this way; a
+tool still on an event moves the same way. The Tools window opens Trade before
+Trade's window part has loaded, so that host
+([`toolbox-foundation.ts`](../app/renderer/toolbox-foundation.ts)) provides
+Trade Chat's link.
 
 Code that several features use stays where it is: the capability registry and
 the proofs in `app/client/certification/`, the kernels, the shared substrates,

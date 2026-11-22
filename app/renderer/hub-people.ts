@@ -33,7 +33,7 @@ async function travelToFriend(links: Pick<HubLinks, 'travel'>, friend: TravelFri
   await started;
 }
 
-export function createHubPeople(hub: Pick<Hub, 'attach' | 'showRows' | 'notify'>, links: HubLinks, party: PartyInvite | null = null) {
+export function createHubPeople(hub: Pick<Hub, 'attach' | 'showRows' | 'notify'>, links: Pick<HubLinks, 'whispers' | 'travel'>, party: PartyInvite | null = null) {
   let friends: TravelFriends = NO_FRIENDS;
   let enabled = false;
   let disposed = false;

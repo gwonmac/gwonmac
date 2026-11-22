@@ -11,7 +11,7 @@ import { resolveShortcuts, shortcutKeycaps, type ShortcutAction } from '../share
 import { normaliseHubQuery, parseHubQuery, type HubRow, type HubSource, type HubTask } from '../shared/hub.js';
 import type { SettingsTarget } from '../shared/settings-catalogue.js';
 import type { FeatureId } from '../shared/feature-contracts.js';
-import { toggleTool } from './feature-links.js';
+import { hubLinks, toggleTool } from './feature-links.js';
 import { featureOn } from './feature-on.js';
 import type { Hub } from './hub.js';
 import type { HubIconKind } from '../shared/ui/hub-icon.js';
@@ -103,8 +103,10 @@ export function createHubCommands(hub: CommandsHub, openSettings: (target?: Sett
     // The player's own words, in the market Trade has open, with Trade's icon (HUB-124).
     search(query) {
       const parsed = parseHubQuery(query);
-      return parsed.scope === 'trade' && parsed.term && featureOn('tradeChat')
-        ? [{ id: 'trade:query', iconKind: 'trade', title: `Search Trade for ${parsed.text}`, detail: 'Offers and character names', group: 'Tools', action: `Search Trade for ${parsed.text}`, run: () => dispatch('gw:trade-toggle', { query: parsed.text }) }] : [];
+      const trade = hubLinks().tradeChat;
+      return parsed.scope === 'trade' && parsed.term && trade
+        ? [{ id: 'trade:query', iconKind: 'trade', title: `Search Trade for ${parsed.text}`, detail: 'Offers and character names', group: 'Tools', action: `Search Trade for ${parsed.text}`,
+          run: () => { if (trade.search(parsed.text) === 'unavailable') throw new Error(UNAVAILABLE); } }] : [];
     },
     commands,
     // A typed word that starts a command example names it under the search.

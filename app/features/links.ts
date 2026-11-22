@@ -11,6 +11,7 @@
  * menu item and Hub row call it (app/shared/hub-tools.ts) instead of firing a window event.
  */
 import type { ResignLink } from "./resign/shared/link.js";
+import type { TradeChatLink } from "./trade-chat/shared/link.js";
 import type { TravelLink } from "./travel/shared/link.js";
 import type { WhispersLink } from "./whispers/shared/link.js";
 import type { Feature, FeatureId } from "./index.js";
@@ -18,6 +19,7 @@ import type { Feature, FeatureId } from "./index.js";
 /** The link each Feature offers, by id. */
 export type FeatureLinkApis = {
   resign: ResignLink;
+  tradeChat: TradeChatLink;
   travel: TravelLink;
   whispers: WhispersLink;
 };
@@ -53,12 +55,14 @@ type Named<Id extends FeatureId> = Manifest<Id> extends Readonly<{ links: infer 
 export type FeatureLinks<Id extends FeatureId> = LinksOf<Named<Id>>;
 
 /**
- * The links Hub people calls (app/renderer/hub-people.ts): it opens a conversation and reads who
- * Whispers knows, and travels to a friend's outpost.
+ * The links the Hub calls: Hub people (app/renderer/hub-people.ts) opens a conversation, reads who
+ * Whispers knows and travels to a friend's outpost; its commands (app/renderer/hub-commands.ts)
+ * hand a typed item to Trade's search.
  */
 export const HUB_LINKS = {
   whispers: ["open", "people"],
   travel: ["friendTripBlocked", "toFriend"],
+  tradeChat: ["search"],
 } as const satisfies NamedLinks;
 
 export type HubLinks = LinksOf<typeof HUB_LINKS>;

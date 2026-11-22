@@ -17,8 +17,11 @@ export type FloatingWindowBox = Readonly<{
   height: number;
 }>;
 
-type StoredFloatingWindowPlacement = Readonly<{
-  formatVersion: 1;
+/**
+ * Where the player put a floating window, normalized to the usable viewport: `left` and `top`
+ * are shares of the free room, `width` and `height` shares of the viewport (each 0 to 1).
+ */
+export type FloatingWindowPlacement = Readonly<{
   left: number;
   top: number;
   width: number;
@@ -51,23 +54,45 @@ function storedRecord(serialized: string | null): Record<string, unknown> | null
     : null;
 }
 
+/**
+ * Where a floating window keeps its placement: the store gives it at once when it knows it and
+ * again after every change (null: never placed, or put back), and saves where the player moved it.
+ */
+export type FloatingWindowPlacementStore = Readonly<{
+  subscribe(listener: (placement: FloatingWindowPlacement | null) => void): () => void;
+  save(placement: FloatingWindowPlacement): void;
+}>;
+
+/** A placement read from a stored or sent value, or undefined when it is not one. */
+export function readFloatingWindowPlacement(value: unknown): FloatingWindowPlacement | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const { left, top, width, height } = value as Record<string, unknown>;
+  return ratio(left) && ratio(top) && ratio(width) && ratio(height) && width > 0 && height > 0
+    ? { left, top, width, height }
+    : undefined;
+}
+
+/** A placement stored as text with its format version (browser storage), or null. */
+export function parseFloatingWindowPlacement(serialized: string | null): FloatingWindowPlacement | null {
+  const stored = storedRecord(serialized);
+  return stored?.formatVersion === 1 ? readFloatingWindowPlacement(stored) ?? null : null;
+}
+
 export function restoreFloatingWindowPlacement(
   serialized: string | null,
   viewport: FloatingWindowViewport,
   minimum: Readonly<{ width: number; height: number }>,
 ): FloatingWindowBox | null {
-  const stored = storedRecord(serialized);
-  if (!stored) return null;
-  if (
-    stored.formatVersion !== 1
-    || !ratio(stored.left)
-    || !ratio(stored.top)
-    || !ratio(stored.width)
-    || !ratio(stored.height)
-    || stored.width === 0
-    || stored.height === 0
-  ) return null;
+  return placeFloatingWindow(parseFloatingWindowPlacement(serialized), viewport, minimum);
+}
 
+/** The box a placement takes in this viewport, at least `minimum` while the viewport allows; null for no placement. */
+export function placeFloatingWindow(
+  stored: FloatingWindowPlacement | null,
+  viewport: FloatingWindowViewport,
+  minimum: Readonly<{ width: number; height: number }>,
+): FloatingWindowBox | null {
+  if (!stored) return null;
   const available = usable(viewport);
   if (available.width === 0 || available.height === 0) return null;
   const width = clamp(
@@ -115,6 +140,15 @@ export function serializeFloatingWindowPlacement(
   box: FloatingWindowBox,
   viewport: FloatingWindowViewport,
 ): string | null {
+  const placement = captureFloatingWindowPlacement(box, viewport);
+  return placement === null ? null : JSON.stringify({ formatVersion: 1, ...placement });
+}
+
+/** Where `box` sits in this viewport, normalized; null while the viewport or the box has no room. */
+export function captureFloatingWindowPlacement(
+  box: FloatingWindowBox,
+  viewport: FloatingWindowViewport,
+): FloatingWindowPlacement | null {
   const available = usable(viewport);
   if (
     available.width === 0
@@ -126,8 +160,7 @@ export function serializeFloatingWindowPlacement(
   const height = clamp(box.height, 1, available.height);
   const horizontalRange = Math.max(0, available.width - width);
   const verticalRange = Math.max(0, available.height - height);
-  return JSON.stringify({
-    formatVersion: 1,
+  return {
     left: horizontalRange === 0
       ? 0
       : clamp((box.left - viewport.margin) / horizontalRange, 0, 1),
@@ -136,5 +169,5 @@ export function serializeFloatingWindowPlacement(
       : clamp((box.top - viewport.margin) / verticalRange, 0, 1),
     width: width / available.width,
     height: height / available.height,
-  } satisfies StoredFloatingWindowPlacement);
+  };
 }

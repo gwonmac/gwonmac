@@ -7,6 +7,8 @@ Trade Chat is a window to browse recent trade messages from Kamadan and Pre-Sear
 
 **Saved** keeps the offers you starred and the players you follow. **Trader prices** shows Kamadan NPC trader quotes with a short price history.
 
+Drag the window by its title bar and resize it from its corner; every game window keeps that place and size. In the launcher's Features tab, **Put back** under **Trade window position** returns it to its default place.
+
 ### Details
 - **Turn on:** :setting[Trade Chat]{to="tools/tool:trade-chat"}, off while you play the :setting[plain game]{to="tools/gwonmacTools"}.
 - **Open:** <kbd>⌘</kbd> <kbd>K</kbd>, **View → Trade Chat**, the chat command `/trade`, or `trade` and an item in the Hub.

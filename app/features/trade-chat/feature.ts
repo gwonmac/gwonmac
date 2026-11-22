@@ -1,3 +1,5 @@
+import { readFloatingWindowPlacement, type FloatingWindowPlacement } from "../../shared/ui/window-placement.js";
+import { setting } from "../../shared/settings/define.js";
 import { defineFeature, featureSwitch } from "../define.js";
 
 export default defineFeature({
@@ -10,6 +12,20 @@ export default defineFeature({
   settings: {
     /** Show the read-only Trade Chat surface and allow its app shortcut. */
     tradeChat: featureSwitch(true, { tools: true }),
+    /** Where the player moved and sized the Trade window, normalized to the game window; null is its default place. */
+    tradeChatWindowPosition: setting.position(
+      null,
+      (value): FloatingWindowPlacement | null | undefined => value === null ? null : readFloatingWindowPlacement(value),
+      {
+        hub: true,
+        rendererWritable: true,
+        tools: true,
+        error: "Trade window position is invalid",
+        launcherError: "Trade window position is invalid",
+        label: "Trade window position",
+        help: "Drag or resize the Trade window in a game window. Put back returns it to its default place and size.",
+      },
+    ),
   },
   region: "non-pvp",
   programs: ["toolbox-foundation", "toolbox-commands", "xunlai-storage"],
@@ -17,7 +33,6 @@ export default defineFeature({
   network: ["kamadan.gwtoolbox.com", "ascalon.gwtoolbox.com"],
   tool: {
     id: "trade-chat",
-    event: "gw:trade-toggle",
     keywords: "kamadan prices trading market trader",
   },
   hub: {
@@ -27,6 +42,11 @@ export default defineFeature({
   shortcuts: [{ action: "trade.toggle", binding: { key: "k", shift: false, option: false }, menuItem: "toggle-trade" }],
   /** Whisper on an offer: Whispers owns the conversation. */
   links: { whispers: ["open"] },
+  /**
+   * Its shortcut, menu item, chat alias and Hub row open the window through `toggle`; the Hub's
+   * "Search Trade for …" row through `search` (shared/link.ts).
+   */
+  offers: ["toggle", "search"],
   shots: [],
   parts: ["game", "window", "main"],
 });

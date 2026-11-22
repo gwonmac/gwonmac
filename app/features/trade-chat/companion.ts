@@ -1,7 +1,8 @@
 /**
  * The Trade Chat alias in the game host: the certified toggle that opens the
- * Trade window from chat.
+ * Trade window from chat, through Trade's own link `toggle` as its shortcut does.
  */
+import { toggleTool } from "../../renderer/feature-links.js";
 import type { ToolsCompanionPart } from "../../renderer/tools-companion-part.js";
 
 export default {
@@ -22,9 +23,7 @@ export default {
         return {
           pollers: take === null ? [] : [{
             poll: () => {
-              if (context.on("tradeChat") && take() === 1) {
-                window.dispatchEvent(new CustomEvent("gw:trade-toggle"));
-              }
+              if (context.on("tradeChat") && take() === 1) toggleTool("tradeChat", "toggle");
             },
             enabled: () => context.on("tradeChat"),
           }],

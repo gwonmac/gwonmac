@@ -317,7 +317,8 @@ nothing. Trade Chat opens a conversation with a seller this way. The in-game
 Hub is no Feature; it names the links it calls in `HUB_LINKS`
 (`app/features/links.ts`): Hub people opens a conversation and reads who
 Whispers knows through Whispers' link, and travels to a friend through
-Travel's, so a Feature that is off adds nothing to it. The friend list itself
+Travel's, and its commands hand a typed item to Trade's search through Trade
+Chat's, so a Feature that is off adds nothing to it. The friend list itself
 is the `game.friends` block, which Whispers, Travel and Hub people read while
 they show friends.
 

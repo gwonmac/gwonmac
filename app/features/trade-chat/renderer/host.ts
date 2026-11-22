@@ -1,13 +1,14 @@
 /**
  * Trade Chat's window part, its one entry for the game host: loads the read-only Trade
  * window from the Tools bundle into the host the Tools window gives it, with the Whispers
- * link its manifest names.
+ * link its manifest names and its place kept in settings.
  */
 import type { EmbeddedToolsBundle } from "../../../shared/tools-bundle-contracts.js";
 import { definePart } from "../../parts.js";
 import type { MountedTool, WindowContext } from "../../../renderer/toolbox-foundation.js";
 import { ensureToolsStylesheet } from "../../../renderer/tools-stylesheet.js";
 import { requireToolsApi } from "../../../renderer/tools-native-api.js";
+import { tradeWindowPlacement } from "./window-placement.js";
 
 export default definePart("window", "tradeChat", async ({ host, onVisibilityChange, links, onLinksChange }: WindowContext<"tradeChat">): Promise<MountedTool | null> => {
   const native = requireToolsApi();
@@ -19,6 +20,7 @@ export default definePart("window", "tradeChat", async ({ host, onVisibilityChan
       nativeApi: native,
       links,
       onLinksChange,
+      placement: tradeWindowPlacement(),
       initiallyVisible: false,
       onVisibilityChange,
       mode: "embedded",

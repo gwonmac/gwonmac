@@ -44,6 +44,20 @@ their data.
   `tests/policy/source-saved-login-surface.test.ts`, and this entry; an
   unmoved icon simply starts at its default place.
 
+## Trade window place from localStorage
+
+- Why: the Trade window's place and size moved from the game window's
+  localStorage (`gwonmac.trade-window-placement`) into the
+  `tradeChatWindowPosition` setting. While the setting is unset, Trade Chat
+  reads the old entry once as its first value, saves it in settings and
+  removes the entry (`app/features/trade-chat/renderer/window-placement.ts`).
+- Introduced: 2026-11-22 with plan step 5.4 (Trade Chat on the Feature platform).
+- Depends on it: players who moved or resized the Trade window before this change.
+- Remove when: two Stable releases after the change have shipped. Delete
+  `takeStoredPlace`, `moved` and their calls, the file's entry in
+  `PLACEMENT_MOVES` in `tests/policy/source-saved-login-surface.test.ts`, and
+  this entry; an unmoved window simply opens at its default place.
+
 ## Read aliases for old player data
 
 These are permanent readers, not migrations. Keep them.
