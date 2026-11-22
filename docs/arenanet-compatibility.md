@@ -191,8 +191,8 @@ locator already meets the final relocation-resistant bar. At verifier ABI 10:
   retained client, and the trade item list, its count and the UI frame and
   mouse-action constants have no native reader that names them. So a client
   whose memory code changed refuses Quick Item Move until a fact-only release
-  records its digest. Its Feature page will say it may need an update
-  (feature platform plan 7.1). Decided after a spike on 2026-11-21; and
+  records its digest. Its Feature page says it needs a GWonMac update
+  for this Guild Wars build. Decided after a spike on 2026-11-21; and
 - friend observation accepts relocated functions and static addresses when all
   semantic relationships still reproduce. A role whose only other change is an
   assertion source line (the constant between a source-file string and a
@@ -280,6 +280,9 @@ Guild Hall has a separate proof inside Travel: a changed Guild Hall producer
 withdraws Guild Hall while ordinary Travel stays available.
 
 ## Patch day
+
+The [patch-day drill](releasing.md#patch-day-drill) walks through this day
+step by step, with what players see.
 
 Automation detects a changed ArenaNet code generation and runs the same
 non-authoritative evidence tools as a maintainer. It never uploads ArenaNet
