@@ -174,12 +174,9 @@ describe("native Travel host", () => {
     vi.useFakeTimers();
     const { host } = fixture();
     const failures = vi.fn();
-    window.addEventListener("gw:travel-failed", failures);
 
-    try {
-      await host.travel({ mapId: 449 });
-      await vi.advanceTimersByTimeAsync(3_000);
-    } finally { window.removeEventListener("gw:travel-failed", failures); }
+    await host.travel({ mapId: 449 }, failures);
+    await vi.advanceTimersByTimeAsync(3_000);
     expect(failures).not.toHaveBeenCalled();
     expect(host.attempt.value).toEqual({ status: "idle" });
     expect(host.notice.value).toMatchObject({ level: "info" });

@@ -12,6 +12,7 @@ import { featureOn } from '../../../renderer/feature-on.js';
 import { ensureToolsStylesheet } from '../../../renderer/tools-stylesheet.js';
 import { askLeaveArea, leaveAreaCopy } from '../../../renderer/leave-area.js';
 import { requireToolsApi } from '../../../renderer/tools-native-api.js';
+import type { ToolIntent, ToolLink } from '../../links.js';
 
 /** Travel is on; a map load, character select or PvP only makes it unavailable for now. */
 const toolOn = () => featureOn('travel');
@@ -98,19 +99,22 @@ export function createTravelPalette(parent: HTMLElement, command: TravelCommand)
       return app?.source.search(query) ?? matchHubRows([toolRow()], query);
     },
   };
-  const onCommand = (event: Event) => {
-    if (!enabled) return;
-    event.preventDefault();
-    hub.direct('travel', open);
-  };
-  window.addEventListener('gw:travel-toggle', onCommand);
   // Attached for the palette's whole life: a map load, character select or PvP only makes its
   // rows unavailable, with the command's reason, so the open page and the Home query survive
   // (HUB-051, HUB-135). Disposal withdraws it; the Travel setting hides it.
   detach = hub.attach(source);
   return {
     observingFriends: () => enabled && hub.visible,
-    async travelToFriend(friend: TravelFriend, generation: number) {
+    /**
+     * Opens Travel (its link's `toggle`: ⌘T, View → Travel, `/tp`). A repeated shortcut keeps the
+     * page open, as every direct Hub shortcut does (HUB-049), so both intents show it.
+     */
+    toggle(_intent: ToolIntent): ReturnType<ToolLink['toggle']> {
+      if (!enabled || disposed) return 'unavailable';
+      hub.direct('travel', open);
+      return 'shown';
+    },
+    async travelToFriend(friend: TravelFriend, generation: number, failed?: (message: string) => void) {
       const reason = command.unavailable();
       if (reason) throw new Error(reason);
       const intent = visibilityGeneration;
@@ -121,7 +125,7 @@ export function createTravelPalette(parent: HTMLElement, command: TravelCommand)
       if (!current) {
         throw new Error('This friend’s location changed. Select them again.');
       }
-      await app.travel(current.mapId);
+      await app.travel(current.mapId, failed);
     },
     /** Whether Travel can act now; the rows follow the command's reason. */
     setEnabled(next: boolean) {
@@ -134,7 +138,6 @@ export function createTravelPalette(parent: HTMLElement, command: TravelCommand)
     update(next: TravelGameState) { state = next; app?.update(next); },
     dispose() {
       disposed = true; app?.dispose(); detach?.(); unsubscribe(); listeners.clear();
-      window.removeEventListener('gw:travel-toggle', onCommand);
     },
   };
 }

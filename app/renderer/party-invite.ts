@@ -17,7 +17,8 @@ type PartyInviteInput = Readonly<{
   /** The whisper tool owns the chat mailbox that also carries invites. */
   chatReady(): boolean;
   invite(name: string): Promise<void>;
-  travel: ((friend: TravelFriend, generation: number) => Promise<void>) | null;
+  /** Starts the trip; `failed` hears if it fails after it started, with Travel's message. */
+  travel: ((friend: TravelFriend, generation: number, failed: (message: string) => void) => Promise<void>) | null;
   /** Guild Wars refuses an invite sent while the arriving party is still forming. */
   settleMs?: number;
   arrivalTimeoutMs?: number;
@@ -33,7 +34,7 @@ export function createPartyInvite(input: PartyInviteInput) {
   const settleMs = input.settleMs ?? 2_000;
   const arrivalTimeoutMs = input.arrivalTimeoutMs ?? 60_000;
   /** Withdraws the one pending arrival; null while nothing waits. */
-  let pending: { details: Readonly<{ name: string; place: string }>; mapId: number; cancelled: boolean; cancel(): void; fail(error: Error): void } | null = null;
+  let pending: { details: Readonly<{ name: string; place: string }>; cancelled: boolean; cancel(): void } | null = null;
   const listeners = new Set<() => void>();
   const refresh = () => { for (const listener of listeners) listener(); };
   const travelling = () => pending ? `Travelling to ${pending.details.place}. The invite to ${pending.details.name} follows on arrival.` : null;
@@ -121,10 +122,6 @@ export function createPartyInvite(input: PartyInviteInput) {
     get pending() { return pending?.details ?? null; },
     subscribe(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener); }; },
     cancel,
-    /** Travel owns trip failure and its message; only the matching arrival is withdrawn. */
-    travelFailed(mapId: number, message: string) {
-      if (pending?.mapId === mapId) pending.fail(new Error(message));
-    },
     unavailable,
     /** Why Travel and invite cannot start now, or null. */
     travelUnavailable,
@@ -143,10 +140,11 @@ export function createPartyInvite(input: PartyInviteInput) {
       const name = friend.character;
       if (!name) throw new Error('This friend is offline');
       const arrived = arrival(friend.mapId, region.characterKey);
-      const request = { details: Object.freeze({ name, place: travelDestination(friend.mapId)?.name ?? 'the outpost' }), mapId: friend.mapId, cancelled: false, cancel: arrived.cancel, fail: arrived.fail };
+      const request = { details: Object.freeze({ name, place: travelDestination(friend.mapId)?.name ?? 'the outpost' }), cancelled: false, cancel: arrived.cancel };
       pending = request; refresh();
       const clear = () => { if (pending === request) { pending = null; refresh(); } };
-      try { await travel(friend, generation); } catch (error) {
+      // Travel owns trip failure and its message; a failure of this trip withdraws its arrival.
+      try { await travel(friend, generation, (message) => arrived.fail(new Error(message))); } catch (error) {
         clear(); arrived.cancel(); throw error;
       }
       const invited = arrived.promise.finally(clear).then(() => {

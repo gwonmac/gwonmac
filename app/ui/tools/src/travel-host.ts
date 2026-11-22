@@ -54,7 +54,8 @@ export interface TravelHost {
   loadPreferences(): Promise<TravelPreferences>;
   savePreferences(patch: TravelPreferencePatch): Promise<TravelPreferences>;
   loadHistory(): Promise<TravelHistory>;
-  travel(request: TravelRequest): Promise<void>;
+  /** Starts one trip; `failed` hears if this trip later fails, with the message Travel shows. */
+  travel(request: TravelRequest, failed?: (message: string) => void): Promise<void>;
   guildHall(): Promise<void>;
   updateGameState(state: TravelGameState): void;
   updateFriends(friends: TravelFriends): void;
@@ -123,10 +124,15 @@ export function createNativeTravelHost(
       }
     }, 30_000);
   };
-  // People must withdraw an arrival invite from the same failure that Travel displays.
+  // The caller of the trip under way, told of its failure with the message Travel shows
+  // (a party invite withdraws its arrival invite on it).
+  let tripFailed: Readonly<{ mapId: number; failed: (message: string) => void }> | null = null;
   const failTravel = (mapId: number, message: string, level: "warning" | "danger") => {
     notice.value = { message, level };
-    window.dispatchEvent(new CustomEvent("gw:travel-failed", { detail: { mapId, message } }));
+    const listener = tripFailed;
+    if (listener?.mapId !== mapId) return;
+    tripFailed = null;
+    listener.failed(message);
   };
   let currentPreferences: TravelPreferences | null = null;
   const remember = (next: TravelPreferences): TravelPreferences => {
@@ -153,7 +159,7 @@ export function createNativeTravelHost(
       return remember(await api.travelPreferences.set({ expected, patch }));
     },
     loadHistory: historyObservation.load,
-    async travel(request) {
+    async travel(request, failed) {
       if (attempt.value.status !== "idle") return;
       const contextRefusal = travelContextRefusal(state.value, request.mapId);
       if (contextRefusal !== null) {
@@ -162,6 +168,7 @@ export function createNativeTravelHost(
       }
       settledAttempt = null;
       delayedGuildHall = null;
+      tripFailed = null;
       unidentifiedOriginMapId = state.value.status === "ready"
         && state.value.characterKey === null
         ? state.value.mapId
@@ -173,6 +180,7 @@ export function createNativeTravelHost(
       };
       try {
         command.travel(request);
+        if (failed) tripFailed = { mapId: request.mapId, failed };
         attemptTimer = window.setTimeout(() => {
           if (attempt.value.status !== "queued"
             || attempt.value.kind !== "map"
@@ -279,6 +287,7 @@ export function createNativeTravelHost(
         if (settled === null) return;
         if (next.status === "ready" && next.mapId === settled.mapId) {
           settledAttempt = null;
+          tripFailed = null;
           notice.value = null;
         } else if (
           settled.phase === "queued"
@@ -292,6 +301,7 @@ export function createNativeTravelHost(
       if (arrived) {
         clearAttempt();
         settledAttempt = null;
+        tripFailed = null;
         notice.value = null;
         return;
       }
@@ -312,6 +322,7 @@ export function createNativeTravelHost(
       historyObservation.dispose();
       clearAttempt();
       settledAttempt = null;
+      tripFailed = null;
       delayedGuildHall = null;
       notice.value = null;
     },

@@ -2,7 +2,7 @@
 // (app/shared/feature-resolve.ts) has it on: its switch, the plain game, and a build that proved
 // every capability its manifest uses, from main's facts.
 // Each feature runs here on the real blocks and feeds; only the native HUD, the game's
-// exports and Travel's palette are stubs.
+// exports and Travel's link are stubs.
 // What would go wrong without this test: a feature draws or prints nothing after it moved
 // onto the blocks, its drawing stays after the player turned it off, a feed keeps running
 // for nobody, a settings change does not reach it, or a build without the native renderer
@@ -16,6 +16,7 @@ import progress from "../../app/features/progress/companion.ts";
 import reminders from "../../app/features/reminders/companion.ts";
 import skillCooldowns from "../../app/features/skill-cooldowns/companion.ts";
 import skillKeyLabels from "../../app/features/skill-key-labels/companion.ts";
+import { provideLink } from "../../app/renderer/feature-links.ts";
 import { createGameBlocks, createUiBlocks } from "../../app/renderer/game-blocks.ts";
 import type { NativeHudChannel, NativeHudItem, NativeHudLayer } from "../../app/renderer/native-hud-layer.ts";
 import { createPlayRegionObservationInstallation } from "../../app/renderer/play-region-state-installation.ts";
@@ -91,6 +92,17 @@ function start(t: test.TestContext, part: ToolsCompanionPart, id: FeatureId, { w
         ? { status: "unavailable", reason: "game-update" } : { status: "available" }),
     },
   };
+  // Travel's link, which Progress reports to; a link reads main's facts in the game window.
+  const globals = globalThis as { window?: EventTarget };
+  const ownWindow = globals.window === undefined;
+  const browserWindow = globals.window ?? new EventTarget();
+  Object.assign(browserWindow, { gwFeatureFacts: () => facts });
+  if (ownWindow) globals.window = browserWindow;
+  const stopLink = provideLink("travel", {
+    friendTripBlocked: () => "unavailable", toFriend: () => "unavailable", toggle: () => "unavailable",
+    showProgress: (state) => { trips.push(state); return "shown"; },
+  });
+  t.after(() => { stopLink(); if (ownWindow) Reflect.deleteProperty(globals, "window"); });
   const context = {
     memory,
     snapshot: () => ({ settings, facts, playRegion: "pve", playRegionState: { status: "waiting", reason: "game" } }),
@@ -98,8 +110,6 @@ function start(t: test.TestContext, part: ToolsCompanionPart, id: FeatureId, { w
     playRegion: () => "pve",
     game: createGameBlocks({ capabilities, substrates, playRegions, syncObservers }),
     ui: createUiBlocks({ capabilities, hud, substrates, document, syncObservers }),
-    // Travel's palette, which Progress reports to.
-    prepared: () => ({ installation: { updateProgress: (state: GameProgressState) => trips.push(state) } }),
   } as unknown as ToolsActivation;
   const prepared = part.prepare({ exports, module: EMPTY_MODULE, capabilities, program: "none", substrates } as ToolsPrepareInput) as PreparedToolsPart;
   prepared.allocate?.((bytes) => { mailbox = 1024; return bytes > 0 ? mailbox : 0; });
