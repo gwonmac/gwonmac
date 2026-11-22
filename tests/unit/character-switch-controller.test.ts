@@ -37,43 +37,69 @@ function withBrowserGlobals(run: () => Promise<void>): Promise<void> {
   });
 }
 
+type Options = Parameters<typeof createCharacterSwitchController>[0];
+const PAYLOAD = 64;
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** A source that reads its list on every access, like the live one. */
+const listOf = (read: () => CompanionCharacterListState): CharacterListSource => ({
+  get state() { return read(); },
+  subscribe: () => () => false,
+  dispose() {},
+});
+
+/** A controller on idle defaults; each test overrides only what it exercises. */
+function build(
+  overrides: Partial<Omit<Options, "controls">> & {
+    controls?: Partial<Options["controls"]>;
+  } = {},
+) {
+  const { controls, ...rest } = overrides;
+  return createCharacterSwitchController({
+    memory: new WebAssembly.Memory({ initial: 1 }),
+    payloadPointer: PAYLOAD,
+    configure: () => 1,
+    selectorSlot: () => -1,
+    enqueue: () => 1,
+    characters: listOf(() => ready(2, 0)),
+    controls: {
+      state: () => "unknown",
+      switchContext: () => "outpost",
+      diagnosticMask: () => 0,
+      ...controls,
+    },
+    buildId: 7,
+    programId: 1,
+    ...rest,
+  });
+}
+
+/** Writes the native result code the way the game does after each queued action. */
+const setResult = (memory: WebAssembly.Memory, code: number) =>
+  new DataView(memory.buffer).setUint32(PAYLOAD + 20, code, true);
+
 describe("character switch controller", { concurrency: false }, () => {
   it("sends each consequential action once and confirms only the final identity", async () => {
     await withBrowserGlobals(async () => {
       const memory = new WebAssembly.Memory({ initial: 1 });
-      const pointer = 64;
       const calls: number[] = [];
       let list = ready(2, 0);
       let preGame: PreGameState = "unknown";
-      const source = {
-        get state() { return list; },
-        subscribe() { return () => false; },
-        dispose() {},
-      } satisfies CharacterListSource;
-      const controller = createCharacterSwitchController({
+      const controller = build({
         memory,
-        payloadPointer: pointer,
-        configure: () => 1,
-        selectorSlot: () => -1,
         enqueue(action) {
           calls.push(action);
-          new DataView(memory.buffer).setUint32(pointer + 20, 1, true);
+          setResult(memory, 1);
           if (action === 1) { preGame = "character-select"; list = ready(4, 0); }
           if (action === 2) list = ready(6, 1);
           return 1;
         },
-        characters: source,
-        controls: {
-          state: () => preGame,
-          switchContext: () => "outpost",
-          diagnosticMask: () => 0,
-        },
-        buildId: 7,
-        programId: 1,
+        characters: listOf(() => list),
+        controls: { state: () => preGame },
       });
 
       controller.request("0000000000000002");
-      await new Promise((resolve) => setTimeout(resolve, 1_000));
+      await sleep(1_000);
       assert.equal(controller.action.status, "complete");
       assert.deepEqual(calls, [1, 2, 3]);
       const diagnostics = JSON.stringify(controller.diagnostics());
@@ -99,7 +125,6 @@ describe("character switch controller", { concurrency: false }, () => {
     it(label, async () => {
       await withBrowserGlobals(async () => {
         const memory = new WebAssembly.Memory({ initial: 1 });
-        const pointer = 64;
         const calls: number[] = [];
         const reloaded = (sequence: number, selectedIndex: number): CompanionCharacterListState => {
           const base = ready(sequence, selectedIndex);
@@ -119,34 +144,21 @@ describe("character switch controller", { concurrency: false }, () => {
         // The in-game list predates the new character; only logout reloads it.
         let list = ready(2, 0);
         let preGame: PreGameState = "unknown";
-        const controller = createCharacterSwitchController({
+        const controller = build({
           memory,
-          payloadPointer: pointer,
-          configure: () => 1,
-          selectorSlot: () => -1,
           enqueue(action) {
             calls.push(action);
-            new DataView(memory.buffer).setUint32(pointer + 20, 1, true);
+            setResult(memory, 1);
             if (action === 1) { preGame = "character-select"; list = reloaded(4, 0); }
             if (action === 2) list = reloaded(6, 1);
             return 1;
           },
-          characters: {
-            get state() { return list; },
-            subscribe() { return () => false; },
-            dispose() {},
-          },
-          controls: {
-            state: () => preGame,
-            switchContext: () => "outpost",
-            diagnosticMask: () => 0,
-          },
-          buildId: 7,
-          programId: 1,
+          characters: listOf(() => list),
+          controls: { state: () => preGame },
         });
 
         controller.request("0000000000000002");
-        await new Promise((resolve) => setTimeout(resolve, 1_000));
+        await sleep(1_000);
         assert.equal(controller.action.status, expected.status);
         if (controller.action.status === "failed") {
           assert.equal(controller.action.code, "target-missing");
@@ -160,38 +172,24 @@ describe("character switch controller", { concurrency: false }, () => {
   it("enters the last entered character from the selector without a logout", async () => {
     await withBrowserGlobals(async () => {
       const memory = new WebAssembly.Memory({ initial: 1 });
-      const pointer = 64;
       const calls: number[] = [];
       let context: CharacterSwitchContext = "character-select";
-      const controller = createCharacterSwitchController({
+      const controller = build({
         memory,
-        payloadPointer: pointer,
-        configure: () => 1,
-        selectorSlot: () => -1,
         enqueue(action) {
           calls.push(action);
-          new DataView(memory.buffer).setUint32(pointer + 20, 1, true);
+          setResult(memory, 1);
           if (action === 3) context = "outpost";
           return 1;
         },
-        characters: {
-          state: ready(7, 0),
-          subscribe() { return () => false; },
-          dispose() {},
-        },
-        controls: {
-          state: () => "character-select",
-          switchContext: () => context,
-          diagnosticMask: () => 0,
-        },
-        buildId: 7,
-        programId: 1,
+        characters: listOf(() => ready(7, 0)),
+        controls: { state: () => "character-select", switchContext: () => context },
       });
 
       // Index 0 is the last entered character. At the selector it is not
       // current, so selecting it must enter it rather than refuse.
       controller.request("0000000000000001");
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await sleep(500);
       assert.equal(controller.action.status, "complete");
       assert.deepEqual(calls, [2, 3]);
       const diagnostics = controller.diagnostics();
@@ -218,24 +216,13 @@ describe("character switch controller", { concurrency: false }, () => {
       let preGame: PreGameState = "character-select";
       // Carousel: Gamma, Alpha, Beta. Account array: Alpha, Beta, Gamma.
       let slots = [1, 2, 0];
-      const controller = createCharacterSwitchController({
-        memory: new WebAssembly.Memory({ initial: 1 }),
-        payloadPointer: 64,
-        configure: () => 1,
+      const controller = build({
         selectorSlot: (index) => preGame === "character-select" ? slots[index] ?? -1 : -1,
-        enqueue: () => 1,
-        characters: {
-          get state() { return list; },
-          subscribe() { return () => false; },
-          dispose() {},
-        },
+        characters: listOf(() => list),
         controls: {
           state: () => preGame,
           switchContext: () => preGame === "character-select" ? "character-select" : "outpost",
-          diagnosticMask: () => 0,
         },
-        buildId: 7,
-        programId: 1,
       });
       const names = () => {
         const state = controller.characters;
@@ -260,7 +247,7 @@ describe("character switch controller", { concurrency: false }, () => {
       let notified = 0;
       const unsubscribe = controller.subscribe(() => { notified += 1; });
       notified = 0;
-      await new Promise((resolve) => setTimeout(resolve, 600));
+      await sleep(600);
       assert.equal(notified, 1);
       assert.deepEqual(names().names, ["Private Alpha", "Private Beta", "Private Gamma"]);
       unsubscribe();
@@ -271,22 +258,13 @@ describe("character switch controller", { concurrency: false }, () => {
   it("probes for Selector once per two seconds while it is absent", async () => {
     await withBrowserGlobals(async () => {
       let probes = 0;
-      const controller = createCharacterSwitchController({
-        memory: new WebAssembly.Memory({ initial: 1 }),
-        payloadPointer: 64,
-        configure: () => 1,
+      const controller = build({
         selectorSlot: () => { probes += 1; return -1; },
-        enqueue: () => 1,
-        characters: { state: ready(2, 0), subscribe() { return () => false; }, dispose() {} },
         controls: {
           state: () => { throw new Error("order sampling must not read the pre-game state"); },
-          switchContext: () => "outpost",
-          diagnosticMask: () => 0,
         },
-        buildId: 7,
-        programId: 1,
       });
-      await new Promise((resolve) => setTimeout(resolve, 2_300));
+      await sleep(2_300);
       // One probe at start and one after two seconds; each stops at the first -1.
       assert.equal(probes, 2);
       controller.dispose();
@@ -295,28 +273,12 @@ describe("character switch controller", { concurrency: false }, () => {
 
   it("resolves stable keys and refuses missing or current targets before a native action", async () => {
     await withBrowserGlobals(async () => {
-      const memory = new WebAssembly.Memory({ initial: 1 });
       let calls = 0;
       let stateReads = 0;
-      const source = {
-        state: ready(8, 0),
-        subscribe() { return () => false; },
-        dispose() {},
-      } satisfies CharacterListSource;
-      const controller = createCharacterSwitchController({
-        memory,
-        payloadPointer: 64,
-        configure: () => 1,
-        selectorSlot: () => -1,
+      const controller = build({
         enqueue: () => { calls += 1; return 1; },
-        characters: source,
-        controls: {
-          state: () => { stateReads += 1; return "unknown"; },
-          switchContext: () => "outpost",
-          diagnosticMask: () => 0,
-        },
-        buildId: 7,
-        programId: 1,
+        characters: listOf(() => ready(8, 0)),
+        controls: { state: () => { stateReads += 1; return "unknown"; } },
       });
       controller.request("00000000000000ff");
       assert.deepEqual(controller.action, { status: "failed", code: "target-missing", retryable: true });
@@ -334,33 +296,17 @@ describe("character switch controller", { concurrency: false }, () => {
   it("keeps an immediate native logout refusal distinct from a timeout", async () => {
     await withBrowserGlobals(async () => {
       const memory = new WebAssembly.Memory({ initial: 1 });
-      const pointer = 64;
-      const source = {
-        state: ready(10, 0),
-        subscribe() { return () => false; },
-        dispose() {},
-      } satisfies CharacterListSource;
-      const controller = createCharacterSwitchController({
+      const controller = build({
         memory,
-        payloadPointer: pointer,
-        configure: () => 1,
-        selectorSlot: () => -1,
         enqueue: () => {
-          new DataView(memory.buffer).setUint32(pointer + 20, 2, true);
-          new DataView(memory.buffer).setUint32(pointer + 36, 0xff, true);
+          setResult(memory, 2);
+          new DataView(memory.buffer).setUint32(PAYLOAD + 36, 0xff, true);
           return 1;
         },
-        characters: source,
-        controls: {
-          state: () => "unknown",
-          switchContext: () => "outpost",
-          diagnosticMask: () => 0,
-        },
-        buildId: 7,
-        programId: 1,
+        characters: listOf(() => ready(10, 0)),
       });
       controller.request("0000000000000002");
-      await new Promise((resolve) => setTimeout(resolve, 40));
+      await sleep(40);
       assert.deepEqual(controller.action, {
         status: "failed",
         code: "logout-refused",
@@ -383,25 +329,9 @@ describe("character switch controller", { concurrency: false }, () => {
 
   it("reports queue refusal synchronously so the palette can stay open", async () => {
     await withBrowserGlobals(async () => {
-      const memory = new WebAssembly.Memory({ initial: 1 });
-      const controller = createCharacterSwitchController({
-        memory,
-        payloadPointer: 64,
-        configure: () => 1,
-        selectorSlot: () => -1,
+      const controller = build({
         enqueue: () => 0,
-        characters: {
-          state: ready(11, 0),
-          subscribe() { return () => false; },
-          dispose() {},
-        },
-        controls: {
-          state: () => "unknown",
-          switchContext: () => "outpost",
-          diagnosticMask: () => 0,
-        },
-        buildId: 7,
-        programId: 1,
+        characters: listOf(() => ready(11, 0)),
       });
 
       controller.request("0000000000000002");
@@ -417,44 +347,28 @@ describe("character switch controller", { concurrency: false }, () => {
   it("waits through proved pre-click Selector readiness without retrying later ambiguity", async () => {
     await withBrowserGlobals(async () => {
       const memory = new WebAssembly.Memory({ initial: 1 });
-      const pointer = 64;
       let list = ready(12, 0);
       let selectAttempt = 0;
       const calls: number[] = [];
-      const source = {
-        get state() { return list; },
-        subscribe() { return () => false; },
-        dispose() {},
-      } satisfies CharacterListSource;
-      const controller = createCharacterSwitchController({
+      const controller = build({
         memory,
-        payloadPointer: pointer,
-        configure: () => 1,
-        selectorSlot: () => -1,
         enqueue(action) {
           calls.push(action);
-          const packet = new DataView(memory.buffer);
           if (action === 1) {
             list = ready(13, 0);
-            packet.setUint32(pointer + 20, 1, true);
+            setResult(memory, 1);
           } else if (action === 2) {
             selectAttempt += 1;
-            packet.setUint32(pointer + 20, selectAttempt === 1 ? 5 : 7, true);
+            setResult(memory, selectAttempt === 1 ? 5 : 7);
           }
           return 1;
         },
-        characters: source,
-        controls: {
-          state: () => "character-select",
-          switchContext: () => "outpost",
-          diagnosticMask: () => 0,
-        },
-        buildId: 7,
-        programId: 1,
+        characters: listOf(() => list),
+        controls: { state: () => "character-select" },
       });
 
       controller.request("0000000000000002");
-      await new Promise((resolve) => setTimeout(resolve, 180));
+      await sleep(180);
       assert.deepEqual(calls, [1, 2, 2]);
       assert.deepEqual(controller.action, { status: "failed", code: "selection-not-confirmed", retryable: false });
       const diagnostics = controller.diagnostics();
@@ -469,43 +383,27 @@ describe("character switch controller", { concurrency: false }, () => {
   it("never retries a readiness code after the proof says a click was sent", async () => {
     await withBrowserGlobals(async () => {
       const memory = new WebAssembly.Memory({ initial: 1 });
-      const pointer = 64;
       let list = ready(20, 0);
       const calls: number[] = [];
-      const source = {
-        get state() { return list; },
-        subscribe() { return () => false; },
-        dispose() {},
-      } satisfies CharacterListSource;
-      const controller = createCharacterSwitchController({
+      const controller = build({
         memory,
-        payloadPointer: pointer,
-        configure: () => 1,
-        selectorSlot: () => -1,
         enqueue(action) {
           calls.push(action);
-          const packet = new DataView(memory.buffer);
           if (action === 1) {
             list = ready(21, 0);
-            packet.setUint32(pointer + 20, 1, true);
+            setResult(memory, 1);
           } else {
-            packet.setUint32(pointer + 36, 1 << 10, true);
-            packet.setUint32(pointer + 20, 4, true);
+            new DataView(memory.buffer).setUint32(PAYLOAD + 36, 1 << 10, true);
+            setResult(memory, 4);
           }
           return 1;
         },
-        characters: source,
-        controls: {
-          state: () => "character-select",
-          switchContext: () => "outpost",
-          diagnosticMask: () => 0,
-        },
-        buildId: 7,
-        programId: 1,
+        characters: listOf(() => list),
+        controls: { state: () => "character-select" },
       });
 
       controller.request("0000000000000002");
-      await new Promise((resolve) => setTimeout(resolve, 60));
+      await sleep(60);
       assert.deepEqual(calls, [1, 2]);
       assert.deepEqual(controller.action, { status: "failed", code: "selection-not-confirmed", retryable: false });
       const diagnostics = controller.diagnostics();
@@ -519,31 +417,19 @@ describe("character switch controller", { concurrency: false }, () => {
     await withBrowserGlobals(async () => {
       const create = (contexts: CharacterSwitchContext[]) => {
         const memory = new WebAssembly.Memory({ initial: 1 });
-        const pointer = 64;
         let calls = 0;
         let reads = 0;
-        const controller = createCharacterSwitchController({
+        const controller = build({
           memory,
-          payloadPointer: pointer,
-          configure: () => 1,
-          selectorSlot: () => -1,
           enqueue: () => {
             calls += 1;
-            new DataView(memory.buffer).setUint32(pointer + 20, 2, true);
+            setResult(memory, 2);
             return 1;
           },
-          characters: {
-            state: ready(30, 0),
-            subscribe() { return () => false; },
-            dispose() {},
-          },
+          characters: listOf(() => ready(30, 0)),
           controls: {
-            state: () => "unknown",
             switchContext: () => contexts[Math.min(reads++, contexts.length - 1)]!,
-            diagnosticMask: () => 0,
           },
-          buildId: 7,
-          programId: 1,
         });
         return { controller, calls: () => calls };
       };
@@ -559,7 +445,7 @@ describe("character switch controller", { concurrency: false }, () => {
       const confirmed = create(["pve-explorable"]);
       confirmed.controller.request("0000000000000002");
       confirmed.controller.confirm();
-      await new Promise((resolve) => setTimeout(resolve, 30));
+      await sleep(30);
       assert.equal(confirmed.calls(), 1);
       assert.deepEqual(confirmed.controller.action, { status: "failed", code: "logout-refused", retryable: false });
       confirmed.controller.dispose();
@@ -579,26 +465,11 @@ describe("character switch controller", { concurrency: false }, () => {
         ["pvp-explorable", "active-pvp"],
         ["loading", "game-loading"],
       ] as const) {
-        const memory = new WebAssembly.Memory({ initial: 1 });
         let calls = 0;
-        const controller = createCharacterSwitchController({
-          memory,
-          payloadPointer: 64,
-          configure: () => 1,
-          selectorSlot: () => -1,
+        const controller = build({
           enqueue: () => { calls += 1; return 1; },
-          characters: {
-            state: ready(40, 0),
-            subscribe() { return () => false; },
-            dispose() {},
-          },
-          controls: {
-            state: () => "unknown",
-            switchContext: () => context,
-            diagnosticMask: () => 0,
-          },
-          buildId: 7,
-          programId: 1,
+          characters: listOf(() => ready(40, 0)),
+          controls: { switchContext: () => context },
         });
         controller.request("0000000000000002");
         assert.deepEqual(controller.action, {
