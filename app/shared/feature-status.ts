@@ -7,7 +7,7 @@
 import type { Feature, GlobalTool } from "../features/index.js";
 import { BUILD_CHECK_FAILED } from "./contracts.js";
 import { FEATURES, FEATURE_SELECTION_POLICIES, type FeatureId } from "./feature-contracts.js";
-import { resolve, type FeatureOffReason, type FeatureResolution, type FeatureState } from "./feature-resolve.js";
+import { resolve, type FeatureOff, type FeatureOffReason, type FeatureResolution, type FeatureState } from "./feature-resolve.js";
 
 /** A Feature with a switch of its own: every Feature but the launch mode, which is the plain-game switch. */
 export type SwitchFeature = Exclude<Feature, Readonly<{ kind: "mode" }>>;
@@ -45,6 +45,19 @@ const REASONS: Readonly<Record<Exclude<FeatureOffReason, "needs" | "wrong-area">
 };
 
 const byId = new Map<FeatureId, SwitchFeature>(SWITCH_FEATURES.map((feature) => [feature.id, feature]));
+const needsText = (needs: SwitchFeature) => `Needs ${needs.name}. Turn it on first.`;
+
+/**
+ * The reason line for `wrong-area`, which only a surface that tried to open a tool shows (a Hub
+ * row): the Feature is on, but the game cannot open it where the character is now.
+ */
+export const UNAVAILABLE_HERE = "Unavailable in the current game state.";
+
+/** The reason line for an off resolution, as the Features tab and the Hub word it. */
+export function offReasonText(off: FeatureOff): string {
+  if (off.reason === "needs") return needsText(byId.get(off.feature)!);
+  return off.reason === "wrong-area" ? UNAVAILABLE_HERE : REASONS[off.reason].text;
+}
 
 /**
  * A Feature's status for a surface that stands in no game area (the launcher, the Hub): resolve
@@ -59,7 +72,7 @@ export function featureStatus(feature: SwitchFeature, state: FeatureState, check
   if (resolution.reason === "needs-restart" && !checked) return { resolution: { on: false, reason: "switched-off" }, checked, ...REASONS["switched-off"] };
   if (resolution.reason === "needs") {
     const needs = byId.get(resolution.feature)!;
-    return { resolution, checked, text: `Needs ${needs.name}. Turn it on first.`, tone: "warning", locked: false, needs };
+    return { resolution, checked, text: needsText(needs), tone: "warning", locked: false, needs };
   }
   return { resolution, checked, ...REASONS[resolution.reason] };
 }

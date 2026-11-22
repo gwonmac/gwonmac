@@ -11,15 +11,21 @@ import { resolveShortcuts, shortcutKeycaps, type ShortcutAction } from '../share
 import { normaliseHubQuery, parseHubQuery, type HubRow, type HubSource, type HubTask } from '../shared/hub.js';
 import type { SettingsTarget } from '../shared/settings-catalogue.js';
 import type { FeatureId } from '../shared/feature-contracts.js';
+import { offReasonText, UNAVAILABLE_HERE } from '../shared/feature-status.js';
+import type { ToolLinkTarget } from '../features/links.js';
 import { hubLinks, toggleTool } from './feature-links.js';
 import { featureOn } from './feature-on.js';
 import type { Hub } from './hub.js';
 import type { HubIconKind } from '../shared/ui/hub-icon.js';
 
-const UNAVAILABLE = 'Unavailable in the current game state.';
 /** A tool's event: a tool that is not running leaves it unhandled, and the action refuses. */
 const dispatch = (name: string, detail?: unknown) => {
-  if (window.dispatchEvent(new CustomEvent(name, { cancelable: true, detail }))) throw new Error(UNAVAILABLE);
+  if (window.dispatchEvent(new CustomEvent(name, { cancelable: true, detail }))) throw new Error(UNAVAILABLE_HERE);
+};
+/** A tool that opens through its link asks it to show, never to close (Whispers); a refusal says why. */
+const show = (target: ToolLinkTarget) => {
+  const answer = toggleTool(target, 'show');
+  if (typeof answer === 'object') throw new Error(offReasonText(answer));
 };
 
 /** The Hub as its commands use it: to close, suspend or show it, open a page, and find a saved row. */
@@ -36,8 +42,7 @@ export function createHubCommands(hub: CommandsHub, openSettings: (target?: Sett
       ...HUB_TOOL_ROWS.filter(tool => on(tool.feature)).map((tool): HubRow => {
         const open = tool.open;
         const run = 'settings' in open ? openSettings({ section: open.settings })
-          // A tool that opens through its link asks it to show, never to close (Whispers).
-          : 'link' in open ? () => { if (toggleTool(open.link, 'show') === 'unavailable') throw new Error(UNAVAILABLE); }
+          : 'link' in open ? () => show(open.link)
           // A tool that opens after the Hub closes never refuses: the Hub is gone (Xunlai Storage).
           : open.closesHub ? () => { hub.close(); window.dispatchEvent(new CustomEvent(open.event, { cancelable: true })); }
           : () => dispatch(open.event, open.show ? 'show' : undefined);
@@ -106,7 +111,7 @@ export function createHubCommands(hub: CommandsHub, openSettings: (target?: Sett
       const trade = hubLinks().tradeChat;
       return parsed.scope === 'trade' && parsed.term && trade
         ? [{ id: 'trade:query', iconKind: 'trade', title: `Search Trade for ${parsed.text}`, detail: 'Offers and character names', group: 'Tools', action: `Search Trade for ${parsed.text}`,
-          run: () => { if (trade.search(parsed.text) === 'unavailable') throw new Error(UNAVAILABLE); } }] : [];
+          run: () => { if (trade.search(parsed.text) === 'unavailable') throw new Error(UNAVAILABLE_HERE); } }] : [];
     },
     commands,
     // A typed word that starts a command example names it under the search.

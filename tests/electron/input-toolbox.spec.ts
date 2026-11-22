@@ -211,12 +211,12 @@ test.describe("renderer Tools input", () => {
         // Trade opens through its link `toggle`, as its shortcut, chat alias and Hub row call it.
         const linksPath = "./feature-links.js";
         const links = (await import(linksPath)) as {
-          toggleTool(target: "tradeChat", intent: "show" | "toggle"): string;
+          toggleTool(target: "tradeChat", intent: "show" | "toggle"): "shown" | "hidden" | { reason: string };
         };
         (globalThis as unknown as { tradeToggle(intent: "show" | "toggle"): void })
           .tradeToggle = (intent) => {
             const answer = links.toggleTool("tradeChat", intent);
-            if (answer === "unavailable") throw new Error("Trade Chat's link is unavailable");
+            if (typeof answer === "object") throw new Error(`Trade Chat's link is unavailable: ${answer.reason}`);
           };
         // The projection still takes what the observer feeds it. What those
         // values mean is pinned at the real boundary by
