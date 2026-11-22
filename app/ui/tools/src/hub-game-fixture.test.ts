@@ -22,7 +22,7 @@ type Mounted = {
   controller: LibraryController;
   /** The rows and summary of the page the Hub last showed. */
   rows: () => readonly HubRow[];
-  summary: HubSummary;
+  summary?: HubSummary | undefined;
   /** The mount of the last review view, and the titles of every view shown. */
   review: HubViewMount<HTMLElement>;
   views: string[];
@@ -119,12 +119,12 @@ test('Hub current-build comparison follows observations and never substitutes th
   const { host } = createHubGameFixture(() => {});
   const view = await mountLibrary(host);
   await view.source.search('build smiter')[0]!.run(task);
-  const incoming = view.summary.skills;
+  const incoming = view.summary!.skills;
   expect(view.rows()[0]!.skills).not.toEqual(incoming);
   host.party.value = { ...host.party.value, player: { ...host.party.value.player!, skills: null, attributes: null } };
   expect(view.rows()[0]!.skills).toBeUndefined();
   expect(view.rows()[0]!.detail).toContain('Current build not available');
-  expect(view.summary.skills).toEqual(incoming);
+  expect(view.summary!.skills).toEqual(incoming);
   host.party.value = { ...host.party.value, status: 'unavailable' };
   expect(view.rows()[0]!.skills).toBeUndefined();
   view.unmount();

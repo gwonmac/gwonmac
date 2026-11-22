@@ -131,7 +131,7 @@ describe("TravelPalette", () => {
     await wrapper.get("#travel-guild-hall").trigger("click");
     expect(guildHall).toHaveBeenCalledOnce();
 
-    state.value = { ...state.value, guildHall: true };
+    setReady(state, { characterKey: null, hasGuildHall: true, guildHall: true });
     await flushPromises();
     expect(wrapper.text()).toContain("Leave Guild Hall");
     expect(wrapper.text()).toContain("Return to previous outpost");
@@ -286,7 +286,6 @@ describe("TravelPalette", () => {
       { mapId: 164 }, null, null, null, null, null, null, null, null,
     ];
     const { wrapper, state, travel } = fixture({ history: [164, 165], shortcuts });
-    const unlockedMapWords = Array.from({ length: 28 }, () => 0);
     setReady(state, {
       mapId: 148,
       travelContext: "pre-searing",
@@ -326,7 +325,6 @@ describe("TravelPalette", () => {
 
   it("uses the same local rule for another early campaign", async () => {
     const { wrapper, state } = fixture();
-    const unlockedMapWords = Array.from({ length: 28 }, () => 0);
     setReady(state, {
       mapId: 242,
       unlockedMapWords: unlockedWords([194, 242, 243, 249, 250, 251, 188, 248, 281, 282, 330, 368, 467, 721, 795, 796, 857]),
