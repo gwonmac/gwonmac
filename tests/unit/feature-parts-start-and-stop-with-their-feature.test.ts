@@ -32,15 +32,20 @@ import { EMPTY_SKILL_KEY_MODIFIERS } from "../../app/shared/skill-key-bindings.t
 
 const EMPTY_MODULE = new WebAssembly.Module(new Uint8Array([0, 0x61, 0x73, 0x6d, 1, 0, 0, 0]));
 
-type Options = Readonly<{ without?: readonly EnhancementCapability[]; settings?: Partial<AppSettings> }>;
+type Options = Readonly<{
+  without?: readonly EnhancementCapability[];
+  /** Capabilities main's facts prove but this renderer's installation does not carry. */
+  notInstalled?: readonly EnhancementCapability[];
+  settings?: Partial<AppSettings>;
+}>;
 
 /**
  * Runs one part the way the installer does: prepare, memory, activate, mount. The part asks
  * resolve, with facts as main sends them: Features loaded, the feature switched on, and every
  * capability proved but those `without` names, which this build changed.
  */
-function start(t: test.TestContext, part: ToolsCompanionPart, id: FeatureId, { without = [], settings: patch = {} }: Options = {}) {
-  const capabilities = capabilityRecord((capability) => !without.includes(capability));
+function start(t: test.TestContext, part: ToolsCompanionPart, id: FeatureId, { without = [], notInstalled = [], settings: patch = {} }: Options = {}) {
+  const capabilities = capabilityRecord((capability) => !without.includes(capability) && !notInstalled.includes(capability));
   const substrates = createToolsSubstrates(EMPTY_MODULE, capabilities, "none");
   const { skills } = substrates;
   const playRegions = createPlayRegionObservationInstallation(capabilities.playRegionObservation);
@@ -162,10 +167,16 @@ test("Skill Cooldowns shows the recharge on the skill bar while it is on, and st
 });
 
 test("a feature never starts on a build that did not prove a capability its manifest uses", (t) => {
-  const run = start(t, skillCooldowns, "skillCooldowns", { without: ["nativeHudRendering"] });
-  run.turn(true);
-  assert.deepEqual([run.substrates.skills.geometry.active, run.substrates.skills.cooldowns.active], [false, false]);
-  assert.equal(run.drawn.cooldowns, undefined);
+  for (const options of [
+    { without: ["nativeHudRendering"] },
+    // Main's facts describe the build; a part runs only with what its installation carries.
+    { notInstalled: ["skillCooldownObservation"] },
+  ] satisfies Options[]) {
+    const run = start(t, skillCooldowns, "skillCooldowns", options);
+    run.turn(true);
+    assert.deepEqual([run.substrates.skills.geometry.active, run.substrates.skills.cooldowns.active], [false, false], JSON.stringify(options));
+    assert.equal(run.drawn.cooldowns, undefined, JSON.stringify(options));
+  }
 });
 
 test("a running feature stops when main's facts say this build needs an update, and starts when proved", (t) => {

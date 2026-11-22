@@ -19,7 +19,7 @@
  * feature, so shared code imports this contract and never a feature file.
  */
 import type { EnhancementCapabilities, EnhancementProgram } from "../shared/enhancement-contracts.js";
-import type { FeatureId } from "../shared/feature-contracts.js";
+import { FEATURES, type FeatureId } from "../shared/feature-contracts.js";
 import type { TravelFriend } from "../shared/friends.js";
 import type { TravelCommand } from "../shared/travel-command.js";
 import type {
@@ -158,10 +158,15 @@ export function featurePart<Running extends Readonly<{ stop(): void }>>(
   start: (blocks: FeatureBlocks) => Running,
   runtime: Readonly<Record<string, (running: Running | null) => unknown>> = {},
 ): FeaturePart {
+  const feature = FEATURES.find((candidate) => candidate.id === id);
+  const needs = feature !== undefined && "uses" in feature ? feature.uses : [];
   return Object.freeze({
     id,
-    prepare: () => ({
+    // A renderer runs a part only with the capabilities its installation actually carries,
+    // even when main's facts prove more (they describe the build, not this installation).
+    prepare: ({ capabilities }) => ({
       activate(context) {
+        const installed = needs.every((capability) => capabilities[capability]);
         const settings = createBlock(true, context.snapshot().settings, Object.is, (wanted) => {
           if (wanted) settings.publish(context.snapshot().settings);
         });
@@ -173,7 +178,7 @@ export function featurePart<Running extends Readonly<{ stop(): void }>>(
         };
         const sync = () => {
           if (settings.wanted) settings.publish(context.snapshot().settings);
-          if (!context.on(id)) stop();
+          if (!installed || !context.on(id)) stop();
           else running ??= start({ game: context.game, ui: context.ui, settings: settings.block });
         };
         return {
