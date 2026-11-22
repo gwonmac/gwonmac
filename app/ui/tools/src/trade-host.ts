@@ -14,9 +14,9 @@ import {
   type TraderQuoteSnapshot,
 } from "../../../shared/trade-chat";
 import type { GwNativeApi } from "../../../shared/contracts";
-import type { TradeWhispersPort } from "../../../shared/tools-bundle-contracts";
+import type { TradeLinks } from "../../../shared/tools-bundle-contracts";
 
-export type TradeHost = Readonly<{
+export type TradeHost = TradeLinks & Readonly<{
   subscribe(source: TradeSource): Promise<TradeSnapshot>;
   unsubscribe(): Promise<void>;
   search(request: TradeSearchRequest): Promise<TradeSearchResult>;
@@ -30,8 +30,6 @@ export type TradeHost = Readonly<{
   getTraderPriceHistory(
     request: TraderPriceHistoryRequest,
   ): Promise<TraderPriceHistoryResult>;
-  /** Whispers owns the conversation; Trade only asks for one with a seller. */
-  whispers: TradeWhispersPort;
 }>;
 
 type NativeTradeHostApi = Readonly<{
@@ -40,7 +38,7 @@ type NativeTradeHostApi = Readonly<{
   app: Pick<GwNativeApi["app"], "openExternal">;
 }>;
 
-export function createNativeTradeHost(api: NativeTradeHostApi, whispers: TradeWhispersPort): TradeHost {
+export function createNativeTradeHost(api: NativeTradeHostApi, { links, onLinksChange }: TradeLinks): TradeHost {
   return Object.freeze({
     subscribe: (source) => api.trade.subscribe(source),
     unsubscribe: () => api.trade.unsubscribe(),
@@ -56,15 +54,15 @@ export function createNativeTradeHost(api: NativeTradeHostApi, whispers: TradeWh
     setSaved: (value) => api.trade.setSaved(parseTradeSavedState(value)),
     getTraderQuotes: () => api.trade.getTraderQuotes(),
     getTraderPriceHistory: (request) => api.trade.getTraderPriceHistory(request),
-    whispers,
+    links,
+    onLinksChange,
   });
 }
 
-/** Whispers as a launch without it sees it: switched off. */
-const WHISPERS_OFF: TradeWhispersPort = Object.freeze({
-  available: () => false,
-  onChange: () => () => {},
-  open: () => "unavailable",
+/** The links as a launch without Whispers sees them: switched off. */
+const NO_LINKS: TradeLinks = Object.freeze({
+  links: Object.freeze({ whispers: null }),
+  onLinksChange: () => () => {},
 });
 
 const DEMO_MESSAGES: readonly TradeMessage[] = [
@@ -83,7 +81,7 @@ const DEMO_MESSAGES: readonly TradeMessage[] = [
 
 /** The offline feed, plus the re-post a test sends as the upstream feed would. */
 export function createDemoTradeHost(
-  whispers: TradeWhispersPort = WHISPERS_OFF,
+  { links, onLinksChange }: TradeLinks = NO_LINKS,
 ): TradeHost & Readonly<{ repost(sender: string, message: string): void }> {
   let source: TradeSource = "kamadan";
   let messages = [...DEMO_MESSAGES];
@@ -172,7 +170,8 @@ export function createDemoTradeHost(
     async getTraderPriceHistory(request) {
       return Object.freeze({ status: "ok", points: demoTraderPriceHistory(request) });
     },
-    whispers,
+    links,
+    onLinksChange,
   });
 }
 

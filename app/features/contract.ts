@@ -2,8 +2,8 @@
  * The feature contract checks that TypeScript cannot make: the id matches its folder,
  * every setting names itself, one shot file per caption, README.md stays inside the
  * small Markdown subset the launcher renders, CHANGELOG.md has `## Unreleased`, every card
- * names a purpose, `requires` has no cycles, and `uses` names only capabilities the verifier
- * knows. Pure: the caller reads the folders (tests/policy/feature-contract.test.ts runs it in
+ * names a purpose, `requires` has no cycles, `uses` names only capabilities the verifier
+ * knows, and every link names a Feature that offers the methods it calls. Pure: the caller reads the folders (tests/policy/feature-contract.test.ts runs it in
  * `pnpm check`), so the same check can run on a scaffold or a planted error.
  * Each message names the file and says what to change.
  */
@@ -48,6 +48,7 @@ export function checkFeatureContract({ folders, registered }: FeatureContractInp
     }
   }
   problems.push(...checkRequires(registered));
+  problems.push(...checkLinks(registered));
   return problems;
 }
 
@@ -147,6 +148,27 @@ export function checkReadme(path: string, text: string): string[] {
     if (note && !inNote && notes === 2) problems.push(`${where}: only one > note is allowed.`);
     inNote = note;
   });
+  return problems;
+}
+
+/** Every `links` target is another Feature whose `offers` lists each method called (app/features/links.ts). */
+function checkLinks(registered: readonly FeatureDefinition[]): string[] {
+  const byId = new Map(registered.map((feature) => [feature.id, feature]));
+  const problems: string[] = [];
+  for (const feature of registered) {
+    const at = `app/features/${folderForId(feature.id)}/feature.ts`;
+    for (const [target, methods] of Object.entries(feature.links ?? {})) {
+      const offered = byId.get(target)?.offers;
+      if (target === feature.id) problems.push(`${at}: links to itself; call your own code directly.`);
+      else if (!byId.has(target)) problems.push(`${at}: links to "${target}", which is not a feature id.`);
+      else if (offered === undefined) problems.push(`${at}: links to "${target}", which offers no link; add offers to app/features/${folderForId(target)}/feature.ts.`);
+      else if (methods.length === 0) problems.push(`${at}: the link to "${target}" names no method; list the ones it calls.`);
+      if (offered === undefined) continue;
+      for (const method of methods) {
+        if (!offered.includes(method)) problems.push(`${at}: calls "${target}.${method}", which ${target} does not offer (it offers ${offered.join(", ")}).`);
+      }
+    }
+  }
   return problems;
 }
 

@@ -73,7 +73,7 @@ export const FEATURE_PURPOSE_LABELS: Readonly<Record<FeaturePurpose, string>> = 
 /**
  * What runs: `game` in the game host, `hubPage` a page of its own in the Hub, `window`
  * in the Tools window, `main` in the main process (its main.ts, and the only part that
- * may reach the `network` hosts).
+ * may reach the `network` hosts). Every kind has one shape, `start → stop` (./parts.ts).
  */
 export const FEATURE_PART_KINDS = ["game", "hubPage", "window", "main"] as const;
 export type FeaturePartKind = (typeof FEATURE_PART_KINDS)[number];
@@ -148,6 +148,17 @@ export type FeatureDefinition = Readonly<{
     label?: string;
     menuItem?: string;
   }>[];
+  /**
+   * The methods of this feature's link that other features may call, by name. Their types live
+   * in its shared/link.ts and are registered once in FeatureLinkApis (./links.ts).
+   */
+  offers?: readonly string[];
+  /**
+   * Other features' links this feature calls, by target id, each with the methods it calls:
+   * `{ whispers: ["open"] }`. Its parts get `links.whispers`, which is null while resolve has
+   * Whispers off (./links.ts, app/renderer/feature-links.ts).
+   */
+  links?: Readonly<Record<string, readonly string[]>>;
   /** Captions for media/shot-1.webp, shot-2.webp, … in order: the Feature page gallery. */
   shots: readonly string[];
   /** The parts that run. */

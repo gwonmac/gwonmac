@@ -30,15 +30,14 @@ describe("TradeChatApp", () => {
     wrapper.unmount();
   });
 
-  it("asks the host's Whispers for the seller and follows its switch", async () => {
+  it("asks Whispers' link for the seller and follows its switch", async () => {
     let available = true;
     let changed = () => {};
     let answer: "opened" | "unavailable" = "opened";
     const open = vi.fn(() => answer);
     const wrapper = await ledger(createDemoTradeHost({
-      available: () => available,
-      onChange(listener) { changed = listener; return () => { changed = () => {}; }; },
-      open,
+      links: { get whispers() { return available ? { open } : null; } },
+      onLinksChange(listener) { changed = listener; return () => { changed = () => {}; }; },
     }));
     const whisper = wrapper.get(".inspector-whisper");
     const seller = whisper.text().replace(/^Whisper /u, "").replace(/↵$/u, "");

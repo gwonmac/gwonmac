@@ -36,8 +36,7 @@ describe("native trade host", () => {
     });
     expect(isProxy(value)).toBe(true);
 
-    const whispers = { available: () => false, onChange: () => () => {}, open: () => "unavailable" as const };
-    await createNativeTradeHost(api, whispers).setSaved(value);
+    await createNativeTradeHost(api, { links: { whispers: null }, onLinksChange: () => () => {} }).setSaved(value);
 
     const sent = setSaved.mock.calls[0]?.[0];
     expect(sent).toEqual(value);

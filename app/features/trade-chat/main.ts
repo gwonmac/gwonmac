@@ -4,18 +4,17 @@
  */
 import { TradeChatService } from "./main/trade-chat-service.js";
 import { TradeSavedStore } from "./main/trade-saved-store.js";
-import type { ToolsMainPart } from "../../main/tools-main-part.js";
+import { mainPart } from "../../main/tools-main-part.js";
 import contract from "./shared/ipc.js";
 import { tradeChannelDefinitions } from "./main/trade-ipc.js";
 
-export default {
+export default mainPart({
   feature: "tradeChat",
   label: "trade chat",
   contract,
   create({ paths, isFeatureEnabled }) {
     const tradeChat = new TradeChatService();
     const saved = new TradeSavedStore(paths.tradeSaved);
-    let enabled = isFeatureEnabled("tradeChat");
     return {
       channels: tradeChannelDefinitions({
         tradeChat,
@@ -23,15 +22,8 @@ export default {
         getTradeSaved: () => saved.get(),
         setTradeSaved: (value) => saved.set(value),
       }),
-      applySettings() {
-        const next = isFeatureEnabled("tradeChat");
-        if (enabled && !next) tradeChat.dispose();
-        enabled = next;
-      },
-      dispose() {
-        enabled = false;
-        tradeChat.dispose();
-      },
+      // The feed connects on the first subscribe; Trade Chat turning off closes it.
+      start: () => ({ stop: () => tradeChat.dispose() }),
     };
   },
-} satisfies ToolsMainPart<typeof contract>;
+});

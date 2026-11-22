@@ -229,8 +229,8 @@ let loginStatus: import('./login-status.js').LoginStatus | null = null;
 let characterSwitchHost:
   | import('../features/character-switch/renderer/host.js').CharacterSwitchHost
   | null = null;
-let installCharacterSwitchHost:
-  typeof import('../features/character-switch/renderer/host.js').installCharacterSwitchHost;
+let characterSwitchPart:
+  typeof import('../features/character-switch/renderer/host.js').default;
 const cancelAutomaticReturnForCharacterSwitch = () => {
   automaticCharacterReturn?.cancelForCharacterSwitch();
 };
@@ -660,7 +660,7 @@ addEventListener('beforeunload', () => {
   disposeFeatureFacts();
   automaticCharacterReturn?.dispose();
   loginStatus?.dispose();
-  characterSwitchHost?.dispose();
+  characterSwitchHost?.stop();
   characterSwitchHost = null;
   delete window.gwCharacterSwitchHost;
   window.removeEventListener(
@@ -1196,7 +1196,7 @@ function loadGlue(isProxyRouteLabel: (route: string) => boolean) {
     () => inputHost?.traceState(),
   );
   gamepadTrace = host.installGamepadTrace(inputTrace);
-  characterSwitchHost = installCharacterSwitchHost(document.body);
+  characterSwitchHost = characterSwitchPart.start({ parent: document.body, hub: window.gwHub ?? null });
   window.gwCharacterSwitchHost = characterSwitchHost;
   native().inputTrace.onEntry((entry) => inputTrace?.record(entry));
   window.addEventListener('gw:input-trace', (event) => {
@@ -1397,7 +1397,7 @@ function loadGlue(isProxyRouteLabel: (route: string) => boolean) {
     });
     window.gwHub = await (await import('./hub-builtins.js')).loadHub(document.body);
     window.dispatchEvent(new Event('gw:surfaces-ready'));
-    installCharacterSwitchHost = characterSwitch.installCharacterSwitchHost;
+    characterSwitchPart = characterSwitch.default;
     createClientHealthConfirmation =
       clientHealth.createClientHealthConfirmation;
     applyAppearance = appearance.applyAppearance;

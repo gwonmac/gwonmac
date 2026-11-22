@@ -17,7 +17,7 @@ import { DEFAULT_SETTINGS, type AppSettings } from '../../../../../shared/settin
 // eslint-disable-next-line no-restricted-imports
 import type { CharacterSwitchActionState, CharacterSwitchContext, CharacterSwitchSource } from '../../../../../features/character-switch/renderer/character-switch-model';
 // eslint-disable-next-line no-restricted-imports
-import { installCharacterSwitchHost } from '../../../../../features/character-switch/renderer/host';
+import characterSwitchHub from '../../../../../features/character-switch/renderer/host';
 import { mountHubView } from '../embedded';
 import { narrow } from '../../hub-fixture-harness';
 import { fixtureFacts } from '../../fixture-facts';
@@ -78,7 +78,7 @@ const source: CharacterSwitchSource = {
   subscribe(listener) { listeners.add(listener); return () => { listeners.delete(listener); }; },
 };
 
-let host: ReturnType<typeof installCharacterSwitchHost>;
+let host: ReturnType<typeof characterSwitchHub.start>;
 beforeEach(() => {
   vi.useFakeTimers({ now: new Date('2026-11-07T12:00:00Z'), toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date', 'requestAnimationFrame', 'cancelAnimationFrame', 'performance'] });
   HTMLElement.prototype.showPopover ??= function () {};
@@ -111,10 +111,10 @@ beforeEach(() => {
   });
   // Characters never opens Settings; the stub only completes the host's shape.
   window.gwHub = Object.assign(createHub(document.body, { mountHubView }), { openSettings: () => {} });
-  host = installCharacterSwitchHost(document.body);
+  host = characterSwitchHub.start({ parent: document.body, hub: window.gwHub ?? null });
   host.attach(source);
 });
-afterEach(() => { host.dispose(); window.gwHub?.dispose(); vi.useRealTimers(); });
+afterEach(() => { host.stop(); window.gwHub?.dispose(); vi.useRealTimers(); });
 
 /** The carousel draws five cards of the six; position and set size still count all six. */
 const firstFiveCards = [

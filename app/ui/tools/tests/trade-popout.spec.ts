@@ -37,15 +37,11 @@ async function searchFromHub(page: Page, query: string) {
   return trade;
 }
 
-/** Every seller Trade asked Whispers to address, in order. */
+/** Every seller Trade asked Whispers to address through its link since this call, in order (the fixture's link records them). */
 async function recordWhispers(page: Page) {
-  await page.evaluate(() => {
-    document.documentElement.dataset.whispers = '';
-    window.addEventListener('gw:whisper-person', event => {
-      if (event instanceof CustomEvent) document.documentElement.dataset.whispers += `${event.detail}|`;
-    });
-  });
-  return async () => (await page.evaluate(() => document.documentElement.dataset.whispers ?? '')).split('|').filter(Boolean);
+  const opened = async () => (await page.evaluate(() => document.getElementById('app')?.dataset.whisperOpens ?? '')).split('|').filter(Boolean);
+  const before = (await opened()).length;
+  return async () => (await opened()).slice(before);
 }
 
 test('↵ whispers once while held, and Whisper is within three Tabs at any ledger size (HUB-024, D-10)', async ({ page }) => {

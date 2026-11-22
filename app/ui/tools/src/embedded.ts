@@ -38,9 +38,9 @@ const embedded: EmbeddedToolsBundle<HTMLElement> = Object.freeze({
   createHubTravel: ({ nativeApi, command, development, hub, leaveArea, toolOn }) => createTravel(
     createNativeTravelHost(nativeApi, command, development), hub, leaveArea, toolOn,
   ),
-  mountTradeChat: (target, { nativeApi, whispers, ...options }) => mountTrade(target, {
+  mountTradeChat: (target, { nativeApi, links, onLinksChange, ...options }) => mountTrade(target, {
     ...options,
-    host: createNativeTradeHost(nativeApi, whispers),
+    host: createNativeTradeHost(nativeApi, { links, onLinksChange }),
   }),
 });
 

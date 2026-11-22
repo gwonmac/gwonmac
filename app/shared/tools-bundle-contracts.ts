@@ -13,6 +13,7 @@ import type { TeamApplyCommands } from "./builds/team-apply-runner.js";
 import type { StorageCommand } from "./storage-command.js";
 import type { TravelCommand, TravelGameState } from "./travel-command.js";
 import type { ToolsGwNativeApi } from "./contracts.js";
+import type { FeatureLinks } from "../features/links.js";
 
 export type PublishedTemplate = Readonly<{
   fileName: string;
@@ -100,15 +101,13 @@ export type TradeChatHandle = Readonly<{
 }>;
 
 /**
- * What Trade may ask of Whispers, which owns the conversation: whether the tool is
- * switched on, and a request to open a conversation with a seller.
+ * The links Trade's manifest names (Whispers owns the conversation with a seller), read live
+ * from the game window's registry (app/renderer/feature-links.ts), and when they may change.
  */
-export type TradeWhispersPort = Readonly<{
-  available(): boolean;
-  /** Calls back when `available` may have changed; returns the unsubscribe. */
-  onChange(listener: () => void): () => void;
-  /** "unavailable" while Whispers cannot take the conversation yet. */
-  open(sender: string): "opened" | "unavailable";
+export type TradeLinks = Readonly<{
+  links: FeatureLinks<"tradeChat">;
+  /** Calls back when a link may have turned on or off; returns the unsubscribe. */
+  onLinksChange(listener: () => void): () => void;
 }>;
 
 export type TradeChatMountOptions = Readonly<{
@@ -142,6 +141,6 @@ export type EmbeddedToolsBundle<Target> = Readonly<{
   };
   mountTradeChat: (
     target: Target,
-    options: TradeChatMountOptions & Readonly<{ nativeApi: ToolsGwNativeApi; whispers: TradeWhispersPort }>,
+    options: TradeChatMountOptions & TradeLinks & Readonly<{ nativeApi: ToolsGwNativeApi }>,
   ) => TradeChatHandle;
 }>;
