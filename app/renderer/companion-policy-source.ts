@@ -1,15 +1,15 @@
 /**
- * Canonical renderer source for saved feature settings and certified play-region
- * policy. Presentation and command modules consume one immutable snapshot
- * instead of wiring the same settings/region listeners independently.
+ * Canonical renderer source for the saved settings, main's Feature facts and the
+ * certified play region. It resolves every Feature (app/shared/feature-resolve.ts)
+ * from main's facts and the live region, so presentation and command modules
+ * consume one immutable snapshot instead of wiring the same listeners or deciding
+ * on their own.
  */
 import type { EnhancementProgram } from "../shared/enhancement-contracts.js";
+import { FEATURES, type FeatureId } from "../shared/feature-contracts.js";
+import { resolve, type FeatureFacts, type FeatureResolution, type FeatureState } from "../shared/feature-resolve.js";
 import type { CompanionPlayRegionState } from "./companion-play-region-snapshot.js";
-import {
-  enhancementRuntimePolicy,
-  type OptionalToolSettings,
-  type RuntimePlayRegion,
-} from "./enhancement-runtime-policy.js";
+import type { OptionalToolSettings, RuntimePlayRegion } from "./enhancement-runtime-policy.js";
 
 type CompanionPolicyReason = "launch" | "region" | "settings";
 
@@ -17,9 +17,12 @@ type CompanionPolicySnapshot<
   Settings extends OptionalToolSettings = OptionalToolSettings,
 > = Readonly<{
   settings: Settings;
+  /** Main's facts for this window (app/main/feature-decision.ts). */
+  facts: FeatureFacts;
   playRegion: RuntimePlayRegion;
   playRegionState: CompanionPlayRegionState;
-  policy: ReturnType<typeof enhancementRuntimePolicy>;
+  /** resolve's answer for every Feature, with the live region. */
+  features: Readonly<Record<FeatureId, FeatureResolution>>;
 }>;
 
 type PolicyUpdate<Settings extends OptionalToolSettings> = Readonly<{
@@ -46,6 +49,8 @@ export function createCompanionPolicySource<Settings extends OptionalToolSetting
   input: Readonly<{
     program: EnhancementProgram;
     readSettings(): Settings;
+    /** Main's facts; null until they arrive, when every Feature reads off. */
+    readFacts(): FeatureFacts | null;
     settingsEvents: Pick<EventTarget, "addEventListener" | "removeEventListener">;
     readPlayRegion(): CompanionPlayRegionState;
     subscribePlayRegion(
@@ -55,18 +60,25 @@ export function createCompanionPolicySource<Settings extends OptionalToolSetting
 ) {
   const listeners = new Set<(update: PolicyUpdate<Settings>) => void>();
   let disposed = false;
+  // Before main's facts arrive nothing is loaded, so every Feature reads off.
+  const readFacts = (): FeatureFacts => input.readFacts()
+    ?? { toolsAtLaunch: false, settings: {}, program: input.program, features: null };
   let settings = input.readSettings();
+  let facts = readFacts();
   let playRegionState = input.readPlayRegion();
   let playRegionProjection = projectPlayRegion(playRegionState);
   const makeSnapshot = (): CompanionPolicySnapshot<Settings> => {
-    const playRegion = playRegionState.status === "ready"
+    const playRegion: RuntimePlayRegion = playRegionState.status === "ready"
       ? playRegionState.playRegion
       : "unknown";
+    const state: FeatureState = { ...facts, playRegion };
     return Object.freeze({
       settings,
+      facts,
       playRegion,
       playRegionState,
-      policy: enhancementRuntimePolicy(input.program, settings, playRegion),
+      features: Object.freeze(Object.fromEntries(FEATURES.map((feature) => [feature.id, resolve(feature, state)]))) as
+        Readonly<Record<FeatureId, FeatureResolution>>,
     });
   };
   let snapshot = makeSnapshot();
@@ -77,9 +89,11 @@ export function createCompanionPolicySource<Settings extends OptionalToolSetting
   };
   const onSettings = () => {
     if (disposed) return;
-    // The event is only a notification. The validated bridge remains the
-    // source of truth even if page code dispatches a forged event payload.
+    // The event is only a notification (of new settings or new facts). The
+    // validated bridge remains the source of truth even if page code
+    // dispatches a forged event payload.
     settings = input.readSettings();
+    facts = readFacts();
     publish("settings");
   };
   input.settingsEvents.addEventListener("gw:tools-settings", onSettings);

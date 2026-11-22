@@ -20,6 +20,7 @@ import type { CharacterSwitchActionState, CharacterSwitchContext, CharacterSwitc
 import { installCharacterSwitchHost } from '../../../../../features/character-switch/renderer/host';
 import { mountHubView } from '../embedded';
 import { narrow } from '../../hub-fixture-harness';
+import { fixtureFacts } from '../../fixture-facts';
 
 const text = (element: Element | null | undefined) => element?.textContent?.replace(/\s+/gu, ' ').trim() ?? null;
 const nameOf = (element: Element | null) => {
@@ -96,6 +97,7 @@ beforeEach(() => {
   Object.assign(window, {
     gwSurfaces: installSurfaceController(document, { doubleClickMs: 400 }),
     gwToolsSettings: () => settings,
+    gwFeatureFacts: () => fixtureFacts(settings),
     gwNative: {
       init: { development: false },
       settings: {

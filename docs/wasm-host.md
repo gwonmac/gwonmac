@@ -294,7 +294,18 @@ restart reactivates the already-loaded Tools runtime and clears the notice.
 After that restart, each tool's own switch (Build Library, Trade Chat, Travel,
 Xunlai Storage, Target distance, Skill Key Labels, Skill Cooldowns) controls its
 surface, shortcut, and aliases during the session. Turning a tool off keeps its
-saved data. The companion publishes skill-slot geometry, not bindings, and the
+saved data.
+
+One function decides whether a Feature runs: `resolve`
+(`app/shared/feature-resolve.ts`). Main gathers the facts it reads
+(`app/main/feature-decision.ts`): the switches, what this launch loaded, the
+developer program, and the verifier's status for each capability on the build
+each game window serves. The launcher reads them in its snapshot; each game
+window gets its own over `gw:features:get` and `gw:features:event` and adds
+only where the character stands. Menus, shortcuts and Tools main parts ask
+main's `featureOn`; the game host, the Hub and the companion parts ask the same
+`resolve`. A capability the verifier did not prove keeps its Feature off with
+a reason the Features tab shows. The companion publishes skill-slot geometry, not bindings, and the
 renderer never turns a label into game input.
 
 Native skill and effect drawing has a separate `nativeHudRendering` capability.

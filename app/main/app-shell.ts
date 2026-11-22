@@ -16,6 +16,7 @@ import type { AppSettings } from "../shared/settings/index.js";
 import type { LauncherDestination } from "../shared/launcher-contracts.js";
 import { PreferencesCoordinator } from "./core/preferences-coordinator.js";
 import { logEvent } from "./diagnostics.js";
+import { featureFacts } from "./feature-decision.js";
 import { emit } from "./ipc-channel-registry.js";
 import type { LauncherOrchestrator } from "./launcher-orchestrator.js";
 import { gamePaths } from "./paths.js";
@@ -43,6 +44,8 @@ export interface AppShell {
     apply: ((settings: AppSettings) => Promise<void>) | null,
   ) => void;
   readonly attachAutomaticUpdateCheck: (schedule: (() => void) | null) => void;
+  /** Sends these game windows their Feature facts if they changed, e.g. after a failed installation. */
+  readonly publishFeatureFacts: (windows: readonly BrowserWindow[]) => void;
 }
 
 export function createAppShell(): AppShell {
@@ -51,6 +54,7 @@ export function createAppShell(): AppShell {
   let currentSettings: AppSettings | null = null;
   let scheduleAutomaticAppUpdateCheck: (() => void) | null = null;
   let secondInstanceRequested = false;
+  const publishedFacts = new WeakMap<BrowserWindow, string>();
 
   const preferences = new PreferencesCoordinator(
     () => gamePaths(),
@@ -87,6 +91,8 @@ export function createAppShell(): AppShell {
     else {
       for (const win of windows) updateLongRunningTaskFeedback(next, win);
     }
+    // A prepared or replaced client brings the verifier's statuses the Feature decision reads.
+    if (currentSettings) refreshFeatureGates(currentSettings);
     launcher?.clientChanged();
     if (
       next.phase === "ready"
@@ -97,14 +103,30 @@ export function createAppShell(): AppShell {
     }
   }
 
-  /** Publish the one durable Settings snapshot to every live game projection. */
-  async function publishSettings(settings: AppSettings): Promise<void> {
-    currentSettings = settings;
-    await applyToolsSettings?.(settings);
+  /** Brings main's Feature gates and every game window's Feature facts up to date. */
+  function refreshFeatureGates(settings: AppSettings): void {
     updateToolsMenuItems(settings);
     for (const win of windowRegistry.gameWindows()) {
       updateWindowShortcuts(win, settings);
     }
+    publishFeatureFacts(windowRegistry.gameWindows(), settings);
+  }
+
+  /** Sends each game window its Feature facts when they differ from what it last got. */
+  function publishFeatureFacts(windows: readonly BrowserWindow[], settings: AppSettings): void {
+    for (const win of windows) {
+      const facts = featureFacts(settings, win);
+      const signature = JSON.stringify(facts);
+      if (publishedFacts.get(win) === signature) continue;
+      if (emit(win, GAME_CHANNELS.featuresEvent, facts)) publishedFacts.set(win, signature);
+    }
+  }
+
+  /** Publish the one durable Settings snapshot to every live game projection. */
+  async function publishSettings(settings: AppSettings): Promise<void> {
+    currentSettings = settings;
+    await applyToolsSettings?.(settings);
+    refreshFeatureGates(settings);
     for (const win of windowRegistry.windows()) emit(win, GAME_CHANNELS.settingsEvent, settings);
     launcher?.publish();
   }
@@ -129,6 +151,9 @@ export function createAppShell(): AppShell {
     },
     attachAutomaticUpdateCheck: (schedule) => {
       scheduleAutomaticAppUpdateCheck = schedule;
+    },
+    publishFeatureFacts: (windows) => {
+      if (currentSettings) publishFeatureFacts(windows, currentSettings);
     },
   };
 }

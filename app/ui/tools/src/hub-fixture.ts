@@ -1,9 +1,10 @@
 // The main-process model installs the command transport before `commands.ts` registers with it.
 import { installFixtureMain, quitFixtureGame } from './hub-fixture-main';
+import { fixtureFacts } from './fixture-facts';
 // eslint-disable-next-line no-restricted-imports
 import '../../../renderer/commands';
 import { globalToolPatch, launcherToolSettings } from '../../../shared/launcher-contracts';
-import { featureActivationRequested } from '../../../shared/feature-contracts';
+import { onWhereAllowed } from '../../../shared/feature-resolve';
 import { parseCalculatorRates } from '../../../shared/hub-calculator';
 import type { SettingsTarget } from '../../../shared/settings-catalogue';
 import { parseHubSettingsChange, type HubSettingsApi } from '../../../shared/hub-settings';
@@ -136,6 +137,7 @@ export function mountHubFixture(target: HTMLElement) {
     // `?double-click-ms=` models a player's slower macOS Double-click speed, as main passes it.
     gwSurfaces: installSurfaceController(document, { doubleClickMs: Number(params.get('double-click-ms')) || null }),
     gwToolsSettings: () => settings,
+    gwFeatureFacts: () => fixtureFacts(settings),
     gwNative: { ...window.gwNative, init: { enhancementSelection: { tools: true } }, hubSettings,
       client: { ...window.gwNative?.client, session: async () => ({ appVersion: 'fixture', compatibility: null, healthToken: null }) }, accounts: { get: async () => { await delay('accounts-load-ms'); return ({ current: '9e1bd41c-cfc0-4ca8-a57f-2f0ca159c72d', profiles: [{ id: '9e1bd41c-cfc0-4ca8-a57f-2f0ca159c72d', name: 'Main', state: 'running' }, { id: 'e98a37bc-5211-4bc5-8094-0b1286b3c42d', name: secondName, state: 'ready' }] }); }, open: async (request: { mode: string }) => { await delay('accounts-ms'); record(`Account Second ${request.mode}`); } }, settings: { get: async () => settings, onChange: (listener: (value: AppSettings) => void) => { settingsListeners.add(listener); return () => settingsListeners.delete(listener); }, set: async (patch: RendererSettingsPatch) => { await delay('settings-ms'); settings = { ...settings, ...patch }; localStorage.setItem('hub-fixture-shortcuts', JSON.stringify(settings.hubShortcuts)); if('calculatorRates' in patch&&patch.calculatorRates)localStorage.setItem('hub-fixture-calculator-rates',JSON.stringify(settings.calculatorRates)); for (const listener of settingsListeners) listener(settings); window.dispatchEvent(new Event('gw:tools-settings')); return settings; } }, clipboard: { writeText: async (value: string) => record(`Copied ${value}`) }, trade: { getMarketRates: async () => ({ ...estimateMarketRates(new URLSearchParams(location.search).has('market-empty') ? [] : ['WTS armbraces 30e/ea','WTB armbraces 28e/ea','WTS zkeys 1.5e/ea','WTB zkeys 1.4e/ea','WTS 20 ectos for 100k','WTB 25 ectos for 100k'].flatMap((message,group)=>Array.from({length:6},(_,index)=>({source:'kamadan' as const,message,sender:`Sample ${group} ${index}`,timestamp:Date.now()-index*60_000})))), sample: true }), getTraderQuotes: async () => ({ updatedAt: Date.now(), quotes: [{ modelId: '0b03a2', side: 'buy', price: 6000, timestamp: Date.now() }, { modelId: '0b03a2', side: 'sell', price: 5000, timestamp: Date.now() }], sample: true }) }, app: { showLauncher: async () => record('Launcher'), openSettings: async (target?: SettingsTarget) => record(target ? `Settings ${target.section}${target.control ? ` › ${target.control}` : ''}` : 'Settings'), requestQuit: async () => quitFixtureGame(record), showQuitOrReload: () => fixtureMain.showQuitOrReload(), openExternal: async () => record('Website') } },
   });
@@ -209,7 +211,7 @@ export function mountHubFixture(target: HTMLElement) {
     enhancement_configure_resign: () => 0,
     enhancement_resign: () => { record('RESIGN'); return 1; },
   } as unknown as WebAssembly.Exports);
-  resign.update(featureActivationRequested('resign', settings));
+  resign.update(onWhereAllowed('resign', fixtureFacts(settings)));
   const foundation = createToolboxFoundation(document.body, {
     async mountTool(element, onVisibilityChange) {
       const app = mountToolsApp(element, { host: game.host, hub, mode: 'embedded', initiallyVisible: false, onVisibilityChange });
@@ -232,7 +234,7 @@ export function mountHubFixture(target: HTMLElement) {
       return { setVisible: visible => visible ? app.show() : app.hide(), requestClose: app.hide, stepBack: app.stepBack, search: app.search, update() {}, dispose: app.dispose };
     },
   });
-  const travel = createHubTravel(travelHost, hub, (place, leave) => askLeaveArea(hub, leaveAreaCopy('travel', place), leave), () => featureActivationRequested('travel', settings));
+  const travel = createHubTravel(travelHost, hub, (place, leave) => askLeaveArea(hub, leaveAreaCopy('travel', place), leave), () => onWhereAllowed('travel', fixtureFacts(settings)));
   // Progress follows the fixture's map, as the companion republishes it after each map change.
   watch(() => travelHost.state.value, state => travel.updateProgress(state.status === 'ready' ? progressFixture(state.mapId) : { status: 'waiting', reason: state.reason === 'loading' ? 'loading' : 'unavailable' }), { immediate: true });
   // `?travel-load-ms=` attaches Travel late, as the game loads its lazy bundle after the Hub opened.
@@ -304,20 +306,20 @@ export function mountHubFixture(target: HTMLElement) {
   window.addEventListener('hub-fixture-withdraw', () => people.updateFriends({ status: 'waiting', reason: 'unavailable' }));
   // The Travel and Whispers owners' command listeners (`travel-palette.ts`, `whisper-surface.ts`), over the fixture's hosts.
   window.addEventListener('gw:travel-toggle', event => {
-    if (!featureActivationRequested('travel', settings)) return;
+    if (!onWhereAllowed('travel', fixtureFacts(settings))) return;
     event.preventDefault();
     hub.direct('travel', travel.open);
   });
   window.addEventListener('gw:whispers-toggle', event => {
-    if (!featureActivationRequested('whispers', settings) || !session.state.available) return;
+    if (!onWhereAllowed('whispers', fixtureFacts(settings)) || !session.state.available) return;
     toggleHubWhispers(event, hub, messenger, session);
     if (session.state.visible) whisperSurface.raise();
   });
   window.addEventListener('hub-fixture-settings', event => { if (event instanceof CustomEvent) {
     settings = { ...settings, ...event.detail }; for (const listener of settingsListeners) listener(settings);
-    foundation.setAvailable({ builds: featureActivationRequested('buildLibrary', settings), trade: featureActivationRequested('tradeChat', settings) });
-    people.setEnabled(featureActivationRequested('travel', settings) || featureActivationRequested('whispers', settings));
-    resign.update(featureActivationRequested('resign', settings));
+    foundation.setAvailable({ builds: onWhereAllowed('buildLibrary', fixtureFacts(settings)), trade: onWhereAllowed('tradeChat', fixtureFacts(settings)) });
+    people.setEnabled(onWhereAllowed('travel', fixtureFacts(settings)) || onWhereAllowed('whispers', fixtureFacts(settings)));
+    resign.update(onWhereAllowed('resign', fixtureFacts(settings)));
     window.dispatchEvent(new Event('gw:tools-settings'));
   } });
   const controls = document.createElement('div'); controls.className = 'hub-fixture-controls';

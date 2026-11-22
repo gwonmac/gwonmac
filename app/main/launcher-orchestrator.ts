@@ -14,6 +14,7 @@ import {
   type LauncherPreferencesPatch,
   type LauncherSnapshot,
 } from "../shared/launcher-contracts.js";
+import type { FeatureFacts } from "../shared/feature-resolve.js";
 import type { ProfileId } from "../shared/multiple-accounts.js";
 import type { TexturePackSnapshot } from "../shared/texture-packs.js";
 import type { LauncherStateStore } from "./core/launcher-state.js";
@@ -41,6 +42,8 @@ export interface LauncherOrchestratorOptions {
   readonly getSettings: () => AppSettings;
   readonly getNews: (preferences: LauncherSnapshot["preferences"]) => LauncherSnapshot["news"];
   readonly toolsLoaded: () => boolean;
+  /** Main's facts for the Feature decision, for these settings (app/main/feature-decision.ts). */
+  readonly featureFacts: (settings: AppSettings) => FeatureFacts;
   readonly getTexturePacks?: () => TexturePackSnapshot;
   /** Unpackaged Electron tests only: lets renderer-focused suites bypass client preparation. */
   readonly allowUnreadyLaunch?: boolean;
@@ -83,6 +86,7 @@ export class LauncherOrchestrator {
         restartRequired: settings.gwonmacTools !== this.options.toolsLoaded(),
         features: launcherToolSettings(settings),
       },
+      features: this.options.featureFacts(settings),
       settings: launcherSettings(settings),
       shortcuts: resolveShortcuts(settings.shortcutOverrides),
       texturePacks: this.options.getTexturePacks?.() ?? {

@@ -57,14 +57,13 @@ export type FeatureActivationSettings = Pick<
   FeatureBooleanSetting
 >;
 
-export function featureActivationRequested(
-  id: FeatureId,
-  settings: Partial<FeatureActivationSettings>,
-): boolean {
-  const activation = FEATURE_SELECTION_POLICIES[id].activation;
-  if (activation.kind !== "setting") return settings[activation.setting] === true;
-  if (!settings[activation.master]) return false;
-  return settings[activation.setting] === true;
+const ACTIVATION_KEYS: readonly FeatureBooleanSetting[] = [...new Set(FEATURES.flatMap(({ activation }): FeatureBooleanSetting[] =>
+  activation.kind === "setting" ? [activation.setting, activation.master] : [activation.setting]))];
+
+/** Only the switches that select features, from any settings object: what resolve reads of them. */
+export function featureActivationSettings(settings: Partial<FeatureActivationSettings>): Partial<FeatureActivationSettings> {
+  return Object.freeze(Object.fromEntries(ACTIVATION_KEYS.flatMap((key) =>
+    settings[key] === undefined ? [] : [[key, settings[key]]])));
 }
 
 /**

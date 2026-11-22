@@ -2,7 +2,7 @@
  * Renderer-owned game input. The Emscripten host installs this once before its
  * glue loads; native interruptions all converge on releaseAll().
  */
-import { featureActivationRequested } from '../shared/feature-contracts.js';
+import { featureOn } from './feature-on.js';
 import { CLIENT_CURSOR_HIDDEN_EVENT } from './cursor-refresh.js';
 import {
   dispatchHeldKeyRelease,
@@ -496,7 +496,7 @@ export const installGameInput = ({
 
   window.addEventListener('gw:call-target', (event) => {
     const context = window.gwCharacterSwitch?.context;
-    if (!featureActivationRequested('callTarget', window.gwToolsSettings())
+    if (!featureOn('callTarget')
       || !document.hasFocus() || document.activeElement !== canvas
       || (context !== 'outpost' && context !== 'pve-explorable' && context !== 'pvp-explorable')
       || heldKeys.get('Space')) return;

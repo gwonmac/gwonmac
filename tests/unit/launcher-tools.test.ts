@@ -3,9 +3,19 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { DEFAULT_SETTINGS } from "../../app/shared/settings/index.ts";
 import { GLOBAL_TOOLS, GLOBAL_TOOL_FEATURES, globalToolPatch, launcherToolSettings } from "../../app/shared/launcher-contracts.ts";
-import { FEATURE_SELECTION_POLICIES, featureActivationRequested } from "../../app/shared/feature-contracts.ts";
+import { FEATURE_SELECTION_POLICIES, type FeatureActivationSettings, type FeatureId } from "../../app/shared/feature-contracts.ts";
 import { DEFAULT_SHORTCUTS, resolveShortcuts } from "../../app/shared/keyboard-shortcuts.ts";
 import { allGlobalToolsPatch, launcherShortcutPatch } from "../../app/main/core/launcher-tools.ts";
+import { resolveFeature } from "../../app/shared/feature-resolve.ts";
+import { capabilityRecord } from "../../app/shared/enhancement-contracts.ts";
+
+/** resolve's answer with Features loaded, every capability proved and the character in PvE: only the switches decide. */
+const switchedOn = (id: FeatureId, settings: Partial<FeatureActivationSettings>) => resolveFeature(id, {
+  toolsAtLaunch: true, settings, program: "none", playRegion: "pve",
+  features: { gameFileSaving: { status: "available" }, nativeDoubleClick: { status: "available" },
+    ...capabilityRecord(() => ({ status: "available" as const })) },
+}).on;
+
 
 describe("global launcher Tools", () => {
   it("projects every independently configurable feature from its canonical setting", () => {
@@ -15,7 +25,7 @@ describe("global launcher Tools", () => {
       for (const enabled of [false, true]) {
         const settings = { ...DEFAULT_SETTINGS, gwonmacTools: true, ...globalToolPatch(tool, enabled) };
         assert.equal(launcherToolSettings(settings)[tool].enabled, enabled, tool);
-        assert.equal(featureActivationRequested(id, settings), enabled, tool);
+        assert.equal(switchedOn(id, settings), enabled, tool);
       }
     }
     const settings = new Set(GLOBAL_TOOLS.map(tool => FEATURE_SELECTION_POLICIES[GLOBAL_TOOL_FEATURES[tool]].activation.setting));

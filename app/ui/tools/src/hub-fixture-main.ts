@@ -8,11 +8,13 @@
  */
 import type { RendererCommand } from '../../../shared/contracts';
 import type { AppSettings } from '../../../shared/settings/index';
-import { featureActivationRequested } from '../../../shared/feature-contracts';
+import { onWhereAllowed } from '../../../shared/feature-resolve';
+import { fixtureFacts } from './fixture-facts';
 import { HUB_SHORTCUT, hubShortcutAvailable, resolveShortcuts, SHORTCUT_FEATURES, shortcutMatches, type ShortcutAction } from '../../../shared/keyboard-shortcuts';
 import { isMapLayerShortcut, SHORTCUT_COMMANDS, SHORTCUT_MAP_LAYERS } from '../../../shared/shortcut-commands';
 
 const QUIT_CHORD = { key: 'q', shift: false, option: false } as const;
+
 type CommandHandler = (command: RendererCommand) => void | 'unhandled' | Promise<void | 'unhandled'>;
 let handler: CommandHandler | null = null;
 const transport = { handle(next: CommandHandler) {
@@ -61,7 +63,7 @@ export function installFixtureMain(options: FixtureMainOptions) {
       // A disabled tool's chord stays claimed and does nothing, as in main.
       claim(event);
       if (event.repeat) return;
-      if (!featureActivationRequested(SHORTCUT_FEATURES[action], settings)) return;
+      if (!onWhereAllowed(SHORTCUT_FEATURES[action], fixtureFacts(settings))) return;
       // Main's own table (app/shared/shortcut-commands.ts): a map layer flips its setting, any other sends its commands.
       if (isMapLayerShortcut(action)) { const key = SHORTCUT_MAP_LAYERS[action]; options.updateSettings({ [key]: !settings[key] }); }
       else void run(SHORTCUT_COMMANDS[action]);

@@ -3,16 +3,16 @@
  * Uses the shared observer and the existing private whisper session.
  */
 import { currentTravelFriend, presenceLabel, type TravelFriend, type TravelFriends } from '../shared/friends.js';
-import { featureActivationRequested } from '../shared/feature-contracts.js';
 import { travelDestination } from '../shared/travel.js';
 import { hubTier, parseHubQuery, type HubAction, type HubRow, type HubSource, type HubTask } from '../shared/hub.js';
 import { characterKey, normaliseCharacterName } from '../shared/player-text.js';
 import { findPeople, whisperUnread, type Person, type WhisperSession } from '../shared/whisper-session.js';
 import { isCharacterName, isFullCharacterName } from '../shared/whispers.js';
+import { featureOn } from './feature-on.js';
 import type { Hub } from './hub.js';
 import type { PartyInvite } from './party-invite.js';
 
-const toolEnabled = (feature: 'whispers' | 'travel') => featureActivationRequested(feature, window.gwToolsSettings?.() ?? {});
+const toolEnabled = (feature: 'whispers' | 'travel') => featureOn(feature);
 const MAX_PEOPLE = 8;
 const PARTIAL_NAME = 'Type the full character name';
 const WHISPER_WAITING = 'Whispers is waiting for Guild Wars chat…';

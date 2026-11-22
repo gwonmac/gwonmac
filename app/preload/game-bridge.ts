@@ -241,6 +241,10 @@ export function exposeGameBridge(extend?: (api: GameBridge) => void) {
     templates: {
       export: (entries) => invoke("templatesExport", entries),
     },
+    features: {
+      get: () => invoke("featuresGet"),
+      onChange: (callback) => listen("featuresEvent", callback),
+    },
     client: {
       healthy: (token) => invoke("clientHealthy", token),
       session: () => invoke("clientSession"),

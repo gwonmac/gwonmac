@@ -26,6 +26,7 @@ import { RELEASE_ENHANCEMENT_CAPABILITIES } from '../../../shared/enhancement-co
 import { FEATURES } from '../../../shared/feature-contracts';
 import { DEFAULT_SETTINGS, type AppSettings } from '../../../shared/settings/index';
 import { installLeakLedger, type Leak, type LeakLedger } from '../../../../tests/helpers/leak-ledger';
+import { fixtureFacts } from './fixture-facts';
 // eslint-disable-next-line no-restricted-imports
 import { installCharacterSwitchHost } from '../../../features/character-switch/renderer/host';
 // eslint-disable-next-line no-restricted-imports
@@ -130,6 +131,7 @@ beforeAll(async () => {
   Object.assign(window, {
     gwNative: bridge(''),
     gwToolsSettings: () => settings,
+    gwFeatureFacts: () => fixtureFacts(settings),
     gwSurfaces: installSurfaceController(document, { doubleClickMs: 400 }),
   });
   // The Hub is Core: the game host installs it before any feature starts.

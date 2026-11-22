@@ -1,6 +1,7 @@
 /**
  * The game client's channels: snapshot metadata, the health proof, the
- * window's client session, runtime feature failures, and first presentation.
+ * window's client session, runtime feature failures, the window's Feature
+ * facts (app/main/feature-decision.ts), and first presentation.
  */
 import {
   ENHANCEMENT_RUNTIME_FEATURES,
@@ -9,6 +10,7 @@ import {
 } from "../../shared/contracts.js";
 import { isDigest } from "../../shared/digest.js";
 import { ValidationError } from "../../shared/errors.js";
+import { featureFacts } from "../feature-decision.js";
 import { channel } from "../ipc-channel-registry.js";
 import { nothing, one } from "../ipc-values.js";
 import { gameReadyToPresent } from "../window.js";
@@ -52,7 +54,7 @@ const asEnhancementRuntimeFeatures = one(
   },
 );
 
-export default ({ client }: GameIpcInput) => {
+export default ({ client, currentSettings, publishFeatureFacts }: GameIpcInput) => {
   const runtime = client.runtime;
   return {
     channels: {
@@ -63,8 +65,12 @@ export default ({ client }: GameIpcInput) => {
         gameReadyToPresent(win);
       }),
       clientSession: channel(nothing, (win) => client.clientSession(win)),
-      clientFeatureFailure: channel(asEnhancementRuntimeFeatures, (win, features) =>
-        client.recordFeatureFailure(win, features)),
+      clientFeatureFailure: channel(asEnhancementRuntimeFeatures, (win, features) => {
+        client.recordFeatureFailure(win, features);
+        // A failed installation changes this window's facts: its Features read not-proven.
+        publishFeatureFacts([win]);
+      }),
+      featuresGet: channel(nothing, (win) => featureFacts(currentSettings(), win)),
     } satisfies GameHandlers,
   };
 };

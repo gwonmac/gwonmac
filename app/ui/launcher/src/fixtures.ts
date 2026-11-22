@@ -1,12 +1,14 @@
 import type { ClientCompatibility } from "@shared/contracts";
 import { capabilityRecord } from "@shared/enhancement-contracts";
-import type { LauncherSnapshot } from "@shared/launcher-contracts";
+import { FEATURES, type FeatureActivationSettings } from "@shared/feature-contracts";
+import type { FeatureFacts } from "@shared/feature-resolve";
+import { GLOBAL_TOOLS, GLOBAL_TOOL_FEATURES, type LauncherSnapshot } from "@shared/launcher-contracts";
 import { DEFAULT_SETTINGS } from "@shared/settings/index";
 import { resolveShortcuts } from "@shared/keyboard-shortcuts";
 import { DEFAULT_CARTOGRAPHY_PRESET_LIBRARY } from "@shared/cartography-overlay";
 import { LEGACY_PRIMARY_PROFILE_ID, parseProfileId } from "@shared/multiple-accounts";
 
-export const fixtureSnapshot: LauncherSnapshot = {
+const fixtureBase: Omit<LauncherSnapshot, "features"> = {
   revision: 1,
   experience: {
     installationKind: "migrated-single",
@@ -133,12 +135,27 @@ export const fixtureSnapshot: LauncherSnapshot = {
   },
 };
 
+/**
+ * The facts main would send for a fixture's switches and build checks: in a browser preview this
+ * stands in for app/main/feature-decision.ts, which owns them in the app.
+ */
+export function fixtureFacts(tools: LauncherSnapshot["tools"], checks: ClientCompatibility["features"] | null): FeatureFacts {
+  const settings: Partial<Record<keyof FeatureActivationSettings, boolean>> = { gwonmacTools: tools.configured };
+  for (const tool of GLOBAL_TOOLS) {
+    const feature = FEATURES.find((candidate) => candidate.id === GLOBAL_TOOL_FEATURES[tool])!;
+    settings[feature.activation.setting] = tools.features[tool].enabled;
+  }
+  return { toolsAtLaunch: tools.loaded, settings, program: "none", features: checks };
+}
+
+export const fixtureSnapshot: LauncherSnapshot = { ...fixtureBase, features: fixtureFacts(fixtureBase.tools, null) };
+
 export type LauncherFixtureScenario = "accounts" | "default" | "fresh" | "preparing" | "repair" | "offline" | "update" | "failed" | "production" | "features" | "features-restart";
 
 /**
  * Build checks for the Features tab in a browser preview (`?checks=proved` or `?checks=patch-day`);
- * the launcher itself has none yet (plan step 7.1). On patch day this build changed what Quick
- * Item Move uses and the check of chat filtering failed; everything else proved.
+ * the app reads them from main. On patch day this build changed what Quick Item Move uses and the
+ * check of chat filtering failed; everything else proved.
  */
 export function fixtureFeatureChecksFor(search: string): ClientCompatibility["features"] | null {
   const requested = new URLSearchParams(search).get("checks");
@@ -154,6 +171,11 @@ export function fixtureFeatureChecksFor(search: string): ClientCompatibility["fe
 }
 
 export function fixtureSnapshotFor(search: string): LauncherSnapshot {
+  const snapshot = fixtureScenario(search);
+  return { ...snapshot, features: fixtureFacts(snapshot.tools, fixtureFeatureChecksFor(search)) };
+}
+
+function fixtureScenario(search: string): LauncherSnapshot {
   const requested = new URLSearchParams(search).get("fixture") as LauncherFixtureScenario | null;
   switch (requested) {
     case "accounts":

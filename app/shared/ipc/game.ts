@@ -39,6 +39,7 @@ import type {
   RendererMilestone,
   RendererMilestoneFields,
 } from "../diagnostics.js";
+import type { FeatureFacts } from "../feature-resolve.js";
 import type { HubSettingsChange, HubSettingsSnapshot } from "../hub-settings.js";
 import type { MainInputTraceEntry } from "../input-trace.js";
 import type { ShortcutAction } from "../keyboard-shortcuts.js";
@@ -100,6 +101,9 @@ export const GAME_CHANNELS = {
   gameReadyToPresent: invoke<[], void>("gw:game:readyToPresent"),
   clientSession: invoke<[], ClientSession>("gw:client:session"),
   clientFeatureFailure: invoke<[features: readonly EnhancementRuntimeFeature[]], void>("gw:client:featureFailure"),
+  // Main's facts for this window's Feature decision (app/main/feature-decision.ts), pushed on change.
+  featuresGet: invoke<[], FeatureFacts>("gw:features:get"),
+  featuresEvent: event<[facts: FeatureFacts]>("gw:features:event"),
   // Main→renderer, and the renderer's acknowledgement. Main waits on the
   // acknowledgement because a capture flush has to finish inside the capture
   // window, which `executeJavaScript`'s awaited result used to guarantee.

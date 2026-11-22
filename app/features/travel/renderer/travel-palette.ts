@@ -3,18 +3,18 @@
  * The existing Travel host remains the command and preference owner.
  */
 import { TOOL_PRESENTATION } from '../../../shared/tool-presentation.js';
-import { featureActivationRequested } from '../../../shared/feature-contracts.js';
 import { currentTravelFriend, type TravelFriend, type TravelFriends } from '../../../shared/friends.js';
 import type { GameProgressState } from '../../../shared/game-progress.js';
 import type { TravelCommand, TravelGameState } from '../../../shared/travel-command.js';
 import type { EmbeddedToolsBundle } from '../../../shared/tools-bundle-contracts.js';
 import { matchHubRows, type HubRow, type HubSource, type HubViewMount } from '../../../shared/hub.js';
+import { featureOn } from '../../../renderer/feature-on.js';
 import { ensureToolsStylesheet } from '../../../renderer/tools-stylesheet.js';
 import { askLeaveArea, leaveAreaCopy } from '../../../renderer/leave-area.js';
 import { requireToolsApi } from '../../../renderer/tools-native-api.js';
 
-/** The Travel tool is switched on; a map load, character select or PvP only makes it unavailable for now. */
-const toolOn = () => featureActivationRequested('travel', window.gwToolsSettings?.() ?? {});
+/** Travel is on; a map load, character select or PvP only makes it unavailable for now. */
+const toolOn = () => featureOn('travel');
 
 export function createTravelPalette(parent: HTMLElement, command: TravelCommand) {
   const installed = window.gwHub;

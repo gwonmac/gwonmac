@@ -41,7 +41,7 @@ import { createTemplateFiles } from "./template-files.js";
 import { ensureToolsStylesheet } from "./tools-stylesheet.js";
 import { requireToolsApi } from "./tools-native-api.js";
 import { createTradeWhispers } from "./trade-whispers.js";
-import { featureActivationRequested } from "../shared/feature-contracts.js";
+import { featureOn } from "./feature-on.js";
 import { toolsUnavailableCopy } from "../shared/tools-unavailable-copy.js";
 
 /**
@@ -215,11 +215,10 @@ export function mountHostOnlyTools(
     mountTrade: mountTradeInto,
   });
   const syncEnabled = () => {
-    const settings = window.gwToolsSettings();
-    lifecycle.setEnabled(featureActivationRequested("tools", settings));
+    lifecycle.setEnabled(featureOn("tools"));
     lifecycle.setAvailable({
-      builds: featureActivationRequested("buildLibrary", settings),
-      trade: featureActivationRequested("tradeChat", settings),
+      builds: featureOn("buildLibrary"),
+      trade: featureOn("tradeChat"),
     });
   };
   window.addEventListener("gw:tools-settings", syncEnabled);

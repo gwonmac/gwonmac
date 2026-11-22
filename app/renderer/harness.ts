@@ -541,6 +541,21 @@ window.gwToolsSettings = () => {
   if (!projectToolsSettings) throw new Error('Tools settings are not loaded yet');
   return projectToolsSettings(appSettings);
 };
+// Main's facts for this window's Feature decision (app/main/feature-decision.ts); null
+// until the first arrive. New facts are announced like new settings, with
+// gw:tools-settings, so every listener reads both again.
+let featureFacts: import('../shared/feature-resolve.js').FeatureFacts | null = null;
+let disposeFeatureFacts = () => {};
+window.gwFeatureFacts = () => featureFacts;
+function applyFeatureFacts(next: import('../shared/feature-resolve.js').FeatureFacts): void {
+  featureFacts = next;
+  cartographyHost?.update();
+  if (projectToolsSettings) {
+    window.dispatchEvent(new CustomEvent('gw:tools-settings', {
+      detail: window.gwToolsSettings(),
+    }));
+  }
+}
 window.gwApplySettings = (next) => {
   const previousScale = appSettings?.renderScale;
   const updated = { ...next };
@@ -642,6 +657,7 @@ addEventListener('beforeunload', () => {
   heapWarning?.dispose();
   disposeMemoryWarningSettings();
   disposeSettings();
+  disposeFeatureFacts();
   automaticCharacterReturn?.dispose();
   loginStatus?.dispose();
   characterSwitchHost?.dispose();
@@ -1286,6 +1302,7 @@ function loadGlue(isProxyRouteLabel: (route: string) => boolean) {
   disposeSettings = native().settings.onChange((settings) => {
     window.gwApplySettings?.(settings);
   });
+  disposeFeatureFacts = native().features.onChange(applyFeatureFacts);
   const [
     { installAutomaticCharacterReturn },
     { installLoginStatus },
@@ -1423,10 +1440,13 @@ function loadGlue(isProxyRouteLabel: (route: string) => boolean) {
   window.gwLoading.set('Starting Guild Wars…', null);
 
   try {
-    const [loadedSettings, session] = await Promise.all([
+    const [loadedSettings, session, loadedFacts] = await Promise.all([
       native().settings.get(),
       native().client.session(),
+      native().features.get(),
     ]);
+    // Facts pushed while this read was in flight are newer.
+    applyFeatureFacts(featureFacts ?? loadedFacts);
     const settings = appSettings ?? loadedSettings;
     appSettings = settings;
     const texturePackGeneration = window.gwNative.init.texturePackGeneration;

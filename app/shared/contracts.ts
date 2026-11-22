@@ -893,6 +893,11 @@ export interface CoreGwNativeApiBase {
      */
     export: Invoke<G["templatesExport"]>;
   };
+  /** Main's facts for this window's Feature decision; the renderer adds where the character stands. */
+  features: {
+    get: Invoke<G["featuresGet"]>;
+    onChange: Subscribe<G["featuresEvent"]>;
+  };
   client: {
     healthy: Invoke<G["clientHealthy"]>;
     session: Invoke<G["clientSession"]>;

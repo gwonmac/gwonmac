@@ -4,8 +4,8 @@ import { BUILD_CHECK_FAILED } from "@shared/contracts";
 import type { FeatureId } from "@shared/feature-contracts";
 import type { GlobalTool, LauncherNativeApi, LauncherSnapshot } from "@shared/launcher-contracts";
 import FeaturesView from "./FeaturesView.vue";
-import { cardFeature, type FeatureChecks } from "../features";
-import { fixtureFeatureChecksFor, fixtureSnapshot } from "../fixtures";
+import { cardFeature } from "../features";
+import { fixtureFacts, fixtureFeatureChecksFor, fixtureSnapshot } from "../fixtures";
 
 type Tools = LauncherSnapshot["tools"];
 const loaded: Tools = { ...fixtureSnapshot.tools, configured: true, loaded: true, restartRequired: false };
@@ -25,13 +25,13 @@ function bridge() {
 }
 
 const mounted: VueWrapper[] = [];
-function view(tools: Tools, checks: FeatureChecks, native = bridge(), profiles = idle) {
+/** The view as main feeds it: the switches and the facts main sends for them (app/main/feature-decision.ts). */
+function view(tools: Tools, checks: Parameters<typeof fixtureFacts>[1], native = bridge(), profiles = idle) {
   const wrapper: VueWrapper = mount(FeaturesView, {
     attachTo: document.body,
     props: {
-      snapshot: { ...fixtureSnapshot, profiles, tools },
+      snapshot: { ...fixtureSnapshot, profiles, tools, features: fixtureFacts(tools, checks) },
       native: native as unknown as LauncherNativeApi,
-      checks,
       feature: null,
       "onUpdate:feature": (feature: FeatureId | null) => wrapper.setProps({ feature }),
     },

@@ -10,7 +10,7 @@ import type {
   CharacterSummary,
 } from "../../../renderer/companion-character-list-snapshot.js";
 import { professionPresentation } from "../../../shared/profession-assets.js";
-import { featureActivationRequested } from "../../../shared/feature-contracts.js";
+import { featureOn } from "../../../renderer/feature-on.js";
 import { travelDestination } from "../../../shared/travel-destinations.js";
 import type {
   CharacterSwitchFailureCode,
@@ -182,7 +182,7 @@ export function createCharacterSwitchPalette(
         if (view === 'confirming') source.cancelConfirmation();
         view = 'closed';
       };
-    }, () => featureActivationRequested("characterSwitch", window.gwToolsSettings?.() ?? {}), "characters"); },
+    }, () => featureOn("characterSwitch"), "characters"); },
     close() { hub.close(); },
     pageChanged() { hub.pageChanged(); },
     dispose() { if (page) hub.close(); },
@@ -557,13 +557,22 @@ export function createCharacterSwitchPalette(
     hub.direct("characters", () => openPalette());
   };
   window.addEventListener("gw:character-toggle", onToggle);
+  // resolve answers with main's facts (feature-on.ts); the harness announces new facts and new
+  // settings with gw:tools-settings, and the display preferences come with the settings.
+  const syncEnabled = () => {
+    const next = featureOn("characterSwitch");
+    if (next === enabled) return;
+    enabled = next;
+    render();
+  };
+  window.addEventListener("gw:tools-settings", syncEnabled);
   const unsubscribeSettings = window.gwNative.settings.onChange((settings) => {
-    enabled = featureActivationRequested("characterSwitch", settings);
+    enabled = featureOn("characterSwitch");
     displayPreferences = displayPreferencesFrom(settings);
     render();
   });
   void window.gwNative.settings.get().then((settings) => {
-    enabled = featureActivationRequested("characterSwitch", settings);
+    enabled = featureOn("characterSwitch");
     displayPreferences = displayPreferencesFrom(settings);
     render();
   }).catch(() => { /* Keep the surface closed until its enable setting is known. */ });
@@ -583,6 +592,7 @@ export function createCharacterSwitchPalette(
     dispose() {
       unsubscribe();
       unsubscribeSettings();
+      window.removeEventListener("gw:tools-settings", syncEnabled);
       modal.dispose();
       disarm();
       window.removeEventListener("gw:character-toggle", onToggle);

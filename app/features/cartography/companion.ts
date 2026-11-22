@@ -28,7 +28,7 @@ export default {
           },
         });
         let identity = "";
-        const wanted = () => context.policy().cartography;
+        const wanted = () => context.on("cartography");
         observation.observeStateWhen(wanted);
         observation.observePartyWhen(wanted);
         observation.observeTargetWhen(wanted);

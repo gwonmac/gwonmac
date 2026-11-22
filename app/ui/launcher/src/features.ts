@@ -5,13 +5,12 @@
  * switch a card moves, how cards group, and the switch changes that turn a feature on together
  * with what it needs.
  */
-import { BUILD_CHECK_FAILED, type ClientCompatibility } from "@shared/contracts";
+import { BUILD_CHECK_FAILED } from "@shared/contracts";
 import {
   FEATURES,
   FEATURE_KIND_LABELS,
   FEATURE_PURPOSE_LABELS,
   folderForId,
-  type FeatureActivationSettings,
   type FeatureId,
 } from "@shared/feature-contracts";
 import { resolve, type FeatureOffReason, type FeatureResolution, type FeatureState } from "@shared/feature-resolve";
@@ -42,21 +41,13 @@ export function switchOf(feature: CardFeature): GlobalTool {
   return tool;
 }
 
-/** What the launcher knows of a game session: nothing yet, so capability checks read `checking` (plan step 7.1). */
-export type FeatureChecks = ClientCompatibility["features"] | null;
-
 /**
- * resolve's state as the launcher sees it. The launcher is not a game window: no character
- * stands anywhere (`unknown`, which featureStatus reads as on), and no build check reaches it,
- * so `checks` is null outside the dev preview.
+ * resolve's state as the launcher sees it: main's facts (app/main/feature-decision.ts), which
+ * carry the verifier's statuses for the client build the app serves. The launcher is not a game
+ * window: no character stands anywhere (`unknown`, which featureStatus reads as on).
  */
-export function launcherFeatureState(tools: LauncherSnapshot["tools"], checks: FeatureChecks): FeatureState {
-  const settings: Partial<Record<keyof FeatureActivationSettings, boolean>> = { gwonmacTools: tools.configured };
-  for (const tool of GLOBAL_TOOLS) {
-    const feature = FEATURES.find((candidate) => candidate.id === GLOBAL_TOOL_FEATURES[tool])!;
-    settings[feature.activation.setting] = tools.features[tool].enabled;
-  }
-  return { toolsAtLaunch: tools.loaded, settings, program: "none", playRegion: "unknown", features: checks };
+export function launcherFeatureState(facts: LauncherSnapshot["features"]): FeatureState {
+  return { ...facts, playRegion: "unknown" };
 }
 
 export type ReasonTone = "muted" | "warning";

@@ -12,6 +12,11 @@ import {
   releaseWindowShortcutKey,
   updateWindowShortcuts,
 } from "../../app/main/window-shortcuts.js";
+import { attachFeatureLaunch } from "../../app/main/feature-decision.js";
+import { provenChecks } from "../helpers/feature-facts.js";
+
+// A launch that loaded Features on a build that proved every capability: the switches decide.
+attachFeatureLaunch({ toolsAtLaunch: true, program: "none", checks: () => provenChecks(), provenForTests: false });
 
 type ShortcutInput = Pick<
   Electron.Input,
@@ -112,6 +117,27 @@ describe("window shortcut input", () => {
     assert.equal(press(), false);
     assert.equal(press("KeyU"), false);
     assert.deepEqual(actions, ["game.resign", "game.resign", "game.resign"]);
+  });
+
+  it("leaves Resign inert while main's facts say this build changed what it uses", () => {
+    let dispatch!: (event: { preventDefault(): void }, input: ShortcutInput) => void;
+    const win = { webContents: { on: (_name: string, listener: typeof dispatch) => { dispatch = listener; } }, on() { return win; } } as unknown as BrowserWindow;
+    const actions: string[] = [];
+    installWindowShortcuts(win, { run: action => { actions.push(action); }, edit() {}, quitOrReload() {} });
+    const press = () => dispatch({ preventDefault() {} }, { type: "keyDown", code: "KeyJ", key: "j", meta: true, control: false, shift: true, alt: false, isAutoRepeat: false });
+    const enabled = { ...DEFAULT_SETTINGS, gwonmacTools: true, resignEnabled: true, shortcutOverrides: { "game.resign": { key: "j", shift: true, option: false } } };
+    try {
+      attachFeatureLaunch({ toolsAtLaunch: true, program: "none", provenForTests: false,
+        checks: () => provenChecks({ resignAction: { status: "unavailable", reason: "game-update" } }) });
+      updateWindowShortcuts(win, enabled);
+      press();
+      assert.deepEqual(actions, []);
+    } finally {
+      attachFeatureLaunch({ toolsAtLaunch: true, program: "none", checks: () => provenChecks(), provenForTests: false });
+    }
+    updateWindowShortcuts(win, enabled);
+    press();
+    assert.deepEqual(actions, ["game.resign"]);
   });
 
   it("gates Core and Maps independently and keeps a hidden layer's shortcut usable", () => {

@@ -14,6 +14,7 @@ import { createLauncherWindow, prepareLauncherWindowState } from "./accounts-win
 import type { AppShell } from "./app-shell.js";
 import { wireCaptureControl } from "./capture-control.js";
 import { createClientService, selectLaunch } from "./client-service.js";
+import { attachFeatureLaunch } from "./feature-decision.js";
 import { registerGameIpc } from "./game-ipc/register.js";
 import {
   VolatileNativeKeychain,
@@ -104,6 +105,13 @@ export async function startApp(shell: AppShell, hostVersion: string): Promise<vo
     onProgress: shell.setProgress,
   });
   const clientRuntime = client.runtime;
+  attachFeatureLaunch({
+    toolsAtLaunch: launch.enhancementSelection.tools,
+    program: launch.enhancementProgram,
+    checks: (win) => (win ? client.clientSession(win) : clientRuntime.session(hostVersion))
+      .compatibility?.features ?? null,
+    provenForTests: !app.isPackaged && process.env.GW_TEST_FEATURES_PROVEN === "1",
+  });
   const sockets = createSocketManager();
   const updater = createUpdaterService({
     hostVersion,
@@ -192,6 +200,7 @@ export async function startApp(shell: AppShell, hostVersion: string): Promise<vo
     host,
     launcher,
     currentSettings,
+    publishFeatureFacts: shell.publishFeatureFacts,
   });
 
   onAppQuit(async () => {

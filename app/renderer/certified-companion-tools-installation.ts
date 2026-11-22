@@ -160,7 +160,7 @@ function activateParts(
     const activation: ToolsActivation = Object.freeze({
       ...context,
       snapshot,
-      policy: () => snapshot().policy,
+      on: (id) => snapshot().features[id].on,
       playRegion: () => snapshot().playRegion,
       hud,
       game: createGameBlocks({

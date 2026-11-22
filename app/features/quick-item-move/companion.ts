@@ -40,7 +40,7 @@ export default {
               scratchPointer: pointer,
             });
           },
-          sync() { installation?.update(context.policy().quickItemMove); },
+          sync() { installation?.update(context.on("quickItemMove")); },
           disposePresentation: [() => { installation?.dispose(); installation = null; }],
           releaseCallbackResources: [(free) => { if (pointer !== 0) free(pointer); pointer = 0; }],
         };

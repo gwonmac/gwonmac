@@ -22,7 +22,8 @@ import type { LauncherDestination, LauncherProfileSummary } from "../shared/laun
 import { EXTERNAL_URLS, type TextEditCommand } from "../shared/contracts.js";
 import type { AppSettings } from "../shared/settings/index.js";
 import { errorCode } from "../shared/errors.js";
-import { featureActivationRequested, type FeatureActivationSettings } from "../shared/feature-contracts.js";
+import type { FeatureActivationSettings } from "../shared/feature-contracts.js";
+import { featureOn } from "./feature-decision.js";
 import { logEvent, reloadTranscriptForWindow } from "./diagnostics.js";
 import { exportDiagnosticsReport } from "./diagnostics-export.js";
 import {
@@ -130,7 +131,7 @@ export function updateToolsMenuItems(settings: ToolMenuSettings): void {
       rebuildGameMenu?.(settings);
       return;
     }
-    item.enabled = featureActivationRequested(feature, settings);
+    item.enabled = featureOn(feature, settings);
   }
 }
 
@@ -271,7 +272,7 @@ export function showQuitOrReloadGame(
 
 
 export async function showResignGame(host: WindowHost, win: BrowserWindow): Promise<void> {
-  if (!featureActivationRequested("resign", await host.getSettings())) return;
+  if (!featureOn("resign", await host.getSettings(), win)) return;
   await runShortcut(win, "game.resign");
 }
 
@@ -678,7 +679,7 @@ export function installApplicationMenu(actions: ApplicationMenuActions, settings
     if (Array.isArray(view?.submenu)) for (const item of view.submenu) {
       const selection = SHORTCUT_MENU_ITEMS[item.id ?? ""];
       if (!selection) continue;
-      item.enabled = featureActivationRequested(selection.feature, settings);
+      item.enabled = featureOn(selection.feature, settings);
       // Tools shortcuts belong only to before-input-event, not AppKit's menu
       // routing. Character Switch retains its existing native menu binding.
       const accelerator = selection.action === "character.switch"

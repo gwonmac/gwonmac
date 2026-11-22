@@ -22,7 +22,7 @@
  */
 import { COMPANION_ABI, COMPANION_FEATURE_BITS } from "../shared/companion-abi.js";
 import type { EnhancementCapabilities, EnhancementProgram } from "../shared/enhancement-contracts.js";
-import { featureActivationRequested } from "../shared/feature-contracts.js";
+import { onWhereAllowed } from "../shared/feature-resolve.js";
 import type { ToolboxObservation } from "../shared/builds/live-party.js";
 import type { TravelFriend, TravelFriends } from "../shared/friends.js";
 import type { WhisperSession } from "../shared/whisper-session.js";
@@ -63,6 +63,7 @@ export function createToolsPolicySource(
   return createCompanionPolicySource({
     program: context.program,
     readSettings: window.gwToolsSettings,
+    readFacts: () => window.gwFeatureFacts?.() ?? null,
     settingsEvents: window,
     readPlayRegion: () => context.playRegions.state,
     subscribePlayRegion: context.playRegions.subscribe,
@@ -84,11 +85,11 @@ export function createPolicyTrace(
   let last = "";
   return (reason: "launch" | "region" | "settings") => {
     if (!window.gwNative.init.development) return;
-    const { policy, playRegion } = snapshot();
+    const { features, playRegion } = snapshot();
     // A Team Apply profile always installs its commands, so `commands` follows the capability.
     const summary = { program: context.program, playRegion, nativeCursor: context.capabilities.nativeCursor,
-      teamApply: policy.teamApply, xunlaiStorage: policy.xunlaiStorage,
-      targetReadout: policy.targetReadout, commands: context.capabilities.teamApply };
+      teamApply: features.teamApply.on, xunlaiStorage: features.xunlaiStorage.on,
+      targetReadout: features.targetReadout.on, commands: context.capabilities.teamApply };
     const signature = JSON.stringify(summary);
     if (signature === last) return;
     last = signature;
@@ -267,8 +268,8 @@ function createFriends(module: WebAssembly.Module, capabilities: EnhancementCapa
         sync() {
           // People stays attached through a map load, character select or PvP; its person pages say
           // why an action waits, and the Home query survives the load (HUB-051, HUB-135).
-          const settings = context.snapshot().settings;
-          hubPeople?.setEnabled(featureActivationRequested("travel", settings) || featureActivationRequested("whispers", settings));
+          const { facts } = context.snapshot();
+          hubPeople?.setEnabled(onWhereAllowed("travel", facts) || onWhereAllowed("whispers", facts));
         },
         disposePresentation: [
           () => { partyInvite?.dispose(); partyInvite = null; },

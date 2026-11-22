@@ -11,6 +11,7 @@ import { GAME_CHANNELS } from "../../app/shared/ipc/game.ts";
 import { LAUNCHER_CHANNELS } from "../../app/shared/ipc/launcher.ts";
 import { TOOL_CONTRACTS } from "../../app/shared/ipc/tools.ts";
 
+
 const channelStrings = (tables: readonly ChannelTable[]) =>
   tables.flatMap((table) => Object.values(table).map((spec) => spec.channel)).sort();
 
@@ -43,6 +44,8 @@ const CASES = {
     "gw:diagnostics:rendererMilestone",
     "gw:diagnostics:visualSubmit",
     "gw:dns:resolve",
+    "gw:features:event",
+    "gw:features:get",
     "gw:game:readyToPresent",
     "gw:hub:account:open",
     "gw:hub:accounts:get",

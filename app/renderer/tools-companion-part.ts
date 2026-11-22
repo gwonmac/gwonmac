@@ -11,13 +11,15 @@
  * `featurePart`: it gives one `start` that returns what stops it, and never asks
  * whether it is on. A feature that also hosts memory on a pinned COMPANION_PARTS
  * line (Reminders, Progress) writes that line by hand and hands its session to
- * the featurePart it prepares.
+ * the featurePart it prepares. A hand-written part asks `on(id)`; both answer
+ * from resolve (app/shared/feature-resolve.ts) with main's facts and the live
+ * play region, never from the settings alone.
  *
  * It also names the narrow surfaces that shared Tools code borrows from a
  * feature, so shared code imports this contract and never a feature file.
  */
 import type { EnhancementCapabilities, EnhancementProgram } from "../shared/enhancement-contracts.js";
-import { FEATURES, type FeatureId } from "../shared/feature-contracts.js";
+import type { FeatureId } from "../shared/feature-contracts.js";
 import type { TravelFriend } from "../shared/friends.js";
 import type { TravelCommand } from "../shared/travel-command.js";
 import type {
@@ -83,7 +85,8 @@ export type PreparedToolsPart = Readonly<{
 /** What every part's `activate` receives: Core's activation plus the shared Tools frame. */
 export type ToolsActivation = CompanionExtensionActivation & Readonly<{
   snapshot(): ToolsPolicySnapshot;
-  policy(): ToolsPolicySnapshot["policy"];
+  /** Whether resolve has this feature on now, with main's facts and the live play region. */
+  on(id: FeatureId): boolean;
   playRegion(): ToolsPolicySnapshot["playRegion"];
   hud: NativeHudLayer | null;
   /** The typed game building blocks, shared by every part (game-blocks.ts). */
@@ -98,7 +101,7 @@ export type ToolsActivation = CompanionExtensionActivation & Readonly<{
 
 /**
  * One activated part. The installer calls each member across all parts in
- * COMPANION_PARTS order. On a policy change it runs every `syncAfterHook`
+ * COMPANION_PARTS order. On a change of settings, facts or region it runs every `syncAfterHook`
  * (not at launch), then every `syncFeeds`, then dispatches the active features,
  * then every `sync`.
  */
@@ -145,22 +148,20 @@ export type FeaturePart = Readonly<{
 
 /**
  * The game part of a feature that runs on the building blocks. `start` runs while
- * the runtime policy has the feature on and the verifier proved every capability
- * its manifest `uses`; what it returns is stopped when either ends or the game part
- * stops. `runtime` names developer runtime fields read from the running feature.
+ * resolve has the feature on (its switches, the plain game, a restart, the
+ * verifier's proof of every capability its manifest `uses`, and the area); what it
+ * returns is stopped when resolve turns it off or the game part stops. `runtime`
+ * names developer runtime fields read from the running feature.
  */
 export function featurePart<Running extends Readonly<{ stop(): void }>>(
   id: FeatureId,
   start: (blocks: FeatureBlocks) => Running,
   runtime: Readonly<Record<string, (running: Running | null) => unknown>> = {},
 ): FeaturePart {
-  const feature = FEATURES.find((candidate) => candidate.id === id);
-  const needs = feature !== undefined && "uses" in feature ? feature.uses : [];
   return Object.freeze({
     id,
-    prepare: ({ capabilities }) => ({
+    prepare: () => ({
       activate(context) {
-        const proven = needs.every((capability) => capabilities[capability]);
         const settings = createBlock(true, context.snapshot().settings, Object.is, (wanted) => {
           if (wanted) settings.publish(context.snapshot().settings);
         });
@@ -172,8 +173,7 @@ export function featurePart<Running extends Readonly<{ stop(): void }>>(
         };
         const sync = () => {
           if (settings.wanted) settings.publish(context.snapshot().settings);
-          const on = proven && context.policy()[id];
-          if (!on) stop();
+          if (!context.on(id)) stop();
           else running ??= start({ game: context.game, ui: context.ui, settings: settings.block });
         };
         return {
