@@ -5,7 +5,6 @@
  * A feature option's label and help come from its manifest (app/features/<folder>/feature.ts).
  */
 import { CARTOGRAPHY_REVEAL_MODE_LABELS, CARTOGRAPHY_REVEAL_MODES } from "./cartography-overlay.js";
-import { featureSettingText, type FeatureSettingKey } from "./feature-contracts.js";
 import { CONTROLLER_PROMPT_STYLES, RENDER_SCALES, type ControllerPromptStyle, type RenderScale } from "./settings/core.js";
 
 /**
@@ -55,37 +54,6 @@ export const RENDER_SCALE_OPTIONS = RENDER_SCALES.map((value) => ({ value, label
 export const CONTROLLER_SYMBOL_OPTIONS = CONTROLLER_PROMPT_STYLES.map((value) => ({ value, label: CONTROLLER_SYMBOL_LABELS[value] }));
 
 export const REVEAL_MODE_OPTIONS = CARTOGRAPHY_REVEAL_MODES.map((value) => ({ value, ...CARTOGRAPHY_REVEAL_MODE_LABELS[value] }));
-
-/** A feature option, named by its manifest (app/features/<folder>/feature.ts). */
-const named = <const Key extends FeatureSettingKey>(key: Key) => ({ key, label: featureSettingText(key).label });
-/** A feature option with its manifest help as the line under it. */
-const explained = <const Key extends FeatureSettingKey>(key: Key) => ({ ...named(key), detail: featureSettingText(key).help });
-
-/** Character Switch options, shown under that tool. */
-export const CHARACTER_DETAILS = [
-  named("characterSwitchProfession"),
-  named("characterSwitchLevel"),
-  named("characterSwitchLocation"),
-] as const;
-
-/** Chat Filters options, shown under that tool. On hides those messages. */
-export const CHAT_FILTERS = [
-  named("chatFilterAllyDrops"),
-  named("chatFilterHallOfHeroes"),
-  named("chatFilterTitleAchievements"),
-] as const;
-
-/** Reminders options, shown under that tool: what to remind about, when, and how. */
-export const REMINDER_GROUPS = [
-  explained("reminderCons"),
-  explained("reminderPcons"),
-  explained("reminderAlcohol"),
-] as const;
-export const REMINDER_TIMING = [
-  named("reminderBeforeEnd"),
-  named("reminderAtEnd"),
-] as const;
-export const REMINDER_SOUND = explained("reminderSound");
 
 /** The full note for a setting: its description, then when it applies. */
 export function settingDetail(copy: Copy): string {
