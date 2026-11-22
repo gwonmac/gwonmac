@@ -41,6 +41,12 @@ type Options = Parameters<typeof createCharacterSwitchController>[0];
 const PAYLOAD = 64;
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+/** Waits until the action has left "switching", so a slow runner cannot cut a flow short. */
+async function settled(controller: ReturnType<typeof build>): Promise<void> {
+  const deadline = performance.now() + 10_000;
+  while (controller.action.status === "switching" && performance.now() < deadline) await sleep(5);
+}
+
 /** A source that reads its list on every access, like the live one. */
 const listOf = (read: () => CompanionCharacterListState): CharacterListSource => ({
   get state() { return read(); },
@@ -99,7 +105,7 @@ describe("character switch controller", { concurrency: false }, () => {
       });
 
       controller.request("0000000000000002");
-      await sleep(1_000);
+      await settled(controller);
       assert.equal(controller.action.status, "complete");
       assert.deepEqual(calls, [1, 2, 3]);
       const diagnostics = JSON.stringify(controller.diagnostics());
@@ -158,7 +164,7 @@ describe("character switch controller", { concurrency: false }, () => {
         });
 
         controller.request("0000000000000002");
-        await sleep(1_000);
+        await settled(controller);
         assert.equal(controller.action.status, expected.status);
         if (controller.action.status === "failed") {
           assert.equal(controller.action.code, "target-missing");
@@ -189,7 +195,7 @@ describe("character switch controller", { concurrency: false }, () => {
       // Index 0 is the last entered character. At the selector it is not
       // current, so selecting it must enter it rather than refuse.
       controller.request("0000000000000001");
-      await sleep(500);
+      await settled(controller);
       assert.equal(controller.action.status, "complete");
       assert.deepEqual(calls, [2, 3]);
       const diagnostics = controller.diagnostics();
@@ -255,7 +261,9 @@ describe("character switch controller", { concurrency: false }, () => {
     });
   });
 
-  it("probes for Selector once per two seconds while it is absent", async () => {
+  it("probes for Selector once per two seconds while it is absent", async (context) => {
+    // The probe is a bare setTimeout loop, so mocked timers give exact counts at exact ticks.
+    context.mock.timers.enable({ apis: ["setTimeout"] });
     await withBrowserGlobals(async () => {
       let probes = 0;
       const controller = build({
@@ -264,8 +272,11 @@ describe("character switch controller", { concurrency: false }, () => {
           state: () => { throw new Error("order sampling must not read the pre-game state"); },
         },
       });
-      await sleep(2_300);
-      // One probe at start and one after two seconds; each stops at the first -1.
+      // One probe at start; each probe stops at the first -1.
+      assert.equal(probes, 1);
+      context.mock.timers.tick(1_999);
+      assert.equal(probes, 1);
+      context.mock.timers.tick(1);
       assert.equal(probes, 2);
       controller.dispose();
     });
