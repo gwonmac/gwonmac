@@ -281,13 +281,13 @@ Per-feature checklist (the **Done when** of every 5.x row):
 
 | ID | Step | You | Depends | Done when | Status | Rounds |
 |---|---|---|---|---|---|---|
-| 8.1 | Delete old paths: `FeatureActivation` kinds, `tool.id`, per-feature enabled keys (if converted), `attach*`, feature `gw:*` events, old settings sections | – | Phase 5 | Metrics script shows every target met | todo | 0 |
-| 8.2 | Remove temporary compatibility code whose condition is met; `docs/migrations.md` current | – | 8.1 | Every remaining entry has a dependent and a removal condition | todo | 0 |
-| 8.3 | Docs pass: `process-model.md`, `wasm-host.md`, `enhancement-development.md`, `settings.md`, `whispers.md` match the code | – | 8.1 | Each doc's examples compile or match current file names | todo | 0 |
+| 8.1 | Delete old paths: `FeatureActivation` kinds, `tool.id`, per-feature enabled keys (if converted), `attach*`, feature `gw:*` events, old settings sections | – | Phase 5 | Metrics script shows every target met | merged (#106, #107: region honesty, registry checks, part error containment) | 2 |
+| 8.2 | Remove temporary compatibility code whose condition is met; `docs/migrations.md` current | – | 8.1 | Every remaining entry has a dependent and a removal condition | merged (#108) | 1 |
+| 8.3 | Docs pass: `process-model.md`, `wasm-host.md`, `enhancement-development.md`, `settings.md`, `whispers.md` match the code | – | 8.1 | Each doc's examples compile or match current file names | merged (#108) | 1 |
 
 ## Order from here (revised 2026-11-22)
 
-Done: Phases 0–5, 4.8, 6.1–6.3, 6.5, 6.6, 7.1–7.3. Next: 8.1–8.3. Waiting for Matthias: 6.4 player test and the final play checklist.
+Done: Phases 0–5, 4.8, 6.1–6.3, 6.5, 6.6, 7.1–7.3, 8.1–8.3. Next: a review of every area of the codebase and its fixes, then the final play checklist. Waiting for Matthias: 6.1 sign-off of the look, 6.4 player test and the final play check.
 
 ```
 0.5 metrics ceiling ─┐
