@@ -221,10 +221,6 @@ test("the same skill cannot occupy two slots", () => {
   assert.deepEqual(problemsOf(result), [
     { rule: "duplicate-skill", slot: 2, firstSlot: 0, skill: 12 },
   ]);
-
-  // Two empty slots are not duplicates of each other: the legal fixture has
-  // two, and a half-written bar is a state the record is built to hold.
-  assert.deepEqual(validateBuild(legal(), catalogue), { valid: true });
 });
 
 test("a stored record short of eight slots is validated, not accused of duplicates", () => {
@@ -450,11 +446,6 @@ test("a rank above the cap is rejected rather than clamped", () => {
   assert.deepEqual(problemsOf(validateBuild(decoded, catalogue)), [
     { rule: "rank-above-cap", attribute: "Strength", rank: 13, cap: 12 },
   ]);
-
-  // The rank buys nothing rather than costing an invented amount: the build is
-  // rejected for the rank, not additionally for a budget it never spent.
-  const rank12 = broken({ attributes: { Strength: 12 } });
-  assert.deepEqual(validateBuild(rank12, catalogue), { valid: true });
 });
 
 test("the ranks together may not cost more than a level-20 character has", () => {

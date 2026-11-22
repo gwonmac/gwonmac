@@ -44,23 +44,31 @@ function fakeScheduler() {
   };
 }
 
+/** A confirmation on the fake scheduler; `confirm` decides each attempt's fate. */
+function confirmationWith(
+  confirm: (received: ClientHealthToken) => Promise<void>,
+) {
+  const scheduler = fakeScheduler();
+  const failures: Array<{ attempt: number; willRetry: boolean }> = [];
+  const confirmation = createClientHealthConfirmation({
+    token,
+    confirm,
+    onFailure: (_error, attempt, willRetry) => {
+      failures.push({ attempt, willRetry });
+    },
+    schedule: scheduler.schedule,
+    cancel: scheduler.cancel,
+  });
+  return { confirmation, failures, scheduler };
+}
+
 describe("client health confirmation", () => {
   it("waits for both signals and retries one rejection without duplicating success", async () => {
-    const scheduler = fakeScheduler();
     let attempts = 0;
-    const failures: Array<{ attempt: number; willRetry: boolean }> = [];
-    const confirmation = createClientHealthConfirmation({
-      token,
-      confirm: async (received) => {
-        assert.deepEqual(received, token);
-        attempts += 1;
-        if (attempts === 1) throw new Error("transient");
-      },
-      onFailure: (_error, attempt, willRetry) => {
-        failures.push({ attempt, willRetry });
-      },
-      schedule: scheduler.schedule,
-      cancel: scheduler.cancel,
+    const { confirmation, failures, scheduler } = confirmationWith(async (received) => {
+      assert.deepEqual(received, token);
+      attempts += 1;
+      if (attempts === 1) throw new Error("transient");
     });
 
     confirmation.firstFramePresented();
@@ -93,20 +101,10 @@ describe("client health confirmation", () => {
   });
 
   it("stops after three permanent failures", async () => {
-    const scheduler = fakeScheduler();
     let attempts = 0;
-    const failures: Array<{ attempt: number; willRetry: boolean }> = [];
-    const confirmation = createClientHealthConfirmation({
-      token,
-      confirm: async () => {
-        attempts += 1;
-        throw new Error("permanent");
-      },
-      onFailure: (_error, attempt, willRetry) => {
-        failures.push({ attempt, willRetry });
-      },
-      schedule: scheduler.schedule,
-      cancel: scheduler.cancel,
+    const { confirmation, failures, scheduler } = confirmationWith(async () => {
+      attempts += 1;
+      throw new Error("permanent");
     });
 
     confirmation.firstFramePresented();
@@ -132,17 +130,10 @@ describe("client health confirmation", () => {
   });
 
   it("cancels a pending retry when the renderer unloads", async () => {
-    const scheduler = fakeScheduler();
     let attempts = 0;
-    const confirmation = createClientHealthConfirmation({
-      token,
-      confirm: async () => {
-        attempts += 1;
-        throw new Error("transient");
-      },
-      onFailure: () => undefined,
-      schedule: scheduler.schedule,
-      cancel: scheduler.cancel,
+    const { confirmation, scheduler } = confirmationWith(async () => {
+      attempts += 1;
+      throw new Error("transient");
     });
 
     confirmation.firstFramePresented();

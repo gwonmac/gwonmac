@@ -5,58 +5,49 @@ import { installAutomaticCharacterReturn } from "../../app/renderer/automatic-ch
 import { installLoginStatus } from "../../app/renderer/login-status.js";
 import type { RendererMilestone } from "../../app/shared/diagnostics.js";
 
-test("a timed-out return notice clears itself", async (context) => {
+/** A controller whose return attempt has already run out its 30 s deadline. */
+async function withElapsedNotice(
+  context: import("node:test").TestContext,
+  run: (
+    status: { hidden: boolean; textContent: string },
+    controller: ReturnType<typeof installAutomaticCharacterReturn>,
+  ) => void,
+): Promise<void> {
   const status = { hidden: true, textContent: "" };
   const loginStatus = installLoginStatus(status as unknown as HTMLElement);
   context.mock.timers.enable({ apis: ["setTimeout"] });
-
   const controller = installAutomaticCharacterReturn({
     claimIntent: async () => true,
     input: () => null,
     record() {},
     status: loginStatus,
   });
-
   try {
     await Promise.resolve();
     context.mock.timers.tick(30_000);
-
     assert.equal(status.hidden, false);
-    assert.match(status.textContent, /You can continue manually\./);
-
-    context.mock.timers.tick(7_999);
-    assert.equal(status.hidden, false);
-
-    context.mock.timers.tick(1);
-    assert.equal(status.hidden, true);
+    run(status, controller);
   } finally {
     controller.dispose();
     context.mock.timers.reset();
   }
+}
+
+test("a timed-out return notice clears itself", async (context) => {
+  await withElapsedNotice(context, (status) => {
+    assert.match(status.textContent, /You can continue manually\./);
+    context.mock.timers.tick(7_999);
+    assert.equal(status.hidden, false);
+    context.mock.timers.tick(1);
+    assert.equal(status.hidden, true);
+  });
 });
 
 test("manual character switching clears an elapsed return notice", async (context) => {
-  const status = { hidden: true, textContent: "" };
-  const loginStatus = installLoginStatus(status as unknown as HTMLElement);
-  context.mock.timers.enable({ apis: ["setTimeout"] });
-  const controller = installAutomaticCharacterReturn({
-    claimIntent: async () => true,
-    input: () => null,
-    record() {},
-    status: loginStatus,
-  });
-
-  try {
-    await Promise.resolve();
-    context.mock.timers.tick(30_000);
-    assert.equal(status.hidden, false);
-
+  await withElapsedNotice(context, (status, controller) => {
     controller.cancelForCharacterSwitch();
     assert.equal(status.hidden, true);
-  } finally {
-    controller.dispose();
-    context.mock.timers.reset();
-  }
+  });
 });
 
 test("a pending login cannot record input after its terminal timeout", async (context) => {

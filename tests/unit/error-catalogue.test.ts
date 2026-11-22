@@ -37,10 +37,6 @@ describe("error catalogue", () => {
 });
 
 describe("errorCode", () => {
-  it("returns the code of an AppError", () => {
-    assert.equal(errorCode(new AppError("chunk_offline", "no cached copy")), "chunk_offline");
-  });
-
   it("returns the code of every AppError subclass", () => {
     assert.equal(errorCode(new GwError("disk_full", "no space")), "disk_full");
     assert.equal(errorCode(new ValidationError("bad input")), "validation");

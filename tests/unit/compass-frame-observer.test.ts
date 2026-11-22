@@ -123,8 +123,8 @@ test("refuses incomplete and non-finite Compass surfaces", () => {
   assert.equal(createCompassFrameReader(trapping)?.snapshot(), null);
 });
 
-test("reads the Mission Map through the same closed frame boundary", () => {
-  const exports: WebAssembly.Exports = {
+function missionMapExports(): WebAssembly.Exports {
+  return {
     [MISSION_MAP_FRAME_SPIKE_GLOBALS.status]: scalar(1),
     [MISSION_MAP_FRAME_SPIKE_GLOBALS.generation]: scalar(5),
     [MISSION_MAP_FRAME_SPIKE_GLOBALS.frameId]: scalar(14),
@@ -149,6 +149,10 @@ test("reads the Mission Map through the same closed frame boundary", () => {
     [MISSION_MAP_PROJECTION_SPIKE_GLOBALS.nativeMapWidth]: scalar(1024, "f32"),
     [MISSION_MAP_PROJECTION_SPIKE_GLOBALS.nativeMapHeight]: scalar(768, "f32"),
   };
+}
+
+test("reads the Mission Map through the same closed frame boundary", () => {
+  const exports = missionMapExports();
   assert.deepEqual(createMissionMapFrameReader(exports)?.snapshot(), {
     status: 1,
     generation: 5,
@@ -176,45 +180,19 @@ test("reads the Mission Map through the same closed frame boundary", () => {
 });
 
 test("refuses incomplete, stale, and invalid Mission Map projection state", () => {
-  const projectionExports = (): WebAssembly.Exports => ({
-    [MISSION_MAP_FRAME_SPIKE_GLOBALS.status]: scalar(1),
-    [MISSION_MAP_FRAME_SPIKE_GLOBALS.generation]: scalar(5),
-    [MISSION_MAP_FRAME_SPIKE_GLOBALS.frameId]: scalar(14),
-    [MISSION_MAP_FRAME_SPIKE_GLOBALS.visible]: scalar(1),
-    [MISSION_MAP_FRAME_SPIKE_GLOBALS.viewportWidth]: scalar(885.5, "f32"),
-    [MISSION_MAP_FRAME_SPIKE_GLOBALS.viewportHeight]: scalar(636.25, "f32"),
-    [MISSION_MAP_FRAME_SPIKE_GLOBALS.left]: scalar(341.5, "f32"),
-    [MISSION_MAP_FRAME_SPIKE_GLOBALS.bottom]: scalar(205.25, "f32"),
-    [MISSION_MAP_FRAME_SPIKE_GLOBALS.right]: scalar(899.5, "f32"),
-    [MISSION_MAP_FRAME_SPIKE_GLOBALS.top]: scalar(666.25, "f32"),
-    [MISSION_MAP_FRAME_SPIKE_GLOBALS.observe]: (() => undefined) as WebAssembly.ExportValue,
-    [MISSION_MAP_PROJECTION_SPIKE_GLOBALS.status]: scalar(1),
-    [MISSION_MAP_PROJECTION_SPIKE_GLOBALS.sequence]: scalar(91),
-    [MISSION_MAP_PROJECTION_SPIKE_GLOBALS.generation]: scalar(5),
-    [MISSION_MAP_PROJECTION_SPIKE_GLOBALS.zoom]: scalar(2.25, "f32"),
-    [MISSION_MAP_PROJECTION_SPIKE_GLOBALS.panX]: scalar(-123.5, "f32"),
-    [MISSION_MAP_PROJECTION_SPIKE_GLOBALS.panY]: scalar(456.25, "f32"),
-    [MISSION_MAP_PROJECTION_SPIKE_GLOBALS.drawableWidth]: scalar(558, "f32"),
-    [MISSION_MAP_PROJECTION_SPIKE_GLOBALS.drawableHeight]: scalar(461, "f32"),
-    [MISSION_MAP_PROJECTION_SPIKE_GLOBALS.playerMapX]: scalar(200, "f32"),
-    [MISSION_MAP_PROJECTION_SPIKE_GLOBALS.playerMapY]: scalar(300, "f32"),
-    [MISSION_MAP_PROJECTION_SPIKE_GLOBALS.nativeMapWidth]: scalar(1024, "f32"),
-    [MISSION_MAP_PROJECTION_SPIKE_GLOBALS.nativeMapHeight]: scalar(768, "f32"),
-  });
-
-  const incomplete = projectionExports();
+  const incomplete = missionMapExports();
   delete incomplete[MISSION_MAP_PROJECTION_SPIKE_GLOBALS.panY];
   assert.equal(createMissionMapFrameReader(incomplete), null);
 
-  const stale = projectionExports();
+  const stale = missionMapExports();
   stale[MISSION_MAP_PROJECTION_SPIKE_GLOBALS.generation] = scalar(4);
   assert.equal(createMissionMapFrameReader(stale)?.snapshot(), null);
 
-  const invalidZoom = projectionExports();
+  const invalidZoom = missionMapExports();
   invalidZoom[MISSION_MAP_PROJECTION_SPIKE_GLOBALS.zoom] = scalar(4, "f32");
   assert.equal(createMissionMapFrameReader(invalidZoom)?.snapshot(), null);
 
-  const invalidPan = projectionExports();
+  const invalidPan = missionMapExports();
   invalidPan[MISSION_MAP_PROJECTION_SPIKE_GLOBALS.panX] = scalar(Number.NaN, "f32");
   assert.equal(createMissionMapFrameReader(invalidPan)?.snapshot(), null);
 });

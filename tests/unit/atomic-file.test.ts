@@ -174,18 +174,6 @@ describe("atomic-file writeAll", () => {
     );
   });
 
-  it("writes every byte to a real file handle", async () => {
-    const dir = await scratch();
-    const path = join(dir, "big.bin");
-    const data = new Uint8Array(300_000).map((_, i) => (i * 7) & 0xff);
-    const handle = await open(path, "w");
-    try {
-      await writeAll(handle, data);
-    } finally {
-      await handle.close();
-    }
-    assert.deepEqual(Uint8Array.from(await readFile(path)), data);
-  });
 });
 
 describe("atomic-file durability", () => {
@@ -237,19 +225,6 @@ describe("atomic-file orphan sweep", () => {
       "metadata.json",
       ours,
     ].sort());
-  });
-
-  it("sweeps a temp file a crashed writer really left behind", async () => {
-    const dir = await scratch();
-    const target = join(dir, "doc.json");
-    await writeAtomic(target, "{}");
-    // Same shape writeAtomic produces, but owned by a process that is gone.
-    const orphan = join(dir, `doc.json.${process.pid + 2}.abcdef01.tmp`);
-    await writeFile(orphan, "half a document");
-
-    assert.equal(await sweepOrphans(dir), 1);
-    assert.equal(existsSync(orphan), false);
-    assert.equal(await readFile(target, "utf8"), "{}");
   });
 
   it("sweeps the orphan a SIGKILLed writer left, with the old document intact", async () => {

@@ -32,6 +32,51 @@ function conditionSignals() {
   };
 }
 
+/**
+ * A store whose fetches stay in flight until the test releases them, so the
+ * scheduler's concurrency cap and queue can be observed rather than raced.
+ */
+function heldFetchStore(chunksDir: string, count: number, fill: number) {
+  const payloads = Array.from({ length: count }, (_, index) =>
+    Buffer.alloc(CHUNK, index + fill),
+  );
+  const hashes = payloads.map(hashOf);
+  const started: string[] = [];
+  const releases = new Map<string, () => void>();
+  const gauges = new Map<string, number>();
+  const scheduling = conditionSignals();
+  const flight = { active: 0, peak: 0 };
+  const store = new ChunkStore({
+    chunksDir,
+    size: CHUNK * payloads.length,
+    chunkSize: CHUNK,
+    chunkHashes: hashes,
+    metrics: {
+      count: () => undefined,
+      observe: () => undefined,
+      gauge: (name, value) => {
+        gauges.set(name, value);
+        scheduling.changed();
+      },
+    },
+    fetch: (hash) =>
+      new Promise((resolve) => {
+        started.push(hash);
+        flight.active += 1;
+        flight.peak = Math.max(flight.peak, flight.active);
+        scheduling.changed();
+        releases.set(hash, () => {
+          flight.active -= 1;
+          resolve(new Uint8Array(payloads[hashes.indexOf(hash)]!));
+        });
+      }),
+  });
+  return {
+    store, payloads, hashes, started, releases, scheduling, flight,
+    queuedPrefetch: () => gauges.get("snapshot.native.queuedPrefetch") ?? 0,
+  };
+}
+
 describe("chunk-store", () => {
   let dir = "";
   const cleanup: string[] = [];
@@ -404,41 +449,9 @@ describe("chunk-store", () => {
 
   it("caps native fetches at eight and promotes queued demand", async () => {
     const root = await freshDir();
-    const payloads = Array.from({ length: 10 }, (_, index) =>
-      Buffer.alloc(CHUNK, index + 1),
-    );
-    const hashes = payloads.map(hashOf);
-    const started: string[] = [];
-    const releases = new Map<string, () => void>();
-    const gauges = new Map<string, number>();
-    const scheduling = conditionSignals();
-    let active = 0;
-    let peak = 0;
-    const store = new ChunkStore({
-      chunksDir: root,
-      size: CHUNK * payloads.length,
-      chunkSize: CHUNK,
-      chunkHashes: hashes,
-      metrics: {
-        count: () => undefined,
-        observe: () => undefined,
-        gauge: (name, value) => {
-          gauges.set(name, value);
-          scheduling.changed();
-        },
-      },
-      fetch: (hash) =>
-        new Promise((resolve) => {
-          started.push(hash);
-          active += 1;
-          peak = Math.max(peak, active);
-          scheduling.changed();
-          releases.set(hash, () => {
-            active -= 1;
-            resolve(new Uint8Array(payloads[hashes.indexOf(hash)]!));
-          });
-        }),
-    });
+    const {
+      store, hashes, started, releases, scheduling, flight, queuedPrefetch,
+    } = heldFetchStore(root, 10, 1);
     const work = hashes.map((_hash, index) =>
       store.ensureChunk(index, "prefetch"),
     );
@@ -454,7 +467,7 @@ describe("chunk-store", () => {
     await scheduling.waitFor(
       () =>
         started.length === 8 &&
-        gauges.get("snapshot.native.queuedPrefetch") === 2,
+        queuedPrefetch() === 2,
     );
     assert.equal(started.length, 8);
     const queued = hashes.filter((hash) => !started.includes(hash));
@@ -470,7 +483,7 @@ describe("chunk-store", () => {
     );
     assert.equal(started[8], promoted);
     assert.equal(started.includes(queued[1]!), false);
-    while (started.length < hashes.length || active > 0) {
+    while (started.length < hashes.length || flight.active > 0) {
       for (const hash of [...started]) {
         const release = releases.get(hash);
         if (release) {
@@ -481,7 +494,7 @@ describe("chunk-store", () => {
       await new Promise((resolve) => setImmediate(resolve));
     }
     await Promise.all([...work, demand]);
-    assert.equal(peak, 8);
+    assert.equal(flight.peak, 8);
   });
 
   it("serves fetched and first-process resident bytes without a second read", async () => {
@@ -564,43 +577,13 @@ describe("chunk-store", () => {
 
   it("stops queued background work while allowing new demand", async () => {
     const root = await freshDir();
-    const payloads = Array.from({ length: 9 }, (_, index) =>
-      Buffer.alloc(CHUNK, index + 40),
-    );
-    const hashes = payloads.map(hashOf);
-    const started: string[] = [];
-    const releases = new Map<string, () => void>();
-    const scheduling = conditionSignals();
-    let queuedPrefetch = 0;
-    const store = new ChunkStore({
-      chunksDir: root,
-      size: CHUNK * payloads.length,
-      chunkSize: CHUNK,
-      chunkHashes: hashes,
-      metrics: {
-        count: () => undefined,
-        observe: () => undefined,
-        gauge: (name, value) => {
-          if (name === "snapshot.native.queuedPrefetch") {
-            queuedPrefetch = value;
-          }
-          scheduling.changed();
-        },
-      },
-      fetch: (hash) =>
-        new Promise((resolve) => {
-          started.push(hash);
-          scheduling.changed();
-          releases.set(hash, () =>
-            resolve(new Uint8Array(payloads[hashes.indexOf(hash)]!)),
-          );
-        }),
-    });
+    const { store, hashes, started, releases, scheduling, queuedPrefetch } =
+      heldFetchStore(root, 9, 40);
     const background = hashes.map((_hash, index) =>
       store.ensureChunk(index, "prefetch", true),
     );
     const settledBackground = Promise.allSettled(background);
-    await scheduling.waitFor(() => started.length === 8 && queuedPrefetch === 1);
+    await scheduling.waitFor(() => started.length === 8 && queuedPrefetch() === 1);
     assert.equal(started.length, 8);
     const stoppedIndex = hashes.findIndex((hash) => !started.includes(hash));
     assert.notEqual(stoppedIndex, -1);
@@ -642,47 +625,17 @@ describe("chunk-store", () => {
 
   it("keeps a game prefetch that joined queued background work across a stop", async () => {
     const root = await freshDir();
-    const payloads = Array.from({ length: 9 }, (_, index) =>
-      Buffer.alloc(CHUNK, index + 60),
-    );
-    const hashes = payloads.map(hashOf);
-    const started: string[] = [];
-    const releases = new Map<string, () => void>();
-    const scheduling = conditionSignals();
-    let queuedPrefetch = 0;
-    const store = new ChunkStore({
-      chunksDir: root,
-      size: CHUNK * payloads.length,
-      chunkSize: CHUNK,
-      chunkHashes: hashes,
-      metrics: {
-        count: () => undefined,
-        observe: () => undefined,
-        gauge: (name, value) => {
-          if (name === "snapshot.native.queuedPrefetch") {
-            queuedPrefetch = value;
-          }
-          scheduling.changed();
-        },
-      },
-      fetch: (hash) =>
-        new Promise((resolve) => {
-          started.push(hash);
-          scheduling.changed();
-          releases.set(hash, () =>
-            resolve(new Uint8Array(payloads[hashes.indexOf(hash)]!)),
-          );
-        }),
-    });
+    const { store, payloads, hashes, started, releases, scheduling, queuedPrefetch } =
+      heldFetchStore(root, 9, 60);
     const background = Promise.allSettled(
       hashes.map((_hash, index) => store.ensureChunk(index, "prefetch", true)),
     );
-    await scheduling.waitFor(() => started.length === 8 && queuedPrefetch === 1);
+    await scheduling.waitFor(() => started.length === 8 && queuedPrefetch() === 1);
     const queuedIndex = hashes.findIndex((hash) => !started.includes(hash));
     assert.notEqual(queuedIndex, -1);
     const game = store.ensureChunk(queuedIndex, "prefetch");
     store.stop();
-    assert.equal(queuedPrefetch, 1);
+    assert.equal(queuedPrefetch(), 1);
     for (const release of [...releases.values()]) release();
     await scheduling.waitFor(() => started.includes(hashes[queuedIndex]!));
     releases.get(hashes[queuedIndex]!)!();
