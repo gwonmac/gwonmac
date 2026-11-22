@@ -92,6 +92,9 @@ substrate feature names 2, feature-domain renderer files 12, `localStorage` 21, 
 their folder: travel 18, whispers 12, cartography 9, progress 9, quick-item-move 9, team-apply 8, xunlai-storage 8,
 build-library 7, skill-cooldowns 6, trade-chat 5, nine more ≤ 3.
 
+After 7.1 (`df3e7c92`): `featureActivationRequested(` 38 → 0, `policy().` reads 19 → 0; `gw:*` names 91 → 93 (the two typed
+IPC channels of the Feature facts; the metric counts IPC channel names with window events, 8.1 splits them). The rest unchanged.
+
 ## Phase 0 · Baseline and decisions (S)
 
 | ID | Step | You | Depends | Done when | Status | Rounds |
@@ -99,7 +102,7 @@ build-library 7, skill-cooldowns 6, trade-chat 5, nine more ≤ 3.
 | 0.1 | Metrics script `scripts/feature-metrics.mjs` that prints the table above from the repo | – | – | Output matches the baseline column on 8618d115; runs in < 10 s | done (1.3 s; corrected two hand counts) | 1 |
 | 0.2 | Take over PR #24: rebuild its good parts as our own small PRs (travel fix, Hub size/resize/stay-open, character search Enter, settings transfer, simple launcher, Steam-login option, small hide/drag options), crediting Foo as co-author; keep Foo's memory panel as he built it (decided 2026-11-21: memory warning and ⌘Q share one in-game panel with the memory figure, Reload, Quit; native dialog stays the fallback); ⌘R always opens Home (decided 2026-11-21), so the page-resume test changes on purpose; regenerate the keyboard golden on purpose | Tell Foo; play travel + Hub | – | Each PR green in CI incl. hub-e2e; ⌘R rule written in `docs/hub-contract.md`; `kind` and plain game wait for 4.3/4.6 | merged 2026-11-21: #26 Hub, #27 travel, #28 memory panel, #29 settings transfer, #30 simple launcher + Steam login, #31 overlay placement, #32 toggles; Matthias play check pending; close #24 | 1 |
 | 0.3 | Record the decisions: Character Switch is a Feature; plain game replaces Tools Beta; ⌘R always Home; memory panel stays; player word **Features**; grouping settled later by 6.4 | – | – | Written in "Decisions" above | done | 0 |
-| 0.5 | Metrics ceiling: `pnpm check` runs the metrics script against recorded ceilings and fails when a count rises; a PR that lowers a count lowers its ceiling | – | 0.1 | A planted extra `policy()` read fails `pnpm check` with the metric's name; ceilings equal the 6.2 numbers | todo | 0 |
+| 0.5 | Metrics ceiling: `pnpm check` runs the metrics script against recorded ceilings and fails when a count rises; a PR that lowers a count lowers its ceiling | – | 0.1 | A planted extra `policy()` read fails `pnpm check` with the metric's name; ceilings equal the 6.2 numbers | merged (#55): `scripts/feature-metrics-ceilings.json` and `tests/policy/feature-metrics-ceilings.test.ts`; a planted `policy().` read fails `pnpm check` with the metric's name | 1 |
 | 0.4 | Keep this plan safe: commit it as `docs/feature-platform-plan.md` (same PR as 0.1) | Approve the merge | 0.3 | Plan lives on main | done (#25) | 1 |
 
 ## Phase 1 · Proofs: close the two patch-day gaps (S–M, runs alongside everything)
@@ -213,13 +216,13 @@ Per-feature checklist (the **Done when** of every 5.x row):
 | 6.3 | Move Settings › Tools and › Maps into the Features tab; delete the old sections | – | 6.2 | Old components deleted; Settings search still finds every option; Electron journey test green in CI | todo | 0 |
 | 6.4 | Player test (3–5 players from Discord): find cooldown numbers, why is X off, play plain, change route colour; half see kind, half purpose | Find players, run sessions | 6.2 | ≥ 4/5 finish each task without help; grouping decided by first-correct-click time and recorded | todo | 0 |
 | 6.5 | Hub shows the same status reasons for feature rows | – | 4.1 | Hub keyboard golden regenerated on purpose; dom tests for an unavailable row with reason | todo | 0 |
-| 6.6 | Website feature docs come from each README (one source) | – | 4.3 | Every feature page on gwonmac.com rendered from its README; `website` CI green | todo | 0 |
+| 6.6 | Website feature docs come from each README (one source) | – | 4.3 | Every feature page on gwonmac.com rendered from its README; `website` CI green | merged (#56): `scripts/feature-docs.ts` builds one website page per Feature from its README at every website dev, check and build (git-ignored output); the launcher Guide opens Feature pages in the Features tab; open: Ginko needs a per-page source so "Edit this page" points at the README, `<kbd>` renders as text on the website | 1 |
 
 ## Phase 7 · Delivery and patch day (S–M)
 
 | ID | Step | You | Depends | Done when | Status | Rounds |
 |---|---|---|---|---|---|---|
-| 7.1 | **One live decision (next, moved before Phase 5):** main computes the effective `FeatureState` (switches, plain game, restart, verifier results per capability) and sends it to the launcher, the game host and the Hub; `featurePart` and every hand-written part start and stop on `resolve`; the old activation paths go in the same PR | – | 4.1, 6.2 | The Features tab shows real build-check reasons (no lasting "Checking…"); replaying a retained client generation gives the statuses the replay test expects (Nov 3: Quick Item Move needs an update); `policy().` reads in app/features 0; `featureActivationRequested(` only inside the main decision; ceilings (0.5) lowered | todo | 0 |
+| 7.1 | **One live decision (next, moved before Phase 5):** main computes the effective `FeatureState` (switches, plain game, restart, verifier results per capability) and sends it to the launcher, the game host and the Hub; `featurePart` and every hand-written part start and stop on `resolve`; the old activation paths go in the same PR | – | 4.1, 6.2 | The Features tab shows real build-check reasons (no lasting "Checking…"); replaying a retained client generation gives the statuses the replay test expects (Nov 3: Quick Item Move needs an update); `policy().` reads in app/features 0; `featureActivationRequested(` only inside the main decision; ceilings (0.5) lowered | merged (#57): `app/main/feature-decision.ts` builds the facts; game windows get them over `gw:features:get`/`gw:features:event`, the launcher in its snapshot; a part runs only when resolve has it on and its installation carries every capability it uses; behaviour change to play-check: menus and shortcuts need proven capabilities, and Features wait for a restart after a plain-game launch | 3 |
 | 7.2 | Release script stamps each feature's `## Unreleased` and builds release notes from them | – | 4.3 | Dry run on a branch produces correct notes; `news-v1.json` format unchanged | merged (#50): `pnpm release:notes <version> [--dry-run]` in `scripts/release.ts` writes a `## Features` section (bullets led by the manifest `name`) into the draft release post and stamps non-empty `## Unreleased` (Stable only; a Beta or RC writes only the post); refuses a post `parseNewsStory` would refuse; `news-v1.json` untouched; tests in `tests/unit/release-feature-notes.test.ts` | 1 |
 | 7.3 | Patch-day drill | Walk through it once | 7.1 | Written run-through in `docs/releasing.md`: what players see, what we do | todo | 0 |
 
@@ -233,7 +236,7 @@ Per-feature checklist (the **Done when** of every 5.x row):
 
 ## Order from here (revised 2026-11-22)
 
-Done: 0.1–0.4, Phases 1–2, 3.1–3.3, 3.5, 4.1–4.3, 4.6, 5.1, 5.2, 6.1, 6.2, 7.2 (21 of 38 rows).
+Done: Phases 0–2, 3.1–3.3, 3.5, 4.1–4.3, 4.6, 5.1, 5.2, 6.1, 6.2, 6.6, 7.1, 7.2 (24 of 38 rows). Running: 4.5, 7.3.
 
 ```
 0.5 metrics ceiling ─┐
