@@ -9,6 +9,10 @@ import { defineFeature } from "../define.js";
 
 export default defineFeature({
   id: "skillKeyLabels",
+  name: "Skill Key Labels",
+  summary: "Show your own control labels on the eight skill slots.",
+  kind: "combat",
+  icon: "keyboard",
   settings: {
     /** Display-only labels that mirror the player's eight Guild Wars bindings. */
     skillKeyBindings: setting.value(
@@ -19,17 +23,24 @@ export default defineFeature({
         tools: true,
         error: "settings.skillKeyBindings has invalid bindings",
         launcherError: "Skill key labels are invalid",
+        label: "Skill labels",
+        help: "The key name drawn on each of the eight slots. It does not change your Guild Wars controls.",
       },
     ),
     /** Show the configured skill-key labels over the eight player skill slots. */
-    skillKeyLabelsEnabled: setting.boolean(false, { tools: true }),
+    skillKeyLabelsEnabled: setting.boolean(false, {
+      tools: true,
+      label: "Skill Key Labels",
+      help: "Draws your own key names on the eight skill slots. Unset slots keep 1 to 8.",
+    }),
   },
   activation: { kind: "setting", setting: "skillKeyLabelsEnabled", master: "gwonmacTools" },
   region: "pve",
   capabilities: ["nativeHudRendering", "skillSlotGeometry"],
   tool: {
     id: "skill-key-labels",
-    label: "Skill Key Labels",
-    description: "Show your own control labels on the eight skill slots.",
   },
+  shots: [],
+  // Drawn by the skill HUD substrate (app/renderer/tools-companion-substrates.ts) until Phase 5 moves it.
+  parts: ["game"],
 });

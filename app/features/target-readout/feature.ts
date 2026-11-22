@@ -5,14 +5,30 @@ import { defineFeature } from "../define.js";
 
 export default defineFeature({
   id: "targetReadout",
+  name: "Target Distance",
+  summary: "Show distance to the selected target in PvE.",
+  kind: "combat",
+  icon: "crosshair",
   settings: {
     /** Experimental live target distance/range readout. */
-    targetReadout: setting.boolean(false, { tools: true }),
+    targetReadout: setting.boolean(false, {
+      tools: true,
+      label: "Target Distance",
+      help: "Shows how far away your selected target is.",
+    }),
     /** Where the player dragged the readout, as a distance from the nearest corner; null is the top centre. */
-    targetReadoutPosition: setting.value(
+    targetReadoutPosition: setting.position(
       null,
       (value): CornerPosition | null | undefined => value === null ? null : readCornerPlacement(value),
-      { hub: true, rendererWritable: true, tools: true, error: "Target Distance position is invalid", launcherError: "Target Distance position is invalid" },
+      {
+        hub: true,
+        rendererWritable: true,
+        tools: true,
+        error: "Target Distance position is invalid",
+        launcherError: "Target Distance position is invalid",
+        label: "Target Distance position",
+        help: "Drag the readout in a game window to move it. Reset puts it back at the top centre.",
+      },
     ),
   },
   activation: { kind: "setting", setting: "targetReadout", master: "gwonmacTools" },
@@ -21,8 +37,8 @@ export default defineFeature({
   programs: ["target-observer"],
   tool: {
     id: "target-readout",
-    label: "Target Distance",
-    description: "Show distance to the selected target in PvE.",
     keywords: "distance range",
   },
+  shots: [],
+  parts: ["game"],
 });

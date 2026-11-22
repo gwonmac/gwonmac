@@ -13,7 +13,7 @@ import { HUB_TOOL_ORDER, HUB_TOOL_ROWS } from '../../app/shared/hub-tools.ts';
 import { matchHubRows } from '../../app/shared/hub.ts';
 
 test('the Tools rows keep one place each, in the order players know', () => {
-  const orders = FEATURES.flatMap(feature => 'tool' in feature && 'hub' in feature.tool ? [feature.tool.hub.order] : []);
+  const orders = FEATURES.flatMap(feature => 'hub' in feature ? [feature.hub.order] : []);
   assert.equal(new Set(orders).size, orders.length);
   assert.deepEqual(HUB_TOOL_ORDER, ['travel', 'character', 'whispers', 'builds', 'trade', 'storage', 'maps', 'accounts']);
   // Travel and Build Library attach their own rows; Core draws the rest from the manifests.

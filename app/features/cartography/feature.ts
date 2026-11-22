@@ -20,101 +20,177 @@ import { setting } from "../../shared/settings/define.js";
 import { defineFeature } from "../define.js";
 
 const MAP_LAYER = { hub: true, rendererWritable: true } as const;
-const compassRangeOpacity = () => setting.integer(
+const rangeShown = (range: string) => setting.boolean(true, {
+  ...MAP_LAYER,
+  label: `${range} range`,
+  help: `Draws the ${range} range ring while Compass ranges are on.`,
+});
+const rangeOpacity = (range: string) => setting.integer(
   DEFAULT_COMPASS_RANGE_OPACITY,
   { min: COMPASS_RANGE_OPACITY_MIN, max: COMPASS_RANGE_OPACITY_MAX },
-  MAP_LAYER,
+  { ...MAP_LAYER, label: `${range} range opacity`, help: `How strongly the ${range} range ring shows.` },
 );
-const cartographyOpacity = (fallback: number) => setting.integer(
+const cartographyOpacity = (fallback: number, label: string, help: string) => setting.integer(
   fallback,
   { min: CARTOGRAPHY_OPACITY_MIN, max: CARTOGRAPHY_OPACITY_MAX },
-  MAP_LAYER,
+  { ...MAP_LAYER, label, help },
 );
 
 export default defineFeature({
   id: "cartography",
+  name: "Maps",
+  summary: "Exploration grid, walkable terrain, a walking route and Compass ranges on supported PvE maps.",
+  kind: "maps",
+  icon: "map",
   settings: {
     /** Enable map guidance and its controls without changing saved layer visibility. */
-    cartographyEnabled: setting.boolean(true, { tools: true }),
+    cartographyEnabled: setting.boolean(true, {
+      tools: true,
+      label: "Maps",
+      help: "Turns on map guidance and its controls. Each layer keeps its own switch.",
+    }),
     /** Show certified walkability on the native Compass and Mission Map. */
-    cartographyOverlayEnabled: setting.boolean(false, { ...MAP_LAYER, tools: true }),
+    cartographyOverlayEnabled: setting.boolean(false, {
+      ...MAP_LAYER,
+      tools: true,
+      label: "Walkable terrain",
+      help: "Shades the areas you cannot walk on, on the Compass and the Mission Map.",
+    }),
     /** Draw the game's fixed cartography cells over both native map surfaces. */
-    cartographyGridEnabled: setting.boolean(false, { ...MAP_LAYER, tools: true }),
+    cartographyGridEnabled: setting.boolean(false, {
+      ...MAP_LAYER,
+      tools: true,
+      label: "Exploration grid",
+      help: "Shows remaining exploration on the Mission Map and World Map.",
+    }),
     /** Draw the walking route to the point the player sets on the Mission Map or World Map. On by
      * default: nothing draws until the player sets a target. */
-    cartographyRouteEnabled: setting.boolean(true, { ...MAP_LAYER, tools: true }),
+    cartographyRouteEnabled: setting.boolean(true, {
+      ...MAP_LAYER,
+      tools: true,
+      label: "Walking route",
+      help: "Draws a line along walkable ground to the point you set. Right-click the Mission Map or World Map to set or remove it.",
+    }),
     /** Without the player's own target, lead the walking route to the active quest's marker. */
-    cartographyQuestRouteEnabled: setting.boolean(true, { hub: true, tools: true }),
+    cartographyQuestRouteEnabled: setting.boolean(true, {
+      hub: true,
+      tools: true,
+      label: "Route to quest",
+      help: "Without your own target, the walking route leads to your active quest.",
+    }),
     /** Include the Compass in exploration-grid presentation; off by default. */
-    cartographyCompassGridEnabled: setting.boolean(false, { hub: true }),
+    cartographyCompassGridEnabled: setting.boolean(false, {
+      hub: true,
+      label: "Markers on Compass",
+      help: "Adds nearby unexplored cells to the Compass.",
+    }),
     /** Draw standard Guild Wars ranges around the player on the Compass. */
-    compassRangeIndicatorsEnabled: setting.boolean(false, { ...MAP_LAYER, tools: true }),
-    compassRangeEarshotEnabled: setting.boolean(true, MAP_LAYER),
-    compassRangeCastEnabled: setting.boolean(true, MAP_LAYER),
-    compassRangeSpiritEnabled: setting.boolean(true, MAP_LAYER),
-    compassRangeSpiritExtendedEnabled: setting.boolean(true, MAP_LAYER),
-    compassRangeEarshotOpacity: compassRangeOpacity(),
-    compassRangeCastOpacity: compassRangeOpacity(),
-    compassRangeSpiritOpacity: compassRangeOpacity(),
-    compassRangeSpiritExtendedOpacity: compassRangeOpacity(),
+    compassRangeIndicatorsEnabled: setting.boolean(false, {
+      ...MAP_LAYER,
+      tools: true,
+      label: "Compass ranges",
+      help: "Draws range rings around you on the Compass.",
+    }),
+    compassRangeEarshotEnabled: rangeShown("Shout"),
+    compassRangeCastEnabled: rangeShown("Cast"),
+    compassRangeSpiritEnabled: rangeShown("Spirit"),
+    compassRangeSpiritExtendedEnabled: rangeShown("Ext. Spirit"),
+    compassRangeEarshotOpacity: rangeOpacity("Shout"),
+    compassRangeCastOpacity: rangeOpacity("Cast"),
+    compassRangeSpiritOpacity: rangeOpacity("Spirit"),
+    compassRangeSpiritExtendedOpacity: rangeOpacity("Ext. Spirit"),
     /** Shared color treatment for all standard Compass range rings. */
     compassRangeTheme: setting.enum(COMPASS_RANGE_THEMES, "color", {
       ...MAP_LAYER,
       launcherError: "Compass range theme is invalid",
+      label: "Range colors",
+      help: "Color gives each ring its own color. Monochrome draws every ring in white.",
     }),
     /** Persistent Compass footprint; Mission Map hover uses Shift or Option+Shift. */
     cartographyRevealMode: setting.enum(CARTOGRAPHY_REVEAL_MODES, "off", {
       ...MAP_LAYER,
       launcherError: "cartography reveal mode is invalid",
+      label: "Reveal range",
+      help: "Shows on the Compass the area your position reveals: Normal 3×3 or Bird’s Eye 7×7.",
     }),
     /** Active built-in or player-owned appearance and all custom presets. */
     cartographyPresetLibrary: setting.value(
       DEFAULT_CARTOGRAPHY_PRESET_LIBRARY,
       (value): CartographyPresetLibrary | undefined => normaliseCartographyPresetLibrary(value) ?? undefined,
-      { hub: true, launcherError: "cartography preset library is invalid" },
+      {
+        hub: true,
+        launcherError: "cartography preset library is invalid",
+        label: "Map style",
+        help: "The colors of every map layer: Cartographer, Synthwave, Monochrome or a style of your own.",
+      },
     ),
     /** Walkability veil and boundary strength, as a whole percentage. */
-    cartographyWalkabilityOpacity: cartographyOpacity(55),
+    cartographyWalkabilityOpacity: cartographyOpacity(55, "Walkable terrain opacity", "How strongly the terrain shade and its border show."),
     /** Grid, reveal ranges, and unseen-cell strength, as a whole percentage. */
-    cartographyGridOpacity: cartographyOpacity(65),
+    cartographyGridOpacity: cartographyOpacity(65, "Grid opacity", "How strongly the grid, the reveal range and unexplored cells show."),
     /** Visibility of the collapsed Compass control, as a whole percentage. */
     cartographyControlIdleOpacity: setting.integer(
       35,
       { min: CARTOGRAPHY_CONTROL_IDLE_OPACITY_MIN, max: CARTOGRAPHY_CONTROL_IDLE_OPACITY_MAX },
-      { hub: true },
+      {
+        hub: true,
+        label: "Compass control visibility",
+        help: "How visible the closed Compass control is while you do not use it.",
+      },
     ),
     /** Draw the two buttons beside the Compass; every choice they offer is also in Settings › Maps. */
-    compassButtonsShown: setting.boolean(true, { hub: true }),
+    compassButtonsShown: setting.boolean(true, {
+      hub: true,
+      label: "Show compass buttons",
+      help: "Shows the two buttons beside the Compass. Every choice they offer is also in Settings › Maps.",
+    }),
     /** How far the player dragged the Compass buttons from their place beside the Compass, in pixels. */
-    compassButtonsOffset: setting.value(
+    compassButtonsOffset: setting.position(
       NO_OVERLAY_OFFSET,
       (value): OverlayOffset | undefined => readOverlayOffset(value),
-      { ...MAP_LAYER, error: "Compass buttons position is invalid", launcherError: "Compass buttons position is invalid" },
+      {
+        ...MAP_LAYER,
+        error: "Compass buttons position is invalid",
+        launcherError: "Compass buttons position is invalid",
+        label: "Compass buttons position",
+        help: "Drag a button in a game window to move both. Reset puts them back beside the Compass.",
+      },
     ),
     /** Show the Elite Skills planner and its map markers while Maps are on. */
-    eliteSkillsEnabled: setting.boolean(true, { ...MAP_LAYER, tools: true }),
+    eliteSkillsEnabled: setting.boolean(true, {
+      ...MAP_LAYER,
+      tools: true,
+      label: "Elite skill planner",
+      help: "Adds the planner to the World Map and your Hunt list to the Mission Map.",
+    }),
     /** Capture locations that the Mission Map shows during play. */
     eliteMissionMapMarkers: setting.value(
       "saved",
       (value): EliteMissionMapMarkers | undefined => isEliteMissionMapMarkers(value) ? value : undefined,
-      { ...MAP_LAYER, tools: true, launcherError: "Mission Map markers are invalid" },
+      {
+        ...MAP_LAYER,
+        tools: true,
+        launcherError: "Mission Map markers are invalid",
+        label: "Mission Map markers",
+        help: "Which boss markers the Mission Map shows: your Hunt list, all planner matches, or none.",
+      },
     ),
   },
   activation: { kind: "setting", setting: "cartographyEnabled", master: "gwonmacTools" },
   region: "pve",
   tool: {
     id: "maps",
-    label: "Maps",
-    description: "Exploration grid and walkable terrain on supported PvE maps.",
     keywords: "grid terrain compass opacity",
-    hub: {
-      command: "maps", order: 6,
-      row: { detail: "Exploration grid, walkable terrain, walking route and compass ranges", iconKind: "maps", action: "Adjust maps", open: { settings: "maps" } },
-    },
+  },
+  hub: {
+    command: "maps", order: 6,
+    row: { detail: "Exploration grid, walkable terrain, walking route and compass ranges", iconKind: "maps", action: "Adjust maps", open: { settings: "maps" } },
   },
   shortcuts: [
     { action: "cartography.grid.toggle", binding: null, label: "Exploration grid" },
     { action: "cartography.walkability.toggle", binding: null, label: "Walkable terrain" },
     { action: "cartography.route.toggle", binding: null, label: "Walking route" },
   ],
+  shots: [],
+  parts: ["game", "main"],
 });

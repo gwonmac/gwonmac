@@ -2,8 +2,10 @@
  * Owns the words for settings that both the launcher and Hub Settings show: one
  * label, one description and one "when it applies" note per stored value, so the
  * two surfaces can never name the same setting differently (docs/settings.md).
+ * A feature option's label and help come from its manifest (app/features/<folder>/feature.ts).
  */
 import { CARTOGRAPHY_REVEAL_MODES, type CartographyRevealMode } from "./cartography-overlay.js";
+import { featureSettingText, type FeatureSettingKey } from "./feature-contracts.js";
 import { CONTROLLER_PROMPT_STYLES, RENDER_SCALES, type ControllerPromptStyle, type RenderScale } from "./settings/core.js";
 
 /**
@@ -60,31 +62,36 @@ const REVEAL_MODE_LABELS: Readonly<Record<CartographyRevealMode, Readonly<{ labe
 };
 export const REVEAL_MODE_OPTIONS = CARTOGRAPHY_REVEAL_MODES.map((value) => ({ value, ...REVEAL_MODE_LABELS[value] }));
 
+/** A feature option, named by its manifest (app/features/<folder>/feature.ts). */
+const named = <const Key extends FeatureSettingKey>(key: Key) => ({ key, label: featureSettingText(key).label });
+/** A feature option with its manifest help as the line under it. */
+const explained = <const Key extends FeatureSettingKey>(key: Key) => ({ ...named(key), detail: featureSettingText(key).help });
+
 /** Character Switch options, shown under that tool. */
 export const CHARACTER_DETAILS = [
-  { key: "characterSwitchProfession", label: "Show profession" },
-  { key: "characterSwitchLevel", label: "Show level" },
-  { key: "characterSwitchLocation", label: "Show location" },
+  named("characterSwitchProfession"),
+  named("characterSwitchLevel"),
+  named("characterSwitchLocation"),
 ] as const;
 
 /** Chat Filters options, shown under that tool. On hides those messages. */
 export const CHAT_FILTERS = [
-  { key: "chatFilterAllyDrops", label: "Hide other party members' item drops" },
-  { key: "chatFilterHallOfHeroes", label: "Hide Hall of Heroes winner announcements" },
-  { key: "chatFilterTitleAchievements", label: "Hide player title achievements" },
+  named("chatFilterAllyDrops"),
+  named("chatFilterHallOfHeroes"),
+  named("chatFilterTitleAchievements"),
 ] as const;
 
 /** Reminders options, shown under that tool: what to remind about, when, and how. */
 export const REMINDER_GROUPS = [
-  { key: "reminderCons", label: "Cons", detail: "Essence of Celerity, Grail of Might, Armor of Salvation" },
-  { key: "reminderPcons", label: "Pcons", detail: "Cupcakes, candies, Rock Candy, War Supplies, Lunar Blessing and more" },
-  { key: "reminderAlcohol", label: "Alcohol", detail: "An estimate, so its lines say \"about\"" },
+  explained("reminderCons"),
+  explained("reminderPcons"),
+  explained("reminderAlcohol"),
 ] as const;
 export const REMINDER_TIMING = [
-  { key: "reminderBeforeEnd", label: "1 minute before it runs out" },
-  { key: "reminderAtEnd", label: "When it has run out" },
+  named("reminderBeforeEnd"),
+  named("reminderAtEnd"),
 ] as const;
-export const REMINDER_SOUND = { key: "reminderSound", label: "Play a sound", detail: "One short chime, even when several reminders arrive together" } as const;
+export const REMINDER_SOUND = explained("reminderSound");
 
 /** The full note for a setting: its description, then when it applies. */
 export function settingDetail(copy: Copy): string {

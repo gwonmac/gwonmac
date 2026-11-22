@@ -11,8 +11,8 @@ const featureShortcuts = FEATURES.flatMap((feature) => "shortcuts" in feature
   ? feature.shortcuts.map((shortcut) => ({
       ...shortcut,
       feature: feature.id,
-      // A shortcut without its own label is the tool's own shortcut.
-      label: "label" in shortcut ? shortcut.label : "tool" in feature ? feature.tool.label : shortcut.action,
+      // A shortcut without its own label is the tool's own shortcut and takes the feature's name.
+      label: "label" in shortcut ? shortcut.label : feature.name,
     }))
   : []);
 

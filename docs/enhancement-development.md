@@ -358,7 +358,12 @@ A feature folder holds every file that only that feature uses:
 
 ```
 app/features/<id>/
-  feature.ts     manifest: settings, activation, region, tool (its renderer event, Hub row), shortcut (all processes)
+  feature.ts     manifest v2 (all processes): name, summary, kind, icon, region, capabilities, requires,
+                 network, settings (each with label and help), tool (its renderer event), hub, shortcuts,
+                 shots, parts; app/features/define.ts documents each field
+  README.md      what it does, for players, in the Markdown subset app/features/contract.ts allows
+  CHANGELOG.md   player-facing changes under "## Unreleased"; the release stamps the version
+  media/         shot-1.webp … one per `shots` caption (.gitkeep while empty)
   companion.ts   the game-host part (renderer)
   main.ts        the main-process part
   renderer/      renderer-only modules: DOM, game host, overlays, stylesheets (no Node.js)
@@ -368,6 +373,13 @@ app/features/<id>/
   shared/        contracts and pure logic that two processes use
   shared/ipc.ts  the feature's channel table and its window.gwNative namespace
 ```
+
+The folder name is the feature id in kebab case (`alcohol-timer` holds
+`alcoholTimer`). [`tests/policy/feature-contract.test.ts`](../tests/policy/feature-contract.test.ts)
+runs [the contract checks](../app/features/contract.ts) on every folder in `pnpm check`:
+id and folder, labels and help, one shot per caption, the README subset, `## Unreleased`,
+no `requires` cycles, known capabilities, and `main` in `parts` exactly when `main.ts`
+exists. A launcher test checks each `icon` against lucide-vue-next.
 
 A tool's `event` is the one name of the renderer event that runs it: its
 shortcut's command fires it through `app/renderer/commands.ts`

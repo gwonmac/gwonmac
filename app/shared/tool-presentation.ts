@@ -17,7 +17,8 @@ const toolAction = (feature: (typeof toolFeatures)[number]): ShortcutAction | un
 
 export const TOOL_PRESENTATION: Readonly<Record<GlobalTool, ToolPresentation>> = Object.freeze(Object.fromEntries(
   toolFeatures.map((feature) => {
-    const { id, label, description } = feature.tool;
+    const { id } = feature.tool;
+    const { name: label, summary: description } = feature;
     const action = toolAction(feature);
     return [id, Object.freeze(action ? { label, description, action } : { label, description })];
   }),

@@ -57,4 +57,4 @@ export type ShortcutAction = FeatureShortcut["action"];
  * The setting of each Hub source: a tool whose Hub command is listed on the Commands
  * page (`hub.keyOrder`). A command row alone, such as Xunlai Storage, is not a source.
  */
-export type HubFeatureSetting = Extract<ToolFeature, { tool: { hub: { keyOrder: number } } }>["activation"]["setting"];
+export type HubFeatureSetting = Extract<ToolFeature, { hub: { keyOrder: number } }>["activation"]["setting"];
