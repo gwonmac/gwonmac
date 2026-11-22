@@ -15,15 +15,13 @@
  * from resolve (app/shared/feature-resolve.ts) with main's facts and the live
  * play region, never from the settings alone.
  *
- * It also names the narrow surfaces that shared Tools code borrows from a
- * feature, so shared code imports this contract and never a feature file.
+ * Shared Tools code never borrows from a feature: what one feature (or the Hub)
+ * needs from another goes through a typed link (feature-links.ts).
  */
 import type { EnhancementCapabilities, EnhancementProgram } from "../shared/enhancement-contracts.js";
 import type { FeatureLinks } from "../features/links.js";
 import type { PartOwner, RunningPart } from "../features/parts.js";
 import { FEATURES, type FeatureId } from "../shared/feature-contracts.js";
-import type { TravelFriend } from "../shared/friends.js";
-import type { TravelCommand } from "../shared/travel-command.js";
 import type {
   CompanionExtensionActivation,
   CompanionObserverExtension,
@@ -38,12 +36,6 @@ import type { ToolsPolicySnapshot, ToolsSubstrates } from "./tools-companion-sub
 type Malloc = (bytes: number) => unknown;
 type Free = (pointer: number) => void;
 type CompanionPoller = CompanionObserverExtension["pollers"][number];
-
-/** What Hub people and party invites use of the Travel installation. */
-export type FriendTravel = Readonly<{
-  command(): Pick<TravelCommand, "unavailable"> | null;
-  travelToFriend(friend: TravelFriend, generation: number): Promise<void>;
-}>;
 
 export type ToolsPrepareInput = Readonly<{
   exports: WebAssembly.Exports;

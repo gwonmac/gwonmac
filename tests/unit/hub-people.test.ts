@@ -1,6 +1,9 @@
 /** Hub people search: every known name source, the typed exact name, and source switches. */
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import type { TravelLink } from '../../app/features/travel/shared/link.ts';
+import { whispersLink } from '../../app/features/whispers/renderer/link.ts';
+import { hubLinks, provideLink } from '../../app/renderer/feature-links.ts';
 import { createHubPeople } from '../../app/renderer/hub-people.ts';
 import { createPartyInvite, type PartyInvite } from '../../app/renderer/party-invite.ts';
 import type { CompanionPlayRegionState } from '../../app/renderer/companion-play-region-snapshot.ts';
@@ -14,13 +17,14 @@ const KAISER = 'Kai Account|Mo Kaiser · Online · Kamadan, Jewel of Istan';
 type Harness = {
   search(query: string): string[]; source: HubSource; session: ReturnType<typeof createWhisperSession>;
   page(): readonly HubRow[]; dispose(): void; receipts: string[]; setFriends(friends: readonly TravelFriend[]): void;
+  /** Saves new settings, as the harness does before it announces them. */
+  set(next: Record<string, boolean>): void;
 };
-type FriendTravel = Parameters<typeof createHubPeople>[2];
 let currentReceipts: string[] = [];
 /** A task on a page that still shows: its receipt is what closing the Hub shows. */
 const task: HubTask = { live: () => true, progress() {}, done(receipt) { if (receipt) currentReceipts.push(receipt); } };
 function withPeople(settings: Record<string, boolean>, run: (people: Harness) => void | Promise<void>, party: PartyInvite | null = null,
-  travel: FriendTravel = { unavailable: () => null, run: async () => {} }) {
+  travel: TravelLink = { friendTripBlocked: () => null, toFriend: async () => {} }) {
   const originalWindow = globalThis.window;
   const browserWindow = Object.assign(new EventTarget(), { gwToolsSettings: () => settings, gwFeatureFacts: () => provenFacts(settings) });
   Object.defineProperty(globalThis, 'window', { configurable: true, value: browserWindow });
@@ -30,12 +34,15 @@ function withPeople(settings: Record<string, boolean>, run: (people: Harness) =>
   currentReceipts = receipts;
   const session = createWhisperSession(async () => {});
   session.setAvailable(true);
+  // Whispers' and Travel's parts provide their links; Hub people reaches them only through these.
+  const stopLinks = [provideLink('whispers', whispersLink(session)), provideLink('travel', travel)];
   const people = createHubPeople({
     showRows(_title, rows) { page = rows; }, attach(next) { source = next; return () => {}; },
     notify(message) { receipts.push(message); },
-  }, session, travel, party);
+  }, hubLinks(), party);
   const finish = () => {
     people.dispose();
+    for (const stop of stopLinks) stop();
     Object.defineProperty(globalThis, 'window', { configurable: true, value: originalWindow });
   };
   try {
@@ -46,7 +53,8 @@ function withPeople(settings: Record<string, boolean>, run: (people: Harness) =>
     };
     setFriends([{ key: 'f', character: 'Mo Kaiser', alias: 'Kai Account', status: 'online', mapId: 449 }]);
     session.observe([{ id: 1, sender: 'Moira Chatter', direction: 'participant' }]);
-    const result = run({ source: source!, session, receipts, dispose: people.dispose, page: () => page(), setFriends,
+    const set = (next: Record<string, boolean>) => { settings = next; };
+    const result = run({ source: source!, session, receipts, dispose: people.dispose, page: () => page(), setFriends, set,
       search: query => source!.search(query).map(row => `${row.title}|${row.detail}`) });
     if (result instanceof Promise) return result.finally(finish);
   } catch (error) { finish(); throw error; }
@@ -208,7 +216,7 @@ test('Invite points to Travel and invite only when that row is shown and can sta
     assert.equal(page().find(row => row.id === 'person:travel-invite')!.unavailable, 'Travel is busy');
     assert.equal(inviteReason(page), elsewhere, 'an unavailable Travel is never pointed to');
     assert.equal(source.search('invite Mo Kaiser')[0]!.unavailable, elsewhere);
-  }, lionsArchInvite(), { unavailable: () => 'Travel is busy', run: async () => {} });
+  }, lionsArchInvite(), { friendTripBlocked: () => 'Travel is busy', toFriend: async () => {} });
   await withPeople(ALL_TOOLS, ({ source, page, setFriends }) => {
     setFriends([{ key: 'f', character: 'Mo Kaiser', alias: 'Kai Account', status: 'online', mapId: 188 }]);
     void source.search('mo kaiser')[0]!.run(task);
@@ -238,6 +246,25 @@ test('`invite ` lists the online friends as named invites, those invitable now f
   });
 });
 
+
+// Wrong behavior: a whisper row kept from before Whispers turned off still opens a conversation
+// (or shows the panel), or fails with words the launcher and the Hub's Features row do not use.
+test('with Whispers off a kept whisper row opens nothing and says why', async () => {
+  const opened: unknown[] = [];
+  await withPeople(ALL_TOOLS, ({ source, session, page, set }) => {
+    window.addEventListener('gw:whispers-toggle', event => opened.push((event as CustomEvent).detail));
+    source.search('mo kaiser')[0]!.run(task);
+    const row = page().find(each => each.id === 'person:whisper')!;
+    const scoped = source.search('whisper Mo Kaiser')[0]!;
+    set({ ...ALL_TOOLS, whispersEnabled: false });
+    assert.throws(() => row.run(task), { message: 'Whispers is off.' });
+    assert.throws(() => scoped.run(task), { message: 'Whispers is off.' });
+    set({ ...ALL_TOOLS, gwonmacTools: false });
+    assert.throws(() => row.run(task), { message: 'Off while you play the plain game.' });
+    assert.deepEqual([session.state.conversations, session.state.visible, opened], [[], false, []]);
+    assert.equal(page().some(each => each.id === 'person:whisper'), false, 'the page offers no Whisper while Whispers is off');
+  });
+});
 
 // Wrong behavior: an unavailable scope hides a typed recipient or opens an invisible draft.
 test('unavailable whisper names remain visible and cannot create a conversation', async () => {

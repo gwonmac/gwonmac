@@ -33,6 +33,18 @@ function actionOf(feature: SwitchFeature, status: FeatureStatus): Readonly<{ lab
   }
 }
 
+/**
+ * Why a Feature is off, in the words its row here shows, for a Hub action that finds it off only
+ * when the player runs it (a typed link that turned null): its own Off reads "<Feature> is off.".
+ */
+export function featureOffReason(id: SwitchFeature['id']): string {
+  const feature = SWITCH_FEATURES.find(each => each.id === id);
+  const facts = window.gwFeatureFacts?.() ?? null;
+  if (feature === undefined) return 'This Feature is off.';
+  const status = facts === null ? null : featureStatus(feature, { ...facts, playRegion: 'unknown' }, switchedOn(feature, facts.settings));
+  return status === null || status.resolution.on || status.resolution.reason === 'switched-off' ? `${feature.name} is off.` : status.text;
+}
+
 /** `open` is the Settings source's row action: a Hub section in the Hub, the others in the launcher. */
 export function createHubFeatures(open: (target: SettingsTarget) => (task: HubTask) => Promise<void>): HubSource {
   return {
