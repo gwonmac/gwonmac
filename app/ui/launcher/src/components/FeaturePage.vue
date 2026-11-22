@@ -154,8 +154,9 @@ async function change(option: FeatureOption, value: unknown) {
 .head-copy p { margin: 0; }
 .head-summary { color: var(--text-soft); font-size: 15px; }
 .head-meta { font-size: var(--fs-sm); }
-.head-status { display: flex; flex-wrap: wrap; align-items: center; gap: 0 6px; font-size: var(--fs-sm); }
-.head-status svg { width: 16px; height: 16px; }
+/* Inline flow, not flex: a flex gap would split "Needs Travel." around its link. */
+.head-status { font-size: var(--fs-sm); }
+.head-status svg { width: 16px; height: 16px; margin-right: 6px; vertical-align: -3px; }
 .on { color: var(--success); font-weight: 600; }
 .muted { color: var(--muted); }
 .warning { color: var(--warning); }
