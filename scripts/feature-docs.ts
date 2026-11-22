@@ -10,10 +10,11 @@
  * this script; hand-written docs pages stay below 100. The list follows the Features tab's
  * kinds: the launch mode first, then each card kind under its label as a navigation section.
  *
- * The site shows "Last updated" from the page file's modification time (Ginko takes the time of an
- * untracked file from the disk). A generated page gets the time of its README's last commit, so the
- * date is the README's, not the build's. Without history (a shallow checkout dates every file to one
- * commit) the page gets the Unix epoch, which the site hides (website/app/assets/site.css).
+ * The site shows "Last updated" (and the JSON-LD `dateModified`) from the page file's modification
+ * time: Ginko takes the time of an untracked file from the disk. A generated page gets the time of
+ * its README's last commit, so the date is the README's, not the build's. An uncommitted README keeps
+ * the write time. A shallow checkout dates a README to the oldest commit it has, as it does for the
+ * hand-written pages, so the website workflow fetches full history.
  *
  *   node --import ./scripts/ts-hook.mjs scripts/feature-docs.ts
  */
@@ -36,9 +37,6 @@ export const GENERATED_PAGE = /^[1-9]\d{2,}\.[^.]+\.md$/u;
 /** `updated` is the README's last commit time; null or absent when history cannot tell. */
 export type FeatureDocSource = Readonly<{ manifest: FeatureDefinition; readme: string | null; updated?: Date | null }>;
 export type FeatureDocPage = Readonly<{ name: string; file: string; text: string; updated: Date | null }>;
-
-/** The file time of a page without a known date; the site shows no date for it. */
-const NO_DATE = new Date(0);
 
 const KIND_ORDER = ["mode", ...FEATURE_KINDS.filter((kind) => kind !== "mode")] as const;
 const quoted = (value: string) => JSON.stringify(value);
@@ -76,10 +74,9 @@ export function featureDocPages(sources: readonly FeatureDocSource[]): FeatureDo
 const vcs = (root: string, args: string[]) =>
   execFileSync("git", ["-C", root, ...args], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
 
-/** The time of the file's last commit, or null without history: no repository, a shallow clone, or an uncommitted file. */
+/** The time of the file's last commit, or null without one: no repository or an uncommitted file. */
 function lastCommit(root: string, file: string): Date | null {
   try {
-    if (vcs(root, ["rev-parse", "--is-shallow-repository"]) !== "false") return null;
     const time = vcs(root, ["log", "-1", "--format=%cI", "--", file]);
     return time === "" ? null : new Date(time);
   } catch {
@@ -112,8 +109,7 @@ export function writeFeatureDocs(root: string, pages: readonly FeatureDocPage[])
       writeFileSync(target, text);
       changes.push(`wrote ${file}`);
     }
-    const time = updated ?? NO_DATE;
-    utimesSync(target, time, time);
+    if (updated) utimesSync(target, updated, updated);
   }
   return changes;
 }

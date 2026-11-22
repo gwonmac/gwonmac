@@ -1,2 +1,0 @@
-/* "Last updated" with the Unix epoch is a page without a known date (scripts/feature-docs.ts); show nothing. */
-.docs-page-foot span:has(> time[datetime^="1970-"]) { display: none; }

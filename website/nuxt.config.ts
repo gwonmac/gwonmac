@@ -8,7 +8,6 @@ export default defineNuxtConfig({
   extends: ["@lupinum/ginko-docs"],
   modules: ["@lupinum/ginko/nuxt"],
   ginko,
-  css: ["~/assets/site.css"],
   app: {
     head: {
       link: [
