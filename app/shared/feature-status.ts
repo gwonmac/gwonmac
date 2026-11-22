@@ -85,6 +85,11 @@ export function requiredFeatures(feature: SwitchFeature): SwitchFeature[] {
  * no switch of its own (Progress, Team Apply), the switch of the feature it runs with.
  */
 const toolByFeature = new Map<FeatureId, GlobalTool>(FEATURES.flatMap((feature) => "tool" in feature ? [[feature.id, feature.tool.id] as const] : []));
+/** The Feature a switchless one runs with (Progress → Travel), or null when it has its own switch. */
+export function runsWith(feature: SwitchFeature): SwitchFeature | null {
+  if (toolByFeature.has(feature.id)) return null;
+  return requiredFeatures(feature).find((each) => toolByFeature.has(each.id)) ?? null;
+}
 export function switchOf(feature: SwitchFeature): GlobalTool {
   const tool = [feature, ...requiredFeatures(feature)].map((each) => toolByFeature.get(each.id)).find((each) => each !== undefined);
   if (tool === undefined) throw new Error(`${feature.id} has no switch`);

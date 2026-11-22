@@ -54,7 +54,7 @@ const asEnhancementRuntimeFeatures = one(
   },
 );
 
-export default ({ client, currentSettings, publishFeatureFacts }: GameIpcInput) => {
+export default ({ client, currentSettings, refreshFeatureGates }: GameIpcInput) => {
   const runtime = client.runtime;
   return {
     channels: {
@@ -67,8 +67,9 @@ export default ({ client, currentSettings, publishFeatureFacts }: GameIpcInput) 
       clientSession: channel(nothing, (win) => client.clientSession(win)),
       clientFeatureFailure: channel(asEnhancementRuntimeFeatures, (win, features) => {
         client.recordFeatureFailure(win, features);
-        // A failed installation changes this window's facts: its Features read not-proven.
-        publishFeatureFacts([win]);
+        // A failed installation changes this window's facts: its Features read not-proven, and
+        // their shortcuts and menu items let go.
+        refreshFeatureGates();
       }),
       featuresGet: channel(nothing, (win) => featureFacts(currentSettings(), win)),
     } satisfies GameHandlers,

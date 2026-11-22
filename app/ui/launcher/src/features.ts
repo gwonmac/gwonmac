@@ -13,7 +13,7 @@ import {
   type FeatureId,
 } from "@shared/feature-contracts";
 import type { FeatureState } from "@shared/feature-resolve";
-import { featureStatus as sharedStatus, requiredFeatures, SWITCH_FEATURES, switchOf, type FeatureStatus, type SwitchFeature } from "@shared/feature-status";
+import { featureStatus as sharedStatus, SWITCH_FEATURES, switchOf, type FeatureStatus, type SwitchFeature } from "@shared/feature-status";
 import type { GlobalTool, LauncherSnapshot } from "@shared/launcher-contracts";
 import { markdownInline, parseMarkdown, type MarkdownBlock, type MarkdownInline } from "@shared/launcher-markdown";
 import { SETTINGS, type SettingsTarget } from "@shared/settings-catalogue";
@@ -67,26 +67,6 @@ export function groupCards(
 }
 
 export type SwitchChange = Readonly<{ tool: GlobalTool; enabled: boolean }>;
-
-/**
- * Turning a feature on turns on what it needs. `alsoOn` names the needed features whose switch
- * was off, for the notice that offers Undo; `changes` are the switches to move, each once.
- */
-export function turnOnChanges(feature: CardFeature, tools: LauncherSnapshot["tools"]): Readonly<{ changes: readonly SwitchChange[]; alsoOn: readonly CardFeature[] }> {
-  const off = (each: CardFeature) => !tools.features[switchOf(each)].enabled;
-  const required = requiredFeatures(feature);
-  const switches = [...new Set([feature, ...required].filter(off).map(switchOf))];
-  return { changes: switches.map((tool) => ({ tool, enabled: true })), alsoOn: required.filter(off) };
-}
-
-/** "Progress is on. Travel is on too, because Progress needs it." */
-export function alsoOnNotice(feature: CardFeature, alsoOn: readonly CardFeature[]): string {
-  const names = alsoOn.map((each) => each.name);
-  const list = names.length === 1 ? names[0] : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
-  return names.length === 1
-    ? `${feature.name} is on. ${list} is on too, because ${feature.name} needs it.`
-    : `${feature.name} is on. ${list} are on too, because ${feature.name} needs them.`;
-}
 
 const readmes = import.meta.glob<string>("../../../features/*/README.md", { query: "?raw", import: "default", eager: true });
 const changelogs = import.meta.glob<string>("../../../features/*/CHANGELOG.md", { query: "?raw", import: "default", eager: true });

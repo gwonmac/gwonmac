@@ -19,10 +19,13 @@ export default {
     const { progress } = input.substrates;
     let report: ((state: GameProgressState) => void) | null = null;
     let sequence = 0;
-    const feature = featurePart("progress", ({ game }) => ({
-      stop: game.progress.subscribe((next) =>
-        report?.(next === null ? WAITING : Object.freeze({ status: "ready", sequence: ++sequence, ...next }))),
-    })).prepare(input);
+    const feature = featurePart("progress", ({ game }) => {
+      const unsubscribe = game.progress.subscribe((next) =>
+        report?.(next === null ? WAITING : Object.freeze({ status: "ready", sequence: ++sequence, ...next })));
+      // Stopping (character select, a map load, PvP) must not leave Travel's Progress page on
+      // the last character's state.
+      return { stop() { unsubscribe(); report?.(WAITING); } };
+    }).prepare(input);
     return {
       ...progress.prepared,
       activate(context) {

@@ -1445,10 +1445,11 @@ function loadGlue(isProxyRouteLabel: (route: string) => boolean) {
       native().client.session(),
       native().features.get(),
     ]);
-    // Facts pushed while this read was in flight are newer.
-    applyFeatureFacts(featureFacts ?? loadedFacts);
     const settings = appSettings ?? loadedSettings;
     appSettings = settings;
+    // Facts pushed while this read was in flight are newer. Settings come first: the facts
+    // event hands listeners the Tools settings.
+    applyFeatureFacts(featureFacts ?? loadedFacts);
     const texturePackGeneration = window.gwNative.init.texturePackGeneration;
     if (texturePackGeneration) {
       try {

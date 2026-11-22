@@ -4,7 +4,7 @@
  *
  * The kernel forgets its estimate whenever nobody reads it, so the feature runs
  * through map loads (its region is `non-pvp`, which keeps an unknown area): a zone
- * change must not cost the countdown.
+ * change must not cost the countdown. It draws only while the character stands in a PvE map.
  */
 import { featurePart } from "../../renderer/tools-companion-part.js";
 import { createAlcoholTimerOverlay } from "./renderer/alcohol-timer-overlay.js";
@@ -17,6 +17,7 @@ export default featurePart("alcoholTimer", ({ game, settings }) => {
   const stops = [
     settings.subscribe(({ alcoholTimerPosition }) => overlay.setPosition(alcoholTimerPosition)),
     game.alcohol.subscribe(overlay.setAlcohol),
+    game.region.subscribe((region) => overlay.setInPve(region?.area === "pve")),
   ];
   return { stop() { for (const stop of stops) stop(); overlay.dispose(); } };
 });

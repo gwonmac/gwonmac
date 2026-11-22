@@ -52,6 +52,7 @@ export function createAlcoholTimerOverlay(parent: HTMLElement, canvas: HTMLCanva
   let disposed = false;
   let pendingSave = Promise.resolve();
   let alcohol: GameAlcohol | null = null;
+  let inPve = false;
   let drag: { id: number; x: number; y: number; left: number; top: number; before: AlcoholTimerPosition } | null = null;
   const viewport = () => {
     const bounds = canvas.getBoundingClientRect();
@@ -64,7 +65,7 @@ export function createAlcoholTimerOverlay(parent: HTMLElement, canvas: HTMLCanva
   };
   const render = () => {
     const bounds = canvas.getBoundingClientRect();
-    const visible = bounds.width > 0 && bounds.height > 0
+    const visible = inPve && bounds.width > 0 && bounds.height > 0
       && (!position.locked || (alcohol !== null && alcohol.remainingMs > 0));
     root.style.display = visible ? "flex" : "none";
     if (!visible) return;
@@ -140,6 +141,8 @@ export function createAlcoholTimerOverlay(parent: HTMLElement, canvas: HTMLCanva
   view.addEventListener("blur", cancel); view.addEventListener("resize", render);
   return {
     setAlcohol(next: GameAlcohol | null) { alcohol = next; render(); },
+    /** Draws only in a PvE map: never at login, character select or while a map loads. */
+    setInPve(next: boolean) { if (!next) cancel(); inPve = next; render(); },
     /** The saved position, again after every settings change; its own save coming back changes nothing. */
     setPosition(next: AlcoholTimerPosition) {
       const changed = !samePosition(next, receivedPosition);

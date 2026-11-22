@@ -4,15 +4,14 @@
  * or Purpose, and each Feature's page. Statuses come from resolve through ../features.ts; the
  * switches write through the launcher bridge, or, in a browser preview, change the shown fixture.
  */
-import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
-import { AlertCircle, Check, LayoutGrid, List, Search, X } from "lucide-vue-next";
+import { computed, nextTick, ref, watch } from "vue";
+import { AlertCircle, Check, LayoutGrid, List, Search } from "lucide-vue-next";
 import { featureSettingText, type FeatureId } from "@shared/feature-contracts";
 import type { LauncherExternalLink, LauncherNativeApi, LauncherSettingsPatch, LauncherSnapshot } from "@shared/launcher-contracts";
 import type { SettingsTarget } from "@shared/settings-catalogue";
 import {
   CARD_FEATURES,
   REGION_WORDS,
-  alsoOnNotice,
   badgeOf,
   cardFeature,
   changelogOf,
@@ -20,14 +19,13 @@ import {
   groupCards,
   groupsFor,
   launcherFeatureState,
-  turnOnChanges,
   type CardFeature,
   type CardSize,
   type FeatureFilter,
   type GroupBy,
   type SwitchChange,
 } from "../features";
-import { showsReason, switchOf } from "@shared/feature-status";
+import { runsWith, showsReason, switchOf } from "@shared/feature-status";
 import { fixtureFacts } from "../fixtures";
 import FeatureArt from "./FeatureArt.vue";
 import FeaturePage from "./FeaturePage.vue";
@@ -58,7 +56,6 @@ const query = ref("");
 const filter = ref<FeatureFilter>("all");
 const groupBy = ref<GroupBy>("kind");
 const message = ref("");
-const notice = ref<{ text: string; feature: FeatureId; undo: readonly SwitchChange[] } | null>(null);
 const page = ref<HTMLElement | null>(null);
 const searchField = ref<HTMLInputElement | null>(null);
 
@@ -109,37 +106,13 @@ async function attempt(action: () => Promise<unknown>) {
 }
 
 async function toggle(each: CardFeature, on: boolean) {
-  if (statusOf(each).locked) return;
-  notice.value = null;
-  if (!on) { await attempt(() => apply([{ tool: switchOf(each), enabled: false }])); return; }
-  const { changes, alsoOn } = turnOnChanges(each, tools.value);
-  await attempt(async () => {
-    await apply(changes);
-    if (alsoOn.length > 0) notice.value = { text: alsoOnNotice(each, alsoOn), feature: each.id, undo: changes.map(({ tool }) => ({ tool, enabled: false })) };
-  });
-}
-async function undo() {
-  if (!notice.value) return;
-  const { feature: id, undo: changes } = notice.value;
-  notice.value = null;
-  await attempt(() => apply(changes));
-  await focusSwitch(id);
-}
-async function dismiss() {
-  if (!notice.value) return;
-  const id = notice.value.feature;
-  notice.value = null;
-  await focusSwitch(id);
-}
-/** The toast leaves with its button: the keyboard goes back to the switch the notice was about. */
-async function focusSwitch(id: FeatureId) {
-  await nextTick();
-  const target = page.value?.querySelector<HTMLElement>(`[data-feature="${id}"] [role="switch"]`) ?? page.value?.querySelector<HTMLElement>(".head-action button");
-  target?.focus();
+  // A switchless Feature has nothing of its own to turn off: its switch is the one it runs with.
+  // A Feature that needs another reads "Needs X" and offers "Turn on X" (resolve's reason).
+  if (statusOf(each).locked || (!on && runsWith(each))) return;
+  await attempt(() => apply([{ tool: switchOf(each), enabled: on }]));
 }
 
 async function setPlain(on: boolean) {
-  notice.value = null;
   await attempt(async () => {
     if (props.native) { await props.native.tools.setMasterEnabled(!on); return; }
     const configured = !on;
@@ -179,7 +152,6 @@ function pickGroup(next: GroupBy) {
   if (filter.value !== "all" && filter.value !== "on") filter.value = "all";
   groupBy.value = next;
 }
-onBeforeUnmount(() => { notice.value = null; });
 </script>
 
 <template>
@@ -262,7 +234,8 @@ onBeforeUnmount(() => { notice.value = null; });
               </div>
               <div class="card-foot">
                 <span class="chip">{{ REGION_WORDS[each.region] }}</span>
-                <FeatureSwitch :checked="statusOf(each).checked" :label="each.name" :locked="statusOf(each).locked" :describedby="showsReason(statusOf(each)) ? `reason-${each.id}` : undefined" @change="toggle(each, $event)" />
+                <span v-if="runsWith(each)" class="runs-with">Runs with {{ runsWith(each)!.name }}</span>
+                <FeatureSwitch v-else :checked="statusOf(each).checked" :label="each.name" :locked="statusOf(each).locked" :describedby="showsReason(statusOf(each)) ? `reason-${each.id}` : undefined" @change="toggle(each, $event)" />
               </div>
             </template>
             <template v-else>
@@ -271,7 +244,8 @@ onBeforeUnmount(() => { notice.value = null; });
                 <strong><button class="card-link" @click="open(each.id)">{{ each.name }}</button><span v-if="badges.get(each.id)" class="dot" :title="badges.get(each.id) ?? undefined"></span><span v-if="badges.get(each.id)" class="visually-hidden">{{ badges.get(each.id) }}</span></strong>
                 <small :id="`reason-${each.id}`" :class="showsReason(statusOf(each)) ? statusOf(each).tone : 'muted'">{{ showsReason(statusOf(each)) ? statusOf(each).text : each.summary }}</small>
               </span>
-              <FeatureSwitch :checked="statusOf(each).checked" :label="each.name" :locked="statusOf(each).locked" :describedby="showsReason(statusOf(each)) ? `reason-${each.id}` : undefined" @change="toggle(each, $event)" />
+              <span v-if="runsWith(each)" class="runs-with">Runs with {{ runsWith(each)!.name }}</span>
+              <FeatureSwitch v-else :checked="statusOf(each).checked" :label="each.name" :locked="statusOf(each).locked" :describedby="showsReason(statusOf(each)) ? `reason-${each.id}` : undefined" @change="toggle(each, $event)" />
             </template>
           </article>
         </div>
@@ -287,11 +261,6 @@ onBeforeUnmount(() => { notice.value = null; });
     </div>
 
     <p v-if="message" class="inline-message features-alert" role="alert">{{ message }}</p>
-    <div v-if="notice" class="toast" role="status">
-      <Check />
-      <div><span>{{ notice.text }}</span></div>
-      <span class="toast-actions"><button class="secondary small" @click="undo">Undo</button><button class="icon-button" aria-label="Dismiss" @click="dismiss"><X /></button></span>
-    </div>
   </section>
 </template>
 
@@ -351,6 +320,7 @@ onBeforeUnmount(() => { notice.value = null; });
 .card-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px; padding: 14px 16px 4px; }
 .card-body h3 { margin: 0; font-size: 15px; font-weight: 600; }
 .summary { display: -webkit-box; margin: 0; overflow: hidden; color: var(--muted); font-size: var(--fs-sm); line-height: 1.45; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.runs-with { color: var(--muted); font-size: var(--fs-xs); white-space: nowrap; }
 .reason { margin: 2px 0 0; font-size: var(--fs-xs); line-height: 1.4; }
 .reason.muted, .tile-copy small.muted { color: var(--muted); }
 .reason.warning, .tile-copy small.warning { color: var(--warning); }
@@ -367,8 +337,6 @@ onBeforeUnmount(() => { notice.value = null; });
 .suggest { margin: 8px 0 0; padding-top: 16px; border-top: 1px solid var(--line); font-size: var(--fs-sm); }
 .suggest .text-link { padding: 0; font-size: inherit; }
 .features-alert { position: sticky; bottom: 0; margin: 16px 0 0; }
-.toast .toast-actions { display: flex; align-items: center; gap: 4px; }
-.toast > div { align-self: center; }
 @media (prefers-reduced-motion: reduce) {
   .card, .tile { transition: none; }
 }
