@@ -135,7 +135,7 @@ function dateLabel(story: LauncherNewsStory): string {
     </div>
     <div v-if="contentTab === 'news'" id="news-panel" role="tabpanel" aria-labelledby="news-tab"><NewsFeed :news="snapshot.news" :limit="5" @select="openStory" @settings="emit('settings')" @all="emit('read', null)" /></div>
     <div v-else id="dailies-panel" role="tabpanel" aria-labelledby="dailies-tab" class="daily-view">
-      <div class="panel-head"><h2>Dailies</h2><button class="customize" @click="emit('settings')"><SlidersHorizontal />Customize</button></div>
+      <div class="panel-head"><h2>Dailies</h2><button class="quiet small" @click="emit('settings')"><SlidersHorizontal />Customize</button></div>
       <div class="daily-date"><span>Today · {{ dayFormat.format(now) }}</span><strong>{{ changesIn }}</strong><small>{{ timeFormat.format(today.endsAt) }} local time</small></div>
       <ul class="daily-list"><li v-for="daily in today.activities" :key="daily.category" class="daily-item"><span class="daily-icon" aria-hidden="true"><component :is="dailyIcons[daily.category]" /></span><span class="daily-category">{{ daily.label }}</span><strong>{{ daily.title }}</strong></li></ul>
       <table v-if="weekExpanded" class="daily-week">

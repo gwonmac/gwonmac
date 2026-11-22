@@ -27,7 +27,7 @@ function shortDate(value: string): string { return new Date(value).toLocaleDateS
 <template>
   <div v-if="heading" class="news-panel-head">
     <div><h2>Latest news</h2><span v-if="news.status === 'offline'" class="offline-note">Saved news · offline</span></div>
-    <button class="customize" @click="emit('settings')"><SlidersHorizontal />Customize</button>
+    <button class="quiet small" @click="emit('settings')"><SlidersHorizontal />Customize</button>
   </div>
   <p v-if="!heading && news.status === 'offline'" class="offline-note page-offline-note">Saved news · offline</p>
   <div class="news-filters" role="group" aria-label="Filter news">

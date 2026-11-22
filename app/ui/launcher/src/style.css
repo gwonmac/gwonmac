@@ -68,9 +68,6 @@ main.artwork-only { grid-template-columns: 1fr; }
 .panel-head { position: sticky; top: -28px; z-index: 2; display: flex; justify-content: space-between; align-items: center; padding: 0 0 20px; background: linear-gradient(var(--sunken) 80%, transparent); }
 .panel-head h2 { margin: 0; font-size: 20px; }
 /* The panel's Customize link, shared by News and Dailies. */
-.customize { display: flex; align-items: center; gap: 7px; padding: 8px 10px; border-radius: var(--radius-sm); color: var(--muted); background: transparent; font-size: var(--fs-sm); }
-.customize:hover { color: var(--text); background: var(--surface-hover); }
-.customize svg { width: 15px; }
 .segmented { display: flex; padding: 4px; background: var(--sunken); border: 1px solid var(--line); border-radius: var(--radius-md); }
 .segmented button { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: var(--radius-sm); color: var(--muted); background: transparent; }
 .segmented button:hover { color: var(--text); }
@@ -92,9 +89,6 @@ main.artwork-only { grid-template-columns: 1fr; }
 .daily-week thead th { color: var(--muted); font-size: var(--fs-xs); font-weight: 600; }
 .daily-week tbody th { color: var(--text-soft); font-weight: 600; white-space: nowrap; }
 .daily-week td { color: var(--muted); }
-.empty-state { min-height: 310px; display: grid; place-content: center; justify-items: center; text-align: center; padding: 30px; border: 1px dashed var(--line); border-radius: var(--radius-lg); }
-.empty-state > svg { width: 34px; height: 34px; color: var(--gold); }
-.empty-state p { max-width: 470px; }
 
 /* Accounts. */
 .accounts-page { padding-top: 28px; }
@@ -184,10 +178,6 @@ textarea { resize: vertical; }
 .status-copy small { color: var(--muted); font-size: var(--fs-sm); }
 .status-copy progress { width: min(280px, 100%); height: 5px; border: 0; accent-color: var(--gold); }
 .status-actions { display: flex; align-items: center; gap: 6px; }
-.status-action, .status-quiet-action { min-height: 36px; padding: 8px 12px; border-radius: var(--radius-sm); white-space: nowrap; background: var(--control); font-size: var(--fs-md); }
-.status-action:hover { background: var(--surface-hover); }
-.status-quiet-action { color: var(--muted); background: transparent; }
-.status-quiet-action:hover { color: var(--text); }
 .picker-wrap { position: relative; }
 .account-picker { min-width: 190px; min-height: 52px; display: flex; align-items: center; gap: 12px; padding: 8px 14px; border: 1px solid var(--line); border-radius: var(--radius-md); text-align: left; background: var(--control); }
 .account-picker:hover { border-color: var(--line-strong); }
@@ -211,10 +201,8 @@ textarea { resize: vertical; }
 .profile-copy small { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: var(--fs-xs); line-height: 1.4; }
 .profile-open-dot { width: 6px; height: 6px; flex-shrink: 0; border-radius: 50%; background: var(--success); }
 /* The per-account action in Accounts and the picker: a small gold-tinted button. */
-.profile-action { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 82px; min-height: 32px; padding: 6px 10px; border: 1px solid var(--gold-line); border-radius: var(--radius-sm); color: var(--gold-text); background: var(--gold-tint); font-size: var(--fs-xs); font-weight: 600; white-space: nowrap; }
-.profile-action svg { width: 14px; height: 14px; }
-.profile-action:hover:not(:disabled) { border-color: var(--gold); background: var(--gold-tint-strong); }
-.profile-action:disabled { color: var(--muted); background: transparent; border-color: transparent; }
+/* An account row's Play, Show or Cancel is a small secondary button; one width keeps the rows aligned. */
+.profile-action { min-width: 82px; }
 .profile-picker .checkbox { display: grid; place-items: center; width: 18px; height: 18px; border: 1px solid var(--line-strong); border-radius: 4px; }
 .profile-picker .checkbox.checked { border-color: var(--gold); background: var(--gold); color: var(--on-gold); }
 .profile-picker .checkbox svg { width: 13px; }
@@ -310,7 +298,6 @@ textarea { resize: vertical; }
   .archived-accounts article { grid-template-columns: minmax(0, 1fr); }
   .launchbar { gap: 8px; padding: 10px 14px; }
   .status-actions { gap: 2px; }
-  .status-action, .status-quiet-action { padding-inline: 8px; }
   .profile-picker { position: fixed; right: 14px; bottom: 116px; width: min(390px, calc(100vw - 28px)); }
   .toast { right: 14px; bottom: 128px; width: calc(100% - 28px); }
 }
