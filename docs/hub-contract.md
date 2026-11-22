@@ -18,7 +18,7 @@ the modal, and applies the engine's effects. It names no source: each source say
 calculator, commands, Hub preferences and Settings) attach from the one Core
 list in `app/renderer/hub-builtins.ts`, the way a feature attaches its own. A
 tool's Tools row, its open event and its place among the Tools rows live in its
-manifest's `tool.hub` (`app/features/define.ts`); `app/shared/hub-tools.ts`
+manifest's top-level `hub` field (`app/features/define.ts`); `app/shared/hub-tools.ts`
 derives, from one entry per tool, the rows Core draws, their order, the Commands
 page's shortcut rows, the shortcut each row shows and the event each tool
 command fires.

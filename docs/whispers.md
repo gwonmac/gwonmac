@@ -9,7 +9,7 @@ replace chat handlers, block messages, or maintain a second delivery history.
 ## Use and presentation
 
 Turn on **Whispers** on its Feature page in the launcher's Features tab (off by default). The panel is
-available in PvE while Tools is enabled. `pnpm --filter @gwonmac/tools-ui dev` with `?whispers` opens
+available in PvE while the Whispers Feature is on. `pnpm --filter @gwonmac/tools-ui dev` with `?whispers` opens
 the same Vue surface with local scenario controls; those controls never send
 game messages.
 
