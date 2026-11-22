@@ -20,6 +20,20 @@ their data.
   the fixed Keychain items into a normal profile partition. Remove the storage
   adapter, the additive marker, and their tests.
 
+## Retired Safe Storage secret files
+
+- Why: releases before Keychain storage kept the saved login and Steam session
+  as Safe Storage ciphertext in `credentials.bin` and `steam-session.bin` in
+  the userData folder. Startup deletes both files and reads nothing from them
+  (`app/main/core/legacy-secret-cleanup.ts`, called from
+  `app/main/startup-state.ts`). It runs only for the adopted Main account
+  storage of a packaged release build.
+- Introduced: 2026-08-01 with the isolated Keychain distribution channels.
+- Depends on it: installations that saved a login before Keychain storage.
+- Remove when: the Adopted Main account storage entry above is removed (no
+  adopted storage remains to clean). Delete the cleanup module, its call, the
+  `cleanupLegacySecrets` capability and their tests.
+
 ## Removed 4 GB mode caches
 
 - Why: 4 GB mode wrote derived modules to `game/extended-memory` and
@@ -84,6 +98,9 @@ These are permanent readers, not migrations. Keep them.
   (`app/shared/travel-map-id.ts`).
 - The settings parser reads the legacy `teamManagement` shape into
   `buildLibrary`. `AppSettings` must stay free of `teamManagement`.
+- The elite tracking reader accepts the retired per-character `missionMap`
+  switch, which moved to the `eliteMissionMapMarkers` setting, and drops it
+  on the next save (`parseEliteTracking` in `app/shared/elite-skills.ts`).
 - Feature switches keep the keys released apps store (`whispersEnabled`,
   `travelPalette`, `skillCooldownOverlayEnabled`, …): each manifest marks its
   switch with `featureSwitch`, so no key was converted and nothing needs a
