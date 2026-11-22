@@ -47,6 +47,8 @@ export function createChatInstallation(exports: WebAssembly.Exports, available: 
     get pointer() { return pointer; },
     get bytes() { return available ? COMPANION_ABI.whispers.bytes : 0; },
     get enabled() { return enabled; },
+    /** The slot is open now, or its memory is in place and nothing has torn it down, so it can open. */
+    get ready() { return enabled || (available && !disposed && memory !== null && pointer !== 0); },
     get region() { return pointer === 0 ? null : { name: "whispers", pointer, size: COMPANION_ABI.whispers.bytes, align: 4 as const }; },
     allocate(malloc: (bytes: number) => unknown) {
       if (!available) return;

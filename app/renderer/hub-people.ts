@@ -283,7 +283,7 @@ export function mountHubPeople(context: Pick<ToolsActivation, 'game' | 'playRegi
   const party = chat.available ? createPartyInvite({
     region: () => playRegions.state,
     subscribeRegion: listener => { const unsubscribe = playRegions.subscribe(() => listener()); return () => { unsubscribe(); }; },
-    chatReady: () => chat.available,
+    chatReady: chat.ready,
     invite: name => chat.send({ kind: 'invite', name }),
     travel: (friend, generation) => travelToFriend(links, friend, generation),
   }) : null;

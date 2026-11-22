@@ -87,6 +87,11 @@ export type GameChat = BlockAvailability & Readonly<{
   /** Each batch of whispers as the game shows it; null at subscribe, because nothing new has arrived yet. */
   messages: Block<GameChatMessages | null>;
   /**
+   * Whether a line can go out now: the chat slot is open, or its memory is in place and live so
+   * it opens for the line. False before the slot is installed and after it is torn down.
+   */
+  ready(): boolean;
+  /**
    * Sends one line through the certified chat sender, one line at a time. Resolves once
    * Guild Wars took it (a whisper: once its echo shows in chat); rejects with a sentence a
    * player can read. The kernel sends only in a PvE area, for the character and map that
@@ -228,6 +233,7 @@ type BlockInput = Readonly<{
 }>;
 
 const NOT_PROVEN = Object.freeze({ available: false, reason: "not-proven" } as const);
+const NOT_READY = "Guild Wars chat is not ready. Try again in a moment.";
 
 /**
  * One value with listeners. `demand` runs when the first listener arrives or
@@ -393,12 +399,14 @@ function createGameChat(available: boolean, slot: ToolsSubstrates["chat"], syncO
   return Object.freeze({
     ...(available ? { available: true as const } : NOT_PROVEN),
     messages: messages.block,
+    ready: () => available && slot.installation?.ready === true,
     async send(line: ChatLine) {
       const installation = slot.installation;
       if (!available || installation === null) throw new Error("Guild Wars chat is not available in this game version.");
       sending += 1;
       try {
-        open();
+        // A slot the kernel refuses to open is chat that is not ready; its own error is not for players.
+        try { open(); } catch { throw new Error(NOT_READY); }
         return await (line.kind === "whisper" ? installation.send(line.to, line.text) : installation.invite(line.name));
       } finally {
         sending -= 1;
