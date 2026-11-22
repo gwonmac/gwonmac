@@ -6,6 +6,7 @@ export default defineFeature({
   name: "Team Apply",
   summary: "Load a saved team onto your heroes. Each step is checked in the game before the next.",
   kind: "party",
+  purpose: "characters",
   icon: "users",
   activation: { kind: "setting", setting: "buildLibrary", master: "gwonmacTools" },
   region: "pve",

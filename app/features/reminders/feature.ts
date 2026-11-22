@@ -8,6 +8,7 @@ export default defineFeature({
   name: "Reminders",
   summary: "Remind you in chat before cons, pcons or alcohol run out. Only you see these lines.",
   kind: "helpers",
+  purpose: "fight",
   icon: "bell",
   settings: {
     remindersEnabled: setting.boolean(false, {

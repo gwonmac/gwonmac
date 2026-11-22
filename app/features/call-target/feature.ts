@@ -6,6 +6,7 @@ export default defineFeature({
   name: "Call target",
   summary: "Call the selected target without attacking. Needs Guild Wars’ default controls.",
   kind: "combat",
+  purpose: "fight",
   icon: "megaphone",
   settings: {
     /** Opt-in Command shortcut for the default target-call chord. */

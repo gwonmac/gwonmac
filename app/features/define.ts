@@ -45,6 +45,30 @@ export type FeatureActivation =
  */
 export const FEATURE_KINDS = ["maps", "combat", "party", "chat", "items", "helpers", "mode"] as const;
 export type FeatureKind = (typeof FEATURE_KINDS)[number];
+/** The group heading players see for each card kind, in the order the Features tab lists them. */
+export const FEATURE_KIND_LABELS: Readonly<Record<Exclude<FeatureKind, "mode">, string>> = {
+  maps: "Maps & travel",
+  combat: "Combat",
+  party: "Party & builds",
+  chat: "Chat & trade",
+  items: "Items",
+  helpers: "Helpers",
+};
+
+/**
+ * How the Features tab groups a feature by player goal (Group by: Purpose). Every card names one;
+ * the launch mode does not. The player test (docs/feature-platform-plan.md, step 6.4) keeps either
+ * Kind or Purpose and deletes the other.
+ */
+export const FEATURE_PURPOSES = ["around", "fight", "talk", "inventory", "characters"] as const;
+export type FeaturePurpose = (typeof FEATURE_PURPOSES)[number];
+export const FEATURE_PURPOSE_LABELS: Readonly<Record<FeaturePurpose, string>> = {
+  around: "Get around",
+  fight: "Fight",
+  talk: "Chat and trade",
+  inventory: "Inventory",
+  characters: "Characters",
+};
 
 /**
  * What runs: `game` in the game host, `hubPage` a page of its own in the Hub, `window`
@@ -70,6 +94,8 @@ export type FeatureDefinition = Readonly<{
   /** One plain sentence under the name: card line, Settings › Tools. */
   summary: string;
   kind: FeatureKind;
+  /** The player goal it serves; every feature but the launch mode names one (./contract.ts). */
+  purpose?: FeaturePurpose;
   /** A Lucide icon name in kebab case, from lucide-vue-next, the set the launcher uses. */
   icon: string;
   /** Settings this feature owns, each with a label and help. Another feature may name one in its activation. */

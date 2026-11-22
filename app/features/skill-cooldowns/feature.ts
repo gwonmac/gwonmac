@@ -12,6 +12,7 @@ export default defineFeature({
   name: "Skill Cooldowns",
   summary: "Show numeric recharge timers on the skill bar.",
   kind: "combat",
+  purpose: "fight",
   icon: "timer",
   settings: {
     /** Show Guild Wars' observed recharge state as display-only countdowns. */

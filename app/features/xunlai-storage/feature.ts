@@ -6,6 +6,7 @@ export default defineFeature({
   name: "Xunlai Storage",
   summary: "Open storage in supported outposts.",
   kind: "items",
+  purpose: "inventory",
   icon: "archive",
   settings: {
     /** Allow the explicit local Xunlai window command in supported outposts. */

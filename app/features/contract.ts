@@ -1,10 +1,10 @@
 /**
  * The feature contract checks that TypeScript cannot make: the id matches its folder,
  * every setting names itself, one shot file per caption, README.md stays inside the
- * small Markdown subset the launcher renders, CHANGELOG.md has `## Unreleased`, `requires`
- * has no cycles, and `uses` names only capabilities the verifier knows. Pure: the caller
- * reads the folders (tests/policy/feature-contract.test.ts runs it in `pnpm check`), so the
- * same check can run on a scaffold or a planted error.
+ * small Markdown subset the launcher renders, CHANGELOG.md has `## Unreleased`, every card
+ * names a purpose, `requires` has no cycles, and `uses` names only capabilities the verifier
+ * knows. Pure: the caller reads the folders (tests/policy/feature-contract.test.ts runs it in
+ * `pnpm check`), so the same check can run on a scaffold or a planted error.
  * Each message names the file and says what to change.
  */
 import { ENHANCEMENT_CAPABILITY_FIELDS } from "../shared/enhancement-contracts.js";
@@ -59,6 +59,11 @@ function checkFolder({ folder, manifest, files, readme, changelog }: FeatureFold
   if (manifest.name.trim() === "") problems.push(`${at}/feature.ts: name is empty.`);
   if (manifest.summary.trim() === "") problems.push(`${at}/feature.ts: summary is empty.`);
   if (!KEBAB.test(manifest.icon)) problems.push(`${at}/feature.ts: icon "${manifest.icon}" is not a Lucide icon name in kebab case, such as "map-pin".`);
+  if (manifest.kind === "mode" && manifest.purpose !== undefined) {
+    problems.push(`${at}/feature.ts: the launch mode is the plain-game strip, not a card; remove purpose.`);
+  } else if (manifest.kind !== "mode" && manifest.purpose === undefined) {
+    problems.push(`${at}/feature.ts: no purpose; the Features tab groups every card by it (one of FEATURE_PURPOSES in app/features/define.ts).`);
+  }
 
   for (const [key, spec] of Object.entries(manifest.settings ?? {})) {
     if (typeof spec.label !== "string" || spec.label.trim() === "") problems.push(`${at}/feature.ts: setting ${key} has no label; players see it as a row name.`);

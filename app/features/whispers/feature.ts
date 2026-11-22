@@ -6,6 +6,7 @@ export default defineFeature({
   name: "Whispers",
   summary: "A movable whisper panel beside the game chat. Conversations last for this session only.",
   kind: "chat",
+  purpose: "talk",
   icon: "message-circle",
   settings: {
     whispersEnabled: setting.boolean(false, {
