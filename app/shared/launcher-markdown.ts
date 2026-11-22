@@ -1,6 +1,7 @@
 /**
  * Projects the small Markdown subset the website writes for players into
- * presentation blocks, for the launcher's news articles and its bundled Guide.
+ * presentation blocks, for the launcher's news articles, its bundled Guide and
+ * each feature's README (whose `>` lines are its one note).
  *
  * It renders nothing and trusts no address: every link and image goes through
  * the caller's resolver, which returns an opaque action ID or a safe image
@@ -29,7 +30,7 @@ export interface MarkdownResolvers {
   readonly image: (src: string) => string | null;
 }
 
-const BLOCK_START = /^(#{2,3} |- |\d+\. |!\[|\||::)/u;
+const BLOCK_START = /^(#{2,3} |- |\d+\. |!\[|\||::|>)/u;
 
 /** The anchor the website gives a heading, so `#reporting-a-problem` links keep working. */
 export function headingAnchor(text: string): string {
@@ -105,6 +106,16 @@ export function parseMarkdown(body: string, resolvers: MarkdownResolvers, maxBlo
       }
       const [head = [], ...rest] = rows;
       blocks.push({ type: "table", head: head.map(inline), rows: rest.map((row) => row.map(inline)) });
+      continue;
+    }
+    if (line.startsWith(">")) {
+      const content: string[] = [];
+      while (at(index).startsWith(">")) {
+        const text = at(index).replace(/^> ?/u, "");
+        if (text) content.push(text);
+        index += 1;
+      }
+      if (content.length) blocks.push({ type: "note", content: inline(content.join(" ")) });
       continue;
     }
     if (line.startsWith("::")) {

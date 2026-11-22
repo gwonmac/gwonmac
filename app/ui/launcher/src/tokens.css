@@ -57,6 +57,28 @@
   --switch-track: rgba(255, 255, 255, .18);
   --switch-knob-shadow: 0 1px 2px rgba(0, 0, 0, .4);
   --pack-accent: #d99b42;
+  /* The Features tab: each feature kind's ink, the deep tint behind its icon, and the glow of its
+     card picture. A kind keeps its colours in both groupings. */
+  --kind-maps: #8fd1c2;
+  --kind-maps-tint: #17332e;
+  --kind-maps-glow: rgba(143, 209, 194, .22);
+  --kind-combat: #f0a08c;
+  --kind-combat-tint: #3a1c17;
+  --kind-combat-glow: rgba(240, 160, 140, .2);
+  --kind-party: #b9a7f0;
+  --kind-party-tint: #2a2140;
+  --kind-party-glow: rgba(185, 167, 240, .2);
+  --kind-chat: #93bdf2;
+  --kind-chat-tint: #172a45;
+  --kind-chat-glow: rgba(147, 189, 242, .2);
+  --kind-items: #e8c27a;
+  --kind-items-tint: #382a12;
+  --kind-items-glow: rgba(232, 194, 122, .2);
+  --kind-helpers: #bcd68c;
+  --kind-helpers-tint: #26301a;
+  --kind-helpers-glow: rgba(188, 214, 140, .2);
+  --picture-floor: #0d0c0a;
+  --badge-ground: rgba(10, 10, 8, .78);
   /* Shape and type scales. */
   --radius-sm: 8px;
   --radius-md: 10px;

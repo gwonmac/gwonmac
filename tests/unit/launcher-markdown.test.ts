@@ -38,4 +38,12 @@ describe("launcher markdown", () => {
       { type: "image", src: "bundle/docs/a.webp", alt: "A window" },
     ]);
   });
+
+  it("reads a feature README's > lines as its one note", () => {
+    const blocks = parseMarkdown("Maps draws guidance.\n> The route to your quest is solid.\n> Yours is dashed.\n", resolvers);
+    assert.deepEqual(blocks, [
+      { type: "paragraph", content: [{ text: "Maps draws guidance." }] },
+      { type: "note", content: [{ text: "The route to your quest is solid. Yours is dashed." }] },
+    ]);
+  });
 });

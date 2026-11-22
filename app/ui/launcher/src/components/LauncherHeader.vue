@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { Coffee, Github, Home, LifeBuoy, Newspaper, Settings, Users } from "lucide-vue-next";
+import { Coffee, Github, Home, LifeBuoy, Newspaper, Settings, Users, WandSparkles } from "lucide-vue-next";
 import type { LauncherExternalLink } from "@shared/launcher-contracts";
 import type { LauncherRoute } from "../routes";
 import DiscordIcon from "./DiscordIcon.vue";
 import iconUrl from "../assets/gwonmac-icon.png";
 
-/** `simple` leaves Home, News and Help out; the launcher is then Accounts and Settings. */
+/** `simple` leaves Home, News, Features and Help out; the launcher is then Accounts and Settings. */
 defineProps<{ route: LauncherRoute; simple?: boolean }>();
 const emit = defineEmits<{
   navigate: [route: LauncherRoute];
@@ -21,6 +21,7 @@ const emit = defineEmits<{
       <button v-if="!simple" :class="{ active: route === 'home' }" :aria-current="route === 'home' ? 'page' : undefined" @click="emit('navigate', 'home')"><Home />Home</button>
       <button v-if="!simple" :class="{ active: route === 'news' }" :aria-current="route === 'news' ? 'page' : undefined" @click="emit('navigate', 'news')"><Newspaper />News</button>
       <button :class="{ active: route === 'accounts' }" :aria-current="route === 'accounts' ? 'page' : undefined" @click="emit('navigate', 'accounts')"><Users />Accounts</button>
+      <button v-if="!simple" :class="{ active: route === 'features' }" :aria-current="route === 'features' ? 'page' : undefined" @click="emit('navigate', 'features')"><WandSparkles />Features</button>
       <button v-if="!simple" :class="{ active: route === 'help' }" :aria-current="route === 'help' ? 'page' : undefined" @click="emit('navigate', 'help')"><LifeBuoy />Help</button>
     </nav>
     <div class="title-actions">

@@ -1,1 +1,1 @@
-export type LauncherRoute = "home" | "news" | "accounts" | "help" | "settings";
+export type LauncherRoute = "home" | "news" | "accounts" | "features" | "help" | "settings";

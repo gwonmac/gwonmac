@@ -9,9 +9,11 @@ import {
 import { DEFAULT_PROFILE_COLOR, DEFAULT_PROFILE_ICON, type LauncherDestination, type LauncherFeedback, type LauncherPreferencesPatch, type LauncherProfileIcon, type LauncherSnapshot } from "@shared/launcher-contracts";
 import type { SettingsSection, SettingsTarget } from "@shared/settings-catalogue";
 import type { ProfileId } from "@shared/multiple-accounts";
+import type { FeatureId } from "@shared/feature-contracts";
 import { parseProfileName, profileNameKey } from "@shared/multiple-accounts";
-import { fixtureSnapshotFor } from "./fixtures";
+import { fixtureFeatureChecksFor, fixtureSnapshotFor } from "./fixtures";
 import AccountsView from "./components/AccountsView.vue";
+import FeaturesView from "./components/FeaturesView.vue";
 import BaseModal from "./components/BaseModal.vue";
 import LauncherHeader from "./components/LauncherHeader.vue";
 import LaunchBar from "./components/LaunchBar.vue";
@@ -28,11 +30,12 @@ const route = ref<LauncherRoute>("home");
 const snapshot = shallowRef<LauncherSnapshot>(fixtureSnapshotFor(window.location.search));
 const helpPage = ref<HelpPage>();
 const releaseNotes = computed(() => releaseNotesFor(snapshot.value.appUpdate.currentVersion));
-/** The simple launcher is only Accounts and Settings: Home, News and Help are not reachable. */
+/** The simple launcher is only Accounts and Settings: Home, News, Features and Help are not reachable. */
 const simple = computed(() => snapshot.value.preferences.content.simple === true);
 const reachable = (page: LauncherRoute): LauncherRoute =>
-  simple.value && (page === "home" || page === "news" || page === "help") ? "accounts" : page;
+  simple.value && (page === "home" || page === "news" || page === "features" || page === "help") ? "accounts" : page;
 const newsArticle = ref<string | null>(null);
+const featurePage = ref<FeatureId | null>(null);
 watch(route, (next) => { if (next !== "help") helpPage.value = undefined; });
 
 const WHATS_NEW_KEY = "gwonmac.whatsNewSeen";
@@ -72,6 +75,8 @@ let unsubscribeNavigation: (() => void) | undefined;
 let migrationNoticeTimer: ReturnType<typeof setTimeout> | undefined;
 
 const native = window.launcherNative;
+/** No build check reaches the launcher yet (plan step 7.1); a browser preview may show one from its fixture. */
+const featureChecks = native ? null : fixtureFeatureChecksFor(window.location.search);
 let navigationRequested = false;
 // Browser previews remember only navigation in this tab. Native preferences
 // remain the production owner, with no browser-storage fallback.
@@ -315,6 +320,7 @@ async function sendFeedback(feedback: LauncherFeedback) {
 
 function navigate(next: LauncherRoute) {
   if (next === "news") newsArticle.value = null;
+  if (next === "features") featurePage.value = null;
   route.value = reachable(next);
 }
 
@@ -357,6 +363,18 @@ async function updateContent(content: NonNullable<LauncherPreferencesPatch["cont
     <main :class="{ 'artwork-only': route === 'home' && !snapshot.preferences.content.news && !snapshot.preferences.content.dailies }">
       <HomeView v-if="route === 'home'" :snapshot="snapshot" @settings="openSettings('home')" @preferences="updateContent" @news="openNews" @read="readNews" />
       <NewsView v-else-if="route === 'news'" v-model:article="newsArticle" :news="snapshot.news" :release-notes="releaseNotes" @open="openNews" @link="followGuideLink" @settings="openSettings('home')" />
+
+      <FeaturesView
+        v-else-if="route === 'features'"
+        v-model:feature="featurePage"
+        :snapshot="snapshot"
+        :native="native"
+        :checks="featureChecks"
+        @fixture="snapshot = $event"
+        @settings="openSettings"
+        @external="openExternal"
+        @link="followGuideLink"
+      />
 
       <AccountsView
         v-else-if="route === 'accounts'"

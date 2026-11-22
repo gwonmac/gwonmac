@@ -1,3 +1,5 @@
+import type { ClientCompatibility } from "@shared/contracts";
+import { capabilityRecord } from "@shared/enhancement-contracts";
 import type { LauncherSnapshot } from "@shared/launcher-contracts";
 import { DEFAULT_SETTINGS } from "@shared/settings/index";
 import { resolveShortcuts } from "@shared/keyboard-shortcuts";
@@ -131,7 +133,25 @@ export const fixtureSnapshot: LauncherSnapshot = {
   },
 };
 
-export type LauncherFixtureScenario = "accounts" | "default" | "fresh" | "preparing" | "repair" | "offline" | "update" | "failed" | "production";
+export type LauncherFixtureScenario = "accounts" | "default" | "fresh" | "preparing" | "repair" | "offline" | "update" | "failed" | "production" | "features" | "features-restart";
+
+/**
+ * Build checks for the Features tab in a browser preview (`?checks=proved` or `?checks=patch-day`);
+ * the launcher itself has none yet (plan step 7.1). On patch day this build changed what Quick
+ * Item Move uses and the check of chat filtering failed; everything else proved.
+ */
+export function fixtureFeatureChecksFor(search: string): ClientCompatibility["features"] | null {
+  const requested = new URLSearchParams(search).get("checks");
+  if (requested !== "proved" && requested !== "patch-day") return null;
+  const unavailable = (capability: string) => requested === "patch-day" && (capability === "quickItemMove" || capability === "chatFiltering");
+  return {
+    gameFileSaving: { status: "available" },
+    nativeDoubleClick: { status: "available" },
+    ...capabilityRecord((capability) => unavailable(capability)
+      ? { status: "unavailable" as const, reason: capability === "quickItemMove" ? "game-update" as const : "check-failed" as const }
+      : { status: "available" as const }),
+  };
+}
 
 export function fixtureSnapshotFor(search: string): LauncherSnapshot {
   const requested = new URLSearchParams(search).get("fixture") as LauncherFixtureScenario | null;
@@ -182,6 +202,15 @@ export function fixtureSnapshotFor(search: string): LauncherSnapshot {
       return { ...fixtureSnapshot, readiness: { state: "playable", backgroundDownload: null }, appUpdate: { phase: "ready", currentVersion: "2026.8.10", latestVersion: "2026.8.11", checkedAt: "2026-08-29T12:00:00.000Z" } };
     case "failed":
       return { ...fixtureSnapshot, profiles: fixtureSnapshot.profiles.map((profile, index) => index === 0 ? { ...profile, state: "failed", failure: "renderer-crash" } : profile) };
+    case "features":
+    case "features-restart":
+      // Features loaded at launch, or turned on in this launcher session and waiting for a restart.
+      return {
+        ...fixtureSnapshot,
+        experience: { ...fixtureSnapshot.experience, showMigrationNotice: false },
+        readiness: { state: "playable", backgroundDownload: null },
+        tools: { ...fixtureSnapshot.tools, configured: true, loaded: requested === "features", restartRequired: requested !== "features" },
+      };
     case "production":
       return {
         ...fixtureSnapshot,
