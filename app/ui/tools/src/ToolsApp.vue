@@ -57,7 +57,7 @@ const workspaceMounted = ref(props.visible);
 watch(() => props.visible, visible => { if (visible) workspaceMounted.value = true; });
 const controller = useLibrary(props.host);
 const hubLibrary = props.hub ? createHubLibrary(controller, props.host, props.hub, build => {
-  window.dispatchEvent(new CustomEvent('gw:tools-toggle', { detail: 'workspace', cancelable: true }));
+  props.host.openWindow();
   select(build);
 }) : null;
 onBeforeUnmount(() => hubLibrary?.dispose());

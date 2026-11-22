@@ -187,6 +187,8 @@ export default defineFeature({
     { action: "cartography.walkability.toggle", binding: null, label: "Walkable terrain" },
     { action: "cartography.route.toggle", binding: null, label: "Walking route" },
   ],
+  /** The Build Library shows where an elite skill can be captured (shared/link.ts). */
+  offers: ["findElite"],
   shots: [],
   parts: ["game", "main"],
 });

@@ -1035,8 +1035,10 @@ export async function assertToolboxFoundationLifecycle() {
         for (const record of records) if (record.oldValue !== "true" && tradeHost.dataset.open === "true") tradeOpens += 1;
       }).observe(tradeHost, { attributes: true, attributeFilter: ["data-open"], attributeOldValue: true });
 
-      const toolsToggle = new CustomEvent("gw:tools-toggle", { cancelable: true });
-      dispatchEvent(toolsToggle);
+      // The Build Library's link `toggle`, which its shortcut and menu item call.
+      const linksPath = "./feature-links.js";
+      const links = await import(linksPath) as typeof import("../../app/renderer/feature-links.js");
+      const toolsOpened = typeof links.toggleTool("buildLibrary", "toggle") !== "object";
       pendingTradeToggles = 1;
       callback(0, 125, 0, 0, 0, 0);
       await new Promise<void>((resolve, reject) => {
@@ -1044,7 +1046,7 @@ export async function assertToolboxFoundationLifecycle() {
         const observe = () => {
           const trade = document.querySelector<HTMLElement>("#toolbox-trade");
           if (
-            toolsToggle.defaultPrevented
+            toolsOpened
             && trade?.dataset.open === "true"
             && tradeOpens === 1
           ) resolve();
@@ -1055,7 +1057,7 @@ export async function assertToolboxFoundationLifecycle() {
         requestAnimationFrame(observe);
       });
 
-      if (!toolsToggle.defaultPrevented) {
+      if (!toolsOpened) {
         throw new Error("Tools command was not claimed before the PvP transition");
       }
 

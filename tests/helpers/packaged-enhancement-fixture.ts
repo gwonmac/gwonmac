@@ -786,11 +786,13 @@ export async function assertPackagedHostOnlyToolsSession() {
       const alreadyOpen = await fixture.page.locator("#toolbox-foundation")
         .getAttribute("data-open") === "true";
       if (!alreadyOpen) {
-        const claimed = await fixture.page.evaluate(() =>
-          !window.dispatchEvent(new CustomEvent("gw:tools-toggle", {
-            cancelable: true,
-          })));
-        assert.equal(claimed, true, "the production Tools command was not claimed");
+        // The Build Library's link `toggle`, which its shortcut and menu item call.
+        const answer = await fixture.page.evaluate(async () => {
+          const linksPath = "./feature-links.js";
+          const links = await import(linksPath) as typeof import("../../app/renderer/feature-links.js");
+          return links.toggleTool("buildLibrary", "toggle");
+        });
+        assert.notEqual(typeof answer, "object", "the production Tools command was not claimed");
       }
       await fixture.page.waitForSelector('#toolbox-foundation[data-open="true"]');
       await fixture.page.waitForSelector('#toolbox-builds[data-ready="true"]', {
@@ -874,10 +876,12 @@ export async function assertPackagedHostOnlyToolsSession() {
     );
     await fixture.page.waitForSelector("#toolbox-foundation", { state: "detached" });
     assert.equal(
-      await fixture.page.evaluate(() => window.dispatchEvent(
-        new CustomEvent("gw:tools-toggle", { cancelable: true }),
-      )),
-      true,
+      await fixture.page.evaluate(async () => {
+        const linksPath = "./feature-links.js";
+        const links = await import(linksPath) as typeof import("../../app/renderer/feature-links.js");
+        return typeof links.toggleTool("buildLibrary", "toggle");
+      }),
+      "object",
       "disabled Tools still claimed its open command",
     );
     await setToolsEnabled(true);
@@ -931,11 +935,12 @@ export async function assertPackagedHostOnlyToolsAfterSoftRefusal() {
     );
     await completeSyntheticClientStartup(fixture.page);
     await fixture.page.waitForSelector("#toolbox-foundation");
-    const claimed = await fixture.page.evaluate(() =>
-      !window.dispatchEvent(new CustomEvent("gw:tools-toggle", {
-        cancelable: true,
-      })));
-    assert.equal(claimed, true, "soft refusal did not install host-only Tools");
+    const answer = await fixture.page.evaluate(async () => {
+      const linksPath = "./feature-links.js";
+      const links = await import(linksPath) as typeof import("../../app/renderer/feature-links.js");
+      return links.toggleTool("buildLibrary", "toggle");
+    });
+    assert.notEqual(typeof answer, "object", "soft refusal did not install host-only Tools");
     await fixture.page.waitForSelector('#toolbox-foundation[data-open="true"]');
     await fixture.page.waitForSelector('#toolbox-builds[data-ready="true"]', {
       state: "attached",

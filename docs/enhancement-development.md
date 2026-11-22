@@ -377,7 +377,7 @@ app/features/<id>/
   main.ts        the main-process part (mainPart)
   renderer/      renderer-only modules: DOM, game host, overlays, stylesheets (no Node.js)
   renderer/host.ts  the one entry for a feature the game host starts itself (Maps, Character Switch's
-                 hubPage part, Trade Chat's window part)
+                 hubPage part, the Build Library's and Trade Chat's window parts)
   hub-views/     the feature's own Hub pages: Vue components the kit draws, their props and an index.ts
   main/          main-process-only modules: stores, files, IPC parsing
   shared/        contracts and pure logic that two processes use
@@ -405,11 +405,15 @@ its Core Hub row. A feature that offers `toggle` (`ToolLink` in
 [`links.ts`](../app/features/links.ts)) names no event: its shortcut, game menu
 item and Hub row call its link instead (`toggleTool` in
 [`feature-links.ts`](../app/renderer/feature-links.ts)), `toggle` from the
-shortcut and `show` from the Hub row. Whispers and Trade Chat open this way; a
-tool still on an event moves the same way. The Tools window opens Trade before
-Trade's window part has loaded, so that host
-([`toolbox-foundation.ts`](../app/renderer/toolbox-foundation.ts)) provides
-Trade Chat's link.
+shortcut and `show` from the Hub row. Whispers, Trade Chat and the Build Library
+open this way; a tool still on an event moves the same way. A `window` part
+starts only when its window first opens, so it cannot provide the link that
+opens it: its host, the Tools window
+([`toolbox-foundation.ts`](../app/renderer/toolbox-foundation.ts)), provides
+Trade Chat's link (`toggle`, `search`) and `toggle` for the Feature whose link
+is only that (`WindowToolTarget`, the Build Library). A window part's context
+also has `show()`, which shows the window on its own over the game, out of an
+open Hub.
 
 Code that several features use stays where it is: the capability registry and
 the proofs in `app/client/certification/`, the kernels, the shared substrates,

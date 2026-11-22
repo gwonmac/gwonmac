@@ -12,6 +12,8 @@
  * Callers reach it through `toggleTool`, which answers `ToolAnswer`: why the tool did not open
  * comes as resolve's own reason, so every surface words it the same way.
  */
+import type { BuildLibraryLink } from "./build-library/shared/link.js";
+import type { CartographyLink } from "./cartography/shared/link.js";
 import type { ResignLink } from "./resign/shared/link.js";
 import type { TradeChatLink } from "./trade-chat/shared/link.js";
 import type { TravelLink } from "./travel/shared/link.js";
@@ -21,6 +23,8 @@ import type { Feature, FeatureId } from "./index.js";
 
 /** The link each Feature offers, by id. */
 export type FeatureLinkApis = {
+  buildLibrary: BuildLibraryLink;
+  cartography: CartographyLink;
   resign: ResignLink;
   tradeChat: TradeChatLink;
   travel: TravelLink;
@@ -52,6 +56,12 @@ export type ToolAnswer = "shown" | "hidden" | FeatureOff;
 
 /** The Features whose tool opens through their link's `toggle`. */
 export type ToolLinkTarget = { [Target in LinkTarget]: FeatureLinkApis[Target] extends ToolLink ? Target : never }[LinkTarget];
+
+/**
+ * The Features whose window the Tools window hosts (the `window` part kind): their link is only
+ * `toggle`, and the host provides it, because the window part starts only when first opened.
+ */
+export type WindowToolTarget = { [Target in LinkTarget]: Same<FeatureLinkApis[Target], ToolLink> extends true ? Target : never }[LinkTarget];
 
 /** Links named by target, each with the methods called: a manifest's `links`, or HUB_LINKS. */
 export type NamedLinks = Readonly<{ [Target in LinkTarget]?: readonly (keyof FeatureLinkApis[Target] & string)[] }>;

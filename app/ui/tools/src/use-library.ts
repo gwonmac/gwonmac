@@ -776,6 +776,7 @@ export function useLibrary(host: ToolsHost) {
     // else it wraps.
     applyUnavailable: host.applyUnavailable,
     publishUnavailable: host.publishUnavailable,
+    findElite: host.findElite,
     library, loading, saving, applying, error, notice, skillProblem, applyStatus, kind, selectedId, query, tag,
     items, tags, selectedBuild, selectedTeam, canUndo, selectKind,
     select: (next: LibraryItem) => {

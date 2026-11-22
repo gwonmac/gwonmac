@@ -26,10 +26,11 @@ export default {
             const commands = context.prepared(teamApply)?.commands ?? null;
             const storageCommand = context.prepared(xunlaiStorage)?.installation?.command() ?? null;
             toolbox = createToolboxLifecycle(document.body, {
-              mountTool: (host, visible) => import("../../renderer/tools-host.js").then(({ mountToolsInto }) =>
-                mountToolsInto(host, visible, commands, storageCommand, true)),
-              mountTrade: (host, visible) => import("../../renderer/tools-host.js").then(({ mountTradeInto }) =>
-                mountTradeInto(host, visible)),
+              buildsLink: "buildLibrary",
+              mountTool: (host, visible, show) => import("../../renderer/tools-host.js").then(({ mountBuildsInto }) =>
+                mountBuildsInto(host, visible, show, commands, storageCommand, true)),
+              mountTrade: (host, visible, show) => import("../../renderer/tools-host.js").then(({ mountTradeInto }) =>
+                mountTradeInto(host, visible, show)),
             });
           },
           syncAfterHook() {
