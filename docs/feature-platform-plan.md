@@ -1,7 +1,8 @@
 # Feature platform plan (bottom up)
 
 <!-- Owns: the step-by-step plan that turns optional extras into Features, with each step's check
-and status. Code and tests own exact values; update Status and Rounds here as steps move. -->
+and status. Code and tests own exact values. Feature PRs do not edit Status; after each merge,
+a docs PR (or the loop's next one) moves the row. -->
 
 Goal: every optional feature is one folder on typed building blocks, switched by one decision
 function, shown in one Features tab, and keeps working through ArenaNet updates without a release
@@ -21,6 +22,9 @@ Baseline: main `8618d115` (2026-11-21). Players see the word **Features** (agree
 - **Hub ⌘R always opens Home** (Foo's rule from PR #24).
 - **Foo's memory panel stays as he built it**: the memory warning and ⌘Q share one in-game panel
   with the memory figure, Reload and Quit; the native dialog stays the fallback.
+- **One live decision first** (2026-11-22): `resolve` becomes the only on/off decision (7.1 and the
+  metrics ceiling) before the Phase 5 moves, so no feature moves twice. Then typed links and
+  settings keys (4.5, 4.4), then the contract doc and scaffold (4.7), then Phase 5.
 - No plugin loader, raw memory API, generic hooks or second game model (the product safety rule
   in AGENTS.md).
 
@@ -36,9 +40,11 @@ All work happens on this Mac, by us.
 
 ## How to follow this plan
 
-- One step = one PR (Conventional Commits, squash-merged, merged only after your OK).
-  Steps in the same phase with no dependency can run at the same time as separate sessions in
-  their own worktrees on this Mac. Update **Status** and **Rounds** here when a step moves.
+- One step = one PR (Conventional Commits, squash-merged). Since 2026-11-22 Claude merges a PR
+  after its own diff review, a green whole macOS suite on the branch and green PR checks
+  (Matthias's standing request); releases and deploys still need Matthias. Steps with no shared
+  files can run at the same time in their own worktrees. Feature PRs do not edit **Status**; a
+  docs PR moves the rows after each merge.
 - A step is done only when every line of its **Done when** is true and CI is green. "You play"
   checks need you in the real game; nobody claims feel or frame time from tests.
 - PR CI runs only the Electron tests tagged `@journey`; main runs the whole suite. Before a PR
@@ -71,12 +77,19 @@ Run `node scripts/feature-metrics.mjs [revision]` after each phase and record th
 | Per-feature `v-if="tool === …"` in launcher and Tools UI | 7 (9 in PR #24) | 0 |
 | Files touched to add a group A feature | not measured | 1 folder + 1 line |
 
+
+
 After Phase 0 (`7b9bc471`): same as the baseline except `gw:*` events 91 and `v-if` cases 9;
 the two new events and two new `v-if` cases came with the PR #24 options (#26–#32) and go away in Phases 4–6.
 
 After 5.2: `featureActivationRequested(` 39 → 38, `policy().` reads 27 → 19, feature-domain renderer files 13 → 12;
 the rest unchanged. The group A ids still named outside their folders are certification and shared contracts
 (Must stay), the settings catalogue, the launcher (4.4) and Travel's Hub page (5.4).
+
+After 6.2 (`82b75d4d`): `featureActivationRequested(` 38, `policy().` reads 19, `plainGame` 0, `gw:*` events 91,
+substrate feature names 2, feature-domain renderer files 12, `localStorage` 21, `v-if` cases 9. Ids named outside
+their folder: travel 18, whispers 12, cartography 9, progress 9, quick-item-move 9, team-apply 8, xunlai-storage 8,
+build-library 7, skill-cooldowns 6, trade-chat 5, nine more ≤ 3.
 
 ## Phase 0 · Baseline and decisions (S)
 
@@ -85,6 +98,7 @@ the rest unchanged. The group A ids still named outside their folders are certif
 | 0.1 | Metrics script `scripts/feature-metrics.mjs` that prints the table above from the repo | – | – | Output matches the baseline column on 8618d115; runs in < 10 s | done (1.3 s; corrected two hand counts) | 1 |
 | 0.2 | Take over PR #24: rebuild its good parts as our own small PRs (travel fix, Hub size/resize/stay-open, character search Enter, settings transfer, simple launcher, Steam-login option, small hide/drag options), crediting Foo as co-author; keep Foo's memory panel as he built it (decided 2026-11-21: memory warning and ⌘Q share one in-game panel with the memory figure, Reload, Quit; native dialog stays the fallback); ⌘R always opens Home (decided 2026-11-21), so the page-resume test changes on purpose; regenerate the keyboard golden on purpose | Tell Foo; play travel + Hub | – | Each PR green in CI incl. hub-e2e; ⌘R rule written in `docs/hub-contract.md`; `kind` and plain game wait for 4.3/4.6 | merged 2026-11-21: #26 Hub, #27 travel, #28 memory panel, #29 settings transfer, #30 simple launcher + Steam login, #31 overlay placement, #32 toggles; Matthias play check pending; close #24 | 1 |
 | 0.3 | Record the decisions: Character Switch is a Feature; plain game replaces Tools Beta; ⌘R always Home; memory panel stays; player word **Features**; grouping settled later by 6.4 | – | – | Written in "Decisions" above | done | 0 |
+| 0.5 | Metrics ceiling: `pnpm check` runs the metrics script against recorded ceilings and fails when a count rises; a PR that lowers a count lowers its ceiling | – | 0.1 | A planted extra `policy()` read fails `pnpm check` with the metric's name; ceilings equal the 6.2 numbers | todo | 0 |
 | 0.4 | Keep this plan safe: commit it as `docs/feature-platform-plan.md` (same PR as 0.1) | Approve the merge | 0.3 | Plan lives on main | done (#25) | 1 |
 
 ## Phase 1 · Proofs: close the two patch-day gaps (S–M, runs alongside everything)
@@ -118,8 +132,8 @@ Wrap the existing substrates; do not move memory. Heap layout and proofs stay id
 | ID | Step | You | Depends | Done when | Status | Rounds |
 |---|---|---|---|---|---|---|
 | 3.1 | Block interface: `subscribe(cb) → stop`, `available` + reason; first blocks `game.target`, `game.region` | Review the API shape | 0.3 | Companion memory regions and part order identical before/after (test compares the list); all existing tests unchanged | merged (#40): `app/renderer/game-blocks.ts` on `context.game`; layout pinned by `the-companion-heap-layout-stays-fixed.test.ts` (unchanged before/after; catches a planted part swap); no feature moved yet (5.1) | 1 |
-| 3.2 | `game.session`: character changed / left game, once for everyone | – | 3.1 | Table test of login, relog, character select, zone change; Whispers and party-invite tracking deletable in 5.x | in review: `game.session` in `game-blocks.ts` (rules at `followSession`, taken from party invite's played rules); table test in `game-blocks.test.ts`. 5.x deletes: Whispers' `character` tracking in its `companion.ts` `sync` (5.3), party invite's `known`/`left` key tracking in `arrival` (`party-invite.ts`, with 5.3). Whispers today also clears on the moment of unavailable game in a zone change; on the block it keeps the session (decision for 5.3) | 1 |
-| 3.3 | `game.chat.messages` + `game.chat.send(line)`: the chat send slot moves out of Whispers into a block | Play: invite with Whispers off | 3.1 | Party invite works with Whispers off (unit test + you play); send slot memory layout unchanged | in review: `game.chat` in `game-blocks.ts` (`messages`, and `send(line)` for one whisper or one invite); the region and send slot moved to the chat substrate (`chat-installation.ts`); its memory phases stay on the Whispers line, so the pinned layout is unchanged; Whispers and party invites use the block; Hub offers Invite with Whispers off (`game-chat.test.ts`); Matthias play check pending | 1 |
+| 3.2 | `game.session`: character changed / left game, once for everyone | – | 3.1 | Table test of login, relog, character select, zone change; Whispers and party-invite tracking deletable in 5.x | merged (#46): `game.session` in `game-blocks.ts` (rules at `followSession`, taken from party invite's played rules); table test in `game-blocks.test.ts`. 5.x deletes: Whispers' `character` tracking in its `companion.ts` `sync` (5.3), party invite's `known`/`left` key tracking in `arrival` (`party-invite.ts`, with 5.3). Whispers today also clears on the moment of unavailable game in a zone change; on the block it keeps the session (decision for 5.3) | 1 |
+| 3.3 | `game.chat.messages` + `game.chat.send(line)`: the chat send slot moves out of Whispers into a block | Play: invite with Whispers off | 3.1 | Party invite works with Whispers off (unit test + you play); send slot memory layout unchanged | merged (#47): `game.chat` in `game-blocks.ts` (`messages`, and `send(line)` for one whisper or one invite); the region and send slot moved to the chat substrate (`chat-installation.ts`); its memory phases stay on the Whispers line, so the pinned layout is unchanged; Whispers and party invites use the block; Hub offers Invite with Whispers off (`game-chat.test.ts`); Matthias play check pending | 1 |
 | 3.4 | `game.friends` without `attachWhispers` / `attachTravel`; links become typed feature links (4.5) | – | 3.1, 4.5 | 0 feature names in `tools-companion-substrates.ts` | todo | 0 |
 | 3.5 | Remaining blocks: `skillbar`, `effects`, `party`, `alcohol`, `progress`; `ui.overlay`, `ui.hudLayer`, `ui.position`, `hub.row`, `commands` | – | 3.1 | Every group A feature's needs covered (list in this file); no block exposes memory, pointers or untyped calls | merged (#49): only what 5.2 needs (list below): `game.effects`, `game.alcohol`, `game.progress`, `ui.skillKeys`, `ui.effectLabels`; the progress region moved to a substrate with its memory phases on the Progress line (pinned layout unchanged); the rest left out for lack of a user (`skillbar` and `ui.skillLabels` came with 5.1, `session` with 3.2, `chat` with 3.3) | 1 |
 
@@ -181,7 +195,7 @@ Per-feature checklist (the **Done when** of every 5.x row):
 | ID | Group | Features (in order) | Status | Rounds |
 |---|---|---|---|---|
 | 5.1 | A (proof of concept, feeds G1) | Target Distance, Skill Cooldowns (pull out of `app/renderer/skill-cooldown-overlay-consumer.ts`) | merged (#43): both are one `featurePart(id, start)` in their folder (10 and 11 logic lines), no `policy()` or `featureActivationRequested`; new blocks `game.skillbar`, `ui.skillLabels`; block-only parts listed in `FEATURE_PARTS` so the pinned heap layout is unchanged; manifest v2 and settings stay for 4.3/4.4; Matthias play check pending (G1 evidence under Phase 3) | 1 |
-| 5.2 | A | Skill Key Labels (out of `skill-key-overlay-consumer.ts`), Effect Timers, Alcohol Timer, Reminders, Progress | in review: each runs through `featurePart` in its folder with no `policy()` or `featureActivationRequested`; the key consumer is deleted; Reminders and Progress keep their pinned lines through a thin hand-written part; Alcohol Timer drops the effect feeds it never read and is `non-pvp` so a map load does not clear its estimate; Maps reads `game.progress` itself; manifest v2 and settings stay for 4.3/4.4; Matthias play check pending | 1 |
+| 5.2 | A | Skill Key Labels (out of `skill-key-overlay-consumer.ts`), Effect Timers, Alcohol Timer, Reminders, Progress | merged (#52): each runs through `featurePart` in its folder with no `policy()` or `featureActivationRequested`; the key consumer is deleted; Reminders and Progress keep their pinned lines through a thin hand-written part; Alcohol Timer drops the effect feeds it never read and is `non-pvp` so a map load does not clear its estimate; Maps reads `game.progress` itself; manifest v2 and settings stay for 4.3/4.4; Matthias play check pending | 1 |
 | 5.3 | B (proof of concept, feeds G3) | Whispers: session + window parts, typed `open` link, drop own session tracking, placement in settings | todo | 0 |
 | 5.4 | B | Trade Chat (declares `network`), Travel (hub page + main + action), Build Library (window + files) | todo | 0 |
 | 5.5 | C (shell only; behaviour stays in its stage) | Chat Filters, Quick Item Move, Resign, Call Target (out of `input.ts` if the input layer allows), Xunlai, Team Apply, Maps | todo | 0 |
@@ -194,7 +208,7 @@ Per-feature checklist (the **Done when** of every 5.x row):
 | ID | Step | You | Depends | Done when | Status | Rounds |
 |---|---|---|---|---|---|---|
 | 6.1 | Update canvas to the final contract (plain game strip, reasons from `resolve`, grouping options) | Sign off the look | 0.3 | Canvas v12 published; every state shown maps to a `resolve` reason | done: canvas v12 published 2026-11-22 (Features word, plain game strip, 9 `resolve` states on card, row and page, Group by Kind · Purpose, manifest v2); Matthias sign-off of the look pending | 1 |
-| 6.2 | Features tab in the launcher: catalog Large/Compact, Feature page (README, What's new, What it uses, Needs, options from manifest), status strip | Look at it | 4.1, 4.3 | Launcher UI tests (vitest) for each state; screenshots per state in the PR match the canvas; keyboard and focus rules pass | in review (#53): catalog, plain-game strip and Feature page from manifest v2, README, CHANGELOG and `resolve`; optional typed `purpose` with a contract check; capability words in `app/shared/feature-uses.ts`; the launcher has no build checks yet, so checked features read `checking` with a working switch until 7.1; `wrong-area` reads as on in the launcher; review round: a player can always turn a Feature off (only the plain game holds switches), rebased on #51; screenshots per state next to canvas v12 in the PR | 2 |
+| 6.2 | Features tab in the launcher: catalog Large/Compact, Feature page (README, What's new, What it uses, Needs, options from manifest), status strip | Look at it | 4.1, 4.3 | Launcher UI tests (vitest) for each state; screenshots per state in the PR match the canvas; keyboard and focus rules pass | merged (#53): catalog, plain-game strip and Feature page from manifest v2, README, CHANGELOG and `resolve`; optional typed `purpose` with a contract check; capability words in `app/shared/feature-uses.ts`; the launcher has no build checks yet, so checked features read `checking` with a working switch until 7.1; `wrong-area` reads as on in the launcher; review round: a player can always turn a Feature off (only the plain game holds switches), rebased on #51; screenshots per state next to canvas v12 in the PR | 2 |
 | 6.3 | Move Settings › Tools and › Maps into the Features tab; delete the old sections | – | 6.2 | Old components deleted; Settings search still finds every option; Electron journey test green in CI | todo | 0 |
 | 6.4 | Player test (3–5 players from Discord): find cooldown numbers, why is X off, play plain, change route colour; half see kind, half purpose | Find players, run sessions | 6.2 | ≥ 4/5 finish each task without help; grouping decided by first-correct-click time and recorded | todo | 0 |
 | 6.5 | Hub shows the same status reasons for feature rows | – | 4.1 | Hub keyboard golden regenerated on purpose; dom tests for an unavailable row with reason | todo | 0 |
@@ -204,8 +218,8 @@ Per-feature checklist (the **Done when** of every 5.x row):
 
 | ID | Step | You | Depends | Done when | Status | Rounds |
 |---|---|---|---|---|---|---|
-| 7.1 | Effective feature status → `resolve` reasons → Features tab ("Needs a GWonMac update", "Checking…") | – | 4.1, 6.2 | Replaying a retained client generation produces the per-feature statuses the replay test expects (e.g. Nov 3: Quick Item Move needs an update) | todo | 0 |
-| 7.2 | Release script stamps each feature's `## Unreleased` and builds release notes from them | – | 4.3 | Dry run on a branch produces correct notes; `news-v1.json` format unchanged | in review (#50): `pnpm release:notes <version> [--dry-run]` in `scripts/release.ts` writes a `## Features` section (bullets led by the manifest `name`) into the draft release post and stamps non-empty `## Unreleased` (Stable only; a Beta or RC writes only the post); refuses a post `parseNewsStory` would refuse; `news-v1.json` untouched; tests in `tests/unit/release-feature-notes.test.ts` | 1 |
+| 7.1 | **One live decision (next, moved before Phase 5):** main computes the effective `FeatureState` (switches, plain game, restart, verifier results per capability) and sends it to the launcher, the game host and the Hub; `featurePart` and every hand-written part start and stop on `resolve`; the old activation paths go in the same PR | – | 4.1, 6.2 | The Features tab shows real build-check reasons (no lasting "Checking…"); replaying a retained client generation gives the statuses the replay test expects (Nov 3: Quick Item Move needs an update); `policy().` reads in app/features 0; `featureActivationRequested(` only inside the main decision; ceilings (0.5) lowered | todo | 0 |
+| 7.2 | Release script stamps each feature's `## Unreleased` and builds release notes from them | – | 4.3 | Dry run on a branch produces correct notes; `news-v1.json` format unchanged | merged (#50): `pnpm release:notes <version> [--dry-run]` in `scripts/release.ts` writes a `## Features` section (bullets led by the manifest `name`) into the draft release post and stamps non-empty `## Unreleased` (Stable only; a Beta or RC writes only the post); refuses a post `parseNewsStory` would refuse; `news-v1.json` untouched; tests in `tests/unit/release-feature-notes.test.ts` | 1 |
 | 7.3 | Patch-day drill | Walk through it once | 7.1 | Written run-through in `docs/releasing.md`: what players see, what we do | todo | 0 |
 
 ## Phase 8 · Clean up (S)
@@ -216,22 +230,41 @@ Per-feature checklist (the **Done when** of every 5.x row):
 | 8.2 | Remove temporary compatibility code whose condition is met; `docs/migrations.md` current | – | 8.1 | Every remaining entry has a dependent and a removal condition | todo | 0 |
 | 8.3 | Docs pass: `process-model.md`, `wasm-host.md`, `enhancement-development.md`, `settings.md`, `whispers.md` match the code | – | 8.1 | Each doc's examples compile or match current file names | todo | 0 |
 
-## Order at a glance
+## Order from here (revised 2026-11-22)
+
+Done: 0.1–0.4, Phases 1–2, 3.1–3.3, 3.5, 4.1–4.3, 4.6, 5.1, 5.2, 6.1, 6.2, 7.2 (21 of 38 rows).
 
 ```
-Phase 0 ──► 4.1, 4.2 ─────┐
-        └─► 3.1 ──────────┼─► 5.1 ─► G1 ─► 4.3–4.7 ─► G2 ─► 5.2–5.5 ─► G3 ─► 8
-Phase 1 (2 steps, alongside) 6.1 ─► 6.2 ─► 6.3, 6.4, 6.5 ─► 7
-Phase 2 (small)
+0.5 metrics ceiling ─┐
+7.1 one live decision ┴─► 4.5 typed links + part kinds ─► 4.4 settings keys ─► 4.7 contract doc + scaffold ─► G2
+G2 ─► 5.3 Whispers (+ 3.4 friends) ─► G3 ─► 5.4, 5.5 (one PR per feature, each deletes its old path)
+6.5 Hub reasons (after 7.1) · 6.6 website from READMEs (any time) · 6.3 Settings › Tools/Maps out (after 5.5)
+7.3 patch-day drill (after 7.1) ─► 8.1–8.3 ─► end state
 ```
 
-Parallel sessions that never touch the same files: Phase 1 · Phase 2 · 4.1 + 4.2 · 3.1 · 6.1.
+Parallel without shared files: 0.5 with 7.1; 6.6 with anything; 6.5 after 7.1 with 4.5.
 
-## Open questions (yours to decide)
+### End state (the plan is finished when all are true)
 
-- Kind or purpose grouping? (6.4)
-- Can `uses` replace `programs` in the verifier vocabulary, or do both stay? (research before 4.3; verifier is Must stay)
-  Facts from 4.3, not a decision: `uses` (named `capabilities` until the 4.3 follow-up) are verifier proofs that gate a
-  feature; `programs` are developer launch programs (`ENHANCEMENT_PROGRAMS`: `toolbox-foundation`,
-  `target-observer`, …) that select a feature regardless of its switch. Manifest v2 keeps both fields.
-- Captures with ArenaNet art: repo or website only? (before 6.2)
+- Every metric meets its target, and `pnpm check` keeps it there (0.5).
+- A fresh agent adds a group A feature with only `docs/feature-contract.md` and `pnpm new-feature`: one folder, one line, every mistake caught by a check (4.7).
+- The launcher, the Hub and the game host show the same `resolve` reason for every feature; a replayed patch day shows the right ones (7.1, 6.5).
+- Settings has no Tools or Maps section; website feature pages come from the READMEs (6.3, 6.6).
+- `docs/migrations.md` holds only entries with a dependent and a removal condition (8.2); maintainer docs match the code (8.3).
+- Matthias's play checks are done (G1, 4.6, 5.x, 6.4).
+
+## Open questions (yours to decide; Claude's default applies until you say otherwise)
+
+| Question | Default (2026-11-22) |
+|---|---|
+| Kind or purpose grouping? | Kind until the player test (6.4) decides |
+| `uses` and `programs` | Both stay: `uses` are verifier proofs that gate a feature; `programs` are developer launch programs (`ENHANCEMENT_PROGRAMS`) that select a feature regardless of its switch |
+| Captures with ArenaNet art: repo or website only? | Feature `media/` in the repo, the website builds from it (6.6); `shots` stay empty until you confirm |
+| Feature ids | Stay camelCase; folder = kebab of id; the Must-stay runtime-policy test is not touched |
+| Whispers when the session changes | Clear on account or character change (`game.session`), keep across map changes |
+| Party invite with Whispers and Travel off | The feature that shows the invite owns it through `game.chat`; no hidden need for Whispers or Travel |
+| Alcohol Timer region | `non-pvp` (stops counting in PvP); stated in its CHANGELOG |
+| Changelog stamping for Beta or RC | No; only a Stable release stamps |
+| Feature notes in the release post | Generated into the draft post; you edit before a release |
+| Names | "Character Switch", "Call Target" (Title Case like the others); "Play the plain game" is the only mode switch |
+| Release-note line | Players who had Tools off keep the plain game, so Character Switch is off until they turn the plain game off |
