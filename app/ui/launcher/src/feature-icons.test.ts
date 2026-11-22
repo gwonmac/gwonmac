@@ -6,6 +6,6 @@ import { featureIcon } from "./feature-icon";
 
 describe("feature icons", () => {
   it.each(FEATURES.map(feature => [feature.id, feature.icon]))("%s draws %s", (_id, icon) => {
-    expect(featureIcon(icon)).toBeDefined();
+    expect(featureIcon(icon), `the launcher has no "${icon}" icon; pick one in app/ui/launcher/src/feature-icon.ts or add it there`).toBeDefined();
   });
 });

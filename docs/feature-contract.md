@@ -72,7 +72,7 @@ the shapes; [`app/features/contract.ts`](../app/features/contract.ts) checks the
 | `id` | camelCase; the folder is its kebab case; listed once in `FEATURES` | contract: id matches folder, registered, listed once |
 | `name`, `summary` | Card title and one plain sentence under it | contract: not empty |
 | `kind`, `purpose` | Features tab groups (`FEATURE_KINDS`, `FEATURE_PURPOSES`) | TypeScript; contract: every card names a purpose |
-| `icon` | A Lucide icon name in kebab case | contract: kebab case; launcher test: exists in lucide-vue-next |
+| `icon` | A Lucide icon name in kebab case | contract: kebab case; launcher test: the name is in [`feature-icon.ts`](../app/ui/launcher/src/feature-icon.ts), which imports only the icons Features use (pick one there, or add a line) |
 | `settings` | The switch, and options (below) | contract: one switch, labels and help |
 | `region` | `any`, `non-pvp` or `pve` | TypeScript; `resolve` applies it |
 | `uses` | Verifier capabilities it cannot work without | contract: each one is in `ENHANCEMENT_CAPABILITY_FIELDS` |
@@ -173,10 +173,11 @@ capability, and a product setting cannot either.
   `renderer/host.ts` and `shared/`;
 - the metric ceilings in `scripts/feature-metrics-ceilings.json` (never raise one).
 
-### Test lists that name every Feature
+### Shared files a new Feature still touches
 
 Some tests pin the full list of Features or settings on purpose. A new Feature adds its
-id or switch key to each, and typecheck or the test names the missing entry:
+id or switch key to each (typecheck or the test names the missing entry), and a new icon
+adds a line to `app/ui/launcher/src/feature-icon.ts`:
 
 | File | Add |
 | --- | --- |
