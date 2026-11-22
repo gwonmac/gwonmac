@@ -1155,10 +1155,18 @@ function loadGlue(isProxyRouteLabel: (route: string) => boolean) {
     () => inputHost?.traceState(),
   );
   gamepadTrace = host.installGamepadTrace(inputTrace);
-  characterSwitchHost = characterSwitchPart.start({ parent: document.body, hub: window.gwHub ?? null });
-  // A switch drives the pre-game screens itself, so the automatic return stops pressing keys.
-  characterSwitchHost.onSwitchStart(() => automaticCharacterReturn?.cancelForCharacterSwitch());
-  window.gwCharacterSwitchHost = characterSwitchHost;
+  // Character switching is a Feature: a host that cannot start leaves the plain game starting.
+  try {
+    characterSwitchHost = characterSwitchPart.start({ parent: document.body, hub: window.gwHub ?? null });
+    // A switch drives the pre-game screens itself, so the automatic return stops pressing keys.
+    characterSwitchHost.onSwitchStart(() => automaticCharacterReturn?.cancelForCharacterSwitch());
+    window.gwCharacterSwitchHost = characterSwitchHost;
+  } catch {
+    const started = characterSwitchHost;
+    characterSwitchHost = null;
+    try { started?.stop(); } catch { /* reported below */ }
+    log('[err] the character-switch host could not start; the game starts without it');
+  }
   native().inputTrace.onEntry((entry) => inputTrace?.record(entry));
   window.addEventListener('gw:input-trace', (event) => {
     if (!(event instanceof CustomEvent) || typeof event.detail !== 'boolean') return;
@@ -1362,7 +1370,13 @@ function loadGlue(isProxyRouteLabel: (route: string) => boolean) {
     if (loadingScreen) {
       (await import('./non-activating-surface.js')).isolateFromGame(loadingScreen);
     }
-    window.gwHub = await (await import('./hub-builtins.js')).loadHub(document.body);
+    // The Hub is optional: a Hub that cannot load leaves the plain game starting. Every
+    // reader already asks for `window.gwHub?.`.
+    try {
+      window.gwHub = await (await import('./hub-builtins.js')).loadHub(document.body);
+    } catch {
+      log('[err] the Hub could not load; the game starts without it');
+    }
     window.dispatchEvent(new Event('gw:surfaces-ready'));
     characterSwitchPart = characterSwitch.default;
     createClientHealthConfirmation =
@@ -1513,7 +1527,13 @@ function loadGlue(isProxyRouteLabel: (route: string) => boolean) {
   }
 
   window.gwLoading.set('Starting the game…', null);
-  loadGlue(isProxyRouteLabel);
+  try {
+    loadGlue(isProxyRouteLabel);
+  } catch {
+    // The stopped-game screen: its Reload Game and Quit are the way out of a start that threw.
+    window.gwLoading?.failCrash();
+    log('[err] the game host could not start');
+  }
 })();
 
 })();
