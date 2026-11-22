@@ -1,20 +1,15 @@
 /**
- * Owns the renderer half of certified Quick Item Move and publishes the
- * current Control/Shift state to its transformed WASM callbacks.
+ * Owns the renderer half of certified Quick Item Move while it runs: it turns the
+ * transformed controls on and publishes the current Control/Shift state to their
+ * WASM callbacks, and its stop turns them off and clears the modifiers.
  */
 export { QUICK_ITEM_MOVE_SCRATCH_BYTES } from "../../../shared/quick-item-move-contract.js";
 
-export type QuickItemMoveInstallation = Readonly<{
-  update(enabled: boolean): void;
-  dispose(): void;
-}>;
-
 type Configure = (enabled: number, scratchPointer: number) => number;
 type SetModifiers = (modifiers: number) => number;
+export type QuickItemMoveControls = Readonly<{ configure: Configure; setModifiers: SetModifiers }>;
 
-export function quickItemMoveExports(
-  exports: WebAssembly.Exports,
-): Readonly<{ configure: Configure; setModifiers: SetModifiers }> | null {
+export function quickItemMoveExports(exports: WebAssembly.Exports): QuickItemMoveControls | null {
   const configure = exports.enhancement_configure_quick_item_move;
   const setModifiers = exports.enhancement_quick_item_move_modifiers;
   return typeof configure === "function" && typeof setModifiers === "function"
@@ -22,14 +17,11 @@ export function quickItemMoveExports(
     : null;
 }
 
-export function installQuickItemMove(input: Readonly<{
-  configure: Configure;
-  setModifiers: SetModifiers;
+export function startQuickItemMove(input: QuickItemMoveControls & Readonly<{
   scratchPointer: number;
   target?: Pick<Window, "addEventListener" | "removeEventListener">;
-}>): QuickItemMoveInstallation {
+}>): Readonly<{ stop(): void }> {
   const target = input.target ?? window;
-  let enabled = false;
   let modifiers = 0;
   const publishModifiers = (event?: Pick<KeyboardEvent, "ctrlKey" | "shiftKey">) => {
     const next = event ? (event.ctrlKey ? 1 : 0) | (event.shiftKey ? 2 : 0) : 0;
@@ -39,24 +31,13 @@ export function installQuickItemMove(input: Readonly<{
   };
   const onKeyboard = (event: Event) => publishModifiers(event as KeyboardEvent);
   const onBlur = () => publishModifiers();
-  input.configure(0, input.scratchPointer);
   input.setModifiers(0);
+  input.configure(1, input.scratchPointer);
   target.addEventListener("keydown", onKeyboard, true);
   target.addEventListener("keyup", onKeyboard, true);
   target.addEventListener("blur", onBlur, true);
-  let disposed = false;
-
   return Object.freeze({
-    update(nextEnabled) {
-      if (disposed) return;
-      if (nextEnabled === enabled) return;
-      enabled = nextEnabled;
-      input.configure(enabled ? 1 : 0, input.scratchPointer);
-      if (!enabled) publishModifiers();
-    },
-    dispose() {
-      if (disposed) return;
-      disposed = true;
+    stop() {
       target.removeEventListener("keydown", onKeyboard, true);
       target.removeEventListener("keyup", onKeyboard, true);
       target.removeEventListener("blur", onBlur, true);
