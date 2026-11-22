@@ -1,15 +1,19 @@
 /**
  * Owns the player-requested party invite and the Travel-then-invite sequence.
  * The certified chat mailbox sends the invite; this owner only decides when a
- * request is allowed and waits for a fresh outpost arrival before inviting.
+ * request is allowed and waits for a fresh outpost arrival of the same
+ * character (`game.session`) before inviting.
  */
 import type { TravelFriend } from '../shared/friends.js';
 import { isPvpTravelDestination, travelDestination } from '../shared/travel.js';
 import type { CompanionPlayRegionState } from './companion-play-region-snapshot.js';
+import type { Block, GameSession } from './game-blocks.js';
 
 type PartyInviteInput = Readonly<{
   region(): CompanionPlayRegionState;
   subscribeRegion(listener: () => void): () => void;
+  /** The character in the game (`game.session`); the invite after Travel goes only from the same one. */
+  session: Block<GameSession | null>;
   /** The whisper tool owns the chat mailbox that also carries invites. */
   chatReady(): boolean;
   invite(name: string): Promise<void>;
@@ -63,41 +67,41 @@ export function createPartyInvite(input: PartyInviteInput) {
   }
 
   /**
-   * Resolves on a settled, ready PvE outpost of `mapId` for the same character.
-   * The first outpost after login can publish no character key yet: an unknown
-   * key adopts the first known one, and only two different known keys refuse.
-   * Once a key is known only that key arrives, so a relogged character never
-   * sends the invite. While no key is known yet, leaving the game refuses: that
-   * is the only case where a relog could pass for the same character. The game
-   * state also reads unavailable for a moment during an ordinary zone change,
-   * so it never refuses once the key is known.
+   * Resolves on a settled, ready PvE outpost of `mapId` for the same character:
+   * `game.session` says when the account or character changed, and a session
+   * that ends refuses. While a known character key reads as none (a relogged
+   * character before its key arrives) the arrival waits, so a relog never sends
+   * the invite.
    */
   function arrival(mapId: number, characterKey: string | null) {
     let cancel = () => {};
     let fail = (_error: Error) => {};
     const promise = new Promise<void>((resolve, reject) => {
-      let known = characterKey;
+      let keyed = characterKey !== null;
+      let started: number | null | undefined;
       let finished = false;
       let settle: ReturnType<typeof setTimeout> | null = null;
       const finish = (error?: Error) => {
         if (finished) return;
         finished = true;
-        unsubscribe(); clearTimeout(timeout); if (settle) clearTimeout(settle);
+        stopSession(); unsubscribe(); clearTimeout(timeout); if (settle) clearTimeout(settle);
         if (error) reject(error); else resolve();
       };
       fail = finish;
       cancel = () => finish(new Error('Travel and invite stopped. The invite was not sent.'));
+      // A session that starts while none was known yet is this character's first one.
+      const stopSession = input.session.subscribe(next => {
+        const id = next?.id ?? null;
+        if (started !== undefined && started !== null && id !== started) finish(new Error('The character changed. The invite was not sent.'));
+        else started = id;
+      });
       const check = () => {
         const region = input.region();
-        const left = known === null && region.status === 'waiting' && region.reason === 'game';
-        if (left || region.status === 'ready' && known !== null && region.characterKey !== null && region.characterKey !== known) {
-          finish(new Error('The character changed. The invite was not sent.')); return;
-        }
-        if (region.status === 'ready') known ??= region.characterKey;
+        if (region.status === 'ready') keyed ||= region.characterKey !== null;
         if (region.status === 'ready' && region.mapId === mapId && !inOutpost(region)) {
           finish(new Error(`${NEEDS_PVE}. The invite was not sent.`)); return;
         }
-        const arrived = region.status === 'ready' && region.mapId === mapId && region.characterKey === known
+        const arrived = region.status === 'ready' && region.mapId === mapId && (region.characterKey !== null || !keyed)
           && input.chatReady();
         if (arrived && !settle) settle = setTimeout(() => finish(), settleMs);
         else if (!arrived && settle) { clearTimeout(settle); settle = null; }

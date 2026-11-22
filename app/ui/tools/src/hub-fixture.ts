@@ -37,6 +37,8 @@ import { createHubPeople } from '../../../renderer/hub-people';
 // eslint-disable-next-line no-restricted-imports
 import { createPartyInvite } from '../../../renderer/party-invite';
 // eslint-disable-next-line no-restricted-imports
+import { createSessionBlock } from '../../../renderer/game-blocks';
+// eslint-disable-next-line no-restricted-imports
 import type { CharacterSwitchActionState, CharacterSwitchFailureCode, CharacterSwitchSource } from '../../../features/character-switch/renderer/character-switch-model';
 import { createFixtureLifecycle, FIXTURE_LIFECYCLES, isFixtureLifecycle } from './hub-fixture-lifecycle';
 // eslint-disable-next-line no-restricted-imports
@@ -280,6 +282,7 @@ export function mountHubFixture(target: HTMLElement) {
   const invites: string[] = [];
   const partyInvite = createPartyInvite({ region: lifecycle.region, chatReady: () => session.state.available, settleMs: 400,
     subscribeRegion: lifecycle.subscribe,
+    session: createSessionBlock(true, { subscribe: listener => { listener(lifecycle.region()); return lifecycle.subscribe(() => listener(lifecycle.region())); } }),
     invite: async name => {
       await delay('invite-ms');
       if (params.has('invite-fail')) throw new Error(params.get('invite-fail') || 'Guild Wars chat is not ready');

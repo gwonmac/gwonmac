@@ -21,6 +21,8 @@ type Harness = {
   set(next: Record<string, boolean>): void;
 };
 let currentReceipts: string[] = [];
+/** One character's time in the game throughout (`game.session`). */
+const ONE_SESSION = { available: true, subscribe: (listener: (session: { id: number }) => void) => { listener({ id: 1 }); return () => {}; } } as const;
 /** A task on a page that still shows: its receipt is what closing the Hub shows. */
 const task: HubTask = { live: () => true, progress() {}, done(receipt) { if (receipt) currentReceipts.push(receipt); } };
 function withPeople(settings: Record<string, boolean>, run: (people: Harness) => void | Promise<void>, party: PartyInvite | null = null,
@@ -180,7 +182,7 @@ test('Invite is unavailable for a friend in another map and says where they are'
   const invited: string[] = [];
   const region = { status: 'ready', sequence: 1, mapId: 55, instanceType: 0, playRegion: 'pve', travelContext: 'world', characterKey: 'a',
     unlockedMapWords: null, guildHall: false, hasGuildHall: false } as const;
-  const party = createPartyInvite({ region: () => region, subscribeRegion: () => () => {}, chatReady: () => true,
+  const party = createPartyInvite({ region: () => region, session: ONE_SESSION, subscribeRegion: () => () => {}, chatReady: () => true,
     invite: async name => { invited.push(name); }, travel: async () => {} });
   await withPeople(ALL_TOOLS, async ({ source, page }) => {
     const reason = 'Mo Kaiser is in Kamadan, Jewel of Istan. Use Travel and invite.';
@@ -200,7 +202,7 @@ test('Invite is unavailable for a friend in another map and says where they are'
 function lionsArchInvite() {
   const region = { status: 'ready', sequence: 1, mapId: 55, instanceType: 0, playRegion: 'pve', travelContext: 'world', characterKey: 'a',
     unlockedMapWords: null, guildHall: false, hasGuildHall: false } as const;
-  return createPartyInvite({ region: () => region, subscribeRegion: () => () => {}, chatReady: () => true, invite: async () => {}, travel: async () => {} });
+  return createPartyInvite({ region: () => region, session: ONE_SESSION, subscribeRegion: () => () => {}, chatReady: () => true, invite: async () => {}, travel: async () => {} });
 }
 
 test('Invite points to Travel and invite only when that row is shown and can start', async () => {
@@ -316,7 +318,7 @@ test('Home retains the named pending invite and Cancel never invites after arriv
   let region: CompanionPlayRegionState = { status: 'ready', sequence: 1, mapId: 55, instanceType: 0, playRegion: 'pve', travelContext: 'world', characterKey: 'a', unlockedMapWords: null, guildHall: false, hasGuildHall: false };
   const listeners = new Set<() => void>();
   const sent: string[] = [];
-  const party = createPartyInvite({ region: () => region, subscribeRegion: listener => { listeners.add(listener); return () => listeners.delete(listener); }, chatReady: () => true,
+  const party = createPartyInvite({ region: () => region, session: ONE_SESSION, subscribeRegion: listener => { listeners.add(listener); return () => listeners.delete(listener); }, chatReady: () => true,
     invite: async name => { sent.push(name); }, travel: async () => {} });
   await withPeople(ALL_TOOLS, async ({ source }) => {
     const { invited } = await party.travelAndInvite({ key: 'kai', character: 'Mo Kaiser', alias: 'Kai', status: 'online', mapId: 449 }, 1);
@@ -343,7 +345,7 @@ test('Travel failure withdraws the pending invite within five seconds with its o
   const region: CompanionPlayRegionState = { status: 'ready', sequence: 1, mapId: 55, instanceType: 0, playRegion: 'pve', travelContext: 'world', characterKey: 'a', unlockedMapWords: null, guildHall: false, hasGuildHall: false };
   const sent: string[] = [];
   const listeners = new Set<() => void>();
-  const party = createPartyInvite({ region: () => region, subscribeRegion: listener => { listeners.add(listener); return () => listeners.delete(listener); },
+  const party = createPartyInvite({ region: () => region, session: ONE_SESSION, subscribeRegion: listener => { listeners.add(listener); return () => listeners.delete(listener); },
     chatReady: () => true, invite: async name => { sent.push(name); }, travel: async () => {} });
   await withPeople(ALL_TOOLS, async ({ source, page, receipts }) => {
     try {
@@ -372,7 +374,7 @@ test('disposing People mid-arrival sends no invite and no notification', async c
   let region: CompanionPlayRegionState = { status: 'ready', sequence: 1, mapId: 55, instanceType: 0, playRegion: 'pve', travelContext: 'world', characterKey: 'a', unlockedMapWords: null, guildHall: false, hasGuildHall: false };
   const listeners = new Set<() => void>();
   const sent: string[] = [];
-  const party = createPartyInvite({ region: () => region, subscribeRegion: listener => { listeners.add(listener); return () => listeners.delete(listener); },
+  const party = createPartyInvite({ region: () => region, session: ONE_SESSION, subscribeRegion: listener => { listeners.add(listener); return () => listeners.delete(listener); },
     chatReady: () => true, invite: async name => { sent.push(name); }, travel: async () => {} });
   await withPeople(ALL_TOOLS, async ({ source, page, receipts, dispose }) => {
     source.search('mo kaiser')[0]!.run(task);

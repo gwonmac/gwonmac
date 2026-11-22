@@ -742,7 +742,8 @@ test('a native held Enter sends one invite and owns its repeats and release (HUB
       const { createPartyInvite } = await import(invitePath) as typeof import('../../app/renderer/party-invite.js');
       const sent: string[] = []; Object.assign(window, { acceptanceInvites: sent });
       const party = createPartyInvite({ region: () => ({ status: 'ready', sequence: 1, mapId: 55, instanceType: 0, playRegion: 'pve', travelContext: 'world', characterKey: null, guildHall: false, hasGuildHall: false, unlockedMapWords: null }),
-        subscribeRegion: () => () => {}, chatReady: () => true, invite: async name => { sent.push(name); }, travel: null });
+        subscribeRegion: () => () => {}, session: { available: true, subscribe: listener => { listener({ id: 1 }); return () => {}; } },
+        chatReady: () => true, invite: async name => { sent.push(name); }, travel: null });
       createHubPeople(window.gwHub!, { whispers: null, travel: null }, party).setEnabled(true);
     });
     await chord(fixture, 'R', ['meta']); await searchOf(page).fill('invite Zed Delta');

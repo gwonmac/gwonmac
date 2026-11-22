@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { CompanionPlayRegionState } from '../../app/renderer/companion-play-region-snapshot.ts';
+import { createSessionBlock } from '../../app/renderer/game-blocks.ts';
 import { createPartyInvite } from '../../app/renderer/party-invite.ts';
 import type { TravelFriend } from '../../app/shared/friends.ts';
 
@@ -21,6 +22,12 @@ function harness(options: { travel?: () => Promise<void>; start?: CompanionPlayR
   const party = createPartyInvite({
     region: () => region,
     subscribeRegion: listener => { listeners.add(listener); return () => { listeners.delete(listener); }; },
+    // game.session over the same region feed, as createGameBlocks builds it.
+    session: createSessionBlock(true, { subscribe: listener => {
+      const follow = () => listener(region);
+      listeners.add(follow); follow();
+      return () => { listeners.delete(follow); };
+    } }),
     chatReady: () => chat,
     invite: async name => { invited.push(name); },
     travel: options.travel ?? (async () => { trips++; }),
