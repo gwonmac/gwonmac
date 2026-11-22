@@ -137,6 +137,13 @@ test("minimum window and 200% zoom keep primary launcher controls reachable", as
     await expect(fixture.page.getByRole("heading", { name: "Travel and maps", level: 1 })).toBeVisible();
     await expectCurrentContentFitsHorizontally(fixture);
 
+    await fixture.page.getByRole("navigation", { name: "Main navigation" }).getByRole("button", { name: "Features", exact: true }).click();
+    await expect(fixture.page.getByRole("heading", { name: "Features", level: 1 })).toBeVisible();
+    await expectCurrentContentFitsHorizontally(fixture);
+    await fixture.page.locator('[data-feature="cartography"] .card-link').click();
+    await expect(fixture.page.getByRole("heading", { name: "Maps", level: 1 })).toBeVisible();
+    await expectCurrentContentFitsHorizontally(fixture);
+
     await fixture.page.locator(".titlebar").getByRole("button", { name: "Settings", exact: true }).click();
     await fixture.page.evaluate(() => window.launcherNative.tools.setMasterEnabled(true));
     for (const section of ["Updates", "Home screen", "Advanced", "Game", "Appearance", "Tools", "Maps", "Game files"]) {
