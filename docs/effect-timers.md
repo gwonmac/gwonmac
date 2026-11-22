@@ -44,7 +44,7 @@ so an old placeholder cannot become a countdown later.
 - Under five seconds: amber; under two seconds: muted red; otherwise cream.
 
 The overlay is pointer-transparent and has no command or gameplay-input path.
-The setting is off by default under **Settings → Tools → Effect Timers**.
+The setting is off by default on the **Effect Timers** Feature page.
 
 ## Evidence and acceptance
 
@@ -100,7 +100,7 @@ The readout turns amber in the last 15 seconds and disappears at zero. There
 are no sounds or animations. The readout can be dragged whenever it shows, so a
 press on it does not reach the game; the rest of the screen does.
 
-Enable **Settings → Tools → Alcohol Timer**. To place it while sober, select
+Turn on **Alcohol Timer** on its Feature page. To place it while sober, select
 **Show to place**: an unlocked placeholder stays on screen until it is locked.
 Drag the readout and select its lock, or focus it and use arrows, Shift+arrows, and Enter. Escape,
 lost pointer capture, or window blur cancels a drag. **Reset position** restores

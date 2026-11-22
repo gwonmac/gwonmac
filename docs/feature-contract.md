@@ -1,7 +1,8 @@
 # Feature contract
 
 A Feature is one thing a player can turn on: a card in the launcher's Features tab, a
-switch in Settings › Tools, and a page on www.gwonmac.com. Each Feature is one folder,
+Feature page there (and in the Hub's Settings) with its switch, options and shortcuts, and a
+page on www.gwonmac.com. Each Feature is one folder,
 `app/features/<folder>/`, and one entry in `FEATURES` in
 [`app/features/index.ts`](../app/features/index.ts). Everything else derives from them.
 
@@ -78,7 +79,7 @@ the shapes; [`app/features/contract.ts`](../app/features/contract.ts) checks the
 | `region` | `any`, `non-pvp` or `pve` | TypeScript; `resolve` applies it |
 | `uses` | Verifier capabilities and certified stages it cannot work without | contract: each one is in `ENHANCEMENT_CAPABILITY_FIELDS` or `STAGE_USES`; a folder that imports a stage's contract (`app/shared/cartography-spike.ts`) names that stage |
 | `requires` | Features that must be on for this one to run | contract: ids exist, no cycles |
-| `tool` | `{ id: "<folder>" }`: its row in Settings › Tools | TypeScript; contract: the Feature has a switch of its own |
+| `tool` | `{ id: "<folder>" }`: the id its switch is saved and searched under (`tool:<id>`) | TypeScript; contract: the Feature has a switch of its own |
 | `shots` | Captions for `media/shot-N.webp` | contract: one file per caption, no file without one |
 | `parts` | The part kinds it has; group A has `["game"]` | contract: `game` when `companion.ts` exists, `main` exactly when `main.ts` exists; TypeScript: `featurePart` builds only for a Feature that lists `game` |
 | `links`, `offers` | Calls between Features (below) | contract and [`links.ts`](../app/features/links.ts) types |

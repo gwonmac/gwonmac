@@ -9,15 +9,22 @@ launcher or from a game window.
 gwonmac has one Settings page. The launcher draws it. Inside a game window, the
 same page opens as a Hub page, with the same labels and controls.
 
-The Hub page shows four in-game sections: **Tools**, **Maps**, **Appearance**
-and **Game**. You change them there, and the game updates at once. Five other
+A Feature's switch, options and shortcuts are on its **Feature page**, drawn by
+one component (`FeatureSettings.vue`) wherever the page shows: the launcher's
+Features tab, and the **Features** section of the Hub's Settings page. The
+launcher's own Settings page has no Features section, because Features is a tab
+of its own; the simple launcher, which has no tabs, keeps the section.
+
+The Hub page shows three in-game sections: **Features**, **Appearance** and
+**Game**. You change them there, and the game updates at once. Five other
 sections need the launcher: **Texture packs**, **Game files**, **Updates**,
 **Home screen** and **Advanced**. In the Hub they show ↗. Choosing one opens the
 launcher at that section.
 
 Hub search (⌘R) finds sections and single settings by their words. Choosing a
-result opens the Hub Settings page at that control. The control takes focus and
-is briefly highlighted. Hub search does not change a setting in place.
+result opens the Hub Settings page at that control, on its Feature page for a
+Feature's option. The control takes focus and is briefly highlighted. Hub search
+does not change a setting in place.
 
 ## Rules
 
@@ -29,7 +36,9 @@ is briefly highlighted. Hub search does not change a setting in place.
    window.", or "Applies at the next login screen."
 3. **Changes save right away.** A change applies in every open game window. The
    status line names the saved setting and when it applies. A failed save keeps
-   the change on screen and offers **Retry** and **Revert**.
+   the change on screen and offers **Retry** and **Revert**. In the launcher's
+   Features tab, a Feature page's own note says what was saved, or that a change
+   could not be saved; its controls keep showing the saved value.
 4. **Settings are found by their words.** Search on the Settings page (⌘F) and Hub
    search both use the catalogue.
 5. **A game window cannot reach launcher-only actions.** Updates, game files,
@@ -40,8 +49,8 @@ is briefly highlighted. Hub search does not change a setting in place.
    `gwonmacTools` off) stops every Feature, Character Switch included, at once,
    and the next launch is a Core launch. It writes only `gwonmacTools`, so turning
    it off brings back every Feature switch as it was. Loading or unloading
-   Features needs a restart of the launcher: the section says "Restart the
-   launcher" and only the launcher offers the button. Restarting only a game
+   Features needs a restart of the launcher: the plain-game strip at the top of
+   Features says "Restart the launcher" and only the launcher offers the button. Restarting only a game
    window does not load or unload them. `resolve` (`app/shared/feature-resolve.ts`)
    reports `plain-game` for every Feature; nothing else reads the mode.
 
@@ -97,8 +106,7 @@ section but edits only the in-game ones; the others (↗) open the launcher.
 
 | Group | Section | In the Hub |
 |---|---|---|
-| In game | Tools | Yes |
-| In game | Maps | Yes |
+| In game | Features (each Feature's page; in the launcher, the Features tab) | Yes |
 | In game | Appearance | Yes |
 | In game | Game | Yes |
 | In game | Texture packs, Game files | ↗ (launcher) |
@@ -112,6 +120,8 @@ section but edits only the in-game ones; the others (↗) open the launcher.
 | **Settings…** with no game window focused | Launcher Settings |
 | **Check for Updates…** (macOS app menu) | Launcher, Updates |
 | Hub search: a setting | Hub Settings page, that control focused and highlighted |
+| Hub search: a Feature's option or shortcut | Hub Settings › Features, on that Feature's page, the control focused |
+| Launcher Settings search: a Feature's option | The Features tab, that Feature's page, the control focused |
 | Hub search: a ↗ section | Launcher Settings, that section |
 
 ## Add a setting
@@ -131,12 +141,18 @@ section but edits only the in-game ones; the others (↗) open the launcher.
    its label, detail and "when it applies" note in
    `app/shared/setting-copy.ts`. For an enum, the option labels are a record
    keyed by the enum's values, so a value without a label does not compile.
-3. **Make it findable.** Add one entry to `app/shared/settings-catalogue.ts`
-   with its section and keywords. A feature setting's entry takes its label and
-   help from the manifest; never write them again there.
-4. **Draw the control** in the section's component under
-   `app/ui/launcher/src/components/`, with `data-setting="<id>"`, using the
-   copy from step 2.
+3. **Make it findable.** A core setting gets one entry in
+   `app/shared/settings-catalogue.ts` with its section and keywords. A feature
+   setting needs none: the catalogue lists every option a Feature declares with
+   the `launcher` or `hub` scope, on that Feature's page, with its label and help
+   from the manifest. Extra search words go in `OPTION_KEYWORDS`.
+4. **Draw the control.** A core setting's control goes in its section's
+   component under `app/ui/launcher/src/components/`, with
+   `data-setting="<id>"`, using the copy from step 2. A feature setting draws
+   itself on its Feature page by its type (switch, number, choice, position);
+   give it `choices`, `unit` or `dependsOn` in the declaration. A value no type
+   fits gets a control of its own in `components/feature-controls/`, listed in
+   `FeatureSettings.vue`.
 
 ## Feature switches
 
