@@ -189,6 +189,8 @@ export function featurePart<Id extends PartOwner<"game">, Running extends Runnin
           if (wanted) settings.publish(context.snapshot().settings);
         });
         let running: Running | null = null;
+        // A `start` that throws keeps this feature off for this installation; the other parts run on.
+        let failed = false;
         const stop = () => {
           const stopping = running;
           running = null;
@@ -196,8 +198,16 @@ export function featurePart<Id extends PartOwner<"game">, Running extends Runnin
         };
         const sync = () => {
           if (settings.wanted) settings.publish(context.snapshot().settings);
-          if (!installed || !context.on(id)) stop();
-          else running ??= start({ game: context.game, ui: context.ui, settings: settings.block, links: featureLinks(id) });
+          if (!installed || !context.on(id) || failed) stop();
+          else if (running === null) {
+            try {
+              running = start({ game: context.game, ui: context.ui, settings: settings.block, links: featureLinks(id) });
+            } catch {
+              failed = true;
+              // One line, no error text: a message can carry paths or game values.
+              console.error(`[err] the ${id} game part could not start; it stays off`);
+            }
+          }
         };
         return {
           mount: sync,

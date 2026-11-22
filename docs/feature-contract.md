@@ -177,6 +177,14 @@ A Feature with a window of its own that its shortcut and Hub row open offers `to
 (`ToolLink` in [`links.ts`](../app/features/links.ts)) instead of naming a `tool.event`:
 the shortcut calls it with `toggle`, the Hub row with `show`, and it answers `"shown"`,
 `"hidden"` or `"unavailable"`. [`whispers/`](../app/features/whispers/) is the example.
+The type check refuses a manifest with `offers` whose link type is not registered in
+`FeatureLinkApis`, and a unit test refuses a manifest that lists a `window` part without its
+line in [`window-parts.ts`](../app/features/window-parts.ts).
+
+`tool.event` is left only for Call Target: its chord is balanced against the keys the player
+holds, which only the input host knows, so the input host claims `gw:call-target`
+([`input.ts`](../app/renderer/input.ts)) instead of a Feature part offering `toggle`. A new
+tool offers `toggle`; a Hub row never opens through an event.
 
 Shortcuts, menu items and Hub rows open a tool through `toggleTool` in
 [`feature-links.ts`](../app/renderer/feature-links.ts), never the link itself; a Feature that
@@ -251,6 +259,10 @@ capability, and a product setting cannot either.
   program it needs `gwonmacTools` and its own switch on). It is Must stay in AGENTS.md, and a
   new Feature does not edit it; only a new `region: "any"` Feature, a safety decision, adds
   itself to the list of Features allowed on a PvP map.
+- `tests/certification/window-area.test.ts`: only the Features it lists declare
+  `windowArea: "any"` (a window that opens outside its `region`, the Build Library's saved
+  authoring), each one has a window part and a `non-pvp` or `pve` region. A new exception is a
+  safety decision and edits that list.
 
 ### Shared files a new Feature touches
 

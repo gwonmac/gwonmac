@@ -13,6 +13,7 @@ import type { ToolboxObservation } from "../shared/builds/live-party.js";
 import type { FeatureLinkApis, FeatureLinks, ToolLink, ToolLinkTarget } from "../features/links.js";
 import type { PartOwner, RunningPart } from "../features/parts.js";
 import { featureOn } from "./feature-on.js";
+import { FEATURES, type FeatureId } from "../shared/feature-contracts.js";
 
 /** A Feature that declares a window part: it lists "window" in `parts` and offers `toggle`. */
 export type WindowPartOwner = PartOwner<"window"> & ToolLinkTarget;
@@ -70,11 +71,6 @@ export type WindowPartDeclaration<Id extends WindowPartOwner, Running extends Wi
   party?: true;
   /** It starts as soon as the Hub shows, because its view adds Hub pages (the Build Library). */
   startWithHub?: true;
-  /**
-   * It may open in every game area its switch allows, not only where its region does: saved
-   * Build Library authoring works anywhere, while live observation and Apply keep their own gates.
-   */
-  anyArea?: true;
   /** Loads and starts its view in `context.host`; null when it could not load (it says so in its host). */
   start(context: WindowContext<Id>): Promise<Running | null>;
 }>;
@@ -91,16 +87,18 @@ export type ToolsWindowSlots = Readonly<{
 export type WindowPart = Readonly<{
   id: WindowPartOwner;
   party?: true;
-  anyArea?: true;
   addTo(window: ToolsWindowSlots): void;
 }>;
 
+/** The Features whose manifest lets their window open in every area their switch allows (`windowArea`). */
+const ANY_AREA: ReadonlySet<FeatureId> = new Set(FEATURES.flatMap((feature) => "windowArea" in feature ? [feature.id] : []));
+
 /**
- * Whether a part's window may open now: everywhere its switch allows (`anyArea`, featureOn reads
- * main's facts alone) or where `on` has its Feature on here.
+ * Whether a part's window may open now: where `on` has its Feature on here, or, for a manifest
+ * with `windowArea: "any"`, everywhere its switch allows (featureOn reads main's facts alone).
  */
-export function windowAvailable(part: Pick<WindowPart, "id" | "anyArea">, on: (id: WindowPartOwner) => boolean): boolean {
-  return part.anyArea === true ? featureOn(part.id) : on(part.id);
+export function windowAvailable(part: Pick<WindowPart, "id">, on: (id: WindowPartOwner) => boolean): boolean {
+  return on(part.id) || (ANY_AREA.has(part.id) && featureOn(part.id));
 }
 
 /** Declares a Feature's window part (the `window` kind). */

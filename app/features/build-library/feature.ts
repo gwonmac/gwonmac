@@ -17,6 +17,8 @@ export default defineFeature({
     buildLibrary: featureSwitch(true, { tools: true, alias: "teamManagement" }),
   },
   region: "non-pvp",
+  /** Saved authoring opens anywhere; observation and Apply keep their region gates. */
+  windowArea: "any",
   programs: ["toolbox-foundation", "toolbox-commands", "xunlai-storage"],
   optInWithTools: true,
   tool: {

@@ -13,7 +13,8 @@
  * - main: the Tools runtime runs `start` while resolve has the feature on (`mainPart`,
  *   app/main/tools-main-part.ts).
  *
- * The renderer kinds get the links their manifest names (./links.ts).
+ * The renderer kinds get the links their manifest names (./links.ts). A game part or window part
+ * whose `start` throws stays off and logs one line; the other parts run on.
  */
 import type { FeaturePartKind } from "./define.js";
 import type { Feature } from "./index.js";

@@ -1,6 +1,8 @@
 // A feature's companion.ts does nothing until app/features/companion-parts.ts exports it, and a
-// part with another feature's id would be gated by the wrong manifest. Neither mistake fails
-// typecheck; only the CI Electron suites would notice.
+// part with another feature's id would be gated by the wrong manifest. A manifest that lists
+// "window" in `parts` opens nothing until app/features/window-parts.ts has its line: its link
+// answers "unavailable". None of these mistakes fails typecheck; only the CI Electron suites
+// would notice.
 import assert from "node:assert/strict";
 import { existsSync, readdirSync } from "node:fs";
 import path from "node:path";
@@ -8,6 +10,8 @@ import test from "node:test";
 import { pathToFileURL } from "node:url";
 import * as featureParts from "../../app/features/companion-parts.ts";
 import { SUBSTRATE_PARTS } from "../../app/renderer/tools-companion-substrates.ts";
+import { WINDOW_PARTS } from "../../app/features/window-parts.ts";
+import { FEATURES } from "../../app/features/index.ts";
 
 const PARTS = [...SUBSTRATE_PARTS, ...Object.values(featureParts)];
 
@@ -30,4 +34,9 @@ test("every feature folder with a companion part has a registry line under its m
 test("no two companion parts share an id", () => {
   const ids = PARTS.map((part) => part.id);
   assert.deepEqual(ids.filter((id, index) => ids.indexOf(id) !== index), []);
+});
+
+test("every feature whose manifest lists a window part has one window-parts line, and only those", () => {
+  const declared = FEATURES.filter((feature) => (feature.parts as readonly string[]).includes("window")).map((feature) => feature.id).sort();
+  assert.deepEqual(WINDOW_PARTS.map((part) => part.id).sort(), declared);
 });

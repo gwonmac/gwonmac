@@ -418,8 +418,10 @@ window ([`toolbox-foundation.ts`](../app/renderer/toolbox-foundation.ts))
 provides it for every part in `WINDOW_PARTS` for its whole life. The Tools
 window names no Feature: a new window Feature adds its `renderer/window.ts` and
 one line in `WINDOW_PARTS`. Its declaration also says whether it draws the party
-feed (`party`), starts with the Hub (`startWithHub`) and opens in every area
-its switch allows (`anyArea`, the Build Library's saved authoring). A window
+feed (`party`) and starts with the Hub (`startWithHub`). Whether it opens in
+every area its switch allows is a safety decision, so the manifest says it
+(`windowArea: "any"`, the Build Library's saved authoring) and
+`tests/certification/window-area.test.ts` pins the list. A window
 part's context has `show()`, which shows the window on its own over the game,
 out of an open Hub.
 

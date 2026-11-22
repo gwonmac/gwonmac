@@ -748,7 +748,7 @@ test.describe("renderer Tools input", () => {
         let count = 0;
         // The window's own control, as the part's link gets it; this launch has no facts to open it through toggleTool.
         let control!: Parameters<typeof library.default.link>[0];
-        // Opened where `on` says so, not everywhere its switch allows (`anyArea`): this launch has no facts.
+        // Opened where `on` says so; this launch has no facts for the manifest's `windowArea` to use.
         const foundation = module.createToolboxFoundation(document.body, {
           on: () => true,
           parts: [parts.windowPart({

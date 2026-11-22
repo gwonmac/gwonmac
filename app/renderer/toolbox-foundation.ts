@@ -47,7 +47,6 @@ type Slot = {
   readonly id: WindowPartOwner;
   readonly party: boolean;
   readonly startWithHub: boolean;
-  readonly anyArea?: true;
   readonly host: HTMLElement;
   readonly surface: GwonmacSurfaceHandle;
   /** Starts the part's view once; the first open, a Hub show or a pop-out calls it. */
@@ -167,23 +166,34 @@ export function createToolboxFoundation(parent: HTMLElement, { parts = WINDOW_PA
         requested = true;
         // A pop-out from the window's own page does nothing once its Feature is off.
         const show = () => { if (available(slot)) openFloating(slot); };
-        void part.start({ host, onVisibilityChange: (visible) => setOpen(slot, visible), show, links: featureLinks(part.id), onLinksChange })
-          .then((mounted) => {
-            if (disposed) {
-              mounted?.stop();
-              return;
-            }
-            running = mounted;
-            slot.tool = mounted;
-            if (mounted) for (const use of waiting.splice(0)) use(mounted);
-            mounted?.setVisible(slot.visible);
-            mounted?.setActive?.(active === slot);
-            if (slot.party) mounted?.update?.(state);
-            if (pendingFocus === slot) {
-              if (mounted) focusFloating(slot);
-              else pendingFocus = null;
-            }
-          });
+        // A view that throws or fails to load counts as one that could not load (null): its window
+        // stays closed and the other windows are untouched. One line, no error text.
+        const failed = () => { console.error(`[err] the ${part.id} window could not start`); return null; };
+        let starting: Promise<Running | null>;
+        try {
+          starting = part.start({ host, onVisibilityChange: (visible) => setOpen(slot, visible), show, links: featureLinks(part.id), onLinksChange });
+        } catch {
+          starting = Promise.resolve(failed());
+        }
+        const arrived = (mounted: Running | null) => {
+          if (disposed) {
+            mounted?.stop();
+            return;
+          }
+          running = mounted;
+          slot.tool = mounted;
+          if (mounted) for (const use of waiting.splice(0)) use(mounted);
+          mounted?.setVisible(slot.visible);
+          mounted?.setActive?.(active === slot);
+          if (slot.party) mounted?.update?.(state);
+          if (pendingFocus === slot) {
+            if (mounted) focusFloating(slot);
+            else pendingFocus = null;
+          }
+        };
+        // One step after the view resolves, as before: a view that arrives after its window is
+        // gone is stopped in the same microtask that delivers it.
+        void starting.then(arrived, () => arrived(failed()));
       };
       const control: WindowControl<Running> = Object.freeze({
         get available() { return available(slot); },
@@ -197,7 +207,6 @@ export function createToolboxFoundation(parent: HTMLElement, { parts = WINDOW_PA
         id: part.id,
         party: part.party === true,
         startWithHub: part.startWithHub === true,
-        ...(part.anyArea ? { anyArea: true } : {}),
         host,
         start,
         stopLink: provideLink(part.id, part.link(control)),
