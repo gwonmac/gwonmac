@@ -367,7 +367,7 @@ onBeforeUnmount(() => {
                 <div class="setting-row" data-setting="pasteSettings"><span><strong>Paste settings</strong><small>Replace your settings with ones copied on another Mac. You confirm before anything changes.</small></span><button class="secondary small" @click="pasteSettings"><ClipboardPaste />Paste settings</button></div>
               </div>
               <p v-if="transferNote" class="inline-message" role="status">{{ transferNote }}</p>
-              <details class="settings-reset" data-setting="resetAllSettings"><summary>Reset all app settings</summary><p>Restores launcher and game preferences, Tools, shortcuts, custom map styles and panel colors. Original textures will be selected. Accounts and game files are kept.</p><button class="danger-button small" @click="run('Settings could not be reset.', () => launcherNative?.settings.reset())">Reset all app settings…</button></details>
+              <details class="settings-reset" data-setting="resetAllSettings"><summary>Reset all app settings</summary><p>Restores launcher and game preferences, Features, shortcuts, custom map styles and panel colors. Original textures will be selected. Accounts and game files are kept.</p><button class="danger-button small" @click="run('Settings could not be reset.', () => launcherNative?.settings.reset())">Reset all app settings…</button></details>
             </template>
             <p v-if="actionError" role="alert" class="inline-message">{{ actionError }}</p>
           </fieldset>
