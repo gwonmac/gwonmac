@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
- * One switch in the Features tab: a native checkbox drawn as a switch, inside a 44-pixel hit
- * area. A locked switch stays in the Tab order and says why through `describedby`, but a click
+ * The one on/off switch of the launcher and Settings: a native checkbox drawn as a switch, inside
+ * a 44-pixel hit area. A locked switch stays in the Tab order and says why through `describedby`, but a click
  * or Space changes nothing. The box always shows the saved value: a change is only a request,
  * and the next snapshot draws the result.
  */

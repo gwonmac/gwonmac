@@ -10,6 +10,7 @@ import { UI_FONTS, UI_PANEL_OPACITY_MIN, UI_PANEL_OPACITY_MAX, UI_STYLES, UI_TEX
 import { UI_THEME_COLOR_FIELDS, UI_THEME_MATERIALS, decodeCustomUiTheme, encodeCustomUiTheme, defaultCustomUiTheme, type CustomUiTheme, type UiThemeColorField } from "@shared/ui-theme";
 import { customThemeReadable } from "@shared/ui-color";
 import ColorControl from "./ColorControl.vue";
+import FeatureSwitch from "./FeatureSwitch.vue";
 import RangeControl from "./RangeControl.vue";
 import PanelStylePreview from "./PanelStylePreview.vue";
 import { saveChoice } from "../select-choice";
@@ -51,7 +52,7 @@ async function importTheme() {
     <PanelStylePreview :settings="settings" />
     <template v-if="settings.uiStyle === 'custom'">
       <label><span><strong>Panel finish</strong></span><select :value="settings.uiCustomTheme.material" @change="saveChoice($event, UI_THEME_MATERIALS, (material) => updateTheme({ material }))"><option value="classic">Classic</option><option value="modern">Modern flat</option></select></label>
-      <label><span><strong>Window gradient</strong></span><input type="checkbox" :checked="settings.uiCustomTheme.windowGradient" @change="updateTheme({ windowGradient: ($event.currentTarget as HTMLInputElement).checked })" /></label>
+      <div class="setting-row"><span><strong>Window gradient</strong></span><FeatureSwitch :checked="settings.uiCustomTheme.windowGradient" label="Window gradient" @change="updateTheme({ windowGradient: $event })" /></div>
       <div class="setting-row"><span><strong>Custom colors</strong><small>Restore this palette without changing other settings.</small></span><button class="secondary small" @click="persist({ uiCustomTheme: defaultCustomUiTheme(settings.uiCustomTheme.material) })">Restore default colors</button></div>
       <div v-for="field in UI_THEME_COLOR_FIELDS" :key="field" class="setting-row"><span>{{ colors[field] }}</span><ColorControl :label="colors[field]" :value="settings.uiCustomTheme[field]" @change="updateTheme({ [field]: $event })" /></div>
       <p v-if="!readable" role="status" class="inline-message">Some text will be hard to read on these colors. Choose a title bar, panel surface and input background closer in lightness to the window background.</p>
