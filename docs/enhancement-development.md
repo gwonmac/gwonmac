@@ -379,7 +379,9 @@ app/features/<id>/
   renderer/host.ts  the one entry for a feature the game host starts itself (Maps, Character Switch's
                  hubPage part)
   renderer/window.ts  its window part (windowPart): the link that opens it and the lazy start of its view
-  hub-views/     the feature's own Hub pages: Vue components the kit draws, their props and an index.ts
+  ui/            the feature's own views, built into the Tools bundle: its window view's and Hub
+                 source's modules, and its Hub pages (Vue components the kit draws, their props
+                 and an index.ts that names them)
   main/          main-process-only modules: stores, files, IPC parsing
   shared/        contracts and pure logic that two processes use
   shared/ipc.ts  the feature's channel table and its window.gwNative namespace
@@ -432,7 +434,10 @@ link; none reads the file or the channels itself.
 
 Code that several features use stays where it is: the capability registry and
 the proofs in `app/client/certification/`, the kernels, the shared substrates,
-`app/shared/`, and the Vue views in `app/ui/tools/`. Tests stay in `tests/`.
+`app/shared/`, and the shared Vue kit in `app/ui/tools/`. A feature's own views
+live in its `ui/` folder (Travel's palette and Hub source, the Library's Hub
+source, Character Switch's Hub page). Tests stay in `tests/`, and the Tools
+UI's tests in `app/ui/tools/src`.
 When shared code uses part of a feature, the parts
 [contract](../app/renderer/tools-companion-part.ts) names that narrow surface
 (for example `FriendTravel`); shared code imports the contract, never a feature
@@ -443,9 +448,13 @@ renderer halves both read; re-exporting them through the host would be a
 second path. `companion.ts` is reached through `companion-parts.ts`,
 `renderer/window.ts` through `window-parts.ts`, and the
 other renderer modules, `main.ts` and `main/` are the feature's own.
+A feature's `ui/` builds into the Tools bundle: `app/ui/tools` may import it
+(and otherwise only `app/shared`), and it reaches no main process, client,
+preload, maintainer commands or Node.js.
 `tests/policy/import-boundaries.test.ts` proves the rule rejects a crossing. A
 feature's stylesheet is listed in `scripts/copy-renderer.mjs`. tsconfig.renderer.json
-checks `companion.ts` and `renderer/`; the root program checks the rest.
+checks `companion.ts` and `renderer/`, the Tools program (`app/ui/tools/tsconfig.json`)
+checks `ui/`, and the root program checks the rest.
 
 The feature registry and the live policy use the same IDs. Type checking and a
 runtime contract test fail when one side changes without the other. Derived

@@ -1,7 +1,7 @@
 /**
  * Owns Characters, the Hub page ⌘E opens: its cards, selection, search, display preferences and
  * the switch itself, with the quiet veil while an accepted switch runs. The kit draws the page
- * (../hub-views/HubCharacters.vue) and reports intents back; this controller renders one bounded
+ * (../ui/HubCharacters.vue) and reports intents back; this controller renders one bounded
  * source and never reads game memory or native exports.
  */
 import { hubMatch, normaliseHubQuery, type HubViewFooter } from "../../../shared/hub.js";
@@ -20,7 +20,7 @@ import { currentCharacterIndex } from "./character-switch-model.js";
 import { CONFIRMATION_ARMING_MS } from "../../../renderer/surface-controller.js";
 import { leaveAreaCopy } from "../../../renderer/leave-area.js";
 import { listIndexAfter } from "../../../shared/ui/list-keys.js";
-import { CHARACTER_SEARCH_LIMIT, type HubCharacterCard, type HubCharactersProps } from "../hub-views/characters-page.js";
+import { CHARACTER_SEARCH_LIMIT, type HubCharacterCard, type HubCharactersProps } from "../ui/characters-page.js";
 
 const failureMessage = (code: CharacterSwitchFailureCode): string => {
   switch (code) {

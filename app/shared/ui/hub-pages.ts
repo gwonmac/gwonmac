@@ -82,7 +82,7 @@ export type HubSettingsHostProps = Readonly<{ failed: boolean }>;
 /**
  * Every Hub page by the name views mount it with, and its props. A feature adds its own page
  * from its folder: it declares the props here by module augmentation and names the component in
- * `app/features/<id>/hub-views/index.ts`, which the kit's page registry collects.
+ * `app/features/<id>/ui/index.ts`, which the kit's page registry collects.
  */
 export interface HubPageProps {
   confirm: HubConfirmProps;

@@ -509,6 +509,30 @@
       "name": "xunlaiStorage",
       "category": "test helper",
       "reason": "Launcher preview and test scenes; a new Feature needs no line here."
+    },
+    {
+      "file": "app/features/travel/ui/hub-travel.ts",
+      "name": "progress",
+      "category": "same word, not the Feature",
+      "reason": "`progress` is the row id of the Progress page that Travel's Hub source shows; the Progress Feature opens it through Travel's link `showProgress`."
+    },
+    {
+      "file": "app/renderer/hub-commands.ts",
+      "name": "travel",
+      "category": "same word, not the Feature",
+      "reason": "The Places example draws the `travel` icon kind; it shows while Travel's link answers (HUB_LINKS)."
+    },
+    {
+      "file": "app/renderer/hub-people.ts",
+      "name": "travel",
+      "category": "registry or contract",
+      "reason": "Hub people reaches Travel only through its typed link (`HubLinks`)."
+    },
+    {
+      "file": "app/renderer/hub-people.ts",
+      "name": "whispers",
+      "category": "registry or contract",
+      "reason": "Hub people reaches Whispers only through its typed link (`HubLinks`) and words its Off reason by its id when the link turns null."
     }
   ],
   "gwEvents": [
@@ -618,6 +642,16 @@
       "file": "app/renderer/skill-slot-projection.ts",
       "category": "kernel or block",
       "reason": "The one game-to-viewport conversion behind `ui.skill*` blocks."
+    },
+    {
+      "file": "app/renderer/hub-people.ts",
+      "category": "host plumbing",
+      "reason": "Core's People page: friends and invites through `game.*` blocks; Whispers and Travel only through HUB_LINKS."
+    },
+    {
+      "file": "app/renderer/party-invite.ts",
+      "category": "host plumbing",
+      "reason": "Core's party invite through `game.chat`; the trip before it comes from Travel's link (hub-people.ts)."
     }
   ],
   "toolsUiLocalStorage": [

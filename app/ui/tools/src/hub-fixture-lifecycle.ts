@@ -12,7 +12,7 @@ import type { TravelGameState } from '../../../shared/travel-command';
 import { characterSwitchContext, type CharacterSwitchContext } from '../../../features/character-switch/renderer/character-switch-model';
 // eslint-disable-next-line no-restricted-imports
 import type { CompanionPlayRegionState } from '../../../renderer/companion-play-region-snapshot';
-import type { TravelHost } from './travel-host';
+import type { TravelHost } from '../../../features/travel/ui/travel-host';
 
 export const FIXTURE_LIFECYCLES = [
   ['outpost', 'Ready in outpost'],

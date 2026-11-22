@@ -148,9 +148,9 @@ selection.
 | `app/preload/game-bridge.ts`, `core.ts`, `tools.ts` | Sandboxed game preload, Core and Tools entries (Rollup bundles each into one CommonJS file) |
 | `app/preload/ipc-bridge.ts` | The preloads' one typed `invoke` and `listen` over a channel table |
 | `app/ui/launcher/` | Vue launcher shell and deterministic development fixtures |
-| `app/ui/tools/` | Vue Tools and Hub UI |
+| `app/ui/tools/` | Vue Tools and Hub UI: the shared kit and the Tools bundle's entries; a feature's own views sit in its `ui/` folder |
 | `app/renderer/` | Game host, input, shared in-game presentation, and diagnostics UI |
-| `app/features/<id>/` | One feature: manifest, game-host part, renderer, main-process part and shared modules ([enhancement-development.md](enhancement-development.md)) |
+| `app/features/<id>/` | One feature: manifest, game-host part, renderer, views (`ui/`), main-process part and shared modules ([enhancement-development.md](enhancement-development.md)) |
 | `kernels/companion/` | Read-only companion WASM for certified Core and Tools features |
 | `kernels/reachability/` | Read-only cartography reachability WASM |
 | `app/shared/` | Contracts and validation used by more than one process |

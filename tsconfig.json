@@ -37,7 +37,7 @@
   // tsconfig.tests.json; emitting it here would only leave unused copies.
   // A feature's companion part, its renderer/ folder and the parts registries are
   // renderer code that only app/renderer imports, so the renderer program checks them.
-  // A feature's hub-views/ folder is a Hub page the Vue kit draws; the Tools program checks it.
+  // A feature's ui/ folder holds its views (Hub pages, window views) that the Tools program builds and checks.
   "exclude": ["node_modules", "out", "app/renderer", "app/ui", "app/preload",
-    "app/features/*/companion.ts", "app/features/companion-parts.ts", "app/features/window-parts.ts", "app/features/*/renderer/**", "app/features/*/hub-views/**", "app/shared/ui/resize.ts", "app/shared/ui/frame.ts", "app/shared/ui/elite-map-pointer.ts", "app/shared/ui/elite-marker-paint.ts", "app/shared/ui/hub-view.ts", "app/shared/ui/focusable.ts"]
+    "app/features/*/companion.ts", "app/features/companion-parts.ts", "app/features/window-parts.ts", "app/features/*/renderer/**", "app/features/*/ui/**", "app/shared/ui/resize.ts", "app/shared/ui/frame.ts", "app/shared/ui/elite-map-pointer.ts", "app/shared/ui/elite-marker-paint.ts", "app/shared/ui/hub-view.ts", "app/shared/ui/focusable.ts"]
 }

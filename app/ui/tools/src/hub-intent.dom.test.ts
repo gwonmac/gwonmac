@@ -7,7 +7,7 @@
  */
 import { afterEach, beforeAll, expect, test, vi } from 'vitest';
 import { byRole, click, fill, forceClick, hold, keyDown, keyUp, loadFixture, mountFixture, narrow, press, settle, shown, type, unmountFixture } from './hub-fixture-harness';
-import { createDemoTravelHost } from './travel-host';
+import { createDemoTravelHost } from '../../../features/travel/ui/travel-host';
 
 beforeAll(loadFixture);
 afterEach(unmountFixture);

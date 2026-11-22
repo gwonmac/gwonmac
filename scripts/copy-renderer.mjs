@@ -31,7 +31,7 @@ const FEATURE_ASSETS = [
 ];
 
 // The design system lives in app/shared because the Tools application consumes
-// it too, and app/ui/tools/** may only reach into app/shared (see eslint.config.js).
+// it too, and app/ui/tools/** reaches only app/shared and the Features' views (see eslint.config.js).
 // The renderer loads it as `ui/…`, so it lands beside the renderer's own assets
 // rather than under a shared/ subtree nothing else would read. Listed here for
 // the same reason as everything above: a package input is explicit.

@@ -9,7 +9,7 @@ import {
   createNativeTravelHost,
   type TravelHost,
   type TravelPreferences,
-} from "./travel-host";
+} from "../../../features/travel/ui/travel-host";
 
 function fixture() {
   let travel: TravelPreferences = Object.freeze({

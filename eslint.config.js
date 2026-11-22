@@ -62,6 +62,13 @@ const INTO_FEATURE_INTERNALS = String.raw`(?:^|/)features/[^/]+/(?!(?:feature|re
 // anchored to a `../` run so a package whose own path contains `/src/` is not
 // caught; the second keeps the original spellings rejected.
 const INTO_APP = String.raw`^(?:\.\./)+app/(?!shared/|ui/)|(?:^|/)(?:\.\.|app)/(?:main|client|renderer|preload|tools-cli|features)/`;
+// Leaving the Tools UI bundle: the same, except that a Feature's views (its ui/ folder) build
+// into this bundle, so app/ui/tools may import them. A `..` after ui/ is rejected so the
+// exemption cannot be spelled as an escape.
+const INTO_APP_FROM_TOOLS_UI = String.raw`^(?:\.\./)+app/(?!shared/|ui/|features/[^/]+/ui/(?!.*\.\.))|(?:^|/)(?:\.\.|app)/(?:main|client|renderer|preload|tools-cli)/|(?:^|/)(?:\.\.|app)/features/(?![^/]+/ui/(?!.*\.\.))`;
+// Leaving a Feature's views (app/features/*/ui/): they build into the Tools bundle, so they
+// never reach the main process, the client, the preload, the maintainer commands or Node.js.
+const OUT_OF_FEATURE_UI = String.raw`(?:^|/)(?:\.\.|app)/(?:main|client|preload|tools-cli)/|^node:|^electron(?:/|$)|^(?:fs|path|os|child_process|crypto|url|worker_threads)(?:/|$)`;
 const ELECTRON = String.raw`^electron(/|$)`;
 
 /**
@@ -105,7 +112,10 @@ const NO_PRESENTATION_FROM_CLIENT =
   "app/client/** must not import from app/renderer/**, app/ui/**, app/preload/** or a feature's renderer half. Share the contract through app/shared/**.";
 const NO_MAIN_FROM_RENDERER =
   "app/renderer/** must not import from app/main/** or app/client/**. Cross the boundary through the preload bridge or app/shared/**.";
-const APP_SHARED_ONLY = "website/** and app/ui/tools/** may only reach into app/shared/**.";
+const APP_SHARED_ONLY = "website/** may only reach into app/shared/**.";
+const TOOLS_UI_REACH = "app/ui/tools/** may only reach into app/shared/** and a Feature's views (app/features/<id>/ui/).";
+const NO_NODE_FROM_FEATURE_UI =
+  "app/features/*/ui/** builds into the Tools bundle: no app/main, app/client, app/preload, app/tools-cli, Electron or Node.js.";
 const NO_FEATURE_INTERNALS =
   "app/renderer/** reaches a feature only through app/features/companion-parts.ts, its manifest (feature.ts), its renderer/host.ts, or its shared/ folder. Move the code into the feature, or export it from its host.";
 
@@ -282,7 +292,7 @@ export default tseslint.config(
   },
   {
     // The website may read canonical contracts, never main-process code.
-    files: ["website/**/*.{js,mjs,ts,vue}", "app/ui/tools/**/*.{js,mjs,ts,vue}"],
+    files: ["website/**/*.{js,mjs,ts,vue}"],
     rules: {
       "no-restricted-imports": [
         "error",
@@ -292,19 +302,41 @@ export default tseslint.config(
     },
   },
   {
+    // The Tools UI reads canonical contracts and draws the Features' views from their folders.
+    files: ["app/ui/tools/**/*.{js,mjs,ts,vue}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        { patterns: [{ regex: INTO_APP_FROM_TOOLS_UI, message: TOOLS_UI_REACH }] },
+      ],
+      "no-restricted-syntax": ["error", ...crossings(INTO_APP_FROM_TOOLS_UI, TOOLS_UI_REACH)],
+    },
+  },
+  {
+    // A Feature's views build into the Tools bundle beside app/ui/tools.
+    files: ["app/features/*/ui/**/*.{ts,vue}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        { patterns: [{ regex: OUT_OF_FEATURE_UI, message: NO_NODE_FROM_FEATURE_UI }] },
+      ],
+      "no-restricted-syntax": ["error", ...crossings(OUT_OF_FEATURE_UI, NO_NODE_FROM_FEATURE_UI)],
+    },
+  },
+  {
     // `page.goto` returns at the load event, before the Hub fixture has mounted the Hub, so a
     // key pressed at once can reach no Hub. The Hub specs open and reload the page through
     // tests/hub-page.ts, which waits until the Hub can take input. Other workbench pages reload
     // freely, so only the Hub specs lose `reload`.
     files: ["app/ui/tools/tests/**/*.ts"],
     rules: {
-      "no-restricted-syntax": ["error", ...crossings(INTO_APP, APP_SHARED_ONLY), HUB_GOTO],
+      "no-restricted-syntax": ["error", ...crossings(INTO_APP_FROM_TOOLS_UI, TOOLS_UI_REACH), HUB_GOTO],
     },
   },
   {
     files: ["app/ui/tools/tests/hub*.spec.ts", "app/ui/tools/tests/trade-popout.spec.ts"],
     rules: {
-      "no-restricted-syntax": ["error", ...crossings(INTO_APP, APP_SHARED_ONLY), HUB_GOTO, HUB_RELOAD],
+      "no-restricted-syntax": ["error", ...crossings(INTO_APP_FROM_TOOLS_UI, TOOLS_UI_REACH), HUB_GOTO, HUB_RELOAD],
     },
   },
   {
@@ -317,8 +349,8 @@ export default tseslint.config(
   {
     files: ["app/main/**/*.ts", "app/client/**/*.ts", "app/shared/**/*.ts", "app/tools-cli/**/*.ts", "app/features/**/*.ts"],
     // A feature's renderer half belongs to tsconfig.renderer.json, which the service does not reach;
-    // its Hub pages (hub-views/) belong to the Tools program.
-    ignores: ["app/features/*/companion.ts", "app/features/companion-parts.ts", "app/features/window-parts.ts", "app/features/*/renderer/**/*.ts", "app/features/*/hub-views/**/*.ts"],
+    // its views (ui/) belong to the Tools program.
+    ignores: ["app/features/*/companion.ts", "app/features/companion-parts.ts", "app/features/window-parts.ts", "app/features/*/renderer/**/*.ts", "app/features/*/ui/**/*.ts"],
     languageOptions: {
       parserOptions: {
         projectService: true,

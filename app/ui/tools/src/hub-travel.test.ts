@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createHubTravel } from './hub-travel';
+import { createHubTravel } from '../../../features/travel/ui/hub-travel';
 import { TRAVEL_DESTINATIONS, travelDestination } from '../../../shared/travel';
 import { travelDestinationAvailability } from '../../../shared/travel-command';
 import { searchTravelDestinations } from '../../../shared/travel-search';
-import { createDemoTravelHost } from './travel-host';
+import { createDemoTravelHost } from '../../../features/travel/ui/travel-host';
 import { progressFixture } from './progress-fixture';
 import { nextTick } from 'vue';
 import type { HubPresenter, HubViewAction } from '../../../shared/hub';

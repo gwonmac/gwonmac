@@ -4,8 +4,8 @@ import {
   searchTravelDestinations,
   travelDestination,
   type TravelDestination,
-} from "../../../../shared/travel";
-import { listIndexAfter, listKeyStep, listPage } from "../../../../shared/ui/list-keys";
+} from "../../../shared/travel";
+import { listIndexAfter, listKeyStep, listPage } from "../../../shared/ui/list-keys";
 
 const props = withDefaults(defineProps<{
   modelValue: number | null;

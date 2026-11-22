@@ -65,7 +65,7 @@ const { mounted } = vi.hoisted(() => ({
 vi.mock('./elite-mount', () => ({ mountEliteSkills: () => mounted('mountEliteSkills') }));
 vi.mock('./whispers-mount', () => ({ mountWhispers: () => mounted('mountWhispers') }));
 vi.mock('./mount', () => ({ mountToolsApp: () => mounted('mountToolsApp') }));
-vi.mock('./hub-travel', () => ({ createHubTravel: () => mounted('createHubTravel') }));
+vi.mock('../../../features/travel/ui/hub-travel', () => ({ createHubTravel: () => mounted('createHubTravel') }));
 vi.mock('./trade-mount', () => ({ mountTradeChat: () => mounted('mountTradeChat') }));
 
 /** Every feature's switch on, so every part starts what it shows. */

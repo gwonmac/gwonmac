@@ -18,8 +18,8 @@ import { mountWhispers } from "./whispers-mount";
 import { createWhisperSession } from "../../../shared/whisper-session";
 import { createDemoHost } from "./host";
 import { mountToolsApp } from "./mount";
-import { createDemoTravelHost } from "./travel-host";
-import { mountTravelPalette } from "./travel-mount";
+import { createDemoTravelHost } from "../../../features/travel/ui/travel-host";
+import { mountTravelPalette } from "../../../features/travel/ui/travel-mount";
 import { createDemoTradeHost } from "./trade-host";
 import { mountTradeChat } from "./trade-mount";
 

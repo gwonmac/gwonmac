@@ -321,6 +321,21 @@ const REJECTED = [
       'import { resignCommand } from "../../../features/resign/renderer/resign-command";\nexport const probe = resignCommand;\n',
   },
   {
+    what: "app/ui/tools escapes a feature's views folder with ..",
+    file: "app/ui/tools/src/probe.ts",
+    source: 'import travel from "../../../features/travel/ui/../main.js";\nexport const probe = travel;\n',
+  },
+  {
+    what: "a feature's view imports app/main",
+    file: "app/features/travel/ui/probe.ts",
+    source: 'import { gamePaths } from "../../../main/core/paths.js";\nexport const probe = gamePaths;\n',
+  },
+  {
+    what: "a feature's view imports Node.js",
+    file: "app/features/travel/ui/probe.ts",
+    source: 'import { readFile } from "node:fs/promises";\nexport const probe = readFile;\n',
+  },
+  {
     what: "an website .vue SFC imports app/main",
     file: "website/app/pages/probe.vue",
     source:
@@ -461,6 +476,11 @@ const ALLOWED = [
     file: "app/features/resign/renderer/probe.ts",
     source:
       'import { matchHubRows } from "../../../shared/hub.js";\nimport { isolateFromGame } from "../../../renderer/non-activating-surface.js";\nexport const probe = [matchHubRows, isolateFromGame];\n',
+  },
+  {
+    what: "app/ui/tools imports a feature's view",
+    file: "app/ui/tools/src/probe.ts",
+    source: 'import { createDemoTravelHost } from "../../../features/travel/ui/travel-host";\nexport const probe = createDemoTravelHost;\n',
   },
   {
     what: "an website .vue SFC imports app/shared",
