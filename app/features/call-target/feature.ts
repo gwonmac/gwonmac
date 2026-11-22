@@ -1,5 +1,4 @@
-import { setting } from "../../shared/settings/define.js";
-import { defineFeature } from "../define.js";
+import { defineFeature, featureSwitch } from "../define.js";
 
 export default defineFeature({
   id: "callTarget",
@@ -10,13 +9,8 @@ export default defineFeature({
   icon: "megaphone",
   settings: {
     /** Opt-in Command shortcut for the default target-call chord. */
-    callTargetEnabled: setting.boolean(false, {
-      tools: true,
-      label: "Call target",
-      help: "Allows the Call target shortcut. It sends Control-Shift-Space for you, and does nothing while you type.",
-    }),
+    callTargetEnabled: featureSwitch(false, { tools: true }),
   },
-  activation: { kind: "setting", setting: "callTargetEnabled", master: "gwonmacTools" },
   region: "any",
   tool: {
     id: "call-target",

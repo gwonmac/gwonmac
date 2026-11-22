@@ -7,19 +7,20 @@
  */
 import {
   FEATURE_KIND_LABELS,
+  FEATURE_SELECTION_POLICIES,
   FEATURE_PURPOSE_LABELS,
   folderForId,
   type FeatureId,
 } from "@shared/feature-contracts";
 import type { FeatureState } from "@shared/feature-resolve";
-import { featureStatus as sharedStatus, SWITCH_FEATURES, switchOf, type FeatureStatus, type SwitchFeature } from "@shared/feature-status";
+import { featureStatus as sharedStatus, requiredFeatures, SWITCH_FEATURES, switchOf, type FeatureStatus, type SwitchFeature } from "@shared/feature-status";
 import type { GlobalTool, LauncherSnapshot } from "@shared/launcher-contracts";
 import { markdownInline, parseMarkdown, type MarkdownBlock, type MarkdownInline } from "@shared/launcher-markdown";
 import { SETTINGS, type SettingsTarget } from "@shared/settings-catalogue";
 import { LAUNCHER_SETTINGS, type LauncherSetting } from "@shared/settings/index";
 import { guideLink } from "./guide";
 
-/** A feature with a card: every feature with its own switch; the launch mode is the plain-game strip. */
+/** A feature with a card: every feature but the launch mode, which is the plain-game strip. */
 export type CardFeature = SwitchFeature;
 export const CARD_FEATURES: readonly CardFeature[] = SWITCH_FEATURES;
 const byId = new Map<FeatureId, CardFeature>(CARD_FEATURES.map((feature) => [feature.id, feature]));
@@ -36,7 +37,7 @@ export function launcherFeatureState(facts: LauncherSnapshot["features"]): Featu
 
 export const REGION_WORDS: Readonly<Record<CardFeature["region"], string>> = { pve: "PvE", "non-pvp": "Outside PvP", any: "Everywhere" };
 
-/** A card's status: the shared reason words (app/shared/feature-status.ts) for its own saved switch. */
+/** A card's status: the shared reason words (app/shared/feature-status.ts) for the switch it moves. */
 export const featureStatus = (feature: CardFeature, state: FeatureState, tools: LauncherSnapshot["tools"]): FeatureStatus =>
   sharedStatus(feature, state, tools.features[switchOf(feature)].enabled);
 
@@ -66,19 +67,6 @@ export function groupCards(
 }
 
 export type SwitchChange = Readonly<{ tool: GlobalTool; enabled: boolean }>;
-
-/** Every feature this one needs, nearest first, each once. */
-function requiredFeatures(feature: CardFeature): CardFeature[] {
-  const found: CardFeature[] = [];
-  const visit = (each: CardFeature) => {
-    for (const id of "requires" in each ? each.requires : []) {
-      const required = byId.get(id);
-      if (required && !found.includes(required)) { found.push(required); visit(required); }
-    }
-  };
-  visit(feature);
-  return found;
-}
 
 /**
  * Turning a feature on turns on what it needs. `alsoOn` names the needed features whose switch
@@ -146,7 +134,7 @@ const isLauncherSetting = (key: string): key is LauncherSetting => launcherKeys.
 export function featureOptions(feature: CardFeature): readonly FeatureOption[] {
   const options: FeatureOption[] = [];
   for (const [key, spec] of Object.entries("settings" in feature ? feature.settings : {})) {
-    if (key === feature.activation.setting || !isLauncherSetting(key)) continue;
+    if (key === FEATURE_SELECTION_POLICIES[feature.id].switch || !isLauncherSetting(key)) continue;
     const text = { key, label: spec.label, help: spec.help };
     if (spec.kind === "boolean") options.push({ ...text, kind: "switch" });
     else if (spec.kind === "integer" && "range" in spec && spec.range) options.push({ ...text, kind: "range", min: spec.range.min, max: spec.range.max });

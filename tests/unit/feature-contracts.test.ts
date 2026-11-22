@@ -24,13 +24,13 @@ import {
 import {
   FEATURE_SELECTION_POLICIES,
   featureRegionAllowsRequest,
-  type FeatureActivationSettings,
+  type FeatureSwitchSettings,
   type FeatureId,
 } from "../../app/shared/feature-contracts.ts";
 import { resolveFeature } from "../../app/shared/feature-resolve.ts";
 
 /** resolve's answer with Features loaded, every capability proved and the character in PvE: only the switches decide. */
-const switchedOn = (id: FeatureId, settings: Partial<FeatureActivationSettings>) => resolveFeature(id, {
+const switchedOn = (id: FeatureId, settings: Partial<FeatureSwitchSettings>) => resolveFeature(id, {
   toolsAtLaunch: true, settings, program: "none", playRegion: "pve",
   features: { gameFileSaving: { status: "available" }, nativeDoubleClick: { status: "available" },
     ...capabilityRecord(() => ({ status: "available" as const })) },
@@ -269,7 +269,6 @@ test("feature selection policies are deeply immutable", () => {
   assert.equal(Object.isFrozen(FEATURE_SELECTION_POLICIES), true);
   for (const [id, policy] of Object.entries(FEATURE_SELECTION_POLICIES)) {
     assert.equal(Object.isFrozen(policy), true, id);
-    assert.equal(Object.isFrozen(policy.activation), true, id);
   }
 });
 

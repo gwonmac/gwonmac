@@ -1,5 +1,4 @@
-import { setting } from "../../shared/settings/define.js";
-import { defineFeature } from "../define.js";
+import { defineFeature, featureSwitch } from "../define.js";
 
 export default defineFeature({
   id: "resign",
@@ -10,13 +9,8 @@ export default defineFeature({
   icon: "flag",
   settings: {
     /** Allow the confirmed PvE resign shortcut when Tools are enabled. */
-    resignEnabled: setting.boolean(false, {
-      tools: true,
-      label: "Resign",
-      help: "Allows the Resign shortcut and menu item. A dialog asks before /resign is sent.",
-    }),
+    resignEnabled: featureSwitch(false, { tools: true }),
   },
-  activation: { kind: "setting", setting: "resignEnabled", master: "gwonmacTools" },
   region: "pve",
   uses: ["resignAction"],
   tool: {

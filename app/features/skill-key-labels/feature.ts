@@ -5,7 +5,7 @@ import {
   isSkillKeyBindings,
   type SkillKeyBindings,
 } from "../../shared/skill-key-bindings.js";
-import { defineFeature } from "../define.js";
+import { defineFeature, featureSwitch } from "../define.js";
 
 export default defineFeature({
   id: "skillKeyLabels",
@@ -29,13 +29,8 @@ export default defineFeature({
       },
     ),
     /** Show the configured skill-key labels over the eight player skill slots. */
-    skillKeyLabelsEnabled: setting.boolean(false, {
-      tools: true,
-      label: "Skill Key Labels",
-      help: "Draws your own key names on the eight skill slots. Unset slots keep 1 to 8.",
-    }),
+    skillKeyLabelsEnabled: featureSwitch(false, { tools: true }),
   },
-  activation: { kind: "setting", setting: "skillKeyLabelsEnabled", master: "gwonmacTools" },
   region: "pve",
   uses: ["nativeHudRendering", "skillSlotGeometry"],
   tool: {

@@ -1,5 +1,4 @@
-import { setting } from "../../shared/settings/define.js";
-import { defineFeature } from "../define.js";
+import { defineFeature, featureSwitch } from "../define.js";
 
 export default defineFeature({
   id: "xunlaiStorage",
@@ -10,13 +9,8 @@ export default defineFeature({
   icon: "archive",
   settings: {
     /** Allow the explicit local Xunlai window command in supported outposts. */
-    xunlaiStorage: setting.boolean(false, {
-      tools: true,
-      label: "Xunlai Storage",
-      help: "Allows opening your storage from anywhere in a supported outpost.",
-    }),
+    xunlaiStorage: featureSwitch(false, { tools: true }),
   },
-  activation: { kind: "setting", setting: "xunlaiStorage", master: "gwonmacTools" },
   // The storage controller still owns the stronger, fresh access gate and its
   // user-facing reason. This coarse rule withdraws on a certified PvP map
   // outside a Guild Hall; the runtime value means requested, not available.

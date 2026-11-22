@@ -1,5 +1,4 @@
-import { setting } from "../../shared/settings/define.js";
-import { defineFeature } from "../define.js";
+import { defineFeature, featureSwitch } from "../define.js";
 
 export default defineFeature({
   id: "effectTimers",
@@ -10,13 +9,8 @@ export default defineFeature({
   icon: "hourglass",
   settings: {
     /** Show exact remaining durations over the controlled player's native Effects icons. */
-    effectTimersEnabled: setting.boolean(false, {
-      tools: true,
-      label: "Effect Timers",
-      help: "Shows the time left on each icon in your Effects panel. Effects with no end show no number.",
-    }),
+    effectTimersEnabled: featureSwitch(false, { tools: true }),
   },
-  activation: { kind: "setting", setting: "effectTimersEnabled", master: "gwonmacTools" },
   region: "pve",
   uses: ["nativeHudRendering", "effectIconGeometry"],
   programs: ["effect-observer"],

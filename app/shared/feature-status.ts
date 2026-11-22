@@ -6,7 +6,7 @@
  */
 import type { Feature, GlobalTool } from "../features/index.js";
 import { BUILD_CHECK_FAILED } from "./contracts.js";
-import { FEATURES, type FeatureId } from "./feature-contracts.js";
+import { FEATURES, FEATURE_SELECTION_POLICIES, type FeatureId } from "./feature-contracts.js";
 import { resolve, type FeatureOffReason, type FeatureResolution, type FeatureState } from "./feature-resolve.js";
 
 /** A Feature with a switch of its own: every Feature but the launch mode, which is the plain-game switch. */
@@ -67,14 +67,33 @@ export function featureStatus(feature: SwitchFeature, state: FeatureState, check
 /** Whether a card shows its reason instead of its summary: the player's own Off is the switch itself. */
 export const showsReason = (status: FeatureStatus) => !status.resolution.on && status.resolution.reason !== "switched-off";
 
+/** Every feature this one needs, nearest first, each once. */
+export function requiredFeatures(feature: SwitchFeature): SwitchFeature[] {
+  const found: SwitchFeature[] = [];
+  const visit = (each: SwitchFeature) => {
+    for (const id of "requires" in each ? each.requires : []) {
+      const required = byId.get(id);
+      if (required && !found.includes(required)) { found.push(required); visit(required); }
+    }
+  };
+  visit(feature);
+  return found;
+}
+
 /**
- * The saved switch each Feature moves in Settings › Tools. Until plan step 4.4 gives every
- * feature its own key, Progress and Team Apply move the switch of the feature they need, because
- * they share its setting.
+ * The saved switch each Feature moves in Settings › Tools: its own tool's, or for a feature with
+ * no switch of its own (Progress, Team Apply), the switch of the feature it runs with.
  */
-const toolBySetting = new Map<string, GlobalTool>(FEATURES.flatMap((feature) => "tool" in feature ? [[feature.activation.setting, feature.tool.id] as const] : []));
+const toolByFeature = new Map<FeatureId, GlobalTool>(FEATURES.flatMap((feature) => "tool" in feature ? [[feature.id, feature.tool.id] as const] : []));
 export function switchOf(feature: SwitchFeature): GlobalTool {
-  const tool = toolBySetting.get(feature.activation.setting);
+  const tool = [feature, ...requiredFeatures(feature)].map((each) => toolByFeature.get(each.id)).find((each) => each !== undefined);
   if (tool === undefined) throw new Error(`${feature.id} has no switch`);
   return tool;
+}
+
+/** Whether the switch a Feature moves (switchOf) is on in the saved settings. */
+export function switchedOn(feature: SwitchFeature, settings: FeatureState["settings"]): boolean {
+  const owner = [feature, ...requiredFeatures(feature)].find((each) => toolByFeature.has(each.id));
+  const key = owner ? FEATURE_SELECTION_POLICIES[owner.id].switch : null;
+  return key !== null && settings[key] === true;
 }

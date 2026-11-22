@@ -6,7 +6,7 @@
  * in the launcher. An off Feature adds nothing else: its own sources, commands and palettes stay
  * away while resolve has it off. Attached as one built-in source (hub-builtins.ts).
  */
-import { featureStatus, SWITCH_FEATURES, switchOf, type FeatureStatus, type SwitchFeature } from '../shared/feature-status.js';
+import { featureStatus, SWITCH_FEATURES, switchedOn, switchOf, type FeatureStatus, type SwitchFeature } from '../shared/feature-status.js';
 import { HUB_SCOPE_FEATURES, hubScopeWord, hubTier, normaliseHubQuery, type HubRow, type HubSource, type HubTask } from '../shared/hub.js';
 import { HUB_TOOL_ROWS } from '../shared/hub-tools.js';
 import type { SettingsTarget } from '../shared/settings-catalogue.js';
@@ -44,7 +44,7 @@ export function createHubFeatures(open: (target: SettingsTarget) => (task: HubTa
       const state = { ...facts, playRegion: 'unknown' as const };
       return SWITCH_FEATURES.flatMap((feature): HubRow[] => {
         if (feature.id !== scoped && !named(feature, query)) return [];
-        const status = featureStatus(feature, state, facts.settings[feature.activation.setting] === true);
+        const status = featureStatus(feature, state, switchedOn(feature, facts.settings));
         if (status.resolution.on) return [];
         const action = actionOf(feature, status);
         const iconKind = HUB_TOOL_ROWS.find(row => row.feature === feature.id)?.iconKind;

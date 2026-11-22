@@ -26,7 +26,7 @@ import { createHubDrafts } from './hub-drafts.js';
 import { hubLegend, hubRowPrimary, hubViewPrimary } from './hub-footer.js';
 import { HUB_FALLBACK, hubAtHome, hubInitialState, hubKey, hubReduce, hubRunning, hubSuspendedOn, hubTaskLive, type HubEffect, type HubEvent, type HubPage, type HubPlace, type HubStep } from './hub-engine.js';
 import { createHoverSelection } from '../shared/ui/hover-selection.js';
-import { FEATURES } from '../shared/feature-contracts.js';
+import { FEATURES, FEATURE_SELECTION_POLICIES } from '../shared/feature-contracts.js';
 import { featureOn } from './feature-on.js';
 import { HUB_LOCATED_DESTINATIONS, hubMatch, isHubCalculation, parseHubQuery, normaliseHubQuery, type HubAction, type HubDestination, type HubRow, type HubSource, type HubSummary, type HubTask, type HubViewAction, type HubViewFooter, type HubViewMount } from '../shared/hub.js';
 import { hubRowPaintsSame, type EmbeddedHubView, type HubFocusTarget, type HubMenuItem, type HubPrimary, type HubViewModel } from '../shared/ui/hub-view.js';
@@ -115,7 +115,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
   /** A source counts while its feature is on (feature-on.ts: resolve with main's facts). */
   const sourceEnabled = (source: HubSource) => {
     if (!source.feature) return true;
-    const feature = FEATURES.find(candidate => candidate.activation.setting === source.feature);
+    const feature = FEATURES.find(candidate => FEATURE_SELECTION_POLICIES[candidate.id].switch === source.feature);
     return !!feature && featureOn(feature.id);
   };
   const enabledSources = () => [...sources.keys()].filter(sourceEnabled);

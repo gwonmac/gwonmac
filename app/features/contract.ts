@@ -1,6 +1,7 @@
 /**
  * The feature contract checks that TypeScript cannot make: the id matches its folder,
- * every setting names itself, one shot file per caption, README.md stays inside the
+ * a feature has one switch (or follows the features it requires), a card's switch takes the
+ * feature's name and summary while every other setting names itself, one shot file per caption, README.md stays inside the
  * small Markdown subset the launcher renders, CHANGELOG.md has `## Unreleased`, every card
  * names a purpose, `requires` has no cycles, `uses` names only capabilities the verifier
  * knows, and every link names a Feature that offers the methods it calls. Pure: the caller reads the folders (tests/policy/feature-contract.test.ts runs it in
@@ -68,7 +69,19 @@ function checkFolder({ folder, manifest, files, readme, changelog }: FeatureFold
     problems.push(`${at}/feature.ts: no purpose; the Features tab groups every card by it (one of FEATURE_PURPOSES in app/features/define.ts).`);
   }
 
-  for (const [key, spec] of Object.entries(manifest.settings ?? {})) {
+  const settings = Object.entries(manifest.settings ?? {});
+  const switches = settings.flatMap(([key, spec]) => "switch" in spec && spec.switch === true ? [key] : []);
+  if (switches.length > 1) problems.push(`${at}/feature.ts: ${switches.join(" and ")} are all switches; a feature has one switch.`);
+  if (switches.length === 0 && (manifest.kind === "mode" || (manifest.requires ?? []).length === 0)) {
+    problems.push(`${at}/feature.ts: no switch; declare one with featureSwitch, or list in requires the features it runs with.`);
+  }
+  for (const [key, spec] of settings) {
+    if (switches.includes(key) && manifest.kind !== "mode") {
+      if (spec.label !== undefined || spec.help !== undefined) {
+        problems.push(`${at}/feature.ts: switch ${key} names itself; players see it under the feature's name and summary, so remove its label and help.`);
+      }
+      continue;
+    }
     if (typeof spec.label !== "string" || spec.label.trim() === "") problems.push(`${at}/feature.ts: setting ${key} has no label; players see it as a row name.`);
     if (typeof spec.help !== "string" || spec.help.trim() === "") problems.push(`${at}/feature.ts: setting ${key} has no help; say in one line what it does.`);
   }

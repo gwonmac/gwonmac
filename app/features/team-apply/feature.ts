@@ -1,6 +1,6 @@
 import { defineFeature } from "../define.js";
 
-/** Applying a saved team belongs to the Build Library, so it follows that setting. */
+/** Applying a saved team belongs to the Build Library: no switch of its own, it runs while the Library does. */
 export default defineFeature({
   id: "teamApply",
   name: "Team Apply",
@@ -8,7 +8,6 @@ export default defineFeature({
   kind: "party",
   purpose: "characters",
   icon: "users",
-  activation: { kind: "setting", setting: "buildLibrary", master: "gwonmacTools" },
   region: "pve",
   requires: ["buildLibrary"],
   uses: ["teamApply"],

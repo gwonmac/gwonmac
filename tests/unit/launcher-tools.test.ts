@@ -3,14 +3,14 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { DEFAULT_SETTINGS } from "../../app/shared/settings/index.ts";
 import { GLOBAL_TOOLS, GLOBAL_TOOL_FEATURES, globalToolPatch, launcherToolSettings } from "../../app/shared/launcher-contracts.ts";
-import { FEATURE_SELECTION_POLICIES, type FeatureActivationSettings, type FeatureId } from "../../app/shared/feature-contracts.ts";
+import { FEATURE_SELECTION_POLICIES, type FeatureSwitchSettings, type FeatureId } from "../../app/shared/feature-contracts.ts";
 import { DEFAULT_SHORTCUTS, resolveShortcuts } from "../../app/shared/keyboard-shortcuts.ts";
 import { allGlobalToolsPatch, launcherShortcutPatch } from "../../app/main/core/launcher-tools.ts";
 import { resolveFeature } from "../../app/shared/feature-resolve.ts";
 import { capabilityRecord } from "../../app/shared/enhancement-contracts.ts";
 
 /** resolve's answer with Features loaded, every capability proved and the character in PvE: only the switches decide. */
-const switchedOn = (id: FeatureId, settings: Partial<FeatureActivationSettings>) => resolveFeature(id, {
+const switchedOn = (id: FeatureId, settings: Partial<FeatureSwitchSettings>) => resolveFeature(id, {
   toolsAtLaunch: true, settings, program: "none", playRegion: "pve",
   features: { gameFileSaving: { status: "available" }, nativeDoubleClick: { status: "available" },
     ...capabilityRecord(() => ({ status: "available" as const })) },
@@ -28,9 +28,9 @@ describe("global launcher Tools", () => {
         assert.equal(switchedOn(id, settings), enabled, tool);
       }
     }
-    const settings = new Set(GLOBAL_TOOLS.map(tool => FEATURE_SELECTION_POLICIES[GLOBAL_TOOL_FEATURES[tool]].activation.setting));
-    for (const policy of Object.values(FEATURE_SELECTION_POLICIES)) {
-      if (policy.activation.kind !== "master") assert.ok(settings.has(policy.activation.setting));
+    const settings = new Set(GLOBAL_TOOLS.map(tool => FEATURE_SELECTION_POLICIES[GLOBAL_TOOL_FEATURES[tool]].switch));
+    for (const [id, policy] of Object.entries(FEATURE_SELECTION_POLICIES)) {
+      if (id !== "tools" && policy.switch !== null) assert.ok(settings.has(policy.switch), id);
     }
   });
 

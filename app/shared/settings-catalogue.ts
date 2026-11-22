@@ -3,7 +3,7 @@
  * ID, its label and the words players search with. Settings search and deep links (Hub search,
  * the memory warning) use these IDs; each rendered control carries `data-setting="<id>"`.
  * Labels, descriptions and tool keywords come from their owners (feature manifests, setting-copy, tool-presentation), so a
- * setting has one name everywhere (docs/settings.md).
+ * setting has one name everywhere (docs/settings.md): a feature's row takes its manifest's label and help, word for word.
  */
 import { CHARACTER_DETAILS, CHAT_FILTERS, GAME_SETTINGS, REMINDER_GROUPS, REMINDER_SOUND, REMINDER_TIMING, type SettingApplies } from "./setting-copy.js";
 import { featureSettingText, type FeatureSettingKey } from "./feature-contracts.js";
@@ -54,16 +54,19 @@ const toolEntry = (tool: GlobalTool): SettingEntry => {
   const { label, description, action } = TOOL_PRESENTATION[tool];
   return { id: `tool:${tool}`, section: "tools", label, detail: description, keywords: [TOOL_KEYWORDS[tool], action && KEYS].filter(Boolean).join(" ") };
 };
-const option = (tool: GlobalTool, entries: readonly { key: string; label: string; detail?: string }[], keywords: string): SettingEntry[] =>
-  entries.map(({ key, label, detail }) => ({ id: key, section: "tools", label, keywords, tool, ...(detail ? { detail } : {}) }));
 const game = (key: keyof typeof GAME_SETTINGS): SettingEntry => ({ id: key, section: "game", ...GAME_SETTINGS[key] });
-/** A feature setting, under the label its manifest gives it. */
-const feature = (key: FeatureSettingKey) => ({ id: key, label: featureSettingText(key).label });
+/** A feature setting, under the label and help its manifest gives it. */
+const feature = (key: FeatureSettingKey) => {
+  const { label, help } = featureSettingText(key);
+  return { id: key, label, detail: help };
+};
+const option = (tool: GlobalTool, entries: readonly { key: FeatureSettingKey }[], keywords: string): SettingEntry[] =>
+  entries.map(({ key }) => ({ ...feature(key), section: "tools", keywords, tool }));
 
 /** Every setting a player can find by name, in display order within its section. */
 export const SETTINGS: readonly SettingEntry[] = [
   { id: "hub", section: "tools", label: "Hub", detail: "Search everything in game. Always on, also in the plain game.", keywords: `search command palette ${KEYS}` },
-  { id: "gwonmacTools", section: "tools", label: "Play the plain game", detail: "Turns off every Feature. Your Feature choices stay saved.", keywords: "plain vanilla original official features optional tools beta enable disable all off" },
+  { ...feature("gwonmacTools"), section: "tools", keywords: "plain vanilla original official features optional tools beta enable disable all off" },
   ...GLOBAL_TOOLS.map(toolEntry),
   ...option("character-switch", CHARACTER_DETAILS, "character details"),
   ...option("chat-filters", CHAT_FILTERS, "chat filter spam"),
@@ -74,13 +77,13 @@ export const SETTINGS: readonly SettingEntry[] = [
   { ...feature("whispersIcon"), section: "tools", tool: "whispers", keywords: "hide whisper button icon unread" },
   { ...feature("skillKeyBindings"), section: "tools", tool: "skill-key-labels", keywords: "skill key labels bindings" },
 
-  { ...feature("cartographyGridEnabled"), section: "maps", detail: "Shows remaining exploration on the Mission Map and World Map.", keywords: `cartographer explore ${KEYS}` },
+  { ...feature("cartographyGridEnabled"), section: "maps", keywords: `cartographer explore ${KEYS}` },
   { ...feature("cartographyCompassGridEnabled"), section: "maps", keywords: "unexplored cells" },
-  { ...feature("compassRangeIndicatorsEnabled"), section: "maps", detail: "Range rings on the Compass.", keywords: "earshot shout cast casting spirit aggro rings" },
-  { ...feature("cartographyRouteEnabled"), section: "maps", detail: "Right-click the Mission Map or World Map to set a target. Right-click the target to remove it.", keywords: `path navigate waypoint target ${KEYS}` },
-  { ...feature("cartographyQuestRouteEnabled"), section: "maps", detail: "Without your own target, the walking route leads to your active quest.", keywords: "quest objective marker path" },
-  { ...feature("cartographyOverlayEnabled"), section: "maps", detail: "Shade areas you cannot walk on.", keywords: `walkability ${KEYS}` },
-  { ...feature("eliteSkillsEnabled"), section: "maps", detail: "Adds the planner to the World Map and your Hunt list to the Mission Map.", keywords: "elite capture hunt boss signet" },
+  { ...feature("compassRangeIndicatorsEnabled"), section: "maps", keywords: "earshot shout cast casting spirit aggro rings" },
+  { ...feature("cartographyRouteEnabled"), section: "maps", keywords: `path navigate waypoint target ${KEYS}` },
+  { ...feature("cartographyQuestRouteEnabled"), section: "maps", keywords: "quest objective marker path" },
+  { ...feature("cartographyOverlayEnabled"), section: "maps", keywords: `walkability ${KEYS}` },
+  { ...feature("eliteSkillsEnabled"), section: "maps", keywords: "elite capture hunt boss signet" },
   { ...feature("eliteMissionMapMarkers"), section: "maps", keywords: "elite hunt" },
   { ...feature("cartographyPresetLibrary"), section: "maps", keywords: "colors theme cartographer" },
   { id: "cartographyBoundaryWidth", section: "maps", label: "Terrain border thickness", keywords: "outline" },

@@ -1,7 +1,7 @@
 import type { CornerPosition } from "../../shared/corner-position.js";
 import { readCornerPlacement } from "../../shared/overlay-placement.js";
 import { setting } from "../../shared/settings/define.js";
-import { defineFeature } from "../define.js";
+import { defineFeature, featureSwitch } from "../define.js";
 
 export default defineFeature({
   id: "targetReadout",
@@ -12,11 +12,7 @@ export default defineFeature({
   icon: "crosshair",
   settings: {
     /** Experimental live target distance/range readout. */
-    targetReadout: setting.boolean(false, {
-      tools: true,
-      label: "Target Distance",
-      help: "Shows how far away your selected target is.",
-    }),
+    targetReadout: featureSwitch(false, { tools: true }),
     /** Where the player dragged the readout, as a distance from the nearest corner; null is the top centre. */
     targetReadoutPosition: setting.position(
       null,
@@ -32,7 +28,6 @@ export default defineFeature({
       },
     ),
   },
-  activation: { kind: "setting", setting: "targetReadout", master: "gwonmacTools" },
   region: "pve",
   uses: ["targetObservation"],
   programs: ["target-observer"],
