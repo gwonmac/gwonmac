@@ -265,6 +265,7 @@ compatibility, Core, and Tools capabilities. There is no remote certificate
 feed. [ArenaNet client compatibility](arenanet-compatibility.md) owns the proof
 rules, feature refusal boundaries, and patch day;
 [Recover certification](recertify.md) is the maintainer runbook.
+
 ## Required compatibility and optional Tools
 
 Required compatibility has two certification stages. The file-compatibility
@@ -273,11 +274,10 @@ Guild Wars cursor and native double-click, and every launch gets the sound
 decode repair. These behaviors have no player switch when their proof passes.
 
 Optional Features are off by default: new players start in the plain game.
-Turning off **Play the plain game** (`gwonmacTools` on) selects a
-commands-capable derived module on the next start, so it requires a restart.
-Every Feature except Progress and Team Apply also has its own switch; those two
-follow the Features they `require`. The plain game stops every Feature
-surface, shortcut, and alias, Character Switch included.
+[Settings](settings.md) (rule 6) owns the launch mode: what **Play the plain game**
+stores, the restart it needs, and the Features-page strip that says so. This
+page owns what each launch loads. Every Feature except Progress and Team Apply
+also has its own switch; those two follow the Features they `require`.
 
 The persisted `gwonmacTools` value is desired state. The launch-time
 `enhancementSelection.tools` value is the authoritative statement of what this
@@ -287,12 +287,13 @@ implementation only through uncalled dynamic imports. Shared validation,
 settings fields, labels, disabled menu entries, and fixed companion ABI metadata
 remain Core metadata. Tools implementation bytes may remain in the package.
 
-Turning the master off during a Tools-capable launch immediately removes tool
-surfaces, shortcuts, aliases, observers, commands, file access, and Trade
-network activity. It does not restart the game. The difference between saved
-state and launch selection is the pending-unload state shown in Settings. A
-restart selects the Core preload and module graph; re-enabling before that
-restart reactivates the already-loaded Tools runtime and clears the notice.
+Turning **Play the plain game** on during a Feature-capable launch immediately
+removes Feature surfaces, shortcuts, aliases, observers, commands, file access,
+and Trade network activity. It does not restart the game. The difference between
+saved state and launch selection is the pending-unload state, which the Features
+page shows as a restart notice. A restart selects the Core preload and module
+graph; turning the plain game off again before that restart reactivates the
+already-loaded Features runtime and clears the notice.
 
 After that restart, each Feature's own switch (for example Build Library,
 Trade Chat, Travel or Xunlai Storage) controls its surface, shortcut, and
@@ -485,7 +486,7 @@ shortcut slots or the Travel-owned document, never both. Main also serializes
 ordinary `settings.json` writes with Travel writes, so a settings change cannot
 replace a concurrent shortcut change.
 
-Team Apply requires enabled Tools and Build Library, a proved Team Apply
+Team Apply requires the Build Library Feature, a proved Team Apply
 capability, a positively classified PvE outpost, fresh party state,
 and an explicit player action.
 
