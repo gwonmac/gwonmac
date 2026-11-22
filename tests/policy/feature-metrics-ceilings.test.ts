@@ -1,7 +1,9 @@
 // Feature platform ratchet: each metric of scripts/feature-metrics.mjs may only go down.
 // Old paths (activation kinds, policy() reads, gw:* events, ...) cannot come back unnoticed.
-// A value above its ceiling fails; a value below it passes. To lower a ceiling, see "Metrics"
-// in docs/feature-platform-plan.md.
+// A value above its ceiling fails; a value below it passes. Values count only hits that are not in
+// scripts/feature-metrics-allowed.json, and an allowed entry that matches nothing fails, so the
+// list cannot hide a later hit. To lower a ceiling or allow a hit, see "Metrics" in
+// docs/feature-platform-plan.md.
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -15,7 +17,8 @@ const ceilings: Record<string, number> = JSON.parse(
 );
 
 test("no feature platform metric is above its ceiling", () => {
-  const { metrics } = measure();
+  const { metrics, stale } = measure();
+  assert.deepEqual(stale, [], "An allowed entry matches nothing. Remove it from scripts/feature-metrics-allowed.json.");
   assert.deepEqual(
     Object.keys(ceilings).sort(),
     metrics.map((metric) => metric.key).sort(),
