@@ -3,6 +3,7 @@ import {
   CARTOGRAPHY_CONTROL_IDLE_OPACITY_MIN,
   CARTOGRAPHY_OPACITY_MAX,
   CARTOGRAPHY_OPACITY_MIN,
+  CARTOGRAPHY_REVEAL_MODE_LABELS,
   CARTOGRAPHY_REVEAL_MODES,
   DEFAULT_CARTOGRAPHY_PRESET_LIBRARY,
   normaliseCartographyPresetLibrary,
@@ -14,7 +15,7 @@ import {
   COMPASS_RANGE_THEMES,
   DEFAULT_COMPASS_RANGE_OPACITY,
 } from "../../shared/compass-ranges.js";
-import { isEliteMissionMapMarkers, type EliteMissionMapMarkers } from "../../shared/elite-map-settings.js";
+import { ELITE_MISSION_MAP_MARKER_LABELS, ELITE_MISSION_MAP_MARKERS } from "../../shared/elite-map-settings.js";
 import { NO_OVERLAY_OFFSET, readOverlayOffset, type OverlayOffset } from "../../shared/overlay-placement.js";
 import { setting } from "../../shared/settings/define.js";
 import { defineFeature, featureSwitch } from "../define.js";
@@ -28,12 +29,12 @@ const rangeShown = (range: string) => setting.boolean(true, {
 const rangeOpacity = (range: string) => setting.integer(
   DEFAULT_COMPASS_RANGE_OPACITY,
   { min: COMPASS_RANGE_OPACITY_MIN, max: COMPASS_RANGE_OPACITY_MAX },
-  { ...MAP_LAYER, label: `${range} range opacity`, help: `How strongly the ${range} range ring shows.` },
+  { ...MAP_LAYER, label: `${range} range opacity`, help: `How strongly the ${range} range ring shows.`, unit: "%" },
 );
 const cartographyOpacity = (fallback: number, label: string, help: string) => setting.integer(
   fallback,
   { min: CARTOGRAPHY_OPACITY_MIN, max: CARTOGRAPHY_OPACITY_MAX },
-  { ...MAP_LAYER, label, help },
+  { ...MAP_LAYER, label, help, unit: "%" },
 );
 
 export default defineFeature({
@@ -74,12 +75,14 @@ export default defineFeature({
       tools: true,
       label: "Route to quest",
       help: "Without your own target, the walking route leads to your active quest.",
+      dependsOn: "cartographyRouteEnabled",
     }),
     /** Include the Compass in exploration-grid presentation; off by default. */
     cartographyCompassGridEnabled: setting.boolean(false, {
       hub: true,
       label: "Markers on Compass",
       help: "Adds nearby unexplored cells to the Compass.",
+      dependsOn: "cartographyGridEnabled",
     }),
     /** Draw standard Guild Wars ranges around the player on the Compass. */
     compassRangeIndicatorsEnabled: setting.boolean(false, {
@@ -102,6 +105,7 @@ export default defineFeature({
       launcherError: "Compass range theme is invalid",
       label: "Range colors",
       help: "Color gives each ring its own color. Monochrome draws every ring in white.",
+      choices: { color: "Color", monochrome: "Monochrome" },
     }),
     /** Persistent Compass footprint; Mission Map hover uses Shift or Option+Shift. */
     cartographyRevealMode: setting.enum(CARTOGRAPHY_REVEAL_MODES, "off", {
@@ -109,6 +113,11 @@ export default defineFeature({
       launcherError: "cartography reveal mode is invalid",
       label: "Reveal range",
       help: "Shows on the Compass the area your position reveals: Normal 3×3 or Bird’s Eye 7×7.",
+      choices: {
+        off: CARTOGRAPHY_REVEAL_MODE_LABELS.off.label,
+        normal: CARTOGRAPHY_REVEAL_MODE_LABELS.normal.label,
+        "birds-eye": CARTOGRAPHY_REVEAL_MODE_LABELS["birds-eye"].label,
+      },
     }),
     /** Active built-in or player-owned appearance and all custom presets. */
     cartographyPresetLibrary: setting.value(
@@ -133,13 +142,14 @@ export default defineFeature({
         hub: true,
         label: "Compass control visibility",
         help: "How visible the closed Compass control is while you do not use it.",
+        unit: "%",
       },
     ),
-    /** Draw the two buttons beside the Compass; every choice they offer is also in Settings › Maps. */
+    /** Draw the two buttons beside the Compass; every choice they offer is also on the Maps page. */
     compassButtonsShown: setting.boolean(true, {
       hub: true,
       label: "Show compass buttons",
-      help: "Shows the two buttons beside the Compass. Every choice they offer is also in Settings › Maps.",
+      help: "Shows the two buttons beside the Compass. Every choice they offer is also on this page.",
     }),
     /** How far the player dragged the Compass buttons from their place beside the Compass, in pixels. */
     compassButtonsOffset: setting.position(
@@ -161,17 +171,15 @@ export default defineFeature({
       help: "Adds the planner to the World Map and your Hunt list to the Mission Map.",
     }),
     /** Capture locations that the Mission Map shows during play. */
-    eliteMissionMapMarkers: setting.value(
-      "saved",
-      (value): EliteMissionMapMarkers | undefined => isEliteMissionMapMarkers(value) ? value : undefined,
-      {
-        ...MAP_LAYER,
-        tools: true,
-        launcherError: "Mission Map markers are invalid",
-        label: "Mission Map markers",
-        help: "Which boss markers the Mission Map shows: your Hunt list, all planner matches, or none.",
-      },
-    ),
+    eliteMissionMapMarkers: setting.enum(ELITE_MISSION_MAP_MARKERS, "saved", {
+      ...MAP_LAYER,
+      tools: true,
+      launcherError: "Mission Map markers are invalid",
+      label: "Mission Map markers",
+      help: "Which boss markers the Mission Map shows: your Hunt list, all planner matches, or none.",
+      choices: ELITE_MISSION_MAP_MARKER_LABELS,
+      dependsOn: "eliteSkillsEnabled",
+    }),
   },
   region: "pve",
   /** Every layer runs on the certified Cartography stage: a refused stage turns Maps off with a reason. */
@@ -182,7 +190,7 @@ export default defineFeature({
   },
   hub: {
     command: "maps", order: 6,
-    row: { detail: "Exploration grid, walkable terrain, walking route and compass ranges", iconKind: "maps", action: "Adjust maps", open: { settings: "maps" } },
+    row: { detail: "Exploration grid, walkable terrain, walking route and compass ranges", iconKind: "maps", action: "Adjust maps", open: { featurePage: true } },
   },
   shortcuts: [
     { action: "cartography.grid.toggle", binding: null, label: "Exploration grid" },

@@ -29,7 +29,7 @@ const manifest = (id: string, more: Partial<FeatureDefinition> = {}): FeatureDef
   ...more,
 });
 /** The README part that says where players turn a Feature on. */
-const details = "\n### Details\n- **Turn on:** in Settings › Tools.\n";
+const details = "\n### Details\n- **Turn on:** on its Feature page.\n";
 const folder = (feature: FeatureDefinition, more: Partial<FeatureFolder> = {}): FeatureFolder => ({
   folder: feature.id.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`),
   manifest: feature,

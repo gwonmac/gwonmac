@@ -15,7 +15,7 @@ Where the stack goes depends on what is open:
 A stack fills matching stacks first, then empty slots. If there is no room, the rest stays where it was.
 
 ### Details
-- **Turn on:** :setting[Quick Item Move]{to="tools/tool:quick-item-move"}, off while you play the :setting[plain game]{to="tools/gwonmacTools"}. It is off by default.
+- **Turn on:** :setting[Quick Item Move]{to="features/tool:quick-item-move"}, off while you play the :setting[plain game]{to="features/gwonmacTools"}. It is off by default.
 - **Open:** it has no window. Open Xunlai Storage or a trade window, then <kbd>Ctrl</kbd>-click an item.
 
 > It works only with an open storage or trade window, and not during PvP play.

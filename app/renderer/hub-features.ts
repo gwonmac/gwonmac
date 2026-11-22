@@ -2,11 +2,11 @@
  * Owns the Hub's rows for Features that are off. A search that names an off Feature, by its name
  * or the scope word its rows answer (`whisper`, `travel`), finds one row with the reason the
  * launcher's Features tab shows (app/shared/feature-status.ts) and, where the player can act,
- * one action: Turn on opens the switch in Settings, Check for updates opens Settings › Updates
+ * one action: Turn on opens its Feature page in Settings at the switch, Check for updates opens Settings › Updates
  * in the launcher. An off Feature adds nothing else: its own sources, commands and palettes stay
  * away while resolve has it off. Attached as one built-in source (hub-builtins.ts).
  */
-import { featureStatus, SWITCH_FEATURES, switchedOn, switchOf, type FeatureStatus, type SwitchFeature } from '../shared/feature-status.js';
+import { featureStatus, runsWith, SWITCH_FEATURES, switchedOn, switchOf, type FeatureStatus, type SwitchFeature } from '../shared/feature-status.js';
 import { HUB_SCOPE_FEATURES, hubScopeWord, hubTier, normaliseHubQuery, type HubRow, type HubSource, type HubTask } from '../shared/hub.js';
 import { HUB_TOOL_ROWS } from '../shared/hub-tools.js';
 import type { SettingsTarget } from '../shared/settings-catalogue.js';
@@ -24,7 +24,8 @@ function named(feature: SwitchFeature, query: string): boolean {
 /** The one thing a player can do about the reason here, or null when only waiting helps. */
 function actionOf(feature: SwitchFeature, status: FeatureStatus): Readonly<{ label: string; target: SettingsTarget }> | null {
   if (status.resolution.on) return null;
-  const turnOn = (each: SwitchFeature) => ({ label: `Turn on ${each.name}`, target: { section: 'tools', control: `tool:${switchOf(each)}` } as const });
+  // The switch sits on the page of the Feature that owns it: Progress's is Travel's.
+  const turnOn = (each: SwitchFeature) => ({ label: `Turn on ${each.name}`, target: { section: 'features', feature: (runsWith(each) ?? each).id, control: `tool:${switchOf(each)}` } as const });
   switch (status.resolution.reason) {
     case 'switched-off': return turnOn(feature);
     case 'needs': return turnOn(status.needs ?? feature);

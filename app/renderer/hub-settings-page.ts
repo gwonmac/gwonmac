@@ -7,7 +7,7 @@
  */
 import type { EmbeddedSettings } from '../shared/hub-settings.js';
 import { normaliseHubQuery, type HubPresenter, type HubRow, type HubSource, type HubTask } from '../shared/hub.js';
-import { HUB_SECTIONS, SETTINGS, SETTINGS_SECTIONS, type SettingEntry, type SettingsTarget } from '../shared/settings-catalogue.js';
+import { HUB_SECTIONS, SETTINGS, SETTINGS_SECTIONS, settingPlace, settingTarget, type SettingEntry, type SettingsTarget } from '../shared/settings-catalogue.js';
 import type { Hub } from './hub.js';
 
 /** Shown when the launcher window cannot be opened from the game. */
@@ -89,16 +89,15 @@ export function createHubSettings(hub: Hub) {
   };
   /** A setting row opens Settings at its control: in the Hub, or in the launcher for the launcher's sections. */
   const settingRow = (entry: SettingEntry): HubRow => {
-    const section = SETTINGS_SECTIONS.find(candidate => candidate.id === entry.section)!.label;
     const inHub = HUB_SECTIONS.has(entry.section);
     return { id: `setting:${entry.id}`, title: entry.label, keywords: `setting ${entry.keywords ?? ''}`, group: 'Settings',
-      detail: inHub ? `Settings › ${section}` : `Settings › ${section} in the launcher`, action: inHub ? 'Open setting' : 'Open in Launcher',
-      run: open({ section: entry.section, control: entry.id }) };
+      detail: inHub ? `Settings › ${settingPlace(entry)}` : `Settings › ${settingPlace(entry)} in the launcher`, action: inHub ? 'Open setting' : 'Open in Launcher',
+      run: open(settingTarget(entry)) };
   };
   const source: HubSource = {
     search: () => [],
     commands: query => [
-      { id: 'settings', iconKind: 'settings', title: 'Settings', detail: 'Tools, maps, appearance and game · ⌘,', keywords: 'preferences graphics appearance hotkeys shortcuts', group: 'Commands', action: 'Open Settings', run: open() },
+      { id: 'settings', iconKind: 'settings', title: 'Settings', detail: 'Features, appearance and game · ⌘,', keywords: 'preferences graphics appearance hotkeys shortcuts', group: 'Commands', action: 'Open Settings', run: open() },
       // Settings are found by their own words (HUB-063). They follow the commands, so a command's own word keeps its row first.
       ...(normaliseHubQuery(query).length < 3 ? [] : SETTINGS_SECTIONS).map(({ id, label, keywords }) => ({ id: `settings:${id}`, iconKind: 'settings' as const, title: label, detail: HUB_SECTIONS.has(id) ? 'Settings section' : 'Settings section in the launcher', keywords, group: 'Settings', action: HUB_SECTIONS.has(id) ? `Open ${label} settings` : 'Open in Launcher', run: open({ section: id }) })),
       ...(normaliseHubQuery(query).length < 3 ? [] : SETTINGS).map(settingRow),

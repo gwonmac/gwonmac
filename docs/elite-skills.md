@@ -33,8 +33,8 @@ Account unlocks never imply that the current character learned a skill.
 
 ## Settings
 
-**Settings → Maps → Elite skills** owns two app-wide settings. They apply only
-while **Maps** is enabled. The in-game Hub **Maps** view has the on/off switch.
+The **Maps** Feature page owns two app-wide settings. They apply only
+while **Maps** is enabled. In the game, the Hub's **Maps** row opens the same page.
 
 - **Elite skill planner** (`eliteSkillsEnabled`, on by default) adds the planner
   and its markers. Turning it off removes both without affecting other Maps

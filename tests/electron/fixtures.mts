@@ -14,6 +14,7 @@ import {
   seedCachedClient,
 } from "../helpers/cached-client.js";
 import { SETTINGS_SECTIONS } from "../../app/shared/settings-catalogue.js";
+import type { FeatureId } from "../../app/shared/feature-contracts.js";
 import { PROJECT_NEWS_URL, WIKI_UPDATES_URL } from "../../app/main/core/launcher-news.js";
 
 export const root = path.resolve(
@@ -271,9 +272,21 @@ export async function closeOffline(fixture: OfflineFixture): Promise<void> {
  * Opens the launcher's Settings page from the header gear, at `section` when given, and
  * returns the launcher page that shows it.
  */
+/** Opens the launcher's Features tab, at a Feature's page when one is named. */
+export async function openFeatures(fixture: OfflineFixture, feature?: FeatureId): Promise<Page> {
+  const page = fixture.app.windows().find(candidate => candidate.url().endsWith("/launcher/index.html")) ?? fixture.page;
+  await page.getByRole("navigation", { name: "Main navigation" }).getByRole("button", { name: "Features", exact: true }).click();
+  await page.locator(".features-page").waitFor();
+  if (feature) {
+    await page.locator(`[data-feature="${feature}"] .card-link`).click();
+    await page.locator(".feature-page").waitFor();
+  }
+  return page;
+}
+
 export async function openSettings(
   fixture: OfflineFixture,
-  target?: { section: (typeof SETTINGS_SECTIONS)[number]["id"] },
+  target?: { section: Exclude<(typeof SETTINGS_SECTIONS)[number]["id"], "features"> },
 ): Promise<Page> {
   const page = fixture.app.windows().find(candidate => candidate.url().endsWith("/launcher/index.html")) ?? fixture.page;
   await page.getByRole("button", { name: "Settings", exact: true }).click();

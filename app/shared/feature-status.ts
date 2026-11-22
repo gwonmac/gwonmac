@@ -23,7 +23,7 @@ export type FeatureStatus = Readonly<{
   tone: ReasonTone;
   /**
    * The switch shows the saved choice but cannot change it: only in the plain game, which keeps
-   * every choice for when it is turned off (as Settings › Tools does since #44).
+   * every choice for when it is turned off (#44).
    */
   locked: boolean;
   /** The feature to turn on first, for `needs`. */
@@ -94,7 +94,7 @@ export function requiredFeatures(feature: SwitchFeature): SwitchFeature[] {
 }
 
 /**
- * The saved switch each Feature moves in Settings › Tools: its own tool's, or for a feature with
+ * The saved switch each Feature moves on its card and page: its own tool's, or for a feature with
  * no switch of its own (Progress, Team Apply), the switch of the feature it runs with.
  */
 const toolByFeature = new Map<FeatureId, GlobalTool>(FEATURES.flatMap((feature) => "tool" in feature ? [[feature.id, feature.tool.id] as const] : []));

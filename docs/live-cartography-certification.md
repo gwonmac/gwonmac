@@ -7,7 +7,7 @@ and walkability layer over Guild Wars' native maps.
 ## Before launching
 
 1. Build and run all offline checks from the feature worktree.
-2. Enable **Grid** in **Settings → Maps**. Leave **Walkable terrain** off for
+2. Enable **Grid** on the **Maps** Feature page. Leave **Walkable terrain** off for
    the first captures.
 3. Start the evidence runner:
 

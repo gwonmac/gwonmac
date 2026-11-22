@@ -10,7 +10,8 @@ export const HUB_SETTINGS_FIELDS = HUB_SETTINGS;
 /** The settings the game window reads and changes: those of the Settings page's in-game sections. */
 export type HubSettings = Pick<LauncherSettings, typeof HUB_SETTINGS_FIELDS[number]>;
 export type HubSettingsPatch = Partial<HubSettings>;
-export type HubSettingsSnapshot = Pick<LauncherSnapshot, 'tools' | 'shortcuts'> & { settings: HubSettings };
+/** The Features section reads `features` (main's facts for resolve) and `appVersion` (its What's new badges). */
+export type HubSettingsSnapshot = Pick<LauncherSnapshot, 'tools' | 'shortcuts' | 'features'> & { settings: HubSettings; appVersion: string };
 /** A settings write limited to the in-game fields; main applies it like the launcher's. */
 export type HubSettingsChange = Exclude<SettingsWrite, { kind: 'settings' | 'renderer' }> | { kind: 'settings'; patch: HubSettingsPatch };
 export interface HubSettingsApi {
@@ -22,7 +23,7 @@ export interface HubSettingsApi {
 }
 export function hubSettingsSnapshot(snapshot: LauncherSnapshot): HubSettingsSnapshot {
   const settings = Object.fromEntries(HUB_SETTINGS_FIELDS.map(key => [key, snapshot.settings[key]])) as HubSettings;
-  return { settings, tools: snapshot.tools, shortcuts: snapshot.shortcuts };
+  return { settings, tools: snapshot.tools, shortcuts: snapshot.shortcuts, features: snapshot.features, appVersion: snapshot.appUpdate.currentVersion };
 }
 export function parseHubSettingsChange(value: unknown): HubSettingsChange {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid Hub settings change');

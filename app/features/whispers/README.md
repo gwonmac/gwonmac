@@ -5,10 +5,10 @@ Whispers is a movable panel for whisper conversations. It shows incoming whisper
 2. Pick a person from friends, open conversations, recent people or names seen in chat.
 3. Type your message and press Enter or **Send**. Opening a result sends nothing.
 
-A small movable icon shows unread messages without taking focus. Drag it, or use <kbd>⌥</kbd> and the arrow keys, to move it; every game window keeps that place, and :setting[Whispers icon position]{to="tools/whispersIconPosition"} puts it back. Turn :setting[Show the Whispers icon]{to="tools/whispersIcon"} off to hide it; the shortcut and the Hub still open Whispers. Hide Whispers with the **Hide Whispers** button; your drafts stay until the session ends.
+A small movable icon shows unread messages without taking focus. Drag it, or use <kbd>⌥</kbd> and the arrow keys, to move it; every game window keeps that place, and :setting[Whispers icon position]{to="features/whispersIconPosition"} puts it back. Turn :setting[Show the Whispers icon]{to="features/whispersIcon"} off to hide it; the shortcut and the Hub still open Whispers. Hide Whispers with the **Hide Whispers** button; your drafts stay until the session ends.
 
 ### Details
-- **Turn on:** :setting[Whispers]{to="tools/tool:whispers"}, off while you play the :setting[plain game]{to="tools/gwonmacTools"}. It is off by default.
+- **Turn on:** :setting[Whispers]{to="features/tool:whispers"}, off while you play the :setting[plain game]{to="features/gwonmacTools"}. It is off by default.
 - **Open:** <kbd>⌘</kbd> <kbd>D</kbd>, **View → Whispers**, or `whisper` and a character name in the Hub.
 - **Settings:** in the panel’s options menu: sound (**Off**, **When chat is in background**, or **Every incoming whisper**), **Background** opacity, **Mute this conversation**, **Close read conversations**, and **Clear recent people**.
 - **Limits:** PvE only. The panel hides during loading screens and in PvP. A message has a length limit, which the message box shows. The panel holds up to 32 open conversations.

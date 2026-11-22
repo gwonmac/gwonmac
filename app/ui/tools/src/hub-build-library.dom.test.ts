@@ -269,18 +269,18 @@ test('an unrelated source update keeps the build target page, query and selectio
   }
 });
 
-test('turning a Tool off in Settings keeps the Settings page and section', async () => {
+test('turning a Feature off in Settings keeps the Settings page and section', async () => {
   await mountFixture();
   await submit('accounts');
   expect(caption()).toBe('Accounts');
-  window.gwHub!.openSettings({ section: 'tools' }); await settle();
-  const tools = [...document.querySelectorAll<HTMLButtonElement>('[aria-label="Settings sections"] button')].find(item => item.textContent?.trim() === 'Tools')!;
-  click(tools); await settle();
-  const travel = narrow(HTMLInputElement, byRole('checkbox', 'Travel', true)[0]);
+  window.gwHub!.openSettings({ section: 'features' }); await settle();
+  const features = [...document.querySelectorAll<HTMLButtonElement>('[aria-label="Settings sections"] button')].find(item => item.textContent?.trim() === 'Features')!;
+  click(features); await settle();
+  const travel = narrow(HTMLInputElement, byRole('switch', 'Travel', true)[0]);
   click(travel); await settle();
   expect(caption()).toBe('Settings');
-  expect(tools.getAttribute('aria-current')).toBe('page');
-  expect(narrow(HTMLInputElement, byRole('checkbox', 'Travel', true)[0]).checked).toBe(false);
+  expect(features.getAttribute('aria-current')).toBe('page');
+  expect(narrow(HTMLInputElement, byRole('switch', 'Travel', true)[0]).checked).toBe(false);
 });
 
 test('folder-qualified builds show their path in every spelling and keep it through review and Back', async () => {

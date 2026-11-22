@@ -16,7 +16,6 @@ import type { FeatureUse } from "../shared/contracts.js";
 import type { EnhancementProgram } from "../shared/enhancement-contracts.js";
 import type { ShortcutBinding } from "../shared/keyboard-shortcuts.js";
 import { setting, type SettingScope, type SettingSpec } from "../shared/settings/define.js";
-import type { SettingsSection } from "../shared/settings-catalogue.js";
 import type { HubIconKind } from "../shared/ui/hub-icon.js";
 
 /**
@@ -24,14 +23,14 @@ import type { HubIconKind } from "../shared/ui/hub-icon.js";
  * name (`Open <name>` by default) and how it opens; it matches the tool's `keywords`. A tool
  * opens through its own `event` or its Feature's link `toggle` (`offers`), asked to `show` (never
  * to close), as a Hub page (`page`, so Right Arrow opens it too) or after the Hub closes
- * (`closesHub`); or at a Settings section.
+ * (`closesHub`); or at its own Feature page in the Hub's Settings (`featurePage`).
  */
 export type HubToolRow = Readonly<{
   detail: string;
   iconKind: HubIconKind;
   action?: string;
   aliases?: readonly string[];
-  open: Readonly<{ show?: true; page?: true; closesHub?: true }> | Readonly<{ settings: SettingsSection }>;
+  open: Readonly<{ show?: true; page?: true; closesHub?: true }> | Readonly<{ featurePage: true }>;
 }>;
 
 /**
@@ -101,9 +100,9 @@ export type FeatureDefinition = Readonly<{
    * and the AGENTS.md "Must stay" tests/certification/feature-region-gating.test.ts), so it stays camelCase.
    */
   id: string;
-  /** The player name: card title, Feature page title, Settings › Tools, Hub row. */
+  /** The player name: card title, Feature page title, Hub row. */
   name: string;
-  /** One plain sentence under the name: card line, Settings › Tools. */
+  /** One plain sentence under the name: card line, Feature page. */
   summary: string;
   kind: FeatureKind;
   /** The player goal it serves; every feature but the launch mode names one (./contract.ts). */
@@ -112,6 +111,8 @@ export type FeatureDefinition = Readonly<{
   icon: string;
   /** Settings this feature owns: its switch (`featureSwitch`), and options, each with a label and help. */
   settings?: FeatureSettingSpecs;
+  /** One line under the Settings heading on its Feature page, for a rule that spans its options. */
+  settingsHelp?: string;
   /** The coarse region rule; a feature's live-state gate stays authoritative. */
   region: "any" | "non-pvp" | "pve";
   /** Features that must be on for this one to run, by id (app/shared/feature-resolve.ts). */
@@ -129,7 +130,7 @@ export type FeatureDefinition = Readonly<{
   network?: readonly string[];
   /** Enabling Tools in first-run setup also turns this feature's switch on. */
   optInWithTools?: true;
-  /** The feature's switch in Settings › Tools, shown with `name` and `summary`; GLOBAL_TOOLS keeps FEATURES order. */
+  /** The feature's switch on its card and Feature page, shown with `name` and `summary`; GLOBAL_TOOLS keeps FEATURES order. */
   tool?: Readonly<{
     id: string;
     /** Extra words Settings search and the tool's Hub row match. */
@@ -177,4 +178,11 @@ export type FeatureDefinition = Readonly<{
   parts: readonly FeaturePartKind[];
 }>;
 
-export const defineFeature = <const Feature extends FeatureDefinition>(feature: Feature): Feature => feature;
+/** The switches among a Feature's own settings: what an option's `dependsOn` may name. */
+type OwnSwitchKey<Specs> = { [Key in keyof Specs]: Specs[Key] extends SettingSpec<boolean> ? Key : never }[keyof Specs] & string;
+/** Requires each `dependsOn` to name a switch of the same Feature, so a typo fails to compile. */
+type DependsOnOwnSwitch<Feature> = Feature extends Readonly<{ settings: infer Specs }>
+  ? Readonly<{ settings: { [Key in keyof Specs]: Specs[Key] extends Readonly<{ dependsOn: string }> ? Readonly<{ dependsOn: OwnSwitchKey<Specs> }> : unknown } }>
+  : unknown;
+
+export const defineFeature = <const Feature extends FeatureDefinition>(feature: Feature & DependsOnOwnSwitch<Feature>): Feature => feature;

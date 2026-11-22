@@ -1,21 +1,28 @@
 import { flushPromises, mount } from "@vue/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { LauncherNativeApi, LauncherSnapshot } from "@shared/launcher-contracts";
-import { SETTINGS, type SettingsTarget } from "@shared/settings-catalogue";
+import { SETTINGS, SETTINGS_SECTIONS, type SettingsTarget } from "@shared/settings-catalogue";
+import { SWITCH_FEATURES } from "@shared/feature-status";
 import SettingsView from "./SettingsView.vue";
-import { fixtureSnapshot } from "../fixtures";
+import { fixtureFacts, fixtureFeatureChecksFor, fixtureSnapshot } from "../fixtures";
 import { CARTOGRAPHY_BUILTIN_PRESETS } from "@shared/cartography-overlay";
 import { addCartographyPreset } from "@shared/cartography-presets";
 
-const allToolsOn: LauncherSnapshot = {
-  ...fixtureSnapshot,
-  tools: { ...fixtureSnapshot.tools, configured: true, loaded: true, features: Object.fromEntries(Object.entries(fixtureSnapshot.tools.features).map(([tool, feature]) => [tool, { ...feature, enabled: true }])) as LauncherSnapshot["tools"]["features"] },
+const allTools: LauncherSnapshot["tools"] = { ...fixtureSnapshot.tools, configured: true, loaded: true, features: Object.fromEntries(Object.entries(fixtureSnapshot.tools.features).map(([tool, feature]) => [tool, { ...feature, enabled: true }])) as LauncherSnapshot["tools"]["features"] };
+/** Every Feature on, on a client build the verifier proved. */
+const allToolsOn: LauncherSnapshot = { ...fixtureSnapshot, tools: allTools, features: fixtureFacts(allTools, fixtureFeatureChecksFor("?checks=proved")) };
+
+/** The simple launcher has no Features tab, so its Settings page lists Features. */
+const simple = (snapshot: LauncherSnapshot): LauncherSnapshot => ({ ...snapshot, preferences: { ...snapshot.preferences, content: { ...snapshot.preferences.content, simple: true } } });
+const hubSnapshot = (settings = fixtureSnapshot.settings) => {
+  const { tools, shortcuts, features } = fixtureSnapshot;
+  return { settings, tools, shortcuts, features, appVersion: fixtureSnapshot.appUpdate.currentVersion };
 };
 
-/** Mounts the page as the launcher does; it opens on Tools unless `target` names another place. */
-function mountView(overrides: Record<string, unknown> = {}, { snapshot = fixtureSnapshot, target = { section: "tools" } as SettingsTarget | null, attach = false } = {}) {
+/** Mounts the page as the launcher does; it opens on Appearance unless `target` names another place. */
+function mountView(overrides: Record<string, unknown> = {}, { snapshot = fixtureSnapshot, target = { section: "appearance" } as SettingsTarget | null, attach = false } = {}) {
   const native = { ...overrides } as unknown as LauncherNativeApi;
-  return mount(SettingsView, { props: { snapshot, native, launcher: { snapshot, native }, target }, ...(attach ? { attachTo: document.body } : {}) });
+  return mount(SettingsView, { props: { snapshot: { ...snapshot, appVersion: snapshot.appUpdate.currentVersion }, native, launcher: { snapshot, native }, target }, ...(attach ? { attachTo: document.body } : {}) });
 }
 
 async function openSection(wrapper: ReturnType<typeof mount>, label: string) {
@@ -28,21 +35,32 @@ afterEach(() => {
 });
 
 describe("Settings page", () => {
-  it("renders exactly one control, with the same label, for every setting search can open", async () => {
-    const wrapper = mountView({}, { snapshot: allToolsOn });
+  it("renders exactly one control, with the same label, at the place every setting search can open", async () => {
+    // The full launcher draws Home's choices; the simple one keeps Features in Settings.
+    let wrapper = mountView({}, { snapshot: allToolsOn, target: null });
     await flushPromises();
+    // Keyed by place and control: a search hit must land where its control is.
     const found = new Map<string, string[]>();
-    for (const button of wrapper.findAll(".settings-page nav button")) {
-      await button.trigger("click");
+    const collect = async (target: SettingsTarget) => {
+      await wrapper.setProps({ target });
       await flushPromises();
       for (const control of wrapper.findAll("[data-setting]")) {
-        const id = control.attributes("data-setting")!;
-        found.set(id, [...found.get(id) ?? [], `${control.attributes("aria-label") ?? ""} ${control.text()}`]);
+        const key = `${target.feature ?? target.section} ${control.attributes("data-setting")!}`;
+        // A Feature's switch is its page's Turn on button, named by the page heading.
+        const heading = control.element.closest(".feature-head")?.querySelector("h1")?.textContent ?? "";
+        const names = [control.element, ...control.element.querySelectorAll("[aria-label]")].map((element) => element.getAttribute("aria-label") ?? "").join(" ");
+        found.set(key, [...found.get(key) ?? [], `${names} ${control.text()} ${heading}`]);
       }
-    }
+    };
+    for (const { id } of SETTINGS_SECTIONS) if (id !== "features") await collect({ section: id });
+    wrapper.unmount();
+    wrapper = mountView({}, { snapshot: simple(allToolsOn), target: null });
+    await collect({ section: "features" });
+    for (const { id } of SWITCH_FEATURES) await collect({ section: "features", feature: id });
     for (const entry of SETTINGS) {
-      expect(found.get(entry.id), entry.id).toHaveLength(1);
-      expect(found.get(entry.id)![0], entry.id).toContain(entry.label);
+      const key = `${entry.feature ?? entry.section} ${entry.id}`;
+      expect(found.get(key), key).toHaveLength(1);
+      expect(found.get(key)![0], key).toContain(entry.label);
     }
     wrapper.unmount();
   });
@@ -84,13 +102,20 @@ describe("Settings page", () => {
     wrapper.unmount();
   });
 
-  it("opens at the control the Hub asked for, inside its closed tool options", async () => {
-    const wrapper = mountView({}, { snapshot: allToolsOn, target: { section: "tools", control: "chatFilterAllyDrops" }, attach: true });
+  it("opens a Feature option on its Feature page, or in the Features tab when the launcher has one", async () => {
+    const target: SettingsTarget = { section: "features", feature: "chatFilters", control: "chatFilterAllyDrops" };
+    const wrapper = mountView({}, { snapshot: simple(allToolsOn), target, attach: true });
     await flushPromises();
     const row = wrapper.get('[data-setting="chatFilterAllyDrops"]');
-    expect(row.element.closest("details")!.open).toBe(true);
+    expect(wrapper.get(".feature-page h1").text()).toBe("Chat Filters");
+    expect(row.classes()).toContain("setting-focus");
     expect(document.activeElement).toBe(row.get("input").element);
     wrapper.unmount();
+
+    const tabs = mountView({}, { snapshot: allToolsOn, target });
+    await flushPromises();
+    expect(tabs.emitted("features")).toEqual([[target]]);
+    tabs.unmount();
   });
 
   it("says what was saved and when it applies", async () => {
@@ -137,78 +162,58 @@ describe("Settings page", () => {
     wrapper.unmount();
   });
 
-  it("keeps each Tool's switch and shortcut on one row, with the Hub key first", async () => {
-    const wrapper = mountView();
+  it("shows the Hub key in Game and each Feature's shortcut on its page", async () => {
+    const wrapper = mountView({}, { snapshot: simple(fixtureSnapshot), target: { section: "game" } });
     await flushPromises();
-    expect(wrapper.get(".settings-fields h1").text()).toBe("Tools");
     expect(wrapper.get('[data-setting="hub"]').text()).toContain("Built in");
-    const builds = wrapper.get('[data-setting="tool:build-management"]');
-    expect(builds.text()).toContain("Build Library");
-    expect(builds.text()).toContain("⌘B");
+    await wrapper.setProps({ target: { section: "features", feature: "buildLibrary" } });
+    await flushPromises();
+    expect(wrapper.get(".feature-settings").text()).toContain("⌘B");
     expect(wrapper.find(".settings-page aside").text()).not.toContain("Shortcuts");
   });
 
   it("saves each enabled Chat Filter category independently", async () => {
     const update = vi.fn(async () => undefined);
-    const wrapper = mountView({ settings: { update } }, { snapshot: allToolsOn });
+    const wrapper = mountView({ settings: { update } }, { snapshot: simple(allToolsOn), target: { section: "features", feature: "chatFilters" } });
     await flushPromises();
     await wrapper.get('[data-setting="chatFilterAllyDrops"] input').setValue(false);
     await flushPromises();
     expect(update).toHaveBeenCalledWith({ chatFilterAllyDrops: false });
   });
 
-  it("keeps Maps discoverable and explains disabled and restart states", async () => {
-    const restart = vi.fn(async () => undefined);
-    const wrapper = mountView({ tools: { restartToApply: restart } });
-    const update = (snapshot: LauncherSnapshot) => wrapper.setProps({ snapshot, launcher: { snapshot, native: wrapper.props("launcher")!.native } });
-    await flushPromises();
-    await openSection(wrapper, "Maps");
-    expect(wrapper.get(".settings-fields h1").text()).toBe("Maps");
-    expect(wrapper.text()).toContain("The plain game is on");
-    update({ ...fixtureSnapshot, revision: 2, tools: { ...fixtureSnapshot.tools, configured: true, loaded: false, restartRequired: true } });
-    await flushPromises();
-    expect(wrapper.text()).toContain("Restart the launcher to enable Maps");
-    await wrapper.findAll("button").find(button => button.text() === "Open restart options")!.trigger("click");
-    await flushPromises();
-    expect(wrapper.get(".settings-fields h1").text()).toBe("Tools");
-    expect(wrapper.get(".restart-row button").attributes("disabled")).toBeDefined();
-    expect(wrapper.get(".restart-row").text()).toContain("Close every game window");
-    update({ ...fixtureSnapshot, revision: 3, profiles: fixtureSnapshot.profiles.map(profile => ({ ...profile, state: "ready" })), tools: { ...fixtureSnapshot.tools, configured: true, loaded: false, restartRequired: true } });
-    await flushPromises();
-    await wrapper.get(".restart-row button").trigger("click");
-    expect(restart).toHaveBeenCalledOnce();
-  });
-
   it("plays the plain game with every Feature switch held, and turning it off loads Features", async () => {
     const setMasterEnabled = vi.fn(async () => undefined);
-    const wrapper = mountView({ tools: { setMasterEnabled } });
+    const wrapper = mountView({ tools: { setMasterEnabled } }, { snapshot: simple(fixtureSnapshot), target: { section: "features" } });
     await flushPromises();
     const plain = wrapper.get<HTMLInputElement>('[data-setting="gwonmacTools"] input');
     expect(plain.element.checked).toBe(true);
-    // Character Switch is a Feature: the plain game holds its switch like every other one.
-    expect(wrapper.get<HTMLInputElement>("#tool-character-switch").element.disabled).toBe(true);
-    expect(wrapper.get<HTMLInputElement>("#tool-character-switch").element.checked).toBe(true);
     await plain.setValue(false);
     await flushPromises();
     expect(setMasterEnabled).toHaveBeenCalledWith(true);
+    // Character Switch is a Feature: the plain game holds its switch like every other one.
+    await wrapper.setProps({ target: { section: "features", feature: "characterSwitch" } });
+    await flushPromises();
+    expect(wrapper.get<HTMLButtonElement>('[data-setting="tool:character-switch"]').element.disabled).toBe(true);
 
-    const features = mountView({ tools: { setMasterEnabled } }, { snapshot: allToolsOn });
+    const features = mountView({ tools: { setMasterEnabled } }, { snapshot: simple(allToolsOn), target: { section: "features", feature: "characterSwitch" } });
+    await flushPromises();
+    expect(features.get<HTMLButtonElement>('[data-setting="tool:character-switch"]').element.disabled).toBe(false);
+    await features.setProps({ target: { section: "features" } });
     await flushPromises();
     expect(features.get<HTMLInputElement>('[data-setting="gwonmacTools"] input').element.checked).toBe(false);
-    expect(features.get<HTMLInputElement>("#tool-character-switch").element.disabled).toBe(false);
     await features.get<HTMLInputElement>('[data-setting="gwonmacTools"] input').setValue(true);
     await flushPromises();
     expect(setMasterEnabled).toHaveBeenLastCalledWith(false);
   });
 
-  it("asks before replacing another Tool shortcut", async () => {
+  it("asks before replacing another Feature shortcut", async () => {
     const replaceShortcut = vi.fn(async () => undefined);
     const wrapper = mountView({
       tools: {
         captureShortcut: async () => ({ status: "conflict" as const, action: "travel.open" as const, binding: { key: "t", shift: false, option: false } }),
         replaceShortcut,
       },
-    }, { snapshot: allToolsOn });
+    }, { snapshot: simple(allToolsOn), target: { section: "features", feature: "characterSwitch" } });
     await flushPromises();
     await wrapper.get('button[aria-label="Change Switch Character shortcut"]').trigger("click");
     await flushPromises();
@@ -219,23 +224,21 @@ describe("Settings page", () => {
 
   it("in the Hub, keeps the launcher's sections listed and opens the launcher for them", async () => {
     const openInLauncher = vi.fn();
-    const { tools, shortcuts } = fixtureSnapshot;
-    const wrapper = mount(SettingsView, { props: { snapshot: { settings: fixtureSnapshot.settings, tools, shortcuts }, native: undefined, openInLauncher, target: { section: "updates", control: "autoCheckUpdates" } } });
+    const wrapper = mount(SettingsView, { props: { snapshot: hubSnapshot(), native: undefined, openInLauncher, target: { section: "updates", control: "autoCheckUpdates" } } });
     await flushPromises();
     expect(openInLauncher).toHaveBeenCalledWith({ section: "updates", control: "autoCheckUpdates" });
     await openSection(wrapper, "Game files");
     expect(openInLauncher).toHaveBeenLastCalledWith({ section: "game-files" });
-    expect(wrapper.get(".settings-fields h1").text()).toBe("Tools");
-    await openSection(wrapper, "Maps");
-    expect(wrapper.get(".settings-fields h1").text()).toBe("Maps");
+    expect(wrapper.get(".settings-fields h1").text()).toBe("Features");
+    await openSection(wrapper, "Appearance");
+    expect(wrapper.get(".settings-fields h1").text()).toBe("Appearance");
   });
 
   it("in the Hub, opens a Settings dialog inside the page, where the launcher tokens apply", async () => {
     // The game document carries no launcher tokens or modal styles on <body>.
-    const { tools, shortcuts } = fixtureSnapshot;
     const library = addCartographyPreset(fixtureSnapshot.settings.cartographyPresetLibrary, { id: "test-style", name: "My map", style: CARTOGRAPHY_BUILTIN_PRESETS.cartographer.style })!;
     const settings = { ...fixtureSnapshot.settings, cartographyPresetLibrary: library };
-    const wrapper = mount(SettingsView, { props: { snapshot: { settings, tools, shortcuts }, native: undefined, openInLauncher: vi.fn(), target: { section: "maps" } } });
+    const wrapper = mount(SettingsView, { props: { snapshot: hubSnapshot(settings), native: undefined, openInLauncher: vi.fn(), target: { section: "features", feature: "cartography" } } });
     await flushPromises();
     await wrapper.findAll("button").find(button => button.text() === "Delete custom style")!.trigger("click");
     await flushPromises();
@@ -268,18 +271,18 @@ describe("Settings page", () => {
       await flushPromises();
       expect(aside.classes()).toContain("search-open");
       expect(document.activeElement).toBe(wrapper.get('input[type="search"]').element);
-      await wrapper.get('input[type="search"]').setValue("compass");
+      await wrapper.get('input[type="search"]').setValue("relog");
       expect(wrapper.get(".settings-content h1").text()).toBe("Results");
       await close();
       await flushPromises();
       expect(aside.classes()).not.toContain("search-open");
-      expect(wrapper.get(".settings-content h1").text()).toBe("Tools");
+      expect(wrapper.get(".settings-content h1").text()).toBe("Appearance");
       expect(document.activeElement).toBe(toggle.element);
     }
     // Choosing a result goes to its section: the tabs come back to show where it landed.
     await toggle.trigger("click");
-    await wrapper.get('input[type="search"]').setValue("compass");
-    await wrapper.get(".settings-results button").trigger("click");
+    await wrapper.get('input[type="search"]').setValue("relog");
+    await wrapper.findAll(".settings-results button").find(button => button.text().includes("Return to character after reload"))!.trigger("click");
     await flushPromises();
     expect(aside.classes()).not.toContain("search-open");
     expect(wrapper.get(".settings-content h1").text()).not.toBe("Results");
@@ -295,25 +298,26 @@ describe("Settings page", () => {
     expect(wrapper.get(".settings-status").text()).toContain("Saved:");
     const nav = wrapper.get('nav[aria-label="Settings sections"]');
     const button = (label: string) => nav.findAll("button").find(candidate => candidate.text() === label)!;
-    button("Maps").element.focus();
-    await button("Maps").trigger("click");
+    button("Texture packs").element.focus();
+    await button("Texture packs").trigger("click");
     await flushPromises();
-    expect(wrapper.get(".settings-fields h1").text()).toBe("Maps");
-    expect(document.activeElement).toBe(button("Maps").element);
+    expect(wrapper.get(".settings-fields h1").text()).toBe("Texture packs");
+    expect(document.activeElement).toBe(button("Texture packs").element);
     expect(wrapper.get(".settings-status").text()).not.toContain("Saved:");
-    await button("Maps").trigger("keydown", { key: "ArrowUp" });
+    await button("Texture packs").trigger("keydown", { key: "ArrowUp" });
     await flushPromises();
-    expect(wrapper.get(".settings-fields h1").text()).toBe("Tools");
-    expect(document.activeElement).toBe(button("Tools").element);
-    await button("Tools").trigger("keydown", { key: "ArrowUp" });
-    expect(document.activeElement).toBe(button("Tools").element);
+    expect(wrapper.get(".settings-fields h1").text()).toBe("Game");
+    await button("Game").trigger("keydown", { key: "ArrowUp" });
+    await flushPromises();
+    expect(document.activeElement).toBe(button("Appearance").element);
+    await button("Appearance").trigger("keydown", { key: "ArrowUp" });
+    expect(document.activeElement).toBe(button("Appearance").element);
     wrapper.unmount();
   });
 
   it("in the Hub, the arrow keys move onto a launcher section without opening the launcher (HUB-054)", async () => {
     const openInLauncher = vi.fn();
-    const { tools, shortcuts } = fixtureSnapshot;
-    const wrapper = mount(SettingsView, { props: { snapshot: { settings: fixtureSnapshot.settings, tools, shortcuts }, native: undefined, openInLauncher, target: { section: "game" } }, attachTo: document.body });
+    const wrapper = mount(SettingsView, { props: { snapshot: hubSnapshot(), native: undefined, openInLauncher, target: { section: "game" } }, attachTo: document.body });
     await flushPromises();
     const nav = wrapper.get('nav[aria-label="Settings sections"]');
     const button = (label: string) => nav.findAll("button").find(candidate => candidate.text() === label)!;
@@ -329,20 +333,9 @@ describe("Settings page", () => {
     wrapper.unmount();
   });
 
-  it("names each tool's Options disclosure by its tool", async () => {
-    const wrapper = mountView({}, { snapshot: allToolsOn });
-    await flushPromises();
-    const names = wrapper.findAll("details.tool-options > summary").map(summary => summary.attributes("aria-label"));
-    expect(names.length).toBeGreaterThan(1);
-    expect(new Set(names).size).toBe(names.length);
-    expect(names.every(name => name?.endsWith(" options"))).toBe(true);
-    wrapper.unmount();
-  });
-
   it("in the Hub, says so when the launcher cannot be opened", async () => {
     const openInLauncher = vi.fn(async () => { throw new Error("ipc"); });
-    const { tools, shortcuts } = fixtureSnapshot;
-    const wrapper = mount(SettingsView, { props: { snapshot: { settings: fixtureSnapshot.settings, tools, shortcuts }, native: undefined, openInLauncher, target: { section: "game" } } });
+    const wrapper = mount(SettingsView, { props: { snapshot: hubSnapshot(), native: undefined, openInLauncher, target: { section: "game" } } });
     await flushPromises();
     await openSection(wrapper, "Updates");
     expect(wrapper.get('p[role="alert"]').text()).toBe("The launcher could not open. Use Window › Show Launcher.");

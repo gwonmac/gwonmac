@@ -248,7 +248,7 @@ Compass ranges also work without opening the Mission Map. Their radii are
 5000-unit Compass edge. Click the separate circular control beside the Compass
 to open its menu. Use the menu to show or hide all ranges, choose individual
 ranges, and preview each ring's opacity. Turning the master off preserves those
-choices. Settings → Maps provides the same durable controls.
+choices. The Maps Feature page provides the same durable controls.
 
 The Cartography and Compass-range controls form one centred stack. A lone
 available control remains centred by itself. Both menus use the same size,

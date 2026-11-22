@@ -10,6 +10,7 @@ import { HUB_TOOL_KEYS, HUB_TOOL_ROWS } from '../shared/hub-tools.js';
 import { resolveShortcuts, shortcutKeycaps, type ShortcutAction } from '../shared/keyboard-shortcuts.js';
 import { normaliseHubQuery, parseHubQuery, type HubRow, type HubSource, type HubTask } from '../shared/hub.js';
 import type { SettingsTarget } from '../shared/settings-catalogue.js';
+import { GLOBAL_TOOL_FEATURES } from '../shared/launcher-contracts.js';
 import type { FeatureId } from '../shared/feature-contracts.js';
 import { offReasonText, UNAVAILABLE_HERE } from '../shared/feature-status.js';
 import type { ToolLinkTarget } from '../features/links.js';
@@ -41,7 +42,7 @@ export function createHubCommands(hub: CommandsHub, openSettings: (target?: Sett
       // whole life with the command's refusal (HUB-135).
       ...HUB_TOOL_ROWS.filter(tool => on(tool.feature)).map((tool): HubRow => {
         const open = tool.open;
-        const run = 'settings' in open ? openSettings({ section: open.settings })
+        const run = 'featurePage' in open ? openSettings({ section: 'features', feature: tool.feature })
           : 'link' in open ? () => show(open.link)
           // A tool that opens after the Hub closes never refuses: the Hub is gone (Xunlai Storage).
           : open.closesHub ? () => { hub.close(); window.dispatchEvent(new CustomEvent(open.event, { cancelable: true })); }
@@ -97,7 +98,7 @@ export function createHubCommands(hub: CommandsHub, openSettings: (target?: Sett
     // A tool's key row draws its tool row's icon.
     rows.push(...HUB_TOOL_KEYS.flatMap(({ command, tool, action, label }) => {
       const iconKind = toolRows.get(command)?.iconKind;
-      return toolRows.has(command) ? [{ id: `key:${command}`, title: label, detail: keys(action), group: 'Keys & shortcuts', ...(iconKind ? { iconKind } : {}), action: 'Change shortcut', run: openSettings({ section: 'tools', control: `tool:${tool}` }) }] : [];
+      return toolRows.has(command) ? [{ id: `key:${command}`, title: label, detail: keys(action), group: 'Keys & shortcuts', ...(iconKind ? { iconKind } : {}), action: 'Change shortcut', run: openSettings({ section: 'features', feature: GLOBAL_TOOL_FEATURES[tool], control: `shortcut:${action}` }) }] : [];
     }));
     for (const [id, name, detail] of [['actions', 'Actions for the selected row', '⌘J'], ['back', 'Back', '⌘⌫'], ['escape', 'Clear, back, then close', '⎋'], ['open', 'Open a row with a page', '→']] as const)
       rows.push({ id: `key:${id}`, title: name, detail, group: 'Keys & shortcuts', action: 'Fixed key', unavailable: 'The Hub’s own keys do not change.', run() {} });

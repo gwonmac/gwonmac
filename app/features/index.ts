@@ -1,5 +1,5 @@
 /**
- * Every feature, in the order Settings › Tools lists their tools. Each line is the
+ * Every feature, in the order Settings search and the launcher's tools list them. Each line is the
  * only registration a feature needs; app/shared derives the settings table, the
  * selection policy, launcher tools, shortcuts, menus and Hub lists from this array.
  */

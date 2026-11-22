@@ -1,33 +1,35 @@
 <script lang="ts">
 import type { SettingsSection as Section } from "@shared/settings-catalogue";
-/** The last section shown in this launcher session; Settings reopens there. Tools comes first. */
-let lastSection: Section = "tools";
-/** Starts the next Settings page on Tools, as a new page load does (the Hub's test fixture mounts). */
-export function resetSettingsNavigation() { lastSection = "tools"; }
+/** The last section shown in this session; Settings reopens there. Null: the first section the host draws. */
+let lastSection: Section | null = null;
+/** Starts the next Settings page on its first section, as a new page load does (the Hub's test fixture mounts). */
+export function resetSettingsNavigation() { lastSection = null; }
 </script>
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, provide, ref, watch } from "vue";
 import { MODAL_HOST } from "../modal-host";
-import { ArrowUpRight, ClipboardPaste, Contrast, Copy, FileText, FolderDown, Gamepad2, House, Image, Map as MapIcon, RefreshCw, Search, WandSparkles, X } from "lucide-vue-next";
+import { ArrowUpRight, ClipboardPaste, Contrast, Copy, FileText, FolderDown, Gamepad2, House, Image, RefreshCw, Search, WandSparkles, X } from "lucide-vue-next";
+import type { FeatureId } from "@shared/feature-contracts";
 import { SETTING_APPLIES_NOTE } from "@shared/setting-copy";
-import { HUB_SECTIONS, SETTINGS, SETTINGS_GROUP_LABELS, SETTINGS_SECTIONS, searchSettings, type SettingsSection, type SettingsTarget } from "@shared/settings-catalogue";
+import { HUB_SECTIONS, SETTINGS, SETTINGS_GROUP_LABELS, SETTINGS_SECTIONS, searchSettings, settingPlace, settingTarget, type SettingsSection, type SettingsTarget } from "@shared/settings-catalogue";
 import type { LauncherNativeApi, LauncherPreferencesPatch, LauncherSettingsPasteOutcome, LauncherSettingsPasteRefusal, LauncherSettingsPatch, LauncherSnapshot } from "@shared/launcher-contracts";
 import type { InGameNative, InGamePatch, InGameSnapshot } from "../settings-host";
 import type { CacheInfo } from "@shared/contracts";
 import { listIndexAfter, listKeyStep } from "@shared/ui/list-keys";
+import { revealSetting } from "../reveal-setting";
 import AppearanceSettings from "./AppearanceSettings.vue";
 import GameFilesSettings from "./GameFilesSettings.vue";
 import GameSettings from "./GameSettings.vue";
 import GeneralUpdateSettings from "./GeneralUpdateSettings.vue";
+import FeaturesView, { type FeaturesSnapshot } from "./FeaturesView.vue";
 import HomeScreenSettings from "./HomeScreenSettings.vue";
-import MapsSettings from "./MapsSettings.vue";
 import TexturePacksSettings from "./TexturePacksSettings.vue";
-import ToolsSettings from "./ToolsSettings.vue";
 
 /**
  * The one Settings page (docs/settings.md), drawn in the launcher and in the Hub. The launcher
- * passes `launcher` and shows every section; the Hub shows the in-game sections and opens the
+ * passes `launcher` and shows every section but Features, which is its own tab: a Features target
+ * goes there (`features`). The Hub shows the in-game sections, Features first, and opens the
  * launcher for the rest. Without a native bridge (fixtures, tests) changes apply to the shown
  * snapshot only.
  */
@@ -47,14 +49,19 @@ const emit = defineEmits<{
   /** Fixture mode only: the snapshot with a change applied. */
   fixture: [snapshot: LauncherSnapshot];
   section: [section: SettingsSection];
+  /** Launcher only: open the Features tab at this Feature page or control. */
+  features: [target: SettingsTarget];
 }>();
 const native = props.native;
 const snapshot = computed(() => props.snapshot);
 const icons: Record<SettingsSection, unknown> = {
-  tools: WandSparkles, maps: MapIcon, appearance: Contrast, game: Gamepad2, "texture-packs": Image,
+  features: WandSparkles, appearance: Contrast, game: Gamepad2, "texture-packs": Image,
   "game-files": FolderDown, updates: RefreshCw, home: House, advanced: FileText,
 };
-const groups = (["game", "app"] as const).map(group => ({ label: SETTINGS_GROUP_LABELS[group], items: SETTINGS_SECTIONS.filter(section => section.group === group) }));
+/** The launcher draws Features as its own tab, so its Settings list leaves it out; the simple launcher has no tabs, so it keeps it. */
+const featuresHere = computed(() => !props.launcher || props.launcher.snapshot.preferences.content.simple === true);
+const listed = (id: SettingsSection) => id !== "features" || featuresHere.value;
+const groups = computed(() => (["game", "app"] as const).map(group => ({ label: SETTINGS_GROUP_LABELS[group], items: SETTINGS_SECTIONS.filter(section => section.group === group && listed(section.id)) })));
 /** In the Hub, the launcher's sections stay listed and open the launcher. */
 const inLauncher = (id: SettingsSection) => !props.launcher && !HUB_SECTIONS.has(id);
 const nav = ref<HTMLElement | null>(null);
@@ -63,7 +70,15 @@ const modalHost = ref<HTMLElement | null>(null);
 if (!props.launcher) provide(MODAL_HOST, modalHost);
 const retryButton = ref<HTMLButtonElement | null>(null);
 
-const section = ref<SettingsSection>(lastSection);
+const section = ref<SettingsSection>(lastSection && listed(lastSection) ? lastSection : featuresHere.value ? "features" : "appearance");
+/** The Hub's Features section: the Feature page shown, kept across a Revert that redraws the section. */
+const featurePage = ref<FeatureId | null>(null);
+const featuresTarget = ref<SettingsTarget | null>(null);
+const featuresSnapshot = computed<FeaturesSnapshot>(() => ({
+  tools: snapshot.value.tools, features: snapshot.value.features, shortcuts: snapshot.value.shortcuts,
+  settings: snapshot.value.settings, appVersion: snapshot.value.appVersion,
+  gamesOpen: props.launcher ? props.launcher.snapshot.profiles.some(profile => profile.state !== "ready" && profile.state !== "failed") : true,
+}));
 const query = ref("");
 const results = computed(() => searchSettings(query.value));
 const content = ref<HTMLElement | null>(null);
@@ -74,7 +89,6 @@ const searchToggle = ref<HTMLButtonElement | null>(null);
 const searchOpen = ref(false);
 /** Which ends of the narrow tab row hide more tabs, so each can fade. */
 const tabsClipped = ref({ start: false, end: false });
-const sectionLabel = (id: SettingsSection) => SETTINGS_SECTIONS.find(candidate => candidate.id === id)!.label;
 
 // One pending save prevents stale whole-preset edits. On failure, keep the visible
 // draft and the exact operation until the player retries or reverts.
@@ -209,6 +223,7 @@ async function launch(target: SettingsTarget) {
 /** `moveFocus` is for programmatic opens; a click or key on a section button keeps the keyboard on that button. */
 async function select(next: SettingsSection, moveFocus = false) {
   if (inLauncher(next)) { void launch({ section: next }); return; }
+  if (!listed(next)) { emit("features", { section: next }); return; }
   query.value = "";
   searchOpen.value = false;
   if (saveState.value === "saved") saveState.value = "idle";
@@ -230,32 +245,23 @@ async function select(next: SettingsSection, moveFocus = false) {
   heading?.focus({ preventScroll: true });
 }
 
-let highlightTimer: ReturnType<typeof setTimeout> | undefined;
 /**
  * Shows a section and, when named, focuses its control: opens the disclosure that holds it,
- * scrolls it into view and marks it briefly. A control hidden with its tool off falls back to
- * the tool's row, then to the section heading.
+ * scrolls it into view and marks it briefly (../reveal-setting.ts). A control the page does not
+ * draw leaves the keyboard on the section heading. In the Hub, a Features target opens its
+ * Feature page, where the catalog puts the control in view.
  */
 async function open(target: SettingsTarget, takeFocus = true) {
   if (inLauncher(target.section)) { void launch(target); return; }
+  if (!listed(target.section)) { emit("features", target); return; }
   await select(target.section, takeFocus);
+  if (target.section === "features") { featuresTarget.value = { ...target }; return; }
   const root = content.value;
   if (!root) return;
-  const entry = SETTINGS.find(candidate => candidate.id === target.control);
-  const find = (id: string | undefined) => id ? root.querySelector<HTMLElement>(`[data-setting="${CSS.escape(id)}"]`) : null;
-  const row = find(entry?.id) ?? find(entry?.tool && `tool:${entry.tool}`);
-  if (!row) { if (takeFocus) root.querySelector<HTMLElement>("h1")?.focus(); return; }
-  for (let parent = row.parentElement; parent && parent !== root; parent = parent.parentElement) {
-    if (parent instanceof HTMLDetailsElement) parent.open = true;
-  }
   await nextTick();
-  row.scrollIntoView({ block: "center", container: "nearest" });
-  const control = row.matches("input, select, button, textarea") ? row : row.querySelector<HTMLElement>("input:not([disabled]), select:not([disabled]), button:not([disabled]), textarea");
-  if (takeFocus) (control ?? row).focus({ preventScroll: true });
-  root.querySelectorAll(".setting-focus").forEach(element => element.classList.remove("setting-focus"));
-  row.classList.add("setting-focus");
-  clearTimeout(highlightTimer);
-  highlightTimer = setTimeout(() => row.classList.remove("setting-focus"), 2400);
+  if (!target.control || !revealSetting(root, target.control, takeFocus)) {
+    if (takeFocus) root.querySelector<HTMLElement>("h1")?.focus();
+  }
 }
 
 /** The sections are a list: ↑ ↓ (and Home, End) move through them without wrapping. A section shown here opens as it is reached. */
@@ -315,8 +321,7 @@ function onSearchKey(event: KeyboardEvent) {
   else if (event.key === "Enter" && results.value[0]) { event.preventDefault(); void openResult(results.value[0].id); }
 }
 async function openResult(id: string) {
-  const entry = SETTINGS.find(candidate => candidate.id === id)!;
-  await open({ section: entry.section, control: entry.id });
+  await open(settingTarget(SETTINGS.find(candidate => candidate.id === id)!));
 }
 
 /**
@@ -341,7 +346,6 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.removeEventListener("keydown", onKey);
   tabRowSize.disconnect();
-  clearTimeout(highlightTimer);
 });
 </script>
 
@@ -371,13 +375,12 @@ onBeforeUnmount(() => {
             <p v-if="results.length" class="section-intro" role="status">{{ results.length === 1 ? "1 setting" : `${results.length} settings` }} for “{{ query }}”. Choose one to go to it.</p>
             <p v-else class="section-intro" role="status">No setting matches. Try a word like memory, keys, chat or compass.</p>
             <ul v-if="results.length" class="settings-results">
-              <li v-for="entry in results" :key="entry.id"><button @click="openResult(entry.id)"><span><strong>{{ entry.label }}</strong><small v-if="entry.detail">{{ entry.detail }}</small></span><small>{{ inLauncher(entry.section) ? `${sectionLabel(entry.section)} · in the launcher` : sectionLabel(entry.section) }}</small></button></li>
+              <li v-for="entry in results" :key="entry.id"><button @click="openResult(entry.id)"><span><strong>{{ entry.label }}</strong><small v-if="entry.detail">{{ entry.detail }}</small></span><small>{{ inLauncher(entry.section) ? `${settingPlace(entry)} · in the launcher` : settingPlace(entry) }}</small></button></li>
             </ul>
           </template>
           <fieldset v-else :key="`${section}:${formVersion}`" class="settings-fields" :disabled="locked" :aria-busy="saveState === 'saving'" @change.capture="identifySetting" @click.capture="identifySetting">
             <legend class="visually-hidden">Settings for every account</legend>
-            <ToolsSettings v-if="section === 'tools'" :snapshot="snapshot" :api="native" :profiles="launcher?.snapshot.profiles" :save="saveSettings" :perform-save="performSave" @maps="select('maps', true)" />
-            <MapsSettings v-else-if="section === 'maps'" :settings="snapshot.settings" :shortcuts="snapshot.shortcuts" :tools="snapshot.tools" :api="native?.tools" :save="saveSettings" :perform-save="performSave" @tools="select('tools', true)" />
+            <FeaturesView v-if="section === 'features'" v-model:feature="featurePage" :snapshot="featuresSnapshot" :native="native" :target="featuresTarget" :save="saveSettings" :perform-save="performSave" embedded @settings="open" />
             <template v-else-if="section === 'appearance'"><h1>Appearance</h1><AppearanceSettings :settings="snapshot.settings" :save="saveSettings" /></template>
             <GameSettings v-else-if="section === 'game'" :snapshot="snapshot" :save="quietSave" />
             <TexturePacksSettings v-else-if="section === 'texture-packs' && launcher" :texture-packs="launcher.snapshot.texturePacks" />

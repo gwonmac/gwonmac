@@ -78,8 +78,8 @@ export type HubToolEntry = Readonly<{
   title: string;
   /** The tool's `keywords`, which Settings search matches too. */
   keywords: string;
-  /** A Settings section, or how the tool opens and how the row asks it to. */
-  open: Extract<ToolOpen, { settings: unknown }> | (Exclude<ToolOpen, { settings: unknown }> & ToolOpener);
+  /** Its Feature page, or how the tool opens and how the row asks it to. */
+  open: Extract<ToolOpen, { featurePage: true }> | (Exclude<ToolOpen, { featurePage: true }> & ToolOpener);
 }> & Omit<HubToolRow, "open">;
 
 /** The Tools rows Core draws, in their order. */
@@ -88,7 +88,7 @@ export const HUB_TOOL_ROWS: readonly HubToolEntry[] = Object.freeze(hubTools.fla
   const row: HubToolRow = hub.row;
   const opener = openers.get(feature);
   let open: HubToolEntry["open"];
-  if ("settings" in row.open) open = row.open;
+  if ("featurePage" in row.open) open = row.open;
   else if (opener !== undefined) open = { ...row.open, ...opener };
   else throw new Error(`The ${feature} Hub row opens through an event its tool does not name, and ${feature} offers no toggle.`);
   return [{ detail: row.detail, iconKind: row.iconKind, open, ...(row.action ? { action: row.action } : {}), ...(row.aliases ? { aliases: row.aliases } : {}),

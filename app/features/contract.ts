@@ -81,6 +81,7 @@ function checkFolder({ folder, manifest, files, readme, changelog, imports }: Fe
   if (!registeredIds.has(manifest.id)) problems.push(`${at}/feature.ts: "${manifest.id}" is not in FEATURES; add it to app/features/index.ts.`);
   if (manifest.name.trim() === "") problems.push(`${at}/feature.ts: name is empty.`);
   if (manifest.summary.trim() === "") problems.push(`${at}/feature.ts: summary is empty.`);
+  if (manifest.settingsHelp?.trim() === "") problems.push(`${at}/feature.ts: settingsHelp is empty; remove it or say the rule.`);
   if (!KEBAB.test(manifest.icon)) problems.push(`${at}/feature.ts: icon "${manifest.icon}" is not a Lucide icon name in kebab case, such as "map-pin".`);
   if (manifest.kind === "mode" && manifest.purpose !== undefined) {
     problems.push(`${at}/feature.ts: the launch mode is the plain-game strip, not a card; remove purpose.`);
@@ -95,7 +96,7 @@ function checkFolder({ folder, manifest, files, readme, changelog, imports }: Fe
     problems.push(`${at}/feature.ts: no switch; declare one with featureSwitch, or list in requires the features it runs with.`);
   }
   if (manifest.tool !== undefined && switches.length === 0) {
-    problems.push(`${at}/feature.ts: tool needs a switch of its own; its row in Settings › Tools and the launcher turn it, so declare one in settings with featureSwitch.`);
+    problems.push(`${at}/feature.ts: tool needs a switch of its own; its card and Feature page turn it, so declare one in settings with featureSwitch.`);
   }
   for (const [key, spec] of settings) {
     if (switches.includes(key) && manifest.kind !== "mode") {

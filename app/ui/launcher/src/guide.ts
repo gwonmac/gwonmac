@@ -10,7 +10,7 @@
  */
 import { FEATURES, folderForId, type FeatureId } from "@shared/feature-contracts";
 import { parseMarkdown, type MarkdownBlock } from "@shared/launcher-markdown";
-import { parseSettingsTarget, type SettingsTarget } from "@shared/settings-catalogue";
+import { settingsLinkTarget, type SettingsTarget } from "@shared/settings-catalogue";
 import { LAUNCHER_GUIDE_ORIGINS } from "@shared/launcher-contracts";
 import { readFrontMatter } from "@shared/website-content";
 
@@ -70,9 +70,8 @@ const isPage = (id: string): id is GuidePageId => (GUIDE_PAGE_IDS as readonly st
 export function guideLink(href: string, page?: GuidePageId): string | null {
   const [path = "", anchor] = href.split("#");
   if (href.startsWith("settings:")) {
-    const [section, control] = href.slice("settings:".length).split("/");
     try {
-      parseSettingsTarget(control ? { section, control } : { section });
+      settingsLinkTarget(href.slice("settings:".length));
       return href;
     } catch { return null; }
   }
@@ -91,8 +90,7 @@ export function guideLink(href: string, page?: GuidePageId): string | null {
 export function parseGuideAction(actionId: string): GuideAction | null {
   if (actionId.startsWith("url:")) return { kind: "url", url: actionId.slice(4) };
   if (actionId.startsWith("settings:")) {
-    const [section, control] = actionId.slice("settings:".length).split("/");
-    return { kind: "settings", target: parseSettingsTarget(control ? { section, control } : { section }) };
+    return { kind: "settings", target: settingsLinkTarget(actionId.slice("settings:".length)) };
   }
   const feature = /^feature:([\w-]+)$/u.exec(actionId);
   if (feature && FEATURE_PAGES.has(feature[1]!)) return { kind: "feature", id: FEATURE_PAGES.get(feature[1]!)!, url: `${WEBSITE}/docs/${feature[1]}` };

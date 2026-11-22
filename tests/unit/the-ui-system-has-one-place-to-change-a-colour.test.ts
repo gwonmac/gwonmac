@@ -356,13 +356,14 @@ function hubRepoints(): Map<string, string> {
 test("the Hub's Settings page takes every colour it reads from the Hub theme", () => {
   // A Settings rule or component that reads a launcher colour hub-settings.css
   // does not re-point draws launcher gold or red inside a blue Hub, as the
-  // section list and the Delete style dialog once did. Radii and the small type
-  // sizes stay the launcher's on purpose; fonts and body size follow the Hub.
+  // section list and the Delete style dialog once did. Radii, the small type
+  // sizes and the Feature kind colours (each Feature's art) stay the launcher's
+  // on purpose; fonts and body size follow the Hub.
   assert.ok(settingsPageComponents().has("app/ui/launcher/src/components/BaseModal.vue"), "the walk reaches the dialog");
   const read = new Set(settingsPageStyles().flatMap((css) => [...referenced(css)].filter((name) => launcherTokens.has(name))));
   const repoints = hubRepoints();
   const repointed = new Set(repoints.keys());
-  const scale = (name: string) => /^--(?:radius|fs)-/u.test(name);
+  const scale = (name: string) => /^--(?:radius|fs|kind)-/u.test(name);
   const missing = [...read].filter((name) => !scale(name) && !repointed.has(name));
   assert.deepEqual(missing, [], `read by the Settings page but not re-pointed for the Hub: ${missing.join(", ")}`);
   const stale = [...repointed].filter((name) => launcherTokens.has(name) && !read.has(name));

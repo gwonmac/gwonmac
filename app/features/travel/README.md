@@ -16,8 +16,8 @@ Search a friend’s alias or character name to see where they are. **Travel to o
 Search `guild hall` or `gh` to go to your Guild Hall. In the hall, the same row reads **Leave Guild Hall** and returns you to the outpost you came from. Travel shows **No Guild Hall** when your character has none.
 
 ### Details
-- **Turn on:** :setting[Travel]{to="tools/tool:quick-travel"}, off while you play the :setting[plain game]{to="tools/gwonmacTools"}. [Progress]($docs.progress) follows this switch.
-- **Open:** <kbd>⌘</kbd> <kbd>T</kbd>, **View → Travel**, the chat command `/tp`, or search for a place name in the Hub. You can change the shortcut next to Travel in Settings → Tools.
+- **Turn on:** :setting[Travel]{to="features/tool:quick-travel"}, off while you play the :setting[plain game]{to="features/gwonmacTools"}. [Progress]($docs.progress) follows this switch.
+- **Open:** <kbd>⌘</kbd> <kbd>T</kbd>, **View → Travel**, the chat command `/tp`, or search for a place name in the Hub. You can change the shortcut on its Feature page.
 - **Limits:** PvE only. A trip that the game delays, for one of its own prompts or a party countdown, is not reported as a failure: Travel says that the trip has not started yet and follows it when it does.
 
 > In an explorable area, every trip first asks “Leave this area and travel to …?”. **Stay here** is selected, so Enter stays.
