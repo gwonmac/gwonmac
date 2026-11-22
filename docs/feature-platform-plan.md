@@ -63,6 +63,7 @@ All work happens on this Mac, by us.
 ## Metrics
 
 Run `node scripts/feature-metrics.mjs [revision]` after each phase and record the result here.
+`pnpm check` fails when a metric is above its ceiling in `scripts/feature-metrics-ceilings.json`; when a change lowers a metric, lower that ceiling to the new value in the same PR.
 
 | Metric | Baseline (8618d115) | Target |
 |---|---|---|

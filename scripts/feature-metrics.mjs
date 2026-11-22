@@ -5,10 +5,15 @@
  *
  * Usage: node scripts/feature-metrics.mjs [revision]   (default HEAD; reads git objects, not the
  * working tree, so any commit or branch can be measured without checking it out).
+ *
+ * `measure()` is also imported by tests/policy/feature-metrics-ceilings.test.ts. Without a revision
+ * it measures the working tree (tracked and untracked files) and the test compares the values with
+ * scripts/feature-metrics-ceilings.json.
  */
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
-const revision = process.argv[2] ?? "HEAD";
 const NOT_TESTS = [":!*.test.ts", ":!*.spec.ts", ":!*.golden.json"];
 
 /** @param {string[]} args */
@@ -26,67 +31,87 @@ function git(args) {
 const lines = (text) => text.split("\n").filter(Boolean);
 
 /**
- * Number of matching lines for an extended regex under the given paths.
- * @param {string} pattern
- * @param {string[]} paths
+ * Measure every metric.
+ * @param {string} [revision] git revision to read; omit to read the working tree.
  */
-function countLines(pattern, paths) {
-  return lines(git(["grep", "-hE", pattern, revision, "--", ...paths])).length;
+export function measure(revision) {
+  /** `git grep` target: a revision's objects, or the working tree including untracked files. */
+  const [grepFlag, grepRev] = revision === undefined ? [["--untracked"], []] : [[], [revision]];
+
+  /**
+   * Number of matching lines for an extended regex under the given paths.
+   * @param {string} pattern
+   * @param {string[]} paths
+   */
+  const countLines = (pattern, paths) => lines(git(["grep", "-hE", ...grepFlag, pattern, ...grepRev, "--", ...paths])).length;
+
+  /**
+   * Number of distinct matched strings for an extended regex under the given paths.
+   * @param {string} pattern
+   * @param {string[]} paths
+   */
+  const countDistinct = (pattern, paths) =>
+    new Set(lines(git(["grep", "-ohE", ...grepFlag, pattern, ...grepRev, "--", ...paths]))).size;
+
+  /**
+   * @param {string} pattern
+   * @param {string[]} paths
+   */
+  const filesMatching = (pattern, paths) => lines(git(["grep", "-lE", ...grepFlag, pattern, ...grepRev, "--", ...paths]));
+
+  /** @param {string} dir */
+  const listFiles = (dir) =>
+    revision === undefined
+      ? lines(git(["ls-files", "--cached", "--others", "--exclude-standard", dir]))
+      : lines(git(["ls-tree", "-r", "--name-only", revision, dir]));
+
+  /** @param {string} path */
+  const readFile = (path) => (revision === undefined ? readFileSync(path, "utf8") : git(["show", `${revision}:${path}`]));
+
+  const featureFolders = listFiles("app/features")
+    .map((path) => path.match(/^app\/features\/([^/]+)\/feature\.ts$/)?.[1])
+    .filter(/** @returns {folder is string} */ (folder) => folder !== undefined)
+    // "tools" is the Tools master switch (the launch mode), not a feature of its own.
+    .filter((folder) => folder !== "tools")
+    .sort();
+
+  const rendererFiles = listFiles("app/renderer");
+  const FEATURE_DOMAIN = /(^|[-/])(skill|whisper|trade|people|party|alcohol|effect|cartography)[-.]/;
+
+  const outsideFolder = featureFolders.map((folder) => {
+    const manifest = readFile(`app/features/${folder}/feature.ts`);
+    const id = manifest.match(/id: "([^"]+)"/)?.[1] ?? folder;
+    const names = [...new Set([id, folder])].join("|");
+    const files = filesMatching(`["'](${names})["']`, ["app", `:!app/features/${folder}`, ...NOT_TESTS]);
+    return { folder, count: files.length };
+  });
+
+  /** @type {{ key: string, name: string, value: number }[]} */
+  const metrics = [
+    { key: "featureActivationRequested", name: "`featureActivationRequested(` calls in app (no tests)", value: countLines("featureActivationRequested\\(", ["app", ...NOT_TESTS]) },
+    { key: "policyReads", name: "`policy().` reads in app/features", value: countLines("policy\\(\\)\\.", ["app/features", ...NOT_TESTS]) },
+    { key: "plainGame", name: "`plainGame` reads in app (no tests)", value: countLines("plainGame", ["app", ...NOT_TESTS]) },
+    { key: "gwEvents", name: "Distinct `gw:*` window event names in app", value: countDistinct("['\"]gw:[a-z0-9:-]+['\"]", ["app", ...NOT_TESTS]) },
+    { key: "substrateFeatureNames", name: "Feature names in shared substrates (`attachWhispers`, `attachTravel`)", value: countLines("attach(Whispers|Travel)", ["app/renderer/tools-companion-substrates.ts"]) },
+    { key: "rendererFeatureFiles", name: "Feature-domain files under app/renderer/", value: rendererFiles.filter((path) => FEATURE_DOMAIN.test(path.replace(/^app\/renderer\//, "/")) && !/\.(test|spec)\.ts$/.test(path)).length },
+    { key: "toolsUiLocalStorage", name: "`localStorage` uses in Tools UI", value: countLines("localStorage", ["app/ui/tools/src", ...NOT_TESTS]) },
+    { key: "toolVIfCases", name: "Per-feature `v-if=\"tool === …\"` in launcher and Tools UI", value: countLines("v-if=\"tool ===", ["app/ui", ...NOT_TESTS]) },
+  ];
+
+  return { metrics, outsideFolder };
 }
 
-/**
- * Number of distinct matched strings for an extended regex under the given paths.
- * @param {string} pattern
- * @param {string[]} paths
- */
-function countDistinct(pattern, paths) {
-  return new Set(lines(git(["grep", "-ohE", pattern, revision, "--", ...paths]))).size;
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  const revision = process.argv[2] ?? "HEAD";
+  const { metrics, outsideFolder } = measure(revision);
+  console.log(`Feature metrics at ${git(["rev-parse", "--short", revision]).trim()}\n`);
+  console.log("| Metric | Value |\n|---|---|");
+  for (const { name, value } of metrics) console.log(`| ${name} | ${value} |`);
+  console.log("\nFiles outside a feature's folder that name its id (no tests):");
+  console.log(
+    outsideFolder
+      .sort((a, b) => b.count - a.count || a.folder.localeCompare(b.folder))
+      .map(({ folder, count }) => `${folder} ${count}`)
+      .join(", "),
+  );
 }
-
-/**
- * @param {string} pattern
- * @param {string[]} paths
- */
-function filesMatching(pattern, paths) {
-  return lines(git(["grep", "-lE", pattern, revision, "--", ...paths]));
-}
-
-const featureFolders = lines(git(["ls-tree", "-r", "--name-only", revision, "app/features"]))
-  .map((path) => path.match(/^app\/features\/([^/]+)\/feature\.ts$/)?.[1])
-  .filter(/** @returns {folder is string} */ (folder) => folder !== undefined)
-  // "tools" is the Tools master switch (the launch mode), not a feature of its own.
-  .filter((folder) => folder !== "tools")
-  .sort();
-
-const rendererFiles = lines(git(["ls-tree", "-r", "--name-only", revision, "app/renderer"]));
-const FEATURE_DOMAIN = /(^|[-/])(skill|whisper|trade|people|party|alcohol|effect|cartography)[-.]/;
-
-const outsideFolder = featureFolders.map((folder) => {
-  const manifest = git(["show", `${revision}:app/features/${folder}/feature.ts`]);
-  const id = manifest.match(/id: "([^"]+)"/)?.[1] ?? folder;
-  const names = [...new Set([id, folder])].join("|");
-  const files = filesMatching(`["'](${names})["']`, ["app", `:!app/features/${folder}`, ...NOT_TESTS]);
-  return { folder, count: files.length };
-});
-
-const rows = [
-  ["`featureActivationRequested(` calls in app (no tests)", countLines("featureActivationRequested\\(", ["app", ...NOT_TESTS])],
-  ["`policy().` reads in app/features", countLines("policy\\(\\)\\.", ["app/features", ...NOT_TESTS])],
-  ["`plainGame` reads in app (no tests)", countLines("plainGame", ["app", ...NOT_TESTS])],
-  ["Distinct `gw:*` window event names in app", countDistinct("['\"]gw:[a-z0-9:-]+['\"]", ["app", ...NOT_TESTS])],
-  ["Feature names in shared substrates (`attachWhispers`, `attachTravel`)", countLines("attach(Whispers|Travel)", ["app/renderer/tools-companion-substrates.ts"])],
-  ["Feature-domain files under app/renderer/", rendererFiles.filter((path) => FEATURE_DOMAIN.test(path.replace(/^app\/renderer\//, "/")) && !/\.(test|spec)\.ts$/.test(path)).length],
-  ["`localStorage` uses in Tools UI", countLines("localStorage", ["app/ui/tools/src", ...NOT_TESTS])],
-  ["Per-feature `v-if=\"tool === …\"` in launcher and Tools UI", countLines("v-if=\"tool ===", ["app/ui", ...NOT_TESTS])],
-];
-
-console.log(`Feature metrics at ${git(["rev-parse", "--short", revision]).trim()}\n`);
-console.log("| Metric | Value |\n|---|---|");
-for (const [name, value] of rows) console.log(`| ${name} | ${value} |`);
-console.log("\nFiles outside a feature's folder that name its id (no tests):");
-console.log(
-  outsideFolder
-    .sort((a, b) => b.count - a.count || a.folder.localeCompare(b.folder))
-    .map(({ folder, count }) => `${folder} ${count}`)
-    .join(", "),
-);
