@@ -41,6 +41,9 @@
   // How every tool opens, from each tool's one entry (app/shared/hub-tools.ts). The import starts
   // at once, so the first shortcut does not wait on it.
   const toolCommands = import('../shared/hub-tools.js').then(({ TOOL_COMMANDS }) => TOOL_COMMANDS);
+  // Loaded once here too: an import() per command resolves a task later, so a key pressed right
+  // after the shortcut would act before the tool opens, and the tool would then take its focus.
+  const toolLinks = import('./feature-links.js');
 
   async function capture(command: CaptureCommand) {
     const diagnostics = window.gwDiagnostics;
@@ -151,7 +154,7 @@
         if (opener === undefined) break;
         if (!window.gwNative.init.enhancementSelection.tools) return 'unhandled';
         if ('link' in opener) {
-          const { toggleTool } = await import('./feature-links.js');
+          const { toggleTool } = await toolLinks;
           if (toggleTool(opener.link, 'toggle') === 'unavailable') return 'unhandled';
           break;
         }
