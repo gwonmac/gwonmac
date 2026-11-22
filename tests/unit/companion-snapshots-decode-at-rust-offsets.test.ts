@@ -37,7 +37,7 @@ import {
   readCompanionSnapshot,
   readCompanionToolbox,
 } from "../../app/renderer/companion-snapshot.ts";
-import { createCompanionProgressReader } from "../../app/features/progress/renderer/companion-progress-snapshot.ts";
+import { createCompanionProgressReader } from "../../app/renderer/companion-progress-snapshot.ts";
 import { readCompanionWhispers } from "../../app/renderer/companion-chat-snapshot.ts";
 
 const rustSource = readFileSync(

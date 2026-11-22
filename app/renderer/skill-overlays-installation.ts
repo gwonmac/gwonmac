@@ -3,8 +3,8 @@
  * which of them run. Native ownership stays in the feed installations.
  *
  * A feed runs while something needs it: the slot geometry for Skill Key Labels
- * (still drawn here until it moves onto blocks) or for the `ui.skillLabels`
- * block, and the recharge feed for the `game.skillbar` block (game-blocks.ts).
+ * (still drawn here until it moves onto blocks) or for the `ui.skillLabels` and
+ * `ui.skillKeys` blocks, and the recharge feed for the `game.skillbar` block (game-blocks.ts).
  */
 import type { NativeHudLayer } from "./native-hud-layer.js";
 import { COMPANION_FEATURE_BITS } from "../shared/companion-abi.js";

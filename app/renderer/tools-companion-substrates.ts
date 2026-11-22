@@ -11,6 +11,8 @@
  *   party invites);
  * - alcohol and effects: the alcohol, player-effect and effect-icon feeds
  *   (Alcohol Timer, Effect Timers, Reminders);
+ * - progress: the progress region and feed behind `game.progress` (Progress,
+ *   Travel's Progress page, Maps' quest route);
  * - skill HUD: slot geometry and recharge feeds behind Skill Key Labels and
  *   Skill Cooldowns;
  * - the frame: the policy source, the native HUD layer and the policy trace.
@@ -27,6 +29,7 @@ import type { WhisperSession } from "../shared/whisper-session.js";
 import type { CompanionExtensionActivation } from "./certified-companion-extension.js";
 import { createChatInstallation, type ChatInstallation } from "./chat-installation.js";
 import { createAlcoholObservationInstallation, readCompanionAlcohol } from "./companion-alcohol-snapshot.js";
+import { createCompanionProgressReader, createProgressObservationInstallation } from "./companion-progress-snapshot.js";
 import { companionFriendsSignature, readCompanionFriends } from "./companion-friend-snapshot.js";
 import { createCompanionPolicySource } from "./companion-policy-source.js";
 import { createCompanionSequenceFeed } from "./companion-sequence-feed.js";
@@ -363,6 +366,8 @@ function createAlcohol(capabilities: EnhancementCapabilities) {
     installation,
     /** The alcohol region is read while any of these holds. */
     observeWhen(next: Demand) { demand.push(next); },
+    /** Applies a demand change now, before the next settings or region change. */
+    refresh() { installation.setActive(observed()); },
   });
 }
 
@@ -375,6 +380,10 @@ function createEffects(capabilities: EnhancementCapabilities, program: Enhanceme
     && (program === "effect-observer" || any(playerEffectDemand));
   const effectIconsActive = () => capabilities.effectIconGeometry
     && (program === "effect-observer" || any(effectIconDemand));
+  const refresh = () => {
+    playerEffects.setActive(playerEffectsActive());
+    effectIcons.setActive(effectIconsActive());
+  };
   const prepared = {
     featureFlags:
       (capabilities.playerEffectObservation ? COMPANION_FEATURE_BITS.playerEffectObservation : 0)
@@ -404,10 +413,7 @@ function createEffects(capabilities: EnhancementCapabilities, program: Enhanceme
     }),
     rollback: [(free) => playerEffects.release(free), (free) => effectIcons.release(free)],
     activate: () => ({
-      syncFeeds() {
-        playerEffects.setActive(playerEffectsActive());
-        effectIcons.setActive(effectIconsActive());
-      },
+      syncFeeds: refresh,
       activeFeatures: () =>
         (playerEffectsActive() ? COMPANION_FEATURE_BITS.playerEffectObservation : 0)
         | (effectIconsActive() ? COMPANION_FEATURE_BITS.effectIconGeometry : 0),
@@ -443,6 +449,51 @@ function createEffects(capabilities: EnhancementCapabilities, program: Enhanceme
     /** Effect icon geometry is read while any of these holds (or for the effect-observer program). */
     observeEffectIconsWhen(demand: Demand) { effectIconDemand.push(demand); },
     effectIconsActive,
+    /** Applies a demand change now, before the next settings or region change. */
+    refresh,
+  });
+}
+
+// ---- progress: the progress region and feed --------------------------------
+
+function createProgress(capabilities: EnhancementCapabilities) {
+  const installation = createProgressObservationInstallation(capabilities.progressObservation);
+  const demand: Demand[] = [];
+  const observed = () => capabilities.progressObservation && any(demand);
+  return Object.freeze({
+    /**
+     * The region's memory phases. The Progress line in COMPANION_PARTS hosts them:
+     * the region keeps the place it had when Progress owned it (the heap layout).
+     */
+    prepared: {
+      featureFlags: capabilities.progressObservation ? COMPANION_FEATURE_BITS.progressObservation : 0,
+      allocate: (malloc) => installation.allocate(malloc),
+      allocated: () => installation.allocated,
+      ownedRegions: () => installation.region == null ? [] : [installation.region],
+      kernelRegions: () => ({
+        ...(installation.region === null
+          ? {} : { progress: { pointer: installation.pointer, bytes: installation.bytes } }),
+      }),
+      rollback: [(free) => installation.release(free)],
+    } satisfies PreparedToolsPart,
+    /** What the hosting part's session adds: the read, the demand, the kernel bit and the release. */
+    session({ memory }: Pick<CompanionExtensionActivation, "memory">) {
+      const read = createCompanionProgressReader();
+      return {
+        feedPollers: [{
+          poll: () => { if (installation.active) installation.sink?.update(read(memory.buffer, installation.pointer)); },
+          enabled: () => installation.active,
+        }],
+        syncFeeds: () => installation.setActive(observed()),
+        activeFeatures: () => observed() ? COMPANION_FEATURE_BITS.progressObservation : 0,
+        releaseObserverMemory: [(free) => { installation.release(free); installation.dispose(); }],
+      } satisfies ToolsPartSession;
+    },
+    installation,
+    /** The progress region is read while any of these holds. */
+    observeWhen(next: Demand) { demand.push(next); },
+    /** Applies a demand change now, before the next settings or region change. */
+    refresh() { installation.setActive(observed()); },
   });
 }
 
@@ -457,6 +508,7 @@ export function createToolsSubstrates(
     chat: createChat(capabilities),
     alcohol: createAlcohol(capabilities),
     effects: createEffects(capabilities, program),
+    progress: createProgress(capabilities),
     skills: createSkillOverlaysInstallation(capabilities),
   });
 }

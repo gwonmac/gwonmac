@@ -1,8 +1,10 @@
 /**
  * The typed building blocks that features use (docs/feature-platform-plan.md,
- * Phase 3): `game.target`, `game.region`, `game.session` and `game.skillbar` to
- * read, `game.chat` to read whispers and send one named chat command, and
- * `ui.skillLabels` to draw on the game's skill bar.
+ * Phase 3). To read: `game.target`, `game.region`, `game.session`,
+ * `game.skillbar`, `game.effects`, `game.alcohol` and `game.progress`;
+ * `game.chat` reads whispers and sends one named chat command. To draw with the
+ * game's own renderer: `ui.skillLabels` and `ui.skillKeys` on the skill slots,
+ * `ui.effectLabels` on the effect icons.
  *
  * A block is one read-only value with a subscription. It wraps a substrate that
  * already exists and owns no memory, so the heap layout and the proofs stay as
@@ -14,13 +16,16 @@
  * subscribes when it starts and stops when it stops.
  */
 import type { EnhancementCapabilities } from "../shared/enhancement-contracts.js";
+import type { GameProgressState } from "../shared/game-progress.js";
+import type { SkillKeyBinding } from "../shared/skill-key-bindings.js";
 import type { ObservedChatEvent } from "../shared/whispers.js";
+import type { AlcoholState } from "./companion-alcohol-snapshot.js";
+import type { CompanionEffectIconState, CompanionPlayerEffectState } from "./companion-effect-snapshot.js";
 import type { CompanionExtensionActivation } from "./certified-companion-extension.js";
 import type { CompanionPlayRegionState } from "./companion-play-region-snapshot.js";
 import type { CompanionSkillCooldownState, CompanionSkillSlotState } from "./companion-skill-snapshot.js";
 import type { CompanionRangeName, CompanionSnapshot } from "./companion-snapshot.js";
 import type { NativeHudItem, NativeHudLayer } from "./native-hud-layer.js";
-import type { SkillOverlays } from "./skill-overlays-installation.js";
 import { projectSkillSlots } from "./skill-slot-projection.js";
 import type { ToolsSubstrates } from "./tools-companion-substrates.js";
 
@@ -94,6 +99,36 @@ export type GameSkillbar = Readonly<{
   rechargeMs: readonly number[];
 }>;
 
+/** One effect on the player, timed by the game's own clock. */
+export type GameEffect = Readonly<{
+  skillId: number;
+  /** 0 when the game gives the effect no end. */
+  durationMs: number;
+  /** The game clock (`gameTimer`) when the effect was applied. */
+  appliedAtGameMs: number;
+}>;
+
+/** The effects on the player. */
+export type GameEffects = Readonly<{
+  /**
+   * The game's 32-bit millisecond clock now. An effect has
+   * `durationMs - ((gameTimer - appliedAtGameMs) >>> 0)` left; the clock wraps.
+   */
+  gameTimer: number;
+  effects: readonly GameEffect[];
+}>;
+
+/** The kernel's estimate of how long the player stays drunk. */
+export type GameAlcohol = Readonly<{
+  /** The game's millisecond clock when the estimate was read. */
+  gameTimer: number;
+  /** Milliseconds until sober (about one minute per level); 0 when sober. */
+  remainingMs: number;
+}>;
+
+/** The character's missions, vanquishes, titles, areas and active quest, as the game publishes them. */
+export type GameProgress = Omit<Extract<GameProgressState, { status: "ready" }>, "status" | "sequence">;
+
 export type GameBlocks = Readonly<{
   /** The selected target; null when there is none or the game state is not ready. */
   target: Block<GameTarget | null>;
@@ -108,6 +143,12 @@ export type GameBlocks = Readonly<{
   skillbar: Block<GameSkillbar | null>;
   /** Whispers and the chat send slot. */
   chat: GameChat;
+  /** The player's effects; null while the game has not published them (loading, PvP, character select). */
+  effects: Block<GameEffects | null>;
+  /** The alcohol estimate; null until the game has published one. */
+  alcohol: Block<GameAlcohol | null>;
+  /** The character's progress; null outside a PvE map or while unknown. */
+  progress: Block<GameProgress | null>;
 }>;
 
 /** Text drawn by the game's own renderer on each of the eight skill slots. */
@@ -126,16 +167,47 @@ export type SkillLabelsClaim = Readonly<{
   stop(): void;
 }>;
 
+/** The game's key artwork for a binding, drawn by its own renderer on each of the eight skill slots. */
+export type SkillKeys = BlockAvailability & Readonly<{
+  /** Starts drawing, as `ui.skillLabels` does: one claim at a time, nothing drawn without the proof. */
+  claim(): SkillKeysClaim;
+}>;
+
+export type SkillKeysClaim = Readonly<{
+  /** One binding per slot (null leaves the slot empty); a repeat of the last call costs nothing. */
+  show(bindings: readonly (SkillKeyBinding | null)[]): void;
+  /** Removes the artwork and ends the claim; calling it twice is safe. */
+  stop(): void;
+}>;
+
+/** Text drawn by the game's own renderer on the player's effect icons. */
+export type EffectLabels = BlockAvailability & Readonly<{
+  /**
+   * Starts drawing; the icon positions are read only while a claim lasts. One claim at a
+   * time. A build without the proof gives a claim that draws nothing.
+   */
+  claim(): EffectLabelsClaim;
+}>;
+
+export type EffectLabel = Readonly<{ skillId: number; text: string; color: string }>;
+
+export type EffectLabelsClaim = Readonly<{
+  /** Text on the icon of each skill; a skill the game shows no icon for draws nothing. A repeat costs nothing. */
+  show(labels: readonly EffectLabel[]): void;
+  /** Removes the text and ends the claim; calling it twice is safe. */
+  stop(): void;
+}>;
+
 export type UiBlocks = Readonly<{
   skillLabels: SkillLabels;
+  skillKeys: SkillKeys;
+  effectLabels: EffectLabels;
 }>;
 
 type BlockInput = Readonly<{
   capabilities: EnhancementCapabilities;
-  observation: ToolsSubstrates["observation"];
-  chat: ToolsSubstrates["chat"];
+  substrates: ToolsSubstrates;
   playRegions: CompanionExtensionActivation["playRegions"];
-  skills: SkillOverlays;
   /** Publishes the active-feature bitmask after a block's demand changed. */
   syncObservers(): void;
 }>;
@@ -301,7 +373,58 @@ function createGameChat(available: boolean, slot: ToolsSubstrates["chat"], syncO
   });
 }
 
-export function createGameBlocks({ capabilities, observation, chat, playRegions, skills, syncObservers }: BlockInput): GameBlocks {
+function effectsOf(state: CompanionPlayerEffectState): GameEffects | null {
+  if (state.status !== "ready") return null;
+  return Object.freeze({
+    gameTimer: state.gameTimer,
+    effects: Object.freeze(state.effects.map(({ skillId, durationMs, appliedAtGameMs }) =>
+      Object.freeze({ skillId, durationMs, appliedAtGameMs }))),
+  });
+}
+
+const sameEffects = (a: GameEffects | null, b: GameEffects | null) =>
+  a === b || (a !== null && b !== null && a.gameTimer === b.gameTimer && a.effects.length === b.effects.length
+    && a.effects.every((effect, index) => effect.skillId === b.effects[index]!.skillId
+      && effect.durationMs === b.effects[index]!.durationMs && effect.appliedAtGameMs === b.effects[index]!.appliedAtGameMs));
+
+const alcoholOf = (state: AlcoholState): GameAlcohol | null => state.status !== "ready" ? null
+  : Object.freeze({ gameTimer: state.gameTimer, remainingMs: state.remainingMs });
+
+const sameAlcohol = (a: GameAlcohol | null, b: GameAlcohol | null) =>
+  a === b || (a !== null && b !== null && a.gameTimer === b.gameTimer && a.remainingMs === b.remainingMs);
+
+function progressOf(state: GameProgressState): GameProgress | null {
+  if (state.status !== "ready") return null;
+  const { status: _status, sequence: _sequence, ...progress } = state;
+  return Object.freeze(progress);
+}
+
+/**
+ * A block over a substrate feed that runs while any of its demands holds: the block
+ * adds "someone subscribes" as one demand, applies it at once, and maps each state.
+ */
+function feedBlock<State, Value>(
+  available: boolean,
+  same: (previous: Value | null, next: Value | null) => boolean,
+  feed: Readonly<{ subscribe(listener: (state: State) => void): () => unknown }>,
+  substrate: Readonly<{ refresh(): void }>,
+  addDemand: (demand: () => boolean) => void,
+  map: (state: State) => Value | null,
+  syncObservers: () => void,
+): Block<Value | null> {
+  let stop: (() => unknown) | null = null;
+  const block = createBlock<Value | null>(available, null, same, (wanted) => {
+    stop?.();
+    substrate.refresh();
+    stop = wanted ? feed.subscribe((state) => block.publish(map(state))) : null;
+    syncObservers();
+  });
+  if (available) addDemand(() => block.wanted);
+  return block.block;
+}
+
+export function createGameBlocks({ capabilities, substrates, playRegions, syncObservers }: BlockInput): GameBlocks {
+  const { observation, chat, skills, effects, alcohol, progress } = substrates;
   const target = createBlock<GameTarget | null>(capabilities.targetObservation, null, sameTarget, syncObservers);
   if (capabilities.targetObservation) {
     const wanted = () => target.wanted;
@@ -338,56 +461,71 @@ export function createGameBlocks({ capabilities, observation, chat, playRegions,
     session: session.block,
     skillbar: skillbar.block,
     chat: createGameChat(capabilities.whisperChat, chat, syncObservers),
+    effects: feedBlock(capabilities.playerEffectObservation, sameEffects, effects.playerEffects, effects,
+      effects.observePlayerEffectsWhen, effectsOf, syncObservers),
+    alcohol: feedBlock(capabilities.alcoholObservation, sameAlcohol, alcohol.installation, alcohol,
+      alcohol.observeWhen, alcoholOf, syncObservers),
+    progress: feedBlock(capabilities.progressObservation, Object.is, progress.installation, progress,
+      progress.observeWhen, progressOf, syncObservers),
   });
 }
 
 type UiInput = Readonly<{
   capabilities: EnhancementCapabilities;
   hud: NativeHudLayer | null;
-  skills: SkillOverlays;
+  substrates: Pick<ToolsSubstrates, "skills" | "effects">;
   document: Pick<Document, "getElementById" | "defaultView">;
   syncObservers(): void;
 }>;
 
-const DRAWS_NOTHING: SkillLabelsClaim = Object.freeze({ show() {}, stop() {} });
+const DRAWS_NOTHING = Object.freeze({ show() {}, stop() {} });
+const WAITING = Object.freeze({ status: "waiting", reason: "memory" } as const);
 
-export function createUiBlocks({ capabilities, hud, skills, document, syncObservers }: UiInput): UiBlocks {
-  const available = hud !== null && capabilities.nativeHudRendering && capabilities.skillSlotGeometry;
-  let claimed = false;
-  const skillLabels: SkillLabels = Object.freeze({
-    ...(available ? { available: true as const } : NOT_PROVEN),
-    claim() {
-      if (!available) return DRAWS_NOTHING;
-      if (claimed) throw new Error("The skill labels are already claimed");
-      const canvas = document.getElementById("canvas");
-      if (canvas === null) throw new Error("Enhancement skill overlay target is missing");
+type SlotContent = Readonly<Pick<NativeHudItem, "text" | "color" | "binding">>;
+
+export function createUiBlocks({ capabilities, hud, substrates: { skills, effects }, document, syncObservers }: UiInput): UiBlocks {
+  const canvasOf = (what: string) => {
+    const canvas = document.getElementById("canvas");
+    if (canvas === null) throw new Error(`Enhancement ${what} overlay target is missing`);
+    return canvas;
+  };
+  const view = document.defaultView;
+
+  // Skill labels and skill keys share the slot geometry, which runs while either is claimed.
+  const slotsAvailable = hud !== null && capabilities.nativeHudRendering && capabilities.skillSlotGeometry;
+  let slotClaims = 0;
+  /** One HUD channel on the eight skill slots; a claim is null when this build cannot draw there. */
+  const slotChannel = (channel: "cooldowns" | "keys", name: string) => {
+    let claimed = false;
+    return () => {
+      if (!slotsAvailable || hud === null) return null;
+      if (claimed) throw new Error(`The ${name} are already claimed`);
+      const canvas = canvasOf("skill");
       claimed = true;
-      let slots: CompanionSkillSlotState = Object.freeze({ status: "waiting", reason: "memory" });
-      let texts: readonly (string | null)[] = [];
-      let color = "";
+      let slots: CompanionSkillSlotState = WAITING;
+      let contents: readonly (SlotContent | null)[] = [];
       let shown: string | null = null;
       const items = (): readonly (NativeHudItem | null)[] => {
-        if (slots.status !== "ready" || slots.slots.length !== 8 || texts.length !== 8) return [];
+        if (slots.status !== "ready" || slots.slots.length !== 8 || contents.length !== 8) return [];
         const projected = projectSkillSlots(slots, canvas);
         if (projected === null) return [];
         const { frameId } = slots;
-        return Object.freeze(texts.map((text, child) => text === null ? null
-          : { parent: frameId, child, width: projected[child]!.width, height: projected[child]!.height, text, color }));
+        return Object.freeze(contents.map((content, child) => content === null ? null
+          : { parent: frameId, child, width: projected[child]!.width, height: projected[child]!.height, ...content }));
       };
-      const render = () => hud.update("cooldowns", items());
-      const view = document.defaultView;
+      const render = () => hud.update(channel, items());
       view?.addEventListener("resize", render);
       const stopSlots = skills.geometry.subscribe((next) => { slots = next; render(); });
+      slotClaims += 1;
       skills.wantSlots(true);
       syncObservers();
       let stopped = false;
       return Object.freeze({
-        show(nextTexts: readonly (string | null)[], nextColor: string) {
-          const next = `${nextColor}|${nextTexts.map((text) => text ?? "").join("|")}`;
-          if (stopped || next === shown) return;
-          shown = next;
-          texts = nextTexts;
-          color = nextColor;
+        /** `signature` names the contents, so a repeat costs nothing. */
+        show(next: readonly (SlotContent | null)[], signature: string) {
+          if (stopped || signature === shown) return;
+          shown = signature;
+          contents = next;
           render();
         },
         stop() {
@@ -396,12 +534,101 @@ export function createUiBlocks({ capabilities, hud, skills, document, syncObserv
           claimed = false;
           view?.removeEventListener("resize", render);
           stopSlots();
-          skills.wantSlots(false);
+          slotClaims -= 1;
+          skills.wantSlots(slotClaims > 0);
           syncObservers();
-          hud.update("cooldowns", []);
+          hud.update(channel, []);
+        },
+      });
+    };
+  };
+
+  const claimLabels = slotChannel("cooldowns", "skill labels");
+  const skillLabels: SkillLabels = Object.freeze({
+    ...(slotsAvailable ? { available: true as const } : NOT_PROVEN),
+    claim() {
+      const slots = claimLabels();
+      if (slots === null) return DRAWS_NOTHING;
+      return Object.freeze({
+        show(texts: readonly (string | null)[], color: string) {
+          slots.show(texts.map((text) => text === null ? null : { text, color }),
+            `${color}|${texts.map((text) => text ?? "").join("|")}`);
+        },
+        stop: slots.stop,
+      });
+    },
+  });
+
+  // Skill Key Labels still draws on the "keys" channel from the skill HUD substrate until it moves here (5.2).
+  const claimKeys = slotChannel("keys", "skill keys");
+  const skillKeys: SkillKeys = Object.freeze({
+    ...(slotsAvailable ? { available: true as const } : NOT_PROVEN),
+    claim() {
+      const slots = claimKeys();
+      if (slots === null) return DRAWS_NOTHING;
+      return Object.freeze({
+        show(bindings: readonly (SkillKeyBinding | null)[]) {
+          slots.show(bindings.map((binding) => binding === null ? null : { binding }), JSON.stringify(bindings));
+        },
+        stop: slots.stop,
+      });
+    },
+  });
+
+  const effectsAvailable = hud !== null && capabilities.nativeHudRendering && capabilities.effectIconGeometry;
+  let effectsClaimed = false;
+  if (effectsAvailable) effects.observeEffectIconsWhen(() => effectsClaimed);
+  const effectLabels: EffectLabels = Object.freeze({
+    ...(effectsAvailable ? { available: true as const } : NOT_PROVEN),
+    claim() {
+      if (!effectsAvailable || hud === null) return DRAWS_NOTHING;
+      if (effectsClaimed) throw new Error("The effect labels are already claimed");
+      const canvas = canvasOf("effect");
+      effectsClaimed = true;
+      let icons: CompanionEffectIconState = WAITING;
+      let labels: readonly EffectLabel[] = [];
+      let shown: string | null = null;
+      const items = (): readonly NativeHudItem[] => {
+        if (icons.status !== "ready") return [];
+        const bounds = canvas.getBoundingClientRect();
+        const scaleX = bounds.width / icons.viewportWidth;
+        const scaleY = bounds.height / icons.viewportHeight;
+        if (!(scaleX > 0 && scaleY > 0 && Number.isFinite(scaleX) && Number.isFinite(scaleY))) return [];
+        const { frameId } = icons;
+        return Object.freeze(icons.icons.flatMap((icon) => {
+          const label = labels.find((candidate) => candidate.skillId === icon.skillId);
+          return label === undefined ? [] : [{ parent: frameId, child: icon.skillId + 4,
+            width: (icon.right - icon.left) * scaleX, height: (icon.top - icon.bottom) * scaleY,
+            text: label.text, color: label.color }];
+        }));
+      };
+      const render = () => hud.update("effects", items());
+      view?.addEventListener("resize", render);
+      const stopIcons = effects.effectIcons.subscribe((next) => { icons = next; render(); });
+      effects.refresh();
+      syncObservers();
+      let stopped = false;
+      return Object.freeze({
+        show(next: readonly EffectLabel[]) {
+          const signature = next.map(({ skillId, text, color }) => `${skillId}:${color}:${text}`).join("|");
+          if (stopped || signature === shown) return;
+          shown = signature;
+          labels = next;
+          render();
+        },
+        stop() {
+          if (stopped) return;
+          stopped = true;
+          effectsClaimed = false;
+          view?.removeEventListener("resize", render);
+          stopIcons();
+          effects.refresh();
+          syncObservers();
+          hud.update("effects", []);
         },
       });
     },
   });
-  return Object.freeze({ skillLabels });
+
+  return Object.freeze({ skillLabels, skillKeys, effectLabels });
 }
