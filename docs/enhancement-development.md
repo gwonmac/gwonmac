@@ -387,7 +387,7 @@ app/features/<id>/
 
 The folder name is the feature id in kebab case (`alcohol-timer` holds
 `alcoholTimer`). The id stays camelCase because it keys the runtime policy, which
-a "Must stay" test pins. [`tests/policy/feature-contract.test.ts`](../tests/policy/feature-contract.test.ts)
+tests name by id, one of them the "Must stay" `tests/certification/feature-region-gating.test.ts`. [`tests/policy/feature-contract.test.ts`](../tests/policy/feature-contract.test.ts)
 runs [the contract checks](../app/features/contract.ts) on every folder in `pnpm check`;
 [Feature contract](feature-contract.md#the-manifest) lists which check guards each field.
 

@@ -1,33 +1,28 @@
+// What the switches, the developer program and the area select for the
+// Features these cases name, as literal values. A newer Feature takes its rows
+// from the rules over every Feature in tests/certification/feature-region-gating.test.ts,
+// so a new Feature adds nothing here.
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
   enhancementRuntimePolicy,
+  type OptionalToolSettings,
 } from "../../app/renderer/enhancement-runtime-policy.js";
-import { FEATURE_SELECTION_POLICIES } from "../../app/shared/feature-contracts.js";
+import { FEATURE_SELECTION_POLICIES, type FeatureId } from "../../app/shared/feature-contracts.js";
 
-const off = Object.freeze({
-  characterSwitchEnabled: false,
-  resignEnabled: false,
-  whispersEnabled: false,
-  callTargetEnabled: false,
-  cartographyEnabled: false,
-  gwonmacTools: false,
-  buildLibrary: false,
-  tradeChat: false,
-  targetReadout: false,
-  xunlaiStorage: false,
-  travelPalette: false,
-  skillKeyLabelsEnabled: false,
-  skillCooldownOverlayEnabled: false,
-  chatFiltersEnabled: false,
-  quickItemMove: false,
-  effectTimersEnabled: false,
-  alcoholTimerEnabled: false,
-  remindersEnabled: false,
-});
+const off = Object.freeze(Object.fromEntries(Object.values(FEATURE_SELECTION_POLICIES)
+  .flatMap((policy) => policy.switch === null ? [] : [[policy.switch, false]]))) as OptionalToolSettings;
+
+/** The policy's values for the Features `expected` names. */
+const named = (policy: Readonly<Record<FeatureId, boolean>>, expected: Readonly<Record<string, boolean>>) =>
+  Object.fromEntries(Object.entries(policy).filter(([id]) => Object.hasOwn(expected, id)));
+
+function assertSelects(policy: Readonly<Record<FeatureId, boolean>>, expected: Readonly<Record<string, boolean>>, message?: string) {
+  assert.deepEqual(named(policy, expected), expected, message);
+}
 
 test("developer programs replace saved optional-tool selection in PvE", () => {
-  assert.deepEqual(enhancementRuntimePolicy("toolbox-foundation", off, "pve"), {
+  assertSelects(enhancementRuntimePolicy("toolbox-foundation", off, "pve"), {
     characterSwitch: false,
     resign: false,
     whispers: false,
@@ -49,7 +44,7 @@ test("developer programs replace saved optional-tool selection in PvE", () => {
     progress: false,
     reminders: false,
   });
-  assert.deepEqual(enhancementRuntimePolicy("toolbox-commands", off, "pve"), {
+  assertSelects(enhancementRuntimePolicy("toolbox-commands", off, "pve"), {
     characterSwitch: false,
     resign: false,
     whispers: false,
@@ -71,7 +66,7 @@ test("developer programs replace saved optional-tool selection in PvE", () => {
     progress: true,
     reminders: false,
   });
-  assert.deepEqual(enhancementRuntimePolicy("xunlai-storage", off, "pve"), {
+  assertSelects(enhancementRuntimePolicy("xunlai-storage", off, "pve"), {
     characterSwitch: false,
     resign: false,
     whispers: false,
@@ -93,7 +88,7 @@ test("developer programs replace saved optional-tool selection in PvE", () => {
     progress: true,
     reminders: false,
   });
-  assert.deepEqual(enhancementRuntimePolicy("target-observer", off, "pve"), {
+  assertSelects(enhancementRuntimePolicy("target-observer", off, "pve"), {
     characterSwitch: false,
     resign: false,
     whispers: false,
@@ -119,11 +114,7 @@ test("developer programs replace saved optional-tool selection in PvE", () => {
 
 test("unknown regions keep local Tools while live PvE features fail closed", () => {
   const on = Object.freeze({
-    characterSwitchEnabled: false,
-  resignEnabled: false,
-  whispersEnabled: false,
-  callTargetEnabled: false,
-    cartographyEnabled: false,
+    ...off,
     gwonmacTools: true,
     buildLibrary: true,
     tradeChat: true,
@@ -131,14 +122,8 @@ test("unknown regions keep local Tools while live PvE features fail closed", () 
     xunlaiStorage: true,
     travelPalette: true,
     chatFiltersEnabled: true,
-    skillKeyLabelsEnabled: false,
-    skillCooldownOverlayEnabled: false,
-    quickItemMove: false,
-    effectTimersEnabled: false,
-    alcoholTimerEnabled: false,
-    remindersEnabled: false,
   });
-  assert.deepEqual(enhancementRuntimePolicy("none", on, "unknown"), {
+  assertSelects(enhancementRuntimePolicy("none", on, "unknown"), {
     characterSwitch: false,
     resign: false,
     whispers: false,
@@ -164,11 +149,7 @@ test("unknown regions keep local Tools while live PvE features fail closed", () 
 
 test("a confirmed PvP map disables every product and developer tool", () => {
   const on = Object.freeze({
-    characterSwitchEnabled: false,
-  resignEnabled: false,
-  whispersEnabled: false,
-  callTargetEnabled: false,
-    cartographyEnabled: false,
+    ...off,
     gwonmacTools: true,
     buildLibrary: true,
     tradeChat: true,
@@ -178,10 +159,6 @@ test("a confirmed PvP map disables every product and developer tool", () => {
     skillKeyLabelsEnabled: true,
     skillCooldownOverlayEnabled: true,
     chatFiltersEnabled: true,
-    quickItemMove: false,
-    effectTimersEnabled: false,
-    alcoholTimerEnabled: false,
-    remindersEnabled: false,
   });
   for (const program of [
     "none",
@@ -190,11 +167,11 @@ test("a confirmed PvP map disables every product and developer tool", () => {
     "toolbox-commands",
     "xunlai-storage",
   ] as const) {
-    assert.deepEqual(enhancementRuntimePolicy(program, on, "pvp"), {
+    assertSelects(enhancementRuntimePolicy(program, on, "pvp"), {
       characterSwitch: false,
-    resign: false,
-    whispers: false,
-    callTarget: false,
+      resign: false,
+      whispers: false,
+      callTarget: false,
       cartography: false,
       tools: false,
       buildLibrary: false,
@@ -208,33 +185,21 @@ test("a confirmed PvP map disables every product and developer tool", () => {
       chatFilters: false,
       quickItemMove: false,
       effectTimers: false,
-    alcoholTimer: false,
-    progress: false,
-    reminders: false,
+      alcoholTimer: false,
+      progress: false,
+      reminders: false,
     }, program);
   }
 });
 
 test("product tool settings remain live once the capability is present", () => {
-  assert.deepEqual(enhancementRuntimePolicy("none", {
-    characterSwitchEnabled: false,
-  resignEnabled: false,
-  whispersEnabled: false,
-  callTargetEnabled: false,
-    cartographyEnabled: false,
+  assertSelects(enhancementRuntimePolicy("none", {
+    ...off,
     gwonmacTools: true,
     buildLibrary: true,
     tradeChat: true,
-    targetReadout: false,
-    xunlaiStorage: false,
     travelPalette: true,
-    skillKeyLabelsEnabled: false,
     skillCooldownOverlayEnabled: true,
-    chatFiltersEnabled: false,
-    quickItemMove: false,
-    effectTimersEnabled: false,
-    alcoholTimerEnabled: false,
-    remindersEnabled: false,
   }, "pve"), {
     characterSwitch: false,
     resign: false,
@@ -260,38 +225,10 @@ test("product tool settings remain live once the capability is present", () => {
 });
 
 test("skill feature selection distinguishes labels from cooldowns", () => {
-  const empty = enhancementRuntimePolicy("none", {
-    ...off,
-    characterSwitchEnabled: false,
-  resignEnabled: false,
-  whispersEnabled: false,
-  callTargetEnabled: false,
-    cartographyEnabled: false,
-    gwonmacTools: true,
-    skillKeyLabelsEnabled: false,
-    skillCooldownOverlayEnabled: false,
-    quickItemMove: false,
-    effectTimersEnabled: false,
-    alcoholTimerEnabled: false,
-    remindersEnabled: false,
-  }, "pve");
+  const empty = enhancementRuntimePolicy("none", { ...off, gwonmacTools: true }, "pve");
   assert.equal(empty.skillKeyLabels, false);
   assert.equal(empty.skillCooldowns, false);
-  const labels = enhancementRuntimePolicy("none", {
-    ...off,
-    characterSwitchEnabled: false,
-  resignEnabled: false,
-  whispersEnabled: false,
-  callTargetEnabled: false,
-    cartographyEnabled: false,
-    gwonmacTools: true,
-    skillKeyLabelsEnabled: true,
-    skillCooldownOverlayEnabled: false,
-    quickItemMove: false,
-    effectTimersEnabled: false,
-    alcoholTimerEnabled: false,
-    remindersEnabled: false,
-  }, "pve");
+  const labels = enhancementRuntimePolicy("none", { ...off, gwonmacTools: true, skillKeyLabelsEnabled: true }, "pve");
   assert.equal(labels.skillKeyLabels, true);
   assert.equal(labels.skillCooldowns, false);
 });
@@ -311,62 +248,4 @@ test("effect observation is PvE-only for both product and developer selection", 
   assert.equal(enhancementRuntimePolicy("none", product, "pvp").effectTimers, false);
   assert.equal(enhancementRuntimePolicy("effect-observer", off, "pve").effectTimers, true);
   assert.equal(enhancementRuntimePolicy("effect-observer", off, "pvp").effectTimers, false);
-});
-
-test("runtime policy projects every registered feature exactly once", () => {
-  assert.deepEqual(
-    Object.keys(enhancementRuntimePolicy("none", off, "unknown")).sort(),
-    Object.keys(FEATURE_SELECTION_POLICIES).sort(),
-  );
-});
-
-test("local Tools require their setting or developer program and PvP maps block them", () => {
-  const regions = ["pve", "pvp", "unknown"] as const;
-  const programs = [
-    "none",
-    "cursor-observer",
-    "target-observer",
-    "toolbox-foundation",
-    "toolbox-commands",
-    "xunlai-storage",
-  ] as const;
-  for (const program of programs) {
-    for (const playRegion of regions) {
-      for (const enabled of [false, true]) {
-        for (const buildLibrary of [false, true]) {
-          for (const targetReadout of [false, true]) {
-            for (const xunlaiStorage of [false, true]) {
-              const policy = enhancementRuntimePolicy(program, {
-                ...off,
-                gwonmacTools: enabled,
-                buildLibrary,
-                xunlaiStorage,
-                targetReadout,
-              }, playRegion);
-              assert.equal(
-                policy.tools,
-                playRegion !== "pvp" && (
-                  enabled
-                    || program === "toolbox-foundation"
-                    || program === "toolbox-commands"
-                    || program === "xunlai-storage"
-                ),
-                `${program}/${playRegion} coupled local Tools to a live feature`,
-              );
-            }
-          }
-        }
-      }
-    }
-  }
-});
-
-
-test("Resign requires both Tools switches and a known PvE region", () => {
-  const settings = { ...off, gwonmacTools: true, resignEnabled: true };
-  assert.equal(enhancementRuntimePolicy("toolbox-foundation", settings, "pve").resign, true);
-  assert.equal(enhancementRuntimePolicy("toolbox-foundation", settings, "pvp").resign, false);
-  assert.equal(enhancementRuntimePolicy("toolbox-foundation", settings, "unknown").resign, false);
-  assert.equal(enhancementRuntimePolicy("toolbox-foundation", { ...settings, resignEnabled: false }, "pve").resign, false);
-  assert.equal(enhancementRuntimePolicy("toolbox-foundation", { ...settings, gwonmacTools: false }, "pve").resign, false);
 });

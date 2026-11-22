@@ -28,7 +28,7 @@ cannot prove stays off, and the untouched official client stays playable.
 ```bash
 pnpm install --frozen-lockfile   # Apple Silicon, Node >= 22.19, pnpm 11, Rust via rustup
 pnpm dev                         # build and open the real launcher
-pnpm check                       # fast check: typecheck, lint, unit, policy, Tools and launcher UI tests
+pnpm check                       # fast check: typecheck, lint, unit, certification, policy, Tools and launcher UI tests
 pnpm typecheck                   # all TypeScript projects
 ```
 
@@ -50,15 +50,17 @@ Players install 1.0.0 over the old app and keep everything. Do not change:
 
 - bundle ID `io.github.mat4m0.gwonmac`, Apple Team ID `9NN976MFZ4`, the
   Developer ID identity, the app name "Guild Wars Reforged", the userData
-  folder, Keychain service and item names, Electron fuses, and entitlements;
+  folder, and Keychain service and item names;
+- Electron fuses and entitlements: never loosen them (tightening is fine);
 - the ability to read every player data file the current app writes (settings,
   builds, templates, accounts, launcher state, game files and chunk store).
   Delete only code that serves going back to older versions;
 - the format of `website/public/launcher/news-v1.json` (old installed apps
   read it);
-- the certification proofs and verifier in `app/client/certification/` and their
-  tests: `tests/unit/client-certification*`, `tests/unit/enhancement-*`,
-  `tests/client-artifact/`.
+- the certification proofs and verifier in `app/client/certification/`: never
+  weaken them; changes go through [recertify](docs/recertify.md);
+- the tests in `tests/certification/` and `tests/client-artifact/`. They guard
+  the client proofs and the safety rules, so a new Feature needs no change there.
 
 ## Source map
 
@@ -77,7 +79,7 @@ Players install 1.0.0 over the old app and keep everything. Do not change:
 | `app/ui/launcher/`, `app/ui/tools/` | Vue launcher and Tools UI |
 | `website/` | www.gwonmac.com and all player docs |
 | `scripts/` | build, packaging, release, and development scripts |
-| `tests/` | `unit`, `policy`, `client-artifact`, `integration`, `electron` (CI only) |
+| `tests/` | `unit`, `certification` (Must stay), `policy`, `client-artifact`, `integration`, `electron` (CI only) |
 | `docs/` | maintainer docs (below) |
 
 ## Working rules

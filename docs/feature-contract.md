@@ -167,7 +167,7 @@ capability, and a product setting cannot either.
 
 ## Checks
 
-`pnpm check` runs typecheck, lint, the unit and policy tests and the UI tests. For a Feature:
+`pnpm check` runs typecheck, lint, the unit, certification and policy tests and the UI tests. For a Feature:
 
 - the contract on every folder (`tests/policy/feature-contract.test.ts`), each message naming
   the file and what to change;
@@ -176,7 +176,13 @@ capability, and a product setting cannot either.
 - `tests/policy/feature-docs.test.ts`: the website page and `$docs.<page>` links;
 - ESLint import boundaries: renderer code outside the folder reaches only `feature.ts`,
   `renderer/host.ts` and `shared/`;
-- the metric ceilings in `scripts/feature-metrics-ceilings.json` (never raise one).
+- the metric ceilings in `scripts/feature-metrics-ceilings.json` (never raise one);
+- `tests/certification/feature-region-gating.test.ts`: the safety rules over every Feature in
+  `FEATURES` (a confirmed PvP map turns it off unless its `region` is `any`, an unknown area
+  keeps a `pve` Feature off, a developer program replaces the saved switches, and without a
+  program it needs `gwonmacTools` and its own switch on). It is Must stay in AGENTS.md, and a
+  new Feature does not edit it; only a new `region: "any"` Feature, a safety decision, adds
+  itself to the list of Features allowed on a PvP map.
 
 ### Shared files a new Feature touches
 
@@ -194,12 +200,12 @@ take a newer Feature's rows from its manifest, so a new Feature adds nothing to 
 | `tests/unit/settings.test.ts` | Its settings join the literal defaults and the saved key list. A Core setting, or one of a Feature the lists name, still needs its line. |
 | `tests/helpers/packaged-enhancement-scenarios.ts` | Its Tools settings take their defaults in each probe. |
 | `app/ui/launcher/src/fixtures.ts` | Its tool takes its switch's default in `tools.features`. |
+| `tests/unit/feature-selection.test.ts` | Its rows come from the rules in `tests/certification/feature-region-gating.test.ts`. Add literal values only to pin a case the rules do not decide. |
 
-Two files still take a line by hand:
+One file still takes a line by hand:
 
 | File | Add |
 | --- | --- |
-| `tests/unit/enhancement-runtime-policy.test.ts` | `<id>Enabled: false` to `off`, `<id>: false` to every expected record (typecheck names them). On the AGENTS.md Must stay list: only add, never change a line. |
 | `app/ui/launcher/src/feature-icon.ts` | Only for an icon no Feature uses yet: its import and its line. The launcher bundles only the icons Features name. |
 
 Do not run the Electron or Playwright suites locally; CI runs them

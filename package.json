@@ -25,7 +25,7 @@
     "dev:signed": "node --import ./scripts/ts-hook.mjs scripts/run-signed-dev.ts",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.renderer.json --noEmit && tsc -p tsconfig.tests.json && pnpm --filter @gwonmac/tools-ui typecheck && pnpm --filter @gwonmac/launcher-ui typecheck",
     "lint": "eslint .",
-    "test": "node --import ./scripts/ts-hook.mjs --test --test-timeout=60000 tests/unit/*.ts tests/policy/*.ts",
+    "test": "node --import ./scripts/ts-hook.mjs --test --test-timeout=60000 tests/unit/*.ts tests/certification/*.ts tests/policy/*.ts",
     "test:client-artifact": "node --max-old-space-size=8192 --import ./scripts/ts-hook.mjs --test --test-concurrency=1 --test-timeout=60000 tests/client-artifact/*.ts",
     "test:electron": "playwright test --config=tests/electron/playwright.config.ts",
     "test:website": "pnpm --filter gw-website certify && node --import ./scripts/ts-hook.mjs tests/website-smoke.ts",
