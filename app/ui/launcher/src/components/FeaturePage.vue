@@ -13,6 +13,7 @@ import type { LauncherExternalLink, LauncherSnapshot } from "@shared/launcher-co
 import type { ReleaseStage } from "@shared/release";
 import type { SettingsTarget } from "@shared/settings-catalogue";
 import type { InGamePatch, InGameSettings, InGameTools } from "../settings-host";
+import type { PerformSave } from "../save-status";
 import { REGION_WORDS, cardFeature, changelogOf, featureStageLabel, readmeBlocks, type CardFeature } from "../features";
 import { runsWith, switchOf, type FeatureStatus } from "@shared/feature-status";
 import FeatureArt from "./FeatureArt.vue";
@@ -27,13 +28,13 @@ const props = withDefaults(defineProps<{
   shortcuts: LauncherSnapshot["shortcuts"];
   api?: InGameTools | undefined;
   save: (patch: InGamePatch) => Promise<void>;
-  performSave?: ((action: () => Promise<unknown>) => Promise<void>) | undefined;
+  performSave: PerformSave;
   appVersion: string;
   /** The stage this build shows: which options the page draws (app/shared/release.ts). */
   stage: ReleaseStage;
   /** Drawn inside the Hub's Settings page: its status line reports saves, and links to the launcher and the web stay text. */
   embedded?: boolean;
-}>(), { api: undefined, performSave: undefined, embedded: false });
+}>(), { api: undefined, embedded: false });
 const emit = defineEmits<{
   back: [];
   toggle: [on: boolean];
@@ -102,7 +103,7 @@ const stageLabel = computed(() => featureStageLabel(props.feature));
           <p v-if="usesGame" class="uses-note">Before this Feature runs, GWonMac checks each game item above on this Guild Wars build.</p>
         </section>
 
-        <FeatureSettings :feature="feature" :stage="stage" :settings="settings" :shortcuts="shortcuts" :api="api" :save="save" :perform-save="performSave" :show-note="!embedded" />
+        <FeatureSettings :feature="feature" :stage="stage" :settings="settings" :shortcuts="shortcuts" :api="api" :save="save" :perform-save="performSave" />
 
         <section v-if="versions.length" aria-labelledby="new-title">
           <h2 id="new-title">What’s new</h2>

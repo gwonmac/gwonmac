@@ -9,7 +9,7 @@ import ColorControl from "../ColorControl.vue";
 const props = defineProps<{ settings: InGameSettings; save: (patch: InGamePatch) => Promise<void> }>();
 const CHOICES = [...SKILL_COOLDOWN_PRESETS, "custom"] as const;
 const TEXT = featureSettingText("skillCooldownColor");
-/** The page's save note reports a failure; the control keeps showing the saved value. */
+/** The page's save status reports a failure; the control keeps showing the saved value. */
 const change = (patch: InGamePatch) => props.save(patch).catch(() => undefined);
 function customColor(value: string) {
   if (isSkillCooldownCustomHex(value)) void change({ skillCooldownColor: { kind: "custom", value } });

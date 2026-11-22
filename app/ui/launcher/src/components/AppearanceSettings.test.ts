@@ -1,4 +1,4 @@
-import { flushPromises, mount } from "@vue/test-utils";
+import { mount } from "@vue/test-utils";
 import { describe, expect, it, vi } from "vitest";
 import AppearanceSettings from "./AppearanceSettings.vue";
 import { fixtureSnapshot } from "../fixtures";
@@ -15,15 +15,12 @@ describe("in-game appearance settings", () => {
     await wrapper.get('[aria-label="Accent hex"]').setValue("ABCDEF");
     expect(save).toHaveBeenLastCalledWith({ uiCustomTheme: { ...fixtureSnapshot.settings.uiCustomTheme, accent: "#abcdef" } });
   });
-  it("rejects invalid imports and reports failed saves", async () => {
+  it("rejects invalid theme text without saving", async () => {
     const save = vi.fn(async () => { throw new Error("disk"); });
     const wrapper = mount(AppearanceSettings, { props: { settings: { ...fixtureSnapshot.settings, uiStyle: "custom" }, save } });
     await wrapper.get('textarea[placeholder="Paste theme text"]').setValue("invalid theme");
     await wrapper.get(".theme-sharing .secondary").trigger("click");
     expect(save).not.toHaveBeenCalled();
     expect(wrapper.get('[role="status"]').text()).toContain("not valid");
-    await wrapper.get('[aria-label="Panel opacity value"]').setValue("80");
-    await flushPromises();
-    expect(wrapper.get('[role="status"]').text()).toContain("could not be saved");
   });
 });

@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/**
+ * Custom labels for the eight skill slots, recorded from a key or mouse button. They change only
+ * the labels gwonmac draws, never Guild Wars key bindings. The host's save status reports each save.
+ */
 import type { InGamePatch } from "../settings-host";
 import { nextTick, ref } from "vue";
 import { isSkillKeyInput, skillKeyPresentation, withSkillKeyBinding, type SkillKeyBindings, type SkillKeyInput } from "@shared/skill-key-bindings";
@@ -6,12 +10,10 @@ import { isSkillKeyInput, skillKeyPresentation, withSkillKeyBinding, type SkillK
 const props = defineProps<{ bindings: SkillKeyBindings; save: (patch: InGamePatch) => Promise<void> }>();
 const slot = ref<number | null>(null);
 const target = ref<HTMLElement | null>(null);
-const message = ref("");
 let returnFocus: HTMLElement | null = null;
 async function start(index: number) {
   returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   slot.value = index;
-  message.value = "";
   await nextTick();
   target.value?.focus();
 }
@@ -21,20 +23,16 @@ async function stop() {
   returnFocus?.focus();
 }
 async function clear(index: number) {
-  try { await props.save({ skillKeyBindings: withSkillKeyBinding(props.bindings, index, null) }); }
-  catch { message.value = "The label could not be saved."; }
+  await props.save({ skillKeyBindings: withSkillKeyBinding(props.bindings, index, null) }).catch(() => undefined);
 }
 async function capture(input: SkillKeyInput, event: KeyboardEvent | MouseEvent | WheelEvent) {
   event.preventDefault();
   if (slot.value === null || !isSkillKeyInput(input)) return;
   const index = slot.value;
   void stop();
-  try {
-    await props.save({ skillKeyBindings: withSkillKeyBinding(props.bindings, index, {
-      input, modifiers: { control: event.ctrlKey, option: event.altKey, shift: event.shiftKey, command: event.metaKey },
-    }) });
-    message.value = `Skill ${index + 1} label saved.`;
-  } catch { message.value = "The label could not be saved."; }
+  await props.save({ skillKeyBindings: withSkillKeyBinding(props.bindings, index, {
+    input, modifiers: { control: event.ctrlKey, option: event.altKey, shift: event.shiftKey, command: event.metaKey },
+  }) }).catch(() => undefined);
 }
 </script>
 
@@ -56,7 +54,6 @@ async function capture(input: SkillKeyInput, event: KeyboardEvent | MouseEvent |
       </div>
       <button class="secondary small" @click="stop">Cancel label capture</button>
     </template>
-    <p v-if="message" role="status">{{ message }}</p>
   </div>
 </template>
 

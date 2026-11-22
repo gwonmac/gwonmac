@@ -4,7 +4,8 @@
  * or Purpose, and each Feature's page. The launcher draws it as its Features tab; the Hub draws it
  * as the Features section of its Settings page (`embedded`). Statuses come from resolve through
  * ../features.ts; switches and options write through the host's bridge, or, in a browser preview,
- * change the shown fixture.
+ * change the shown fixture. Every write goes through one save status (../save-status.ts): the
+ * host's when it passes `performSave`, else the tab's own, drawn at the bottom of the page.
  */
 import { computed, nextTick, ref, watch } from "vue";
 import { AlertCircle, Check, LayoutGrid, List, Search } from "lucide-vue-next";
@@ -31,9 +32,11 @@ import {
 import { runsWith, showsReason, switchOf } from "@shared/feature-status";
 import { fixtureFacts } from "../fixtures";
 import { revealSetting } from "../reveal-setting";
+import { useSaveStatus, type PerformSave } from "../save-status";
 import FeatureArt from "./FeatureArt.vue";
 import FeaturePage from "./FeaturePage.vue";
 import FeatureSwitch from "./FeatureSwitch.vue";
+import SaveStatus from "./SaveStatus.vue";
 
 /** What the catalog reads: the launcher's snapshot, or the Hub's bounded copy (app/shared/hub-settings.ts). */
 export type FeaturesSnapshot = Pick<LauncherSnapshot, "tools" | "features" | "shortcuts"> & Readonly<{
@@ -52,8 +55,8 @@ const props = withDefaults(defineProps<{
   target?: SettingsTarget | null;
   /** Saves an option; absent: through `native`, or the fixture. */
   save?: ((patch: InGamePatch) => Promise<void>) | undefined;
-  /** Wraps every bridge write, so the host's status line can report it. */
-  performSave?: ((action: () => Promise<unknown>) => Promise<void>) | undefined;
+  /** Wraps every bridge write, so the host's status line can report it; absent: the tab reports its own. */
+  performSave?: PerformSave | undefined;
   /** Drawn inside the Hub's Settings page. */
   embedded?: boolean;
 }>(), { target: null, save: undefined, performSave: undefined, embedded: false });
@@ -77,9 +80,14 @@ watch(size, (next) => { try { localStorage.setItem(SIZE_KEY, next); } catch { /*
 const query = ref("");
 const filter = ref<FeatureFilter>("all");
 const groupBy = ref<GroupBy>("kind");
-const message = ref("");
+/** Restart launcher is not a save: its failure has a line of its own. */
+const restartError = ref("");
 const page = ref<HTMLElement | null>(null);
 const searchField = ref<HTMLInputElement | null>(null);
+/** The tab's own save status, when the host has none. Its controls show the saved value, so it has no Revert. */
+const ownStatus = props.performSave ? null : useSaveStatus({ keepsChange: false, root: page });
+const performSave: PerformSave = props.performSave ?? ownStatus!.performSave;
+function identify(event: Event) { ownStatus?.identify(event); }
 
 const tools = computed(() => props.snapshot.tools);
 const state = computed(() => launcherFeatureState(props.snapshot.features));
@@ -113,10 +121,9 @@ const plainStatus = computed(() => plain.value
     : "Features are loaded. Each switch below works at once in supported game areas.");
 
 
-/** One bridge write, through the host's status line when it has one. */
+/** One bridge write, reported by the save status. */
 async function write(action: () => Promise<unknown>) {
-  if (props.performSave) await props.performSave(action);
-  else await action();
+  await performSave(action);
 }
 /** Moves saved switches through the bridge, or changes the preview's fixture. */
 async function apply(changes: readonly SwitchChange[]) {
@@ -134,8 +141,7 @@ function showFixture(tools: LauncherSnapshot["tools"]) {
   emit("fixture", { tools, features: fixtureFacts(tools, props.snapshot.features.features) });
 }
 async function attempt(action: () => Promise<unknown>) {
-  message.value = "";
-  try { await action(); } catch { message.value = "This change could not be saved. Try again."; }
+  try { await action(); } catch { /* The save status reports it and offers Retry. */ }
 }
 
 async function toggle(each: CardFeature, on: boolean) {
@@ -154,7 +160,9 @@ async function setPlain(on: boolean) {
   });
 }
 async function restart() {
-  await attempt(async () => { await props.native?.tools.restartToApply?.(); });
+  restartError.value = "";
+  try { await props.native?.tools.restartToApply?.(); }
+  catch { restartError.value = "The launcher could not restart. Try again."; }
 }
 async function saveSettings(patch: InGamePatch) {
   if (props.save) await props.save(patch);
@@ -169,6 +177,7 @@ async function open(id: FeatureId) {
   feature.value = id;
 }
 watch(feature, async (next, previous) => {
+  ownStatus?.leave();
   await nextTick();
   if (page.value) page.value.scrollTop = 0;
   if (next) page.value?.querySelector<HTMLElement>("h1")?.focus({ preventScroll: true });
@@ -202,7 +211,7 @@ function pickGroup(next: GroupBy) {
 </script>
 
 <template>
-  <section ref="page" class="features-page" :class="{ page: !embedded }">
+  <section ref="page" class="features-page" :class="{ page: !embedded }" @change.capture="identify" @click.capture="identify">
     <FeaturePage
       v-if="shown"
       :feature="shown"
@@ -312,7 +321,8 @@ function pickGroup(next: GroupBy) {
       <p v-if="!embedded" class="suggest">Missing something you used on Windows? <button class="text-link" @click="emit('external', 'featureRequest')">Suggest a Feature</button></p>
     </div>
 
-    <p v-if="message" class="inline-message features-alert" role="alert">{{ message }}</p>
+    <p v-if="restartError" class="inline-message features-alert" role="alert">{{ restartError }}</p>
+    <SaveStatus v-if="ownStatus" class="features-status" :status="ownStatus" :idle-note="false" />
   </section>
 </template>
 
@@ -392,6 +402,10 @@ function pickGroup(next: GroupBy) {
 .suggest { margin: 8px 0 0; padding-top: 16px; border-top: 1px solid var(--line); font-size: var(--fs-sm); }
 .suggest .text-link { padding: 0; font-size: inherit; }
 .features-alert { position: sticky; bottom: 0; margin: 16px 0 0; }
+/* The tab's save status: a bar pinned to the bottom of the page while there is something to say. */
+.features-page .features-status { position: sticky; bottom: 0; margin: 16px 0 0; padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-solid); font-size: var(--fs-sm); }
+.features-page .features-status.save-failed { background: linear-gradient(var(--danger-tint), var(--danger-tint)), var(--surface-solid); }
+.features-page .features-status.save-idle { margin: 0; padding: 0; border: 0; }
 @media (prefers-reduced-motion: reduce) {
   .card, .tile { transition: none; }
 }

@@ -23,8 +23,8 @@ test("a refused map edit says so on the Maps page and keeps the saved choice at 
     });
     const hex = settings.getByRole("textbox", { name: "Shaded area color hex" });
     await hex.fill("112233"); await hex.press("Tab");
-    // The Feature page has no Retry or Revert: its note says the change was not saved, and the next try saves again.
-    const feedback = settings.locator(".feature-settings .save-note[role=alert]");
+    // The Features tab's save status says the change was not saved and offers Retry; it has no Revert, because its controls show the saved value.
+    const feedback = settings.locator(".features-status [role=alert]");
     await expect(feedback).toContainText("could not be saved");
     // The resize and zoom above can relayout the page after a first scroll, so scroll until it holds.
     await expect.poll(async () => {

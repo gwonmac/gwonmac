@@ -11,19 +11,20 @@ import { computed, nextTick, onBeforeUnmount, onMounted, provide, ref, watch } f
 import { MODAL_HOST } from "../modal-host";
 import { ArrowUpRight, ClipboardPaste, Contrast, Copy, FileText, FolderDown, Gamepad2, House, Image, RefreshCw, Search, WandSparkles, X } from "lucide-vue-next";
 import type { FeatureId } from "@shared/feature-contracts";
-import { SETTING_APPLIES_NOTE } from "@shared/setting-copy";
 import { HUB_SECTIONS, SETTINGS, SETTINGS_GROUP_LABELS, SETTINGS_SECTIONS, searchSettings, settingPlace, settingTarget, type SettingsSection, type SettingsTarget } from "@shared/settings-catalogue";
 import type { LauncherNativeApi, LauncherPreferencesPatch, LauncherSettingsPasteOutcome, LauncherSettingsPasteRefusal, LauncherSettingsPatch, LauncherSnapshot } from "@shared/launcher-contracts";
 import type { InGameNative, InGamePatch, InGameSnapshot } from "../settings-host";
 import type { CacheInfo } from "@shared/contracts";
 import { listIndexAfter, listKeyStep } from "@shared/ui/list-keys";
 import { revealSetting } from "../reveal-setting";
+import { useSaveStatus } from "../save-status";
 import AppearanceSettings from "./AppearanceSettings.vue";
 import GameFilesSettings from "./GameFilesSettings.vue";
 import GameSettings from "./GameSettings.vue";
 import GeneralUpdateSettings from "./GeneralUpdateSettings.vue";
 import FeaturesView, { type FeaturesSnapshot } from "./FeaturesView.vue";
 import HomeScreenSettings from "./HomeScreenSettings.vue";
+import SaveStatus from "./SaveStatus.vue";
 import TexturePacksSettings from "./TexturePacksSettings.vue";
 
 /**
@@ -68,7 +69,6 @@ const nav = ref<HTMLElement | null>(null);
 // The game document has no launcher tokens: in the Hub, modals open inside the page.
 const modalHost = ref<HTMLElement | null>(null);
 if (!props.launcher) provide(MODAL_HOST, modalHost);
-const retryButton = ref<HTMLButtonElement | null>(null);
 
 const section = ref<SettingsSection>(lastSection && listed(lastSection) ? lastSection : featuresHere.value ? "features" : "appearance");
 /** The Hub's Features section: the Feature page shown, kept across a Revert that redraws the section. */
@@ -90,59 +90,10 @@ const searchOpen = ref(false);
 /** Which ends of the narrow tab row hide more tabs, so each can fade. */
 const tabsClipped = ref({ start: false, end: false });
 
-// One pending save prevents stale whole-preset edits. On failure, keep the visible
-// draft and the exact operation until the player retries or reverts.
-const saveState = ref<"idle" | "saving" | "failed" | "saved">("idle");
-const savedNote = ref("");
-const formVersion = ref(0);
-const editedSetting = ref<{ label: string; note: string }>({ label: "Settings", note: "" });
-let retrySave: (() => Promise<unknown>) | undefined;
-const locked = computed(() => saveState.value === "saving" || saveState.value === "failed");
-
-/** Names the control being changed, so the status line can say what was saved and when it applies. */
-function identifySetting(event: Event) {
-  const control = event.target;
-  if (!(control instanceof HTMLElement) || locked.value) return;
-  const id = control.closest<HTMLElement>("[data-setting]")?.dataset.setting;
-  const entry = SETTINGS.find(candidate => candidate.id === id);
-  const label = entry?.label ?? control.getAttribute("aria-label") ?? control.closest("label")?.querySelector("strong")?.textContent ?? "Settings";
-  editedSetting.value = { label, note: entry?.applies ? SETTING_APPLIES_NOTE[entry.applies] : "" };
-}
-
-async function performSave(action: () => Promise<unknown>) {
-  if (locked.value) throw new Error("Finish the pending settings change first.");
-  // The locked fieldset drops focus from the control being saved; it gets it back once the save settles.
-  const focused = document.activeElement;
-  saveState.value = "saving";
-  retrySave = action;
-  try {
-    await action();
-    saveState.value = "saved";
-    savedNote.value = [`Saved: ${editedSetting.value.label}.`, editedSetting.value.note].filter(Boolean).join(" ");
-    retrySave = undefined;
-  } catch (error) {
-    saveState.value = "failed";
-    // The fieldset is locked while the failure stands; Retry takes the keyboard.
-    void nextTick(() => retryButton.value?.focus());
-    throw error;
-  } finally {
-    void nextTick(() => {
-      if (focused instanceof HTMLElement && focused.isConnected && !locked.value && (!document.activeElement || document.activeElement === document.body)) focused.focus({ preventScroll: true });
-    });
-  }
-}
-async function retry() {
-  const action = retrySave;
-  if (!action) return;
-  saveState.value = "idle";
-  try { await performSave(action); formVersion.value += 1; }
-  catch { /* The status line owns this failure. */ }
-}
-function revert() {
-  retrySave = undefined;
-  saveState.value = "idle";
-  formVersion.value += 1;
-}
+// One pending save prevents stale whole-preset edits. On failure, the page keeps the visible
+// draft and the exact write until the player retries or reverts (../save-status.ts).
+const status = useSaveStatus({ keepsChange: true, root: content });
+const { locked, performSave } = status;
 
 const launcherNative = props.launcher?.native;
 async function saveSettings(patch: InGamePatch) {
@@ -226,7 +177,8 @@ async function select(next: SettingsSection, moveFocus = false) {
   if (!listed(next)) { emit("features", { section: next }); return; }
   query.value = "";
   searchOpen.value = false;
-  if (saveState.value === "saved") saveState.value = "idle";
+  // Leaving a section with a refused change reverts it, so the next section is not locked.
+  status.leave();
   section.value = lastSection = next;
   emit("section", next);
   actionError.value = "";
@@ -334,7 +286,7 @@ function onKey(event: KeyboardEvent) {
   if (event.key === "f" && event.metaKey && !event.shiftKey && !event.altKey) { event.preventDefault(); void openSearch().then(() => searchField.value?.select()); }
 }
 
-watch(query, () => { if (saveState.value === "saved") saveState.value = "idle"; });
+watch(query, () => { if (status.state.value === "saved") status.state.value = "idle"; });
 watch(() => props.target, target => { if (target) void open(target); });
 // The tab row's fades follow the page's width.
 const tabRowSize = new ResizeObserver(() => revealActiveTab());
@@ -378,7 +330,7 @@ onBeforeUnmount(() => {
               <li v-for="entry in results" :key="entry.id"><button @click="openResult(entry.id)"><span><strong>{{ entry.label }}</strong><small v-if="entry.detail">{{ entry.detail }}</small></span><small>{{ inLauncher(entry.section) ? `${settingPlace(entry)} · in the launcher` : settingPlace(entry) }}</small></button></li>
             </ul>
           </template>
-          <fieldset v-else :key="`${section}:${formVersion}`" class="settings-fields" :disabled="locked" :aria-busy="saveState === 'saving'" @change.capture="identifySetting" @click.capture="identifySetting">
+          <fieldset v-else :key="`${section}:${status.version.value}`" class="settings-fields" :disabled="locked" :aria-busy="status.state.value === 'saving'" @change.capture="status.identify" @click.capture="status.identify">
             <legend class="visually-hidden">Settings for every account</legend>
             <FeaturesView v-if="section === 'features'" v-model:feature="featurePage" :snapshot="featuresSnapshot" :native="native" :target="featuresTarget" :save="saveSettings" :perform-save="performSave" embedded @settings="open" />
             <template v-else-if="section === 'appearance'"><h1>Appearance</h1><AppearanceSettings :settings="snapshot.settings" :save="saveSettings" /></template>
@@ -420,10 +372,7 @@ onBeforeUnmount(() => {
             <p v-if="actionError" role="alert" class="inline-message">{{ actionError }}</p>
           </fieldset>
         </div>
-        <footer class="settings-status" :class="{ 'save-failed': saveState === 'failed' }">
-          <span class="status-line" role="status"><template v-if="saveState === 'saving'">Saving…</template><template v-else-if="saveState === 'saved'">{{ savedNote }}</template><template v-else-if="saveState === 'idle'">Changes save right away and apply in every game window.</template></span>
-          <template v-if="saveState === 'failed'"><span class="status-alert" role="alert"><strong>{{ editedSetting.label }} could not be saved.</strong> The change shown is not saved.</span><span class="save-actions"><button ref="retryButton" class="secondary small" @click="retry">Retry</button><button class="secondary small" @click="revert">Revert</button></span></template>
-        </footer>
+        <SaveStatus class="settings-status" :status="status" />
       </div>
     </section>
     </div>

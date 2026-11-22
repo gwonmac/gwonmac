@@ -11,7 +11,7 @@ describe("numeric settings", () => {
     expect(wrapper.get<HTMLInputElement>('input[type="number"]').element.value).toBe("75");
     expect(wrapper.emitted("change")).toBeUndefined();
     await slider.trigger("change");
-    expect(wrapper.emitted("change")).toEqual([[75]]);
+    expect(wrapper.emitted("change")?.map(([value]) => value)).toEqual([75]);
   });
 
   it("accepts zero widths and rejects empty, fractional and out-of-range values", async () => {
@@ -23,7 +23,7 @@ describe("numeric settings", () => {
       expect(wrapper.get('[role="alert"]').text()).toContain("whole number from 0 to 4");
     }
     await number.setValue("0");
-    expect(wrapper.emitted("change")).toEqual([[0]]);
+    expect(wrapper.emitted("change")?.map(([value]) => value)).toEqual([0]);
     expect(wrapper.find('[role="alert"]').exists()).toBe(false);
   });
 });

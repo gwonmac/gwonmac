@@ -1,12 +1,22 @@
 <script setup lang="ts">
+/**
+ * A whole-number setting as a slider with a number field beside it. A value out of range is
+ * refused here with its reason; a valid one is emitted with `undo`, which a host whose save was
+ * refused calls to show the saved value again.
+ */
 import { ref, useId, watch } from "vue";
 
 const props = defineProps<{ label: string; value: number; min: number; max: number; unit?: string }>();
-const emit = defineEmits<{ change: [value: number] }>();
+const emit = defineEmits<{ change: [value: number, undo: () => void] }>();
 const errorId = useId();
 const draft = ref(props.value);
 const error = ref("");
 watch(() => props.value, value => { draft.value = value; error.value = ""; });
+/** Shows the saved value again, after a save the host refused. */
+function undo() {
+  draft.value = props.value;
+  error.value = "";
+}
 function commit(input: HTMLInputElement) {
   const value = input.valueAsNumber;
   if (!Number.isInteger(value) || value < props.min || value > props.max) {
@@ -15,7 +25,7 @@ function commit(input: HTMLInputElement) {
   }
   draft.value = value;
   error.value = "";
-  emit("change", value);
+  emit("change", value, undo);
 }
 </script>
 
