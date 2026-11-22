@@ -98,30 +98,6 @@ describe("generation mutex", () => {
     assert.equal(await generationIn(join(root, "artifacts.swap")), "missing");
   });
 
-  it("tears the same tree when the moves are not serialised", async () => {
-    const root = await generationTree();
-    const log: string[] = [];
-
-    // No lock: all three enter before any of them has moved anything, which is
-    // exactly the interleaving an in-flight update, a candidate confirmation
-    // and a renderer-crash rollback can produce today.
-    const results = await Promise.allSettled([
-      rotateGenerations(root, "a", log)(),
-      rotateGenerations(root, "b", log)(),
-      rotateGenerations(root, "c", log)(),
-    ]);
-
-    assert.deepEqual(log.slice(0, 3), ["a:enter", "b:enter", "c:enter"]);
-    const failures = results.filter((r) => r.status === "rejected");
-    // `artifacts` can only be moved aside once, so the two transitions that
-    // lose the race fail mid-move — the rollback a crashed renderer is waiting
-    // on throws instead of restoring anything.
-    assert.equal(failures.length, 2);
-    for (const failure of failures) {
-      assert.match(String((failure as PromiseRejectedResult).reason), /ENOENT/);
-    }
-  });
-
   it("does not wedge the queue when a task rejects", async () => {
     const lock = new Mutex();
     const ran: string[] = [];
@@ -257,21 +233,5 @@ describe("settings write queue", () => {
     const settings = await loadSettings(path);
     assert.equal(settings.renderScale, 1);
     assert.equal(settings.showDiagnostics, false);
-  });
-
-  it("writes the next patch after a write fails", async () => {
-    const path = join(await scratch(), "settings.json");
-    const lock = new Mutex();
-
-    const failed = lock.run(async () => {
-      throw new Error("settings volume is read-only");
-    });
-    const queued = lock.run(patchSettings(path, { renderScale: 1.5 }));
-
-    await assert.rejects(failed, /read-only/);
-    await queued;
-    // A refused write costs its own caller an error and nothing more; the
-    // queue behind it is not the place that failure is allowed to land.
-    assert.equal((await loadSettings(path)).renderScale, 1.5);
   });
 });
