@@ -201,7 +201,7 @@ Per-feature checklist (the **Done when** of every 5.x row):
 | ID | Step | You | Depends | Done when | Status | Rounds |
 |---|---|---|---|---|---|---|
 | 7.1 | Effective feature status → `resolve` reasons → Features tab ("Needs a GWonMac update", "Checking…") | – | 4.1, 6.2 | Replaying a retained client generation produces the per-feature statuses the replay test expects (e.g. Nov 3: Quick Item Move needs an update) | todo | 0 |
-| 7.2 | Release script stamps each feature's `## Unreleased` and builds release notes from them | – | 4.3 | Dry run on a branch produces correct notes; `news-v1.json` format unchanged | todo | 0 |
+| 7.2 | Release script stamps each feature's `## Unreleased` and builds release notes from them | – | 4.3 | Dry run on a branch produces correct notes; `news-v1.json` format unchanged | in review (#50): `pnpm release:notes <version> [--dry-run]` in `scripts/release.ts` writes a `## Features` section (bullets led by the manifest `name`) into the draft release post and stamps non-empty `## Unreleased` (Stable only; a Beta or RC writes only the post); refuses a post `parseNewsStory` would refuse; `news-v1.json` untouched; tests in `tests/unit/release-feature-notes.test.ts` | 1 |
 | 7.3 | Patch-day drill | Walk through it once | 7.1 | Written run-through in `docs/releasing.md`: what players see, what we do | todo | 0 |
 
 ## Phase 8 · Clean up (S)
