@@ -88,6 +88,7 @@ function start(t: test.TestContext, part: ToolsCompanionPart, id: FeatureId, { w
     features: {
       gameFileSaving: { status: "available" },
       nativeDoubleClick: { status: "available" },
+      cartography: { status: "available" },
       ...capabilityRecord((capability) => without.includes(capability)
         ? { status: "unavailable", reason: "game-update" } : { status: "available" }),
     },

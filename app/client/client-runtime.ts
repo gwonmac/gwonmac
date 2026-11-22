@@ -383,10 +383,15 @@ export class ClientRuntime {
     }
     const { paths } = this.options;
     const roots = launchCacheRoots(paths, requestedLaunch.cartography ? "tools" : "core");
+    // Whether the verifier proved the Cartography stage for the module it was asked about: a
+    // stage it proved but Main could not prepare is a preparation failure, not a game update.
+    let cartographyProved = false;
     const prepareWith = (verdict: ClientVerdict | null) => {
       const lookup = <Build>(find: ((inputSha256: string) => Build | null) | undefined) =>
         async ({ inputSha256 }: { inputSha256: string }): Promise<Build | null> =>
           find?.(inputSha256) ?? null;
+      const proveCartography = lookup(verdict?.cartography);
+      cartographyProved = false;
       const local = verdict?.verification ?? null;
       return prepareClientModule({
         officialWasmPath: officialWasm,
@@ -405,7 +410,11 @@ export class ClientRuntime {
           ? {
               cartographySpike: {
                 cacheRoot: paths.cartographySpike,
-                verifyLocally: lookup(verdict?.cartography),
+                verifyLocally: async (input) => {
+                  const build = await proveCartography(input);
+                  cartographyProved = build !== null;
+                  return build;
+                },
               },
             }
           : {}),
@@ -455,6 +464,11 @@ export class ClientRuntime {
                 ? "preparation-failed"
                 : "game-update",
             },
+        cartography: prepared.cartography.status === "active"
+          ? { status: "available" }
+          : prepared.cartography.status === "disabled"
+            ? { status: "off" }
+            : { status: "unavailable", reason: cartographyProved ? "preparation-failed" : "game-update" },
         ...capabilityRecord((capability) => optionalFeatureStatus(
           requested[capability],
           effective[capability],

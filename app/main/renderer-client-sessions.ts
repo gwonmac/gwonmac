@@ -34,6 +34,7 @@ function projectCompatibility(
     features: Object.freeze({
       gameFileSaving: compatibility.features.gameFileSaving,
       nativeDoubleClick: compatibility.features.nativeDoubleClick,
+      cartography: compatibility.features.cartography,
       ...capabilityRecord((feature): OptionalFeatureStatus => failed.has(feature)
         ? { status: "unavailable", reason: "preparation-failed" }
         : compatibility.features[feature]),

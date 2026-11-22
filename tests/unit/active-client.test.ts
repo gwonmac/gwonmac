@@ -18,6 +18,7 @@ function generation(wasmPath: string, size: number): ClientGeneration {
       features: {
         gameFileSaving: supported ? available : unavailable,
         nativeDoubleClick: supported ? available : unavailable,
+        cartography: supported ? available : unavailable,
         nativeCursor: supported ? available : unavailable,
         playRegionObservation: { status: "off" },
         preGameControls: { status: "off" },

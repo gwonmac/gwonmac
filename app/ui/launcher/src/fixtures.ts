@@ -165,6 +165,7 @@ export function fixtureFeatureChecksFor(search: string): ClientCompatibility["fe
   return {
     gameFileSaving: { status: "available" },
     nativeDoubleClick: { status: "available" },
+    cartography: { status: "available" },
     ...capabilityRecord((capability) => unavailable(capability)
       ? { status: "unavailable" as const, reason: capability === "quickItemMove" ? "game-update" as const : "check-failed" as const }
       : { status: "available" as const }),

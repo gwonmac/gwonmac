@@ -62,6 +62,7 @@ test("reports a failed check as its own reason, never as a game update", () => {
     features: {
       gameFileSaving: updated,
       nativeDoubleClick: { status: "unavailable", reason: "preparation-failed" },
+      cartography: { status: "available" },
       ...capabilityRecord((): OptionalFeatureStatus => ({ status: "off" })),
       travelAction: updated,
       nativeCursor: { status: "available" },
@@ -87,23 +88,26 @@ test("attributes later-stage refusals to the stage that failed or to the fallbac
     features: {
       gameFileSaving: { status: "available" },
       nativeDoubleClick: updated,
+      cartography: updated,
       ...capabilityRecord((): OptionalFeatureStatus => ({ status: "off" })),
       travelAction: updated,
     },
   };
-  const cases: [string, Parameters<typeof servedReasons>[1], boolean, string, string][] = [
-    ["double-click crashed", ["nativeDoubleClick"], false, "check-failed", "game-update"],
-    ["sound decode repair crashed", ["soundDecodeRepair"], false, "game-update", "game-update"],
-    ["Enhancement crashed", ["enhancement"], false, "check-failed", "check-failed"],
-    ["friends crashed", ["friendObserver"], false, "check-failed", "check-failed"],
-    ["Main served another candidate", [], true, "preparation-failed", "game-update"],
-    ["clean verdict", [], false, "game-update", "game-update"],
+  const cases: [string, Parameters<typeof servedReasons>[1], boolean, string, string, string][] = [
+    ["double-click crashed", ["nativeDoubleClick"], false, "check-failed", "game-update", "game-update"],
+    ["Cartography crashed", ["cartography"], false, "game-update", "game-update", "check-failed"],
+    ["sound decode repair crashed", ["soundDecodeRepair"], false, "game-update", "game-update", "game-update"],
+    ["Enhancement crashed", ["enhancement"], false, "check-failed", "check-failed", "check-failed"],
+    ["friends crashed", ["friendObserver"], false, "check-failed", "check-failed", "check-failed"],
+    ["Main served another candidate", [], true, "preparation-failed", "game-update", "preparation-failed"],
+    ["clean verdict", [], false, "game-update", "game-update", "game-update"],
   ];
-  for (const [name, stages, fellBack, doubleClick, travel] of cases) {
+  for (const [name, stages, fellBack, doubleClick, travel, cartography] of cases) {
     const served = servedReasons(compatibility, stages, fellBack);
     const reason = (status: OptionalFeatureStatus) =>
       status.status === "unavailable" ? status.reason : status.status;
     assert.equal(reason(served.features.nativeDoubleClick), doubleClick, name);
     assert.equal(reason(served.features.travelAction), travel, name);
+    assert.equal(reason(served.features.cartography), cartography, name);
   }
 });

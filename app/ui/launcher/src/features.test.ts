@@ -38,7 +38,7 @@ describe("Features tab status", () => {
     // The launcher has no build checks until plan step 7.1, so the switch must keep working.
     { state: "checking the build", id: "skillCooldowns", tools: loaded, checks: null, text: "Checking this Guild Wars build…", tone: "warning", locked: false, shown: true },
     // The launcher stands in no game area; a PvE feature is on and starts in PvE.
-    { state: "on, waiting for its area", id: "cartography", tools: loaded, checks: null, text: "", tone: "muted", locked: false, shown: false },
+    { state: "on, waiting for its area", id: "cartography", tools: loaded, checks: proved, text: "", tone: "muted", locked: false, shown: false },
     { state: "on", id: "skillCooldowns", tools: loaded, checks: proved, text: "", tone: "muted", locked: false, shown: false },
   ] as const)("$state", ({ id, tools, checks, text, tone, locked, shown }) => {
     const status = statusOf(id, tools, checks);

@@ -11,7 +11,7 @@ import { checkFeatureContract, type FeatureFolder } from "../../app/features/con
 import type { FeatureDefinition } from "../../app/features/define.ts";
 import { FEATURES } from "../../app/features/index.ts";
 import { PART_REGISTRY, REGISTRY, newFeatureFiles } from "../../scripts/new-feature.ts";
-import { featureFolders } from "../helpers/feature-folders.ts";
+import { featureFolders, featureImports } from "../helpers/feature-folders.ts";
 
 const root = path.resolve(import.meta.dirname, "../..");
 const read = (file: string): string | null => {
@@ -48,6 +48,7 @@ async function scaffoldedFolder(change: (files: Map<string, string>) => void = (
     files: [...files.keys()],
     readme: files.get("README.md") ?? null,
     changelog: files.get("CHANGELOG.md") ?? null,
+    imports: featureImports("quick-note", files),
   };
 }
 
@@ -103,7 +104,7 @@ const mistakes: readonly Mistake[] = [
   {
     mistake: "a capability the verifier does not know in uses",
     change: (files) => replace(files, "feature.ts", "uses: [],", `uses: ["targetName"],`),
-    messages: [`${AT}feature.ts: uses "targetName", which the verifier does not know (ENHANCEMENT_CAPABILITY_FIELDS in app/shared/enhancement-contracts.ts).`],
+    messages: [`${AT}feature.ts: uses "targetName", which the verifier does not know (ENHANCEMENT_CAPABILITY_FIELDS in app/shared/enhancement-contracts.ts, STAGE_USES in app/shared/contracts.ts).`],
   },
   {
     mistake: "a CHANGELOG without ## Unreleased",

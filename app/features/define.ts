@@ -12,7 +12,8 @@
  * never app/shared/settings/index.ts, contracts.ts or keyboard-shortcuts.ts at
  * runtime, which import FEATURES themselves.
  */
-import type { EnhancementCapability, EnhancementProgram } from "../shared/enhancement-contracts.js";
+import type { FeatureUse } from "../shared/contracts.js";
+import type { EnhancementProgram } from "../shared/enhancement-contracts.js";
 import type { ShortcutBinding } from "../shared/keyboard-shortcuts.js";
 import { setting, type SettingScope, type SettingSpec } from "../shared/settings/define.js";
 import type { SettingsSection } from "../shared/settings-catalogue.js";
@@ -116,11 +117,12 @@ export type FeatureDefinition = Readonly<{
   /** Features that must be on for this one to run, by id (app/shared/feature-resolve.ts). */
   requires?: readonly string[];
   /**
-   * What it uses: verifier capabilities without which this feature does nothing. A feature
-   * that still does part of its job without a capability (saved builds without live party
-   * data) leaves it out.
+   * What it uses: verifier capabilities and certified stages (STAGE_USES) without which this
+   * feature does nothing. A feature that still does part of its job without a capability (saved
+   * builds without live party data) leaves it out. A feature whose code imports a stage's
+   * contract names that stage (app/features/contract.ts).
    */
-  uses?: readonly EnhancementCapability[];
+  uses?: readonly FeatureUse[];
   /** Developer programs that select this feature regardless of its saved setting. */
   programs?: readonly EnhancementProgram[];
   /** The internet hosts its `main` part reaches. Absent: it reaches none. */

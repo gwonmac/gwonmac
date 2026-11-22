@@ -1,15 +1,16 @@
 /**
- * Owns the player words for what a feature uses: one line for each verifier capability, grouped
- * as the Feature page shows them (sees, draws, does), and its internet hosts. The Features tab
+ * Owns the player words for what a feature uses: one line for each verifier capability and
+ * certified stage, grouped as the Feature page shows them (sees, draws, does), and its internet
+ * hosts. The Features tab
  * reads a manifest only through featureUses, so the manifest field's name lives in one place.
  */
 import type { FeatureDefinition } from "../features/define.js";
-import type { EnhancementCapability } from "./enhancement-contracts.js";
+import type { FeatureUse } from "./contracts.js";
 
 export type FeatureUseGroup = "sees" | "draws" | "does";
 
-/** One line per capability, in the words a player reads on the Feature page. */
-export const CAPABILITY_WORDS: Readonly<Record<EnhancementCapability, Readonly<{ group: FeatureUseGroup; text: string }>>> = {
+/** One line per capability or stage, in the words a player reads on the Feature page. */
+export const CAPABILITY_WORDS: Readonly<Record<FeatureUse, Readonly<{ group: FeatureUseGroup; text: string }>>> = {
   nativeCursor: { group: "draws", text: "The mouse cursor" },
   targetObservation: { group: "sees", text: "Your selected target" },
   partyObservation: { group: "sees", text: "Your party and your heroes’ skill bars" },
@@ -32,6 +33,7 @@ export const CAPABILITY_WORDS: Readonly<Record<EnhancementCapability, Readonly<{
   nativeHudRendering: { group: "draws", text: "Numbers and labels on the game’s own skill bar and effects" },
   chatPrint: { group: "draws", text: "Lines in your chat that only you see" },
   progressObservation: { group: "sees", text: "Your mission, vanquish and Cartographer progress" },
+  cartography: { group: "draws", text: "Layers on the game’s own Compass and maps" },
 };
 
 export type FeatureUses = Readonly<Record<FeatureUseGroup, readonly string[]> & {

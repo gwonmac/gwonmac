@@ -318,6 +318,7 @@ test("renderer consumes main's effective subset instead of launch intent", () =>
       features: {
         gameFileSaving: available,
         nativeDoubleClick: available,
+        cartography: available,
         nativeCursor: available,
         targetObservation: available,
         playRegionObservation: available,

@@ -22,6 +22,7 @@ function session(capabilities: EnhancementCapabilities): ClientSession {
     features: {
       gameFileSaving: available,
       nativeDoubleClick: available,
+      cartography: available,
       nativeCursor: selected(capabilities.nativeCursor),
       targetObservation: selected(capabilities.targetObservation),
       partyObservation: selected(capabilities.partyObservation),
@@ -75,6 +76,7 @@ describe("effective Enhancement capability boundary", () => {
         features: {
           gameFileSaving: available,
           nativeDoubleClick: available,
+          cartography: available,
           nativeCursor: { status: "unavailable", reason: "preparation-failed" },
           targetObservation: { status: "unavailable", reason: "game-update" },
           partyObservation: off,

@@ -3,14 +3,17 @@
  * a feature has one switch (or follows the features it requires) and a tool has its own, a card's switch takes the
  * feature's name and summary while every other setting names itself, one shot file per caption, README.md stays inside the
  * small Markdown subset the launcher renders, CHANGELOG.md has `## Unreleased`, every card
- * names a purpose, `requires` has no cycles, `uses` names only capabilities the verifier
- * knows, every link names a Feature that offers the methods it calls, FEATURES lists each id once,
- * `parts` lists `game` when the folder has companion.ts, and a Feature with a switch of its own
- * says in its README's `### Details` where to turn it on. Pure: the caller reads the folders
+ * names a purpose, `requires` has no cycles, `uses` names only capabilities and stages the
+ * verifier knows, a folder that imports a certified stage's contract names that stage in `uses`
+ * (so a refused stage turns the Feature off with a reason), every link names a Feature that
+ * offers the methods it calls, FEATURES lists each id once, `parts` lists `game` when the
+ * folder has companion.ts, and a Feature with a switch of its own says in its README's
+ * `### Details` where to turn it on. Pure: the caller reads the folders
  * (tests/policy/feature-contract.test.ts runs it in `pnpm check`), so the same check can run on
  * a scaffold (tests/policy/new-feature-scaffold.test.ts) or a planted error.
  * Each message names the file and says what to change.
  */
+import { STAGE_USES, type StageUse } from "../shared/contracts.js";
 import { ENHANCEMENT_CAPABILITY_FIELDS } from "../shared/enhancement-contracts.js";
 import type { FeatureDefinition } from "./define.js";
 
@@ -24,6 +27,8 @@ export type FeatureFolder = Readonly<{
   /** README.md and CHANGELOG.md, or null when missing. */
   readme: string | null;
   changelog: string | null;
+  /** The repository modules its files import, as repository paths ("app/shared/contracts.ts"). */
+  imports: readonly string[];
 }>;
 
 export type FeatureContractInput = Readonly<{
@@ -32,7 +37,13 @@ export type FeatureContractInput = Readonly<{
   registered: readonly FeatureDefinition[];
 }>;
 
-const KNOWN_USES: ReadonlySet<string> = new Set(ENHANCEMENT_CAPABILITY_FIELDS);
+const KNOWN_USES: ReadonlySet<string> = new Set([...ENHANCEMENT_CAPABILITY_FIELDS, ...STAGE_USES]);
+/**
+ * The module that holds each certified stage's renderer contract: code that imports it runs on the
+ * stage. Only Cartography is a stage of its own; what other Features need is files (game file
+ * saving), input, network, or an Enhancement capability that `uses` already names.
+ */
+const STAGE_CONTRACTS: Readonly<Record<StageUse, string>> = { cartography: "app/shared/cartography-spike.ts" };
 const GWONMAC_LINK = /^https:\/\/www\.gwonmac\.com(\/[^\s)]*)?$/;
 /** A docs page by its name, as the website writes it: the website checks the target, the launcher opens its Guide or the page. */
 const DOCS_LINK = /^\$docs\.[a-z0-9]+(-[a-z0-9]+)*(#[a-z0-9-]+)?$/;
@@ -61,7 +72,7 @@ export function checkFeatureContract({ folders, registered }: FeatureContractInp
   return problems;
 }
 
-function checkFolder({ folder, manifest, files, readme, changelog }: FeatureFolder, registeredIds: ReadonlySet<string>): string[] {
+function checkFolder({ folder, manifest, files, readme, changelog, imports }: FeatureFolder, registeredIds: ReadonlySet<string>): string[] {
   const at = `app/features/${folder}`;
   const problems: string[] = [];
   if (folderForId(manifest.id) !== folder) {
@@ -99,7 +110,12 @@ function checkFolder({ folder, manifest, files, readme, changelog }: FeatureFold
 
   for (const capability of manifest.uses ?? []) {
     if (!KNOWN_USES.has(capability)) {
-      problems.push(`${at}/feature.ts: uses "${capability}", which the verifier does not know (ENHANCEMENT_CAPABILITY_FIELDS in app/shared/enhancement-contracts.ts).`);
+      problems.push(`${at}/feature.ts: uses "${capability}", which the verifier does not know (ENHANCEMENT_CAPABILITY_FIELDS in app/shared/enhancement-contracts.ts, STAGE_USES in app/shared/contracts.ts).`);
+    }
+  }
+  for (const stage of STAGE_USES) {
+    if (imports.includes(STAGE_CONTRACTS[stage]) && !(manifest.uses ?? []).includes(stage)) {
+      problems.push(`${at}/feature.ts: the folder imports ${STAGE_CONTRACTS[stage]}, so it runs on the certified ${stage} stage; add "${stage}" to uses so a refused stage turns it off with a reason.`);
     }
   }
 

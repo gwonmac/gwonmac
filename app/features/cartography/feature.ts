@@ -174,6 +174,8 @@ export default defineFeature({
     ),
   },
   region: "pve",
+  /** Every layer runs on the certified Cartography stage: a refused stage turns Maps off with a reason. */
+  uses: ["cartography"],
   tool: {
     id: "maps",
     keywords: "grid terrain compass opacity",
