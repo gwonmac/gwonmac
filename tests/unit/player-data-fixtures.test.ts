@@ -25,7 +25,7 @@
 //               generation markers (game/**) belong to the client-lifecycle
 //               tests; credentials live in the Keychain, never in a file.
 import assert from "node:assert/strict";
-import { cp, mkdtemp, readFile, readdir, rm } from "node:fs/promises";
+import { cp, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import { afterEach, describe, it } from "node:test";
@@ -42,6 +42,9 @@ import { CartographyMapKnowledgeStore } from "../../app/features/cartography/mai
 import { EliteTrackingStore } from "../../app/features/cartography/main/elite-tracking.js";
 import { TradeSavedStore } from "../../app/features/trade-chat/main/trade-saved-store.js";
 import { TravelHistoryStore } from "../../app/features/travel/main/travel-history.js";
+import { FEATURES, type FeatureId } from "../../app/shared/feature-contracts.js";
+import { EVERY_CAPABILITY_PROVED, resolve } from "../../app/shared/feature-resolve.js";
+import type { AppSettings } from "../../app/shared/settings/index.js";
 import type { TravelCharacterKey } from "../../app/shared/travel-history.js";
 import { travelShortcutsFromStored } from "../../app/shared/travel.js";
 
@@ -54,6 +57,42 @@ const CHARACTER_B = "00000000000000b2" as TravelCharacterKey;
 const CLIENT = "ab".repeat(32);
 const KERNEL = "cd".repeat(32);
 
+/**
+ * The key under which released apps store the switch each Feature reads (docs/settings.md,
+ * "Feature switches"). Literal on purpose: a Feature that reads another key loses every player's
+ * choice. Progress and Team Apply have no switch of their own; they run with Travel and the
+ * Build Library, as they did when they shared those keys.
+ */
+const STORED_SWITCHES: Readonly<Record<FeatureId, string>> = {
+  tools: "gwonmacTools",
+  callTarget: "callTargetEnabled",
+  whispers: "whispersEnabled",
+  resign: "resignEnabled",
+  characterSwitch: "characterSwitchEnabled",
+  buildLibrary: "buildLibrary",
+  teamApply: "buildLibrary",
+  travel: "travelPalette",
+  progress: "travelPalette",
+  xunlaiStorage: "xunlaiStorage",
+  quickItemMove: "quickItemMove",
+  tradeChat: "tradeChat",
+  cartography: "cartographyEnabled",
+  targetReadout: "targetReadout",
+  skillKeyLabels: "skillKeyLabelsEnabled",
+  skillCooldowns: "skillCooldownOverlayEnabled",
+  chatFilters: "chatFiltersEnabled",
+  effectTimers: "effectTimersEnabled",
+  alcoholTimer: "alcoholTimerEnabled",
+  reminders: "remindersEnabled",
+};
+
+/** The Features a loaded settings file turns on, in a game started with Features, on a proved build, in PvE. */
+const featuresOn = (settings: AppSettings): FeatureId[] => FEATURES
+  .filter((feature) => resolve(feature, {
+    toolsAtLaunch: true, settings, program: "none", playRegion: "pve", features: EVERY_CAPABILITY_PROVED,
+  }).on)
+  .map((feature) => feature.id);
+
 interface Context {
   readonly file: string;
   readonly recovered: string[];
@@ -62,6 +101,8 @@ interface Context {
 /** One current loader, called the way the app calls it. */
 const LOADERS: Record<string, (context: Context) => Promise<unknown>> = {
   loadSettings: ({ file, recovered }) => loadSettings(file, (recovery) => { recovered.push(recovery.kind); }),
+  "featuresOn(loadSettings)": async ({ file, recovered }) =>
+    featuresOn(await loadSettings(file, (recovery) => { recovered.push(recovery.kind); })),
   "travelShortcutsFromStored(loadSettings)": async ({ file, recovered }) =>
     travelShortcutsFromStored((await loadSettings(file, (recovery) => { recovered.push(recovery.kind); })).travelShortcuts),
   loadTravelPreferences: ({ file, recovered }) => loadTravelPreferences(file, (backup) => { recovered.push(backup); }),
@@ -185,6 +226,20 @@ const ROWS: readonly Row[] = [
     guards: "every stored setting keeps its value: a narrowed reader, or a rename without an alias, would lose it",
     expect: EVERY_STORED_SETTING,
   }),
+  ...each(BOTH, {
+    variant: "defaults", file: "settings.json", loader: "featuresOn(loadSettings)",
+    guards: "the plain game a release starts in (gwonmacTools off) keeps every Feature off", expect: [],
+  }),
+  {
+    tag: OLD, variant: "custom", file: "settings.json", loader: "featuresOn(loadSettings)",
+    guards: "every switch 2026.8 stored reaches its Feature; a switch it never wrote takes today's default",
+    expect: ["tools", "characterSwitch", "xunlaiStorage", "cartography", "targetReadout", "skillKeyLabels"],
+  },
+  {
+    tag: NEW, variant: "custom", file: "settings.json", loader: "featuresOn(loadSettings)",
+    guards: "every switch 2026.11 stored reaches its Feature, Progress and Team Apply with Travel and the Build Library",
+    expect: ["tools", "callTarget", "whispers", "resign", "xunlaiStorage", "quickItemMove", "targetReadout", "skillKeyLabels", "chatFilters", "effectTimers", "alcoholTimer", "reminders"],
+  },
   ...each(BOTH, {
     variant: "custom", file: "settings.json", loader: "travelShortcutsFromStored(loadSettings)",
     guards: "Piken Square (pre-Searing) stored as 778 by 2026.8.9 to 2026.8.12 reads as the official 779",
@@ -380,4 +435,28 @@ describe("player data written by released apps", () => {
       assert.deepEqual(await filesIn(root), before, `${row.guards}: the loader moved, copied or removed a file`);
     });
   }
+});
+
+describe("Feature switches in a settings file", () => {
+  // Hand-written files in the shape the released apps store: every switch on, then each stored
+  // key off on its own. Exactly the Features that read that key turn off.
+  it("each Feature reads its switch from the key released apps store", async () => {
+    const root = await mkdtemp(join(tmpdir(), "gwonmac-player-data-"));
+    roots.push(root);
+    const file = join(root, "settings.json");
+    const { formatVersion } = JSON.parse(await readFile(join(FIXTURES, NEW, "defaults", "settings.json"), "utf8")) as { formatVersion: number };
+    const keys = [...new Set(Object.values(STORED_SWITCHES))];
+    const everyOn = Object.fromEntries(keys.map((key) => [key, true]));
+    const on = async (stored: Record<string, boolean>) => {
+      await writeFile(file, JSON.stringify({ formatVersion, ...stored }));
+      return featuresOn(await loadSettings(file, () => assert.fail("the loader recovered a hand-written settings file")));
+    };
+    const ids = FEATURES.map((feature) => feature.id);
+
+    assert.deepEqual(await on(everyOn), ids, "every stored switch on turns every Feature on");
+    for (const key of keys) {
+      const expected = key === STORED_SWITCHES.tools ? [] : ids.filter((id) => STORED_SWITCHES[id] !== key);
+      assert.deepEqual(await on({ ...everyOn, [key]: false }), expected, `${key} off`);
+    }
+  });
 });
