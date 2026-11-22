@@ -67,6 +67,7 @@ test.describe("sandbox boundary", { tag: "@journey" }, () => {
           "credentials",
           "diagnostics",
           "dns",
+          "features",
           "hubSettings",
           "init",
           "inputTrace",
