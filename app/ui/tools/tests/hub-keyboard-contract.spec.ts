@@ -38,6 +38,8 @@ const VIEWS: Record<KeyboardView, { query?: string; open(page: Page): Promise<vo
   'home': { open: async () => {} },
   'home-query': { open: page => page.locator('.hub-search input').fill('kam') },
   'home-row': { open: async page => { await page.locator('.hub-search input').fill('sw'); await page.keyboard.press('ArrowDown'); } },
+  // A search that names an off Feature: its reason row is the answer, with Turn on.
+  'feature-off': { open: page => page.locator('.hub-search input').fill('alcohol timer') },
   'explorable-home': { query: '&lifecycle=pve-explorable', open: async () => {} },
   'travel': { open: page => page.keyboard.press('Meta+t') },
   'characters': { open: page => page.keyboard.press('Meta+e') },

@@ -260,8 +260,10 @@ test('duplicate exact names require a deliberate selection', async () => {
 test('disabled capabilities disappear including friend child actions', async () => {
   await mountFixture();
   send('hub-fixture-settings', { buildLibrary: false, tradeChat: false, whispersEnabled: false }); await settle();
-  fill(search(), 'build smiter'); await settle(); expect(options().length).toBe(0);
-  fill(search(), 'trade ecto'); await settle(); expect(options().length).toBe(0);
+  // Only each Feature's reason row answers its scope word (hub-features.ts); none of its own rows.
+  const ids = () => options().map(each => each.getAttribute('data-id'));
+  fill(search(), 'build smiter'); await settle(); expect(ids()).toEqual(['feature:buildLibrary']);
+  fill(search(), 'trade ecto'); await settle(); expect(ids()).toEqual(['feature:tradeChat']);
   await go('romi');
   expect(option(/Whisper/u)).toBeUndefined();
   expect(option(/Travel to outpost/u)).toBeDefined();
@@ -568,10 +570,12 @@ test('in-game settings stay in Hub and Show Launcher remains explicit', async ()
   expect(document.querySelector('nav[aria-label="Settings sections"]')).not.toBeNull();
   expect(whispers().checked).toBe(false);
   click(button('Back')); await settle();
-  // The Whispers tool leaves the Hub; its Tools setting stays findable so it can be turned back on.
+  // The Whispers tool leaves the Hub; its reason row stands for its Tools setting, so it can be turned back on.
   fill(search(), 'whispers'); await settle();
   expect(document.querySelectorAll('.hub-row[data-id="whispers"]').length).toBe(0);
-  expect(document.querySelectorAll('.hub-row[data-id="setting:tool:whispers"]').length).toBe(1);
+  expect(document.querySelectorAll('.hub-row[data-id="setting:tool:whispers"]').length).toBe(0);
+  expect(document.querySelector('.hub-row[data-id="feature:whispers"] .hub-detail')?.textContent).toBe('Off');
+  expect(document.querySelector('#hub .hub-primary-label')?.textContent).toBe('Turn on Whispers');
   await go('settings');
   // Within one page load, Settings reopens on the section last shown.
   expect(document.querySelector('.settings-fields h1')?.textContent).toBe('Tools');

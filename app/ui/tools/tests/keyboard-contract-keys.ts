@@ -6,7 +6,7 @@
  * (hub-keyboard-contract.spec.ts) holds the cells only a real browser answers.
  */
 export const KEYBOARD_VIEWS = [
-  'closed', 'home', 'home-query', 'home-row', 'explorable-home', 'travel', 'characters', 'build-library', 'build-page',
+  'closed', 'home', 'home-query', 'home-row', 'feature-off', 'explorable-home', 'travel', 'characters', 'build-library', 'build-page',
   'person', 'accounts', 'settings', 'calculator', 'trade', 'whispers', 'whispers-query', 'review-details', 'settings-body',
 ] as const;
 export type KeyboardView = typeof KEYBOARD_VIEWS[number];

@@ -20,8 +20,6 @@ import {
   groupCards,
   groupsFor,
   launcherFeatureState,
-  showsReason,
-  switchOf,
   turnOnChanges,
   type CardFeature,
   type CardSize,
@@ -29,6 +27,7 @@ import {
   type GroupBy,
   type SwitchChange,
 } from "../features";
+import { showsReason, switchOf } from "@shared/feature-status";
 import { fixtureFacts } from "../fixtures";
 import FeatureArt from "./FeatureArt.vue";
 import FeaturePage from "./FeaturePage.vue";

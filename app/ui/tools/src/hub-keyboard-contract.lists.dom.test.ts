@@ -4,7 +4,7 @@ import golden from '../tests/keyboard-contract.golden.json';
 import { BROWSER_KEYS, DOM_KEYS, KEYBOARD_VIEWS } from '../tests/keyboard-contract-keys';
 import { keyboardContract } from './hub-keyboard-contract';
 
-keyboardContract(['closed', 'home', 'home-query', 'home-row', 'explorable-home']);
+keyboardContract(['closed', 'home', 'home-query', 'home-row', 'feature-off', 'explorable-home']);
 
 // A cell no layer runs would pass silently: the table holds exactly every key in every view.
 test('the golden table holds every key of both layers in every view, and nothing else', () => {

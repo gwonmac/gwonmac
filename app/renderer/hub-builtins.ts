@@ -1,8 +1,8 @@
 /**
  * Owns the list of the Hub's built-in sources and attaches them as a feature attaches its own:
- * saved accounts, the calculator, the Hub's commands, its preferences and Settings. The Hub
- * itself (hub.ts) names none of them. Also loads the Hub's Vue view and creates the Hub the
- * game runs, with these sources.
+ * saved accounts, the calculator, the Hub's commands, its preferences, Settings and the rows of
+ * Features that are off. The Hub itself (hub.ts) names none of them. Also loads the Hub's Vue
+ * view and creates the Hub the game runs, with these sources.
  */
 import { DEFAULT_CALCULATOR_RATES } from '../shared/hub-calculator.js';
 import { featureOn } from './feature-on.js';
@@ -12,6 +12,7 @@ import { createHub, type Hub } from './hub.js';
 import { createHubAccounts } from './hub-accounts.js';
 import { createHubCalculator } from './hub-calculator.js';
 import { createHubCommands } from './hub-commands.js';
+import { createHubFeatures } from './hub-features.js';
 import { createHubPreferences } from './hub-preferences.js';
 import { createHubSettings } from './hub-settings-page.js';
 
@@ -33,6 +34,7 @@ export function withHubBuiltins(hub: Hub) {
   hub.attach(createHubCommands(hub, settings.open));
   hub.attach(createHubPreferences(hub));
   hub.attach(settings.source);
+  hub.attach(createHubFeatures(settings.open));
   /** Shows Settings as a Hub page, at a section or control when given (docs/settings.md). */
   const openSettings = (target?: SettingsTarget) => settings.show(target);
   return Object.assign(hub, { openSettings });

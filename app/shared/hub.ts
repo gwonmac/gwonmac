@@ -2,7 +2,7 @@
  * Defines local search rows and presentation contracts for Hub.
  * These contracts expose no IPC or persisted state.
  */
-import type { HubFeatureSetting } from "../features/index.js";
+import type { FeatureId, HubFeatureSetting } from "../features/index.js";
 import type { HubShortcut } from "./hub-preferences.js";
 import type { HubPages } from "./ui/hub-pages.js";
 import type { HubIconKind } from "./ui/hub-icon.js";
@@ -132,13 +132,25 @@ export type HubScope = typeof HUB_SCOPES[number];
 /** The other words players use for a scope (HUB-142); a closed list, so no phrase becomes a scope by accident. */
 const HUB_SCOPE_ALIASES: Readonly<Record<string, HubScope>> = { teams: 'team', builds: 'build', tp: 'travel', character: 'char', characters: 'char', account: 'acc', accounts: 'acc' };
 /**
+ * The Feature whose rows answer each scope word, so an off Feature answers its own word with its
+ * reason (app/renderer/hub-features.ts). Accounts are Core; an invite belongs to whichever
+ * Feature shows it, so neither names one.
+ */
+export const HUB_SCOPE_FEATURES: Readonly<Record<HubScope, FeatureId | null>> = {
+  team: 'buildLibrary', build: 'buildLibrary', travel: 'travel', char: 'characterSwitch', whisper: 'whispers', invite: null, trade: 'tradeChat', acc: null,
+};
+/** The scope the first typed word names (`tp` is `travel`), whether or not a term follows it. */
+export function hubScopeWord(value: string): HubScope | null {
+  const first = value.trim().split(/\s+/u)[0]!.toLowerCase();
+  return HUB_SCOPES.find(candidate => candidate === first) ?? HUB_SCOPE_ALIASES[first] ?? null;
+}
+/**
  * `term` is normalised for matching; `text` keeps the typed capitalisation, e.g. for a character name.
  * A scope word followed by a space enters its scope with an empty term; a lone word is still a search.
  */
 export function parseHubQuery(value: string): { scope: HubScope | null; term: string; text: string } {
   const words = value.trim().split(/\s+/u);
-  const first = words[0]!.toLowerCase();
-  const scope = HUB_SCOPES.find(candidate => candidate === first) ?? HUB_SCOPE_ALIASES[first] ?? null;
+  const scope = hubScopeWord(value);
   const scoped = (words.length > 1 || /\S\s+$/u.test(value)) && scope !== null;
   const text = (scoped ? words.slice(1) : words).join(' ');
   return { scope: scoped ? scope : null, term: normaliseHubQuery(text), text };
@@ -188,9 +200,10 @@ export const HUB_WORKSPACE_ACTION = 'Open in Build Library';
  * names a tool or command as well as places answers with the tool: the Hub has a few of those
  * and hundreds of places (`ma` is Maps before Maguuma Stade). Everyday game actions stay ahead
  * of account management (the Tools rows keep their manifests' `order`, HUB_TOOL_ORDER), and
- * Commands, the way into everything else, leads the commands (HUB-185). A scoped page keeps its source's order within each group.
+ * Commands, the way into everything else, leads the commands (HUB-185). An off Feature's reason
+ * row (Features) follows the live Tools and Commands that answer as well. A scoped page keeps its source's order within each group.
  */
-const HUB_GROUP_ORDER = ["Pinned", "Calculator", "Teams", "Folders", "Characters", "Builds", "Targets", "Current build", "Accounts", "In your party", "Unlocked heroes", "Heroes", "People", "Places", "Friends", "Continue", "Tools", "Commands", "Settings", "Sources", "Trade", "Calculate", "Keys & shortcuts"];
+const HUB_GROUP_ORDER = ["Pinned", "Calculator", "Teams", "Folders", "Characters", "Builds", "Targets", "Current build", "Accounts", "In your party", "Unlocked heroes", "Heroes", "People", "Places", "Friends", "Continue", "Tools", "Commands", "Features", "Settings", "Sources", "Trade", "Calculate", "Keys & shortcuts"];
 const HUB_TYPED_FIRST = ['Tools', 'Commands'];
 export function rankHubRows(rows: readonly HubRow[], query: string, options: Readonly<{ scoped: boolean; phrases: ReadonlySet<string>; answers(row: HubRow): boolean }>): readonly HubRow[] {
   const parsed = parseHubQuery(query);

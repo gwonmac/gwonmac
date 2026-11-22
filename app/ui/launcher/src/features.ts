@@ -1,43 +1,30 @@
 /**
  * The Features tab's model. Every card comes from a feature's manifest (app/features) and its
  * README.md and CHANGELOG.md; every status comes from resolve (app/shared/feature-resolve.ts).
- * This module adds only what the tab itself decides: the words for each reason, which saved
- * switch a card moves, how cards group, and the switch changes that turn a feature on together
- * with what it needs.
+ * The words for each reason and the switch each card moves are shared with the Hub
+ * (app/shared/feature-status.ts). This module adds only what the tab itself decides: how cards
+ * group, and the switch changes that turn a feature on together with what it needs.
  */
-import { BUILD_CHECK_FAILED } from "@shared/contracts";
 import {
-  FEATURES,
   FEATURE_KIND_LABELS,
   FEATURE_SELECTION_POLICIES,
   FEATURE_PURPOSE_LABELS,
   folderForId,
   type FeatureId,
 } from "@shared/feature-contracts";
-import { resolve, type FeatureOffReason, type FeatureResolution, type FeatureState } from "@shared/feature-resolve";
-import { GLOBAL_TOOLS, GLOBAL_TOOL_FEATURES, type GlobalTool, type LauncherSnapshot } from "@shared/launcher-contracts";
+import type { FeatureState } from "@shared/feature-resolve";
+import { featureStatus as sharedStatus, requiredFeatures, SWITCH_FEATURES, switchOf, type FeatureStatus, type SwitchFeature } from "@shared/feature-status";
+import type { GlobalTool, LauncherSnapshot } from "@shared/launcher-contracts";
 import { markdownInline, parseMarkdown, type MarkdownBlock, type MarkdownInline } from "@shared/launcher-markdown";
 import { SETTINGS, type SettingsTarget } from "@shared/settings-catalogue";
 import { LAUNCHER_SETTINGS, type LauncherSetting } from "@shared/settings/index";
-import type { Feature } from "../../../features/index";
 import { guideLink } from "./guide";
 
 /** A feature with a card: every feature but the launch mode, which is the plain-game strip. */
-export type CardFeature = Exclude<Feature, Readonly<{ kind: "mode" }>>;
-export const CARD_FEATURES: readonly CardFeature[] = FEATURES.filter((feature): feature is CardFeature => feature.kind !== "mode");
+export type CardFeature = SwitchFeature;
+export const CARD_FEATURES: readonly CardFeature[] = SWITCH_FEATURES;
 const byId = new Map<FeatureId, CardFeature>(CARD_FEATURES.map((feature) => [feature.id, feature]));
 export const cardFeature = (id: FeatureId): CardFeature | undefined => byId.get(id);
-
-/**
- * The saved switch each card moves: its own tool's, or for a feature with no switch of its own
- * (Progress, Team Apply), the switch of the feature it runs with.
- */
-const toolByFeature = new Map<FeatureId, GlobalTool>(GLOBAL_TOOLS.map((tool) => [GLOBAL_TOOL_FEATURES[tool], tool]));
-export function switchOf(feature: CardFeature): GlobalTool {
-  const tool = [feature, ...requiredFeatures(feature)].map((each) => toolByFeature.get(each.id)).find((each) => each !== undefined);
-  if (tool === undefined) throw new Error(`${feature.id} has no switch`);
-  return tool;
-}
 
 /**
  * resolve's state as the launcher sees it: main's facts (app/main/feature-decision.ts), which
@@ -48,57 +35,11 @@ export function launcherFeatureState(facts: LauncherSnapshot["features"]): Featu
   return { ...facts, playRegion: "unknown" };
 }
 
-export type ReasonTone = "muted" | "warning";
-export type FeatureStatus = Readonly<{
-  resolution: FeatureResolution;
-  /** The player's own switch, as saved. */
-  checked: boolean;
-  /** The reason line players read; empty when the feature runs. */
-  text: string;
-  tone: ReasonTone;
-  /**
-   * The switch shows the saved choice but cannot change it: only in the plain game, which keeps
-   * every choice for when it is turned off (as Settings › Tools does since #44).
-   */
-  locked: boolean;
-  /** The feature to turn on first, for `needs`. */
-  needs?: CardFeature;
-}>;
-
-/**
- * The words and look of each reason (canvas States board; text from the 4.1 table in #39).
- * A player can always turn a Feature off: a build check that failed, changed or has not run yet
- * leaves the switch working, and only the plain game holds the switches.
- */
-const REASONS: Readonly<Record<Exclude<FeatureOffReason, "needs" | "wrong-area">, Readonly<{ text: string; tone: ReasonTone; locked: boolean }>>> = {
-  "plain-game": { text: "Off while you play the plain game.", tone: "muted", locked: true },
-  "needs-restart": { text: "Starts the next time you open Guild Wars.", tone: "warning", locked: false },
-  "switched-off": { text: "Off", tone: "muted", locked: false },
-  "needs-update": { text: "Needs a GWonMac update for this Guild Wars build.", tone: "muted", locked: false },
-  "not-proven": { text: BUILD_CHECK_FAILED, tone: "warning", locked: false },
-  checking: { text: "Checking this Guild Wars build…", tone: "warning", locked: false },
-};
-
 export const REGION_WORDS: Readonly<Record<CardFeature["region"], string>> = { pve: "PvE", "non-pvp": "Outside PvP", any: "Everywhere" };
 
-export function featureStatus(feature: CardFeature, state: FeatureState, tools: LauncherSnapshot["tools"]): FeatureStatus {
-  const resolution = resolve(feature, state);
-  const checked = tools.features[switchOf(feature)].enabled;
-  // resolve tests the area last, so `wrong-area` means only the area is missing. The launcher
-  // stands in no area: the feature is on and starts where its region chip says.
-  if (resolution.on || resolution.reason === "wrong-area") return { resolution: { on: true }, checked, text: "", tone: "muted", locked: false };
-  // resolve reports the restart before the player's own switch; a switched-off feature will not
-  // start after it, so it reads as Off.
-  if (resolution.reason === "needs-restart" && !checked) return { resolution: { on: false, reason: "switched-off" }, checked, ...REASONS["switched-off"] };
-  if (resolution.reason === "needs") {
-    const needs = byId.get(resolution.feature)!;
-    return { resolution, checked, text: `Needs ${needs.name}. Turn it on first.`, tone: "warning", locked: false, needs };
-  }
-  return { resolution, checked, ...REASONS[resolution.reason] };
-}
-
-/** Whether a card shows its reason instead of its summary: the player's own Off is the switch itself. */
-export const showsReason = (status: FeatureStatus) => !status.resolution.on && status.resolution.reason !== "switched-off";
+/** A card's status: the shared reason words (app/shared/feature-status.ts) for the switch it moves. */
+export const featureStatus = (feature: CardFeature, state: FeatureState, tools: LauncherSnapshot["tools"]): FeatureStatus =>
+  sharedStatus(feature, state, tools.features[switchOf(feature)].enabled);
 
 export type GroupBy = "kind" | "purpose";
 export type CardSize = "large" | "compact";
@@ -126,19 +67,6 @@ export function groupCards(
 }
 
 export type SwitchChange = Readonly<{ tool: GlobalTool; enabled: boolean }>;
-
-/** Every feature this one needs, nearest first, each once. */
-function requiredFeatures(feature: CardFeature): CardFeature[] {
-  const found: CardFeature[] = [];
-  const visit = (each: CardFeature) => {
-    for (const id of "requires" in each ? each.requires : []) {
-      const required = byId.get(id);
-      if (required && !found.includes(required)) { found.push(required); visit(required); }
-    }
-  };
-  visit(feature);
-  return found;
-}
 
 /**
  * Turning a feature on turns on what it needs. `alsoOn` names the needed features whose switch

@@ -340,5 +340,24 @@
     "Meta+Enter": "Settings | focus input | sel settings | q \"settings\" | action - | life outpost | canvas down 0 up 0 pointer 0",
     "Meta+j": "Settings | focus input | sel settings | q \"settings\" | action - | life outpost | canvas down 0 up 0 pointer 0",
     "Meta+r": "Home | focus search | sel settings | q \"settings\" | action - | life outpost | canvas down 0 up 0 pointer 0"
+  },
+  "feature-off": {
+    "1": "Home | focus search | sel - | q \"alcohol timer1\" | action - | life outpost | canvas down 0 up 0 pointer 0",
+    "Enter": "Settings | focus input#tool-alcohol-timer[Alcohol Timer] | sel feature:alcoholTimer | q \"alcohol timer\" | action - | life outpost | canvas down 0 up 0 pointer 0",
+    "Backspace": "Home | focus search | sel feature:alcoholTimer | q \"alcohol time\" | action - | life outpost | canvas down 0 up 0 pointer 0",
+    "Home": "Home | focus search | sel feature:alcoholTimer | q \"alcohol timer\" | action - | life outpost | canvas down 0 up 0 pointer 0",
+    "Meta+Enter": "Home | focus search | sel feature:alcoholTimer | q \"alcohol timer\" | action - | life outpost | canvas down 0 up 0 pointer 0",
+    "End": "Home | focus search | sel setting:alcoholTimerPosition | q \"alcohol timer\" | action - | life outpost | canvas down 0 up 0 pointer 0",
+    "a": "Home | focus search | sel - | q \"alcohol timera\" | action - | life outpost | canvas down 0 up 0 pointer 0",
+    "Control+n": "Home | focus search | sel setting:alcoholTimerPosition | q \"alcohol timer\" | action - | life outpost | canvas down 0 up 0 pointer 0",
+    "Escape": "Home | focus search | sel place:449 | q \"\" | action - | life outpost | canvas down 0 up 0 pointer 0",
+    "Meta+Backspace": "Home | focus search | sel feature:alcoholTimer | q \"alcohol timer\" | action - | life outpost | canvas down 0 up 0 pointer 0",
+    "Meta+j": "Home | focus search | sel feature:alcoholTimer | q \"alcohol timer\" | action - | life outpost | canvas down 0 up 0 pointer 0",
+    "ArrowUp": "Home | focus search | sel feature:alcoholTimer | q \"alcohol timer\" | action - | life outpost | canvas down 0 up 0 pointer 0",
+    "ArrowDown": "Home | focus search | sel setting:alcoholTimerPosition | q \"alcohol timer\" | action - | life outpost | canvas down 0 up 0 pointer 0",
+    "Meta+r": "Home | focus search | sel feature:alcoholTimer | q \"alcohol timer\" | action - | life outpost | canvas down 0 up 0 pointer 0",
+    "Tab": "Home | focus button.hub-primary | sel feature:alcoholTimer | q \"alcohol timer\" | action - | life outpost | canvas down 0 up 0 pointer 0",
+    "Shift+Tab": "Home | focus button[Close Hub] | sel feature:alcoholTimer | q \"alcohol timer\" | action - | life outpost | canvas down 0 up 0 pointer 0",
+    "PageDown": "Home | focus search | sel setting:alcoholTimerPosition | q \"alcohol timer\" | action - | life outpost | canvas down 0 up 0 pointer 0"
   }
 }

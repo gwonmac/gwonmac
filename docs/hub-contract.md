@@ -97,6 +97,16 @@ Search uses the shared grammar and ranking (`rankHubRows`) in `app/shared/hub.ts
 An owned list refreshes from its own source. Other observations update navigation
 facts without rebuilding that list. Home searches all enabled sources.
 
+A Feature that is off adds none of its sources, commands or palette entries. A
+search that names it, by its name or the scope word its rows answer
+(`HUB_SCOPE_FEATURES` in `app/shared/hub.ts`), finds one row under Features with
+the reason the launcher's Features tab shows (`app/shared/feature-status.ts`).
+The row acts only where the player can: Turn on opens the switch in Settings
+(switched off, or needs another Feature), Check for updates opens Settings ›
+Updates in the launcher (needs a GWonMac update). Any other reason, the plain
+game included, leaves the primary disabled. `app/renderer/hub-features.ts` owns
+these rows; Home's empty search shows none.
+
 Conflicting stored exact phrases require a choice. Both stores remain intact.
 A row without its own art draws the icon its source names (`iconKind`, from the
 family in `app/shared/ui/hub-icon.ts`); a Core Tools row's comes from its manifest,
