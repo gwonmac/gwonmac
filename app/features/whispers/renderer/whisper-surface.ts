@@ -6,12 +6,13 @@
  */
 import { toggleHubWhispers, whisperFocusReturn } from './hub-whisper.js';
 import type { WhisperSession } from "../../../shared/whisper-session.js";
-import type { EmbeddedToolsBundle, WhisperIconPlacement } from "../../../shared/tools-bundle-contracts.js";
+import type { EmbeddedToolsBundle, WhispersMountOptions } from "../../../shared/tools-bundle-contracts.js";
 import type { ToolIntent, ToolLink } from "../../links.js";
 import { createNonActivatingSurface, isolateFromGame } from "../../../renderer/non-activating-surface.js";
 import { ensureToolsStylesheet } from "../../../renderer/tools-stylesheet.js";
 
-export function createWhisperSurface(parent: HTMLElement, session: WhisperSession, iconPlacement?: WhisperIconPlacement) {
+/** `places` are where the icon and the panel keep their place (Whispers' settings); absent, a move lasts until the surface goes. */
+export function createWhisperSurface(parent: HTMLElement, session: WhisperSession, places: Pick<WhispersMountOptions, "iconPlacement" | "placement"> = {}) {
   const document = parent.ownerDocument;
   const canvas = document.getElementById("canvas");
   if (!(canvas instanceof HTMLCanvasElement)) throw new Error("Whispers game canvas is missing");
@@ -55,7 +56,7 @@ export function createWhisperSurface(parent: HTMLElement, session: WhisperSessio
   ensureToolsStylesheet(document);
   const specifier = "../../../tools/tools-app.js";
   void import(specifier).then((bundle: EmbeddedToolsBundle<HTMLElement>) => {
-    if (!disposed) app = bundle.mountWhispers(root, { session, toggle, ...(iconPlacement ? { iconPlacement } : {}) });
+    if (!disposed) app = bundle.mountWhispers(root, { session, toggle, ...places });
   }).catch(() => {
     if (disposed) return;
     root.textContent = "Whispers could not load. Use original chat and restart to try again.";

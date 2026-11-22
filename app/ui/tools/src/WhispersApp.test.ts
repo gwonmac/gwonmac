@@ -5,6 +5,7 @@ import { nextTick } from "vue";
 import WhispersApp from "./WhispersApp.vue";
 import { createWhisperSession } from "../../../shared/whisper-session";
 import type { CornerPosition } from "../../../shared/corner-position";
+import type { FloatingWindowPlacement } from "../../../shared/ui/window-placement";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -17,11 +18,14 @@ it("restores the Messenger window and icon positions in the current profile", as
   const viewportHeight = vi.spyOn(window, "innerHeight", "get").mockReturnValue(768);
   const session = createWhisperSession(async () => {});
   session.setAvailable(true);
-  // The icon's place is a setting (whispersIconPosition) that the game part hands in.
+  // The icon's and the panel's places are settings (whispersIconPosition, whispersWindowPosition) that the game part hands in.
   let saved: CornerPosition | null = null;
   const iconPlacement = { subscribe: (listener: (position: CornerPosition | null) => void) => { listener(saved); return () => {}; },
     save: (position: CornerPosition) => { saved = position; } };
-  const wrapper = mount(WhispersApp, { props: { session, iconPlacement }, attachTo: document.body });
+  let savedWindow: FloatingWindowPlacement | null = null;
+  const placement = { subscribe: (listener: (value: FloatingWindowPlacement | null) => void) => { listener(savedWindow); return () => {}; },
+    save: (value: FloatingWindowPlacement) => { savedWindow = value; } };
+  const wrapper = mount(WhispersApp, { props: { session, iconPlacement, placement }, attachTo: document.body });
   const panel = wrapper.get<HTMLElement>("#whisper-window").element;
   Object.defineProperties(panel, {
     offsetWidth: { configurable: true, get: () => 340 },
@@ -65,7 +69,7 @@ it("restores the Messenger window and icon positions in the current profile", as
   const restoredSession = createWhisperSession(async () => {});
   restoredSession.setAvailable(true);
   const restored = mount(WhispersApp, {
-    props: { session: restoredSession, iconPlacement },
+    props: { session: restoredSession, iconPlacement, placement },
     attachTo: document.body,
   });
   expect(restored.get(".whisper-launcher").attributes("style")).toContain("left: 1276px");

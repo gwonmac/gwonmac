@@ -44,6 +44,23 @@ their data.
   `tests/policy/source-saved-login-surface.test.ts`, and this entry; an
   unmoved icon simply starts at its default place.
 
+## Whispers panel place from localStorage
+
+- Why: the Whispers panel's place and size moved from the game window's
+  localStorage (`gwonmac.whispers-window-placement`) into the
+  `whispersWindowPosition` setting. While the setting is unset, Whispers reads
+  the old entry once as its first value, saves it in settings and removes the
+  entry (`app/features/whispers/renderer/window-placement.ts`).
+- Introduced: 2026-11-22 with plan step 5.6 (platform special cases).
+- Depends on it: players who moved or resized the Whispers panel before this
+  change.
+- Remove when: two Stable releases after the change have shipped. Delete
+  `takeStoredPlace`, `moved` and their calls, the file's entry in
+  `PLACEMENT_MOVES` in `tests/policy/source-saved-login-surface.test.ts`, and
+  this entry, and let the HUB-109 spec in
+  `app/ui/tools/tests/hub-navigation-window.spec.ts` seed the setting instead of
+  the old entry; an unmoved panel simply opens at its default place.
+
 ## Trade window place from localStorage
 
 - Why: the Trade window's place and size moved from the game window's

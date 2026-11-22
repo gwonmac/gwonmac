@@ -1,4 +1,5 @@
 import type { CornerPosition } from "../../shared/corner-position.js";
+import { readFloatingWindowPlacement, type FloatingWindowPlacement } from "../../shared/ui/window-placement.js";
 import { readCornerPlacement } from "../../shared/overlay-placement.js";
 import { setting } from "../../shared/settings/define.js";
 import { defineFeature, featureSwitch } from "../define.js";
@@ -31,6 +32,20 @@ export default defineFeature({
         launcherError: "Whispers icon position is invalid",
         label: "Whispers icon position",
         help: "Drag the icon in a game window to move it. Reset puts it back at the top left.",
+      },
+    ),
+    /** Where the player moved and sized the Whispers panel, normalized to the game window; null is its default place. */
+    whispersWindowPosition: setting.position(
+      null,
+      (value): FloatingWindowPlacement | null | undefined => value === null ? null : readFloatingWindowPlacement(value),
+      {
+        hub: true,
+        rendererWritable: true,
+        tools: true,
+        error: "Whispers window position is invalid",
+        launcherError: "Whispers window position is invalid",
+        label: "Whispers window position",
+        help: "Drag or resize the Whispers panel in a game window. Put back returns it to its default place and size.",
       },
     ),
   },
