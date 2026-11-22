@@ -1,10 +1,11 @@
 <script setup lang="ts">
 /**
  * The results listbox: the painted rows in groups, each group named by its first row's heading.
- * The controller paints a long list in chunks, so only `painted` rows are in the DOM. The list
- * owns its scrolling: it brings a row the keyboard moved to into view, keeps the reader's place
- * when the rows are rebuilt, and scrolls a restored page back to its offset, asking the
- * controller for more rows until the painted ones reach it, so no row height is ever guessed.
+ * The controller paints a long list in chunks, so only the `painted` rows are in the DOM, and a
+ * row a jump lands on paints before the rows above it. Groups come from the whole list, so a
+ * group keeps its node while the rows above fill in. The list owns its scrolling: it brings a
+ * row the keyboard moved to into view and puts a restored page's row back where it stood. The
+ * browser's scroll anchoring keeps the rows in view in place while rows fill in above them.
  */
 import { computed, ref, watch } from 'vue';
 import type { HubRow } from '../../../../shared/hub';
@@ -14,28 +15,31 @@ import HubResultRow from './HubResultRow.vue';
 const props = defineProps<{ results: HubViewModel['results']; busy: boolean | undefined }>();
 type Section = { key: string; id: string; group: string; rows: { row: HubRow; index: number }[] };
 const sections = computed(() => {
-  const list: Section[] = [];
-  props.results.rows.slice(0, props.results.painted).forEach((row, index) => {
-    const last = list.at(-1);
-    if (last?.group === row.group) last.rows.push({ row, index });
+  const { rows, painted } = props.results;
+  const list: Section[] = [], runs = new Map<string, number>();
+  let run: Section | undefined, range = 0, shown: Section | undefined;
+  rows.forEach((row, index) => {
     // Keyed by group, not position: when a narrower query drops an earlier group, the rows that
     // stay keep their DOM nodes and a pointer action already aimed at them (HUB-170).
-    else list.push({ key: `${row.group}#${list.filter(section => section.group === row.group).length}`, id: `hub-group-${index}`, group: row.group, rows: [{ row, index }] });
+    if (run?.group !== row.group) {
+      const count = runs.get(row.group) ?? 0;
+      runs.set(row.group, count + 1);
+      run = { key: `${row.group}#${count}`, id: `hub-group-${index}`, group: row.group, rows: [] };
+    }
+    while (range < painted.length && painted[range]![1] <= index) range++;
+    if (range >= painted.length || painted[range]![0] > index) return;
+    if (shown !== run) { list.push(run); shown = run; }
+    run.rows.push({ row, index });
   });
   return list;
 });
 
 const element = ref<HTMLElement>();
-// The offset the painted rows must reach: the reader's place before a rebuild, or a restored page's.
-let place: { top: number; restore: boolean } | null = null;
-watch(() => props.results.rows, () => { const top = element.value?.scrollTop ?? 0; if (!place && top > 0) place = { top, restore: false }; }, { flush: 'pre' });
-watch(() => props.results.scroll?.seq, () => { const scroll = props.results.scroll; if (scroll) place = { top: scroll.top, restore: true }; }, { flush: 'pre' });
-watch(() => [props.results.rows, props.results.painted, props.results.scroll?.seq], () => {
-  const list = element.value, wanted = place;
-  if (!list || !wanted) return;
-  if (list.scrollHeight < wanted.top + list.clientHeight && props.results.painted < props.results.rows.length) { props.results.more(); return; }
-  place = null;
-  if (wanted.restore) list.scrollTop = wanted.top;
+watch(() => props.results.scroll?.seq, () => {
+  const list = element.value, place = props.results.scroll?.place;
+  if (!list) return;
+  const row = place ? list.querySelector<HTMLElement>(`[data-id="${CSS.escape(place.id)}"]`) : null;
+  list.scrollTop = row && place ? list.scrollTop + row.getBoundingClientRect().top - list.getBoundingClientRect().top + place.offset : 0;
 }, { flush: 'post' });
 watch(() => props.results.reveal?.seq, () => {
   const id = props.results.reveal?.id;

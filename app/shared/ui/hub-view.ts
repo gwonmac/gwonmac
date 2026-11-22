@@ -59,6 +59,18 @@ export type HubReceipt = Readonly<{
  * attribute stays absent, as on a Hub that has not opened yet. Nested objects are replaced, never
  * mutated, so the view redraws only what changed.
  */
+/**
+ * The rows of `results.rows` that are in the DOM: sorted, disjoint `[from, to)` index ranges. A
+ * long list paints a chunk at a time, and the rows a jump lands on paint before the rows above
+ * them (app/renderer/hub.ts).
+ */
+export type HubPaintedRows = readonly (readonly [from: number, to: number])[];
+/**
+ * Where a list stands: the first row in view, and how far the list's top edge is below that
+ * row's top. Rows can change and paint later while a page is away, so a place names a row, not
+ * a pixel offset. Null is the top of the list.
+ */
+export type HubScrollPlace = Readonly<{ id: string; offset: number }> | null;
 export type HubViewModel = {
   page: 'home' | 'section';
   /** `data-busy` on the panel and `aria-busy` on the results and the view, once first painted. */
@@ -77,14 +89,12 @@ export type HubViewModel = {
   glyphs: HubGlyphs;
   results: Readonly<{
     hidden: boolean; previewList: boolean;
-    rows: readonly HubRow[]; painted: number; selected: string | null; compact: boolean;
+    rows: readonly HubRow[]; painted: HubPaintedRows; selected: string | null; compact: boolean;
     bindings: HubShortcutBindings;
     /** Bring this row into view, once per new `seq`: a keyboard move to it. */
     reveal?: Readonly<{ id: string; seq: number }>;
-    /** Scroll back to this offset, once per new `seq`, painting rows down to it first: a restored page. */
-    scroll?: Readonly<{ top: number; seq: number }>;
-    /** Paints the next chunk of a long list now, for a scroll position the painted rows do not reach. */
-    more(): void;
+    /** Scroll back to this place, once per new `seq`: a restored page. The controller painted its row; null is the top. */
+    scroll?: Readonly<{ place: HubScrollPlace; seq: number }>;
     /** Enter on the selected row's Price basis picker: run the row's primary, as Enter in the search does (HUB-022). */
     run(): void;
   }>;
@@ -123,8 +133,8 @@ export type HubFocusReader = Readonly<{
 export type HubLayoutReader = Readonly<{
   /** The panel's place on screen, for a receipt after the Hub closes. */
   frame(): Readonly<{ left: number; bottom: number; width: number }>;
-  /** The results' scroll offset, which Back and a resume restore. */
-  scrollTop(): number;
+  /** Where the results stand, which Back and a resume restore. */
+  scrollPlace(): HubScrollPlace;
   /** How many rows PageUp and PageDown move: one page of the list, less one row. */
   pageRows(): number;
 }>;

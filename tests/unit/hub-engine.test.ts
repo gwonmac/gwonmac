@@ -35,7 +35,7 @@ const key = (name: string, modifiers: Partial<Omit<HubKey, 'key'>> = {}): HubKey
   ({ key: name, meta: false, ctrl: false, alt: false, shift: false, repeat: false, composing: false, ...modifiers });
 const press = (pressed: HubKey, where: HubKeyPlace): Event => ({ type: 'key', key: pressed, where });
 const enter = (place: HubPlace<Scope, View>, query?: string): Event =>
-  ({ type: 'enter', place, ...(query === undefined ? {} : { query }), remember: true, scroll: 40, focus: { zone: 'results', range: [0, 0] } });
+  ({ type: 'enter', place, ...(query === undefined ? {} : { query }), remember: true, scroll: { id: 'lions-arch', offset: 40 }, focus: { zone: 'results', range: [0, 0] } });
 const rows = (...ids: string[]) => ids.map(id => ({ id, navigate: id.startsWith('nav') }));
 const search = (selectedRows = rows('a', 'b', 'c'), facts: Partial<Extract<HubKeyPlace, { at: 'search' }>> = {}): HubKeyPlace =>
   ({ at: 'search', rows: selectedRows, page: 1, caretAtEnd: true, ...facts });
@@ -113,7 +113,7 @@ test('Back at Home does nothing and never closes; a page opened on a closed Hub 
   const home = opened();
   assert.deepEqual(types(reduce(home.state, { type: 'back' })), []);
   assert.equal(reduce(home.state, { type: 'back' }).state.open, true);
-  const direct = run([{ type: 'show', fresh: true }, { type: 'enter', place: { scope: builds, view: null }, remember: false, scroll: 0, focus: { zone: 'results' } }]);
+  const direct = run([{ type: 'show', fresh: true }, { type: 'enter', place: { scope: builds, view: null }, remember: false, scroll: null, focus: { zone: 'results' } }]);
   const back = reduce(direct.state, { type: 'back' });
   assert.deepEqual(types(back), ['home', 'announce']);
   assert.deepEqual(back.effects[0], { type: 'home', focus: { zone: 'search' } });
@@ -227,7 +227,7 @@ test('back restores the page with its query, selection, scroll and focus; close 
   const left = opened(enter({ scope: travel, view: null }, 'lion'), { type: 'select', id: 'lions-arch' }, enter({ scope: builds, view: null }));
   const back = reduce(left.state, { type: 'back' });
   assert.deepEqual(back.effects[0], {
-    type: 'restore', page: { scope: travel, view: null, query: 'lion', selected: 'lions-arch', scroll: 40, focus: { zone: 'results', range: [0, 0] } },
+    type: 'restore', page: { scope: travel, view: null, query: 'lion', selected: 'lions-arch', scroll: { id: 'lions-arch', offset: 40 }, focus: { zone: 'results', range: [0, 0] } },
   });
   assert.equal(back.state.query, 'lion');
   const closed = reduce(back.state, { type: 'close' });
@@ -246,7 +246,7 @@ test('Back passes over pages whose source went away, to Home when none is left',
     const home = reduce(deep.state, { type: 'back' });
     assert.deepEqual([types(home), title(home.state), home.state.history], [['restore', 'announce'], 'Home', []]);
     // A page that opened the Hub itself has no Home page below it.
-    const direct = run([{ type: 'show', fresh: true }, { type: 'enter', place: { scope: travel, view: null }, remember: false, scroll: 0, focus: { zone: 'results' } }, enter({ scope: builds, view: null })]);
+    const direct = run([{ type: 'show', fresh: true }, { type: 'enter', place: { scope: travel, view: null }, remember: false, scroll: null, focus: { zone: 'results' } }, enter({ scope: builds, view: null })]);
     assert.deepEqual(types(reduce(direct.state, { type: 'back' })), ['home', 'announce']);
   } finally { gone.clear(); }
 });
@@ -255,7 +255,7 @@ test('Back passes over pages whose source went away, to Home when none is left',
 // hub-session.dom.test.ts 'a carried failure expires with the existing 90-second Hub resume window'
 test('a suspended page resumes inside the 90-second window, and later the Hub opens fresh at Home', () => {
   const page = opened(enter({ scope: travel, view: null }, 'lion'), { type: 'select', id: 'lions-arch' });
-  const suspended = run([{ type: 'suspend', scroll: 12, focus: { zone: 'results', range: [4, 4] } }], page.state, 1_000);
+  const suspended = run([{ type: 'suspend', scroll: { id: 'lions-arch', offset: 12 }, focus: { zone: 'results', range: [4, 4] } }], page.state, 1_000);
   assert.equal(suspended.state.open, false);
   const cases: [string, number, boolean | undefined, string[]][] = [
     ['inside the window', 1_000 + HUB_RESUME_MS, undefined, ['resume']],
@@ -268,7 +268,7 @@ test('a suspended page resumes inside the 90-second window, and later the Hub op
   }
   const resumed = reduce(suspended.state, { type: 'show' }, 1_000 + HUB_RESUME_MS);
   assert.deepEqual(resumed.effects[0], {
-    type: 'resume', mounted: true, page: { scope: travel, view: null, query: 'lion', selected: 'lions-arch', scroll: 12, focus: { zone: 'results', range: [4, 4] } },
+    type: 'resume', mounted: true, page: { scope: travel, view: null, query: 'lion', selected: 'lions-arch', scroll: { id: 'lions-arch', offset: 12 }, focus: { zone: 'results', range: [4, 4] } },
   });
   // A Home query expires with the window; ⌘T resumes the suspended Travel instead of opening a second one.
   assert.equal(reduce(suspended.state, { type: 'show' }, 1_001 + HUB_RESUME_MS).state.restoreQuery, '');
@@ -299,7 +299,7 @@ test('a late outcome cannot close or navigate a newer session; it notifies inste
   assert.deepEqual(reduce(started.state, { type: 'done', session, receipt: 'Invited Romi' }).effects, [{ type: 'close', receipt: 'Invited Romi' }]);
   assert.deepEqual(reduce(started.state, { type: 'failed', session, message: 'Invite failed' }).effects, [{ type: 'report', message: 'Invite failed' }]);
   // A suspension ends the session, yet its own completion still closes the hidden Hub.
-  const hidden = reduce(started.state, { type: 'suspend', scroll: 0, focus: { zone: 'results' } }).state;
+  const hidden = reduce(started.state, { type: 'suspend', scroll: null, focus: { zone: 'results' } }).state;
   assert.deepEqual(types(reduce(hidden, { type: 'done', session })), ['close']);
 });
 
@@ -338,7 +338,7 @@ test('a view action runs as the page\'s running action: Enter, ⌘↵ and the fo
   const started = reduce(page, { type: 'start', label: 'Save', again: 'Save is still running.', focus: where }).state;
   const again = [{ type: 'report', message: 'Save is still running.' }];
   const submit = press(key('Enter', { meta: true }), view({ form: true }));
-  const resumed = run([{ type: 'suspend', scroll: 0, focus: where }, { type: 'show' }], started).state;
+  const resumed = run([{ type: 'suspend', scroll: null, focus: where }, { type: 'show' }], started).state;
   const cases: [string, State, Event, unknown[]][] = [
     ['Enter runs the named primary', page, press(key('Enter'), view()), [{ type: 'run-view' }]],
     ['⌘↵ submits the form', page, submit, [{ type: 'run-view' }]],

@@ -49,7 +49,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     scope: { text: '', hidden: true },
     search: { hidden: false, placeholder: 'Search people, places, builds…', label: 'Search people, places, builds', expanded: true },
     glyphs: { calculation: false, text: '', art: currencyIcon },
-    results: { hidden: false, previewList: false, rows: NONE, painted: 0, selected: null, compact: false, bindings: resolveShortcuts({}), more: () => { if (painting) paintThrough(painting.next + PAINT_CHUNK - 1); }, run: () => activateFromRow() },
+    results: { hidden: false, previewList: false, rows: NONE, painted: NONE, selected: null, compact: false, bindings: resolveShortcuts({}), run: () => activateFromRow() },
     empty: { hidden: true }, preview: { text: '', hidden: true }, view: { hidden: true },
     lifecycle: { text: '', hidden: true }, hint: { text: '', hidden: true }, announce: '', count: '',
     actions: { keys: false, disabled: false, expanded: false },
@@ -206,7 +206,9 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
       // A card that changed state while the page was away still stands for the row it showed.
       const card = cards().find(candidate => candidate.restores.includes(page.selected ?? ''));
       const restored = rows.find(row => row.id === page.selected) ?? (card ? rows.find(row => row.group === card.group) : undefined);
-      select(restored?.id??null); patch('results', { scroll: { top: page.scroll, seq: ++scrollSeq } });
+      select(restored?.id??null);
+      if (page.scroll) paintAround(page.scroll.id);
+      patch('results', { scroll: { place: page.scroll, seq: ++scrollSeq } });
       if (page.selected && state.selected === null) report('The previous selection is no longer available. Choose a result.');
     }
     // A view that loads late (Settings) still gives the keyboard back to the control it held.
@@ -249,8 +251,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     refresh();
   }
   function select(id: string | null, scroll = false) {
-    const index = painting && id !== null ? painting.rows.findIndex(row => row.id === id) : -1;
-    if (painting && index >= painting.next) paintThrough(index);
+    if (id !== null) paintAround(id);
     step({ type: 'select', id });
     patch('results', { selected: id });
     const position = id === null ? -1 : rows.findIndex(row => row.id === id);
@@ -384,34 +385,60 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     put('hint', { text: hint, title: hint, hidden: !hint || !!state.place.view });
   }
   /**
-   * A long list paints its first rows at once and the rest one chunk per frame, so a 1000-build
-   * Library opens within one frame budget (HUB-112). Selection, End and a restored scroll position
-   * paint through the rows they need first, so no row height is ever guessed.
+   * A long list paints a chunk of rows at a time, so no task draws a whole 1000-build Library
+   * (HUB-112). A task paints only the rows it needs: the first chunk, the rows around a row that
+   * a jump lands on (End, PageDown, a kept selection, the row a restored page stood at), and the
+   * rows already in the DOM that stay, so narrowing never unmounts them (HUB-170). The other rows
+   * fill in one chunk per frame from the top. A row that fills in above the rows in view does not
+   * move them: the browser's scroll anchoring keeps the rows in view in place. No row height is
+   * ever guessed.
    */
   // Ten rich build rows leave time for their style and layout work in the same frame.
   const PAINT_CHUNK = 10;
-  type Painting = { rows: readonly HubRow[]; next: number; frame: number };
+  // Rows painted on each side of a jump's row: more than one page of the shortest rows.
+  const PAINT_AROUND = 2 * PAINT_CHUNK;
+  type Painting = { rows: readonly HubRow[]; painted: boolean[]; frame: number };
   let painting: Painting | null = null;
   function stopPainting() { if (painting) cancelAnimationFrame(painting.frame); painting = null; }
+  /** Starts painting a new list; `next` holds the drawn objects of rows that draw the same (drawnRows). */
   function startPainting(next: readonly HubRow[]) {
-    // A row already in the DOM that stays in the list paints now, so narrowing never unmounts it
-    // for a frame: its node, and a pointer action aimed at it, survive (HUB-170).
-    const mounted = new Set(model.results.rows.slice(0, model.results.painted).map(row => row.id));
-    stopPainting(); patch('results', { rows: next, painted: 0 });
-    painting = { rows: next, next: 0, frame: 0 };
-    let through = PAINT_CHUNK - 1;
-    next.forEach((row, index) => { if (mounted.has(row.id)) through = Math.max(through, index); });
-    paintThrough(through);
+    const { rows: drawn, painted } = model.results;
+    const mounted = new Set(painted.flatMap(([from, to]) => drawn.slice(from, to).map(row => row.id)));
+    stopPainting(); patch('results', { rows: next, painted: NONE });
+    painting = { rows: next, painted: next.map(row => mounted.has(row.id)), frame: 0 };
+    paintRows(0, PAINT_CHUNK);
   }
-  /** Paints every row up to this index now and leaves the rest to the next frame. */
-  function paintThrough(index: number) {
+  /** Paints rows `[from, to)` now and leaves the first row still missing to the next frame. */
+  function paintRows(from: number, to: number) {
     const job = painting;
     if (!job) return;
+    for (let index = Math.max(0, from); index < Math.min(to, job.rows.length); index++) job.painted[index] = true;
+    const ranges: [number, number][] = [];
+    job.painted.forEach((painted, index) => {
+      if (!painted) return;
+      const last = ranges.at(-1);
+      if (last?.[1] === index) last[1] = index + 1; else ranges.push([index, index + 1]);
+    });
+    const drawn = model.results.painted;
+    if (ranges.length !== drawn.length || ranges.some(([start, end], index) => drawn[index]?.[0] !== start || drawn[index]?.[1] !== end)) patch('results', { painted: ranges });
     cancelAnimationFrame(job.frame);
-    job.next = Math.max(job.next, Math.min(index + 1, job.rows.length));
-    patch('results', { painted: job.next });
-    if (job.next >= job.rows.length) painting = null;
-    else job.frame = requestAnimationFrame(entry(() => paintThrough(job.next + PAINT_CHUNK - 1)));
+    const missing = job.painted.indexOf(false);
+    if (missing < 0) painting = null;
+    else job.frame = requestAnimationFrame(entry(() => paintRows(missing, missing + PAINT_CHUNK)));
+  }
+  /** Paints the rows around this row now unless it is painted: a jump to it. */
+  function paintAround(id: string) {
+    const index = painting ? painting.rows.findIndex(row => row.id === id) : -1;
+    if (painting && index >= 0 && !painting.painted[index]) paintRows(index - PAINT_AROUND + 1, index + PAINT_AROUND);
+  }
+  /**
+   * The rows the view draws: a row that draws as the one already drawn keeps that object, so its
+   * option does not redraw. A row with a Price basis picker takes the new object, whose callbacks
+   * are current. Actions always read the controller's own rows.
+   */
+  function drawnRows(next: readonly HubRow[]) {
+    const drawn = new Map(model.results.rows.map(row => [row.id, row]));
+    return next.map(row => { const old = drawn.get(row.id); return old && !row.quoteBasis && hubRowPaintsSame(row, old) ? old : row; });
   }
   let refreshFrame = 0;
   function scheduleRefresh() {
@@ -450,14 +477,17 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     // Keep mounted options steady when an observer only advances its sequence.
     // Actions still read the newly derived rows, so no stale closure can execute.
     if (!reset && !shortcutsChanged && rows.length === previousRows.length && rows.every((row, index) => hubRowPaintsSame(row, previousRows[index]))) {
-      if (painting) painting.rows = rows;
-      patch('results', { rows }); select(state.selected); return;
+      // The same rows: the view keeps the objects it drew, so no option redraws (drawnRows).
+      const drawn = model.results.rows;
+      const next = rows.map((row, index) => row.quoteBasis || drawn[index]?.id !== row.id ? row : drawn[index]!);
+      if (next.some((row, index) => row !== drawn[index])) { patch('results', { rows: next }); if (painting) painting.rows = next; }
+      select(state.selected); return;
     }
-    // The rebuilt list keeps the reader's place: the list paints the rows down to it (HubResultList).
+    // The rebuilt list keeps the rows in the DOM that stay, so scroll anchoring keeps the reader's place.
     const compactBuilds = !scoped && !state.query.trim();
     // Reserve the preview from the complete result set, before deferred rows reach the DOM.
     patch('results', { previewList: !compactBuilds && rows.some(row => !!row.preview), compact: compactBuilds, bindings });
-    startPainting(rows);
+    startPainting(drawnRows(rows));
     const chosen = chooseHubSelection({ scoped, query: state.query, rows, phrases: composed.phrases, previous: previousRows, selected: state.selected,
       reset, awaiting: awaitingResults, cards: cards(), status: { text: status.text, receipt: status.receipt } });
     awaitingResults = chosen.awaiting;
@@ -563,7 +593,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     report(''); put('announce', '');
     cancelAnimationFrame(refreshFrame); refreshFrame = 0;
     clearTimeout(announceTimer); resultAnnouncement = '';
-    rows = []; stopPainting(); patch('results', { rows: NONE, painted: 0, selected: null }); patch('empty', { hidden: true }); patch('search', { activeDescendant: undefined });
+    rows = []; stopPainting(); patch('results', { rows: NONE, painted: NONE, selected: null }); patch('empty', { hidden: true }); patch('search', { activeDescendant: undefined });
     if (typeof message === 'string' && message) notify(message);
   }
   /**
@@ -589,7 +619,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
   function suspend() {
     if (!root.open) return;
     frame = ui.layout.frame();
-    step({ type: 'suspend', scroll: ui.layout.scrollTop(), focus: focusTarget() });
+    step({ type: 'suspend', scroll: ui.layout.scrollPlace(), focus: focusTarget() });
     modal.close();
     for (const source of sources.keys()) source.setVisible(false);
   }
@@ -772,7 +802,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     const fromOpenHub = root.open;
     if (!fromOpenHub) openHub(true);
     step({ type: 'enter', place: place(state.place), ...(query === undefined ? {} : { query }), remember: fromOpenHub,
-      scroll: fromOpenHub ? ui.layout.scrollTop() : 0, focus: fromOpenHub ? focusTarget() : { zone: 'results' } });
+      scroll: fromOpenHub ? ui.layout.scrollPlace() : null, focus: fromOpenHub ? focusTarget() : { zone: 'results' } });
   }
   /** Mounts a view page, a new one or one that Back restores, with its footer and drafts. */
   function mountView(view: MountedView) {

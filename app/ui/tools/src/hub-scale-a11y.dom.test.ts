@@ -22,6 +22,15 @@ const frame = () => vi.advanceTimersByTimeAsync(20);
 const action = () => document.getElementById('app')!.dataset.action;
 const hubOpen = () => narrow(HTMLDialogElement, document.getElementById('hub')).open;
 const exact = (role: string, name: string) => byRole(role, name, true)[0]!;
+/**
+ * The rows Vue draws after this call, new rows and redrawn ones: Vue's dev build keeps the vnode
+ * it last drew on each element and replaces it on every redraw, even one that changes no
+ * attribute. The specs count the same way (tests/hub-scale-a11y.spec.ts).
+ */
+function rowDraws() {
+  const drawn = new Map([...document.querySelectorAll('.hub-row')].map(row => [row, (row as Element & { __vnode?: unknown }).__vnode]));
+  return () => [...document.querySelectorAll('.hub-row')].filter(row => drawn.get(row) !== (row as Element & { __vnode?: unknown }).__vnode).length;
+}
 /** The number of attribute changes a callback causes under `root`, as the specs' MutationObserver count. */
 function attributeChanges(root: Element, work: () => void, options: MutationObserverInit = { subtree: true, attributes: true }) {
   const observer = new MutationObserver(() => {});
@@ -206,13 +215,18 @@ test('only the selected whisper transcript announces appended messages (HUB-081)
   expect(document.querySelectorAll('[data-transcript][role="log"]')).toHaveLength(0);
 });
 
-test('End reaches the real last row before a large Library has painted it (HUB-112), and Back restores the opened row', async () => {
+test('a large Library paints one chunk a task, End paints only the rows around the last (HUB-112), and Back restores the opened row', async () => {
   await mountFixture('&library=200');
   hub().openRow('builds', 'builds', 'Build Library is unavailable.');
-  const painted = rows('.hub-row');
+  const opened = rows('.hub-row');
   press('End');
   const option = document.getElementById(search().getAttribute('aria-activedescendant') ?? '');
-  expect(painted).toBeLessThan(200);
+  const ended = rows('.hub-row');
+  const drawn = rowDraws();
+  await vi.advanceTimersToNextFrame();
+  // Ten rows on opening; End adds the twenty rows up to the last; the next frame fills in ten
+  // from the top and draws only those.
+  expect([opened, ended, rows('.hub-row'), drawn()]).toEqual([10, 30, 40, 10]);
   expect(option).toBe([...document.querySelectorAll('.hub-row')].at(-1));
   expect(option?.getAttribute('aria-selected')).toBe('true');
   // A row opened from the list returns selected after Back.
@@ -350,15 +364,18 @@ test('repeated opens and resumes search once per transition and leave no rows be
   expect(remaining).toBe(0);
 });
 
-test('incoming bursts keep a deep build selection and bounded arrow mutations (HUB-111, 112)', async () => {
+test('incoming bursts change no row, keep a deep build selection and bound arrow mutations (HUB-111, 112)', async () => {
   await mountFixture('&library=200');
   fill(search(), 'build library'); press('Enter'); await settle();
-  await until(() => document.querySelector('.hub-row[data-id="build:scale-150"]'));
+  await until(() => rows('.hub-build-row') === 200);
   row('build:scale-150').dispatchEvent(new PointerEvent('pointermove', { bubbles: true, movementX: 1 }));
   expect(row('build:scale-150').getAttribute('aria-selected')).toBe('true');
+  const redrawn = rowDraws();
   for (let message = 0; message < 12; message++) { window.dispatchEvent(new Event('hub-fixture-incoming')); await vi.advanceTimersByTimeAsync(125); }
-  expect(selected()?.getAttribute('data-id')).toBe('build:scale-150');
+  // The Library's rows draw the same, so the burst draws none of them, new or old.
+  expect(redrawn()).toBe(0);
   const list = document.getElementById('hub-results')!;
+  expect(selected()?.getAttribute('data-id')).toBe('build:scale-150');
   const mutations: number[] = [];
   for (let arrow = 0; arrow < 10; arrow++) { mutations.push(attributeChanges(list, () => press('ArrowDown'))); await frame(); }
   expect(Math.max(...mutations)).toBeLessThanOrEqual(4);

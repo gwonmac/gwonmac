@@ -9,7 +9,7 @@
  */
 import type { HubDestination } from '../shared/hub.js';
 import { isHubBackKey } from '../shared/keyboard-shortcuts.js';
-import type { HubFocusTarget } from '../shared/ui/hub-view.js';
+import type { HubFocusTarget, HubScrollPlace } from '../shared/ui/hub-view.js';
 import { listIndexAfter, listKeyStep } from '../shared/ui/list-keys.js';
 
 /**
@@ -30,7 +30,7 @@ type Located = Readonly<{ destination?: HubDestination | undefined }>;
 export type HubPlace<S extends Located, V extends Located> = Readonly<{ scope: S | null; view: V | null }>;
 /** A page as Back, a breadcrumb or a resume returns to it. */
 export type HubPage<S extends Located, V extends Located> = HubPlace<S, V> & Readonly<{
-  query: string; selected: string | null; scroll: number; focus: HubFocusTarget;
+  query: string; selected: string | null; scroll: HubScrollPlace; focus: HubFocusTarget;
 }>;
 export type HubState<S extends Located, V extends Located> = Readonly<{
   open: boolean;
@@ -82,12 +82,12 @@ export type HubEvent<S extends Located, V extends Located> =
   /** ⌘R or a page opening a closed Hub; `fresh` drops a suspended page instead of resuming it. */
   | Readonly<{ type: 'show'; fresh?: boolean }>
   | Readonly<{ type: 'close' }>
-  | Readonly<{ type: 'suspend'; scroll: number; focus: HubFocusTarget }>
+  | Readonly<{ type: 'suspend'; scroll: HubScrollPlace; focus: HubFocusTarget }>
   | Readonly<{ type: 'home' }>
   /** The query changed: the player typed, or a command example filled it. */
   | Readonly<{ type: 'type'; query: string }>
   /** A new page over the open Hub's page (`remember`), or as the only page of a fresh Hub. */
-  | Readonly<{ type: 'enter'; place: HubPlace<S, V>; query?: string; remember: boolean; scroll: number; focus: HubFocusTarget }>
+  | Readonly<{ type: 'enter'; place: HubPlace<S, V>; query?: string; remember: boolean; scroll: HubScrollPlace; focus: HubFocusTarget }>
   /** ⌘⌫, the Back button and the mouse back button: exactly one level up, never a close. */
   | Readonly<{ type: 'back' }>
   /** A view's own way out ("Done", leaving Travel): the parent page, or a close where there is none. */
