@@ -4,6 +4,8 @@
  * deciding whether identical native bytes are still live.
  */
 
+import { safely } from "./contained.js";
+
 type SequencedState = Readonly<{
   status: string;
   sequence?: number;
@@ -70,14 +72,14 @@ export function createCompanionSequenceFeed<State extends SequencedState>(
   const publish = (state: State) => {
     if (current === state) return;
     current = state;
-    for (const listener of listeners) listener(state);
+    for (const listener of listeners) safely("a companion feed listener", () => listener(state));
   };
   const publishReady = (state: State) => {
     const equivalent = current.status === "ready"
       && options.sameReadyState?.(current, state) === true;
     current = state;
     if (!equivalent) {
-      for (const listener of listeners) listener(state);
+      for (const listener of listeners) safely("a companion feed listener", () => listener(state));
     }
   };
   const stopTimer = () => {

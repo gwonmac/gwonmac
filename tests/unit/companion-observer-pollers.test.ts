@@ -129,3 +129,36 @@ test("Tools observation republishes an unchanged generation after policy withdra
     stop();
   } finally { globalThis.requestAnimationFrame = previousRequest; globalThis.cancelAnimationFrame = previousCancel; }
 });
+
+test("a throwing poller is reported once and stays off while the others and the frames go on", () => {
+  const previousRequest = globalThis.requestAnimationFrame;
+  const previousCancel = globalThis.cancelAnimationFrame;
+  const previousError = console.error;
+  const scheduled: FrameRequestCallback[] = [];
+  const logged: unknown[][] = [];
+  globalThis.requestAnimationFrame = callback => { scheduled.push(callback); return 13; };
+  globalThis.cancelAnimationFrame = () => {};
+  console.error = (...args: unknown[]) => { logged.push(args); };
+  try {
+    let broken = 0;
+    let healthy = 0;
+    const stop = observeCompanion({ memory: new WebAssembly.Memory({ initial: 1 }), snapshotPointer: 0, toolboxPointer: 0,
+      partyPointer: 0, snapshotReads: 0, rejectedSnapshots: 0, hertz: 0, lastRenderUs: 0, renderSamples: [] },
+    [{ poll: () => { broken += 1; throw new Error("private detail"); } }, { poll: () => { healthy += 1; } }],
+    null, null, false, false);
+    for (let frame = 0; frame < 3; frame += 1) {
+      const callback = scheduled.shift();
+      if (!callback) throw new Error("observer did not schedule its next frame");
+      callback(frame * 16);
+    }
+    assert.equal(broken, 1);
+    assert.equal(healthy, 3);
+    assert.equal(logged.length, 1);
+    assert.doesNotMatch(String(logged[0]), /private detail/);
+    stop();
+  } finally {
+    globalThis.requestAnimationFrame = previousRequest;
+    globalThis.cancelAnimationFrame = previousCancel;
+    console.error = previousError;
+  }
+});

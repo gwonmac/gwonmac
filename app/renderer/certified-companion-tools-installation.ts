@@ -33,6 +33,7 @@ import {
   SUBSTRATE_PARTS,
   type ToolsSubstrates,
 } from "./tools-companion-substrates.js";
+import { safely } from "./contained.js";
 
 const PARTS: readonly ToolsCompanionPart[] = [...SUBSTRATE_PARTS, ...Object.values(featureParts)];
 
@@ -149,6 +150,8 @@ function activateParts(
   const snapshot = () => source.snapshot;
   const trace = createPolicyTrace(context, snapshot);
   const sessions: ToolsPartSession[] = [];
+  /** Each session's part, named in the one line a failed sync logs. */
+  const partIds = new Map<ToolsPartSession, string>();
   /** The memory owners' sessions in heap-layout order: they free what they allocated. */
   const releasing: ToolsPartSession[] = [];
   let hud: ReturnType<typeof createToolsHud> = null;
@@ -208,6 +211,7 @@ function activateParts(
         throw new Error(`Companion part ${part.id} frees memory but has no place in COMPANION_HEAP_LAYOUT`);
       }
       sessions.push(session);
+      partIds.set(session, part.id);
       activated.set(value, session);
     }
     releasing.push(...owners.flatMap((owner) => activated.get(owner) ?? []));
@@ -216,13 +220,14 @@ function activateParts(
     abortActivation(cause);
   }
 
+  // One part's failed sync leaves the others current and still publishes the observer demand.
   const syncConsumers = () => {
-    for (const session of sessions) session.syncFeeds?.();
+    for (const session of sessions) safely(`the ${partIds.get(session)} feed sync`, () => session.syncFeeds?.());
     syncObservers();
-    for (const session of sessions) session.sync?.();
+    for (const session of sessions) safely(`the ${partIds.get(session)} part sync`, () => session.sync?.());
   };
   const syncAfterHook = () => {
-    for (const session of sessions) session.syncAfterHook?.();
+    for (const session of sessions) safely(`the ${partIds.get(session)} after-hook sync`, () => session.syncAfterHook?.());
   };
   const observer = <Slot extends ObserverSlot>(slot: Slot): CompanionObserverExtension[Slot] | null => {
     for (const session of sessions) {

@@ -14,6 +14,7 @@ import type { FeatureId } from "../shared/feature-contracts.js";
 import { WINDOW_PARTS } from "../features/window-parts.js";
 import { featureLinks, onLinksChange, provideLink } from "./feature-links.js";
 import { featureOn } from "./feature-on.js";
+import { safely } from "./contained.js";
 import { windowAvailable, type ToolsWindowSlots, type WindowControl, type WindowPart, type WindowPartDeclaration, type WindowPartOwner, type WindowRunning } from "./window-part.js";
 
 type ToolboxState = ToolboxObservation;
@@ -242,7 +243,7 @@ export function createToolboxFoundation(parent: HTMLElement, { parts = WINDOW_PA
   return {
     update(next: ToolboxState) {
       state = next;
-      for (const slot of slots) if (slot.party) slot.tool?.update?.(next);
+      for (const slot of slots) if (slot.party) safely(`the ${slot.id} window update`, () => slot.tool?.update?.(next));
     },
     /** Closes each window whose Feature turned off, and starts the Hub's parts that turned on while it shows. */
     sync() {
@@ -255,10 +256,11 @@ export function createToolboxFoundation(parent: HTMLElement, { parts = WINDOW_PA
       cancelPendingFocus();
       window.removeEventListener("keydown", cancelPendingFocus, true);
       window.removeEventListener("pointerdown", cancelPendingFocus, true);
+      // Each step on its own: a window whose stop throws still leaves its surface and the rest.
       for (const slot of slots) {
-        slot.stopLink();
-        slot.tool?.stop();
-        slot.surface.dispose();
+        safely(`the ${slot.id} link withdrawal`, slot.stopLink);
+        safely(`the ${slot.id} window stop`, () => slot.tool?.stop());
+        safely(`the ${slot.id} surface disposal`, () => slot.surface.dispose());
       }
       nonActivating.dispose();
       cursorMirror.disconnect();

@@ -254,7 +254,18 @@ export function createBlock<Value>(
       // The entry stays quiet until its first call, so a value that `demand` publishes
       // at once reaches this listener exactly once.
       let started = false;
-      const entry = (value: Value) => { if (started) listener(value); };
+      // A listener that throws is reported once and hears nothing more, so one Feature's
+      // failure never keeps a value from the other listeners. One line, no error text.
+      let failed = false;
+      const entry = (value: Value) => {
+        if (!started || failed) return;
+        try {
+          listener(value);
+        } catch {
+          failed = true;
+          console.error("[err] a Tools block listener stopped after an error; the others go on");
+        }
+      };
       listeners.add(entry);
       if (available && listeners.size === 1) demand(true);
       started = true;

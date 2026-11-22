@@ -10,6 +10,11 @@
  * The consumers — cursor, readout, toolbox — are passed in and any of them may
  * be absent, because which ones exist was decided when the module was derived
  * and is not something to rediscover per frame.
+ *
+ * Each consumer and poller runs contained: one that throws is reported once and
+ * stays off for this installation, while the others and the play-region read go
+ * on. The next frame is requested before any of them runs, so no throw can stop
+ * the loop.
  */
 import {
   type CompanionPartyState,
@@ -143,24 +148,47 @@ export function observeCompanion(
   let previousParty: CompanionPartyState | null = null;
   let partySequence: number | null = null;
   let publishedState: PublishedCompanionState | null = null;
+  // Steps that threw: each stays off for this installation, so it is reported once.
+  const failed = new Set<string>();
+  const step = (name: string, run: () => void, inactive?: () => void) => {
+    if (failed.has(name)) return;
+    try {
+      run();
+    } catch {
+      failed.add(name);
+      // One line, no error text: a message can carry paths or game values.
+      console.error(`[err] the ${name} observation stopped after an error; the others go on`);
+      // Withdraw what it last showed rather than leave a stale value on screen.
+      try { inactive?.(); } catch { /* already reported once */ }
+    }
+  };
+  let regionFailed = false;
   const observe = () => {
+    frame = requestAnimationFrame(observe);
     // Publish the sole policy fact before any dependent observation from the
-    // same animation frame reaches its consumer.
+    // same animation frame reaches its consumer. It is never turned off: a read
+    // that throws is reported once and tried again next frame, and the region's
+    // freshness feed withdraws the last fact if no valid read follows.
     if (playRegion) {
-      const state = readCompanionPlayRegion(
-        runtime.memory.buffer,
-        runtime.playRegionPointer ?? 0,
-      );
-      playRegion.update(state);
-      if (state.status === "ready") firstObservation("region");
+      try {
+        const state = readCompanionPlayRegion(
+          runtime.memory.buffer,
+          runtime.playRegionPointer ?? 0,
+        );
+        playRegion.update(state);
+        if (state.status === "ready") firstObservation("region");
+      } catch {
+        if (!regionFailed) console.error("[err] the play-region observation failed; it is tried again each frame");
+        regionFailed = true;
+      }
     }
     if (characterList) {
-      characterList.update(readCompanionCharacterList(
+      step("character list", () => characterList.update(readCompanionCharacterList(
         runtime.memory.buffer,
         runtime.characterListPointer ?? 0,
-      ));
+      )));
     }
-    if (observeState && readout?.enabled?.() !== false) {
+    if (observeState && readout?.enabled?.() !== false) step("target readout", () => {
       if (!readers) throw new Error("Tools snapshot readers are unavailable");
       const started = performance.now();
       const state = readers.readCompanionSnapshot(
@@ -191,13 +219,15 @@ export function observeCompanion(
       if (runtime.renderSamples.length > 240) runtime.renderSamples.shift();
       readout?.update(state);
       if (state.status === "ready") firstObservation("target");
-    }
-    if (toolbox?.enabled?.() === false) {
-      // A withdrawn host projection needs a fresh publication on resumption,
-      // even when the kernel's two generation headers did not change.
-      previousToolbox = null; toolboxSequence = null;
-      previousParty = null; partySequence = null;
-    } else if (toolbox) {
+    });
+    if (toolbox) step("party", () => {
+      if (toolbox.enabled?.() === false) {
+        // A withdrawn host projection needs a fresh publication on resumption,
+        // even when the kernel's two generation headers did not change.
+        previousToolbox = null; toolboxSequence = null;
+        previousParty = null; partySequence = null;
+        return;
+      }
       if (!readers) throw new Error("Tools party readers are unavailable");
       // Both regions are watched, because each carries facts the other does
       // not. The toolbox summary moves when a hero joins or the panel opens;
@@ -235,10 +265,12 @@ export function observeCompanion(
           firstObservation("party");
         }
       }
-    }
-    if (skillSlots && skillSlots.enabled?.() === false) {
-      skillSlots.inactive?.();
-    } else if (skillSlots) {
+    });
+    if (skillSlots) step("skill bar", () => {
+      if (skillSlots.enabled?.() === false) {
+        skillSlots.inactive?.();
+        return;
+      }
       if (!readers) throw new Error("Tools skill readers are unavailable");
       const state = readers.readCompanionSkillSlots(
         runtime.memory.buffer,
@@ -246,10 +278,12 @@ export function observeCompanion(
       );
       skillSlots.update(state);
       if (state.status === "ready") firstObservation("skill-geometry");
-    }
-    if (skillCooldowns && skillCooldowns.enabled?.() === false) {
-      skillCooldowns.inactive?.();
-    } else if (skillCooldowns) {
+    }, () => skillSlots.inactive?.());
+    if (skillCooldowns) step("skill cooldowns", () => {
+      if (skillCooldowns.enabled?.() === false) {
+        skillCooldowns.inactive?.();
+        return;
+      }
       if (!readers) throw new Error("Tools skill readers are unavailable");
       const state = readers.readCompanionSkillCooldowns(
         runtime.memory.buffer,
@@ -257,30 +291,33 @@ export function observeCompanion(
       );
       skillCooldowns.update(state);
       if (state.status === "ready") firstObservation("cooldowns");
-    }
-    if (playerEffects && playerEffects.enabled?.() === false) {
-      playerEffects.inactive?.();
-    } else if (playerEffects) {
+    }, () => skillCooldowns.inactive?.());
+    if (playerEffects) step("effects", () => {
+      if (playerEffects.enabled?.() === false) {
+        playerEffects.inactive?.();
+        return;
+      }
       if (!readers) throw new Error("Tools effect readers are unavailable");
       playerEffects.update(readers.readCompanionPlayerEffects(
         runtime.memory.buffer,
         runtime.playerEffectPointer ?? 0,
       ));
-    }
-    if (effectIcons && effectIcons.enabled?.() === false) {
-      effectIcons.inactive?.();
-    } else if (effectIcons) {
+    }, () => playerEffects.inactive?.());
+    if (effectIcons) step("effect icons", () => {
+      if (effectIcons.enabled?.() === false) {
+        effectIcons.inactive?.();
+        return;
+      }
       if (!readers) throw new Error("Tools effect icon readers are unavailable");
       effectIcons.update(readers.readCompanionEffectIcons(
         runtime.memory.buffer,
         runtime.effectIconPointer ?? 0,
       ));
-    }
+    }, () => effectIcons.inactive?.());
     // Outside the measured window: lastRenderUs stays the snapshot read cost.
-    for (const poller of pollers) {
+    pollers.forEach((poller, index) => step(`poller ${index + 1}`, () => {
       if (poller.enabled?.() !== false) poller.poll();
-    }
-    frame = requestAnimationFrame(observe);
+    }));
   };
   frame = requestAnimationFrame(observe);
   return () => {
