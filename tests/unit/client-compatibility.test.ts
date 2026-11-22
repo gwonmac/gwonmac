@@ -13,6 +13,7 @@ import {
   rejectClientCandidate,
   restoreInvalidClientCandidate,
 } from "../../app/client/client-compatibility.js";
+import { migrateLegacyPublishedClientManifest } from "../../app/client/published-client.js";
 import { Manifest, type RawManifest } from "../../app/main/core/manifest.js";
 
 function rawManifest(overrides?: Partial<RawManifest>): RawManifest {
@@ -27,6 +28,21 @@ function rawManifest(overrides?: Partial<RawManifest>): RawManifest {
     ],
     ...overrides,
   };
+}
+
+/** Seals `dir` as a complete generation whose artifacts verify, as rollback requires. */
+async function verifiableGeneration(dir: string): Promise<void> {
+  for (const name of ["Gw.jspi.js", "Gw.jspi.wasm", "version.json"]) {
+    await writeFile(join(dir, name), name);
+  }
+  await writeFile(join(dir, "manifest.json"), JSON.stringify({
+    compressionMode: "none",
+    chunkSize: 16,
+    snapshot: "Gw.snapshot",
+    size: 1,
+    chunkHashes: ["d".repeat(32)],
+  }));
+  await migrateLegacyPublishedClientManifest(dir);
 }
 
 async function missing(target: string): Promise<boolean> {
@@ -75,6 +91,7 @@ describe("client compatibility", () => {
     await mkdir(previousArtifacts);
     await writeFile(join(artifacts, "client"), "candidate");
     await writeFile(join(previousArtifacts, "client"), "working");
+    await verifiableGeneration(previousArtifacts);
     await markClientCandidate(artifacts, fingerprint);
 
     assert.deepEqual(
@@ -216,6 +233,7 @@ describe("client compatibility", () => {
     await writeFile(join(artifacts, "client"), "uncertain");
     await writeFile(join(artifacts, ".candidate.json"), "{torn");
     await writeFile(join(previousArtifacts, "client"), "working");
+    await verifiableGeneration(previousArtifacts);
 
     assert.deepEqual(
       await restoreInvalidClientCandidate({
