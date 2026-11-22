@@ -67,6 +67,12 @@
       "reason": "The stored verdict of the certified `cartography` stage."
     },
     {
+      "file": "app/renderer/harness.ts",
+      "name": "cartography",
+      "category": "certified stage or verifier",
+      "reason": "The harness installs Maps from the instantiated module: its separate certified stage comes with every Tools launch, with or without a certified companion, so no part kind starts it (cartography/renderer/host.ts)."
+    },
+    {
       "file": "app/shared/contracts.ts",
       "name": "cartography",
       "category": "certified stage or verifier",
@@ -355,6 +361,12 @@
       "reason": "Progress's manifest `requires` Travel."
     },
     {
+      "file": "app/main/core/preferences-coordinator.ts",
+      "name": "travel",
+      "category": "registry or contract",
+      "reason": "`pending: \"travel\"`: Core's reset of player data keeps Travel's preferences file with the settings and says which write is pending."
+    },
+    {
       "file": "app/renderer/leave-area.ts",
       "name": "travel",
       "category": "same word, not the Feature",
@@ -365,6 +377,12 @@
       "name": "travel",
       "category": "registry or contract",
       "reason": "COMPANION_HEAP_LAYOUT: the fixed order of memory owners, pinned so a player's game memory never moves."
+    },
+    {
+      "file": "app/shared/contracts.ts",
+      "name": "travel",
+      "category": "registry or contract",
+      "reason": "`pending: \"travel\"` in the preferences reset answer: Core's player data, which the launcher and Hub read."
     },
     {
       "file": "app/shared/enhancement-config.ts",
@@ -655,6 +673,11 @@
     }
   ],
   "toolsUiLocalStorage": [
+    {
+      "file": "app/ui/tools/src/catalogue-preferences.ts",
+      "category": "host plumbing",
+      "reason": "The skill catalogue's two filter choices stay with this viewer's Tools window, a per-viewer convenience, not player data."
+    },
     {
       "file": "app/ui/tools/src/elite-fixture.ts",
       "category": "test helper",
