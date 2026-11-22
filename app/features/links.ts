@@ -15,6 +15,7 @@
 import type { BuildLibraryLink } from "./build-library/shared/link.js";
 import type { CartographyLink } from "./cartography/shared/link.js";
 import type { ResignLink } from "./resign/shared/link.js";
+import type { TeamApplyLink } from "./team-apply/shared/link.js";
 import type { TradeChatLink } from "./trade-chat/shared/link.js";
 import type { TravelLink } from "./travel/shared/link.js";
 import type { WhispersLink } from "./whispers/shared/link.js";
@@ -26,6 +27,7 @@ export type FeatureLinkApis = {
   buildLibrary: BuildLibraryLink;
   cartography: CartographyLink;
   resign: ResignLink;
+  teamApply: TeamApplyLink;
   tradeChat: TradeChatLink;
   travel: TravelLink;
   whispers: WhispersLink;

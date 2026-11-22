@@ -12,6 +12,8 @@ export default defineFeature({
   requires: ["buildLibrary"],
   uses: ["teamApply"],
   programs: ["toolbox-commands"],
+  /** The Build Library applies a saved team through Team Apply's commands (shared/link.ts). */
+  offers: ["commands"],
   shots: [],
   parts: ["game"],
 });

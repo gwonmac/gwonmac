@@ -256,11 +256,12 @@ export function createNativeHost(
     | ((template: PublishableTemplate) => Promise<PublishedTemplate>)
     | null,
   /**
-   * The certified commands, or `null` for a client module derived without
-   * them. The renderer hands them straight through without reading them; the
-   * sequence that turns a plan into a party lives here, beside the domain.
+   * Team Apply's certified commands, read at each Apply: `null` for a client
+   * module derived without them, or while Team Apply is off. The renderer hands
+   * them straight through without reading them; the sequence that turns a plan
+   * into a party lives here, beside the domain.
    */
-  commands: TeamApplyCommands | null,
+  readCommands: () => TeamApplyCommands | null,
   storage: StorageCommand | null,
   applyUnavailable: string | null,
   development = false,
@@ -292,6 +293,7 @@ export function createNativeHost(
     devTrace(development, "skills.loaded", { count: parsed.length });
   };
   async function execute(plan: TeamApplyPlan, onEvent?: (event: TeamApplyEvent) => void, single?: { build: Build; hero: HeroId | null }): Promise<TeamApplyResult> {
+      const commands = readCommands();
       if (commands === null) {
         throw new Error(applyUnavailable ?? "Applying a team is unavailable.");
       }
@@ -468,7 +470,7 @@ export function createNativeHost(
     },
     cancelApply() {
       if (activeApply !== null) {
-        commands?.cancelPending();
+        readCommands()?.cancelPending();
         activeApply.abort();
       }
     },

@@ -8,7 +8,6 @@
  * again. Two boundaries around one panel is how a held movement key ends up stuck when only one
  * of them is torn down.
  */
-import type { TeamApplyCommands } from "../shared/builds/team-apply-runner.js";
 import type { StorageCommand } from "../shared/storage-command.js";
 import { createToolboxLifecycle, type MountedTool } from "./toolbox-foundation.js";
 import { featureLinks, onLinksChange } from "./feature-links.js";
@@ -17,22 +16,20 @@ import tradeWindow from "../features/trade-chat/renderer/host.js";
 import { featureOn } from "./feature-on.js";
 
 /**
- * Starts the Build Library's window part. `commands` and `storage` are the certified Team Apply
- * and Xunlai Storage commands, or null for a module derived without them: only the complete Tools
- * profile carries a call to a packet builder, so null is an absence in the bytes rather than a
- * disabled JavaScript switch. They are handed straight through.
+ * Starts the Build Library's window part. `storage` is the certified Xunlai Storage command, or
+ * null for a module derived without it: null is an absence in the bytes rather than a disabled
+ * JavaScript switch. It is handed straight through.
  */
 export function mountBuildsInto(
   host: HTMLElement,
   onVisibilityChange: (visible: boolean) => void,
   show: () => void,
-  commands: TeamApplyCommands | null,
   storage: StorageCommand | null,
   /** Whether this session's client can discover templates written to IDBFS. */
   templatePublishing: boolean,
 ): Promise<MountedTool | null> {
   return buildLibraryWindow.start({
-    host, onVisibilityChange, show, links: featureLinks(buildLibraryWindow.id), onLinksChange, commands, storage, templatePublishing,
+    host, onVisibilityChange, show, links: featureLinks(buildLibraryWindow.id), onLinksChange, storage, templatePublishing,
   });
 }
 
@@ -58,7 +55,7 @@ export function mountHostOnlyTools(
   const lifecycle = createToolboxLifecycle(parent, {
     buildsLink: buildLibraryWindow.id,
     mountTool: (host, onVisibilityChange, show) =>
-      mountBuildsInto(host, onVisibilityChange, show, null, null, templatePublishingAvailable),
+      mountBuildsInto(host, onVisibilityChange, show, null, templatePublishingAvailable),
     mountTrade: mountTradeInto,
   });
   const syncEnabled = () => {

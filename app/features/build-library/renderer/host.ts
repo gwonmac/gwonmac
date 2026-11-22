@@ -2,14 +2,12 @@
  * The Build Library's window part, its one entry for the game host: loads the Library window
  * from the Tools bundle into the host the Tools window gives it. It also owns what only the
  * renderer can do for the Library: write a build where the game's own template dialog finds it,
- * and move template files in and out. "Find capture locations" reaches Maps through the link
- * the manifest names.
+ * and move template files in and out. Applying a team reaches Team Apply's certified commands, and
+ * "Find capture locations" reaches Maps, through the links the manifest names.
  *
- * The Tools window also hands it what the game part of the installation holds: the certified
- * Team Apply commands and the Xunlai Storage command (null for a module derived without them),
- * and whether this client lists templates written to its mount.
+ * The Tools window also hands it the Xunlai Storage command (null for a module derived without
+ * it) and whether this client lists templates written to its mount.
  */
-import type { TeamApplyCommands } from "../../../shared/builds/team-apply-runner.js";
 import type { StorageCommand } from "../../../shared/storage-command.js";
 import type { EmbeddedToolsBundle, PublishableTemplate, PublishedTemplate } from "../../../shared/tools-bundle-contracts.js";
 import { toolsUnavailableCopy } from "../../../shared/tools-unavailable-copy.js";
@@ -22,7 +20,6 @@ import { ensureToolsStylesheet } from "../../../renderer/tools-stylesheet.js";
 import { requireToolsApi } from "../../../renderer/tools-native-api.js";
 
 export type BuildLibraryWindowContext = WindowContext<"buildLibrary"> & Readonly<{
-  commands: TeamApplyCommands | null;
   storage: StorageCommand | null;
   /** Whether this session's client discovers templates written to its mount. */
   templatePublishing: boolean;
@@ -55,7 +52,13 @@ async function publishTemplate({ name: raw, code }: PublishableTemplate): Promis
  * debugging session, so this one says what went wrong and leaves the reason in the console.
  */
 export default definePart("window", "buildLibrary", async (context: BuildLibraryWindowContext): Promise<MountedTool | null> => {
-  const { host, onVisibilityChange, links, show, commands, storage, templatePublishing } = context;
+  const { host, onVisibilityChange, links, show, storage, templatePublishing } = context;
+  // Read at each Apply: Team Apply may turn on after this window started (its build check
+  // arrives later). Null is a module derived without the command queue, or Team Apply off.
+  const commands = () => {
+    const offered = links.teamApply?.commands() ?? "unavailable";
+    return offered === "unavailable" ? null : offered;
+  };
   const native = requireToolsApi();
   ensureToolsStylesheet(host.ownerDocument);
   // A build artifact, not a source module: vite writes it beside the renderer at package time.
@@ -68,7 +71,9 @@ export default definePart("window", "buildLibrary", async (context: BuildLibrary
       native.client.session(),
     ]);
     const unavailable = toolsUnavailableCopy(session.compatibility?.features, {
-      teamApply: commands !== null,
+      // The module holds the command queue when the build proved Team Apply, even while its link
+      // still waits for the build check.
+      teamApply: commands() !== null || session.compatibility?.features.teamApply.status === "available",
       storage: storage !== null,
       publish: templatePublishing,
     });

@@ -1,13 +1,15 @@
 /**
  * Team Apply in the game host: the certified command queue, its payload, and the
- * development profession trace. The commands read the shared party feed and are
- * offered by the Tools window and the developer runtime.
+ * development profession trace. The commands read the shared party feed; the Build
+ * Library reaches them through Team Apply's link, the developer runtime through the
+ * session's `commands`.
  */
 import { PROFESSION_COMMAND_TRACE_BYTES, createProfessionCommandTrace, type ProfessionCommandTraceReader } from
   "../../renderer/profession-command-trace.js";
 import type { TeamApplyCommands } from "../../shared/builds/team-apply-runner.js";
 import type { EnhancementCommandEnqueue } from "./renderer/enhancement-team-commands.js";
 import type { ToolsCompanionPart } from "../../renderer/tools-companion-part.js";
+import { provideLink } from "../../renderer/feature-links.js";
 
 export default {
   id: "teamApply",
@@ -25,10 +27,7 @@ export default {
     }
     const teamCommands = capabilities.teamApply
       ? await import("./renderer/enhancement-team-commands.js") : null;
-    let commands: TeamApplyCommands | null = null;
     return {
-      /** Set on activation; null without a Team Apply profile. */
-      get commands() { return commands; },
       memoryNeeds: {
         commandPayloadBytes: teamCommands?.TEAM_COMMAND_PAYLOAD_BYTES ?? 0,
         professionTrace: capabilities.teamApply && window.gwNative.init.development,
@@ -36,7 +35,7 @@ export default {
       },
       activate(context) {
         const { memory, core } = context;
-        commands = enqueue === null || teamCommands === null ? null : teamCommands.createTeamApplyCommands({
+        const commands: TeamApplyCommands | null = enqueue === null || teamCommands === null ? null : teamCommands.createTeamApplyCommands({
           memory,
           payloadPointer: core.commandPayloadPointer,
           send: enqueue,
@@ -63,6 +62,7 @@ export default {
             return party;
           },
         });
+        const stopLink = commands === null ? () => {} : provideLink("teamApply", { commands: () => commands });
         let trace: ReturnType<typeof createProfessionCommandTrace> | null = null;
         observation.onParty((party) => trace?.poll(party));
         return {
@@ -71,7 +71,7 @@ export default {
             trace = createProfessionCommandTrace(memory, core.professionTracePointer, traceReader);
           },
           commands,
-          disposePresentation: [() => trace?.dispose()],
+          disposePresentation: [stopLink, () => trace?.dispose()],
         };
       },
     };

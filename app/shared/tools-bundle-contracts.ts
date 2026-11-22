@@ -76,7 +76,8 @@ export type ToolsAppMountOptions = Readonly<{
     | ((template: PublishableTemplate) => Promise<PublishedTemplate>)
     | null;
   templateFiles: TemplateFiles | null;
-  commands: TeamApplyCommands | null;
+  /** Team Apply's certified commands, read at each Apply; null while Team Apply is off or the module has none. */
+  commands: () => TeamApplyCommands | null;
   storage: StorageCommand | null;
   /** Why `storage` is null, in the player's words; null when it is not. */
   storageUnavailable: string | null;
