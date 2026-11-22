@@ -33,7 +33,7 @@ export default defineFeature({
     ),
   },
   activation: { kind: "setting", setting: "alcoholTimerEnabled", master: "gwonmacTools" },
-  region: "pve",
+  region: "non-pvp",
   uses: ["alcoholObservation"],
   tool: {
     id: "alcohol-timer",

@@ -1,23 +1,37 @@
 // A feature built with featurePart (app/renderer/tools-companion-part.ts) runs while its
-// feature is on, and only on a build that proved every capability its manifest names.
-// Skill Cooldowns runs here on the real blocks and feeds; only the native HUD is a stub.
-// What would go wrong without this test: the countdowns stay on the skill bar after the
-// player turned them off, the recharge feed keeps running for nobody, a color change
-// does not reach the bar, or a build without the native renderer still reads the feeds.
+// feature is on, and only on a build that proved every capability its manifest uses.
+// Each feature runs here on the real blocks and feeds; only the native HUD, the game's
+// exports and Travel's palette are stubs.
+// What would go wrong without this test: a feature draws or prints nothing after it moved
+// onto the blocks, its drawing stays after the player turned it off, a feed keeps running
+// for nobody, a settings change does not reach it, or a build without the native renderer
+// still reads the feeds.
 import assert from "node:assert/strict";
 import test from "node:test";
+import cartography from "../../app/features/cartography/companion.ts";
+import { readCartographyQuestMarker } from "../../app/features/cartography/renderer/cartography-player-state.ts";
+import effectTimers from "../../app/features/effect-timers/companion.ts";
+import progress from "../../app/features/progress/companion.ts";
+import reminders from "../../app/features/reminders/companion.ts";
 import skillCooldowns from "../../app/features/skill-cooldowns/companion.ts";
+import skillKeyLabels from "../../app/features/skill-key-labels/companion.ts";
 import { createGameBlocks, createUiBlocks } from "../../app/renderer/game-blocks.ts";
-import type { NativeHudItem, NativeHudLayer } from "../../app/renderer/native-hud-layer.ts";
+import type { NativeHudChannel, NativeHudItem, NativeHudLayer } from "../../app/renderer/native-hud-layer.ts";
 import { createPlayRegionObservationInstallation } from "../../app/renderer/play-region-state-installation.ts";
-import type { PreparedToolsPart, ToolsActivation, ToolsPrepareInput } from "../../app/renderer/tools-companion-part.ts";
+import type { PreparedToolsPart, ToolsActivation, ToolsCompanionPart, ToolsPrepareInput } from "../../app/renderer/tools-companion-part.ts";
 import { createToolsSubstrates } from "../../app/renderer/tools-companion-substrates.ts";
+import { CHAT_PRINT_MAILBOX, CHAT_PRINT_STATUS } from "../../app/shared/chat-print.ts";
 import { capabilityRecord, type EnhancementCapability } from "../../app/shared/enhancement-contracts.ts";
+import type { GameProgressState } from "../../app/shared/game-progress.ts";
 import { DEFAULT_SETTINGS, type AppSettings } from "../../app/shared/settings/index.ts";
+import { EMPTY_SKILL_KEY_MODIFIERS } from "../../app/shared/skill-key-bindings.ts";
 
 const EMPTY_MODULE = new WebAssembly.Module(new Uint8Array([0, 0x61, 0x73, 0x6d, 1, 0, 0, 0]));
 
-function start(t: test.TestContext, without: readonly EnhancementCapability[] = []) {
+type Options = Readonly<{ without?: readonly EnhancementCapability[]; settings?: Partial<AppSettings> }>;
+
+/** Runs one part the way the installer does: prepare, memory, activate, mount. */
+function start(t: test.TestContext, part: ToolsCompanionPart, id: string, { without = [], settings: patch = {} }: Options = {}) {
   const capabilities = capabilityRecord((capability) => !without.includes(capability));
   const substrates = createToolsSubstrates(EMPTY_MODULE, capabilities, "none");
   const { skills } = substrates;
@@ -25,28 +39,57 @@ function start(t: test.TestContext, without: readonly EnhancementCapability[] = 
   t.after(() => { skills.geometry.dispose(); skills.cooldowns.dispose(); playRegions.dispose(); });
   const canvas = { getBoundingClientRect: () => ({ left: 0, top: 0, width: 800, height: 600 }) };
   const document = { defaultView: null, getElementById: () => canvas } as unknown as Document;
-  let drawn: readonly (NativeHudItem | null)[] = [];
-  const hud: NativeHudLayer = { update(channel, items) { if (channel === "cooldowns") drawn = items; }, dispose() {} };
+  const drawn: Partial<Record<NativeHudChannel, readonly (NativeHudItem | null)[]>> = {};
+  const hud: NativeHudLayer = { update(channel, items) { drawn[channel] = items; }, dispose() {} };
+  // The game's side: chat print hands each line to the game thread through its mailbox.
+  const memory = new WebAssembly.Memory({ initial: 1 });
+  const printed: string[] = [];
+  const configured: number[] = [];
+  let mailbox = 0;
+  const exports = {
+    enhancement_configure_chat_print: (_pointer: number, enabled: number) => { configured.push(enabled); return 1; },
+    enhancement_print_chat: () => {
+      const view = new DataView(memory.buffer);
+      const length = view.getUint32(mailbox + CHAT_PRINT_MAILBOX.length, true);
+      printed.push(String.fromCharCode(...Array.from({ length }, (_, at) => view.getUint16(mailbox + CHAT_PRINT_MAILBOX.source + at * 2, true))));
+      // The game thread prints it at once.
+      view.setUint32(mailbox + CHAT_PRINT_MAILBOX.status, CHAT_PRINT_STATUS.printed, true);
+      return 1;
+    },
+  } as unknown as WebAssembly.Exports;
+  const trips: GameProgressState[] = [];
   const syncObservers = () => {};
-  let settings: AppSettings = { ...DEFAULT_SETTINGS, skillCooldownColor: { kind: "custom", value: "#abcdef" } };
+  let settings: AppSettings = { ...DEFAULT_SETTINGS, ...patch };
   let on = true;
   const context = {
-    snapshot: () => ({ settings }),
-    policy: () => ({ skillCooldowns: on }),
+    memory,
+    snapshot: () => ({ settings, playRegionState: { status: "waiting", reason: "game" } }),
+    policy: () => ({ [id]: on }),
+    playRegion: () => "unknown",
     game: createGameBlocks({ capabilities, substrates, playRegions, syncObservers }),
     ui: createUiBlocks({ capabilities, hud, substrates, document, syncObservers }),
+    // Travel's palette, which Progress reports to.
+    prepared: () => ({ installation: { updateProgress: (state: GameProgressState) => trips.push(state) } }),
   } as unknown as ToolsActivation;
-  const prepared = skillCooldowns.prepare({ capabilities } as ToolsPrepareInput) as PreparedToolsPart;
+  const prepared = part.prepare({ exports, module: EMPTY_MODULE, capabilities, program: "none", substrates } as ToolsPrepareInput) as PreparedToolsPart;
+  prepared.allocate?.((bytes) => { mailbox = 1024; return bytes > 0 ? mailbox : 0; });
+  prepared.initialize?.(memory);
   const session = prepared.activate!(context);
   session.mount?.();
+  session.syncFeeds?.();
+  session.sync?.();
   return {
     session,
-    skills,
-    texts: () => drawn.map((item) => item?.text ?? null),
-    color: () => drawn.find((item) => item !== null)?.color,
-    reading: () => ({ slots: skills.geometry.active, recharge: skills.cooldowns.active }),
-    turn(next: boolean) { on = next; session.syncFeeds?.(); },
-    change(patch: Partial<AppSettings>) { settings = { ...settings, ...patch }; session.syncFeeds?.(); },
+    substrates,
+    drawn,
+    printed,
+    configured,
+    trips,
+    /** Hands queued chat lines to the game, one per frame. */
+    frames(count: number) { for (let frame = 0; frame < count; frame += 1) for (const poller of session.pollers ?? []) poller.poll(); },
+    turn(next: boolean) { on = next; session.syncFeeds?.(); session.sync?.(); },
+    change(next: Partial<AppSettings>) { settings = { ...settings, ...next }; session.syncFeeds?.(); session.sync?.(); },
+    stop() { for (const stop of session.disposePresentation ?? []) stop(); },
   };
 }
 
@@ -58,32 +101,131 @@ const recharge = (sequence: number) => Object.freeze({
   status: "ready", sequence, generation: 1, gameTimer: 10_000, playerAgentId: 7,
   rechargeTimestamps: Object.freeze([12_899, 24_001, 0, 0, 0, 0, 0, 10_400]),
 } as const);
+const effectsAt = (gameTimer: number, applied: readonly (readonly [skillId: number, durationMs: number, appliedAtGameMs: number])[]) =>
+  Object.freeze({
+    status: "ready", sequence: gameTimer, generation: 1, gameTimer, playerAgentId: 7,
+    effects: Object.freeze(applied.map(([skillId, durationMs, appliedAtGameMs], index) => Object.freeze({
+      effectId: 100 + index, skillId, attributeLevel: 0, maintainerAgentId: 0, durationMs, appliedAtGameMs }))),
+  } as const);
+const CELERITY = 2522, CUPCAKE = 1945, MINUTE = 60_000, THIRTY = 30 * MINUTE;
 
 test("Skill Cooldowns shows the recharge on the skill bar while it is on, and stops reading once off", (t) => {
-  const run = start(t);
-  assert.deepEqual(run.reading(), { slots: true, recharge: true });
-  run.skills.geometry.sink?.update(bar(2));
-  run.skills.cooldowns.sink?.update(recharge(2));
-  assert.deepEqual(run.texts(), ["2.9", "15", null, null, null, null, null, "0.4"]);
-  assert.equal(run.color(), "#abcdef");
+  const run = start(t, skillCooldowns, "skillCooldowns", { settings: { skillCooldownColor: { kind: "custom", value: "#abcdef" } } });
+  const { skills } = run.substrates;
+  const reading = () => ({ slots: skills.geometry.active, recharge: skills.cooldowns.active });
+  const texts = () => run.drawn.cooldowns?.map((item) => item?.text ?? null);
+  assert.deepEqual(reading(), { slots: true, recharge: true });
+  skills.geometry.sink?.update(bar(2));
+  skills.cooldowns.sink?.update(recharge(2));
+  assert.deepEqual(texts(), ["2.9", "15", null, null, null, null, null, "0.4"]);
+  assert.equal(run.drawn.cooldowns?.find((item) => item !== null)?.color, "#abcdef");
 
   run.change({ skillCooldownColor: { kind: "preset", preset: "gold" } });
-  assert.equal(run.color(), "#e4b957");
+  assert.equal(run.drawn.cooldowns?.find((item) => item !== null)?.color, "#e4b957");
 
   run.turn(false);
-  assert.deepEqual(run.texts(), []);
-  assert.deepEqual(run.reading(), { slots: false, recharge: false });
+  assert.deepEqual(texts(), []);
+  assert.deepEqual(reading(), { slots: false, recharge: false });
 
   run.turn(true);
-  assert.deepEqual(run.reading(), { slots: true, recharge: true });
-  for (const stop of run.session.disposePresentation ?? []) stop();
-  assert.deepEqual(run.reading(), { slots: false, recharge: false });
-  assert.deepEqual(run.texts(), []);
+  assert.deepEqual(reading(), { slots: true, recharge: true });
+  run.stop();
+  assert.deepEqual(reading(), { slots: false, recharge: false });
+  assert.deepEqual(texts(), []);
 });
 
-test("a feature never starts on a build that did not prove a capability its manifest names", (t) => {
-  const run = start(t, ["nativeHudRendering"]);
+test("a feature never starts on a build that did not prove a capability its manifest uses", (t) => {
+  const run = start(t, skillCooldowns, "skillCooldowns", { without: ["nativeHudRendering"] });
   run.turn(true);
-  assert.deepEqual(run.reading(), { slots: false, recharge: false });
-  assert.deepEqual(run.texts(), []);
+  assert.deepEqual([run.substrates.skills.geometry.active, run.substrates.skills.cooldowns.active], [false, false]);
+  assert.equal(run.drawn.cooldowns, undefined);
+});
+
+test("Skill Key Labels draws the player's key on its slot and 1 to 8 on the others, until it is off", (t) => {
+  const keyX = { input: { kind: "keyboard", code: "KeyX" }, modifiers: { ...EMPTY_SKILL_KEY_MODIFIERS, command: true } } as const;
+  const run = start(t, skillKeyLabels, "skillKeyLabels", { settings: { skillKeyBindings: [null, null, null, null, null, null, null, keyX] } });
+  const { geometry } = run.substrates.skills;
+  geometry.sink?.update(bar(2));
+  assert.deepEqual(run.drawn.keys?.map((item) => item && [item.parent, item.child, item.binding?.input]),
+    Array.from({ length: 8 }, (_, slot) => [43, slot, slot === 7 ? keyX.input : { kind: "keyboard", code: `Digit${slot + 1}` }]));
+  assert.equal(run.drawn.keys?.[7]?.binding?.modifiers.command, true);
+
+  run.change({ skillKeyBindings: [keyX, null, null, null, null, null, null, null] });
+  assert.deepEqual(run.drawn.keys?.[0]?.binding?.input, keyX.input);
+  assert.deepEqual(run.drawn.keys?.[7]?.binding?.input, { kind: "keyboard", code: "Digit8" });
+
+  run.turn(false);
+  assert.deepEqual(run.drawn.keys, []);
+  assert.equal(geometry.active, false, "nothing reads the slot positions once it is off");
+});
+
+test("Effect Timers writes the time left on each icon in its urgency colour, until it is off", (t) => {
+  const run = start(t, effectTimers, "effectTimers");
+  const { playerEffects, effectIcons } = run.substrates.effects;
+  assert.deepEqual([playerEffects.active, effectIcons.active], [true, true]);
+  effectIcons.sink?.update(Object.freeze({
+    status: "ready", sequence: 2, generation: 1, frameId: 55, viewportWidth: 800, viewportHeight: 600,
+    anchor: Object.freeze({ left: 100, bottom: 100, right: 132, top: 132 }),
+    icons: Object.freeze([Object.freeze({ skillId: 10, left: 100, bottom: 100, right: 132, top: 132 })]),
+  } as const));
+  playerEffects.sink?.update(effectsAt(1_000, [[10, 2_400, 0], [10, 900, 0]]));
+  assert.deepEqual(run.drawn.effects, [{ parent: 55, child: 14, width: 32, height: 32, text: "1.4", color: "#c86c65" }]);
+
+  run.turn(false);
+  assert.deepEqual(run.drawn.effects, []);
+  assert.deepEqual([playerEffects.active, effectIcons.active], [false, false]);
+});
+
+test("Reminders prints a line before a con runs out, and reads only the feeds an option asks for", (t) => {
+  const run = start(t, reminders, "reminders");
+  const { effects, alcohol } = run.substrates;
+  assert.deepEqual([effects.playerEffects.active, alcohol.installation.active], [true, true]);
+  effects.playerEffects.sink?.update(effectsAt(THIRTY - 2 * MINUTE, [[CELERITY, THIRTY, 0], [CUPCAKE, THIRTY, 0]]));
+  effects.playerEffects.sink?.update(effectsAt(THIRTY - 50_000, [[CELERITY, THIRTY, 0], [CUPCAKE, THIRTY, 0]]));
+  run.frames(3);
+  assert.deepEqual(run.printed, ["[gwonmac] Essence of Celerity ends in 1 minute.", "[gwonmac] Birthday Cupcake ends in 1 minute."]);
+
+  run.change({ reminderCons: false, reminderPcons: false });
+  assert.deepEqual([effects.playerEffects.active, alcohol.installation.active], [false, true]);
+  run.change({ reminderBeforeEnd: false, reminderAtEnd: false });
+  assert.equal(alcohol.installation.active, false);
+  assert.deepEqual(run.configured, [1, 0], "chat print stops when nothing can print");
+
+  run.change({ reminderBeforeEnd: true });
+  run.turn(false);
+  assert.deepEqual([effects.playerEffects.active, alcohol.installation.active], [false, false]);
+  assert.deepEqual(run.configured, [1, 0, 1, 0]);
+});
+
+test("Progress hands Travel's page the character's progress while it is on", (t) => {
+  const run = start(t, progress, "progress");
+  const { installation } = run.substrates.progress;
+  assert.equal(installation.active, true);
+  installation.sink?.update(Object.freeze({ status: "ready", sequence: 2, mapId: 248, characterKey: "000000010000000a",
+    missions: null, vanquished: null, cartographer: null, areas: Object.freeze([]), quest: null } as const));
+  assert.deepEqual(run.trips.map((state) => state.status === "ready" ? state.mapId : state.status), ["waiting", 248]);
+
+  run.turn(false);
+  assert.equal(installation.active, false);
+});
+
+test("Maps reads the active quest from game.progress while its quest route is on, with Progress off", (t) => {
+  // Elite Skills (off here) listens on the window for a skill to find.
+  const globals = globalThis as { window?: unknown; cancelAnimationFrame?: unknown };
+  const previous = { window: globals.window, cancelAnimationFrame: globals.cancelAnimationFrame };
+  Object.assign(globals, { window: new EventTarget(), cancelAnimationFrame: () => {} });
+  t.after(() => Object.assign(globals, previous));
+  const run = start(t, cartography, "cartography",
+    { settings: { eliteSkillsEnabled: false, cartographyRouteEnabled: true, cartographyQuestRouteEnabled: true } });
+  const { installation } = run.substrates.progress;
+  assert.equal(installation.active, true);
+  installation.sink?.update(Object.freeze({ status: "ready", sequence: 2, mapId: 13, characterKey: "000000010000000a",
+    missions: null, vanquished: null, cartographer: null, areas: Object.freeze([]),
+    quest: Object.freeze({ id: 31, mapId: 81, marker: Object.freeze({ x: -1_250.5, y: 3_400 }) }) } as const));
+  assert.deepEqual(readCartographyQuestMarker(), { mapId: 13, x: -1_250.5, y: 3_400 });
+
+  run.change({ cartographyQuestRouteEnabled: false });
+  assert.equal(installation.active, false);
+  assert.equal(readCartographyQuestMarker(), null);
+  run.stop();
 });

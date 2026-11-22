@@ -74,6 +74,10 @@ Run `node scripts/feature-metrics.mjs [revision]` after each phase and record th
 After Phase 0 (`7b9bc471`): same as the baseline except `gw:*` events 91 and `v-if` cases 9;
 the two new events and two new `v-if` cases came with the PR #24 options (#26–#32) and go away in Phases 4–6.
 
+After 5.2: `featureActivationRequested(` 39 → 38, `policy().` reads 27 → 19, feature-domain renderer files 13 → 12;
+the rest unchanged. The group A ids still named outside their folders are certification and shared contracts
+(Must stay), the settings catalogue, the launcher (4.4) and Travel's Hub page (5.4).
+
 ## Phase 0 · Baseline and decisions (S)
 
 | ID | Step | You | Depends | Done when | Status | Rounds |
@@ -117,21 +121,21 @@ Wrap the existing substrates; do not move memory. Heap layout and proofs stay id
 | 3.2 | `game.session`: character changed / left game, once for everyone | – | 3.1 | Table test of login, relog, character select, zone change; Whispers and party-invite tracking deletable in 5.x | in review: `game.session` in `game-blocks.ts` (rules at `followSession`, taken from party invite's played rules); table test in `game-blocks.test.ts`. 5.x deletes: Whispers' `character` tracking in its `companion.ts` `sync` (5.3), party invite's `known`/`left` key tracking in `arrival` (`party-invite.ts`, with 5.3). Whispers today also clears on the moment of unavailable game in a zone change; on the block it keeps the session (decision for 5.3) | 1 |
 | 3.3 | `game.chat.messages` + `game.chat.send(line)`: the chat send slot moves out of Whispers into a block | Play: invite with Whispers off | 3.1 | Party invite works with Whispers off (unit test + you play); send slot memory layout unchanged | in review: `game.chat` in `game-blocks.ts` (`messages`, and `send(line)` for one whisper or one invite); the region and send slot moved to the chat substrate (`chat-installation.ts`); its memory phases stay on the Whispers line, so the pinned layout is unchanged; Whispers and party invites use the block; Hub offers Invite with Whispers off (`game-chat.test.ts`); Matthias play check pending | 1 |
 | 3.4 | `game.friends` without `attachWhispers` / `attachTravel`; links become typed feature links (4.5) | – | 3.1, 4.5 | 0 feature names in `tools-companion-substrates.ts` | todo | 0 |
-| 3.5 | Remaining blocks: `skillbar`, `effects`, `party`, `alcohol`, `progress`; `ui.overlay`, `ui.hudLayer`, `ui.position`, `hub.row`, `commands` | – | 3.1 | Every group A feature's needs covered (list in this file); no block exposes memory, pointers or untyped calls | in review: only what 5.2 needs (list below): `game.effects`, `game.alcohol`, `game.progress`, `ui.skillKeys`, `ui.effectLabels`; the progress region moved to a substrate with its memory phases on the Progress line (pinned layout unchanged); the rest left out for lack of a user (`skillbar` and `ui.skillLabels` came with 5.1, `session` with 3.2, `chat` with 3.3) | 1 |
+| 3.5 | Remaining blocks: `skillbar`, `effects`, `party`, `alcohol`, `progress`; `ui.overlay`, `ui.hudLayer`, `ui.position`, `hub.row`, `commands` | – | 3.1 | Every group A feature's needs covered (list in this file); no block exposes memory, pointers or untyped calls | merged (#49): only what 5.2 needs (list below): `game.effects`, `game.alcohol`, `game.progress`, `ui.skillKeys`, `ui.effectLabels`; the progress region moved to a substrate with its memory phases on the Progress line (pinned layout unchanged); the rest left out for lack of a user (`skillbar` and `ui.skillLabels` came with 5.1, `session` with 3.2, `chat` with 3.3) | 1 |
 
 What the 5.2 features need (3.5, 2026-11-22). Each reads and draws only through these; what stays in the feature is named.
 
 | Feature | Reads | Draws or does | Stays in the feature |
 |---|---|---|---|
-| Skill Key Labels | settings (`skillKeyBindings`) | `ui.skillKeys` | the default `1`–`8` label for a slot without a binding; 5.2 deletes the key consumer in the skill HUD substrate |
+| Skill Key Labels | settings (`skillKeyBindings`) | `ui.skillKeys` | the default `1`–`8` label for a slot without a binding; 5.2 deleted the key consumer in the skill HUD substrate |
 | Effect Timers | `game.effects` | `ui.effectLabels` | the longest remaining time per skill, the 1-hour placeholder cut-off, the three urgency colours |
-| Alcohol Timer | `game.alcohol`, settings (`alcoholTimerPosition`) | its DOM readout, saving the position in settings as Target Distance does | today it also asks for the player-effect and effect-icon feeds, but the readout never reads them: 5.2 checks that and drops the demand |
+| Alcohol Timer | `game.alcohol`, settings (`alcoholTimerPosition`) | its DOM readout, saving the position in settings as Target Distance does | it asked for the player-effect and effect-icon feeds, but the readout never read them: 5.2 confirmed that and dropped the demand |
 | Reminders | `game.effects`, `game.alcohol`, settings | prints through chat print, its own certified stage (it is the only user); the chat-print memory stays on its line | the reminder rules in `reminders.ts` |
 | Progress | `game.progress` | hands the state to Travel's Progress page | the link to Travel (typed link, 4.5); Maps' quest route subscribes to `game.progress` itself (5.5) |
 
 Left out, because no 5.2 feature uses them: `game.party` (Team Apply, Maps and the Tools window, 5.5); `ui.overlay` and `ui.hudLayer` (the drawing blocks own the HUD channels, a DOM readout stays in its feature folder, and a generic HUD layer would be an untyped drawing surface); `ui.position` (positions already live in settings, and the settings block plus `gwNative.settings.set` covers them); `hub.row` (Progress's page lives in Travel's Hub app, which 4.5 `hubPage` and 5.4 move); `commands` (no 5.2 feature has one).
 
-For 5.2: Reminders and Progress host memory on pinned `COMPANION_PARTS` lines (as Whispers does for the chat region), so `featurePart` alone cannot build them. Either `featurePart` takes the line's memory phases, or those lines stay hand-written parts that call blocks. Decide in 4.5 or at G3.
+For 5.2: Reminders and Progress host memory on pinned `COMPANION_PARTS` lines (as Whispers does for the chat region), so `featurePart` alone cannot build them. Decided in 5.2: those lines stay thin hand-written parts that write their memory phases and hand the session to the `featurePart` they prepare (about 28 lines in all; a memory option on `featurePart` would cost more and serve only these two).
 
 **G1 (after 3.1 + 5.1):** Target Distance and Skill Cooldowns on blocks are ≤ 15 lines of logic each,
 touch 0 shared files, 4.2 passes, and you see no frame-time change in a busy fight. If a small helper
@@ -177,7 +181,7 @@ Per-feature checklist (the **Done when** of every 5.x row):
 | ID | Group | Features (in order) | Status | Rounds |
 |---|---|---|---|---|
 | 5.1 | A (proof of concept, feeds G1) | Target Distance, Skill Cooldowns (pull out of `app/renderer/skill-cooldown-overlay-consumer.ts`) | merged (#43): both are one `featurePart(id, start)` in their folder (10 and 11 logic lines), no `policy()` or `featureActivationRequested`; new blocks `game.skillbar`, `ui.skillLabels`; block-only parts listed in `FEATURE_PARTS` so the pinned heap layout is unchanged; manifest v2 and settings stay for 4.3/4.4; Matthias play check pending (G1 evidence under Phase 3) | 1 |
-| 5.2 | A | Skill Key Labels (out of `skill-key-overlay-consumer.ts`), Effect Timers, Alcohol Timer, Reminders, Progress | todo | 0 |
+| 5.2 | A | Skill Key Labels (out of `skill-key-overlay-consumer.ts`), Effect Timers, Alcohol Timer, Reminders, Progress | in review: each runs through `featurePart` in its folder with no `policy()` or `featureActivationRequested`; the key consumer is deleted; Reminders and Progress keep their pinned lines through a thin hand-written part; Alcohol Timer drops the effect feeds it never read and is `non-pvp` so a map load does not clear its estimate; Maps reads `game.progress` itself; manifest v2 and settings stay for 4.3/4.4; Matthias play check pending | 1 |
 | 5.3 | B (proof of concept, feeds G3) | Whispers: session + window parts, typed `open` link, drop own session tracking, placement in settings | todo | 0 |
 | 5.4 | B | Trade Chat (declares `network`), Travel (hub page + main + action), Build Library (window + files) | todo | 0 |
 | 5.5 | C (shell only; behaviour stays in its stage) | Chat Filters, Quick Item Move, Resign, Call Target (out of `input.ts` if the input layer allows), Xunlai, Team Apply, Maps | todo | 0 |

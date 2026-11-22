@@ -16,10 +16,10 @@ async function showTimer(page: Page) {
     window.alcoholFixture = createAlcoholTimerOverlay(document.body, canvas, async value => {
       await new Promise(resolve => setTimeout(resolve, 80));
       await window.gwNative.settings.set({ alcoholTimerPosition: value });
-      window.alcoholFixture.setSettings(value, true);
+      window.alcoholFixture.setPosition(value);
     });
-    window.alcoholFixture.setSettings((await window.gwNative.settings.get()).alcoholTimerPosition, true);
-    window.alcoholFixture.setAlcohol({ status: "ready", sequence: 2, gameTimer: 0, remainingMs: 123000 });
+    window.alcoholFixture.setPosition((await window.gwNative.settings.get()).alcoholTimerPosition);
+    window.alcoholFixture.setAlcohol({ gameTimer: 0, remainingMs: 123000 });
     canvas.focus();
   });
 }
@@ -39,7 +39,7 @@ test("timer dragging, cancellation, stable corner, locking and reload", async ()
     expect(await root.evaluate(el => {
       const r = el.getBoundingClientRect(); return el.contains(document.elementFromPoint(r.x + 10, r.y + 10));
     })).toBe(true);
-    await page.evaluate(() => window.alcoholFixture.setSettings({ corner: "top-left", x: 4, y: 58, locked: false }, true));
+    await page.evaluate(() => window.alcoholFixture.setPosition({ corner: "top-left", x: 4, y: 58, locked: false }));
     await handle.focus();
     await handle.press("ArrowRight"); await handle.press("ArrowRight"); await handle.press("Shift+ArrowDown");
     await expect.poll(() => page.evaluate(async () => (await window.gwNative.settings.get()).alcoholTimerPosition)).toMatchObject({ locked: false });
@@ -71,9 +71,9 @@ test("timer dragging, cancellation, stable corner, locking and reload", async ()
       .toEqual({ ...saved, x: saved.x - 30, locked: true });
     expect((await root.boundingBox())!.x).toBeCloseTo(dragged.x - 30, 0);
     await expect(lock).toBeHidden();
-    await page.evaluate(() => window.alcoholFixture.setAlcohol({ status: "ready", sequence: 6, gameTimer: 0, remainingMs: 0 }));
+    await page.evaluate(() => window.alcoholFixture.setAlcohol({ gameTimer: 0, remainingMs: 0 }));
     await expect(root).toBeHidden();
-    await page.evaluate(async () => window.alcoholFixture.setSettings({ ...(await window.gwNative.settings.get()).alcoholTimerPosition, locked: false }, true));
+    await page.evaluate(async () => window.alcoholFixture.setPosition({ ...(await window.gwNative.settings.get()).alcoholTimerPosition, locked: false }));
     await expect(root).toContainText("—:—");
     await page.setViewportSize({ width: 320, height: 300 });
     const small = (await root.boundingBox())!; expect(small.x).toBeGreaterThanOrEqual(0); expect(small.x + small.width).toBeLessThanOrEqual(320);
@@ -86,7 +86,7 @@ test("timer picks the bottom-right corner and preserves gaps through resize and 
   try {
     const { page } = fixture;
     await showTimer(page);
-    await page.evaluate(() => window.alcoholFixture.setSettings({ corner: "top-left", x: 4, y: 58, locked: false }, true));
+    await page.evaluate(() => window.alcoholFixture.setPosition({ corner: "top-left", x: 4, y: 58, locked: false }));
     const root = page.locator("#alcohol-timer-overlay");
     const handle = root.getByRole("button", { name: /^Move alcohol/ });
     const bounds = (await page.locator("#canvas").boundingBox())!;
@@ -114,8 +114,8 @@ test("timer picks the bottom-right corner and preserves gaps through resize and 
     await page.reload(); await showTimer(page);
     expect(await root.boundingBox()).toEqual(smaller);
     await page.evaluate(async () => {
-      window.alcoholFixture.setSettings({ ...(await window.gwNative.settings.get()).alcoholTimerPosition, locked: false }, true);
-      window.alcoholFixture.setAlcohol({ status: "ready", sequence: 4, gameTimer: 0, remainingMs: 0 });
+      window.alcoholFixture.setPosition({ ...(await window.gwNative.settings.get()).alcoholTimerPosition, locked: false });
+      window.alcoholFixture.setAlcohol({ gameTimer: 0, remainingMs: 0 });
     });
     expect(await root.boundingBox()).toEqual(smaller);
   } finally { await closeOffline(fixture); }

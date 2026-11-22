@@ -10,13 +10,13 @@
  * region is unknown, and a PvE-only Maps stays hidden.
  * The developer-facing companion global remains unavailable in player mode.
  *
- * Progress's part also hands over the active quest's marker, so the walking
- * route can lead to it. The marker is in the game units of the map the
- * Progress snapshot was read on; Maps uses it only in that map.
+ * The part also keeps the active quest's marker from `game.progress` while the
+ * quest route wants it, so the walking route can lead to it. The marker is in the
+ * game units of the map the progress was read on; Maps uses it only in that map.
  */
 import type { CompanionSnapshot } from "../../../renderer/companion-snapshot.js";
 import type { RuntimePlayRegion } from "../../../renderer/enhancement-runtime-policy.js";
-import type { GameProgressState } from "../../../shared/game-progress.js";
+import type { GameProgress } from "../../../renderer/game-blocks.js";
 
 /** Where the client points for the active quest, on the map the player was in. */
 export type CartographyQuestMarker = Readonly<{ mapId: number; x: number; y: number }>;
@@ -45,10 +45,10 @@ export function readCartographyQuestMarker(): CartographyQuestMarker | null {
   return quest;
 }
 
-/** Keeps the marker of a ready Progress state; any other state has none. */
-export function updateCartographyQuest(state: GameProgressState): void {
-  const marker = state.status === "ready" ? state.quest?.marker : undefined;
-  quest = state.status === "ready" && marker ? Object.freeze({ mapId: state.mapId, ...marker }) : null;
+/** Keeps the marker of the active quest; no progress (a loading screen, the route off) has none. */
+export function updateCartographyQuest(progress: Pick<GameProgress, "mapId" | "quest"> | null): void {
+  const marker = progress?.quest?.marker;
+  quest = progress !== null && marker ? Object.freeze({ mapId: progress.mapId, ...marker }) : null;
 }
 
 export function clearCartographyPlayerState(): void {

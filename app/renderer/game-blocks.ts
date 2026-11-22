@@ -559,7 +559,6 @@ export function createUiBlocks({ capabilities, hud, substrates: { skills, effect
     },
   });
 
-  // Skill Key Labels still draws on the "keys" channel from the skill HUD substrate until it moves here (5.2).
   const claimKeys = slotChannel("keys", "skill keys");
   const skillKeys: SkillKeys = Object.freeze({
     ...(slotsAvailable ? { available: true as const } : NOT_PROVEN),

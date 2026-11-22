@@ -7,7 +7,10 @@ import {
   readCompanionPlayerEffects,
   remainingEffectMs,
 } from "../../app/renderer/companion-effect-snapshot.js";
-import { projectEffectTimerLabels } from "../../app/features/effect-timers/renderer/effect-timer-overlay-consumer.js";
+import { effectTimerLabels } from "../../app/features/effect-timers/renderer/effect-timer-labels.js";
+
+/** What `game.effects` gives for a decoded snapshot: its effects when ready, null otherwise. */
+const ready = (state: ReturnType<typeof readCompanionPlayerEffects>) => state.status === "ready" ? state : null;
 
 type EffectRecord = Readonly<{
   effectId: number;
@@ -146,62 +149,38 @@ describe("native effect icon geometry", () => {
     });
   });
 
-  it("projects the longest finite duplicate without a stack count", () => {
-    const geometry = readCompanionEffectIcons(iconSnapshot(), 0);
+  // Where each label lands on its icon is ui.effectLabels' job (tests/unit/game-blocks.test.ts).
+  it("labels the longest finite duplicate without a stack count", () => {
     const effects = readCompanionPlayerEffects(effectSnapshot([
       { ...FINITE, durationMs: 10_000, appliedAtGameMs: 5_000 },
       { ...FINITE, effectId: 10, durationMs: 20_000, appliedAtGameMs: 5_000 },
       { ...FINITE, effectId: 11, durationMs: 0 },
     ]), 0);
-    const canvas = {
-      getBoundingClientRect: () => ({ left: 10, top: 20, width: 1_600, height: 1_200 }),
-    } as HTMLCanvasElement;
-    const labels = projectEffectTimerLabels(effects, geometry, canvas);
-    assert.deepEqual(labels, [{
-      skillId: 123,
-      x: 210,
-      y: 1_148,
-      width: 96,
-      height: 96,
-      text: "13",
-      urgency: "normal",
-    }]);
+    assert.deepEqual(effectTimerLabels(ready(effects)), [{ skillId: 123, text: "13", color: "#eadcc2" }]);
   });
 
   it("hides hour-long placeholders by original duration, preserving ordinary timers", () => {
-    const geometry = readCompanionEffectIcons(iconSnapshot(), 0);
-    const canvas = {
-      getBoundingClientRect: () => ({ left: 0, top: 0, width: 800, height: 600 }),
-    } as HTMLCanvasElement;
     for (const durationMs of [3_600_000, 10_000_000]) {
       const effects = readCompanionPlayerEffects(effectSnapshot([
         { ...FINITE, durationMs, appliedAtGameMs: 0 },
       ]), 0);
-      assert.deepEqual(projectEffectTimerLabels(effects, geometry, canvas), []);
+      assert.deepEqual(effectTimerLabels(ready(effects)), []);
     }
     for (const durationMs of [62_000, 3_599_999]) {
       const effects = readCompanionPlayerEffects(effectSnapshot([
         { ...FINITE, durationMs, appliedAtGameMs: 5_000 },
         { ...FINITE, effectId: 10, durationMs: 10_000_000 },
       ]), 0);
-      assert.equal(projectEffectTimerLabels(effects, geometry, canvas)?.length, 1);
+      assert.equal(effectTimerLabels(ready(effects)).length, 1);
     }
   });
 
   it("withdraws labels for indefinite-only and unavailable inputs", () => {
-    const geometry = readCompanionEffectIcons(iconSnapshot(), 0);
-    const canvas = {
-      getBoundingClientRect: () => ({ left: 0, top: 0, width: 800, height: 600 }),
-    } as HTMLCanvasElement;
     const indefinite = readCompanionPlayerEffects(effectSnapshot([
       { ...FINITE, durationMs: 0 },
     ]), 0);
-    assert.deepEqual(projectEffectTimerLabels(indefinite, geometry, canvas), []);
-    assert.equal(projectEffectTimerLabels(
-      { status: "waiting", reason: "stale" },
-      geometry,
-      canvas,
-    ), null);
+    assert.deepEqual(effectTimerLabels(ready(indefinite)), []);
+    assert.deepEqual(effectTimerLabels(null), []);
   });
 
   it("rejects non-ready geometry that retains published frame state", () => {

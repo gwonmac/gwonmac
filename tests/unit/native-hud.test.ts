@@ -1,52 +1,13 @@
-/** Verifies native HUD joins, atlas reuse and lifecycle without mounting browser overlays. */
+/**
+ * Verifies native HUD atlas reuse and lifecycle without mounting browser overlays. What each
+ * feature draws runs on the blocks (feature-parts-start-and-stop-with-their-feature.test.ts).
+ */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createNativeHudLayer, type NativeHudChannel, type NativeHudItem, type NativeHudLayer } from "../../app/renderer/native-hud-layer.js";
-import { createSkillKeyOverlayConsumer } from "../../app/renderer/skill-key-overlay-consumer.js";
-import { createEffectTimerOverlayConsumer } from "../../app/features/effect-timers/renderer/effect-timer-overlay-consumer.js";
+import { createNativeHudLayer } from "../../app/renderer/native-hud-layer.js";
 import { EMPTY_SKILL_KEY_MODIFIERS } from "../../app/shared/skill-key-bindings.js";
 import { skillKeyPlateLayout } from "../../app/renderer/skill-key-artwork.js";
 import { NATIVE_HUD_MAGIC, NATIVE_HUD_HEADER as HEADER, NATIVE_HUD_KEYCAP } from "../../app/shared/native-hud.js";
-
-const geometry = {status: "ready" as const, sequence: 2, frameId: 43, viewportWidth: 800, viewportHeight: 600,
-  slots: Array.from({length: 8}, (_, n) => ({left: 100 + n * 50, bottom: 20, right: 148 + n * 50, top: 68}))};
-function peer() {
-  const view = new EventTarget();
-  const document = {defaultView: view};
-  const parent = {ownerDocument: document} as unknown as HTMLElement;
-  const canvas = {getBoundingClientRect: () => ({left: 0, top: 0, width: 800, height: 600})} as HTMLCanvasElement;
-  const output = new Map<NativeHudChannel, readonly (NativeHudItem | null)[]>();
-  const hud: NativeHudLayer = {update: (channel, items) => { output.set(channel, items); }, dispose() {}};
-  return {view, parent, canvas, output, hud};
-}
-test("the skill key consumer preserves slot identity and bindings", () => {
-  const {parent, canvas, output, hud} = peer();
-  const keys = createSkillKeyOverlayConsumer(parent, canvas, hud);
-  keys.update(geometry);
-  keys.setBindings([null, null, null, null, null, null, null, {input: {kind: "keyboard", code: "KeyX"}, modifiers: {...EMPTY_SKILL_KEY_MODIFIERS, command: true, shift: true}}]);
-  keys.setEnabled(true);
-  assert.equal(output.get("keys")?.[7]?.child, 7);
-  assert.equal(output.get("keys")?.[7]?.parent, 43);
-  assert.deepEqual(output.get("keys")?.map(item => item?.binding?.input), Array.from({length: 8}, (_, n) => ({kind: "keyboard", code: n === 7 ? "KeyX" : `Digit${n + 1}`})));
-  assert.equal(output.get("keys")?.[7]?.binding?.modifiers.command, true);
-  assert.equal(output.get("keys")?.[7]?.binding?.modifiers.shift, true);
-  assert.equal(output.get("keys")?.filter(Boolean).length, 8);
-  keys.dispose(); assert.deepEqual(output.get("keys"), []);
-});
-test("effect consumers keep only finite player durations and withdraw on stale geometry", () => {
-  const {parent, canvas, output, hud} = peer();
-  const consumer = createEffectTimerOverlayConsumer(parent, canvas, hud);
-  consumer.setEnabled(true);
-  consumer.setGeometry({status: "ready", sequence: 2, generation: 1, frameId: 55, viewportWidth: 800, viewportHeight: 600,
-    anchor: {left: 100, bottom: 100, right: 132, top: 132},
-    icons: [{skillId: 10, left: 100, bottom: 100, right: 132, top: 132}]});
-  consumer.setEffects({status: "ready", sequence: 2, generation: 1, gameTimer: 1000, playerAgentId: 7,
-    effects: [{effectId: 1, skillId: 10, attributeLevel: 1, maintainerAgentId: 7, durationMs: 2400, appliedAtGameMs: 0}]});
-  assert.equal(output.get("effects")?.[0]?.child, 14); assert.equal(output.get("effects")?.[0]?.text, "1.4");
-  assert.equal(output.get("effects")?.[0]?.color, "#c86c65");
-  consumer.setGeometry({status: "waiting", reason: "memory"}); assert.deepEqual(output.get("effects"), []);
-  consumer.dispose();
-});
 
 test("all HUDs share cached artwork; countdowns, urgency and resize upload only glyph quads", async () => {
   const context = {save() {}, restore() {}, translate() {}, clearRect() {}, beginPath() {}, moveTo() {}, lineTo() {}, quadraticCurveTo() {}, roundRect() {}, fill() {}, stroke() {}, fillRect() {}, strokeText() {}, fillText() {},

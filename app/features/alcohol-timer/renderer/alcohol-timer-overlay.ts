@@ -1,11 +1,12 @@
 /**
- * Owns the quiet alcohol readout. It can be dragged whenever it shows; the
- * unlocked mode only keeps it on screen while sober, so it can be placed then.
- * Its saved position keeps a fixed distance from the nearest game-window corner.
+ * Owns the quiet alcohol readout while Alcohol Timer runs. It can be dragged
+ * whenever it shows; the unlocked mode only keeps it on screen while sober, so it
+ * can be placed then. Its saved position keeps a fixed distance from the nearest
+ * game-window corner.
  */
 import { DEFAULT_ALCOHOL_TIMER_POSITION, formatAlcoholTimer, type AlcoholTimerPosition } from "../../../shared/alcohol-timer.js";
 import { captureCornerPosition, restoreCornerPosition } from "../../../shared/corner-position.js";
-import type { AlcoholState } from "../../../renderer/companion-alcohol-snapshot.js";
+import type { GameAlcohol } from "../../../renderer/game-blocks.js";
 import { createNonActivatingSurface, isolateFromGame } from "../../../renderer/non-activating-surface.js";
 
 export function createAlcoholTimerOverlay(parent: HTMLElement, canvas: HTMLCanvasElement,
@@ -48,10 +49,9 @@ export function createAlcoholTimerOverlay(parent: HTMLElement, canvas: HTMLCanva
   const samePosition = (a: AlcoholTimerPosition, b: AlcoholTimerPosition) => a.x === b.x && a.y === b.y && a.locked === b.locked
     && a.corner === b.corner;
   let savedPosition = position;
-  let enabled = false;
   let disposed = false;
   let pendingSave = Promise.resolve();
-  let alcohol: AlcoholState = { status: "waiting" };
+  let alcohol: GameAlcohol | null = null;
   let drag: { id: number; x: number; y: number; left: number; top: number; before: AlcoholTimerPosition } | null = null;
   const viewport = () => {
     const bounds = canvas.getBoundingClientRect();
@@ -64,11 +64,11 @@ export function createAlcoholTimerOverlay(parent: HTMLElement, canvas: HTMLCanva
   };
   const render = () => {
     const bounds = canvas.getBoundingClientRect();
-    const visible = enabled && bounds.width > 0 && bounds.height > 0
-      && (!position.locked || (alcohol.status === "ready" && alcohol.remainingMs > 0));
+    const visible = bounds.width > 0 && bounds.height > 0
+      && (!position.locked || (alcohol !== null && alcohol.remainingMs > 0));
     root.style.display = visible ? "flex" : "none";
     if (!visible) return;
-    const remaining = alcohol.status === "ready" ? alcohol.remainingMs : 0;
+    const remaining = alcohol?.remainingMs ?? 0;
     time.textContent = remaining > 0 ? formatAlcoholTimer(remaining) : "—:—";
     root.style.color = remaining > 0 && remaining <= 15_000 ? "#e5bd75" : "#eadcc2";
     handle.style.pointerEvents = "auto";
@@ -139,18 +139,18 @@ export function createAlcoholTimerOverlay(parent: HTMLElement, canvas: HTMLCanva
   lock.addEventListener("click", lockPosition);
   view.addEventListener("blur", cancel); view.addEventListener("resize", render);
   return {
-    setAlcohol(next: AlcoholState) { alcohol = next; render(); },
-    setSettings(next: AlcoholTimerPosition, active: boolean) {
+    setAlcohol(next: GameAlcohol | null) { alcohol = next; render(); },
+    /** The saved position, again after every settings change; its own save coming back changes nothing. */
+    setPosition(next: AlcoholTimerPosition) {
       const changed = !samePosition(next, receivedPosition);
       receivedPosition = next;
       const ownEcho = [...queuedPositions].some(value => samePosition(value, next));
-      if (!active) cancel();
       if (changed && !ownEcho) {
         cancel(); position = next; savedPosition = next;
       }
-      if (!active && root.contains(document.activeElement)) surface.releaseKeyboard();
-      enabled = active; render();
+      render();
     },
-    dispose() { disposed = true; cancel(); surface.dispose(); view.removeEventListener("keydown", escapeDrag, true); view.removeEventListener("blur", cancel); view.removeEventListener("resize", render); root.remove(); },
+    // The keyboard goes back to the game when the timer goes while it holds it.
+    dispose() { disposed = true; cancel(); if (root.contains(document.activeElement)) surface.releaseKeyboard(); surface.dispose(); view.removeEventListener("keydown", escapeDrag, true); view.removeEventListener("blur", cancel); view.removeEventListener("resize", render); root.remove(); },
   };
 }
