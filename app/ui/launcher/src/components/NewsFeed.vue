@@ -1,4 +1,9 @@
 <script setup lang="ts">
+/**
+ * A list of news stories with source filters: Home shows the latest few under its own heading,
+ * the News tab shows all of them. It says when the stories are saved ones (offline) and why the
+ * list is empty: still loading, no stories yet, or none that match the filter.
+ */
 import { computed, ref } from "vue";
 import { ChevronRight, ExternalLink, SlidersHorizontal } from "lucide-vue-next";
 import type { LauncherNewsState, LauncherNewsStory, LauncherNewsSource } from "@shared/launcher-contracts";
@@ -24,10 +29,12 @@ function shortDate(value: string): string { return new Date(value).toLocaleDateS
     <div><h2>Latest news</h2><span v-if="news.status === 'offline'" class="offline-note">Saved news · offline</span></div>
     <button class="customize" @click="emit('settings')"><SlidersHorizontal />Customize</button>
   </div>
+  <p v-if="!heading && news.status === 'offline'" class="offline-note page-offline-note">Saved news · offline</p>
   <div class="news-filters" role="group" aria-label="Filter news">
     <button v-for="item in filters" :key="item.id" :class="{ active: filter === item.id }" :aria-pressed="filter === item.id" @click="filter = item.id">{{ item.label }}</button>
   </div>
   <div v-if="news.status === 'loading' && news.stories.length === 0" class="news-status" role="status"><span class="news-spinner" />Checking for news…</div>
+  <div v-else-if="news.stories.length === 0" class="news-status">{{ news.status === "offline" ? "No news yet. Connect to the internet to refresh your news." : "No news yet." }}</div>
   <div v-else-if="visible.length === 0" class="news-status">No news matches this filter.</div>
   <div v-else class="news-feed-list">
     <button v-for="story in visible" :key="story.id" class="news-row" @click="emit('select', story)">
@@ -46,6 +53,7 @@ function shortDate(value: string): string { return new Date(value).toLocaleDateS
 .news-panel-head h2 { margin: 0; font-size: 20px; }
 .news-panel-head > div { display: flex; align-items: baseline; gap: 10px; }
 .offline-note { color: var(--muted); font-size: var(--fs-2xs); }
+.page-offline-note { margin: 0 0 10px; }
 .news-filters { display: flex; gap: 5px; padding-bottom: 13px; border-bottom: 1px solid var(--line); }
 .news-filters button { padding: 6px 12px; border: 1px solid transparent; border-radius: var(--radius-pill); color: var(--muted); background: transparent; font-size: var(--fs-xs); }
 .news-filters button:hover { color: var(--text); }
