@@ -1,29 +1,36 @@
 /**
- * Whispers in the game host: the private chat region, the whisper session and
- * its surface. The session reads friends from the shared friends substrate and
+ * Whispers in the game host: the whisper session and its surface over
+ * `game.chat`. The session reads friends from the shared friends substrate and
  * lends itself to Hub people.
+ *
+ * This line also hosts the chat region's memory phases (the chat substrate in
+ * tools-companion-substrates.ts): the region keeps the place in COMPANION_PARTS
+ * it had when Whispers owned it, and that place is the heap layout.
  */
-import { COMPANION_FEATURE_BITS } from "../../shared/companion-abi.js";
 import { createWhisperSession } from "../../shared/whisper-session.js";
 import type { ToolsCompanionPart } from "../../renderer/tools-companion-part.js";
-import { createWhisperInstallation } from "./renderer/whisper-installation.js";
 import { createWhisperSurface } from "./renderer/whisper-surface.js";
 import { featureActivationRequested } from "../../shared/feature-contracts.js";
 
 export default {
   id: "whispers",
-  prepare({ exports, capabilities, substrates: { friends } }) {
-    const whispers = createWhisperInstallation(exports, capabilities.whisperChat);
+  prepare({ exports, capabilities, substrates: { chat, friends } }) {
     return {
-      featureFlags: capabilities.whisperChat ? COMPANION_FEATURE_BITS.whisperObservation : 0,
-      allocate: (malloc) => whispers.allocate(malloc),
-      initialize: (memory) => whispers.initialize(memory),
-      ownedRegions: () => whispers.region === null ? [] : [whispers.region],
-      kernelRegions: () => ({ whispers: { pointer: whispers.pointer, bytes: whispers.bytes } }),
-      rollback: [(free) => whispers.dispose(free)],
+      ...chat.prepare(exports),
       activate(context) {
-        const session = createWhisperSession(whispers.send);
-        const unsubscribe = whispers.subscribe((messages, missed) => session.observe(messages, missed));
+        const { chat: gameChat } = context.game;
+        const session = createWhisperSession((to, text) => gameChat.send({ kind: "whisper", to, text }));
+        let stopListening: (() => void) | null = null;
+        const listen = (on: boolean) => {
+          if (!on) {
+            stopListening?.();
+            stopListening = null;
+          } else {
+            stopListening ??= gameChat.messages.subscribe((batch) => {
+              if (batch !== null) session.observe(batch.messages, batch.missed);
+            });
+          }
+        };
         let surface: ReturnType<typeof createWhisperSurface> | null = null;
         let character: string | null = null;
         friends.connect({
@@ -31,28 +38,26 @@ export default {
             && (window.gwHub?.visible || (session.state.visible && session.state.selected === null)),
           update: (list) => session.updateFriends(list),
         });
-        friends.attachWhispers(whispers, session);
+        friends.attachWhispers(session);
         return {
-          pollers: [{ poll: () => whispers.poll(), enabled: () => true }],
-          activeFeatures: () => context.policy().whispers && capabilities.whisperChat
-            ? COMPANION_FEATURE_BITS.whisperObservation : 0,
+          ...chat.session,
           sync() {
             const region = context.snapshot().playRegionState;
             if (region.status === "ready" && region.characterKey !== null) {
               if (character !== null && character !== region.characterKey) {
-                whispers.setEnabled(false); whispers.poll(); session.reset(); friends.withdraw();
+                listen(false); session.reset(); friends.withdraw();
               }
               character = region.characterKey;
             } else if (region.status === "waiting" && region.reason === "game") {
-              whispers.setEnabled(false); whispers.poll(); session.reset(); friends.withdraw(); character = null;
+              listen(false); session.reset(); friends.withdraw(); character = null;
             }
-            whispers.setEnabled(context.policy().whispers);
-            session.setAvailable(whispers.enabled);
-            if (context.policy().whispers && capabilities.whisperChat) {
+            const on = context.policy().whispers && capabilities.whisperChat;
+            listen(on);
+            session.setAvailable(on);
+            if (on) {
               surface ??= createWhisperSurface(document.body, session);
               surface.setEnabled(true);
               surface.setIconShown(context.snapshot().settings.whispersIcon);
-              session.setAvailable(true);
             } else {
               surface?.setEnabled(false);
               if (!featureActivationRequested("whispers", context.snapshot().settings)) {
@@ -61,9 +66,8 @@ export default {
             }
           },
           disposePresentation: [() => {
-            whispers.setEnabled(false); unsubscribe(); surface?.dispose(); surface = null; session.dispose();
+            listen(false); surface?.dispose(); surface = null; session.dispose();
           }],
-          releaseCallbackResources: [(free) => whispers.dispose(free)],
         };
       },
     };

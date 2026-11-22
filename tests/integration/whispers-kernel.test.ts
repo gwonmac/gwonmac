@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { ADDRESSES, createKernel, DETAIL, installGameGraph, kernelExports, setConfigField } from "../fixtures/enhancements.ts";
 import { COMPANION_ABI, COMPANION_DISPATCH_KINDS, COMPANION_FEATURE_BITS } from "../../app/shared/companion-abi.ts";
-import { readCompanionWhispers } from "../../app/features/whispers/renderer/companion-whisper-snapshot.ts";
+import { readCompanionWhispers } from "../../app/renderer/companion-chat-snapshot.ts";
 
-import { createWhisperInstallation } from "../../app/features/whispers/renderer/whisper-installation.ts";
+import { createChatInstallation } from "../../app/renderer/chat-installation.ts";
 import { createWhisperSession } from "../../app/shared/whisper-session.ts";
 import { WHISPER_MAILBOX, type ObservedChatEvent } from "../../app/shared/whispers.ts";
 
@@ -161,7 +161,7 @@ test("outgoing native numeric metadata stays separate from recipient and body", 
 
 test("native outgoing echo completes submission, clears the draft, and adds one bubble", async () => {
   const k = await fixture();
-  const adapter = createWhisperInstallation({
+  const adapter = createChatInstallation({
     enhancement_configure_whispers: () => 1,
     enhancement_send_whisper: () => {
       k.view.setUint32(ADDRESSES.whispers + COMPANION_ABI.whispers.snapshotBytes + WHISPER_MAILBOX.status, 2, true);
@@ -197,7 +197,7 @@ test("a party invite resolves on the drained mailbox, reports refusal, and block
   const status = ADDRESSES.whispers + COMPANION_ABI.whispers.snapshotBytes + WHISPER_MAILBOX.status;
   const lines: string[] = [];
   let accept = true;
-  const adapter = createWhisperInstallation({
+  const adapter = createChatInstallation({
     enhancement_configure_whispers: () => 1,
     enhancement_send_whisper: () => 1,
     enhancement_send_party_invite: () => {
@@ -210,7 +210,7 @@ test("a party invite resolves on the drained mailbox, reports refusal, and block
   }, true);
   adapter.allocate(() => ADDRESSES.whispers);
   adapter.initialize(k.memory);
-  await assert.rejects(adapter.invite("Mo Kai"), /need Whispers enabled/);
+  await assert.rejects(adapter.invite("Mo Kai"), /need a supported PvE outpost/);
   adapter.setEnabled(true);
   try {
     await assert.rejects(adapter.invite("Mo,Kai"), /valid character name/);

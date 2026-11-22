@@ -1,17 +1,20 @@
 /**
  * The typed building blocks that features use (docs/feature-platform-plan.md,
  * Phase 3): `game.target`, `game.region`, `game.session` and `game.skillbar` to
- * read, and `ui.skillLabels` to draw on the game's skill bar.
+ * read, `game.chat` to read whispers and send one named chat command, and
+ * `ui.skillLabels` to draw on the game's skill bar.
  *
  * A block is one read-only value with a subscription. It wraps a substrate that
  * already exists and owns no memory, so the heap layout and the proofs stay as
- * they are. It never exposes memory, pointers or calls into the game.
+ * they are. It never exposes memory, pointers or untyped calls into the game; a
+ * command is one typed, bounded line that the kernel checks again.
  *
  * A block asks the kernel for its data only while someone subscribes (or, for a
  * drawing block, claims it), so a feature never states its demand itself: it
  * subscribes when it starts and stops when it stops.
  */
 import type { EnhancementCapabilities } from "../shared/enhancement-contracts.js";
+import type { ObservedChatEvent } from "../shared/whispers.js";
 import type { CompanionExtensionActivation } from "./certified-companion-extension.js";
 import type { CompanionPlayRegionState } from "./companion-play-region-snapshot.js";
 import type { CompanionSkillCooldownState, CompanionSkillSlotState } from "./companion-skill-snapshot.js";
@@ -61,6 +64,30 @@ export type GameSession = Readonly<{
   id: number;
 }>;
 
+/** Whispers the game showed in chat, sent and received, since the last value. */
+export type GameChatMessages = Readonly<{
+  messages: readonly ObservedChatEvent[];
+  /** Records the game wrote that were lost before they were read. */
+  missed: number;
+}>;
+
+/** The chat commands a feature can send: one whisper or one party invite, nothing else. */
+export type ChatLine =
+  | Readonly<{ kind: "whisper"; to: string; text: string }>
+  | Readonly<{ kind: "invite"; name: string }>;
+
+export type GameChat = BlockAvailability & Readonly<{
+  /** Each batch of whispers as the game shows it; null at subscribe, because nothing new has arrived yet. */
+  messages: Block<GameChatMessages | null>;
+  /**
+   * Sends one line through the certified chat sender, one line at a time. Resolves once
+   * Guild Wars took it (a whisper: once its echo shows in chat); rejects with a sentence a
+   * player can read. The kernel sends only in a PvE area, for the character and map that
+   * queued it.
+   */
+  send(line: ChatLine): Promise<void>;
+}>;
+
 /** The player's skill bar. */
 export type GameSkillbar = Readonly<{
   /** Milliseconds until each of the eight slots can be used again; 0 when it is ready. */
@@ -79,6 +106,8 @@ export type GameBlocks = Readonly<{
   session: Block<GameSession | null>;
   /** The skill bar's recharge times; null while the game has not published all eight slots. */
   skillbar: Block<GameSkillbar | null>;
+  /** Whispers and the chat send slot. */
+  chat: GameChat;
 }>;
 
 /** Text drawn by the game's own renderer on each of the eight skill slots. */
@@ -104,6 +133,7 @@ export type UiBlocks = Readonly<{
 type BlockInput = Readonly<{
   capabilities: EnhancementCapabilities;
   observation: ToolsSubstrates["observation"];
+  chat: ToolsSubstrates["chat"];
   playRegions: CompanionExtensionActivation["playRegions"];
   skills: SkillOverlays;
   /** Publishes the active-feature bitmask after a block's demand changed. */
@@ -151,6 +181,10 @@ export function createBlock<Value>(
     publish(next: Value) {
       if (same(current, next)) return;
       current = next;
+      for (const listener of listeners) listener(next);
+    },
+    /** Gives `next` to every listener without keeping it, so a later listener starts from the initial value. */
+    pass(next: Value) {
       for (const listener of listeners) listener(next);
     },
   });
@@ -225,7 +259,49 @@ function skillbarOf(state: CompanionSkillCooldownState): GameSkillbar | null {
 const sameSkillbar = (a: GameSkillbar | null, b: GameSkillbar | null) =>
   a === b || (a !== null && b !== null && a.rechargeMs.every((ms, slot) => ms === b.rechargeMs[slot]));
 
-export function createGameBlocks({ capabilities, observation, playRegions, skills, syncObservers }: BlockInput): GameBlocks {
+/**
+ * The chat slot is open (the game's whispers are read and a line can be queued) while
+ * someone listens to the messages or a line is on its way, and closed otherwise.
+ */
+function createGameChat(available: boolean, slot: ToolsSubstrates["chat"], syncObservers: () => void): GameChat {
+  let sending = 0;
+  let stopMessages: (() => void) | null = null;
+  const open = () => {
+    const installation = slot.installation;
+    if (installation === null) return;
+    const wanted = messages.wanted || sending > 0;
+    if (wanted === installation.enabled) return;
+    installation.setEnabled(wanted);
+    // What the game queued while closing is dropped, so the next listener never hears it.
+    if (!wanted) installation.poll();
+    syncObservers();
+  };
+  const messages = createBlock<GameChatMessages | null>(available, null, Object.is, (wanted) => {
+    stopMessages?.();
+    stopMessages = wanted && slot.installation !== null
+      ? slot.installation.subscribe((batch, missed) => messages.pass(Object.freeze({ messages: batch, missed })))
+      : null;
+    open();
+  });
+  return Object.freeze({
+    ...(available ? { available: true as const } : NOT_PROVEN),
+    messages: messages.block,
+    async send(line: ChatLine) {
+      const installation = slot.installation;
+      if (!available || installation === null) throw new Error("Guild Wars chat is not available in this game version.");
+      sending += 1;
+      try {
+        open();
+        return await (line.kind === "whisper" ? installation.send(line.to, line.text) : installation.invite(line.name));
+      } finally {
+        sending -= 1;
+        open();
+      }
+    },
+  });
+}
+
+export function createGameBlocks({ capabilities, observation, chat, playRegions, skills, syncObservers }: BlockInput): GameBlocks {
   const target = createBlock<GameTarget | null>(capabilities.targetObservation, null, sameTarget, syncObservers);
   if (capabilities.targetObservation) {
     const wanted = () => target.wanted;
@@ -256,7 +332,13 @@ export function createGameBlocks({ capabilities, observation, playRegions, skill
     syncObservers();
   });
 
-  return Object.freeze({ target: target.block, region: region.block, session: session.block, skillbar: skillbar.block });
+  return Object.freeze({
+    target: target.block,
+    region: region.block,
+    session: session.block,
+    skillbar: skillbar.block,
+    chat: createGameChat(capabilities.whisperChat, chat, syncObservers),
+  });
 }
 
 type UiInput = Readonly<{

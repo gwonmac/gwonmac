@@ -33,14 +33,19 @@ Tab navigation. Chat options retain mute, sound and guarded conversation closing
 ## Party invite
 
 `enhancement_send_party_invite` shares the whisper mailbox, policy gate and
-game-thread drain. Its enqueue accepts only `/invite ` followed by one to twenty
+game-thread drain. The mailbox and the private chat region belong to the chat
+substrate behind `game.chat` (`app/renderer/chat-installation.ts`), not to
+Whispers, so an invite needs no Whispers: the slot opens (and the kernel gets
+the chat bit) while Whispers listens or one line is on its way, and closes
+after. The region keeps the heap place it had under Whispers, so the Whispers
+line in `COMPANION_PARTS` hosts its memory phases. Its enqueue accepts only `/invite ` followed by one to twenty
 name units without a control character, quote, comma, surrogate, or leading or
 trailing space. The whisper enqueue still accepts only whisper lines. One chat
 command is pending at a time. The drained mailbox is the only receipt; Guild
 Wars reports acceptance or refusal in original chat.
 
-`party-invite.ts` allows an invite only in a PvE outpost with the chat mailbox
-enabled. A friend in another map cannot receive it, so the row says where the
+`party-invite.ts` allows an invite only in a PvE outpost on a build that
+proved the chat sender. Hub people offers it with Whispers or Travel on. A friend in another map cannot receive it, so the row says where the
 friend is before Enter. The caller decides whether it points to Travel and
 invite: `hub-people.ts` adds the pointer only where it shows that row and the
 row can start, so a hidden Travel palette, an unavailable Travel, an

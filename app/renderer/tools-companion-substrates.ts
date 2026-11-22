@@ -5,7 +5,10 @@
  *
  * - observation: the game snapshot and party feeds (Target Readout, Xunlai
  *   Storage, Maps, Team Apply, the Tools window);
- * - friends: the friend snapshot, its feed, and Hub people (Travel, Whispers, the Hub);
+ * - friends: the friend snapshot, its feed, Hub people and party invites (Travel,
+ *   Whispers, the Hub);
+ * - chat: the private chat region and its send slot behind `game.chat` (Whispers,
+ *   party invites);
  * - alcohol and effects: the alcohol, player-effect and effect-icon feeds
  *   (Alcohol Timer, Effect Timers, Reminders);
  * - skill HUD: slot geometry and recharge feeds behind Skill Key Labels and
@@ -22,6 +25,7 @@ import type { ToolboxObservation } from "../shared/builds/live-party.js";
 import type { TravelFriend, TravelFriends } from "../shared/friends.js";
 import type { WhisperSession } from "../shared/whisper-session.js";
 import type { CompanionExtensionActivation } from "./certified-companion-extension.js";
+import { createChatInstallation, type ChatInstallation } from "./chat-installation.js";
 import { createAlcoholObservationInstallation, readCompanionAlcohol } from "./companion-alcohol-snapshot.js";
 import { companionFriendsSignature, readCompanionFriends } from "./companion-friend-snapshot.js";
 import { createCompanionPolicySource } from "./companion-policy-source.js";
@@ -42,7 +46,7 @@ import {
   type FriendTravel,
   type PreparedToolsPart,
   type ToolsCompanionPart,
-  type WhisperInvites,
+  type ToolsPartSession,
 } from "./tools-companion-part.js";
 
 type Demand = () => boolean;
@@ -186,7 +190,7 @@ function createFriends(module: WebAssembly.Module, capabilities: EnhancementCapa
   let pointer = 0;
   let feed: ReturnType<typeof createCompanionSequenceFeed<TravelFriends>> | null = null;
   const consumers: FriendConsumer[] = [];
-  let whispers: Readonly<{ installation: WhisperInvites; session: WhisperSession }> | null = null;
+  let whispers: WhisperSession | null = null;
   let travel: FriendTravel | null = null;
   const bytes = COMPANION_ABI.friends.bytes;
 
@@ -237,15 +241,17 @@ function createFriends(module: WebAssembly.Module, capabilities: EnhancementCapa
           const hub = window.gwHub;
           const trip = travel;
           const travelToFriend = trip ? (friend: TravelFriend, generation: number) => trip.travelToFriend(friend, generation) : null;
-          const chat = whispers;
-          partyInvite = capabilities.whisperChat && chat ? createPartyInvite({
+          // Invites go through game.chat, so they need no Whispers.
+          const { chat } = context.game;
+          partyInvite = chat.available ? createPartyInvite({
             region: () => playRegions.state,
             subscribeRegion: listener => { const unsubscribe = playRegions.subscribe(() => listener()); return () => { unsubscribe(); }; },
-            chatReady: () => chat.installation.enabled,
-            invite: name => chat.installation.invite(name),
+            chatReady: () => chat.available,
+            invite: name => chat.send({ kind: "invite", name }),
             travel: travelToFriend,
           }) : null;
-          if (hub && chat) hubPeople = createHubPeople(hub, chat.session, travelToFriend ? {
+          const session = whispers;
+          if (hub && session) hubPeople = createHubPeople(hub, session, travelToFriend ? {
             unavailable: friend => {
               const command = trip?.command();
               if (!command) return "Travel is unavailable";
@@ -283,12 +289,46 @@ function createFriends(module: WebAssembly.Module, capabilities: EnhancementCapa
     },
     /** Withdraws the current list, for example when the character changes. */
     withdraw() { feed?.withdraw(); },
-    /** Hub people and party invites whisper through this session. */
-    attachWhispers(installation: WhisperInvites, session: WhisperSession) {
-      whispers = { installation, session };
+    /** Hub people whisper through this session. */
+    attachWhispers(session: WhisperSession) {
+      whispers = session;
     },
     /** Hub people travels to a friend through this installation. */
     attachTravel(installation: FriendTravel) { travel = installation; },
+  });
+}
+
+// ---- chat: the private chat region and its send slot ----------------------
+
+function createChat(capabilities: EnhancementCapabilities) {
+  const available = capabilities.whisperChat;
+  let installation: ChatInstallation | null = null;
+  return Object.freeze({
+    /**
+     * The region's memory phases. The Whispers line in COMPANION_PARTS hosts them:
+     * the region keeps the place it had when Whispers owned it, and that place is
+     * the heap layout.
+     */
+    prepare(exports: WebAssembly.Exports) {
+      const chat = createChatInstallation(exports, available);
+      installation = chat;
+      return {
+        featureFlags: available ? COMPANION_FEATURE_BITS.whisperObservation : 0,
+        allocate: (malloc) => chat.allocate(malloc),
+        initialize: (memory) => chat.initialize(memory),
+        ownedRegions: () => chat.region === null ? [] : [chat.region],
+        kernelRegions: () => ({ whispers: { pointer: chat.pointer, bytes: chat.bytes } }),
+        rollback: [(free) => chat.dispose(free)],
+      } satisfies PreparedToolsPart;
+    },
+    /** What the hosting part's session adds: the read, the kernel bit while the slot is open, and the release. */
+    session: Object.freeze({
+      pollers: [{ poll: () => installation?.poll(), enabled: () => true }],
+      activeFeatures: () => installation?.enabled ? COMPANION_FEATURE_BITS.whisperObservation : 0,
+      releaseCallbackResources: [(free) => installation?.dispose(free)],
+    } satisfies ToolsPartSession),
+    /** Null until the hosting part prepares; `game.chat` is its one user. */
+    get installation() { return installation; },
   });
 }
 
@@ -414,6 +454,7 @@ export function createToolsSubstrates(
   return Object.freeze({
     observation: createObservation(capabilities, program),
     friends: createFriends(module, capabilities),
+    chat: createChat(capabilities),
     alcohol: createAlcohol(capabilities),
     effects: createEffects(capabilities, program),
     skills: createSkillOverlaysInstallation(capabilities),
