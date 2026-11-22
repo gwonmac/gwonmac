@@ -40,6 +40,12 @@ export type SettingOptions = SettingScope & SettingMessages & Readonly<{
   label?: string;
   /** One line under the label that says what the setting does. Every feature setting has one. */
   help?: string;
+  /** The words for each value of a choice, in the order of its values. */
+  choices?: Readonly<Record<string, string>>;
+  /** The unit a number reads in, such as `%`. */
+  unit?: string;
+  /** A switch in the same manifest this option works under; a settings page dims the option while that switch is off. `defineFeature` checks the key. */
+  dependsOn?: string;
 }>;
 
 export type SettingSpec<T> = SettingOptions & Readonly<{
@@ -51,6 +57,8 @@ export type SettingSpec<T> = SettingOptions & Readonly<{
   /** A copy of the default for a freshly parsed profile, when the default must not be shared. */
   fresh?: () => T;
   range?: Readonly<{ min: number; max: number }>;
+  /** A choice's values, in the order a settings page lists them. */
+  values?: readonly (string | number)[];
 }>;
 
 export type SettingSpecs = Readonly<Record<string, SettingSpec<unknown>>>;
@@ -91,7 +99,7 @@ export const setting = {
     read: (value: unknown) => typeof value === "number" && Number.isSafeInteger(value)
       && value >= range.min && value <= range.max ? value : undefined,
   }),
-  enum: <const T extends string | number, const Options extends SettingOptions = NoOptions>(
+  enum: <const T extends string | number, const Options extends SettingOptions & Readonly<{ choices?: Readonly<Record<T, string>> }> = NoOptions>(
     values: readonly T[],
     fallback: NoInfer<T>,
     options: Options = {} as Options,
@@ -99,6 +107,7 @@ export const setting = {
     ...options,
     kind: "enum",
     fallback,
+    values,
     read: (value: unknown) => values.includes(value as T) ? value as T : undefined,
   }),
   /**

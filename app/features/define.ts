@@ -177,4 +177,11 @@ export type FeatureDefinition = Readonly<{
   parts: readonly FeaturePartKind[];
 }>;
 
-export const defineFeature = <const Feature extends FeatureDefinition>(feature: Feature): Feature => feature;
+/** The switches among a Feature's own settings: what an option's `dependsOn` may name. */
+type OwnSwitchKey<Specs> = { [Key in keyof Specs]: Specs[Key] extends SettingSpec<boolean> ? Key : never }[keyof Specs] & string;
+/** Requires each `dependsOn` to name a switch of the same Feature, so a typo fails to compile. */
+type DependsOnOwnSwitch<Feature> = Feature extends Readonly<{ settings: infer Specs }>
+  ? Readonly<{ settings: { [Key in keyof Specs]: Specs[Key] extends Readonly<{ dependsOn: string }> ? Readonly<{ dependsOn: OwnSwitchKey<Specs> }> : unknown } }>
+  : unknown;
+
+export const defineFeature = <const Feature extends FeatureDefinition>(feature: Feature & DependsOnOwnSwitch<Feature>): Feature => feature;

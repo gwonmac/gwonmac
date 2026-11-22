@@ -6,6 +6,12 @@
 /** How far the Compass footprint shows where to stand to reveal the remaining map. */
 export const CARTOGRAPHY_REVEAL_MODES = ["off", "normal", "birds-eye"] as const;
 export type CartographyRevealMode = (typeof CARTOGRAPHY_REVEAL_MODES)[number];
+/** Reveal range words: `label` on the Maps page, `compact` in the narrow Compass panel. */
+export const CARTOGRAPHY_REVEAL_MODE_LABELS: Readonly<Record<CartographyRevealMode, Readonly<{ label: string; compact: string }>>> = {
+  off: { label: "Off", compact: "Off" },
+  normal: { label: "Normal · 3×3", compact: "3×3" },
+  "birds-eye": { label: "Bird’s Eye · 7×7", compact: "7×7" },
+};
 
 export const CARTOGRAPHY_BUILTIN_PRESET_IDS = [
   "cartographer", "synthwave", "monochrome",
