@@ -259,6 +259,10 @@ capability, and a product setting cannot either.
   program it needs `gwonmacTools` and its own switch on). It is Must stay in AGENTS.md, and a
   new Feature does not edit it; only a new `region: "any"` Feature, a safety decision, adds
   itself to the list of Features allowed on a PvP map.
+- `tests/certification/window-area.test.ts`: only the Features it lists declare
+  `windowArea: "any"` (a window that opens outside its `region`, the Build Library's saved
+  authoring), each one has a window part and a `non-pvp` or `pve` region. A new exception is a
+  safety decision and edits that list.
 
 ### Shared files a new Feature touches
 

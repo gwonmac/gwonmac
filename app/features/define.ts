@@ -123,6 +123,13 @@ export type FeatureDefinition = Readonly<{
   stage?: ManifestStage;
   /** The coarse region rule; a feature's live-state gate stays authoritative. */
   region: "any" | "non-pvp" | "pve";
+  /**
+   * Its window part may open in every game area its switch allows, not only where `region` lets
+   * it run: the Build Library's saved authoring works anywhere, while live observation and Apply
+   * keep their own gates. A safety exception: tests/certification/window-area.test.ts pins which
+   * Features declare it.
+   */
+  windowArea?: "any";
   /** Features that must be on for this one to run, by id (app/shared/feature-resolve.ts). */
   requires?: readonly string[];
   /**

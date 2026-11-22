@@ -47,7 +47,6 @@ type Slot = {
   readonly id: WindowPartOwner;
   readonly party: boolean;
   readonly startWithHub: boolean;
-  readonly anyArea?: true;
   readonly host: HTMLElement;
   readonly surface: GwonmacSurfaceHandle;
   /** Starts the part's view once; the first open, a Hub show or a pop-out calls it. */
@@ -206,7 +205,6 @@ export function createToolboxFoundation(parent: HTMLElement, { parts = WINDOW_PA
         id: part.id,
         party: part.party === true,
         startWithHub: part.startWithHub === true,
-        ...(part.anyArea ? { anyArea: true } : {}),
         host,
         start,
         stopLink: provideLink(part.id, part.link(control)),

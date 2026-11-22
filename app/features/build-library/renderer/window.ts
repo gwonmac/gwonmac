@@ -31,7 +31,5 @@ export default windowPart({
   party: true,
   // Its view adds the Library's Hub pages.
   startWithHub: true,
-  // Saved authoring stays available outside its area; native observation and Apply keep their region gates.
-  anyArea: true,
   start: (context) => import("./host.js").then(({ startLibraryWindow }) => startLibraryWindow(context)),
 });
