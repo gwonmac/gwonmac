@@ -48,48 +48,57 @@ describe("launcher presentation state", () => {
     assert.throws(() => parseLauncherProfileAppearance({ icon: "map", color: "red" }));
     assert.throws(() => parseLauncherProfileAppearance({ icon: "map", color: "#496b58", extra: true }));
   });
-  it("keeps render quality on the launcher settings boundary", () => {
-    assert.deepEqual(parseLauncherSettingsPatch({ renderScale: 1.5 }), {
-      renderScale: 1.5,
-    });
-    assert.throws(() => parseLauncherSettingsPatch({ renderScale: 3 }));
-  });
-  it("accepts only a boolean for the independent Compass grid setting", () => {
-    assert.deepEqual(parseLauncherSettingsPatch({ cartographyCompassGridEnabled: true }), { cartographyCompassGridEnabled: true });
-    assert.throws(() => parseLauncherSettingsPatch({ cartographyCompassGridEnabled: 1 }));
-  });
-  it("validates the Elite Skills settings", () => {
-    assert.deepEqual(parseLauncherSettingsPatch({ eliteSkillsEnabled: false, eliteMissionMapMarkers: "all" }), { eliteSkillsEnabled: false, eliteMissionMapMarkers: "all" });
-    assert.throws(() => parseLauncherSettingsPatch({ eliteSkillsEnabled: 0 }));
-    assert.throws(() => parseLauncherSettingsPatch({ eliteMissionMapMarkers: "boss" }));
-  });
-  it("validates Compass range visibility and opacity settings", () => {
-    const patch = {
-      compassRangeIndicatorsEnabled: true,
-      compassRangeCastEnabled: false,
-      compassRangeCastOpacity: 62,
-      compassRangeTheme: "monochrome",
+  it("accepts valid launcher settings patches unchanged", () => {
+    const accepted: Record<string, Record<string, unknown>> = {
+      "render quality": { renderScale: 1.5 },
+      "independent Compass grid": { cartographyCompassGridEnabled: true },
+      "Elite Skills": { eliteSkillsEnabled: false, eliteMissionMapMarkers: "all" },
+      "Compass range": {
+        compassRangeIndicatorsEnabled: true,
+        compassRangeCastEnabled: false,
+        compassRangeCastOpacity: 62,
+        compassRangeTheme: "monochrome",
+      },
+      "restored appearance": {
+        uiStyle: "custom", uiFont: "inter", uiPanelOpacity: 80,
+        controllerPromptStyle: "playstation", uiCustomTheme: DEFAULT_CUSTOM_UI_THEME,
+      },
+      "customization": {
+        characterSwitchLocation: false, autoRelogAfterReload: true,
+        skillCooldownColor: { kind: "custom", value: "#123456" },
+      },
     };
-    assert.deepEqual(parseLauncherSettingsPatch(patch), patch);
-    assert.throws(() => parseLauncherSettingsPatch({ compassRangeCastEnabled: 1 }));
-    assert.throws(() => parseLauncherSettingsPatch({ compassRangeCastOpacity: 101 }));
-    assert.throws(() => parseLauncherSettingsPatch({ compassRangeCastOpacity: 62.5 }));
-    assert.throws(() => parseLauncherSettingsPatch({ compassRangeTheme: "sepia" }));
+    for (const [name, patch] of Object.entries(accepted)) {
+      assert.deepEqual(parseLauncherSettingsPatch(patch), patch, name);
+    }
   });
-  it("validates restored appearance controls through the launcher boundary", () => {
-    const patch = {
-      uiStyle: "custom", uiFont: "inter", uiPanelOpacity: 80,
-      controllerPromptStyle: "playstation", uiCustomTheme: DEFAULT_CUSTOM_UI_THEME,
-    };
-    assert.deepEqual(parseLauncherSettingsPatch(patch), patch);
-    for (const invalid of [
+
+  it("refuses invalid launcher settings, including feature switches on the generic channel", () => {
+    const invalidPatches = [
+      { renderScale: 3 },
+      { cartographyCompassGridEnabled: 1 },
+      { eliteSkillsEnabled: 0 }, { eliteMissionMapMarkers: "boss" },
+      { compassRangeCastEnabled: 1 }, { compassRangeCastOpacity: 101 },
+      { compassRangeCastOpacity: 62.5 }, { compassRangeTheme: "sepia" },
       { uiStyle: "unknown" }, { uiFont: "url(https://example.com)" },
       { controllerPromptStyle: "unknown" }, { uiPanelOpacity: 64 },
       { uiPanelOpacity: 101 }, { uiPanelOpacity: 80.5 },
       { uiPanelOpacity: "80" }, { uiCustomTheme: {} },
       { uiCustomTheme: { ...DEFAULT_CUSTOM_UI_THEME, accent: "red" } },
       { uiCustomTheme: { ...DEFAULT_CUSTOM_UI_THEME, extra: true } },
-    ]) assert.throws(() => parseLauncherSettingsPatch(invalid));
+      { characterSwitchLocation: "false" }, { cartographyEnabled: true },
+      { characterSwitchEnabled: false }, { skillKeyBindings: [] },
+      { skillCooldownColor: { kind: "custom", value: "red" } },
+    ];
+    const accepted = invalidPatches.filter((patch) => {
+      try {
+        parseLauncherSettingsPatch(patch);
+        return true;
+      } catch {
+        return false;
+      }
+    });
+    assert.deepEqual(accepted, []);
   });
   it("accepts the official support destination on the launcher boundary", () => {
     assert.equal(parseLauncherExternalLink("arenaNetSupport"), "arenaNetSupport");
@@ -188,7 +197,7 @@ describe("launcher presentation state", () => {
     assert.equal(acknowledged.document.migrationNoticeDismissed, false);
   });
 
-  it("normalizes remembered selection and Home order atomically", async () => {
+  it("normalizes remembered selection and Home order, and serializes concurrent changes", async () => {
     const path = await fixture();
     const loaded = await loadOrCreateLauncherState(path, "migrated-multi");
     const store = new LauncherStateStore(path, loaded.document);
@@ -197,18 +206,13 @@ describe("launcher presentation state", () => {
     await store.updatePreferences({ content: { news: false, dailies: true, first: "news" } });
     assert.deepEqual(store.get().selectedProfileIds, [id]);
     assert.equal(store.get().preferences.content.first, "dailies");
-  });
 
-  it("serializes concurrent presentation changes without losing either update", async () => {
-    const path = await fixture();
-    const loaded = await loadOrCreateLauncherState(path, "migrated-multi");
-    const store = new LauncherStateStore(path, loaded.document);
-    const id = parseProfileId("ba46cb0e-55c2-4c05-9808-5c35ce83b0b0");
+    const other = parseProfileId("2d31e565-9fc8-4dde-9fd4-9d644f8283ae");
     await Promise.all([
-      store.setSelection([id]),
+      store.setSelection([other]),
       store.updatePreferences({ content: { dailies: false } }),
     ]);
-    assert.deepEqual(store.get().selectedProfileIds, [id]);
+    assert.deepEqual(store.get().selectedProfileIds, [other]);
     assert.equal(store.get().preferences.content.dailies, false);
   });
 
