@@ -45,7 +45,19 @@ its own folder; Characters (`app/features/character-switch/ui/`) is one.
 `app/ui/tools/src/hub/views/registry.test.ts` holds the registry total: its
 page list must name every `HubPageProps` key, and every name must resolve.
 A feature page imports its props contract into its controller, so the
-renderer program checks the controller and the Tools program checks the page. This document records intent
+renderer program checks the controller and the Tools program checks the page.
+
+A long result list paints a chunk of rows at a time, so no task draws a whole
+1000-build Library. A task paints only the rows it needs: the first chunk, the
+rows around a row that a jump lands on (End, PageDown, a kept selection, the
+row a restored page stood at) and the rows already drawn that stay; the rest
+fill in one chunk per frame from the top, and the browser's scroll anchoring
+keeps the rows in view in place while rows fill in above them. A page keeps its
+place as the first row in view, not a pixel offset, and a row that draws the
+same as the drawn one keeps its object, so an update redraws only the rows
+that changed. No row height is ever guessed.
+
+This document records intent
 and links to current owners. Code and tests own exact values and accepted
 states.
 
@@ -150,9 +162,13 @@ cheaper test fails if the rule breaks (try one product mutation to see).
   answers. That is the browser's Tab traversal, PageDown's page size, layout and
   geometry (the 340×380 minimum, no scrim), computed styles and contrast, native
   text editing and composition, popovers in the top layer, and the `@macos`
-  timing budgets. The macOS job retries a failed spec once, because a hosted
-  runner can stall for one sample; a retried pass shows as flaky in the report,
-  and a regression fails both attempts. A spec opens the fixture page with `openHub(page, query)`
+  timing specs. A hosted runner stalls for longer than any frame budget, so the
+  1000-row specs and the quote copy gate on work they can count (the rows a
+  task draws, a copy in the same task) and only report their times, attached
+  to the test and printed in the log. The few wall-clock budgets left get three
+  times the room on CI, and the macOS job retries a failed spec once, because a
+  hosted runner can stall for one sample; a retried pass shows as flaky in the
+  report, and a regression fails both attempts. A spec opens the fixture page with `openHub(page, query)`
   and reloads it with `reloadHub(page)` (`app/ui/tools/tests/hub-page.ts`).
   `page.goto` returns before the fixture has mounted the Hub, so a key pressed
   at once can miss it; the helpers wait for the fixture's `#app[data-ready]`
