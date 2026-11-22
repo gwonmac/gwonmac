@@ -361,7 +361,8 @@ app/features/<id>/
   feature.ts     manifest v2 (all processes): name, summary, kind, icon, region, uses, requires,
                  network, settings (each with label and help), tool (its renderer event), hub, shortcuts,
                  shots, parts; app/features/define.ts documents each field
-  README.md      what it does, for players, in the Markdown subset app/features/contract.ts allows
+  README.md      what it does, for players, in the Markdown subset app/features/contract.ts allows;
+                 the launcher's Feature page and the website page /docs/<folder> both show it
   CHANGELOG.md   one "- " bullet per player-facing change under "## Unreleased"; pnpm release:notes
                  stamps the version and builds the release notes (docs/releasing.md#feature-notes)
   media/         shot-1.webp … one per `shots` caption (.gitkeep while empty)
@@ -382,6 +383,13 @@ runs [the contract checks](../app/features/contract.ts) on every folder in `pnpm
 id and folder, labels and help, one shot per caption, the README subset, `## Unreleased`,
 no `requires` cycles, known `uses`, and `main` in `parts` exactly when `main.ts`
 exists. A launcher test checks each `icon` against lucide-vue-next.
+
+The website builds one docs page per feature from its README
+([`scripts/feature-docs.ts`](../scripts/feature-docs.ts), run before every website
+dev, check and build), so the README is the only place a feature's player docs
+live. [`tests/policy/feature-docs.test.ts`](../tests/policy/feature-docs.test.ts)
+fails when a feature has no page, a hand-written docs page takes a feature's
+address, or a `$docs.<page>` link names no page.
 
 A tool's `event` is the one name of the renderer event that runs it: its
 shortcut's command fires it through `app/renderer/commands.ts`

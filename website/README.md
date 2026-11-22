@@ -11,6 +11,7 @@ to Vercel from `main` (`vercel.json`).
 | --- | --- | --- |
 | `/` | `app/pages/index.vue` | players |
 | `/docs/...` | `content/docs` (Ginko Docs) | players, and the launcher's Guide |
+| `/docs/<feature folder>` | each `app/features/<folder>/README.md`, built into `content/docs` by `scripts/feature-docs.ts` | players |
 | `/blog/...` | `content/posts` and `content/authors` | players, News in the launcher, "What's new" |
 | `/download` | `server/routes/download.get.ts` | the newest DMG, for download buttons |
 | `/api/latest` | `server/api/latest.get.ts` | the newest downloadable release, as JSON |
@@ -24,9 +25,17 @@ its new page. `app/app.config.ts` sets the header, banner, social links and
 footer of the default Ginko Docs frame; `i18n/<code>.json` holds the banner
 text.
 
+Each Feature's page is its README: `scripts/feature-docs.ts` (at the repository
+root) writes one `content/docs/<order>.<folder>.md` per Feature before every
+`dev`, `check`, `build` and `prepare`, with the title, description and icon from
+the Feature's manifest. Git ignores these files; never edit or commit them.
+Orders from 100 up are theirs, so hand-written docs pages use orders below 100.
+To change a Feature's page, edit its README in the subset
+`app/features/contract.ts` allows.
+
 `server/utils/release-select.ts` imports the app's own release rules from
 `../app/shared`, so the website never copies them. Vercel rebuilds when this
-folder or `app/shared` changes.
+folder, `app/shared` or `app/features` changes.
 
 ## Content the app bundles
 
@@ -48,8 +57,8 @@ English is complete. German pages live next to the English file as
 `<name>.de.md` and answer under `/de/docs/<German slug>`. German has 8 of the
 English docs pages: six guides (install, accounts, playing on Mac, performance,
 templates, troubleshooting) and two project pages (security, about). The
-features pages, known issues, the upstream reports and the blog are English
-only; their old German URLs redirect to the English page.
+features pages, the Feature pages, known issues, the upstream reports and the
+blog are English only; their old German URLs redirect to the English page.
 
 ## Commands
 
