@@ -8,12 +8,12 @@
 import type { GameChannels } from "../../shared/ipc/game.js";
 import type { InvokeKey } from "../../shared/ipc/channel-table.js";
 import { ownedOnce, register, registerSend } from "../ipc-channel-registry.js";
-import { rendererCommandChannels } from "../renderer-commands.js";
 import app from "./app.js";
 import client from "./client.js";
 import clipboard from "./clipboard.js";
 import diagnostics from "./diagnostics.js";
 import network from "./network.js";
+import rendererCommand from "./renderer-command.js";
 import type { GameIpcInput } from "./part.js";
 import secrets from "./secrets.js";
 import settings from "./settings.js";
@@ -32,6 +32,6 @@ export function registerGameIpc(input: GameIpcInput): { drainSecrets(): Promise<
     templates(input),
   ]);
   for (const part of parts) register(input.windows, "game", part.channels);
-  registerSend(input.windows, "game", rendererCommandChannels);
+  registerSend(input.windows, "game", rendererCommand);
   return { drainSecrets: () => secretParts.drain() };
 }

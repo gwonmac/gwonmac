@@ -5,14 +5,14 @@
  * Commands are typed values, never JavaScript source built by interpolation,
  * and the window they may address is the one `renderer-trust.ts` recognises —
  * the same sender proof `ipc-channel-registry.ts` applies to every channel
- * coming the other way, so the two directions cannot drift into different
+ * coming the other way (this module's completion channel is registered in
+ * game-ipc/renderer-command.ts), so the two directions cannot drift into different
  * ideas of what the renderer is. Only the renderer a command was sent to may
  * complete it.
  */
 import type { BrowserWindow } from "electron";
 import { GAME_CHANNELS } from "../shared/ipc/game.js";
 import {
-  RENDERER_COMMAND_COMPLETIONS,
   type TextEditCommand,
   type RendererCommand,
   type RendererCommandCompletion,
@@ -20,8 +20,6 @@ import {
 } from "../shared/contracts.js";
 import { SHORTCUT_COMMANDS, type ShortcutCommandAction } from "../shared/shortcut-commands.js";
 import { logEvent } from "./diagnostics/recorder.js";
-import { args, type Parser } from "./ipc-values.js";
-import { channel } from "./ipc-channel-registry.js";
 import { windowRegistry } from "./window-registry.js";
 
 interface Pending {
@@ -34,25 +32,20 @@ let lastCommandId = 0;
 export const RENDERER_COMMAND_TIMEOUT_MS = 5_000;
 export const VISUAL_CAPTURE_COMMAND_TIMEOUT_MS = 60_000;
 
-const parseCompletion: Parser<[id: number, outcome: RendererCommandCompletion]> = args(2, ([id, outcome]) => {
-  if (
-    typeof id !== "number"
-    || !RENDERER_COMMAND_COMPLETIONS.includes(outcome as RendererCommandCompletion)
-  ) {
-    throw new Error("invalid renderer command completion");
-  }
-  return [id, outcome as RendererCommandCompletion];
-});
-
-/** The send channels this module owns; `registerGameIpc` registers them behind the sender proof. */
-export const rendererCommandChannels = {
-  rendererCommandDone: channel(parseCompletion, (win, id, outcome) => {
-    const entry = pending.get(id);
-    // Only the renderer the command was sent to may complete it.
-    if (!entry || entry.webContentsId !== win.webContents.id) return;
-    entry.settle(outcome);
-  }),
-};
+/**
+ * Settles the pending command `id` with the renderer's outcome. Only the
+ * renderer the command was sent to may complete it; any other sender, or an id
+ * that is no longer pending, is ignored.
+ */
+export function completeRendererCommand(
+  webContentsId: number,
+  id: number,
+  outcome: RendererCommandCompletion,
+): void {
+  const entry = pending.get(id);
+  if (!entry || entry.webContentsId !== webContentsId) return;
+  entry.settle(outcome);
+}
 
 /**
  * Resolves with the renderer's truthful completion, failure when the page that
