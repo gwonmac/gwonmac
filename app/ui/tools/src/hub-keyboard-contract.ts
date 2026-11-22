@@ -28,6 +28,8 @@ const VIEWS: Record<KeyboardView, { query?: string; open(): Promise<void> | void
   'home': { open: () => {} },
   'home-query': { open: () => fill(search(), 'kam') },
   'home-row': { open: async () => { fill(search(), 'sw'); await settle(); press('ArrowDown'); } },
+  // A search that names an off Feature: its reason row is the answer, with Turn on.
+  'feature-off': { open: () => fill(search(), 'alcohol timer') },
   'explorable-home': { query: '&lifecycle=pve-explorable', open: () => {} },
   'travel': { open: () => press('Meta+t') },
   'characters': { open: () => press('Meta+e') },
