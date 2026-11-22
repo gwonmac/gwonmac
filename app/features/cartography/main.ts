@@ -10,7 +10,7 @@ import { CartographyMapKnowledgeStore } from "./main/cartography-map-knowledge.j
 import { EliteTrackingStore } from "./main/elite-tracking.js";
 import { channel } from "../../main/ipc-channel-registry.js";
 import { one } from "../../main/ipc-values.js";
-import type { ToolsMainPart } from "../../main/tools-main-part.js";
+import { mainPart } from "../../main/tools-main-part.js";
 import contract from "./shared/ipc.js";
 import { parseCartographyMapKnowledge } from "../../shared/cartography-map-knowledge.js";
 import { isDigest } from "../../shared/digest.js";
@@ -18,7 +18,7 @@ import { eliteWikiUrl, parseEliteWikiRequest } from "../../shared/elite-wiki.js"
 import { parseEliteCharacter, parseEliteUpdate } from "../../shared/elite-skills.js";
 import { ValidationError } from "../../shared/errors.js";
 
-export default {
+export default mainPart({
   feature: "cartography",
   label: "Maps",
   contract,
@@ -64,4 +64,4 @@ export default {
       },
     };
   },
-} satisfies ToolsMainPart<typeof contract>;
+});
