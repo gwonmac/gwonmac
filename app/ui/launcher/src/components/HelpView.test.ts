@@ -22,7 +22,7 @@ describe("help", () => {
     expect(wrapper.emitted("settings")).toEqual([[{ section: "game", control: "renderScale" }]]);
     expect(wrapper.emitted("url")).toEqual([["https://discord.gg/Z9ft52RBD3"]]);
 
-    await wrapper.findAll(".help-nav button").find((button) => button.text() === "Hub and Switch Character")!.trigger("click");
+    await wrapper.findAll(".help-nav button").find((button) => button.text() === "Hub")!.trigger("click");
     await link("Travel and maps").trigger("click");
     expect(wrapper.get("h1").text()).toBe("Travel and maps");
   });

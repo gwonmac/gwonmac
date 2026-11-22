@@ -4,6 +4,9 @@ Call target calls the selected target without attacking it. It sends the Guild W
 1. Select a target.
 2. Press <kbd>⌘</kbd> <kbd>G</kbd> while the game has keyboard focus.
 
-You can change or clear the key in Settings › Tools.
+### Details
+- **Turn on:** :setting[Call target]{to="tools/tool:call-target"}, off while you play the :setting[plain game]{to="tools/gwonmacTools"}. It is off by default.
+- **Open:** <kbd>⌘</kbd> <kbd>G</kbd>. You can change or clear the key next to Call target in Settings → Tools. It has no Hub row and no menu item.
+- **Limits:** it does nothing while you type in chat.
 
-> It needs Guild Wars’ default controls, because it sends that shortcut. It does nothing while you type in chat.
+> It needs Guild Wars’ default controls, because it sends that shortcut.

@@ -1,4 +1,4 @@
-Team Apply loads a saved team from the Build Library onto your party: the heroes in their order, with their skills and attributes.
+Team Apply loads a saved team from the [Build Library]($docs.build-library) onto your party: the heroes in their order, with their skills and attributes.
 
 ### Use it
 1. Open the Build Library with <kbd>⌘</kbd> <kbd>B</kbd>.
