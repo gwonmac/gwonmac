@@ -666,10 +666,11 @@ test("renderer recovery stays inside one profile and leaves the launcher alive",
       (await window.launcherNative.state.get()).profiles[0]?.state,
     )).toBe("running");
 
+    // close() inside the inspector evaluate can fail it (AppKit performClose:); see above.
     await fixture.app.evaluate(({ BrowserWindow }) => {
-      BrowserWindow.getAllWindows()
-        .find((win) => win.getTitle().endsWith("Main account"))
-        ?.close();
+      const win = BrowserWindow.getAllWindows()
+        .find((candidate) => candidate.getTitle().endsWith("Main account"));
+      setImmediate(() => win?.close());
     });
     await expect.poll(() => fixture.app.windows().filter((page) => page.url() === "gw://app/").length)
       .toBe(0);

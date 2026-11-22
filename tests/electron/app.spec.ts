@@ -243,10 +243,13 @@ test.describe("Electron application", { tag: "@journey" }, () => {
       const exited = new Promise<ProcessExit>((resolve) => {
         electronProcess.once("exit", (code, signal) => resolve({ code, signal }));
       });
+      // close() on a titled window runs AppKit's performClose:, which holds main while its
+      // timers and IPC run inside it. Called inside the inspector evaluate it can fail the
+      // evaluate. Ask for the close after the evaluate returns (see multiple-accounts.spec.ts).
       await app.evaluate(({ BrowserWindow }) => {
-        BrowserWindow.getAllWindows()
-          .find((win) => win.webContents.getURL() === "gw://app/")
-          ?.close();
+        const win = BrowserWindow.getAllWindows()
+          .find((candidate) => candidate.webContents.getURL() === "gw://app/");
+        setImmediate(() => win?.close());
       }).catch(() => undefined);
       await expect.poll(() => app?.windows().filter((win) => win.url() === "gw://app/").length)
         .toBe(0);
@@ -289,11 +292,16 @@ test.describe("Electron application", { tag: "@journey" }, () => {
       const exited = new Promise<ProcessExit>((resolve) => {
         processHandle.once("exit", (code, signal) => resolve({ code, signal }));
       });
+      // close() on a titled window runs AppKit's performClose:, which holds main while its
+      // timers and IPC run inside it. Called inside the inspector evaluate it can fail the
+      // evaluate. Ask for the close after the evaluate returns (see multiple-accounts.spec.ts).
       await runningApp.evaluate(({ app: electronApp, BrowserWindow }) => {
-        BrowserWindow.getAllWindows()
-          .find((win) => win.webContents.getURL() === "gw://app/")
-          ?.close();
-        electronApp.quit();
+        const win = BrowserWindow.getAllWindows()
+          .find((candidate) => candidate.webContents.getURL() === "gw://app/");
+        setImmediate(() => {
+          win?.close();
+          electronApp.quit();
+        });
       }).catch(() => undefined);
       expect(await exited).toEqual({ code: 0, signal: null });
     };
