@@ -1,10 +1,13 @@
 /**
- * The Build Library's window part (app/renderer/window-part.ts): its link `toggle`, which its
- * shortcut and game menu item call, and the lazy start of its view (./host.ts). An open Hub, or
- * one suspended on the Library's pages, takes the shortcut as a jump to those pages instead.
+ * The Build Library's window part (app/renderer/window-part.ts): its link and the lazy start of
+ * its view (./host.ts). The link's `toggle`, which its shortcut and game menu item call, shows or
+ * hides the window; an open Hub, or one suspended on the Library's pages, takes it as a jump to
+ * those pages instead. Its `load`, `save` and `list` go to the data part (./library-file.ts)
+ * while the window may open, without loading the view.
  */
 import { LIBRARY_UNAVAILABLE } from "../../../shared/hub-preferences.js";
 import { plainToggle, windowPart } from "../../../renderer/window-part.js";
+import { libraryFile } from "./library-file.js";
 
 export default windowPart({
   id: "buildLibrary",
@@ -20,6 +23,9 @@ export default windowPart({
         }
         return plain.toggle(intent);
       },
+      load: () => libraryWindow.available ? libraryFile().load() : "unavailable",
+      save: (library) => libraryWindow.available ? libraryFile().save(library) : "unavailable",
+      list: () => libraryWindow.available ? libraryFile().list() : "unavailable",
     });
   },
   party: true,

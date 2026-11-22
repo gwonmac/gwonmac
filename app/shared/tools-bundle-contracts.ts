@@ -15,9 +15,12 @@ import type { TravelCommand, TravelGameState } from "./travel-command.js";
 import type { ToolsGwNativeApi } from "./contracts.js";
 import type { ToolLink } from "../features/links.js";
 import type { TradeLinks } from "../features/trade-chat/shared/link.js";
+import type { LibraryWindow } from "../features/build-library/shared/link.js";
 
 /** The links Trade's window view gets, owned by Trade Chat (its shared/link.ts). */
 export type { TradeLinks };
+/** What the Library's window view gets from its window part, owned by the Build Library (its shared/link.ts). */
+export type { LibraryWindow };
 import type { CornerPosition } from "./corner-position.js";
 import type { FloatingWindowPlacementStore } from "./ui/window-placement.js";
 
@@ -72,10 +75,8 @@ export type ToolsAppMountOptions = Readonly<{
   readTemplates?: () => Promise<readonly { path: string; contents: string }[]>;
   initiallyVisible?: boolean;
   onVisibilityChange?: (visible: boolean) => void;
-  /** Shows the Library as its own window over the game, out of an open Hub. */
-  openWindow: () => void;
-  /** Maps' link `findElite`: opens the Elite Skills planner on a skill's capture locations. */
-  findElite: (skillId: number) => "opened" | "unavailable";
+  /** The saved library file, the Library's own window, and Maps. */
+  library: LibraryWindow;
   publishTemplate:
     | ((template: PublishableTemplate) => Promise<PublishedTemplate>)
     | null;

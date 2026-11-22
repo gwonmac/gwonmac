@@ -421,6 +421,15 @@ its switch allows (`anyArea`, the Build Library's saved authoring). A window
 part's context has `show()`, which shows the window on its own over the game,
 out of an open Hub.
 
+A Feature's data stays apart from its window view. The Build Library's saved
+library goes through one data part
+([`library-file.ts`](../app/features/build-library/renderer/library-file.ts))
+over its main part's channels; main keeps the file's format and place. Its link
+offers `load`, `save` and `list` through that part while its window may open,
+without loading the view, and its view gets the same part in its mount options
+(`LibraryWindow`). Another Feature or the Hub that needs saved builds names the
+link; none reads the file or the channels itself.
+
 Code that several features use stays where it is: the capability registry and
 the proofs in `app/client/certification/`, the kernels, the shared substrates,
 `app/shared/`, and the Vue views in `app/ui/tools/`. Tests stay in `tests/`.
