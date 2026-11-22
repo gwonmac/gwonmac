@@ -139,6 +139,18 @@ A Feature with a window of its own that its shortcut and Hub row open offers `to
 the shortcut calls it with `toggle`, the Hub row with `show`, and it answers `"shown"`,
 `"hidden"` or `"unavailable"`. [`whispers/`](../app/features/whispers/) is the example.
 
+Callers open a tool through `toggleTool` in
+[`feature-links.ts`](../app/renderer/feature-links.ts), never the link itself. It answers
+`ToolAnswer`: `"shown"`, `"hidden"`, or why the tool did not open, as `resolve`'s own off
+value (`{ on: false, reason }`). While resolve has the Feature off, that is resolve's reason
+(off in settings, needs an update, needs another Feature, …). While the Feature is on but its
+part is not running yet or its `toggle` answered `"unavailable"`, it is `wrong-area`: the game
+cannot open the tool where the character is now. `offReasonText` in
+[`feature-status.ts`](../app/shared/feature-status.ts) words each reason the way the
+launcher's Features tab and the Hub already do, so a caller never writes its own. The Hub
+row shows it as the row's refusal. A refused shortcut, menu item or `/trade` alias shows
+nothing yet: main only logs the Tools window's refusal.
+
 ## README and CHANGELOG
 
 The README is the Feature's only player documentation. The contract allows a small

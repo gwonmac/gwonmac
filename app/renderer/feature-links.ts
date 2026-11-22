@@ -8,10 +8,11 @@
  * replace window events between Features.
  */
 import {
-  HUB_LINKS, type FeatureLinkApis, type FeatureLinks, type HubLinks, type LinkTarget, type ToolIntent, type ToolLink, type ToolLinkTarget,
+  HUB_LINKS, type FeatureLinkApis, type FeatureLinks, type HubLinks, type LinkTarget, type ToolAnswer, type ToolIntent, type ToolLinkTarget,
 } from "../features/links.js";
 import { FEATURES, type FeatureId } from "../shared/feature-contracts.js";
-import { featureOn } from "./feature-on.js";
+import type { FeatureOff } from "../shared/feature-resolve.js";
+import { featureOff, featureOn } from "./feature-on.js";
 
 type AnyLink = Readonly<Record<string, (...args: never[]) => unknown>>;
 
@@ -60,14 +61,21 @@ export function hubLinks(): HubLinks {
   return linksOf<HubLinks>(HUB_LINKS);
 }
 
+/** The target is on, but its part is not running yet or cannot open its tool where the character is now. */
+const NOT_HERE: FeatureOff = Object.freeze({ on: false, reason: "wrong-area" });
+
 /**
  * Opens `target`'s tool through its link (`ToolLink`): its shortcut, game menu item and Hub row
- * (app/shared/hub-tools.ts). "unavailable" while resolve has the target off or its part does not
- * provide the link.
+ * (app/shared/hub-tools.ts). It answers why the tool did not open (ToolAnswer): resolve's reason
+ * while the target is off, `wrong-area` while its part does not provide the link or cannot open
+ * here. It never awaits, so the tool opens in the same task as the call.
  */
-export function toggleTool(target: ToolLinkTarget, intent: ToolIntent): ReturnType<ToolLink["toggle"]> {
+export function toggleTool(target: ToolLinkTarget, intent: ToolIntent): ToolAnswer {
+  const off = featureOff(target);
+  if (off !== null) return off;
   const link = provided.get(target);
-  return featureOn(target) && link !== undefined && "toggle" in link ? link.toggle(intent) : "unavailable";
+  const answer = link !== undefined && "toggle" in link ? link.toggle(intent) : "unavailable";
+  return answer === "unavailable" ? NOT_HERE : answer;
 }
 
 /**

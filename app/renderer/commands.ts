@@ -148,14 +148,15 @@
         // live settings, not on this launch, and a listener such as Call target's (input.ts)
         // checks only its setting: without this gate, a launch whose profile forced Tools off,
         // or one where Tools was switched on mid-session, would press keys in the untouched
-        // official client. An unclaimed event, or a link that answers "unavailable", is the
-        // ordinary answer of a launch without that tool.
+        // official client. An unclaimed event, or a link that answers why it did not open, is the
+        // ordinary answer of a launch without that tool. Main shows no reason for a refused
+        // shortcut or menu item; it logs the refusal of the Tools window's.
         const opener = (await toolCommands).get(command.type);
         if (opener === undefined) break;
         if (!window.gwNative.init.enhancementSelection.tools) return 'unhandled';
         if ('link' in opener) {
           const { toggleTool } = await toolLinks;
-          if (toggleTool(opener.link, 'toggle') === 'unavailable') return 'unhandled';
+          if (typeof toggleTool(opener.link, 'toggle') === 'object') return 'unhandled';
           break;
         }
         const result: { error?: unknown } = {};

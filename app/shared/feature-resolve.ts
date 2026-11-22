@@ -58,6 +58,9 @@ export type FeatureResolution =
   | Readonly<{ on: false; reason: Exclude<FeatureOffReason, "needs"> }>
   | Readonly<{ on: false; reason: "needs"; feature: FeatureId }>;
 
+/** resolve's answer for a feature that does not run: its reason, and for `needs` the feature to turn on. */
+export type FeatureOff = Extract<FeatureResolution, Readonly<{ on: false }>>;
+
 /** Everything `resolve` reads besides the manifest. */
 export type FeatureState = Readonly<{
   /** Whether this game session started with Features loaded (not a plain-game Core launch). */
@@ -149,6 +152,11 @@ export const resolveFeature = (id: FeatureId, state: FeatureState): FeatureResol
  * `wrong-area` means only the area is missing.
  */
 export function onWhereAllowed(id: FeatureId, facts: FeatureFacts): boolean {
+  return offWhereAllowed(id, facts) === null;
+}
+
+/** Why a feature is off even where its region allows (onWhereAllowed), or null when it is on there. */
+export function offWhereAllowed(id: FeatureId, facts: FeatureFacts): FeatureOff | null {
   const resolution = resolveFeature(id, { ...facts, playRegion: "unknown" });
-  return resolution.on || resolution.reason === "wrong-area";
+  return resolution.on || resolution.reason === "wrong-area" ? null : resolution;
 }

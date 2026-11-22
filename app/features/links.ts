@@ -9,11 +9,14 @@
  *
  * A Feature whose tool opens through its link offers `toggle` (`ToolLink`): its shortcut, game
  * menu item and Hub row call it (app/shared/hub-tools.ts) instead of firing a window event.
+ * Callers reach it through `toggleTool`, which answers `ToolAnswer`: why the tool did not open
+ * comes as resolve's own reason, so every surface words it the same way.
  */
 import type { ResignLink } from "./resign/shared/link.js";
 import type { TradeChatLink } from "./trade-chat/shared/link.js";
 import type { TravelLink } from "./travel/shared/link.js";
 import type { WhispersLink } from "./whispers/shared/link.js";
+import type { FeatureOff } from "../shared/feature-resolve.js";
 import type { Feature, FeatureId } from "./index.js";
 
 /** The link each Feature offers, by id. */
@@ -29,11 +32,23 @@ export type LinkTarget = keyof FeatureLinkApis;
 /** What opening a tool asks: `show` never closes it (a Hub row), `toggle` closes an open one (its shortcut). */
 export type ToolIntent = "show" | "toggle";
 
-/** The link method a tool that opens through its link offers. */
+/**
+ * The link method a tool that opens through its link offers. It returns a value, never a promise:
+ * the open call happens before any key the player presses after the shortcut is handled
+ * (docs/feature-contract.md, "Links between Features").
+ */
 export type ToolLink = Readonly<{
-  /** Shows or toggles the tool; "unavailable" while it cannot open (its part is not running, or the game is not ready). */
+  /** Shows or toggles the tool; "unavailable" while it cannot open here (the game is not ready for it, or PvP). */
   toggle(intent: ToolIntent): "shown" | "hidden" | "unavailable";
 }>;
+
+/**
+ * What opening a tool answers (`toggleTool`): "shown", "hidden", or why it did not open. That is
+ * resolve's off answer while the Feature is off, and `wrong-area` while it is on but its part is
+ * not running yet or its `toggle` answered "unavailable". offReasonText
+ * (app/shared/feature-status.ts) words each one for a player.
+ */
+export type ToolAnswer = "shown" | "hidden" | FeatureOff;
 
 /** The Features whose tool opens through their link's `toggle`. */
 export type ToolLinkTarget = { [Target in LinkTarget]: FeatureLinkApis[Target] extends ToolLink ? Target : never }[LinkTarget];
