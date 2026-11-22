@@ -37,7 +37,7 @@ export default defineFeature({
   },
   activation: { kind: "setting", setting: "chatFiltersEnabled", master: "gwonmacTools" },
   region: "non-pvp",
-  capabilities: ["chatFiltering"],
+  uses: ["chatFiltering"],
   tool: {
     id: "chat-filters",
     keywords: "chat filter spam",

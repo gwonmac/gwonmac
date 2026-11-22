@@ -17,7 +17,7 @@ export default defineFeature({
   },
   activation: { kind: "setting", setting: "quickItemMove", master: "gwonmacTools" },
   region: "non-pvp",
-  capabilities: ["quickItemMove"],
+  uses: ["quickItemMove"],
   tool: {
     id: "quick-item-move",
     keywords: "items inventory stacks",

@@ -98,7 +98,7 @@ function relevantSettings(feature: Feature): (keyof FeatureActivationSettings)[]
 /** Every combination of the switches, programs, launches, areas and capability statuses that bear on one feature. */
 function* statesFor(feature: Feature): Generator<FeatureState> {
   const keys = relevantSettings(feature);
-  const capabilities = [...new Set([...(TODAY_CAPABILITY_GATES[feature.id] ?? []), ...("capabilities" in feature ? feature.capabilities : [])])];
+  const capabilities = [...new Set([...(TODAY_CAPABILITY_GATES[feature.id] ?? []), ...("uses" in feature ? feature.uses : [])])];
   const capabilityStates: (Features | null)[] = [null, features(),
     ...capabilities.flatMap((capability) => NOT_AVAILABLE.map((status) => features({ [capability]: status })))];
   const programs: EnhancementProgram[] = ["none", ...("programs" in feature ? feature.programs : []), "cursor-observer"];

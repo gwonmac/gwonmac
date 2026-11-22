@@ -110,7 +110,7 @@ export function resolve(feature: Feature, state: FeatureState): FeatureResolutio
     return resolution;
   }
   if (!programSelects && !featureActivationRequested(feature.id, state.settings)) return off("switched-off");
-  const capability = capabilityReason("capabilities" in feature ? feature.capabilities : [], state.features);
+  const capability = capabilityReason("uses" in feature ? feature.uses : [], state.features);
   if (capability !== null) return off(capability);
   if (!featureRegionAllowsRequest(feature.id, state.playRegion)) return off("wrong-area");
   return ON;

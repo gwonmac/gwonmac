@@ -17,7 +17,7 @@ export default defineFeature({
   },
   activation: { kind: "setting", setting: "resignEnabled", master: "gwonmacTools" },
   region: "pve",
-  capabilities: ["resignAction"],
+  uses: ["resignAction"],
   tool: {
     id: "resign",
     event: "gw:resign-show",

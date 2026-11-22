@@ -349,7 +349,7 @@ Use only the layers the feature needs:
 | Fixed native publication | [`createCompanionRegionInstallation`](../app/renderer/companion-region-installation.ts) | Own allocation, activation withdrawal, freshness, and disposal for one bounded region. |
 | Live settings and map policy | [`createCompanionPolicySource`](../app/renderer/companion-policy-source.ts) | Consume one immutable snapshot. Do not subscribe to Settings or classify play regions again. |
 | Domain behavior | A named renderer or command module | Own decoding, formatting, state transitions, and user-facing refusal in the feature domain. |
-| Game-host code of a feature | `app/features/<id>/companion.ts` and one line in [`COMPANION_PARTS`](../app/features/companion-parts.ts) | A part says what it does in each installer phase ([contract](../app/renderer/tools-companion-part.ts)). Feeds that several features read stay in the [shared substrates](../app/renderer/tools-companion-substrates.ts); a part adds its demand to them. New code reads a value through a typed [building block](../app/renderer/game-blocks.ts) on `context.game` (`target`, `region`, `session`, `skillbar`, `chat`, `effects`, `alcohol`, `progress`) and draws through one on `context.ui` (`skillLabels`, `skillKeys`, `effectLabels`) when one exists: subscribing (or claiming) is the demand, and the returned stop withdraws it. A feature that needs only blocks builds its part with `featurePart(id, start)`: `start` runs while the feature is on and its manifest's capabilities are proven, and returns its stop (Target Distance and Skill Cooldowns are the examples). A part that allocates keeps its registry place, which is the heap layout; [a unit test](../tests/unit/the-companion-heap-layout-stays-fixed.test.ts) pins it. A part's id is its feature's id or a substrate's; a unit test fails when a feature's `companion.ts` has no line. |
+| Game-host code of a feature | `app/features/<id>/companion.ts` and one line in [`COMPANION_PARTS`](../app/features/companion-parts.ts) | A part says what it does in each installer phase ([contract](../app/renderer/tools-companion-part.ts)). Feeds that several features read stay in the [shared substrates](../app/renderer/tools-companion-substrates.ts); a part adds its demand to them. New code reads a value through a typed [building block](../app/renderer/game-blocks.ts) on `context.game` (`target`, `region`, `session`, `skillbar`, `chat`, `effects`, `alcohol`, `progress`) and draws through one on `context.ui` (`skillLabels`, `skillKeys`, `effectLabels`) when one exists: subscribing (or claiming) is the demand, and the returned stop withdraws it. A feature that needs only blocks builds its part with `featurePart(id, start)`: `start` runs while the feature is on and every capability its manifest `uses` is proven, and returns its stop (Target Distance and Skill Cooldowns are the examples). A part that allocates keeps its registry place, which is the heap layout; [a unit test](../tests/unit/the-companion-heap-layout-stays-fixed.test.ts) pins it. A part's id is its feature's id or a substrate's; a unit test fails when a feature's `companion.ts` has no line. |
 | IPC channels of a feature | `app/features/<id>/shared/ipc.ts` and one line in [`TOOL_CONTRACTS`](../app/shared/ipc/tools.ts) | The contract declares each channel's string, arguments, and result once, and the `window.gwNative` namespace the Tools preload builds from them ([kernel](../app/shared/ipc/channel-table.ts)). |
 | Main-process channels and files of a feature | `app/features/<id>/main.ts` and one line in [`MAIN_PARTS`](../app/features/main-parts.ts) | The part owns its stores and answers its contract's channels ([contract](../app/main/tools-main-part.ts)); the runtime gives it a file gate. A Tools channel without exactly one owner, a parser that produces other arguments, or a handler that answers another result fails to compile. |
 | Composition and safety order | [`installCertifiedCompanion`](../app/renderer/certified-companion-installation.ts) | Allocate and validate first, enable the game hook last, disable it first, and tear down in explicit dependency-safe phases. |
@@ -358,7 +358,7 @@ A feature folder holds every file that only that feature uses:
 
 ```
 app/features/<id>/
-  feature.ts     manifest v2 (all processes): name, summary, kind, icon, region, capabilities, requires,
+  feature.ts     manifest v2 (all processes): name, summary, kind, icon, region, uses, requires,
                  network, settings (each with label and help), tool (its renderer event), hub, shortcuts,
                  shots, parts; app/features/define.ts documents each field
   README.md      what it does, for players, in the Markdown subset app/features/contract.ts allows
@@ -375,10 +375,11 @@ app/features/<id>/
 ```
 
 The folder name is the feature id in kebab case (`alcohol-timer` holds
-`alcoholTimer`). [`tests/policy/feature-contract.test.ts`](../tests/policy/feature-contract.test.ts)
+`alcoholTimer`). The id stays camelCase because it keys the runtime policy, which
+a "Must stay" test pins. [`tests/policy/feature-contract.test.ts`](../tests/policy/feature-contract.test.ts)
 runs [the contract checks](../app/features/contract.ts) on every folder in `pnpm check`:
 id and folder, labels and help, one shot per caption, the README subset, `## Unreleased`,
-no `requires` cycles, known capabilities, and `main` in `parts` exactly when `main.ts`
+no `requires` cycles, known `uses`, and `main` in `parts` exactly when `main.ts`
 exists. A launcher test checks each `icon` against lucide-vue-next.
 
 A tool's `event` is the one name of the renderer event that runs it: its

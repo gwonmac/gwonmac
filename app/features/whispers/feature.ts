@@ -23,7 +23,7 @@ export default defineFeature({
   },
   activation: { kind: "setting", setting: "whispersEnabled", master: "gwonmacTools" },
   region: "pve",
-  capabilities: ["whisperChat"],
+  uses: ["whisperChat"],
   tool: {
     id: "whispers",
     event: "gw:whispers-toggle",

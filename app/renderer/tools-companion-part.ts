@@ -147,7 +147,7 @@ export function featurePart<Running extends Readonly<{ stop(): void }>>(
   runtime: Readonly<Record<string, (running: Running | null) => unknown>> = {},
 ): ToolsCompanionPart {
   const feature = FEATURES.find((candidate) => candidate.id === id);
-  const needs = feature !== undefined && "capabilities" in feature ? feature.capabilities : [];
+  const needs = feature !== undefined && "uses" in feature ? feature.uses : [];
   return Object.freeze({
     id,
     prepare: ({ capabilities }) => ({

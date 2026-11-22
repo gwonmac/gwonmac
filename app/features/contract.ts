@@ -2,9 +2,9 @@
  * The feature contract checks that TypeScript cannot make: the id matches its folder,
  * every setting names itself, one shot file per caption, README.md stays inside the
  * small Markdown subset the launcher renders, CHANGELOG.md has `## Unreleased`, `requires`
- * has no cycles, and `capabilities` (the contract's `uses`) names only capabilities the
- * verifier knows. Pure: the caller reads the folders (tests/policy/feature-contract.test.ts
- * runs it in `pnpm check`), so the same check can run on a scaffold or a planted error.
+ * has no cycles, and `uses` names only capabilities the verifier knows. Pure: the caller
+ * reads the folders (tests/policy/feature-contract.test.ts runs it in `pnpm check`), so the
+ * same check can run on a scaffold or a planted error.
  * Each message names the file and says what to change.
  */
 import { ENHANCEMENT_CAPABILITY_FIELDS } from "../shared/enhancement-contracts.js";
@@ -65,7 +65,7 @@ function checkFolder({ folder, manifest, files, readme, changelog }: FeatureFold
     if (typeof spec.help !== "string" || spec.help.trim() === "") problems.push(`${at}/feature.ts: setting ${key} has no help; say in one line what it does.`);
   }
 
-  for (const capability of manifest.capabilities ?? []) {
+  for (const capability of manifest.uses ?? []) {
     if (!KNOWN_USES.has(capability)) {
       problems.push(`${at}/feature.ts: uses "${capability}", which the verifier does not know (ENHANCEMENT_CAPABILITY_FIELDS in app/shared/enhancement-contracts.ts).`);
     }

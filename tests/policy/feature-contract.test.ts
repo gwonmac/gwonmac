@@ -133,7 +133,7 @@ const cases: readonly Case[] = [
   },
   {
     check: "known uses",
-    folders: [folder(manifest("quickNote", { capabilities: ["teleport"] as never }))],
+    folders: [folder(manifest("quickNote", { uses: ["teleport"] as never }))],
     message: "app/features/quick-note/feature.ts: uses \"teleport\", which the verifier does not know (ENHANCEMENT_CAPABILITY_FIELDS in app/shared/enhancement-contracts.ts).",
   },
   {
