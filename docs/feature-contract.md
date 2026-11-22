@@ -4,7 +4,9 @@ A Feature is one thing a player can turn on: a card in the launcher's Features t
 Feature page there (and in the Hub's Settings) with its switch, options and shortcuts, and a
 page on www.gwonmac.com. Each Feature is one folder,
 `app/features/<folder>/`, and one entry in `FEATURES` in
-[`app/features/index.ts`](../app/features/index.ts). Everything else derives from them.
+[`app/features/index.ts`](../app/features/index.ts), plus one export line in
+`app/features/companion-parts.ts` when it has a game part
+([shared files](#shared-files-a-new-feature-touches)). Everything else derives from them.
 
 This page is enough to add a **group A** Feature: one that reads the game through the
 typed building blocks and draws on screen, with no memory of its own, no window, no Hub
@@ -86,7 +88,7 @@ the shapes; [`app/features/contract.ts`](../app/features/contract.ts) checks the
 | `requires` | Features that must be on for this one to run | contract: ids exist, no cycles |
 | `tool` | `{ id: "<folder>" }`: the stable id its switch control is searched and pinned under (`tool:<id>`); a released id never changes, even where it differs from the folder | TypeScript; contract: the Feature has a switch of its own |
 | `shots` | Captions for `media/shot-N.webp` | contract: one file per caption, no file without one |
-| `parts` | The part kinds it has; group A has `["game"]` | contract: `game` when `companion.ts` exists, `main` exactly when `main.ts` exists; TypeScript: `featurePart` builds only for a Feature that lists `game` |
+| `parts` | The part kinds it has; group A has `["game"]` | contract, both ways: `game` exactly when `companion.ts` exists (except a tool the input host runs through `tool.event`, and a `hubPage` Feature, whose `renderer/host.ts` carries its game code), `window` exactly when `renderer/window.ts` exists, `main` exactly when `main.ts` exists, `hubPage` needs `renderer/host.ts`; a unit test checks the registries (`companion-parts.ts`, `window-parts.ts`, and the game host for `hubPage`); TypeScript: each part builder builds only for a Feature that lists its kind |
 | `links`, `offers` | Calls between Features (below) | contract and [`links.ts`](../app/features/links.ts) types |
 | `network`, `hub`, `shortcuts`, `programs`, `optInWithTools` | Not used by group A | see `define.ts` |
 
@@ -128,9 +130,9 @@ Examples: [`skill-cooldowns/`](../app/features/skill-cooldowns/) and
   ([Feature switches](settings.md#feature-switches)).
 - **Options.** Each one is a `setting.*` from
   [`app/shared/settings/define.ts`](../app/shared/settings/define.ts) with a `label` and
-  one line of `help`; the contract refuses one without. An option also needs a line in
-  `app/shared/settings-catalogue.ts` and a control in the launcher
-  ([Add a setting](settings.md#add-a-setting)), so it is not yet a one-folder change.
+  one line of `help`; the contract refuses one without. Its Feature page draws a control for it
+  by its kind, and Settings search lists it from the manifest
+  ([Add a setting](settings.md#add-a-setting)), so an option needs no line outside the folder.
 
 ## Release stages
 
@@ -292,7 +294,7 @@ take a newer Feature's rows from its manifest, so a new Feature adds nothing to 
 | `tests/unit/player-data-fixtures.test.ts` | Its stored switch comes from `settings`, or from the Features it `requires`. Once a release stores the switch, add the Feature's line to `STORED_SWITCHES`. |
 | `tests/unit/settings.test.ts` | Its settings join the literal defaults and the saved key list. A Core setting, or one of a Feature the lists name, still needs its line. |
 | `tests/helpers/packaged-enhancement-scenarios.ts` | Its Tools settings take their defaults in each probe. |
-| `app/ui/launcher/src/fixtures.ts` | Its tool takes its switch's default in `tools.features`. |
+| `app/ui/launcher/src/fixtures.ts` | Its tool takes its switch's default in `tools.features`, and its options their defaults in `settings`. |
 | `tests/unit/feature-selection.test.ts` | Its rows come from the rules in `tests/certification/feature-region-gating.test.ts`. Add literal values only to pin a case the rules do not decide. |
 
 One file still takes a line by hand:

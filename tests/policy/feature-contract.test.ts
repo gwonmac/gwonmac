@@ -33,7 +33,7 @@ const details = "\n### Details\n- **Turn on:** on its Feature page.\n";
 const folder = (feature: FeatureDefinition, more: Partial<FeatureFolder> = {}): FeatureFolder => ({
   folder: feature.id.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`),
   manifest: feature,
-  files: ["feature.ts", "README.md", "CHANGELOG.md", "media/.gitkeep"],
+  files: ["feature.ts", "companion.ts", "README.md", "CHANGELOG.md", "media/.gitkeep"],
   readme: `Example does one thing.\n\n### Use it\n1. Press <kbd>⌘</kbd> <kbd>X</kbd> or search \`note\` in the [Hub]($docs.hub#what-you-can-search).\n${details}\n> Only you see it.\n`,
   changelog: "## Unreleased\n",
   imports: [],
@@ -83,7 +83,7 @@ const cases: readonly Case[] = [
   },
   {
     check: "no shot without a caption",
-    folders: [folder(valid, { files: ["feature.ts", "media/shot-1.webp"] })],
+    folders: [folder(valid, { files: ["feature.ts", "companion.ts", "media/shot-1.webp"] })],
     message: "app/features/quick-note/media/shot-1.webp: has no caption; add one to shots or delete the file.",
   },
   {
@@ -204,6 +204,26 @@ const cases: readonly Case[] = [
     check: "companion.ts needs the game part kind",
     folders: [folder(manifest("quickNote", { parts: [] }), { files: ["feature.ts", "companion.ts", "README.md", "CHANGELOG.md", "media/.gitkeep"] })],
     message: "app/features/quick-note/feature.ts: the folder has companion.ts, so parts must list \"game\".",
+  },
+  {
+    check: "the game part kind needs companion.ts",
+    folders: [folder(valid, { files: ["feature.ts", "README.md", "CHANGELOG.md", "media/.gitkeep"] })],
+    message: "app/features/quick-note/feature.ts: parts lists \"game\", but the folder has no companion.ts; add the game part there (featurePart) or remove \"game\".",
+  },
+  {
+    check: "the window part kind needs renderer/window.ts",
+    folders: [folder(manifest("quickNote", { parts: ["game", "window"] }))],
+    message: "app/features/quick-note/feature.ts: parts lists \"window\", but the folder has no renderer/window.ts.",
+  },
+  {
+    check: "renderer/window.ts needs the window part kind",
+    folders: [folder(valid, { files: ["feature.ts", "companion.ts", "renderer/window.ts", "README.md", "CHANGELOG.md", "media/.gitkeep"] })],
+    message: "app/features/quick-note/feature.ts: the folder has renderer/window.ts, so parts must list \"window\".",
+  },
+  {
+    check: "the hubPage part kind needs renderer/host.ts",
+    folders: [folder(manifest("quickNote", { parts: ["game", "hubPage"] }))],
+    message: "app/features/quick-note/feature.ts: parts lists \"hubPage\", but the folder has no renderer/host.ts.",
   },
   {
     check: "a staged option reads as off where it is hidden, so it is a boolean",
