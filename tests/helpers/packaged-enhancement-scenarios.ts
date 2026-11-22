@@ -1280,7 +1280,7 @@ export async function assertToolboxFoundationLifecycle() {
       tradeConfiguration: 1,
     });
     assert.deepEqual(result.before.travelConfigurations.at(-1), [travelPointer, 1]);
-    assert.deepEqual(result.before.chatFilterConfigurations, [0]);
+    assert.deepEqual(result.before.chatFilterConfigurations, []);
     assert.equal(result.before.companionStatePublished, false);
     assert.equal(result.before.cursorStatePublished, true);
     assert.equal(result.before.globalRuntimeIsRuntime, false);
@@ -1375,7 +1375,7 @@ export async function assertToolboxFoundationLifecycle() {
     }]);
     assert.deepEqual(result.after.storageConfigurations.at(-1), [0, 0]);
     assert.deepEqual(result.after.travelConfigurations.at(-1), [0, 0]);
-    assert.deepEqual(result.after.chatFilterConfigurations, [0, 0]);
+    assert.deepEqual(result.after.chatFilterConfigurations, []);
     assert.equal(result.after.hook, 0);
     assert.equal(result.after.cursorStatePublished, false);
     assert.equal(result.after.runtime, undefined);
