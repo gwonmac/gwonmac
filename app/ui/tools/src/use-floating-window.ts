@@ -1,7 +1,7 @@
 /**
  * Shared drag, resize, and viewport fitting for independent in-game windows. An embedded window
- * keeps where the player put it in a placement store: its Feature's setting (Trade Chat), or this
- * window's browser storage for a window whose place has not moved into settings yet.
+ * keeps where the player put it in a placement store, its Feature's setting (Trade Chat,
+ * Whispers); without one, a move lasts until the view goes.
  */
 import {
   computed,
@@ -15,34 +15,10 @@ import {
 import { installResizeGrip } from "../../../shared/ui/resize";
 import {
   captureFloatingWindowPlacement,
-  parseFloatingWindowPlacement,
   placeFloatingWindow,
   type FloatingWindowPlacement,
   type FloatingWindowPlacementStore,
 } from "../../../shared/ui/window-placement";
-
-/** A placement kept in this window's browser storage under `key`, with its format version. */
-function storedPlacement(key: string): FloatingWindowPlacementStore {
-  return {
-    subscribe(listener) {
-      let serialized: string | null = null;
-      try {
-        serialized = window.localStorage.getItem(key);
-      } catch {
-        // Browser storage refusal leaves the window at its ordinary default.
-      }
-      listener(parseFloatingWindowPlacement(serialized));
-      return () => {};
-    },
-    save(placement) {
-      try {
-        window.localStorage.setItem(key, JSON.stringify({ formatVersion: 1, ...placement }));
-      } catch {
-        // A UI preference must not make the surface unusable when storage fails.
-      }
-    },
-  };
-}
 
 export function useFloatingWindow(options: {
   mode: "standalone" | "embedded";
@@ -51,17 +27,15 @@ export function useFloatingWindow(options: {
   minWidth: number;
   minHeight: number;
   viewportMargin?: number;
-  /** Where an embedded window keeps its placement; `placementStorageKey` keeps it in browser storage. */
+  /** Where an embedded window keeps its placement. */
   placement?: FloatingWindowPlacementStore | undefined;
-  placementStorageKey?: string;
   /** A window the never-placed panel opens beside rather than over, when there is room. */
   beside?: () => DOMRect | null;
 }) {
   const panel = ref<HTMLElement | null>(null);
   const resizeGrip = ref<HTMLButtonElement | null>(null);
   const margin = options.viewportMargin ?? 0;
-  const store = options.mode !== "embedded" ? null
-    : options.placement ?? (options.placementStorageKey ? storedPlacement(options.placementStorageKey) : null);
+  const store = options.mode !== "embedded" ? null : options.placement ?? null;
   const viewport = () => ({ width: window.innerWidth, height: window.innerHeight, margin });
   const minimum = { width: options.minWidth, height: options.minHeight };
   const position = ref({ ...options.initialPosition });
@@ -188,7 +162,7 @@ export function useFloatingWindow(options: {
   const persistPlacement = () => {
     if (!store || intent === null || intent === saved) return;
     saved = intent;
-    // A store that never gives saves back (browser storage) keeps this list short.
+    // A store that never gives saves back keeps this list short.
     unanswered.push(JSON.stringify(intent));
     if (unanswered.length > 8) unanswered.shift();
     store.save(intent);

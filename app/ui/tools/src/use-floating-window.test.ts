@@ -3,8 +3,14 @@ import { mount } from "@vue/test-utils";
 import { defineComponent, h, ref } from "vue";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useFloatingWindow } from "./use-floating-window";
+import type { FloatingWindowPlacement, FloatingWindowPlacementStore } from "../../../shared/ui/window-placement";
 
-const storageKey = "test.floating-window-placement";
+/** A store like a Feature's setting, without the round trip: the last placement saved, or null. */
+let stored: FloatingWindowPlacement | null = null;
+const placement: FloatingWindowPlacementStore = {
+  subscribe(listener) { listener(stored); return () => {}; },
+  save(next) { stored = next; },
+};
 
 function mountWindow() {
   return mount(defineComponent({
@@ -16,7 +22,7 @@ function mountWindow() {
         minWidth: 520,
         minHeight: 400,
         viewportMargin: 32,
-        placementStorageKey: storageKey,
+        placement,
       });
       return () => h("section", {
         ref: floating.panel,
@@ -52,7 +58,7 @@ function giveWindowGeometry(element: HTMLElement) {
 }
 
 afterEach(() => {
-  localStorage.clear();
+  stored = null;
   document.body.replaceChildren();
   vi.restoreAllMocks();
 });
@@ -89,9 +95,9 @@ describe("useFloatingWindow", () => {
       pointerId: 1,
     }));
     header.dispatchEvent(new PointerEvent("pointerup", { pointerId: 1 }));
-    expect(localStorage.getItem(storageKey)).toBeNull();
+    expect(stored).toBeNull();
     window.dispatchEvent(new PageTransitionEvent("pagehide"));
-    expect(localStorage.getItem(storageKey)).not.toBeNull();
+    expect(stored).not.toBeNull();
     wrapper.unmount();
 
     const restored = mountWindow();
@@ -118,7 +124,7 @@ describe("useFloatingWindow", () => {
     header.dispatchEvent(new PointerEvent("pointermove", { clientX: 800, clientY: 400, pointerId: 1 }));
     header.dispatchEvent(new PointerEvent("pointerup", { pointerId: 1 }));
     window.dispatchEvent(new PageTransitionEvent("pagehide"));
-    const saved = localStorage.getItem(storageKey);
+    const saved = stored;
     await wrapper.vm.$nextTick();
     const placed = wrapper.get("section").attributes("style");
 
@@ -130,7 +136,7 @@ describe("useFloatingWindow", () => {
     expect(wrapper.get("section").attributes("style")).toContain(placed);
     expect(wrapper.get("section").attributes("style")).toContain("width: 800px");
     window.dispatchEvent(new PageTransitionEvent("pagehide"));
-    expect(localStorage.getItem(storageKey)).toBe(saved);
+    expect(stored).toBe(saved);
     wrapper.unmount();
   });
 });

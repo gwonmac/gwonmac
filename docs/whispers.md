@@ -33,7 +33,9 @@ Right opens the person page. Root Actions reuses that person's named actions.
 Game actions require explicit selection when no whisper action is available.
 Unavailable chat keeps a disabled result with its waiting reason.
 
-The Whispers surface retains its saved geometry. Its single **Hide Whispers**
+The Whispers surface retains its saved geometry: the `whispersWindowPosition`
+setting (normalized to the game window, null for the default place), so every
+game window follows a move and Copy settings carries it. Its single **Hide Whispers**
 control preserves conversations and drafts. Its resize grip stays outside normal
 Tab navigation. Chat options retain mute, sound and guarded conversation closing.
 

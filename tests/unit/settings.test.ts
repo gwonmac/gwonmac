@@ -132,6 +132,7 @@ describe("settings", () => {
       hubCalculators: true,
       whispersIcon: true,
       whispersIconPosition: null,
+      whispersWindowPosition: null,
       // Automatic app-update checks remain a separate preference from the
       // required ArenaNet game-data download.
       autoCheckUpdates: true,
@@ -614,6 +615,7 @@ describe("settings", () => {
       "whispersEnabled",
       "whispersIcon",
       "whispersIconPosition",
+      "whispersWindowPosition",
       "xunlaiStorage",
     ];
     assert.deepEqual(Object.keys(disk).sort(), [...known, ...newerFeatureSettings(known)].sort());

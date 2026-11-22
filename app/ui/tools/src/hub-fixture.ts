@@ -23,6 +23,8 @@ import { withHubBuiltins } from '../../../renderer/hub-builtins';
 import { featureLinks, hubLinks, onLinksChange, provideLink } from '../../../renderer/feature-links';
 // eslint-disable-next-line no-restricted-imports
 import { whispersLink } from '../../../features/whispers/renderer/link';
+// eslint-disable-next-line no-restricted-imports
+import { whisperWindowPlacement } from '../../../features/whispers/renderer/window-placement';
 import { mountHubView } from './hub/embedded';
 // eslint-disable-next-line no-restricted-imports
 import { installSurfaceController } from '../../../renderer/surface-controller';
@@ -294,7 +296,13 @@ export function mountHubFixture(target: HTMLElement) {
     return session.state.visible ? 'shown' : 'hidden';
   };
   let iconPosition: CornerPosition | null = null;
-  mountWhispers(messenger, { session, toggle: toggleWhispers, iconPlacement: {
+  // The panel's place is Whispers' own setting store over the fixture's settings, so its one-time
+  // move from browser storage runs as in the game.
+  const settingsBlock = { subscribe(listener: (value: AppSettings) => void) {
+    listener(settings); const changed = () => listener(settings);
+    window.addEventListener('gw:tools-settings', changed); return () => window.removeEventListener('gw:tools-settings', changed);
+  } };
+  mountWhispers(messenger, { session, toggle: toggleWhispers, placement: whisperWindowPlacement(settingsBlock), iconPlacement: {
     subscribe: listener => { listener(iconPosition); return () => {}; }, save: position => { iconPosition = position; } } });
   // Whispers' link, as its companion part provides it; every name Trade opens is recorded for the specs.
   const link = whispersLink(session, toggleWhispers);

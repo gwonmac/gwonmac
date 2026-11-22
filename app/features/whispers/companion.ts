@@ -15,6 +15,7 @@ import { subscribeWhile } from "../../renderer/game-blocks.js";
 import { featurePart, type FeatureBlocks, type ToolsCompanionPart } from "../../renderer/tools-companion-part.js";
 import type { ToolIntent } from "../links.js";
 import { whisperIconPlacement } from "./renderer/icon-placement.js";
+import { whisperWindowPlacement } from "./renderer/window-placement.js";
 import { whispersLink } from "./renderer/link.js";
 import { createWhisperSurface } from "./renderer/whisper-surface.js";
 
@@ -25,7 +26,7 @@ function startWhispers({ game, settings }: FeatureBlocks<"whispers">, session: W
     if (batch !== null) session.observe(batch.messages, batch.missed);
   });
   session.setAvailable(true);
-  const surface = createWhisperSurface(document.body, session, whisperIconPlacement(settings));
+  const surface = createWhisperSurface(document.body, session, { iconPlacement: whisperIconPlacement(settings), placement: whisperWindowPlacement(settings) });
   const stopIcon = settings.subscribe(({ whispersIcon }) => surface.setIconShown(whispersIcon));
   shown(surface);
   return {

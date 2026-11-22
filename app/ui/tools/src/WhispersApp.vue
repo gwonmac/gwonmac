@@ -12,6 +12,7 @@ import { listIndexAfter, listKeyStep, listPage } from "../../../shared/ui/list-k
 import { useFloatingWindow } from "./use-floating-window";
 import { captureCornerPosition, restoreCornerPosition, type CornerPosition } from "../../../shared/corner-position";
 import type { WhisperIconPlacement } from "../../../shared/tools-bundle-contracts";
+import type { FloatingWindowPlacementStore } from "../../../shared/ui/window-placement";
 
 const initials = (name: string) => name.trim().split(/\s+/u).slice(0, 2).map(word => word[0]).join("").toLocaleUpperCase();
 
@@ -20,8 +21,9 @@ const props = defineProps<{
   session: WhisperSession;
   toggle?: (intent: "show" | "toggle") => "shown" | "hidden" | "unavailable";
   iconPlacement?: WhisperIconPlacement;
+  /** Where the panel keeps its place and size (the `whispersWindowPosition` setting); absent, a move lasts until the view goes. */
+  placement?: FloatingWindowPlacementStore;
 }>();
-const WINDOW_PLACEMENT_KEY = "gwonmac.whispers-window-placement";
 const ICON_SIZE = 36;
 const VIEWPORT_MARGIN = 8;
 const state = shallowRef(props.session.state);
@@ -30,7 +32,7 @@ const visible = computed(() => state.value.visible);
 const { panel, resizeGrip, panelStyle, startDrag } = useFloatingWindow({
   mode: "embedded", visible, initialPosition: { left: 72, top: 80 },
   minWidth: 288, minHeight: 300, viewportMargin: VIEWPORT_MARGIN,
-  placementStorageKey: WINDOW_PLACEMENT_KEY,
+  placement: props.placement,
   // Until the player places it, Whispers opens beside an open Trade, never over its toolbar (HUB-108).
   beside: () => {
     const trade = document.querySelector<HTMLElement>("#toolbox-trade .trade-window");

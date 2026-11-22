@@ -127,6 +127,8 @@ export type WhispersMountOptions = Readonly<{
   toggle?: ToolLink["toggle"];
   /** Absent, the icon starts at its default place and a move lasts until the view goes. */
   iconPlacement?: WhisperIconPlacement;
+  /** Where the panel keeps its place and size: the `whispersWindowPosition` setting. Absent, a move lasts until the view goes. */
+  placement?: FloatingWindowPlacementStore;
 }>;
 
 export type TradeChatMountOptions = Readonly<{
