@@ -23,6 +23,20 @@ const adding = defineModel<boolean>("adding", { required: true });
 /** The account that Edit account is open for. */
 const editing = defineModel<ProfileId | null>("editing", { required: true });
 
+/**
+ * The one name rule for Add and Edit, the same that main enforces: 1–48 characters, no control
+ * characters, and no other account (archived ones too) with the same name.
+ */
+function checkName(value: string, self: ProfileId | null): { name: string } | { problem: string } {
+  let name: string;
+  try { name = parseProfileName(value); }
+  catch { return { problem: "Enter a name of 1–48 characters without control characters." }; }
+  if (props.profiles.some(profile => profile.id !== self && profileNameKey(profile.name) === profileNameKey(name))) {
+    return { problem: "Another account already uses this name." };
+  }
+  return { name };
+}
+
 const newName = ref("");
 const newIcon = ref<LauncherProfileIcon>(DEFAULT_PROFILE_ICON);
 const newColor = ref<string>(DEFAULT_PROFILE_COLOR);
@@ -30,11 +44,12 @@ const addError = ref("");
 watch(adding, (open) => { if (open) addError.value = ""; });
 
 async function createProfile() {
-  const name = newName.value.trim();
-  if (!name) return;
+  if (!newName.value.trim()) return;
+  const checked = checkName(newName.value, null);
+  if ("problem" in checked) { addError.value = checked.problem; return; }
   addError.value = "";
   try {
-    await props.native?.profiles.create({ name, appearance: { icon: newIcon.value, color: newColor.value } });
+    await props.native?.profiles.create({ name: checked.name, appearance: { icon: newIcon.value, color: newColor.value } });
   } catch {
     addError.value = "The account could not be added. Try another name or try again.";
     return;
@@ -72,18 +87,10 @@ watch(editing, () => {
 async function saveEdit() {
   const id = editing.value;
   if (!id || saving.value) return;
+  const checked = checkName(editName.value, id);
+  if ("problem" in checked) { editError.value = checked.problem; return; }
+  const { name } = checked;
   editError.value = "";
-  let name: string;
-  try {
-    name = parseProfileName(editName.value);
-    if (props.profiles.some(profile => profile.id !== id && profileNameKey(profile.name) === profileNameKey(name))) {
-      editError.value = "Another account already uses this name.";
-      return;
-    }
-  } catch {
-    editError.value = "Enter a name of 1–48 characters without control characters.";
-    return;
-  }
   saving.value = true;
   try {
     if (props.native) await props.native.profiles.update({ id, name, icon: editIcon.value, color: editColor.value });
