@@ -78,13 +78,21 @@ export function measure(revision) {
   const rendererFiles = listFiles("app/renderer");
   const FEATURE_DOMAIN = /(^|[-/])(skill|whisper|trade|people|party|alcohol|effect|cartography)[-.]/;
 
-  const outsideFolder = featureFolders.map((folder) => {
+  const featureNames = featureFolders.map((folder) => {
     const manifest = readFile(`app/features/${folder}/feature.ts`);
     const id = manifest.match(/id: "([^"]+)"/)?.[1] ?? folder;
-    const names = [...new Set([id, folder])].join("|");
+    return { folder, id, names: [...new Set([id, folder])].join("|") };
+  });
+
+  const outsideFolder = featureNames.map(({ folder, names }) => {
     const files = filesMatching(`["'](${names})["']`, ["app", `:!app/features/${folder}`, ...NOT_TESTS]);
     return { folder, count: files.length };
   });
+
+  // Every Feature id (or folder name) quoted in the shared substrates, or an `attach<Id>` call.
+  const substrateNames = featureNames
+    .map(({ id, names }) => `["'](${names})["']|attach${id.charAt(0).toUpperCase()}${id.slice(1)}\\b`)
+    .join("|");
 
   /** @type {{ key: string, name: string, value: number }[]} */
   const metrics = [
@@ -92,7 +100,7 @@ export function measure(revision) {
     { key: "policyReads", name: "`policy().` reads in app/features", value: countLines("policy\\(\\)\\.", ["app/features", ...NOT_TESTS]) },
     { key: "plainGame", name: "`plainGame` reads in app (no tests)", value: countLines("plainGame", ["app", ...NOT_TESTS]) },
     { key: "gwEvents", name: "Distinct `gw:*` window event names in app", value: countDistinct("['\"]gw:[a-z0-9:-]+['\"]", ["app", ...NOT_TESTS]) },
-    { key: "substrateFeatureNames", name: "Feature names in shared substrates (`attachWhispers`, `attachTravel`)", value: countLines("attach(Whispers|Travel)", ["app/renderer/tools-companion-substrates.ts"]) },
+    { key: "substrateFeatureNames", name: "Lines naming any Feature id in shared substrates", value: countLines(substrateNames, ["app/renderer/tools-companion-substrates.ts"]) },
     { key: "rendererFeatureFiles", name: "Feature-domain files under app/renderer/", value: rendererFiles.filter((path) => FEATURE_DOMAIN.test(path.replace(/^app\/renderer\//, "/")) && !/\.(test|spec)\.ts$/.test(path)).length },
     { key: "toolsUiLocalStorage", name: "`localStorage` uses in Tools UI", value: countLines("localStorage", ["app/ui/tools/src", ...NOT_TESTS]) },
     { key: "toolVIfCases", name: "Per-feature `v-if=\"tool === …\"` in launcher and Tools UI", value: countLines("v-if=\"tool ===", ["app/ui", ...NOT_TESTS]) },
