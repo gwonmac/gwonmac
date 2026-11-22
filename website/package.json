@@ -3,14 +3,15 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vp exec nuxt dev",
-    "build": "vp run generate:launcher-news && vp exec nuxt build",
+    "dev": "vp run generate:feature-docs && vp exec nuxt dev",
+    "build": "vp run generate:feature-docs && vp run generate:launcher-news && vp exec nuxt build",
     "certify": "vp run check && vp run build && node scripts/assert-release-output.mjs",
-    "check": "vp lint && vp run typecheck && vp exec ginko check --offline && vp run check:launcher-news",
+    "check": "vp run generate:feature-docs && vp lint && vp run typecheck && vp exec ginko check --offline && vp run check:launcher-news",
     "generate:launcher-news": "node scripts/generate-launcher-news.mjs",
     "check:launcher-news": "node scripts/generate-launcher-news.mjs --check",
+    "generate:feature-docs": "node --import ../scripts/ts-hook.mjs ../scripts/feature-docs.ts",
     "typecheck": "vp exec nuxi typecheck",
-    "prepare": "vp exec nuxt prepare"
+    "prepare": "vp run generate:feature-docs && vp exec nuxt prepare"
   },
   "devDependencies": {
     "@lupinum/ginko": "0.16.4",

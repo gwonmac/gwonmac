@@ -4,7 +4,7 @@ import { defineFeature } from "../define.js";
 export default defineFeature({
   id: "tools",
   name: "Features",
-  summary: "Load your Features when the game starts. Turn this off to play the plain game.",
+  summary: "The optional extras GWonMac adds to Guild Wars, and how to play the plain game without them.",
   kind: "mode",
   icon: "sparkles",
   settings: {

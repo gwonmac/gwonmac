@@ -337,6 +337,14 @@ function followGuideLink(actionId: string) {
     route.value = "help";
   } else if (action?.kind === "settings") openSettings(action.target);
   else if (action?.kind === "url") void openUrl(action.url);
+  else if (action?.kind === "feature") {
+    // The simple launcher has no Features tab: its page is on the website, built from the same README.
+    if (reachable("features") !== "features") void openUrl(action.url);
+    else {
+      route.value = "features";
+      featurePage.value = action.id;
+    }
+  }
 }
 
 async function openNews(id: string) {
@@ -391,7 +399,7 @@ async function updateContent(content: NonNullable<LauncherPreferencesPatch["cont
         @delete="id => runAction('The account could not be deleted.', () => native?.profiles.delete(id))"
       />
 
-      <HelpView v-else-if="route === 'help'" :send="sendFeedback" :page="helpPage" @external="openExternal" @url="openUrl" @settings="openSettings" />
+      <HelpView v-else-if="route === 'help'" :send="sendFeedback" :page="helpPage" @external="openExternal" @url="openUrl" @settings="openSettings" @link="followGuideLink" />
 
       <SettingsView v-else :snapshot="snapshot" :native="native" :launcher="{ snapshot, native }" :target="settingsTarget" @fixture="snapshot = $event" @section="settingsSection = $event" />
     </main>

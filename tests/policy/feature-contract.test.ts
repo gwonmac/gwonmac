@@ -59,7 +59,7 @@ const folder = (feature: FeatureDefinition, more: Partial<FeatureFolder> = {}): 
   folder: feature.id.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`),
   manifest: feature,
   files: ["feature.ts", "README.md", "CHANGELOG.md", "media/.gitkeep"],
-  readme: "Example does one thing.\n\n### Use it\n1. Press <kbd>⌘</kbd> <kbd>X</kbd>.\n\n> Only you see it.\n",
+  readme: "Example does one thing.\n\n### Use it\n1. Press <kbd>⌘</kbd> <kbd>X</kbd> or search `note` in the [Hub]($docs.hub#what-you-can-search).\n\n> Only you see it.\n",
   changelog: "## Unreleased\n",
   ...more,
 });
@@ -98,7 +98,12 @@ const cases: readonly Case[] = [
   {
     check: "README: external links",
     folders: [folder(valid, { readme: "Example does one thing. See [the wiki](https://wiki.guildwars.com/wiki/Note).\n" })],
-    message: "app/features/quick-note/README.md:1: link to https://wiki.guildwars.com/wiki/Note is not allowed; link only to https://www.gwonmac.com.",
+    message: "app/features/quick-note/README.md:1: link to https://wiki.guildwars.com/wiki/Note is not allowed; link only to https://www.gwonmac.com or a docs page as $docs.<page>.",
+  },
+  {
+    check: "README: docs links by name",
+    folders: [folder(valid, { readme: "Example does one thing. See [the Hub]($docs/features/hub).\n" })],
+    message: "app/features/quick-note/README.md:1: link to $docs/features/hub is not allowed; link only to https://www.gwonmac.com or a docs page as $docs.<page>.",
   },
   {
     check: "README: HTML",

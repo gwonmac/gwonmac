@@ -4,8 +4,11 @@
  * same Markdown, so a page is written once in website/content.
  *
  * Links become action IDs the Help page resolves: `guide:<page>#<anchor>`,
- * `settings:<section>[/<control>]`, or `url:<https address>` for the browser.
+ * `settings:<section>[/<control>]`, `feature:<folder>` for a Feature's own page in the
+ * Features tab (its website page is built from the same README), or `url:<https address>`
+ * for the browser.
  */
+import { FEATURES, folderForId, type FeatureId } from "@shared/feature-contracts";
 import { parseMarkdown, type MarkdownBlock } from "@shared/launcher-markdown";
 import { parseSettingsTarget, type SettingsTarget } from "@shared/settings-catalogue";
 import { LAUNCHER_GUIDE_ORIGINS } from "@shared/launcher-contracts";
@@ -38,6 +41,11 @@ export type GuidePageId = keyof typeof PAGE_NAMES;
 export const GUIDE_PAGE_IDS = Object.keys(PAGE_NAMES) as GuidePageId[];
 export const GUIDE_HELP_PAGES: readonly GuidePageId[] = ["known-issues", "troubleshooting"];
 
+/** Each Feature's docs entry name (its folder) and id; the launch mode has no card, so it opens the tab. */
+const FEATURE_PAGES: ReadonlyMap<string, FeatureId | null> = new Map(
+  FEATURES.map((feature) => [folderForId(feature.id), feature.kind === "mode" ? null : feature.id]),
+);
+
 export interface GuidePage {
   readonly id: GuidePageId;
   readonly title: string;
@@ -48,6 +56,8 @@ export interface GuidePage {
 export type GuideAction =
   | Readonly<{ kind: "guide"; page: GuidePageId; anchor?: string }>
   | Readonly<{ kind: "settings"; target: SettingsTarget }>
+  /** A Feature's page in the Features tab (`id` null: the tab itself); `url` is its website page. */
+  | Readonly<{ kind: "feature"; id: FeatureId | null; url: string }>
   | Readonly<{ kind: "url"; url: string }>;
 
 // English only: `<n>.<name>.md`; a translation is `<n>.<name>.<locale>.md`.
@@ -71,6 +81,7 @@ export function guideLink(href: string, page?: GuidePageId): string | null {
   if (docs) {
     const guide = GUIDE_PAGE_IDS.find((id) => PAGE_NAMES[id] === docs[1]);
     if (guide) return `guide:${guide}${anchor ? `#${anchor}` : ""}`;
+    if (FEATURE_PAGES.has(docs[1]!)) return `feature:${docs[1]}`;
     return `url:${WEBSITE}/docs/${docs[1]}${anchor ? `#${anchor}` : ""}`;
   }
   const url = path.startsWith("/") ? new URL(href, WEBSITE) : URL.canParse(href) ? new URL(href) : null;
@@ -83,6 +94,8 @@ export function parseGuideAction(actionId: string): GuideAction | null {
     const [section, control] = actionId.slice("settings:".length).split("/");
     return { kind: "settings", target: parseSettingsTarget(control ? { section, control } : { section }) };
   }
+  const feature = /^feature:([\w-]+)$/u.exec(actionId);
+  if (feature && FEATURE_PAGES.has(feature[1]!)) return { kind: "feature", id: FEATURE_PAGES.get(feature[1]!)!, url: `${WEBSITE}/docs/${feature[1]}` };
   const guide = /^guide:([\w-]+)(?:#(.+))?$/u.exec(actionId);
   if (guide && isPage(guide[1]!)) return guide[2] ? { kind: "guide", page: guide[1], anchor: guide[2] } : { kind: "guide", page: guide[1] };
   return null;

@@ -2,3 +2,6 @@
 .output
 node_modules
 .codex
+# The Feature pages: scripts/feature-docs.ts builds them from app/features/<folder>/README.md
+# before every dev, check and build. Hand-written docs pages use orders below 100.
+content/docs/[1-9][0-9][0-9]*.md
