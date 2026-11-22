@@ -34,19 +34,22 @@ async function setLauncherSize(
 async function expectCurrentContentFitsHorizontally(
   fixture: Awaited<ReturnType<typeof launchOffline>>,
 ): Promise<void> {
-  const overflow = await fixture.page.evaluate(() => {
-    const main = document.querySelector<HTMLElement>("main");
-    const content = document.querySelector<HTMLElement>(".page, .settings-page, .home-panel, .hero-panel");
-    if (!main || !content) throw new Error("launcher content is required");
-    return {
-      document: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-      main: main.scrollWidth - main.clientWidth,
-      content: content.scrollWidth - content.clientWidth,
-    };
-  });
-  expect(overflow.document).toBeLessThanOrEqual(1);
-  expect(overflow.main).toBeLessThanOrEqual(1);
-  expect(overflow.content).toBeLessThanOrEqual(1);
+  // Two animation frames do not guarantee that the page has seen a resize on a loaded runner, so retry until it holds.
+  await expect(async () => {
+    const overflow = await fixture.page.evaluate(() => {
+      const main = document.querySelector<HTMLElement>("main");
+      const content = document.querySelector<HTMLElement>(".page, .settings-page, .home-panel, .hero-panel");
+      if (!main || !content) throw new Error("launcher content is required");
+      return {
+        document: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        main: main.scrollWidth - main.clientWidth,
+        content: content.scrollWidth - content.clientWidth,
+      };
+    });
+    expect(overflow.document).toBeLessThanOrEqual(1);
+    expect(overflow.main).toBeLessThanOrEqual(1);
+    expect(overflow.content).toBeLessThanOrEqual(1);
+  }).toPass();
 }
 
 async function expectNoHorizontalClipping(

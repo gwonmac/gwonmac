@@ -176,23 +176,26 @@ test("map styles offer usable color and numeric controls at normal size and 200%
       await settings.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
       await settings.locator(".map-style-editor").scrollIntoViewIfNeeded();
       const controls = settings.locator(".map-style-editor input, .map-style-editor select");
-      for (const control of await controls.all()) {
-        await control.scrollIntoViewIfNeeded();
-        const box = await control.boundingBox();
-        expect(box).not.toBeNull();
-        // Desktop controls retain a 32px minimum target at every zoom level.
-        expect(box!.width).toBeGreaterThanOrEqual(32);
-        expect(box!.height).toBeGreaterThanOrEqual(32);
-        expect(box!.x).toBeGreaterThanOrEqual(0);
-        expect(box!.x + box!.width).toBeLessThanOrEqual(await settings.evaluate(() => innerWidth));
-        expect(await control.evaluate(el => el.hasAttribute("aria-label") || !!(el as HTMLInputElement).labels?.length)).toBe(true);
-        expect(await control.evaluate(el => {
-          const box = el.getBoundingClientRect();
-          return document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2) === el;
-        })).toBe(true);
-      }
-      const clipped = await settings.locator(".map-style-editor").evaluate(el => el.scrollWidth > el.clientWidth + 1);
-      expect(clipped).toBe(false);
+      // The resize and zoom above relayout the page asynchronously, so retry the whole read until it holds.
+      await expect(async () => {
+        for (const control of await controls.all()) {
+          await control.scrollIntoViewIfNeeded();
+          const box = await control.boundingBox();
+          expect(box).not.toBeNull();
+          // Desktop controls retain a 32px minimum target at every zoom level.
+          expect(box!.width).toBeGreaterThanOrEqual(32);
+          expect(box!.height).toBeGreaterThanOrEqual(32);
+          expect(box!.x).toBeGreaterThanOrEqual(0);
+          expect(box!.x + box!.width).toBeLessThanOrEqual(await settings.evaluate(() => innerWidth));
+          expect(await control.evaluate(el => el.hasAttribute("aria-label") || !!(el as HTMLInputElement).labels?.length)).toBe(true);
+          expect(await control.evaluate(el => {
+            const box = el.getBoundingClientRect();
+            return document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2) === el;
+          })).toBe(true);
+        }
+        const clipped = await settings.locator(".map-style-editor").evaluate(el => el.scrollWidth > el.clientWidth + 1);
+        expect(clipped).toBe(false);
+      }).toPass();
       await hex.scrollIntoViewIfNeeded();
       // Electron's native capture preserves the window at non-default zoom.
       const capture = await fixture.app.evaluate(async ({ BrowserWindow }) => {
