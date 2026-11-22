@@ -19,6 +19,10 @@ import {
 } from "../../app/shared/contracts.ts";
 import { preloadSource as bundlePreload } from "../../scripts/build-renderer.mjs";
 import { provideLink } from "../../app/renderer/feature-links.ts";
+import type { FeatureLinkApis, ToolLink, ToolLinkTarget } from "../../app/features/links.ts";
+import { FEATURES, FEATURE_SELECTION_POLICIES, type FeatureSwitchSettings } from "../../app/shared/feature-contracts.ts";
+import { TOOL_COMMANDS as TOOL_OPENERS } from "../../app/shared/hub-tools.ts";
+import { SHORTCUT_COMMANDS } from "../../app/shared/shortcut-commands.ts";
 import { provenFacts } from "../helpers/feature-facts.ts";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
@@ -96,8 +100,11 @@ function harness(argv: string[]) {
   // launch without that tool.
   const listening = new Map<string, unknown>();
   let transientDismissals = 0;
+  // The router's one handler, kept so a test can call it the way the preload does.
+  let handler: Parameters<GwNativeApi["commands"]["handle"]>[0] | null = null;
+  const transport = api;
   const window = {
-    gwNative: api,
+    gwNative: { ...api, commands: { handle(next: NonNullable<typeof handler>) { handler = next; transport.commands.handle(next); } } },
     gwSurfaces: {
       dismissTransient() { transientDismissals += 1; },
     },
@@ -189,6 +196,11 @@ function harness(argv: string[]) {
       }
     },
     transientDismissals: () => transientDismissals,
+    /** Runs the router's handler as the preload's command listener does, without the IPC around it. */
+    handle: (command: RendererCommand) => {
+      assert.ok(handler, "the router registered no handler");
+      return handler(command);
+    },
   };
 }
 
@@ -339,6 +351,57 @@ test("a tool that opens through its Feature's link is toggled through it, and is
         { dispatched: [], asked: provided ? ["toggle"] : [], acknowledged: [[1, provided ? "completed" : "unhandled"]] },
         provided ? "provided" : "not provided",
       );
+    }
+  } finally {
+    if (previous) Object.defineProperty(globalThis, "window", previous); else Reflect.deleteProperty(globalThis, "window");
+  }
+});
+
+// Each Feature that offers `toggle`, providing a link that answers only `toggle`. The type
+// makes a new toggle Feature extend this table, so the test below covers it.
+const TOGGLE_ONLY: { [Target in ToolLinkTarget]: (toggle: ToolLink["toggle"]) => FeatureLinkApis[Target] } = {
+  resign: (toggle) => ({ toggle }),
+  tradeChat: (toggle) => ({ toggle, search: () => "unavailable" }),
+  travel: (toggle) => ({ toggle, friendTripBlocked: () => "unavailable", toFriend: () => "unavailable", showProgress: () => "unavailable" }),
+  whispers: (toggle) => ({ toggle, open: () => "unavailable", people: () => "unavailable" }),
+};
+const provideToggle = <Target extends ToolLinkTarget>(target: Target, toggle: ToolLink["toggle"]) =>
+  provideLink(target, TOGGLE_ONLY[target](toggle));
+
+test("a key pressed right after a tool's shortcut is handled after the tool opened, for every Feature that offers toggle", async () => {
+  // A tool that opens over the game takes the keyboard a frame later, and the next key the player
+  // presses cancels that (Trade's pending focus in toolbox-foundation.ts). That only works when the
+  // tool opened before the key ran. So the router reaches the link's `toggle` before its handler
+  // returns, with nothing awaited on the way: a key, a task of its own, can never run in between.
+  // A per-command import() was such an await, and the late tool then took the keyboard (#82).
+  const everySwitch: Partial<FeatureSwitchSettings> = {};
+  for (const feature of FEATURES) {
+    const own = FEATURE_SELECTION_POLICIES[feature.id].switch;
+    if (own !== null) everySwitch[own] = true;
+  }
+  const previous = Object.getOwnPropertyDescriptor(globalThis, "window");
+  Object.defineProperty(globalThis, "window", { configurable: true, value: { gwFeatureFacts: () => provenFacts(everySwitch) } });
+  try {
+    const fixture = harness(TOOLS_ARGV);
+    // The router loads its tables once when the window starts, long before any Feature part runs.
+    fixture.deliver(1, { type: "tools.toggle" });
+    await fixture.settled(1);
+    // Each shortcut whose last command opens a tool through its link, as main sends them in order.
+    const shortcuts = Object.entries(SHORTCUT_COMMANDS).flatMap(([action, commands]) => {
+      const command = commands.at(-1);
+      const opener = command && TOOL_OPENERS.get(command.type);
+      return command && opener && "link" in opener ? [{ action, before: commands.slice(0, -1), command, target: opener.link }] : [];
+    });
+    assert.deepEqual(new Set(shortcuts.map(({ target }) => target)), new Set(Object.keys(TOGGLE_ONLY)), "every toggle Feature has a shortcut");
+    for (const { action, before, command, target } of shortcuts) {
+      const order: string[] = [];
+      const stop = provideToggle(target, () => { order.push("opened"); return "shown"; });
+      for (const earlier of before) await fixture.handle(earlier);
+      const handled = fixture.handle(command);
+      order.push("key");
+      await handled;
+      stop();
+      assert.deepEqual(order, ["opened", "key"], `${action} opens ${target} before the next key`);
     }
   } finally {
     if (previous) Object.defineProperty(globalThis, "window", previous); else Reflect.deleteProperty(globalThis, "window");

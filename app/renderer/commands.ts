@@ -38,12 +38,19 @@
       new window.CustomEvent(name, { cancelable: true, bubbles: true, detail }),
     );
 
-  // How every tool opens, from each tool's one entry (app/shared/hub-tools.ts). The import starts
-  // at once, so the first shortcut does not wait on it.
-  const toolCommands = import('../shared/hub-tools.js').then(({ TOOL_COMMANDS }) => TOOL_COMMANDS);
-  // Loaded once here too: an import() per command resolves a task later, so a key pressed right
-  // after the shortcut would act before the tool opens, and the tool would then take its focus.
-  const toolLinks = import('./feature-links.js');
+  // How every tool opens, from each tool's one entry (app/shared/hub-tools.ts), and the Feature
+  // link registry (feature-links.ts). They load once, when the window starts, and are then kept
+  // as plain values, so a tool command opens its tool without awaiting anything: a key the player
+  // presses right after the shortcut always runs after the tool opened, and so cancels a tool's
+  // pending focus instead of losing to it (docs/feature-contract.md). Only a command that
+  // arrives before they load, long before any Feature part runs, waits for them.
+  type Tools = Readonly<{
+    commands: typeof import('../shared/hub-tools.js').TOOL_COMMANDS;
+    toggleTool: typeof import('./feature-links.js').toggleTool;
+  }>;
+  let tools: Tools | null = null;
+  const toolsLoaded = Promise.all([import('../shared/hub-tools.js'), import('./feature-links.js')])
+    .then(([{ TOOL_COMMANDS }, { toggleTool }]): Tools => (tools = { commands: TOOL_COMMANDS, toggleTool }));
 
   async function capture(command: CaptureCommand) {
     const diagnostics = window.gwDiagnostics;
@@ -151,11 +158,11 @@
         // official client. An unclaimed event, or a link that answers why it did not open, is the
         // ordinary answer of a launch without that tool. Main shows no reason for a refused
         // shortcut or menu item; it logs the refusal of the Tools window's.
-        const opener = (await toolCommands).get(command.type);
+        const { commands, toggleTool } = tools ?? await toolsLoaded;
+        const opener = commands.get(command.type);
         if (opener === undefined) break;
         if (!window.gwNative.init.enhancementSelection.tools) return 'unhandled';
         if ('link' in opener) {
-          const { toggleTool } = await toolLinks;
           if (typeof toggleTool(opener.link, 'toggle') === 'object') return 'unhandled';
           break;
         }
