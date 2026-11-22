@@ -148,6 +148,8 @@ declare global {
      * erase it.
      */
     failCrash(crashCount: number, technicalDetail?: string): void;
+    /** True while the start or failure screen covers the game, so nothing beneath it can be seen. */
+    covering(): boolean;
     done(): void;
     waitForClient(): Promise<boolean>;
   }

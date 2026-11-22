@@ -638,7 +638,7 @@ test.describe("diagnostics", () => {
     }
   });
 
-  test("a crashed game keeps only the diagnostic fallback and recovers its sandbox", async () => {
+  test("a crashed game offers Reload Game and Quit and recovers its sandbox", async () => {
     const fixture = await launchOffline("gw-crash-panel-e2e-");
     try {
       const { app, page } = fixture;
@@ -652,8 +652,12 @@ test.describe("diagnostics", () => {
         if (loading) loading.style.display = "none";
         window.gwLoading.failCrash(1);
       });
-      await expect(page.locator("#loading-label")).toBeVisible();
-      await expect(page.locator("#loading-retry, #loading-report")).toHaveCount(0);
+      await expect(page.locator("#loading-label")).toHaveText("Guild Wars stopped.");
+      await expect(page.locator("#loading-detail")).toHaveText("Reload the game to play on.");
+      await expect(page.locator("#loading-reload")).toBeFocused();
+      await expect(page.locator("#loading-quit")).toBeVisible();
+      // Command-Q's in-game panel would sit under this screen; main's dialog answers instead.
+      expect(await page.evaluate(() => window.gwQuitPanel?.() ?? false)).toBe(false);
 
       await app.evaluate(({ BrowserWindow }) => {
         BrowserWindow.getAllWindows()
