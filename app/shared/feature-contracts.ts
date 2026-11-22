@@ -5,6 +5,8 @@
  */
 import type { FeatureDefinition, FeatureSettingText } from "../features/define.js";
 import { FEATURES, type Feature, type FeatureId } from "../features/index.js";
+export { FEATURE_KIND_LABELS, FEATURE_PURPOSE_LABELS, type FeaturePurpose } from "../features/define.js";
+export { folderForId } from "../features/contract.js";
 import type { AppSettings } from "./settings/index.js";
 
 // app/main/core may import only app/shared, so it reaches the manifests here.

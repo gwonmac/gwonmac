@@ -8,6 +8,7 @@ export default defineFeature({
   name: "Target Distance",
   summary: "Show distance to the selected target in PvE.",
   kind: "combat",
+  purpose: "fight",
   icon: "crosshair",
   settings: {
     /** Experimental live target distance/range readout. */

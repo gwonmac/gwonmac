@@ -41,6 +41,7 @@ export default defineFeature({
   name: "Maps",
   summary: "Exploration grid, walkable terrain, a walking route and Compass ranges on supported PvE maps.",
   kind: "maps",
+  purpose: "around",
   icon: "map",
   settings: {
     /** Enable map guidance and its controls without changing saved layer visibility. */

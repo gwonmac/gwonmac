@@ -8,6 +8,7 @@ export default defineFeature({
   name: "Chat Filters",
   summary: "Hide selected system notices before they enter chat.",
   kind: "chat",
+  purpose: "talk",
   icon: "funnel",
   settings: {
     /** Enable the certified in-client filter for selected system chat notices. */

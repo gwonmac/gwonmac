@@ -47,6 +47,7 @@ const manifest = (id: string, more: Partial<FeatureDefinition> = {}): FeatureDef
   name: "Example",
   summary: "Does one thing.",
   kind: "helpers",
+  purpose: "fight",
   icon: "bell",
   activation: { kind: "setting", setting: `${id}Enabled`, master: "gwonmacTools" },
   region: "pve",
@@ -62,6 +63,7 @@ const folder = (feature: FeatureDefinition, more: Partial<FeatureFolder> = {}): 
   changelog: "## Unreleased\n",
   ...more,
 });
+const withoutPurpose = ({ purpose, ...rest }: FeatureDefinition): FeatureDefinition => (void purpose, rest);
 const label = { label: "Example", help: "Turns Example on." };
 const option = <const More extends object>(more: More) => ({ kind: "boolean" as const, fallback: false, read: () => false, ...more });
 
@@ -150,6 +152,16 @@ const cases: readonly Case[] = [
     check: "main part matches main.ts",
     folders: [folder(manifest("quickNote", { parts: ["game", "main"] }))],
     message: "app/features/quick-note/feature.ts: parts lists \"main\", but the folder has no main.ts.",
+  },
+  {
+    check: "a card names a purpose",
+    folders: [folder(withoutPurpose(manifest("quickNote")))],
+    message: "app/features/quick-note/feature.ts: no purpose; the Features tab groups every card by it (one of FEATURE_PURPOSES in app/features/define.ts).",
+  },
+  {
+    check: "the launch mode names no purpose",
+    folders: [folder(manifest("quickNote", { kind: "mode" }))],
+    message: "app/features/quick-note/feature.ts: the launch mode is the plain-game strip, not a card; remove purpose.",
   },
   {
     check: "network needs a main part",

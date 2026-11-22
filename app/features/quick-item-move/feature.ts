@@ -6,6 +6,7 @@ export default defineFeature({
   name: "Quick Item Move",
   summary: "Control-click items to move whole stacks through open storage or trade windows. Add Shift to choose an amount.",
   kind: "items",
+  purpose: "inventory",
   icon: "mouse-pointer-click",
   settings: {
     /** Move clicked item stacks through the open storage or trade window. */

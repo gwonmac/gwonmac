@@ -238,8 +238,8 @@ describe("unified launcher shell", () => {
     installNative({ feedback: { send } });
     const wrapper = mount(App);
     await flushPromises();
-    expect(wrapper.findAll(".titlebar nav button").map((button) => button.text())).toEqual(["Home", "News", "Accounts", "Help"]);
-    await wrapper.findAll(".titlebar nav button")[3]!.trigger("click");
+    expect(wrapper.findAll(".titlebar nav button").map((button) => button.text())).toEqual(["Home", "News", "Accounts", "Features", "Help"]);
+    await wrapper.findAll(".titlebar nav button")[4]!.trigger("click");
     expect(wrapper.get(".help-page h1").text()).toBe("Known issues");
     await wrapper.findAll(".help-nav button").find((button) => button.text() === "Report a problem")!.trigger("click");
     await wrapper.get(".feedback-form textarea").setValue("Add a damage monitor.");

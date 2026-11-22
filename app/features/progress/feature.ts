@@ -6,6 +6,7 @@ export default defineFeature({
   name: "Progress",
   summary: "See what a title goal still needs for this character, one trip per missing place.",
   kind: "maps",
+  purpose: "around",
   icon: "list-checks",
   activation: { kind: "setting", setting: "travelPalette", master: "gwonmacTools" },
   region: "pve",

@@ -11,6 +11,7 @@ export default defineFeature({
   name: "Travel",
   summary: "Search destinations and travel between outposts.",
   kind: "maps",
+  purpose: "around",
   icon: "map-pin",
   settings: {
     /** Allow the focused Travel palette and its explicit map command. */
