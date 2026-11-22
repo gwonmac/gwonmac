@@ -13,15 +13,15 @@ import {
   installSkillBarGraph,
 } from "../fixtures/enhancements.ts";
 
+const FEATURES = FEATURE_TOOLBOX_FOUNDATION | FEATURE_PLAY_REGION_OBSERVATION
+  | FEATURE_SKILL_SLOT_GEOMETRY;
+
 describe("skill-slot geometry kernel", () => {
   it("publishes all eight rectangles or no geometry", async () => {
     const kernel = await createKernel();
     installSkillBarGraph(kernel.view);
     assert.equal(kernel.init({ features: FEATURE_SKILL_SLOT_GEOMETRY }), 0);
-    assert.equal(kernel.init({
-      features: FEATURE_TOOLBOX_FOUNDATION | FEATURE_PLAY_REGION_OBSERVATION
-        | FEATURE_SKILL_SLOT_GEOMETRY,
-    }), 1);
+    assert.equal(kernel.init({ features: FEATURES }), 1);
     kernel.tick(1);
     const ready = kernel.skillSlots();
     assert.equal(ready.status, "ready");
@@ -49,10 +49,7 @@ describe("skill-slot geometry kernel", () => {
       kernel.view.setFloat32(frame + 0x110, -12, true);
       kernel.view.setFloat32(frame + 0x118, 36, true);
     }
-    assert.equal(kernel.init({
-      features: FEATURE_TOOLBOX_FOUNDATION | FEATURE_PLAY_REGION_OBSERVATION
-        | FEATURE_SKILL_SLOT_GEOMETRY,
-    }), 1);
+    assert.equal(kernel.init({ features: FEATURES }), 1);
 
     kernel.tick(1);
 
@@ -71,10 +68,7 @@ describe("skill-slot geometry kernel", () => {
     const kernel = await createKernel();
     installSkillBarGraph(kernel.view);
     installDuplicateSkillSlot(kernel.view);
-    assert.equal(kernel.init({
-      features: FEATURE_TOOLBOX_FOUNDATION | FEATURE_PLAY_REGION_OBSERVATION
-        | FEATURE_SKILL_SLOT_GEOMETRY,
-    }), 1);
+    assert.equal(kernel.init({ features: FEATURES }), 1);
     kernel.tick(1);
     assert.deepEqual(kernel.skillSlots(), {
       status: "waiting",
@@ -87,10 +81,7 @@ describe("skill-slot geometry kernel", () => {
     const kernel = await createKernel();
     installSkillBarGraph(kernel.view);
     installDuplicateSkillSlot(kernel.view, 1, false);
-    assert.equal(kernel.init({
-      features: FEATURE_TOOLBOX_FOUNDATION | FEATURE_PLAY_REGION_OBSERVATION
-        | FEATURE_SKILL_SLOT_GEOMETRY,
-    }), 1);
+    assert.equal(kernel.init({ features: FEATURES }), 1);
     kernel.tick(1);
     assert.equal(kernel.skillSlots().status, "ready");
 

@@ -36,125 +36,63 @@ function snapshot(overrides: Readonly<{
   return buffer;
 }
 
+const read = (overrides: Parameters<typeof snapshot>[0] = {}) =>
+  readCompanionPlayRegion(snapshot(overrides), 0);
+
+const ready = (overrides: Record<string, unknown> = {}) => ({
+  status: "ready",
+  sequence: 2,
+  mapId: 133,
+  instanceType: 0,
+  playRegion: "pve",
+  travelContext: "world",
+  characterKey: null,
+  unlockedMapWords: null,
+  guildHall: false,
+  hasGuildHall: false,
+  ...overrides,
+});
+
 describe("play-region snapshot ABI", () => {
   it("decodes only a complete certified PvE or PvP record", () => {
-    assert.deepEqual(readCompanionPlayRegion(snapshot(), 0), {
-      status: "ready",
-      sequence: 2,
-      mapId: 133,
-      instanceType: 0,
-      playRegion: "pve",
-      travelContext: "world",
-      characterKey: null,
-      unlockedMapWords: null,
-      guildHall: false,
-      hasGuildHall: false,
-    });
-    assert.deepEqual(readCompanionPlayRegion(snapshot({
-      mapId: 248,
-      instanceType: 1,
-      playRegion: 2,
-    }), 0), {
-      status: "ready",
-      sequence: 2,
-      mapId: 248,
-      instanceType: 1,
-      playRegion: "pvp",
-      travelContext: "world",
-      characterKey: null,
-      unlockedMapWords: null,
-      guildHall: false,
-      hasGuildHall: false,
-    });
+    assert.deepEqual(read(), ready());
+    assert.deepEqual(
+      read({ mapId: 248, instanceType: 1, playRegion: 2 }),
+      ready({ mapId: 248, instanceType: 1, playRegion: "pvp" }),
+    );
   });
 
-  it("publishes Pre-Searing only beside a ready PvE record", () => {
-    assert.deepEqual(readCompanionPlayRegion(snapshot({ flags: 17, mapId: 148 }), 0), {
-      status: "ready",
-      sequence: 2,
-      mapId: 148,
-      instanceType: 0,
-      playRegion: "pve",
-      travelContext: "pre-searing",
-      characterKey: null,
-      unlockedMapWords: null,
-      guildHall: false,
-      hasGuildHall: false,
-    });
-    assert.deepEqual(readCompanionPlayRegion(snapshot({
-      flags: 17,
-      mapId: 148,
-      instanceType: 1,
-      playRegion: 2,
-    }), 0), { status: "waiting", reason: "corrupt" });
-    assert.deepEqual(readCompanionPlayRegion(snapshot({
-      flags: 16, mapId: 0, instanceType: 0, playRegion: 0,
-    }), 0), { status: "waiting", reason: "snapshot" });
-  });
-
-  it("publishes Guild Hall presence and the current Guild Hall state", () => {
-    assert.deepEqual(readCompanionPlayRegion(snapshot({ flags: 65 }), 0), {
-      status: "ready",
-      sequence: 2,
-      mapId: 133,
-      instanceType: 0,
-      playRegion: "pve",
-      travelContext: "world",
-      characterKey: null,
-      unlockedMapWords: null,
-      guildHall: false,
-      hasGuildHall: true,
-    });
-    assert.deepEqual(readCompanionPlayRegion(snapshot({ flags: 97 }), 0), {
-      status: "ready",
-      sequence: 2,
-      mapId: 133,
-      instanceType: 0,
-      playRegion: "pve",
-      travelContext: "world",
-      characterKey: null,
-      unlockedMapWords: null,
-      guildHall: true,
-      hasGuildHall: true,
-    });
+  it("publishes Pre-Searing and Guild Hall flags only beside a ready record", () => {
+    assert.deepEqual(
+      read({ flags: 17, mapId: 148 }),
+      ready({ mapId: 148, travelContext: "pre-searing" }),
+    );
+    assert.deepEqual(read({ flags: 65 }), ready({ hasGuildHall: true }));
+    assert.deepEqual(
+      read({ flags: 97 }),
+      ready({ guildHall: true, hasGuildHall: true }),
+    );
   });
 
   it("fails closed for memory, torn headers, contradictory flags, and values", () => {
-    assert.deepEqual(readCompanionPlayRegion(new ArrayBuffer(COMPANION_PLAY_REGION_BYTES - 1), 0), {
-      status: "waiting", reason: "memory",
-    });
-    assert.deepEqual(readCompanionPlayRegion(snapshot({ sequence: 3 }), 0), {
-      status: "waiting", reason: "writing",
-    });
-    assert.deepEqual(readCompanionPlayRegion(snapshot({ magic: 0 }), 0), {
-      status: "waiting", reason: "snapshot",
-    });
-    assert.deepEqual(readCompanionPlayRegion(snapshot({ flags: 3 }), 0), {
-      status: "waiting", reason: "snapshot",
-    });
-    assert.deepEqual(readCompanionPlayRegion(snapshot({ mapId: 2_001 }), 0), {
-      status: "waiting", reason: "corrupt",
-    });
-    assert.deepEqual(readCompanionPlayRegion(snapshot({ playRegion: 0 }), 0), {
-      status: "waiting", reason: "corrupt",
-    });
-    assert.deepEqual(readCompanionPlayRegion(snapshot({ flags: 33 }), 0), {
-      status: "waiting", reason: "corrupt",
-    });
-  });
-
-  it("requires loading and unavailable publications to clear every value", () => {
-    assert.deepEqual(readCompanionPlayRegion(snapshot({
-      flags: 2, mapId: 0, instanceType: 0, playRegion: 0,
-    }), 0), { status: "waiting", reason: "loading" });
-    assert.deepEqual(readCompanionPlayRegion(snapshot({
-      flags: 0, mapId: 0, instanceType: 0, playRegion: 0,
-    }), 0), { status: "waiting", reason: "game" });
-    assert.deepEqual(readCompanionPlayRegion(snapshot({ flags: 2 }), 0), {
-      status: "waiting", reason: "corrupt",
-    });
-    assert.deepEqual(readCompanionPlayRegion(snapshot({ flags: 0 }), 0), {
-      status: "waiting", reason: "corrupt",
-    });
+    const cleared = { mapId: 0, instanceType: 0, playRegion: 0 };
+    const cases: [name: string, state: ReturnType<typeof read>, reason: string][] = [
+      ["short buffer", readCompanionPlayRegion(new ArrayBuffer(COMPANION_PLAY_REGION_BYTES - 1), 0), "memory"],
+      ["odd sequence", read({ sequence: 3 }), "writing"],
+      ["wrong magic", read({ magic: 0 }), "snapshot"],
+      ["flags 3", read({ flags: 3 }), "snapshot"],
+      ["map id out of range", read({ mapId: 2_001 }), "corrupt"],
+      ["ready without a region", read({ playRegion: 0 }), "corrupt"],
+      ["flags 33", read({ flags: 33 }), "corrupt"],
+      ["pre-searing with PvP", read({ flags: 17, mapId: 148, instanceType: 1, playRegion: 2 }), "corrupt"],
+      ["pre-searing without a ready record", read({ flags: 16, ...cleared }), "snapshot"],
+      ["loading clears every value", read({ flags: 2, ...cleared }), "loading"],
+      ["unavailable clears every value", read({ flags: 0, ...cleared }), "game"],
+      ["loading with values", read({ flags: 2 }), "corrupt"],
+      ["unavailable with values", read({ flags: 0 }), "corrupt"],
+    ];
+    for (const [name, state, reason] of cases) {
+      assert.deepEqual(state, { status: "waiting", reason }, name);
+    }
   });
 });

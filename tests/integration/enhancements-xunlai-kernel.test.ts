@@ -16,6 +16,10 @@ import {
 const XUNLAI_FEATURES =
   FEATURE_GAME_SNAPSHOT | FEATURE_PLAY_REGION_OBSERVATION;
 
+const accessOf = (kernel: Awaited<ReturnType<typeof createKernel>>) =>
+  decoded(readCompanionSnapshot(kernel.memory.buffer, ADDRESSES.snapshot))
+    .xunlaiAccess;
+
 describe("Companion Xunlai access kernel", () => {
   it("publishes access from the player record without a party", async () => {
     const kernel = await createKernel({ partyDetail: true });
@@ -24,10 +28,10 @@ describe("Companion Xunlai access kernel", () => {
     assert.equal(kernel.init({ features: XUNLAI_FEATURES }), 1);
 
     kernel.tick();
+    assert.equal(accessOf(kernel), true);
     const storageOnly = decoded(
       readCompanionSnapshot(kernel.memory.buffer, ADDRESSES.snapshot),
     );
-    assert.equal(storageOnly.xunlaiAccess, true);
     assert.equal(storageOnly.targetValid, false);
     assert.equal(storageOnly.targetId, 0);
 
@@ -37,11 +41,7 @@ describe("Companion Xunlai access kernel", () => {
       true,
     );
     kernel.tick();
-    assert.equal(
-      decoded(readCompanionSnapshot(kernel.memory.buffer, ADDRESSES.snapshot))
-        .xunlaiAccess,
-      false,
-    );
+    assert.equal(accessOf(kernel), false);
 
     kernel.view.setUint32(
       PLAYER_RECORD_ADDRESS + DETAIL.playerAccessFlags,
@@ -51,58 +51,36 @@ describe("Companion Xunlai access kernel", () => {
     const area = ADDRESSES.areaInfo + 133 * 0x7c;
     kernel.view.setUint32(area + 0x10, 0x1, true);
     kernel.tick();
-    assert.equal(
-      decoded(readCompanionSnapshot(kernel.memory.buffer, ADDRESSES.snapshot))
-        .xunlaiAccess,
-      false,
-    );
+    assert.equal(accessOf(kernel), false);
 
     kernel.view.setUint32(ADDRESSES.character + 0x19c, 1, true);
     kernel.view.setUint32(ADDRESSES.character + 0x23c, 1, true);
     kernel.tick();
-    assert.equal(
-      decoded(readCompanionSnapshot(kernel.memory.buffer, ADDRESSES.snapshot))
-        .xunlaiAccess,
-      false,
-    );
+    assert.equal(accessOf(kernel), false);
 
     kernel.view.setUint32(ADDRESSES.character + 0x19c, 0, true);
     kernel.view.setUint32(ADDRESSES.character + 0x23c, 0, true);
     kernel.view.setUint32(area + 0x10, 0, true);
     kernel.view.setUint32(area + DETAIL.areaInfoType, 7, true);
     kernel.tick();
-    assert.equal(
-      decoded(readCompanionSnapshot(kernel.memory.buffer, ADDRESSES.snapshot))
-        .xunlaiAccess,
-      false,
-    );
+    assert.equal(accessOf(kernel), false);
 
     kernel.view.setUint32(area + DETAIL.areaInfoType, 28, true);
     kernel.tick();
-    assert.equal(
-      decoded(readCompanionSnapshot(kernel.memory.buffer, ADDRESSES.snapshot))
-        .xunlaiAccess,
-      null,
-    );
+    assert.equal(accessOf(kernel), null);
 
     kernel.view.setUint32(area + DETAIL.areaInfoType, 0, true);
     kernel.view.setUint32(ADDRESSES.character + 0x19c, 1, true);
     kernel.view.setUint32(ADDRESSES.character + 0x23c, 1, true);
     kernel.tick();
-    assert.equal(
-      decoded(readCompanionSnapshot(kernel.memory.buffer, ADDRESSES.snapshot))
-        .xunlaiAccess,
-      false,
-    );
+    assert.equal(accessOf(kernel), false);
   });
 
   it("revokes access on corrupt records and character transitions", async () => {
     const kernel = await createKernel({ partyDetail: true });
     installGameGraph(kernel.view);
     assert.equal(kernel.init({ features: XUNLAI_FEATURES }), 1);
-    const access = () =>
-      decoded(readCompanionSnapshot(kernel.memory.buffer, ADDRESSES.snapshot))
-        .xunlaiAccess;
+    const access = () => accessOf(kernel);
 
     kernel.tick();
     assert.equal(access(), true);
@@ -154,10 +132,6 @@ describe("Companion Xunlai access kernel", () => {
     assert.equal(kernel.init({ features: XUNLAI_FEATURES }), 1);
 
     kernel.tick();
-    assert.equal(
-      decoded(readCompanionSnapshot(kernel.memory.buffer, ADDRESSES.snapshot))
-        .xunlaiAccess,
-      null,
-    );
+    assert.equal(accessOf(kernel), null);
   });
 });

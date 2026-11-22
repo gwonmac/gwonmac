@@ -97,17 +97,31 @@ describe("integration: patch updater", () => {
         : { status: 404, body: new Uint8Array() };
     };
 
+    const makeClient = (
+      fetch: PatchFetch = fetchFixture,
+      onProgress?: (p: DownloadProgress) => void,
+    ) => new PatchClient({
+      artifactsDir: artifacts,
+      chunksDir: chunks,
+      patchRoot: rootUrl,
+      fetch,
+      ...(onProgress ? { onProgress } : {}),
+    });
+    // Counts every request the wrapped client makes.
+    const counted = () => {
+      const counter = { fetches: 0 };
+      const fetch: PatchFetch = async (url, init) => {
+        counter.fetches += 1;
+        return fetchFixture(url, init);
+      };
+      return { counter, fetch };
+    };
+
     // "ready" means the main process has an active client, which only
     // ClientRuntime can know. A premature one here let the renderer read
     // snapshot metadata before a client existed and stream the whole game.
     const phases: DownloadProgress["phase"][] = [];
-    const client = new PatchClient({
-      artifactsDir: artifacts,
-      chunksDir: chunks,
-      patchRoot: rootUrl,
-      fetch: fetchFixture,
-      onProgress: (p) => phases.push(p.phase),
-    });
+    const client = makeClient(fetchFixture, (p) => phases.push(p.phase));
 
     const initial = await client.update();
     assert.equal(initial.published, true);
@@ -116,19 +130,10 @@ describe("integration: patch updater", () => {
     assert.equal(initial.candidate, false);
     assert.equal((await readFile(join(artifacts, "Gw.jspi.js"))).toString(), js.toString());
     assert.equal((await stat(join(artifacts, "Gw.jspi.wasm"))).size, wasm.length);
-    let fetches = 0;
-    const client2 = new PatchClient({
-      artifactsDir: artifacts,
-      chunksDir: chunks,
-      patchRoot: rootUrl,
-      fetch: async (url, init) => {
-        fetches += 1;
-        return fetchFixture(url, init);
-      },
-      onProgress: (p) => phases.push(p.phase),
-    });
+    const second = counted();
+    const client2 = makeClient(second.fetch, (p) => phases.push(p.phase));
     await client2.update();
-    assert.equal(fetches, 1);
+    assert.equal(second.counter.fetches, 1);
     // The up-to-date fast path is the one that used to announce readiness.
     assert.deepEqual(phases.filter((phase) => phase === "ready"), []);
 
@@ -195,18 +200,12 @@ describe("integration: patch updater", () => {
       await readRejectedClient(rejectedPath, "1.0.0"),
       supersedingCandidate.fingerprint,
     );
-    let blockedFetches = 0;
-    const blocked = await new PatchClient({
-      artifactsDir: artifacts,
-      chunksDir: chunks,
-      patchRoot: rootUrl,
-      fetch: async (url, init) => {
-        blockedFetches += 1;
-        return fetchFixture(url, init);
-      },
-    }).update({ blockedFingerprint: supersedingCandidate.fingerprint });
+    const blockedCount = counted();
+    const blocked = await makeClient(blockedCount.fetch).update({
+      blockedFingerprint: supersedingCandidate.fingerprint,
+    });
     assert.equal(blocked.blocked, true);
-    assert.equal(blockedFetches, 1);
+    assert.equal(blockedCount.counter.fetches, 1);
 
     // A different upstream client gets one fresh attempt and is promoted by
     // the first-frame milestone.
@@ -235,34 +234,19 @@ describe("integration: patch updater", () => {
     await rename(artifacts, `${artifacts}.previous`);
     await mkdir(`${artifacts}.next`);
     await writeFile(join(`${artifacts}.next`, "incomplete"), "partial");
-    const recovering = new PatchClient({
-      artifactsDir: artifacts,
-      chunksDir: chunks,
-      patchRoot: rootUrl,
-      fetch: fetchFixture,
-    });
-    await recovering.update();
+    await makeClient().update();
     assert.equal((await readFile(join(artifacts, "Gw.jspi.js"))).toString(), js.toString());
     await assert.rejects(() => stat(`${artifacts}.previous`));
     await assert.rejects(() => stat(`${artifacts}.next`));
 
     // Same-size corruption must not fool the updater's unchanged fast path.
     await writeFile(join(artifacts, "Gw.jspi.js"), Buffer.alloc(js.length, 0x58));
-    let repairFetches = 0;
-    const repairing = new PatchClient({
-      artifactsDir: artifacts,
-      chunksDir: chunks,
-      patchRoot: rootUrl,
-      fetch: async (url, init) => {
-        repairFetches += 1;
-        return fetchFixture(url, init);
-      },
-    });
-    const repaired = await repairing.update({
+    const repair = counted();
+    const repaired = await makeClient(repair.fetch).update({
       blockedFingerprint: freshCandidate.fingerprint,
     });
     assert.equal((await readFile(join(artifacts, "Gw.jspi.js"))).toString(), js.toString());
-    assert.equal(repairFetches, 1);
+    assert.equal(repair.counter.fetches, 1);
     assert.equal(repaired.blocked, false);
     assert.equal(repaired.candidate, false);
     await assert.rejects(() => stat(`${artifacts}.previous`));
@@ -275,19 +259,10 @@ describe("integration: patch updater", () => {
     assert(jsChunk);
     await writeFile(join(artifacts, "Gw.jspi.js"), Buffer.alloc(js.length, 0x59));
     await writeFile(join(chunks, jsHash), Buffer.alloc(jsChunk.length, 0x5a));
-    let corruptChunkFetches = 0;
-    const repairingChunk = new PatchClient({
-      artifactsDir: artifacts,
-      chunksDir: chunks,
-      patchRoot: rootUrl,
-      fetch: async (url, init) => {
-        corruptChunkFetches += 1;
-        return fetchFixture(url, init);
-      },
-    });
-    await repairingChunk.update();
+    const corruptChunk = counted();
+    await makeClient(corruptChunk.fetch).update();
     assert.equal((await readFile(join(artifacts, "Gw.jspi.js"))).toString(), js.toString());
-    assert.equal(corruptChunkFetches, 2);
+    assert.equal(corruptChunk.counter.fetches, 2);
 
     // No member of a new client set is published until every member is complete.
     const nextJs = Buffer.from("new-jspi-glue");
@@ -304,14 +279,8 @@ describe("integration: patch updater", () => {
     wasmEntry.size = nextWasm.length;
     wasmEntry.chunkHashes = [nextWasmHash];
     const beforeWasm = await readFile(join(artifacts, "Gw.jspi.wasm"));
-    const interrupted = new PatchClient({
-      artifactsDir: artifacts,
-      chunksDir: chunks,
-      patchRoot: rootUrl,
-      fetch: fetchFixture,
-    });
     await assert.rejects(
-      () => interrupted.update(),
+      () => makeClient().update(),
       (error) => error instanceof HttpStatusError && error.status === 404,
     );
     assert.equal((await readFile(join(artifacts, "Gw.jspi.js"))).toString(), js.toString());

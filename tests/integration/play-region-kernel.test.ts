@@ -14,11 +14,18 @@ import {
 } from "../fixtures/enhancements.ts";
 
 const AREA_133 = ADDRESSES.areaInfo + 133 * 0x7c;
-const OBSERVED_CHARACTER = Object.freeze({
+const region = (sequence: number, overrides: Record<string, unknown> = {}) => ({
+  status: "ready",
+  sequence,
+  mapId: 133,
+  instanceType: 0,
+  playRegion: "pve",
+  travelContext: "world",
   characterKey: "e7ecfb4f6e006495",
   unlockedMapWords: null,
   guildHall: false,
   hasGuildHall: false,
+  ...overrides,
 });
 
 describe("play-region kernel", () => {
@@ -31,41 +38,20 @@ describe("play-region kernel", () => {
     assert.equal(kernel.init({ features: FEATURE_PLAY_REGION_OBSERVATION }), 1);
 
     kernel.tick();
-    assert.deepEqual(kernel.playRegion(), {
-      status: "ready",
-      sequence: 4,
-      mapId: 133,
-      instanceType: 0,
-      playRegion: "pve",
-      travelContext: "world",
-      ...OBSERVED_CHARACTER,
-    });
+    assert.deepEqual(kernel.playRegion(), region(4));
 
     // GWToolbox++ disables from the map flag alone, including in an outpost.
     kernel.view.setUint32(AREA_133 + 0x10, 1, true);
     kernel.tick();
-    assert.deepEqual(kernel.playRegion(), {
-      status: "ready",
-      sequence: 6,
-      mapId: 133,
-      instanceType: 0,
-      playRegion: "pvp",
-      travelContext: "world",
-      ...OBSERVED_CHARACTER,
-    });
+    assert.deepEqual(kernel.playRegion(), region(6, { playRegion: "pvp" }));
 
     kernel.view.setUint32(ADDRESSES.character + 0x19c, 1, true);
     kernel.view.setUint32(ADDRESSES.character + 0x23c, 1, true);
     kernel.tick();
-    assert.deepEqual(kernel.playRegion(), {
-      status: "ready",
-      sequence: 8,
-      mapId: 133,
-      instanceType: 1,
-      playRegion: "pvp",
-      travelContext: "world",
-      ...OBSERVED_CHARACTER,
-    });
+    assert.deepEqual(
+      kernel.playRegion(),
+      region(8, { instanceType: 1, playRegion: "pvp" }),
+    );
   });
 
   it("publishes the current Guild Hall and whether the character has one", async () => {
@@ -156,17 +142,7 @@ describe("play-region kernel", () => {
     }
   });
 
-  it("decouples both skill observations from Toolbox", async () => {
-    const geometryWithoutRegion = await createKernel();
-    assert.equal(geometryWithoutRegion.init({
-      features: FEATURE_SKILL_SLOT_GEOMETRY,
-    }), 0);
-
-    const geometry = await createKernel();
-    assert.equal(geometry.init({
-      features: FEATURE_PLAY_REGION_OBSERVATION | FEATURE_SKILL_SLOT_GEOMETRY,
-    }), 1);
-
+  it("decouples skill cooldowns from Toolbox", async () => {
     const cooldownWithoutRegion = await createKernel();
     installPlayerSkillbarConfig(cooldownWithoutRegion.config);
     assert.equal(cooldownWithoutRegion.init({

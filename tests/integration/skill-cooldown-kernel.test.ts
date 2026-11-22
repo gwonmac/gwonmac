@@ -18,6 +18,8 @@ import {
 const FEATURES = FEATURE_PLAY_REGION_OBSERVATION
   | FEATURE_SKILL_COOLDOWN_OBSERVATION;
 
+const GAME_WAIT = { status: "waiting", reason: "game" };
+
 function rechargeAddress(row: number, slot: number): number {
   return row + DETAIL.skillbarSkills + slot * DETAIL.skillSlotStride + 0x08;
 }
@@ -63,10 +65,7 @@ describe("skill cooldown kernel", () => {
       true,
     );
     kernel.tick(0, 10_000);
-    assert.deepEqual(kernel.skillCooldowns(), {
-      status: "waiting",
-      reason: "game",
-    });
+    assert.deepEqual(kernel.skillCooldowns(), GAME_WAIT);
   });
 
   it("validates the cached row and periodically re-audits table ambiguity", async () => {
@@ -100,10 +99,7 @@ describe("skill cooldown kernel", () => {
       "the bounded table audit has not reached its interval",
     );
     kernel.tick(0, 10_000);
-    assert.deepEqual(kernel.skillCooldowns(), {
-      status: "waiting",
-      reason: "game",
-    });
+    assert.deepEqual(kernel.skillCooldowns(), GAME_WAIT);
 
     kernel.view.setUint32(ADDRESSES.skillbarBuffer, 77, true);
     kernel.view.setUint32(
@@ -126,25 +122,16 @@ describe("skill cooldown kernel", () => {
       true,
     );
     kernel.tick(0, 10_000);
-    assert.deepEqual(kernel.skillCooldowns(), {
-      status: "waiting",
-      reason: "game",
-    }, "a cached-row identity failure audits and rejects duplicates immediately");
+    assert.deepEqual(kernel.skillCooldowns(), GAME_WAIT, "a cached-row identity failure audits and rejects duplicates immediately");
 
     kernel.view.setUint32(playerRow, 7, true);
     const skillbarArray = ADDRESSES.world + DETAIL.skillbars;
     kernel.view.setUint32(skillbarArray + 8, 0, true);
     kernel.tick(0, 10_000);
-    assert.deepEqual(kernel.skillCooldowns(), {
-      status: "waiting",
-      reason: "game",
-    });
+    assert.deepEqual(kernel.skillCooldowns(), GAME_WAIT);
     kernel.view.setUint32(skillbarArray + 8, 3, true);
     kernel.tick(0, 10_000);
-    assert.deepEqual(kernel.skillCooldowns(), {
-      status: "waiting",
-      reason: "game",
-    }, "table recovery audits and rejects duplicates before reusing a cached row");
+    assert.deepEqual(kernel.skillCooldowns(), GAME_WAIT, "table recovery audits and rejects duplicates before reusing a cached row");
   });
 
   it("withdraws the whole record while loading or in PvP", async () => {
@@ -169,17 +156,11 @@ describe("skill cooldown kernel", () => {
     assert.equal(kernel.skillCooldowns().status, "ready");
     kernel.view.setUint32(ADDRESSES.areaInfo + 133 * 0x7c + 0x10, 1, true);
     kernel.tick(0, 10_000);
-    assert.deepEqual(kernel.skillCooldowns(), {
-      status: "waiting",
-      reason: "game",
-    });
+    assert.deepEqual(kernel.skillCooldowns(), GAME_WAIT);
 
     kernel.view.setUint32(ADDRESSES.character + 0x19c, 1, true);
     kernel.view.setUint32(ADDRESSES.character + 0x23c, 1, true);
     kernel.tick(0, 10_000);
-    assert.deepEqual(kernel.skillCooldowns(), {
-      status: "waiting",
-      reason: "game",
-    });
+    assert.deepEqual(kernel.skillCooldowns(), GAME_WAIT);
   });
 });
