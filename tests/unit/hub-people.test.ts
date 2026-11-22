@@ -111,15 +111,17 @@ test('a person page offers Invite to party and, for a friend elsewhere, Travel a
   }, party);
 });
 
-test('invite rows explain why they are unavailable and stay absent without Whispers', async () => {
+test('invite rows explain why they are unavailable and stay without Whispers', async () => {
   const { party } = invitePort({ unavailable: () => 'Invite players from an outpost', travelUnavailable: () => 'You are already in this outpost' });
   await withPeople(ALL_TOOLS, ({ source, page }) => {
     void source.search('mo kaiser')[0]!.run(task);
     assert.deepEqual(actions(page()).slice(2), ['Invite to party (Invite players from an outpost)', 'Travel and invite (You are already in this outpost)']);
   }, party);
+  // An invite goes through game.chat, so it needs no Whispers; only the whisper row goes.
   await withPeople({ gwonmacTools: true, whispersEnabled: false, travelPalette: true }, ({ source, page }) => {
     void source.search('mo kaiser')[0]!.run(task);
-    assert.deepEqual(actions(page()), ['Travel to outpost']);
+    assert.deepEqual(actions(page()), ['Travel to outpost', 'Invite to party (Invite players from an outpost)', 'Travel and invite (You are already in this outpost)']);
+    assert.deepEqual(source.search('whisper mo kaiser'), []);
   }, party);
 });
 

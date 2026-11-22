@@ -19,7 +19,7 @@ const EMPTY_MODULE = new WebAssembly.Module(new Uint8Array([0, 0x61, 0x73, 0x6d,
 
 function start(t: test.TestContext, without: readonly EnhancementCapability[] = []) {
   const capabilities = capabilityRecord((capability) => !without.includes(capability));
-  const { observation, skills } = createToolsSubstrates(EMPTY_MODULE, capabilities, "none");
+  const { observation, chat, skills } = createToolsSubstrates(EMPTY_MODULE, capabilities, "none");
   const playRegions = createPlayRegionObservationInstallation(capabilities.playRegionObservation);
   t.after(() => { skills.geometry.dispose(); skills.cooldowns.dispose(); playRegions.dispose(); });
   const canvas = { getBoundingClientRect: () => ({ left: 0, top: 0, width: 800, height: 600 }) };
@@ -32,7 +32,7 @@ function start(t: test.TestContext, without: readonly EnhancementCapability[] = 
   const context = {
     snapshot: () => ({ settings }),
     policy: () => ({ skillCooldowns: on }),
-    game: createGameBlocks({ capabilities, observation, playRegions, skills, syncObservers }),
+    game: createGameBlocks({ capabilities, observation, chat, playRegions, skills, syncObservers }),
     ui: createUiBlocks({ capabilities, hud, skills, document, syncObservers }),
   } as unknown as ToolsActivation;
   const prepared = skillCooldowns.prepare({ capabilities } as ToolsPrepareInput) as PreparedToolsPart;

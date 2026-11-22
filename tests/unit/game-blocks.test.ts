@@ -21,7 +21,7 @@ const EMPTY_MODULE = new WebAssembly.Module(new Uint8Array([0, 0x61, 0x73, 0x6d,
 
 function setup(t: test.TestContext, without: readonly EnhancementCapability[] = []) {
   const capabilities = capabilityRecord((capability) => !without.includes(capability));
-  const { observation, skills } = createToolsSubstrates(EMPTY_MODULE, capabilities, "none");
+  const { observation, chat, skills } = createToolsSubstrates(EMPTY_MODULE, capabilities, "none");
   t.after(() => { skills.geometry.dispose(); skills.cooldowns.dispose(); });
   const pointer = { pointer: 0 };
   // The installer hands each part Core's activation; observation reads only Core's pointers.
@@ -33,7 +33,7 @@ function setup(t: test.TestContext, without: readonly EnhancementCapability[] = 
   t.after(() => playRegions.dispose());
   let syncs = 0;
   const syncObservers = () => { syncs += 1; };
-  const game = createGameBlocks({ capabilities, observation, playRegions, skills, syncObservers });
+  const game = createGameBlocks({ capabilities, observation, chat, playRegions, skills, syncObservers });
   // The game's canvas fills an 800 × 600 window.
   const view = new EventTarget();
   const canvas = { getBoundingClientRect: () => ({ left: 0, top: 0, width: 800, height: 600 }) };

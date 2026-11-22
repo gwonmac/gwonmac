@@ -97,7 +97,7 @@ export function createHubPeople(hub: Pick<Hub, 'attach' | 'showRows' | 'notify'>
           await travel.run(selectedFriend, selectedFeed.generation);
           task.done();
         } });
-      if (party && toolEnabled('whispers')) {
+      if (party) {
         // Invites address a character; an offline friend has only an account alias.
         const target = friendKey ? friend?.character ?? '' : name;
         const offline = !!friendKey && (!friend || friend.status === 'offline' || !friend.character);
@@ -142,9 +142,10 @@ export function createHubPeople(hub: Pick<Hub, 'attach' | 'showRows' | 'notify'>
             return trip ? [{ ...trip, id: `person:travel:${friend.key}`, iconKind: 'person', title: name, group: 'Friends' }] : [];
           });
       }
-      // `whisper` and `invite` address one person; both need the Whispers chat mailbox.
-      const addressed = parsed.scope === 'whisper' || (parsed.scope === 'invite' && !!party);
-      if (parsed.scope && (!addressed || !whispersEnabled)) return [];
+      // `whisper` and `invite` address one person. A whisper needs Whispers; an invite goes
+      // through game.chat (`party` exists when the chat sender is proven), so it does not.
+      const addressed = (parsed.scope === 'whisper' && whispersEnabled) || (parsed.scope === 'invite' && !!party);
+      if (parsed.scope && !addressed) return [];
       if (parsed.scope === 'invite' && party && !parsed.term) {
         // `invite ` lists the online friends, those who can be invited now first, then by name.
         // No name was typed, so Hub preselects none of them; a chosen row invites by character name.

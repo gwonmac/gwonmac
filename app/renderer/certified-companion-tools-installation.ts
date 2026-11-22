@@ -166,6 +166,7 @@ function activateParts(
       game: createGameBlocks({
         capabilities,
         observation: input.substrates.observation,
+        chat: input.substrates.chat,
         playRegions: context.playRegions,
         skills: input.substrates.skills,
         syncObservers: syncBlockDemand,

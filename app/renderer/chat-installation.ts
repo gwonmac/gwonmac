@@ -1,14 +1,15 @@
 /**
- * Owns one generation's private chat region and explicit submission of a
- * whisper or a party invite. Only game-observed log records leave this
- * adapter; no IPC or files are used.
+ * Owns one generation's private chat region (the region named "whispers") and
+ * explicit submission of a whisper or a party invite through its send slot.
+ * `game.chat` (game-blocks.ts) is its one user. Only game-observed log records
+ * leave this adapter; no IPC or files are used.
  */
-import { COMPANION_ABI } from "../../../shared/companion-abi.js";
-import { WHISPER_MAILBOX as M, partyInviteLine, whisperLine, type ObservedChatEvent } from "../../../shared/whispers.js";
-import { readCompanionWhispers } from "./companion-whisper-snapshot.js";
+import { COMPANION_ABI } from "../shared/companion-abi.js";
+import { WHISPER_MAILBOX as M, partyInviteLine, whisperLine, type ObservedChatEvent } from "../shared/whispers.js";
+import { readCompanionWhispers } from "./companion-chat-snapshot.js";
 
 type Listener = (messages: readonly ObservedChatEvent[], missed: number) => void;
-export function createWhisperInstallation(exports: WebAssembly.Exports, available: boolean) {
+export function createChatInstallation(exports: WebAssembly.Exports, available: boolean) {
   const configure = available ? exports.enhancement_configure_whispers : null;
   const enqueue = available ? exports.enhancement_send_whisper : null;
   const enqueueInvite = available ? exports.enhancement_send_party_invite : null;
@@ -106,7 +107,7 @@ export function createWhisperInstallation(exports: WebAssembly.Exports, availabl
       let line: string;
       try { line = partyInviteLine(name); } catch (error) { return Promise.reject(error); }
       return submit({ kind: "invite", recipient: name, message: "" }, line, enqueueInvite,
-        "Party invites need Whispers enabled in a supported PvE outpost.",
+        "Party invites need a supported PvE outpost.",
         "Guild Wars is busy or the session changed. The invite was not sent.",
         "Guild Wars has not taken the invite. Check chat before trying again.");
     },
@@ -123,4 +124,4 @@ export function createWhisperInstallation(exports: WebAssembly.Exports, availabl
     },
   };
 }
-export type WhisperInstallation = ReturnType<typeof createWhisperInstallation>;
+export type ChatInstallation = ReturnType<typeof createChatInstallation>;

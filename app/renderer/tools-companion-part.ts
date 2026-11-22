@@ -38,12 +38,6 @@ export type FriendTravel = Readonly<{
   travelToFriend(friend: TravelFriend, generation: number): Promise<void>;
 }>;
 
-/** What Hub people and party invites use of the Whispers installation. */
-export type WhisperInvites = Readonly<{
-  enabled: boolean;
-  invite(name: string): Promise<void>;
-}>;
-
 export type ToolsPrepareInput = Readonly<{
   exports: WebAssembly.Exports;
   module: WebAssembly.Module;
