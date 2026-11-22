@@ -1,7 +1,11 @@
 // The release workflow's rules, in one place that `pnpm test` reaches.
 //
-// A maintainer or agent starts a fact-only release with one command:
+// A maintainer or agent prepares a release with one of two commands:
 //
+//   notes <version> [--dry-run]   before the release: stamps each feature's
+//                                 `## Unreleased` changes with the version and
+//                                 writes them as the `## Features` section of
+//                                 the version's release post
 //   facts <version> [--dry-run]   on hotfix/<version>: proves that everything
 //                                 since the release it patches is reviewed
 //                                 client facts, then pushes the branch, starts
@@ -29,15 +33,19 @@ import { spawnSync } from "node:child_process";
 import {
   appendFileSync,
   copyFileSync,
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readdirSync,
+  readFileSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import type { FeatureDefinition } from "../app/features/define.js";
+import { parseNewsStory, type ProjectNewsStory } from "../app/shared/launcher-news-feed.js";
 import { RELEASE_REPO, releaseAssetUrl } from "../app/shared/project-identity.js";
 import {
   formatReleaseVersion,
@@ -46,6 +54,7 @@ import {
   releaseAssetNames,
 } from "../app/shared/release.js";
 import { parseReleaseManifest } from "../app/shared/release-manifest.js";
+import { readFrontMatter } from "../app/shared/website-content.js";
 import { macOSBundleVersions } from "./macos-version.js";
 
 export interface Release {
@@ -138,6 +147,191 @@ export function groupReleaseNotes(generated: string): string {
     groups.other && `## Other changes\n${groups.other}\n`,
     rest,
   ].join("");
+}
+
+/** The heading each feature's CHANGELOG.md collects player-facing changes under (app/features/contract.ts). */
+const UNRELEASED = "## Unreleased";
+/** The release post section the notes command owns: each run replaces it. */
+const FEATURE_NOTES = "## Features";
+/** The last line of every release post (docs/launcher-news.md). */
+const TECHNICAL_RECORD = "[Technical release record]";
+
+export interface StampedChangelog {
+  /** The changes under `## Unreleased`, one per `- ` bullet, without the bullet. */
+  readonly entries: readonly string[];
+  /** Those changes under `## <version>` below a fresh empty `## Unreleased`; the input when there were none. */
+  readonly text: string;
+}
+
+/**
+ * Moves a feature changelog's `## Unreleased` changes under `## <version>` and
+ * puts an empty `## Unreleased` on top for the next release. An empty section
+ * stays as it is, so a feature without changes gets no empty version heading.
+ * Each change is one `- ` bullet; indented lines continue it.
+ */
+export function stampChangelog(text: string, version: string, file: string): StampedChangelog {
+  const lines = text.split("\n");
+  const start = lines.indexOf(UNRELEASED);
+  if (start < 0) {
+    throw new Error(`${file}: no "${UNRELEASED}" heading, so its changes cannot reach the release notes. Add it above the newest version.`);
+  }
+  const next = lines.findIndex((line, index) => index > start && line.startsWith("## "));
+  const end = next < 0 ? lines.length : next;
+  const section = lines.slice(start + 1, end);
+  const entries: string[] = [];
+  for (const line of section) {
+    const last = entries.length - 1;
+    if (line.startsWith("- ") && line.slice(2).trim()) entries.push(line.slice(2).trim());
+    else if (/^\s+\S/u.test(line) && last >= 0) entries[last] = `${entries[last]} ${line.trim()}`;
+    else if (line.trim()) {
+      throw new Error(`${file}: write each change under "${UNRELEASED}" as one "- " bullet, not ${JSON.stringify(line)}.`);
+    }
+  }
+  if (entries.length === 0) return { entries, text };
+  if (lines.includes(`## ${version}`)) {
+    throw new Error(`${file}: "## ${version}" is already stamped; move these changes into it by hand or release them in the next version.`);
+  }
+  const changes = section.join("\n").trim().split("\n");
+  const stamped = [...lines.slice(0, start), UNRELEASED, "", `## ${version}`, ...changes, "", ...lines.slice(end)];
+  return { entries, text: `${stamped.join("\n").trimEnd()}\n` };
+}
+
+/**
+ * The player release notes: one bullet per change, led by the feature's name
+ * from its manifest, features in name order and changes in the order written.
+ * Features without changes are left out; no changes at all gives "".
+ */
+export function featureReleaseNotes(features: readonly { readonly name: string; readonly entries: readonly string[] }[]): string {
+  const bullets = features
+    .filter(({ entries }) => entries.length > 0)
+    .sort((left, right) => left.name.localeCompare(right.name, "en"))
+    .flatMap(({ name, entries }) => entries.map((entry) => `- **${name}:** ${entry}`));
+  return bullets.length === 0 ? "" : `${FEATURE_NOTES}\n\n${bullets.join("\n")}\n`;
+}
+
+/**
+ * The release post with `notes` as its `## Features` section: in place of the
+ * one an earlier run wrote, otherwise before the post's first other section or
+ * its technical record link, so the summary and hand-written bullets stay first.
+ */
+export function withFeatureNotes(post: string, notes: string): string {
+  const lines = post.split("\n");
+  const body = lines.indexOf("---", 1) + 1;
+  const boundary = (from: number) => {
+    const found = lines.findIndex((line, index) => index >= from && (line.startsWith("## ") || line.startsWith(TECHNICAL_RECORD)));
+    return found < 0 ? lines.length : found;
+  };
+  const own = lines.indexOf(FEATURE_NOTES, body);
+  const start = own < 0 ? boundary(body) : own;
+  const end = own < 0 ? start : boundary(own + 1);
+  return [...lines.slice(0, start), ...notes.trimEnd().split("\n"), "", ...lines.slice(end)].join("\n");
+}
+
+/** The launcher id of a version's release post: the app bundles that post as the version's "What's new". */
+function releaseLauncherId(version: string): string {
+  return `gwonmac-${version.replaceAll(".", "-")}`;
+}
+
+function missingReleasePost(version: string): Error {
+  return new Error(
+    `Add one release post with launcherId ${releaseLauncherId(version)}, title "GWonMac ${version}" and draft: true (docs/launcher-news.md).`,
+  );
+}
+
+/**
+ * The news-v1 story website/scripts/generate-launcher-news.mjs makes of a post
+ * once it is published, checked by the parser installed apps use: a story it
+ * refuses makes every app drop the whole feed.
+ */
+export function releasePostStory(file: string, text: string): ProjectNewsStory {
+  const { fields, body } = readFrontMatter(text);
+  return parseNewsStory({
+    id: fields.launcherId,
+    source: fields.launcherSource,
+    channel: fields.launcherChannel,
+    title: fields.title,
+    summary: fields.description,
+    publishedAt: `${fields.date}T12:00:00Z`,
+    featured: fields.launcherFeatured === "true",
+    url: `/blog/${fields.slug || path.basename(file, ".md").replace(/^\d+\./u, "")}`,
+    body: body.trim(),
+  });
+}
+
+export interface ReleaseFile {
+  /** Repository-relative path. */
+  readonly file: string;
+  readonly text: string;
+}
+
+export interface FeatureChangelog extends ReleaseFile {
+  /** The feature's player name: `name` in its feature.ts. */
+  readonly name: string;
+}
+
+export interface ReleaseNotesPlan {
+  /** The `## Features` section, or "" when no feature has changes. */
+  readonly notes: string;
+  /** What the command writes, in order; a dry run prints them instead. */
+  readonly writes: readonly (ReleaseFile & { readonly change: string })[];
+}
+
+/**
+ * The release notes of `version` from every feature's `## Unreleased`, and the
+ * files that carry them: each changed CHANGELOG.md stamped with the version,
+ * and the version's draft release post with its `## Features` section. A
+ * pre-release writes only the post: its changes stay under `## Unreleased`
+ * until the Stable release that ships them, so that release lists them too.
+ */
+export function releaseNotesPlan(
+  version: string,
+  changelogs: readonly FeatureChangelog[],
+  posts: readonly ReleaseFile[],
+): ReleaseNotesPlan {
+  const release = releaseOf(version);
+  const launcherId = releaseLauncherId(version);
+  const [post, ...others] = posts.filter(({ text }) => readFrontMatter(text).fields.launcherId === launcherId);
+  const page = post && others.length === 0 ? readFrontMatter(post.text) : null;
+  if (!post || !page?.draft || page.fields.title !== `GWonMac ${version}`) throw missingReleasePost(version);
+
+  const stamped = changelogs.map((changelog) => ({ ...changelog, ...stampChangelog(changelog.text, version, changelog.file) }));
+  const notes = featureReleaseNotes(stamped);
+  if (!notes) return { notes, writes: [] };
+  const text = withFeatureNotes(post.text, notes);
+  try {
+    releasePostStory(post.file, text);
+  } catch (error) {
+    throw new Error(`${post.file}: with these notes the launcher news feed would refuse the post: ${(error as Error).message}.`, { cause: error });
+  }
+  const changed = release.prerelease ? [] : stamped.filter(({ entries }) => entries.length > 0);
+  return {
+    notes,
+    writes: [
+      ...changed.map(({ file, text: stampedText }) => ({ file, text: stampedText, change: `${UNRELEASED} becomes ## ${version}` })),
+      { file: post.file, text, change: `${FEATURE_NOTES} section` },
+    ],
+  };
+}
+
+/** Every feature's CHANGELOG.md with the name its manifest gives players. */
+async function featureChangelogs(root: string): Promise<FeatureChangelog[]> {
+  const features = path.join(root, "app/features");
+  const folders = readdirSync(features, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && existsSync(path.join(features, entry.name, "feature.ts")))
+    .map((entry) => entry.name);
+  return Promise.all(folders.map(async (folder) => {
+    const manifest = await import(pathToFileURL(path.join(features, folder, "feature.ts")).href) as { default: FeatureDefinition };
+    const file = `app/features/${folder}/CHANGELOG.md`;
+    return { file, name: manifest.default.name, text: readFileSync(path.join(root, file), "utf8") };
+  }));
+}
+
+/** The English website posts, as the news feed generator reads them; a translation is no post of its own. */
+function websitePosts(root: string): ReleaseFile[] {
+  const directory = "website/content/posts";
+  return readdirSync(path.join(root, directory))
+    .filter((name) => /^(?:\d+\.)?[^.]+\.md$/u.test(name))
+    .map((name) => ({ file: `${directory}/${name}`, text: readFileSync(path.join(root, directory, name), "utf8") }));
 }
 
 export interface CommandResult {
@@ -478,14 +672,12 @@ export function facts(
   }
 
   // The player post the app bundles as this version's "What's new".
-  const launcherId = `gwonmac-${version.replaceAll(".", "-")}`;
+  const launcherId = releaseLauncherId(version);
   const [post, ...others] = git("grep", "-l", "-e", `^launcherId: ${launcherId}$`, "HEAD", "--", "website/content/posts")
     .stdout.split("\n").filter(Boolean);
   const frontmatter = post && others.length === 0 ? read("show", post).split(/^---$/mu)[1]?.split("\n") ?? [] : [];
   if (!frontmatter.includes("draft: true") || !frontmatter.includes(`title: GWonMac ${version}`)) {
-    throw new Error(
-      `Add one release post with launcherId ${launcherId}, title "GWonMac ${version}" and draft: true (docs/launcher-news.md).`,
-    );
+    throw missingReleasePost(version);
   }
   // Players upgrade from base, so this release must prove it reads what base wrote.
   const fixtures = `tests/fixtures/player-data/${base}/`;
@@ -556,7 +748,7 @@ function workflowDependencies(): ReleaseDependencies {
   return { repository: required("GITHUB_REPOSITORY"), sha: required("GITHUB_SHA"), run: runCommand };
 }
 
-function main(): void {
+async function main(): Promise<void> {
   const [command, version, ...paths] = process.argv.slice(2);
   if (command === "prepare" && version && paths.length === 0) {
     const release = prepare(version, required("GITHUB_REF"), workflowDependencies());
@@ -581,11 +773,23 @@ function main(): void {
     });
     console.log(`${release.tag} patches ${release.base} with ${release.changed.length} fact-only changes.`);
     for (const action of release.actions) console.log(`${paths.length === 1 ? "would run" : "ran"}: ${action.join(" ")}`);
+  } else if (command === "notes" && version && (paths.length === 0 || (paths.length === 1 && paths[0] === "--dry-run"))) {
+    const dryRun = paths.length === 1;
+    const root = process.cwd();
+    const plan = releaseNotesPlan(version, await featureChangelogs(root), websitePosts(root));
+    console.log(plan.notes || `No feature has changes under ${UNRELEASED}: nothing to write.`);
+    for (const { file, text, change } of plan.writes) {
+      if (!dryRun) writeFileSync(path.join(root, file), text);
+      console.log(`${dryRun ? "would write" : "wrote"}: ${file} (${change})`);
+    }
+    if (plan.notes && releaseOf(version).prerelease) {
+      console.log(`A pre-release keeps every feature's ${UNRELEASED}; the Stable release stamps it.`);
+    }
   } else {
-    throw new Error("usage: release.ts facts <version> [--dry-run] | prepare <version> | regression | assets <version> <make-dir> <out-dir> | draft <version> <assets-dir>");
+    throw new Error("usage: release.ts notes <version> [--dry-run] | facts <version> [--dry-run] | prepare <version> | regression | assets <version> <make-dir> <out-dir> | draft <version> <assets-dir>");
   }
 }
 
 if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) {
-  main();
+  await main();
 }

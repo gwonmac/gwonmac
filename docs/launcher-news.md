@@ -51,7 +51,7 @@ Restores every GWonMac feature after the latest Guild Wars update. Nothing else 
 1. **Summary paragraph first.** One to three sentences: what is different for the player and why it matters. Lead with the biggest change. If a release only restores compatibility, say so plainly.
 2. **One bullet per change**, most noticeable first. Start with the place or feature in bold, then say what the player sees now: "now …", "no longer …". Name where to find it (`Settings → Appearance`) and its shortcut (`⌘T`).
 3. **Player words only.** Describe what changed in the game, not how: no PR numbers, proofs, certification, refactors, or release tooling. If players cannot notice a change, leave it out.
-4. **Optional sections**, in this order and only when they have content: `## Known issues`, `## Notes`. Notes are for things players must do or know, for example "Restart Guild Wars once after the update."
+4. **Optional sections**, in this order and only when they have content: `## Features`, `## Known issues`, `## Notes`. `pnpm release:notes` writes `## Features` from each feature's `CHANGELOG.md` ([Feature notes](releasing.md#feature-notes)); change the wording there, not only in the post. Notes are for things players must do or know, for example "Restart Guild Wars once after the update."
 5. **End with the technical record link.**
 
 The Markdown subset is paragraphs, `##` headings, bullet lists, bold text, inline code, links, and images. Images must be stored under `website/public` and referenced with a website-relative path. The launcher renders this safe subset as native Vue elements; it never injects HTML.
