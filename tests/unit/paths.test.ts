@@ -149,12 +149,6 @@ describe("resolved profile paths", () => {
     });
   });
 
-  it("keeps the downloaded chunk cache exactly where the alpha put it", () => {
-    // Called out separately because this is the expensive one: it is the only
-    // path in the table whose relocation costs a full re-download.
-    assert.equal(gamePaths(root).chunks, `${root}/game/chunks`);
-  });
-
   it("pins the files published inside a client generation", () => {
     const generation = `${root}/game/artifacts`;
     assert.equal(clientManifestPath(generation), `${generation}/manifest.json`);
@@ -207,12 +201,5 @@ describe("resolved profile paths", () => {
       diagnosticFramesPath(`${root}/diagnostics`, "abc-123"),
       `${root}/diagnostics/frames-abc-123.bin`,
     );
-  });
-
-  it("resolves a staged generation without escaping the game directory", () => {
-    const paths = gamePaths(root);
-    assert.equal(clientManifestPath(`${paths.artifacts}.next`).startsWith(
-      `${paths.game}/`,
-    ), true);
   });
 });

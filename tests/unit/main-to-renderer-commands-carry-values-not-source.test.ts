@@ -272,30 +272,20 @@ test("menu commands reach the game renderer as events", async () => {
     "explicit interface commands dismiss transient palettes before dispatch");
 });
 
-test("one physical key release crosses preload and is acknowledged", async () => {
+test("key release, trace state and text editing cross preload with their values and acknowledgements", async () => {
   const fixture = harness(ARGV);
   fixture.deliver(1, { type: "input.release", code: "KeyA" });
+  fixture.deliver(2, { type: "input.trace", enabled: true });
+  // Ordinary renderer text editing declines to the main-process fallback.
+  fixture.deliver(3, { type: "text.edit", command: "copy" });
   await new Promise(setImmediate);
-  assert.deepEqual(fixture.dispatched, ["gw:input-release"]);
-  assert.deepEqual(fixture.dispatchedDetails, ["KeyA"]);
-  assert.deepEqual(fixture.acknowledgements(), [[1, "completed"]]);
-});
-
-test("ordinary renderer text editing declines to the main-process fallback", async () => {
-  const fixture = harness(ARGV);
-  fixture.deliver(1, { type: "text.edit", command: "copy" });
-  await new Promise(setImmediate);
-  assert.deepEqual(fixture.dispatched, ["gw:text-edit"]);
-  assert.deepEqual(fixture.acknowledgements(), [[1, "unhandled"]]);
-});
-
-test("input harness state crosses as an explicit value and is acknowledged", async () => {
-  const fixture = harness(ARGV);
-  fixture.deliver(1, { type: "input.trace", enabled: true });
-  await new Promise(setImmediate);
-  assert.deepEqual(fixture.dispatched, ["gw:input-trace"]);
-  assert.deepEqual(fixture.dispatchedDetails, [true]);
-  assert.deepEqual(fixture.acknowledgements(), [[1, "completed"]]);
+  assert.deepEqual(fixture.dispatched, ["gw:input-release", "gw:input-trace", "gw:text-edit"]);
+  assert.deepEqual(fixture.dispatchedDetails.slice(0, 2), ["KeyA", true]);
+  assert.deepEqual(fixture.acknowledgements(), [
+    [1, "completed"],
+    [2, "completed"],
+    [3, "unhandled"],
+  ]);
 });
 
 // Each tool command and the event its tool's manifest names. A typo or a

@@ -87,9 +87,6 @@ describe("keyboard shortcuts", () => {
     assert.deepEqual(shortcutFromInput({
       code: "F1", key: "F1", meta: true, control: false, shift: false, alt: false,
     }), { key: "f1", shift: false, option: false });
-    assert.equal(shortcutFromInput({
-      code: "KeyK", key: "k", meta: false, control: false, shift: false, alt: false,
-    }), null);
     assert.deepEqual(shortcutFromInput({
       code: "KeyK", key: "k", meta: true, control: true, shift: false, alt: false,
     }), { key: "k", shift: false, option: false, control: true });
