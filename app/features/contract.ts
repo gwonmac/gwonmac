@@ -1,6 +1,6 @@
 /**
  * The feature contract checks that TypeScript cannot make: the id matches its folder,
- * a feature has one switch (or follows the features it requires), a card's switch takes the
+ * a feature has one switch (or follows the features it requires) and a tool has its own, a card's switch takes the
  * feature's name and summary while every other setting names itself, one shot file per caption, README.md stays inside the
  * small Markdown subset the launcher renders, CHANGELOG.md has `## Unreleased`, every card
  * names a purpose, `requires` has no cycles, `uses` names only capabilities the verifier
@@ -82,6 +82,9 @@ function checkFolder({ folder, manifest, files, readme, changelog }: FeatureFold
   if (switches.length > 1) problems.push(`${at}/feature.ts: ${switches.join(" and ")} are all switches; a feature has one switch.`);
   if (switches.length === 0 && (manifest.kind === "mode" || (manifest.requires ?? []).length === 0)) {
     problems.push(`${at}/feature.ts: no switch; declare one with featureSwitch, or list in requires the features it runs with.`);
+  }
+  if (manifest.tool !== undefined && switches.length === 0) {
+    problems.push(`${at}/feature.ts: tool needs a switch of its own; its row in Settings › Tools and the launcher turn it, so declare one in settings with featureSwitch.`);
   }
   for (const [key, spec] of settings) {
     if (switches.includes(key) && manifest.kind !== "mode") {

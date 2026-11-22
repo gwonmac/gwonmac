@@ -8,6 +8,8 @@ import { DEFAULT_SETTINGS, TOOLS_SETTINGS, toolsSettings } from "../../app/share
 import { LAST_UPDATE_CHECK_AT_MAX } from "../../app/shared/settings/core.js";
 import { DEFAULT_CUSTOM_UI_THEME } from "../../app/shared/ui-theme.js";
 import { AppError } from "../../app/shared/errors.js";
+import type { FeatureDefinition } from "../../app/features/define.js";
+import { FEATURES } from "../../app/features/index.js";
 import {
   CARTOGRAPHY_BUILTIN_PRESETS,
   type CartographyPresetRef,
@@ -20,6 +22,20 @@ import {
   saveSettings,
   type SettingsRecovery,
 } from "../../app/main/core/settings.js";
+
+const definitions: readonly FeatureDefinition[] = FEATURES;
+/**
+ * The settings of every Feature that owns none of `named`: a Feature added after a literal list
+ * below was written. Each list stays literal for what it names (a released Feature's or Core's
+ * setting missing from it still fails); a newer Feature's settings join it from its manifest.
+ */
+const newerFeatureSettings = (named: Iterable<string>): string[] => {
+  const known = new Set(named);
+  return definitions.flatMap((feature) => {
+    const keys = Object.keys(feature.settings ?? {});
+    return keys.some((key) => known.has(key)) ? [] : keys;
+  });
+};
 
 describe("settings", () => {
   it("makes preset selection and library replacement exclusive for renderer callers", () => {
@@ -37,7 +53,7 @@ describe("settings", () => {
   });
 
   it("exposes the documented defaults", () => {
-    assert.deepEqual(DEFAULT_SETTINGS, {
+    const documented = {
       renderScale: 2,
       uiStyle: "guild-wars",
       uiCustomTheme: DEFAULT_CUSTOM_UI_THEME,
@@ -121,6 +137,11 @@ describe("settings", () => {
       lastUpdateCheckAt: null,
       // No client build has been warned about yet, so every build warns once.
       compatibilityNoticeSeenFor: null,
+    };
+    const newer = newerFeatureSettings(Object.keys(documented));
+    assert.deepEqual(DEFAULT_SETTINGS, {
+      ...documented,
+      ...Object.fromEntries(Object.entries(DEFAULT_SETTINGS).filter(([key]) => newer.includes(key))),
     });
   });
 
@@ -510,7 +531,7 @@ describe("settings", () => {
     assert.equal(saved.autoRelogAfterReload, true);
     assert.equal((await loadSettings(path)).autoRelogAfterReload, true);
     const disk = JSON.parse(await readFile(path, "utf8"));
-    assert.deepEqual(Object.keys(disk).sort(), [
+    const known = [
       "alcoholTimerEnabled",
       "alcoholTimerPosition",
       "autoCheckUpdates",
@@ -592,7 +613,8 @@ describe("settings", () => {
       "whispersIcon",
       "whispersIconPosition",
       "xunlaiStorage",
-    ]);
+    ];
+    assert.deepEqual(Object.keys(disk).sort(), [...known, ...newerFeatureSettings(known)].sort());
     assert.equal(disk.formatVersion, 1);
   });
 

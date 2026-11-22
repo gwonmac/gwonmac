@@ -2,7 +2,7 @@ import type { ClientCompatibility } from "@shared/contracts";
 import { capabilityRecord } from "@shared/enhancement-contracts";
 import { LAUNCH_MODE_SWITCH, featureSwitchOf, type FeatureSwitchSettings } from "@shared/feature-contracts";
 import type { FeatureFacts } from "@shared/feature-resolve";
-import { GLOBAL_TOOLS, GLOBAL_TOOL_FEATURES, type LauncherSnapshot } from "@shared/launcher-contracts";
+import { GLOBAL_TOOLS, GLOBAL_TOOL_FEATURES, launcherToolSettings, type LauncherSnapshot } from "@shared/launcher-contracts";
 import { DEFAULT_SETTINGS } from "@shared/settings/index";
 import { resolveShortcuts } from "@shared/keyboard-shortcuts";
 import { DEFAULT_CARTOGRAPHY_PRESET_LIBRARY } from "@shared/cartography-overlay";
@@ -31,7 +31,9 @@ const fixtureBase: Omit<LauncherSnapshot, "features"> = {
     configured: false,
     loaded: false,
     restartRequired: false,
+    // Every tool at its default (a new Feature needs no line here), then the scenes these fixtures show.
     features: {
+      ...launcherToolSettings(DEFAULT_SETTINGS),
       resign: { enabled: false },
       whispers: { enabled: false },
       "call-target": { enabled: false },

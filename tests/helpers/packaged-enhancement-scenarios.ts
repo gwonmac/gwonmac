@@ -14,6 +14,8 @@ import { TRAVEL_PAYLOAD_BYTES } from "../../app/features/travel/renderer/enhance
 import { COMPANION_PLAY_REGION_BYTES } from "../../app/renderer/companion-play-region-snapshot.ts";
 import { COMPANION_ABI } from "../../app/shared/companion-abi.ts";
 import type { EnhancementCapabilities, EnhancementProgram } from "../../app/shared/enhancement-contracts.ts";
+import { CORE_SETTINGS } from "../../app/shared/settings/core.ts";
+import { DEFAULT_SETTINGS, TOOLS_SETTINGS, type ToolsSetting, type ToolsSettings } from "../../app/shared/settings/index.ts";
 import {
   closePackaged,
   CONFIG_BYTES,
@@ -30,6 +32,16 @@ import {
   TOOLBOX_PROGRAM_CAPABILITIES,
   TOOLBOX_SNAPSHOT_POINTER,
 } from "./packaged-enhancement-fixture.ts";
+
+/**
+ * Every Feature's Tools settings at their defaults. Each probe's `gwToolsSettings` spreads them
+ * first and then names the values it sets, so a Feature added later reads its own settings at
+ * their defaults without a line in each probe.
+ */
+type FeatureToolsSetting = Exclude<ToolsSetting, keyof typeof CORE_SETTINGS>;
+const FEATURE_TOOLS_SETTINGS = Object.freeze(Object.fromEntries(TOOLS_SETTINGS
+  .filter((key) => !(key in CORE_SETTINGS))
+  .map((key) => [key, DEFAULT_SETTINGS[key]]))) as Pick<ToolsSettings, FeatureToolsSetting>;
 
 async function clearProductionCompanion(page: Page): Promise<void> {
   await page.waitForFunction(() =>
@@ -473,13 +485,14 @@ export async function assertCleanupSafetyGates() {
         return typeof Module?.socket?.connect === "function";
       });
       if (gate === "hook" || gate === "cursor-refresh") {
-        await fixture.page.evaluate(async () => {
+        await fixture.page.evaluate(async (featureSettings) => {
           const surfaceSpecifier = "./surface-controller.js";
           const { installSurfaceController }:
             typeof import("../../app/renderer/surface-controller.ts") =
               await import(surfaceSpecifier);
           window.gwSurfaces = installSurfaceController(document);
           window.gwToolsSettings = () => Object.freeze({
+            ...featureSettings,
             gwonmacTools: true,
             hubCalculators: true,
             whispersIcon: true,
@@ -522,7 +535,7 @@ export async function assertCleanupSafetyGates() {
             chatFilterHallOfHeroes: false,
             chatFilterTitleAchievements: false,
           });
-        });
+        }, FEATURE_TOOLS_SETTINGS);
       }
       await installTargetReadout(
         fixture.page,
@@ -695,6 +708,7 @@ export async function assertToolboxFoundationLifecycle() {
       messages,
       tableSize,
       capabilities,
+      featureSettings,
     }) => {
       const memory = new WebAssembly.Memory({ initial: 256 });
       const view = new DataView(memory.buffer);
@@ -898,6 +912,7 @@ export async function assertToolboxFoundationLifecycle() {
           await import(snapshotSpecifier);
       globalThis.dispatchEvent(new Event("pagehide"));
       window.gwToolsSettings = () => Object.freeze({
+        ...featureSettings,
         gwonmacTools: true,
         hubCalculators: true,
         whispersIcon: true,
@@ -1200,6 +1215,7 @@ export async function assertToolboxFoundationLifecycle() {
     }, {
       bytes: [...installableManifestModule(TARGET_OFF_PRODUCT_CAPABILITIES)],
       capabilities: TARGET_OFF_PRODUCT_CAPABILITIES,
+      featureSettings: FEATURE_TOOLS_SETTINGS,
       layout: {
         ...ENHANCEMENT_BUILD.observationBase!.layout,
         ...ENHANCEMENT_BUILD.cursorEvent!.layout,
@@ -1405,10 +1421,11 @@ export async function assertRollbackAfterTablePublication() {
     });
     await clearProductionCompanion(fixture.page);
     await standInForMainFacts(fixture.page, TOOLBOX_PROGRAM_CAPABILITIES, "toolbox-foundation");
-    const result = await fixture.page.evaluate(async ({ bytes, tableSize, capabilities }: {
+    const result = await fixture.page.evaluate(async ({ bytes, tableSize, capabilities, featureSettings }: {
       bytes: number[];
       tableSize: number;
       capabilities: typeof TOOLBOX_PROGRAM_CAPABILITIES;
+      featureSettings: typeof FEATURE_TOOLS_SETTINGS;
     }) => {
       const memory = new WebAssembly.Memory({ initial: 256 });
       const table = new WebAssembly.Table({
@@ -1500,6 +1517,7 @@ export async function assertRollbackAfterTablePublication() {
       try {
         globalThis.dispatchEvent(new Event("pagehide"));
         window.gwToolsSettings = () => Object.freeze({
+          ...featureSettings,
           gwonmacTools: true,
           hubCalculators: true,
           whispersIcon: true,
@@ -1601,6 +1619,7 @@ export async function assertRollbackAfterTablePublication() {
       bytes: [...installableManifestModule(TOOLBOX_PROGRAM_CAPABILITIES)],
       capabilities: TOOLBOX_PROGRAM_CAPABILITIES,
       tableSize: ENHANCEMENT_BUILD.tableSlot + 1,
+      featureSettings: FEATURE_TOOLS_SETTINGS,
     });
     const rollbackConfigPointer = 0x11_010;
     const rollbackCursorPointer =

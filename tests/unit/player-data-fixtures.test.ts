@@ -42,7 +42,8 @@ import { CartographyMapKnowledgeStore } from "../../app/features/cartography/mai
 import { EliteTrackingStore } from "../../app/features/cartography/main/elite-tracking.js";
 import { TradeSavedStore } from "../../app/features/trade-chat/main/trade-saved-store.js";
 import { TravelHistoryStore } from "../../app/features/travel/main/travel-history.js";
-import { FEATURES, type FeatureId } from "../../app/shared/feature-contracts.js";
+import type { FeatureDefinition } from "../../app/features/define.js";
+import { FEATURES, folderForId, type FeatureId } from "../../app/shared/feature-contracts.js";
 import { EVERY_CAPABILITY_PROVED, resolve } from "../../app/shared/feature-resolve.js";
 import type { AppSettings } from "../../app/shared/settings/index.js";
 import type { TravelCharacterKey } from "../../app/shared/travel-history.js";
@@ -58,12 +59,13 @@ const CLIENT = "ab".repeat(32);
 const KERNEL = "cd".repeat(32);
 
 /**
- * The key under which released apps store the switch each Feature reads (docs/settings.md,
+ * The key under which released apps store the switch each released Feature reads (docs/settings.md,
  * "Feature switches"). Literal on purpose: a Feature that reads another key loses every player's
  * choice. Progress and Team Apply have no switch of their own; they run with Travel and the
- * Build Library, as they did when they shared those keys.
+ * Build Library, as they did when they shared those keys. A Feature no release has stored yet
+ * needs no line: `storedSwitchesOf` reads its keys from its manifest.
  */
-const STORED_SWITCHES: Readonly<Record<FeatureId, string>> = {
+const STORED_SWITCHES: Readonly<Partial<Record<FeatureId, string>>> = {
   tools: "gwonmacTools",
   callTarget: "callTargetEnabled",
   whispers: "whispersEnabled",
@@ -85,6 +87,26 @@ const STORED_SWITCHES: Readonly<Record<FeatureId, string>> = {
   alcoholTimer: "alcoholTimerEnabled",
   reminders: "remindersEnabled",
 };
+
+const definitions: readonly FeatureDefinition[] = FEATURES;
+const byId = new Map(definitions.map((feature) => [feature.id, feature]));
+const released: ReadonlyMap<string, string> = new Map(Object.entries(STORED_SWITCHES));
+
+/**
+ * The stored keys a Feature runs with: a released Feature's literal key above; for a newer one,
+ * its own switch (`settings`), or else the keys of the Features it `requires`.
+ */
+function storedSwitchesOf(id: string): string[] {
+  const key = released.get(id);
+  if (key !== undefined) return [key];
+  const feature = byId.get(id);
+  assert.ok(feature, `"${id}" is in requires but is not a Feature id`);
+  const own = Object.entries(feature.settings ?? {}).find(([, spec]) => "switch" in spec && spec.switch === true)?.[0];
+  if (own !== undefined) return [own];
+  assert.ok((feature.requires ?? []).length > 0,
+    `app/features/${folderForId(id)}/feature.ts: no switch in settings and nothing in requires; declare one with featureSwitch, or list in requires the Features it runs with.`);
+  return (feature.requires ?? []).flatMap(storedSwitchesOf);
+}
 
 /** The Features a loaded settings file turns on, in a game started with Features, on a proved build, in PvE. */
 const featuresOn = (settings: AppSettings): FeatureId[] => FEATURES
@@ -445,17 +467,18 @@ describe("Feature switches in a settings file", () => {
     roots.push(root);
     const file = join(root, "settings.json");
     const { formatVersion } = JSON.parse(await readFile(join(FIXTURES, NEW, "defaults", "settings.json"), "utf8")) as { formatVersion: number };
-    const keys = [...new Set(Object.values(STORED_SWITCHES))];
+    const ids = FEATURES.map((feature) => feature.id);
+    const keysOf = new Map(ids.map((id) => [id, storedSwitchesOf(id)]));
+    const keys = [...new Set([...keysOf.values()].flat())];
     const everyOn = Object.fromEntries(keys.map((key) => [key, true]));
     const on = async (stored: Record<string, boolean>) => {
       await writeFile(file, JSON.stringify({ formatVersion, ...stored }));
       return featuresOn(await loadSettings(file, () => assert.fail("the loader recovered a hand-written settings file")));
     };
-    const ids = FEATURES.map((feature) => feature.id);
 
     assert.deepEqual(await on(everyOn), ids, "every stored switch on turns every Feature on");
     for (const key of keys) {
-      const expected = key === STORED_SWITCHES.tools ? [] : ids.filter((id) => STORED_SWITCHES[id] !== key);
+      const expected = key === STORED_SWITCHES.tools ? [] : ids.filter((id) => !keysOf.get(id)?.includes(key));
       assert.deepEqual(await on({ ...everyOn, [key]: false }), expected, `${key} off`);
     }
   });

@@ -77,7 +77,7 @@ the shapes; [`app/features/contract.ts`](../app/features/contract.ts) checks the
 | `region` | `any`, `non-pvp` or `pve` | TypeScript; `resolve` applies it |
 | `uses` | Verifier capabilities it cannot work without | contract: each one is in `ENHANCEMENT_CAPABILITY_FIELDS` |
 | `requires` | Features that must be on for this one to run | contract: ids exist, no cycles |
-| `tool` | `{ id: "<folder>" }`: its row in Settings › Tools | TypeScript |
+| `tool` | `{ id: "<folder>" }`: its row in Settings › Tools | TypeScript; contract: the Feature has a switch of its own |
 | `shots` | Captions for `media/shot-N.webp` | contract: one file per caption, no file without one |
 | `parts` | The part kinds it has; group A has `["game"]` | contract: `game` when `companion.ts` exists, `main` exactly when `main.ts` exists; TypeScript: `featurePart` builds only for a Feature that lists `game` |
 | `links`, `offers` | Calls between Features (below) | contract and [`links.ts`](../app/features/links.ts) types |
@@ -178,19 +178,29 @@ capability, and a product setting cannot either.
   `renderer/host.ts` and `shared/`;
 - the metric ceilings in `scripts/feature-metrics-ceilings.json` (never raise one).
 
-### Shared files a new Feature still touches
+### Shared files a new Feature touches
 
-Some tests pin the full list of Features or settings on purpose. A new Feature adds its
-id or switch key to each (typecheck or the test names the missing entry), and a new icon
-adds a line to `app/ui/launcher/src/feature-icon.ts`:
+The scaffold writes both registry lines: the Feature in `FEATURES` and its game part in
+`FEATURE_PARTS` (`app/features/companion-parts.ts`). The renderer is one static Rollup graph,
+so a game part needs its import there; `every-companion-part-is-registered.test.ts` names a
+missing line.
+
+Tests and fixtures that list every Feature keep literal values for the Features they name and
+take a newer Feature's rows from its manifest, so a new Feature adds nothing to them:
+
+| File | A Feature it does not name |
+| --- | --- |
+| `tests/unit/player-data-fixtures.test.ts` | Its stored switch comes from `settings`, or from the Features it `requires`. Once a release stores the switch, add the Feature's line to `STORED_SWITCHES`. |
+| `tests/unit/settings.test.ts` | Its settings join the literal defaults and the saved key list. A Core setting, or one of a Feature the lists name, still needs its line. |
+| `tests/helpers/packaged-enhancement-scenarios.ts` | Its Tools settings take their defaults in each probe. |
+| `app/ui/launcher/src/fixtures.ts` | Its tool takes its switch's default in `tools.features`. |
+
+Two files still take a line by hand:
 
 | File | Add |
 | --- | --- |
-| `tests/unit/enhancement-runtime-policy.test.ts` | `<id>Enabled: false` to `off`, `<id>: false` to every expected record. On the AGENTS.md Must stay list: only add, never change a line. |
-| `tests/unit/player-data-fixtures.test.ts` | `<id>: "<id>Enabled"` in `STORED_SWITCHES` |
-| `tests/unit/settings.test.ts` | `<id>Enabled: false` in each defaults record, and the key in the sorted key list |
-| `tests/helpers/packaged-enhancement-scenarios.ts` | `<id>Enabled: false` in each Tools settings record |
-| `app/ui/launcher/src/fixtures.ts` | `"<folder>": { enabled: false }` in `tools.features` |
+| `tests/unit/enhancement-runtime-policy.test.ts` | `<id>Enabled: false` to `off`, `<id>: false` to every expected record (typecheck names them). On the AGENTS.md Must stay list: only add, never change a line. |
+| `app/ui/launcher/src/feature-icon.ts` | Only for an icon no Feature uses yet: its import and its line. The launcher bundles only the icons Features name. |
 
 Do not run the Electron or Playwright suites locally; CI runs them
 ([AGENTS.md](../AGENTS.md#commands)).
