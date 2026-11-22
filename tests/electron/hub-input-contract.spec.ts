@@ -786,9 +786,9 @@ test('a native held Enter applies one team and owns its repeats and release (HUB
       if (!('buildLibrary' in nativeApi)) throw new Error('Tools native API is missing');
       const app = mountToolsApp(host, { nativeApi: { ...nativeApi, buildLibrary: { get: async () => ({ library, recovered: false }), set: async value => value } },
         hub: window.gwHub!, initiallyVisible: false, openWindow: () => {}, findElite: () => 'unavailable', publishTemplate: null, templateFiles: null, storage: null, storageUnavailable: null, publishUnavailable: null, applyUnavailable: null, observationUnavailable: null, development: false,
-        commands: { cancelPending() {}, setHardMode(enabled) { modes.push(enabled); app.update(observation(enabled)); },
+        commands: () => ({ cancelPending() {}, setHardMode(enabled: boolean) { modes.push(enabled); app.update(observation(enabled)); },
           setPlayerSecondary: unexpected, setPlayerSkills: unexpected, setPlayerAttributes: unexpected, addHero: unexpected, kickHero: unexpected,
-          setHeroBehaviour: unexpected, setHeroSecondary: unexpected, setHeroSkills: unexpected, setHeroAttributes: unexpected } });
+          setHeroBehaviour: unexpected, setHeroSecondary: unexpected, setHeroSkills: unexpected, setHeroAttributes: unexpected }) });
       app.update(observation(false));
     }, library);
     await expect(page.locator('#native-team-host')).toHaveAttribute('data-ready', 'true');

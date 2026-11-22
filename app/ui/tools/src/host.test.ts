@@ -37,7 +37,7 @@ describe("native Tools host diagnostics", () => {
     const host = createNativeHost(
       {} as GwNativeApi,
       null,
-      null,
+      () => null,
       null,
       "Team Apply is unavailable.",
     );
@@ -54,7 +54,7 @@ describe("native Tools host diagnostics", () => {
     const host = createNativeHost(
       {} as GwNativeApi,
       null,
-      null,
+      () => null,
       { open, unavailable: () => refusal },
       "Team Apply is unavailable.",
     );
@@ -84,7 +84,7 @@ describe("native Tools host diagnostics", () => {
     const host = createNativeHost(
       {} as GwNativeApi,
       vi.fn(),
-      commands,
+      () => commands,
       null,
       null,
       true,
@@ -144,7 +144,7 @@ describe("native Tools host diagnostics", () => {
     const development = createNativeHost(
       {} as GwNativeApi,
       vi.fn(),
-      commands,
+      () => commands,
       null,
       null,
       true,
@@ -162,7 +162,7 @@ describe("native Tools host diagnostics", () => {
     const production = createNativeHost(
       {} as GwNativeApi,
       vi.fn(),
-      commands,
+      () => commands,
       null,
       null,
       false,
@@ -191,7 +191,7 @@ describe("native Tools host diagnostics", () => {
     const host = createNativeHost(
       {} as GwNativeApi,
       vi.fn(),
-      commands,
+      () => commands,
       null,
       null,
       true,

@@ -1,13 +1,13 @@
 /**
  * The Tools window in the game host: Build Library and Trade Chat over the shared
- * party feed. It offers the Team Apply commands and the Xunlai Storage command.
+ * party feed. It hands the Build Library window the Xunlai Storage command; the
+ * Library reaches Team Apply's commands through Team Apply's link.
  */
 import type { ToolboxObservation } from "../../shared/builds/live-party.js";
 import { COMPANION_FEATURE_BITS } from "../../shared/companion-abi.js";
 import { onWhereAllowed } from "../../shared/feature-resolve.js";
 import type { ToolsCompanionPart } from "../../renderer/tools-companion-part.js";
 import { createToolboxLifecycle } from "../../renderer/toolbox-foundation.js";
-import teamApply from "../team-apply/companion.js";
 import xunlaiStorage from "../xunlai-storage/companion.js";
 
 export default {
@@ -23,12 +23,11 @@ export default {
           activeFeatures: () => foundation && context.on("tools") ? COMPANION_FEATURE_BITS.toolboxFoundation : 0,
           mount() {
             if (!foundation) return;
-            const commands = context.prepared(teamApply)?.commands ?? null;
             const storageCommand = context.prepared(xunlaiStorage)?.installation?.command() ?? null;
             toolbox = createToolboxLifecycle(document.body, {
               buildsLink: "buildLibrary",
               mountTool: (host, visible, show) => import("../../renderer/tools-host.js").then(({ mountBuildsInto }) =>
-                mountBuildsInto(host, visible, show, commands, storageCommand, true)),
+                mountBuildsInto(host, visible, show, storageCommand, true)),
               mountTrade: (host, visible, show) => import("../../renderer/tools-host.js").then(({ mountTradeInto }) =>
                 mountTradeInto(host, visible, show)),
             });

@@ -27,8 +27,11 @@ export default defineFeature({
   shortcuts: [{ action: "tools.toggle", binding: { key: "b", shift: false, option: false }, menuItem: "toggle-tools" }],
   /** Its shortcut and game menu item show the window through `toggle` (shared/link.ts). */
   offers: ["toggle"],
-  /** "Find capture locations" on an elite skill opens Maps' Elite Skills planner. */
-  links: { cartography: ["findElite"] },
+  /**
+   * "Find capture locations" on an elite skill opens Maps' Elite Skills planner; applying a team
+   * or a build sends Team Apply's certified commands.
+   */
+  links: { cartography: ["findElite"], teamApply: ["commands"] },
   shots: [],
   parts: ["window", "main"],
 });
