@@ -1,20 +1,20 @@
 /**
  * The shared substrates of the Tools companion: one owner for each thing that
- * several features read. A feature never keeps a copy; it adds its demand
- * (`observe…When`) or its consumer to the substrate during `activate`.
+ * several features read. A feature never keeps a copy: it reads through the
+ * building block over the substrate (game-blocks.ts), or adds its demand
+ * (`observe…When`) or its consumer during `activate`. A substrate names no
+ * feature; what a feature needs from another goes through a typed link
+ * (feature-links.ts).
  *
- * - observation: the game snapshot and party feeds (Target Readout, Xunlai
- *   Storage, Maps, Team Apply, the Tools window);
- * - friends: the friend snapshot, its feed, Hub people and party invites (Travel,
- *   Whispers, the Hub);
- * - chat: the private chat region and its send slot behind `game.chat` (Whispers,
- *   party invites);
- * - alcohol and effects: the alcohol, player-effect and effect-icon feeds
- *   (Alcohol Timer, Effect Timers, Reminders);
- * - progress: the progress region and feed behind `game.progress` (Progress,
- *   Travel's Progress page, Maps' quest route);
- * - skill HUD: slot geometry and recharge feeds behind Skill Key Labels and
- *   Skill Cooldowns;
+ * - observation: the game snapshot and party feeds;
+ * - friends: the friend snapshot and its feed behind `game.friends`; its line also
+ *   hosts Hub people (hub-people.ts);
+ * - chat: the private chat region and its send slot behind `game.chat`;
+ * - alcohol and effects: the alcohol, player-effect and effect-icon feeds behind
+ *   `game.alcohol` and `game.effects`;
+ * - progress: the progress region and feed behind `game.progress`;
+ * - skill HUD: slot geometry and recharge feeds behind `game.skillbar`,
+ *   `ui.skillLabels` and `ui.skillKeys`;
  * - the frame: the policy source, the native HUD layer and the policy trace.
  *
  * Each substrate that owns memory is a part in COMPANION_PARTS, so its
@@ -22,10 +22,8 @@
  */
 import { COMPANION_ABI, COMPANION_FEATURE_BITS } from "../shared/companion-abi.js";
 import type { EnhancementCapabilities, EnhancementProgram } from "../shared/enhancement-contracts.js";
-import { onWhereAllowed } from "../shared/feature-resolve.js";
 import type { ToolboxObservation } from "../shared/builds/live-party.js";
-import type { TravelFriend, TravelFriends } from "../shared/friends.js";
-import type { WhisperSession } from "../shared/whisper-session.js";
+import { NO_FRIENDS, type TravelFriends } from "../shared/friends.js";
 import type { CompanionExtensionActivation } from "./certified-companion-extension.js";
 import { createChatInstallation, type ChatInstallation } from "./chat-installation.js";
 import { createAlcoholObservationInstallation, readCompanionAlcohol } from "./companion-alcohol-snapshot.js";
@@ -36,17 +34,15 @@ import { createCompanionSequenceFeed } from "./companion-sequence-feed.js";
 import type { CompanionSkillSlotState } from "./companion-skill-snapshot.js";
 import type { CompanionSnapshot } from "./companion-snapshot.js";
 import { decodeFriendObserverManifest } from "./friend-observer-manifest.js";
-import { createHubPeople } from "./hub-people.js";
+import { mountHubPeople } from "./hub-people.js";
 import { createNativeHudLayer } from "./native-hud-layer.js";
 import { setSkillCooldownReadiness, setSkillGeometryReadiness } from "./observer-readiness.js";
-import { createPartyInvite, type PartyInvite } from "./party-invite.js";
 import {
   createEffectIconGeometryInstallation,
   createPlayerEffectObservationInstallation,
 } from "./player-effect-state-installation.js";
 import { createSkillOverlaysInstallation } from "./skill-overlays-installation.js";
 import {
-  type FriendTravel,
   type PreparedToolsPart,
   type ToolsCompanionPart,
   type ToolsPartSession,
@@ -86,10 +82,8 @@ export function createPolicyTrace(
   return (reason: "launch" | "region" | "settings") => {
     if (!window.gwNative.init.development) return;
     const { features, playRegion } = snapshot();
-    // A Team Apply profile always installs its commands, so `commands` follows the capability.
-    const summary = { program: context.program, playRegion, nativeCursor: context.capabilities.nativeCursor,
-      teamApply: features.teamApply.on, xunlaiStorage: features.xunlaiStorage.on,
-      targetReadout: features.targetReadout.on, commands: context.capabilities.teamApply };
+    const on = Object.entries(features).flatMap(([id, resolution]) => resolution.on ? [id] : []);
+    const summary = { program: context.program, playRegion, nativeCursor: context.capabilities.nativeCursor, on };
     const signature = JSON.stringify(summary);
     if (signature === last) return;
     last = signature;
@@ -181,22 +175,27 @@ function createObservation(capabilities: EnhancementCapabilities, program: Enhan
   });
 }
 
-// ---- friends: friend snapshot, feed, and Hub people -----------------------
-
-type FriendConsumer = Readonly<{
-  /** Whether this consumer needs the friend list now. */
-  observing(): boolean;
-  update(friends: TravelFriends): void;
-}>;
+// ---- friends: friend snapshot and feed behind game.friends -----------------
 
 function createFriends(module: WebAssembly.Module, capabilities: EnhancementCapabilities) {
+  // Main certifies friend observation only with the travelAction capability; the derived module
+  // carries the closed manifest only when the verifier accepted the friend table.
   const manifest = capabilities.travelAction ? decodeFriendObserverManifest(module) : null;
   let pointer = 0;
-  let feed: ReturnType<typeof createCompanionSequenceFeed<TravelFriends>> | null = null;
-  const consumers: FriendConsumer[] = [];
-  let whispers: WhisperSession | null = null;
-  let travel: FriendTravel | null = null;
   const bytes = COMPANION_ABI.friends.bytes;
+  const feed = createCompanionSequenceFeed<TravelFriends>(NO_FRIENDS, NO_FRIENDS, {
+    sameReadyState: (previous, next) =>
+      companionFriendsSignature(previous) === companionFriendsSignature(next),
+  });
+  const demand: Demand[] = [];
+  let observing = false;
+  const refresh = () => {
+    const next = pointer !== 0 && any(demand);
+    if (next === observing) return;
+    observing = next;
+    // A list read before the pause is not fresh after it: the next one must be a new publication.
+    if (!observing) feed.withdraw();
+  };
 
   const prepared = {
     featureFlags: manifest === null ? 0 : COMPANION_FEATURE_BITS.friendObservation,
@@ -214,67 +213,33 @@ function createFriends(module: WebAssembly.Module, capabilities: EnhancementCapa
     }),
     rollback: [(free) => { if (pointer !== 0) free(pointer); pointer = 0; }],
     activate(context) {
-      const { memory, playRegions } = context;
-      const waiting = Object.freeze({ status: "waiting" as const, reason: "unavailable" as const });
-      let hubPeople: ReturnType<typeof createHubPeople> | null = null;
-      let partyInvite: PartyInvite | null = null;
-      let observing = false;
-      feed = pointer === 0 ? null : createCompanionSequenceFeed<TravelFriends>(waiting, waiting, {
-        sameReadyState: (previous, next) =>
-          companionFriendsSignature(previous) === companionFriendsSignature(next),
-      });
-      const unsubscribe = feed?.subscribe((friends) => {
-        for (const consumer of consumers) consumer.update(friends);
-        hubPeople?.updateFriends(friends);
-      });
-      const poll = () => {
-        if (pointer === 0 || feed === null) return;
-        const next = consumers.some((consumer) => consumer.observing());
-        if (next !== observing) {
-          observing = next;
-          if (!observing) feed.withdraw();
-          context.syncObservers();
-        }
-        if (!observing) return;
-        feed.update(readCompanionFriends(memory.buffer, pointer));
-      };
+      const { memory } = context;
+      let people: ReturnType<typeof mountHubPeople> = null;
+      let character: string | null = null;
       return {
-        pollers: pointer === 0 ? [] : [{ poll, enabled: () => true }],
-        activeFeatures: () => pointer !== 0 && observing ? COMPANION_FEATURE_BITS.friendObservation : 0,
-        mount() {
-          const hub = window.gwHub;
-          const trip = travel;
-          const travelToFriend = trip ? (friend: TravelFriend, generation: number) => trip.travelToFriend(friend, generation) : null;
-          // Invites go through game.chat, so they need no Whispers.
-          const { chat } = context.game;
-          partyInvite = chat.available ? createPartyInvite({
-            region: () => playRegions.state,
-            subscribeRegion: listener => { const unsubscribe = playRegions.subscribe(() => listener()); return () => { unsubscribe(); }; },
-            chatReady: () => chat.available,
-            invite: name => chat.send({ kind: "invite", name }),
-            travel: travelToFriend,
-          }) : null;
-          const session = whispers;
-          if (hub && session) hubPeople = createHubPeople(hub, session, travelToFriend ? {
-            unavailable: friend => {
-              const command = trip?.command();
-              if (!command) return "Travel is unavailable";
-              const region = playRegions.state;
-              return command.unavailable() ?? (region.status === "ready" && region.mapId === friend.mapId ? "You are already in this outpost" : null);
-            },
-            run: travelToFriend,
-          } : null, partyInvite);
-        },
+        feedPollers: pointer === 0 ? [] : [{
+          poll: () => feed.update(readCompanionFriends(memory.buffer, pointer)),
+          enabled: () => observing,
+        }],
+        pollers: [{ poll: () => people?.poll(), enabled: () => people !== null }],
+        activeFeatures: () => observing ? COMPANION_FEATURE_BITS.friendObservation : 0,
+        mount() { people = mountHubPeople(context); },
         sync() {
-          // People stays attached through a map load, character select or PvP; its person pages say
-          // why an action waits, and the Home query survives the load (HUB-051, HUB-135).
-          const { facts } = context.snapshot();
-          hubPeople?.setEnabled(onWhereAllowed("travel", facts) || onWhereAllowed("whispers", facts));
+          // A friend list belongs to the character that read it: a different character or
+          // leaving the game withdraws it until the game publishes it again.
+          const region = context.snapshot().playRegionState;
+          if (region.status === "ready" && region.characterKey !== null) {
+            if (character !== null && character !== region.characterKey) feed.withdraw();
+            character = region.characterKey;
+          } else if (region.status === "waiting" && region.reason === "game") {
+            feed.withdraw();
+            character = null;
+          }
+          people?.sync();
         },
         disposePresentation: [
-          () => { partyInvite?.dispose(); partyInvite = null; },
-          () => { hubPeople?.dispose(); hubPeople = null; },
-          () => { unsubscribe?.(); feed?.dispose(); },
+          () => { people?.dispose(); people = null; },
+          () => feed.dispose(),
         ],
         releaseObserverMemory: [(free) => { if (pointer !== 0) free(pointer); pointer = 0; }],
       };
@@ -283,22 +248,13 @@ function createFriends(module: WebAssembly.Module, capabilities: EnhancementCapa
 
   return Object.freeze({
     prepared,
-    /**
-     * Adds a consumer of the friend list. It receives the current list at once, and
-     * the snapshot is read only while some consumer is observing.
-     */
-    connect(consumer: FriendConsumer) {
-      consumers.push(consumer);
-      if (feed !== null) consumer.update(feed.state);
-    },
-    /** Withdraws the current list, for example when the character changes. */
-    withdraw() { feed?.withdraw(); },
-    /** Hub people whisper through this session. */
-    attachWhispers(session: WhisperSession) {
-      whispers = session;
-    },
-    /** Hub people travels to a friend through this installation. */
-    attachTravel(installation: FriendTravel) { travel = installation; },
+    /** Whether this build proved friend observation: the block behind `game.friends` is available. */
+    available: manifest !== null,
+    feed,
+    /** The friend snapshot is read while any of these holds. */
+    observeWhen(next: Demand) { demand.push(next); },
+    /** Applies a demand change now. */
+    refresh,
   });
 }
 
@@ -309,8 +265,8 @@ function createChat(capabilities: EnhancementCapabilities) {
   let installation: ChatInstallation | null = null;
   return Object.freeze({
     /**
-     * The region's memory phases. The Whispers line in COMPANION_PARTS hosts them:
-     * the region keeps the place it had when Whispers owned it, and that place is
+     * The region's memory phases. A pinned line in COMPANION_PARTS hosts them (its
+     * part says so): the region keeps the place it always had, and that place is
      * the heap layout.
      */
     prepare(exports: WebAssembly.Exports) {
@@ -463,8 +419,8 @@ function createProgress(capabilities: EnhancementCapabilities) {
   const observed = () => capabilities.progressObservation && any(demand);
   return Object.freeze({
     /**
-     * The region's memory phases. The Progress line in COMPANION_PARTS hosts them:
-     * the region keeps the place it had when Progress owned it (the heap layout).
+     * The region's memory phases. A pinned line in COMPANION_PARTS hosts them (its
+     * part says so): the region keeps the place it always had (the heap layout).
      */
     prepared: {
       featureFlags: capabilities.progressObservation ? COMPANION_FEATURE_BITS.progressObservation : 0,
@@ -558,8 +514,8 @@ function reportSkillGeometry(state: CompanionSkillSlotState): void {
 }
 
 /**
- * The skill HUD feeds' place in the heap layout. Skill Key Labels and Skill Cooldowns
- * read them through `ui.skillKeys`, `game.skillbar` and `ui.skillLabels`.
+ * The skill HUD feeds' place in the heap layout. Features read them through
+ * `ui.skillKeys`, `game.skillbar` and `ui.skillLabels`.
  */
 export const skillHudPart = {
   id: "skillHud",

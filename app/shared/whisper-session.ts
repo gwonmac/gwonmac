@@ -24,7 +24,8 @@ export type WhisperSessionState = Readonly<{
 }>;
 export const whisperUnread = (conversation: WhisperConversation) => conversation.messages
   .filter(message => message.direction === "incoming" && message.id > conversation.readThrough).length;
-const initial = (): WhisperSessionState => ({ conversations: [], recent: [], participants: [],
+/** A session with nothing in it, as a new or reset one starts. */
+export const emptyWhisperSessionState = (): WhisperSessionState => ({ conversations: [], recent: [], participants: [],
   suggest: { friends: true, chat: true },
   friends: { status: "waiting", reason: "unavailable" }, selected: null,
   visible: false, available: false, sound: "background", backgroundOpacity: 100, missed: 0 });
@@ -33,7 +34,7 @@ const MAX_MESSAGES = 200;
 const MAX_PARTICIPANTS = 50;
 
 export function createWhisperSession(send: (recipient: string, message: string) => Promise<void>) {
-  let state = initial();
+  let state = emptyWhisperSessionState();
   let generation = 0;
   const listeners = new Set<(state: WhisperSessionState) => void>();
   const publish = (patch: Partial<WhisperSessionState>) => {
@@ -158,8 +159,8 @@ export function createWhisperSession(send: (recipient: string, message: string) 
           error: error instanceof Error ? error.message : "Whisper could not be submitted. Your draft is kept." });
       }
     },
-    reset() { generation++; publish(initial()); },
-    dispose() { generation++; state = initial(); listeners.clear(); },
+    reset() { generation++; publish(emptyWhisperSessionState()); },
+    dispose() { generation++; state = emptyWhisperSessionState(); listeners.clear(); },
   };
   return api;
 }

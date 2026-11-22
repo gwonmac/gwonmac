@@ -17,6 +17,9 @@ export type TravelFriends = Readonly<{
   friends: readonly TravelFriend[];
 }> | Readonly<{ status: "waiting"; reason: "unavailable" | "invalid" }>;
 
+/** No friend list now: the observer is paused, waiting for a fresh one, or not proven on this build. */
+export const NO_FRIENDS: TravelFriends = Object.freeze({ status: "waiting", reason: "unavailable" });
+
 /** Revalidate a selected identity after an asynchronous view load. */
 export function currentTravelFriend(
   feed: TravelFriends, selected: TravelFriend, generation: number,

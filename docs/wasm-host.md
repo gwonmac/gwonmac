@@ -313,7 +313,13 @@ A Feature reaches another Feature through a typed link, not a window event
 (`links: { whispers: ["open"] }`); in its game window the link is null while
 `resolve` has the target off, so the caller handles "not available", and a call
 while the target's part is not running answers "unavailable" and reaches
-nothing. Trade Chat opens a conversation with a seller this way.
+nothing. Trade Chat opens a conversation with a seller this way. The in-game
+Hub is no Feature; it names the links it calls in `HUB_LINKS`
+(`app/features/links.ts`): Hub people opens a conversation and reads who
+Whispers knows through Whispers' link, and travels to a friend through
+Travel's, so a Feature that is off adds nothing to it. The friend list itself
+is the `game.friends` block, which Whispers, Travel and Hub people read while
+they show friends.
 
 Native skill and effect drawing has a separate `nativeHudRendering` capability.
 The local verifier checks its exact draw owners, traversal, and resource functions.

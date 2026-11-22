@@ -1,7 +1,7 @@
 /**
  * The typed building blocks that features use (docs/feature-platform-plan.md,
  * Phase 3). To read: `game.target`, `game.region`, `game.session`,
- * `game.skillbar`, `game.effects`, `game.alcohol` and `game.progress`;
+ * `game.skillbar`, `game.effects`, `game.alcohol`, `game.progress` and `game.friends`;
  * `game.chat` reads whispers and sends one named chat command. To draw with the
  * game's own renderer: `ui.skillLabels` and `ui.skillKeys` on the skill slots,
  * `ui.effectLabels` on the effect icons.
@@ -13,9 +13,11 @@
  *
  * A block asks the kernel for its data only while someone subscribes (or, for a
  * drawing block, claims it), so a feature never states its demand itself: it
- * subscribes when it starts and stops when it stops.
+ * subscribes when it starts and stops when it stops. A part that needs a value only
+ * while something holds (a panel is open) follows that with `subscribeWhile`.
  */
 import type { EnhancementCapabilities } from "../shared/enhancement-contracts.js";
+import type { TravelFriends } from "../shared/friends.js";
 import type { GameProgressState } from "../shared/game-progress.js";
 import type { SkillKeyBinding } from "../shared/skill-key-bindings.js";
 import type { ObservedChatEvent } from "../shared/whispers.js";
@@ -85,6 +87,11 @@ export type GameChat = BlockAvailability & Readonly<{
   /** Each batch of whispers as the game shows it; null at subscribe, because nothing new has arrived yet. */
   messages: Block<GameChatMessages | null>;
   /**
+   * Whether a line can go out now: the chat slot is open, or its memory is in place and live so
+   * it opens for the line. False before the slot is installed and after it is torn down.
+   */
+  ready(): boolean;
+  /**
    * Sends one line through the certified chat sender, one line at a time. Resolves once
    * Guild Wars took it (a whisper: once its echo shows in chat); rejects with a sentence a
    * player can read. The kernel sends only in a PvE area, for the character and map that
@@ -129,6 +136,13 @@ export type GameAlcohol = Readonly<{
 /** The character's missions, vanquishes, titles, areas and active quest, as the game publishes them. */
 export type GameProgress = Omit<Extract<GameProgressState, { status: "ready" }>, "status" | "sequence">;
 
+/**
+ * The player's friend list, fresh from the game: each friend's account alias, character
+ * name, presence and map id. A friend chosen from one `generation` must be chosen again once
+ * the generation changes.
+ */
+export type GameFriends = Extract<TravelFriends, { status: "ready" }>;
+
 export type GameBlocks = Readonly<{
   /** The selected target; null when there is none or the game state is not ready. */
   target: Block<GameTarget | null>;
@@ -149,6 +163,12 @@ export type GameBlocks = Readonly<{
   alcohol: Block<GameAlcohol | null>;
   /** The character's progress; null outside a PvE map or while unknown. */
   progress: Block<GameProgress | null>;
+  /**
+   * The friend list; null while it is not fresh: before the first read, and after the
+   * character changes or the game is left until the game publishes it again. Not proven on a
+   * build whose friend observation the verifier refused.
+   */
+  friends: Block<GameFriends | null>;
 }>;
 
 /** Text drawn by the game's own renderer on each of the eight skill slots. */
@@ -213,6 +233,7 @@ type BlockInput = Readonly<{
 }>;
 
 const NOT_PROVEN = Object.freeze({ available: false, reason: "not-proven" } as const);
+const NOT_READY = "Guild Wars chat is not ready. Try again in a moment.";
 
 /**
  * One value with listeners. `demand` runs when the first listener arrives or
@@ -260,6 +281,26 @@ export function createBlock<Value>(
       for (const listener of listeners) listener(next);
     },
   });
+}
+
+/**
+ * Subscribes `listener` to `block` while the last call said `true`, so a part that needs a value
+ * only while something holds (a panel is open) says so each time it checks. When the
+ * subscription stops, `listener` hears `idle`, so nothing stale stays shown.
+ */
+export function subscribeWhile<Value>(block: Block<Value>, idle: Value, listener: (value: Value) => void) {
+  let stop: (() => void) | null = null;
+  return (wanted: boolean) => {
+    if (wanted === (stop !== null)) return;
+    if (wanted) {
+      stop = block.subscribe(listener);
+      return;
+    }
+    const stopping = stop;
+    stop = null;
+    stopping?.();
+    listener(idle);
+  };
 }
 
 /** The target in a decoded snapshot; a distance that is not a finite, non-negative number gives none. */
@@ -358,12 +399,14 @@ function createGameChat(available: boolean, slot: ToolsSubstrates["chat"], syncO
   return Object.freeze({
     ...(available ? { available: true as const } : NOT_PROVEN),
     messages: messages.block,
+    ready: () => available && slot.installation?.ready === true,
     async send(line: ChatLine) {
       const installation = slot.installation;
       if (!available || installation === null) throw new Error("Guild Wars chat is not available in this game version.");
       sending += 1;
       try {
-        open();
+        // A slot the kernel refuses to open is chat that is not ready; its own error is not for players.
+        try { open(); } catch { throw new Error(NOT_READY); }
         return await (line.kind === "whisper" ? installation.send(line.to, line.text) : installation.invite(line.name));
       } finally {
         sending -= 1;
@@ -424,7 +467,7 @@ function feedBlock<State, Value>(
 }
 
 export function createGameBlocks({ capabilities, substrates, playRegions, syncObservers }: BlockInput): GameBlocks {
-  const { observation, chat, skills, effects, alcohol, progress } = substrates;
+  const { observation, chat, skills, effects, alcohol, progress, friends } = substrates;
   const target = createBlock<GameTarget | null>(capabilities.targetObservation, null, sameTarget, syncObservers);
   if (capabilities.targetObservation) {
     const wanted = () => target.wanted;
@@ -467,6 +510,9 @@ export function createGameBlocks({ capabilities, substrates, playRegions, syncOb
       alcohol.observeWhen, alcoholOf, syncObservers),
     progress: feedBlock(capabilities.progressObservation, Object.is, progress.installation, progress,
       progress.observeWhen, progressOf, syncObservers),
+    // The feed publishes a list only when it changed, so each value is a change.
+    friends: feedBlock(friends.available, Object.is, friends.feed, friends, friends.observeWhen,
+      (state: TravelFriends): GameFriends | null => state.status === "ready" ? state : null, syncObservers),
   });
 }
 

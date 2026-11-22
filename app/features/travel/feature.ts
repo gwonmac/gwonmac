@@ -40,6 +40,8 @@ export default defineFeature({
   },
   hub: { command: "travel", order: 0, keyOrder: 0 },
   shortcuts: [{ action: "travel.open", binding: { key: "t", shift: false, option: false }, menuItem: "open-travel" }],
+  /** Hub people and party invites travel to a friend's outpost (shared/link.ts). */
+  offers: ["friendTripBlocked", "toFriend"],
   shots: [],
   parts: ["game", "main"],
 });

@@ -737,15 +737,13 @@ test('a native held Enter sends one invite and owns its repeats and release (HUB
   try {
     const { page } = fixture;
     await page.evaluate(async () => {
-      const sessionPath = './shared/whisper-session.js', peoplePath = './hub-people.js', invitePath = './party-invite.js';
-      const { createWhisperSession } = await import(sessionPath) as typeof import('../../app/shared/whisper-session.js');
+      const peoplePath = './hub-people.js', invitePath = './party-invite.js';
       const { createHubPeople } = await import(peoplePath) as typeof import('../../app/renderer/hub-people.js');
       const { createPartyInvite } = await import(invitePath) as typeof import('../../app/renderer/party-invite.js');
       const sent: string[] = []; Object.assign(window, { acceptanceInvites: sent });
-      const session = createWhisperSession(async () => {}); session.setAvailable(true);
       const party = createPartyInvite({ region: () => ({ status: 'ready', sequence: 1, mapId: 55, instanceType: 0, playRegion: 'pve', travelContext: 'world', characterKey: null, guildHall: false, hasGuildHall: false, unlockedMapWords: null }),
         subscribeRegion: () => () => {}, chatReady: () => true, invite: async name => { sent.push(name); }, travel: null });
-      createHubPeople(window.gwHub!, session, null, party).setEnabled(true);
+      createHubPeople(window.gwHub!, { whispers: null, travel: null }, party).setEnabled(true);
     });
     await chord(fixture, 'R', ['meta']); await searchOf(page).fill('invite Zed Delta');
     await expect(page.locator('.hub-primary')).toContainText('Invite Zed Delta');

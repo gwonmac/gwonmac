@@ -148,7 +148,11 @@ export function createPartyInvite(input: PartyInviteInput) {
       const invited = arrived.promise.finally(clear).then(() => {
         // Cancellation can follow the settle timer before its promise continuation runs.
         if (request.cancelled) throw new Error('Travel and invite stopped. The invite was not sent.');
-        return invite(name);
+        // The player reads this after arriving, away from the row: it says the invite was not sent.
+        return invite(name).catch((error: unknown) => {
+          const reason = error instanceof Error ? error.message : '';
+          throw new Error(/not sent\.$/u.test(reason) ? reason : `${reason ? `${reason} ` : ''}The invite was not sent.`, { cause: error });
+        });
       });
       invited.catch(() => {});
       return { invited };

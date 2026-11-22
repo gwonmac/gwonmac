@@ -1,12 +1,13 @@
 /**
  * Owns the typed links between Features in this game window (app/features/links.ts). A Feature
  * that offers a link provides it while its part runs; a Feature that names it in its manifest
- * `links` gets it from `featureLinks(id)`. A link is null while resolve has its target off
- * (feature-on.ts), so a caller always handles "not available"; a method called while the
- * target is on but its part is not running (still loading, or no companion) answers
- * "unavailable" and reaches nothing. Links replace window events between Features.
+ * `links` gets it from `featureLinks(id)`, and the Hub gets the links HUB_LINKS names from
+ * `hubLinks()`. A link is null while resolve has its target off (feature-on.ts), so a caller
+ * always handles "not available"; a method called while the target is on but its part is not
+ * running (still loading, or no companion) answers "unavailable" and reaches nothing. Links
+ * replace window events between Features.
  */
-import type { FeatureLinkApis, FeatureLinks, LinkTarget } from "../features/links.js";
+import { HUB_LINKS, type FeatureLinkApis, type FeatureLinks, type HubLinks, type LinkTarget } from "../features/links.js";
 import { FEATURES, type FeatureId } from "../shared/feature-contracts.js";
 import { featureOn } from "./feature-on.js";
 
@@ -27,22 +28,34 @@ export function provideLink<Target extends LinkTarget>(target: Target, link: Fea
   };
 }
 
-/** The links feature `id` names in its manifest, read live: each is null while its target is off. */
-export function featureLinks<Id extends FeatureId>(id: Id): FeatureLinks<Id> {
-  const feature = FEATURES.find((candidate) => candidate.id === id);
-  const named: Readonly<Record<string, readonly string[]>> = feature !== undefined && "links" in feature ? feature.links : {};
+/** The named links, read live: each getter is null while its target is off. `Links` is their type (LinksOf). */
+function linksOf<Links>(named: Readonly<Record<string, readonly string[]>>): Links {
   const links = {};
   for (const [name, methods] of Object.entries(named)) {
-    // app/features/contract.ts checks that every named target is a Feature that offers these methods.
+    // app/features/contract.ts checks that every target a manifest names is a Feature that
+    // offers these methods; HUB_LINKS is checked by its type.
     const target = name as LinkTarget;
     const calls = Object.freeze(Object.fromEntries(methods.map((method) => [method, (...args: never[]) => {
       const link: AnyLink | undefined = provided.get(target);
-      return featureOn(target) && link !== undefined ? link[method]?.(...args) ?? "unavailable" : "unavailable";
+      const call = link?.[method];
+      // A method may answer null (Travel: nothing blocks the trip), so only a missing call is "unavailable".
+      return featureOn(target) && call !== undefined ? call(...args) : "unavailable";
     }])));
     Object.defineProperty(links, target, { enumerable: true, get: () => featureOn(target) ? calls : null });
   }
-  // The getters above build exactly the manifest's targets and methods, which FeatureLinks<Id> types.
-  return Object.freeze(links) as FeatureLinks<Id>;
+  // The getters above build exactly the named targets and methods, which LinksOf types.
+  return Object.freeze(links) as Links;
+}
+
+/** The links feature `id` names in its manifest, read live: each is null while its target is off. */
+export function featureLinks<Id extends FeatureId>(id: Id): FeatureLinks<Id> {
+  const feature = FEATURES.find((candidate) => candidate.id === id);
+  return linksOf<FeatureLinks<Id>>(feature !== undefined && "links" in feature ? feature.links : {});
+}
+
+/** The links the Hub calls (HUB_LINKS), read live: each is null while its target is off. */
+export function hubLinks(): HubLinks {
+  return linksOf<HubLinks>(HUB_LINKS);
 }
 
 /**

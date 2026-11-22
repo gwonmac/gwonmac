@@ -3,28 +3,48 @@
  * method names in its manifest `offers` and their types in its shared/link.ts, registered here
  * once. A Feature that calls one names it in its manifest `links` (`{ whispers: ["open"] }`),
  * and its parts get `FeatureLinks<Id>`: each target's named methods, or null while resolve has
- * that target off. app/renderer/feature-links.ts is the registry in one game window;
- * ./contract.ts checks that every named target and method exists.
+ * that target off. The in-game Hub, which is no Feature, names the links it calls in HUB_LINKS
+ * and gets `HubLinks` the same way. app/renderer/feature-links.ts is the registry in one game
+ * window; ./contract.ts checks that every named target and method exists.
  */
+import type { TravelLink } from "./travel/shared/link.js";
 import type { WhispersLink } from "./whispers/shared/link.js";
 import type { Feature, FeatureId } from "./index.js";
 
 /** The link each Feature offers, by id. */
 export type FeatureLinkApis = {
+  travel: TravelLink;
   whispers: WhispersLink;
 };
 
 export type LinkTarget = keyof FeatureLinkApis;
 
-type Manifest<Id extends FeatureId> = Extract<Feature, Readonly<{ id: Id }>>;
-type Named<Id extends FeatureId> = Manifest<Id> extends Readonly<{ links: infer Links }> ? Links : Record<never, never>;
+/** Links named by target, each with the methods called: a manifest's `links`, or HUB_LINKS. */
+export type NamedLinks = Readonly<{ [Target in LinkTarget]?: readonly (keyof FeatureLinkApis[Target] & string)[] }>;
 
-/** The links feature `Id` names in its manifest, typed from each target's declaration. */
-export type FeatureLinks<Id extends FeatureId> = Readonly<{
-  [Target in keyof Named<Id> & LinkTarget]: Named<Id>[Target] extends readonly (infer Method)[]
+/** The named links, typed from each target's declaration: its named methods, or null while it is off. */
+export type LinksOf<Named> = Readonly<{
+  [Target in keyof Named & LinkTarget]: Named[Target] extends readonly (infer Method)[]
     ? Pick<FeatureLinkApis[Target], Method & keyof FeatureLinkApis[Target]> | null
     : never;
 }>;
+
+type Manifest<Id extends FeatureId> = Extract<Feature, Readonly<{ id: Id }>>;
+type Named<Id extends FeatureId> = Manifest<Id> extends Readonly<{ links: infer Links }> ? Links : Record<never, never>;
+
+/** The links feature `Id` names in its manifest. */
+export type FeatureLinks<Id extends FeatureId> = LinksOf<Named<Id>>;
+
+/**
+ * The links Hub people calls (app/renderer/hub-people.ts): it opens a conversation and reads who
+ * Whispers knows, and travels to a friend's outpost.
+ */
+export const HUB_LINKS = {
+  whispers: ["open", "people"],
+  travel: ["friendTripBlocked", "toFriend"],
+} as const satisfies NamedLinks;
+
+export type HubLinks = LinksOf<typeof HUB_LINKS>;
 
 /*
  * What the registry relies on, checked at compile time: a target's manifest `offers` names

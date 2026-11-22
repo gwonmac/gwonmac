@@ -20,7 +20,7 @@ import { createHub } from '../../../renderer/hub';
 // eslint-disable-next-line no-restricted-imports
 import { withHubBuiltins } from '../../../renderer/hub-builtins';
 // eslint-disable-next-line no-restricted-imports
-import { featureLinks, onLinksChange, provideLink } from '../../../renderer/feature-links';
+import { featureLinks, hubLinks, onLinksChange, provideLink } from '../../../renderer/feature-links';
 // eslint-disable-next-line no-restricted-imports
 import { whispersLink } from '../../../features/whispers/renderer/link';
 import { mountHubView } from './hub/embedded';
@@ -270,7 +270,7 @@ export function mountHubFixture(target: HTMLElement) {
   mountWhispers(messenger, { session });
   // Whispers' link, as its companion part provides it; every name Trade opens is recorded for the specs.
   const link = whispersLink(session);
-  provideLink('whispers', { open(name) { target.dataset.whisperOpens = `${target.dataset.whisperOpens ?? ''}${name}|`; return link.open(name); } });
+  provideLink('whispers', { people: link.people, open(name) { target.dataset.whisperOpens = `${target.dataset.whisperOpens ?? ''}${name}|`; return link.open(name); } });
   window.addEventListener('hub-fixture-failure', () => { failSend = true; });
   window.addEventListener('hub-fixture-reset', () => session.reset());
   window.addEventListener('hub-fixture-incoming', () => session.observe([{ id: ++id, sender: 'Romi Ranger', message: 'Ready for another mission?', direction: 'incoming' }]));
@@ -287,8 +287,10 @@ export function mountHubFixture(target: HTMLElement) {
     },
     travel: async friend => { await travel.travel(friend.mapId); record(`PARTY.TRAVEL ${friend.character}`); },
   });
-  const people = createHubPeople(hub, session, { unavailable: friend => { const region = lifecycle.region(); return region.status === 'ready' && region.mapId === friend.mapId ? 'You are already in this outpost' : null; },
-    run: async friend => { await travel.travel(friend.mapId); record(`FRIEND.TRAVEL ${friend.character}`); } }, partyInvite);
+  // Travel's link, as its companion part provides it: Hub people travels to a friend through it.
+  provideLink('travel', { friendTripBlocked: friend => { const region = lifecycle.region(); return region.status === 'ready' && region.mapId === friend.mapId ? 'You are already in this outpost' : null; },
+    toFriend: async friend => { await travel.travel(friend.mapId); record(`FRIEND.TRAVEL ${friend.character}`); } });
+  const people = createHubPeople(hub, hubLinks(), partyInvite);
   people.setEnabled(true);
   // Romi waits in the player's starting outpost, so `invite Romi` is ready to send there.
   // The injected party (`?party`): chat participants, four online Zed friends and a friend in a PvP outpost.
