@@ -20,6 +20,8 @@ export default defineFeature({
   optInWithTools: true,
   tool: {
     id: "xunlai-storage",
+    // Not a link `toggle`: the certified storage controller claims this event, and its Must-stay
+    // test (tests/unit/enhancement-storage-controller.test.ts) dispatches it (plan step 5.5).
     event: "gw:storage-open",
     keywords: "chest bank storage",
   },
