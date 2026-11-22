@@ -52,7 +52,7 @@ does not change a setting in place.
    Features needs a restart of the launcher: the plain-game strip at the top of
    Features says "Restart the launcher" and only the launcher offers the button. Restarting only a game
    window does not load or unload them. `resolve` (`app/shared/feature-resolve.ts`)
-   reports `plain-game` for every Feature; nothing else reads the mode.
+   reports `plain-game` for every Feature; no other Feature decision reads the mode.
 
 ## Moving settings to another Mac
 

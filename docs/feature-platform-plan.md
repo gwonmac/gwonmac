@@ -119,29 +119,30 @@ quote styles twice; 15 window events are left), feature-domain renderer files 2 
 Feature's folder naming its id 17 / 86 (now a ceiling of its own), `localStorage` lines 6 / 13,
 `v-if` cases 0. The other metrics keep their raw count, which is the work.
 
-### Remaining work (`e21c4958`)
+### Final numbers (after 8.1, PR #106)
 
-`node scripts/feature-metrics.mjs` prints the exact list. No 5.x row owns any of it; each item needs a
-decision before 8.1 can remove it or move it to the allowed list:
+`node scripts/feature-metrics.mjs` (not allowed / allowed): `featureActivationRequested(` 0,
+`policy().` reads 0, `plainGame` 0, `gw:*` window events 0 / 12, substrate feature names 0,
+feature-domain renderer files 0 / 11, files outside a Feature's folder naming its id 0 / 92,
+`localStorage` lines in the Tools UI 0 / 17, `v-if` cases 0. Every ceiling in
+`scripts/feature-metrics-ceilings.json` with an allowed list is 0. IPC channel names (not
+counted): 56.
 
-- Character Switch: `gw:character-toggle` (its open event) and `gw:character-switch-claim` (it
-  tells the harness to stop the automatic return).
-- The Tools window host names Trade Chat and the Build Library: `app/features/tools/companion.ts`,
-  `app/renderer/toolbox-foundation.ts` (provides Trade's link before its part loads),
-  `tools-bundle-contracts.ts`, and `hub-builtins.ts` (the calculator reads Trade's market rates);
-  its window placement is in `localStorage` (`use-floating-window.ts`, 2 lines), not in settings.
-- `cartography` in `app/renderer/harness.ts`: the harness loads the Maps host itself, not through
-  a part. `resign` in `app/main/window-menu.ts`: a menu gate in main.
-- The Hub's People page and party invite (`hub-people.ts`, `party-invite.ts`) and its example list
-  (`hub-commands.ts`) name Travel and Whispers: a Feature-owned Hub part, or Core using typed links
-  only (then allowed).
-- Feature views in the Tools UI bundle: `hub-library.ts`, `hub-travel.ts` (also names `progress`),
-  `TravelPalette.vue`. The lint boundary lets `app/ui/tools` import only `app/shared`, so they cannot
-  move into their folders as they are (#83).
-- Unsure: `pending: "travel"` in `preferences-coordinator.ts` and `contracts.ts` (Core's settings
-  reset knows Travel's preferences file; a Travel main part could own it, or it is Core's player data
-  and allowed), and the skill catalogue's two filters in `localStorage` (`catalogue-preferences.ts`,
-  4 lines: a per-viewer convenience, then allowed, or a setting).
+How the last items of the remaining-work list ended:
+
+- Character Switch opens through its link `toggle` (`gw:character-toggle` gone); its hubPage
+  part tells the game host when a switch starts, which stops the automatic return
+  (`onSwitchStart`, `gw:character-switch-claim` gone).
+- The Tools window host, the Hub's People page and party invite, and the Feature views moved in
+  5.6 (#99–#103).
+- `cartography` in the harness is allowed: Maps installs from the instantiated module because
+  its certified stage comes with every Tools launch, with or without a certified companion.
+- Main's Resign gate is gone: its menu item and shortcut are gated from the manifest like every
+  tool, and the renderer's `toggleTool` refuses while resolve has it off.
+- `pending: "travel"` (Core's player-data reset) and the skill catalogue's two filters (a
+  per-viewer convenience) are allowed.
+- `tool.id` stays: it is the stable id of each switch control (`tool:<id>`), which Hub pins and
+  README links store.
 
 ## Phase 0 · Baseline and decisions (S)
 

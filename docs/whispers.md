@@ -8,7 +8,7 @@ replace chat handlers, block messages, or maintain a second delivery history.
 
 ## Use and presentation
 
-Enable **Whispers** in launcher Tools settings (off by default). The panel is
+Turn on **Whispers** on its Feature page in the launcher's Features tab (off by default). The panel is
 available in PvE while Tools is enabled. `pnpm --filter @gwonmac/tools-ui dev` with `?whispers` opens
 the same Vue surface with local scenario controls; those controls never send
 game messages.
@@ -24,7 +24,7 @@ The launcher icon can be hidden (`whispersIcon`); the shortcut and Hub still ope
 the surface. Where the player drags the icon is the `whispersIconPosition`
 setting (a distance from the nearest corner, null for the default place), so
 every game window follows a move and Copy settings carries it; Settings ›
-Tools › Whispers resets it.
+Features › Whispers resets it.
 Opening it from Hub suspends the Hub page. Returning to Hub resumes that page.
 The session and transcript have one owner; there is no separate quick composer.
 

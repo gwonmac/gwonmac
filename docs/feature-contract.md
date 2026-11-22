@@ -61,6 +61,10 @@ Then fill in the summary, the README and the game part, and run `pnpm check` aga
 | `renderer/` | Other renderer-only modules of the Feature (DOM, formatting). No Node.js. |
 | `shared/` | Pure logic or types that two processes read. |
 
+A Feature beyond group A may also have `main.ts` and `main/` (its main part), `renderer/window.ts`
+(its window part) and `ui/` (its views in the Tools bundle);
+[enhancement development](enhancement-development.md) describes the full folder.
+
 Every module under `app/` starts with a block comment that says what it owns.
 
 ## The manifest
@@ -80,7 +84,7 @@ the shapes; [`app/features/contract.ts`](../app/features/contract.ts) checks the
 | `region` | `any`, `non-pvp` or `pve` | TypeScript; `resolve` applies it |
 | `uses` | Verifier capabilities and certified stages it cannot work without | contract: each one is in `ENHANCEMENT_CAPABILITY_FIELDS` or `STAGE_USES`; a folder that imports a stage's contract (`app/shared/cartography-spike.ts`) names that stage |
 | `requires` | Features that must be on for this one to run | contract: ids exist, no cycles |
-| `tool` | `{ id: "<folder>" }`: the id its switch is saved and searched under (`tool:<id>`) | TypeScript; contract: the Feature has a switch of its own |
+| `tool` | `{ id: "<folder>" }`: the stable id its switch control is searched and pinned under (`tool:<id>`); a released id never changes, even where it differs from the folder | TypeScript; contract: the Feature has a switch of its own |
 | `shots` | Captions for `media/shot-N.webp` | contract: one file per caption, no file without one |
 | `parts` | The part kinds it has; group A has `["game"]` | contract: `game` when `companion.ts` exists, `main` exactly when `main.ts` exists; TypeScript: `featurePart` builds only for a Feature that lists `game` |
 | `links`, `offers` | Calls between Features (below) | contract and [`links.ts`](../app/features/links.ts) types |
@@ -102,7 +106,7 @@ it off. Never ask whether the Feature is on. Subscribe or claim in `start`; undo
 
 The blocks are in [`app/renderer/game-blocks.ts`](../app/renderer/game-blocks.ts):
 `game.target`, `game.region`, `game.session`, `game.skillbar`, `game.chat`, `game.effects`,
-`game.alcohol`, `game.progress` to read, and `ui.skillLabels`, `ui.skillKeys`,
+`game.alcohol`, `game.progress`, `game.friends` to read, and `ui.skillLabels`, `ui.skillKeys`,
 `ui.effectLabels` to draw. Each block's type says exactly which values it has. A block is
 `available` only when the verifier proved the capability behind it (`createGameBlocks`
 names it, as `capabilities.<name>`); put that capability in `uses`. `settings` is a block
@@ -117,8 +121,8 @@ Examples: [`skill-cooldowns/`](../app/features/skill-cooldowns/) and
 
 ## Settings
 
-- **The switch.** One per Feature, declared with `featureSwitch(fallback, { tools: true })` under
-  the key `<id>Enabled`. It names nothing: players see it under the Feature's name and
+- **The switch.** One per Feature, declared with `featureSwitch(fallback, { tools: true })`, for a
+  new Feature under the key `<id>Enabled` (released keys such as `travelPalette` never change). It names nothing: players see it under the Feature's name and
   summary, so the contract refuses a `label` or `help` on it. A Feature without a switch
   lists in `requires` the Features it runs with. Never rename a released switch key
   ([Feature switches](settings.md#feature-switches)).
