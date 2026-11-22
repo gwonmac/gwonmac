@@ -155,11 +155,16 @@ test.describe("diagnostics", () => {
       await expect.poll(() => page.evaluate(async () =>
         (await window.gwNative.diagnostics.current()).captureLevel,
       )).toBe(2);
+      // The main process reports level 2 once `contentTracing.startRecording` has resolved,
+      // but Chromium hands the tracing config to each renderer asynchronously. A mark emitted
+      // before that is lost (it is cleared at once), and the trace is only readable after stop,
+      // so there is nothing to poll. Emit the marks for ~200 ms instead of once.
       await page.evaluate(async () => {
-        window.gwDiagnostics.snapshot(100, 4096, "memory");
-        window.gwDiagnostics.swap(100, 50, 25);
-        await new Promise((resolve) => setTimeout(resolve, 25));
-        window.gwDiagnostics.swap(100, 50, 25);
+        for (let round = 0; round < 8; round += 1) {
+          window.gwDiagnostics.snapshot(100, 4096, "memory");
+          window.gwDiagnostics.swap(100, 50, 25);
+          await new Promise((resolve) => setTimeout(resolve, 25));
+        }
       });
       expect(
         await app.evaluate(({ Menu }) => {
