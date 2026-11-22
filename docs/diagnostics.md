@@ -308,7 +308,7 @@ offline fixture. It starts the normal profile and observes the renderer through
 an ephemeral loopback debugging endpoint:
 
 ```bash
-pnpm graphics:live
+GW_LIVE_SMOKE=1 pnpm enhancements:live -- --scenario graphics-probe
 ```
 
 Play normally. Press Enter in the probe terminal to save one evidence pair.

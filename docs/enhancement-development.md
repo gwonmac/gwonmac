@@ -13,11 +13,11 @@ architecture.
 ## Current product boundary
 
 Core is required and has no player switch: file compatibility, the Guild Wars
-cursor, native double-click, Scry (Command-R), and pre-game reload. Every other
+cursor, native double-click, the Hub (Command-R), and pre-game reload. Every other
 feature, Character Switch (Command-E) included, is a Feature that the plain game
 turns off. New players start in the plain game. Turning it off selects a
 Tools-capable module and needs a restart; after that, every Feature has its own
-live switch. `app/shared/settings-catalogue.ts` lists the shipped tools, and the
+live switch. `FEATURES` in `app/features/index.ts` lists the shipped Features, and the
 [website feature pages](https://www.gwonmac.com/docs) describe them for players.
 
 Rules every feature keeps:
@@ -32,9 +32,9 @@ Rules every feature keeps:
 - Live observers and commands stop when disabled, in PvP, or when map policy
   refuses them. Host-only authoring (Build Library) stays available without
   observation or command authority.
-- Scry owns Command-K while it is open. A saved Command-R override wins. Do not
-  serialize a new default shortcut key: older settings readers reject unknown
-  keys.
+- The Hub keeps Command-R unless a saved app shortcut already took it
+  (`hubOwnsShortcut` in `app/shared/keyboard-shortcuts.ts`). Do not serialize a
+  new default shortcut key: older settings readers reject unknown keys.
 
 ## Launch boundary invariant
 
@@ -61,8 +61,8 @@ Two tests hold this for every feature part: they start each part with every
 switch on, switch it off, and fail on any listener, timer, interval, animation
 frame, observer, DOM node, bridge subscription, Hub source, or IPC handler left
 behind ([renderer and Hub](../app/ui/tools/src/feature-parts-stop-leaves-nothing.dom.test.ts),
-[main](../tests/unit/feature-main-parts-stop-leaves-nothing.test.ts)). Known
-leftovers are listed in each test and must fail it once fixed.
+[main](../tests/unit/feature-main-parts-stop-leaves-nothing.test.ts)). The
+renderer test lists its known leftovers and fails once one is fixed.
 
 Quick Item Move wraps two exact item-slot callbacks, the native quantity-move
 helper, and the UI dispatcher already certified for Tools. Its certificate binds
@@ -232,7 +232,10 @@ pending native work. Focus alone never enables it. The existing context, target
 identity, selection proof, and deadline checks still apply. The game-thread
 executor rechecks the Selector target immediately before Play. It refuses a
 changed selection without another click. Automatic return
-after reload retains its separate focus policy.
+after reload retains its separate focus policy. When a switch starts, the
+hubPage part tells the game host (`onSwitchStart` in
+`app/features/character-switch/renderer/host.ts`), which stops the automatic
+return so the two never press keys on the same screen.
 
 Run the unpackaged developer probe with:
 
@@ -266,7 +269,7 @@ accepted the world action. This distinction separates a hidden GWonMac surface
 from a stuck native game UI state without copying coordinates or UI text.
 For a keyboard shortcut, every `modifier down` must have either a matching
 `modifier up` or an `input released (command)` row before the named action.
-Command-Shift-C deliberately resets held game input before it opens Xunlai,
+Xunlai Storage's shortcut (Command-S) deliberately resets held game input before it opens Xunlai,
 because macOS can consume a physical modifier release while Command is held.
 
 ## Add or change a feature
@@ -349,7 +352,7 @@ Use only the layers the feature needs:
 | Concern | One owner | Reusable contract |
 | --- | --- | --- |
 | Saved player choice | The feature's `settings` in `app/features/<id>/feature.ts`, built with [`setting`](../app/shared/settings/), its switch with `featureSwitch` ([Feature switches](settings.md#feature-switches)) | Types, defaults, parsing, Hub rows and the renderer projection derive from that one table. Add an entry only when the feature needs player configuration. |
-| Feature switch and coarse region rule | [`FEATURE_SELECTION_POLICIES`](../app/shared/feature-contracts.ts) | Add one stable `FeatureId`. The runtime policy must project that exact ID. |
+| Feature switch and coarse region rule | The manifest's `region` and its `featureSwitch` | [`FEATURE_SELECTION_POLICIES`](../app/shared/feature-contracts.ts) derives from them; there is nothing to add by hand. |
 | Certified client support | [`enhancement-contracts.ts`](../app/shared/enhancement-contracts.ts) and `app/client/certification/` | Add an independently provable capability. Keep defaults, validators and verifier consumers aligned; the [typed verifier fixture](../tests/electron/fixtures/local-verifier-app/main.mjs) uses canonical defaults instead of a second complete capability list. A product setting cannot grant native authority. |
 | Fixed native publication | [`createCompanionRegionInstallation`](../app/renderer/companion-region-installation.ts) | Own allocation, activation withdrawal, freshness, and disposal for one bounded region. |
 | Live settings and map policy | [`createCompanionPolicySource`](../app/renderer/companion-policy-source.ts) | Consume one immutable snapshot. Do not subscribe to Settings or classify play regions again. |
@@ -366,7 +369,7 @@ A feature folder holds every file that only that feature uses:
 ```
 app/features/<id>/
   feature.ts     manifest v2 (all processes): name, summary, kind, icon, region, uses, requires,
-                 network, settings (each with label and help), tool (its renderer event), hub, shortcuts,
+                 network, settings (each with label and help), tool (its `tool:<id>` switch control and search keywords), hub, shortcuts,
                  shots, parts; app/features/define.ts documents each field
   README.md      what it does, for players, in the Markdown subset app/features/contract.ts allows;
                  the launcher's Feature page and the website page /docs/<folder> both show it
@@ -401,15 +404,16 @@ live. [`tests/policy/feature-docs.test.ts`](../tests/policy/feature-docs.test.ts
 fails when a feature has no page, a hand-written docs page takes a feature's
 address, or a `$docs.<page>` link names no page.
 
-A tool's `event` is the one name of the renderer event that runs it: its
-shortcut's command fires it through `app/renderer/commands.ts`
-(`TOOL_COMMANDS` in `app/shared/hub-tools.ts`), and so does
-its Core Hub row. A feature that offers `toggle` (`ToolLink` in
-[`links.ts`](../app/features/links.ts)) names no event: its shortcut, game menu
-item and Hub row call its link instead (`toggleTool` in
-[`feature-links.ts`](../app/renderer/feature-links.ts)), `toggle` from the
-shortcut and `show` from the Hub row. Whispers, Trade Chat, the Build Library
-and Xunlai Storage open this way; a tool still on an event moves the same way.
+A tool opens through its Feature's link `toggle` (`ToolLink` in
+[`links.ts`](../app/features/links.ts)): its shortcut, game menu item and Hub
+row call it through `toggleTool` in
+[`feature-links.ts`](../app/renderer/feature-links.ts) (`TOOL_COMMANDS` in
+`app/shared/hub-tools.ts` maps each shortcut command to it), `toggle` from the
+shortcut and `show` from the Hub row. Whispers, Trade Chat, the Build Library,
+Xunlai Storage, Travel, Resign and Character Switch open this way. A tool's
+`event` is left only for a tool the input host runs (Call Target): its
+shortcut's command fires it through `app/renderer/commands.ts`, and it has no
+Hub row.
 A `window` part's view loads only when its window first opens, so its
 declaration ([`windowPart`](../app/renderer/window-part.ts)) builds its link
 from the Tools window's control (show, toggle, close, and `whenRunning` for a
@@ -458,8 +462,7 @@ feature's stylesheet is listed in `scripts/copy-renderer.mjs`. tsconfig.renderer
 checks `companion.ts` and `renderer/`, the Tools program (`app/ui/tools/tsconfig.json`)
 checks `ui/`, and the root program checks the rest.
 
-The feature registry and the live policy use the same IDs. Type checking and a
-runtime contract test fail when one side changes without the other. Derived
+The live policy derives from `FEATURES`, so the two cannot list different IDs. Derived
 shared substrates stay at their consumer boundary. For example, skill-slot
 geometry is active when either `skillKeyLabels` or `skillCooldowns` is active;
 it is not a second product feature or setting.
@@ -610,7 +613,7 @@ Use `--leave-open` only for human inspection. A failure or timeout already
 leaves Electron open and writes bounded output under
 `test-results/enhancements-live/`.
 
-Use `pnpm graphics:live` for an operator-driven visual investigation. It uses
+Use `GW_LIVE_SMOKE=1 pnpm enhancements:live -- --scenario graphics-probe` for an operator-driven visual investigation. It uses
 the observation tier with no developer Enhancement program. Press Enter to
 save a screenshot and its bounded numeric state. The diagnostics document owns
 the [privacy boundary and procedure](diagnostics.md#live-graphics-investigation).

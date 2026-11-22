@@ -241,15 +241,17 @@ repaired yet.
 ## Effective feature status
 
 Main reports the effective served status for file saving, native double-click,
-cursor, Target, Party, Team Apply, Travel, Xunlai, and aliases. Each
+and each Enhancement capability and certified stage a Feature `uses`
+(`ClientCompatibility.features` in `app/shared/contracts.ts`). Each
 optional feature is `available`, `off`, or `unavailable`; unavailable features
 also say whether a Guild Wars update, a preparation failure, or a failed
 build check (`check-failed`) caused the refusal. The renderer never reconstructs these answers from settings, hashes,
 or another feature.
 
 The verifier returns independent feature facts. The runtime selects the largest
-proved subset, removes Team Apply when Party is absent, and removes aliases when
-both Travel and Xunlai are absent. It retries from the clean post-template
+proved subset and removes each capability whose prerequisites are missing
+(`requiresAll` and `requiresAny` in `app/shared/enhancement-contracts.ts`, for
+example Team Apply without Party). It retries from the clean post-template
 module after a feature-local failure. A common hook or final integrity failure
 disables the dependent features while preserving independent proofs.
 
@@ -273,7 +275,8 @@ decode repair. These behaviors have no player switch when their proof passes.
 Optional Features are off by default: new players start in the plain game.
 Turning off **Play the plain game** (`gwonmacTools` on) selects a
 commands-capable derived module on the next start, so it requires a restart.
-Every Feature also has an individual switch. The plain game stops every Feature
+Every Feature except Progress and Team Apply also has its own switch; those two
+follow the Features they `require`. The plain game stops every Feature
 surface, shortcut, and alias, Character Switch included.
 
 The persisted `gwonmacTools` value is desired state. The launch-time
@@ -291,9 +294,9 @@ state and launch selection is the pending-unload state shown in Settings. A
 restart selects the Core preload and module graph; re-enabling before that
 restart reactivates the already-loaded Tools runtime and clears the notice.
 
-After that restart, each tool's own switch (Build Library, Trade Chat, Travel,
-Xunlai Storage, Target distance, Skill Key Labels, Skill Cooldowns) controls its
-surface, shortcut, and aliases during the session. Turning a tool off keeps its
+After that restart, each Feature's own switch (for example Build Library,
+Trade Chat, Travel or Xunlai Storage) controls its surface, shortcut, and
+aliases during the session. Turning a tool off keeps its
 saved data.
 
 One function decides whether a Feature runs: `resolve`
@@ -409,7 +412,7 @@ actions proves, and parser generation includes only commands backed by proved
 actions. The profile exports no generic opcode, packet, dispatcher, or address
 surface.
 
-The same named storage action backs the Tools button and Command-Shift-C. It
+The same named storage action backs the Tools button and Xunlai Storage's shortcut (Command-S). It
 queues a fixed `{ agent: 0, type: 0, data: 3 }` DataWindow payload, then calls
 the certified client DataWindow handler at the existing game-thread drain. It
 does not send that payload to ArenaNet. The action is enabled only with its
