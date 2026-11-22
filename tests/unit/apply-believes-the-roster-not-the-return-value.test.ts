@@ -27,6 +27,18 @@ import {
   applyPlan as plan,
 } from "./team-apply-fixture.ts";
 
+const RANKS: readonly (readonly number[])[] = [[17, 7], [19, 12]];
+// A hero whose secondary profession (3) differs from the build's (2).
+const PENDING_SECONDARY = {
+  hero: 6, agentId: 11, behaviour: 1, skills: null, professions: [1, 3],
+} as const;
+
+function transitions(events: readonly { state: string; elapsedMs: number }[], state: string) {
+  return events
+    .filter((event) => event.state === state)
+    .map(({ state, elapsedMs }) => ({ state, elapsedMs }));
+}
+
 function isPreflightRefusal(expected: TeamApplyRuntimeProblem) {
   return (error: unknown): boolean => {
     assert.ok(error instanceof TeamApplyPreflightRefusal);
@@ -322,7 +334,7 @@ test("a full apply reports only the changes the roster confirmed", async () => {
     agentId: 11,
     behaviour: 0,
     skills: [1, 2, 3, 4, 5, 6, 7, 8],
-    attributes: [[17, 7], [19, 12]] as readonly (readonly number[])[],
+    attributes: RANKS,
   }];
   game.react("skills:11:1,2,3,4,5,6,7,8",
     wanted.map((slot) => ({ ...slot, behaviour: 1, attributes: [] })));
@@ -373,7 +385,7 @@ test("an ordinary attribute publication just after one second is not a false ref
   };
   const changed = {
     ...initial,
-    attributes: [[17, 7], [19, 12]] as readonly (readonly number[])[],
+    attributes: RANKS,
   };
   const game = harness([initial]);
   const sleep = game.environment.confirmationTime!.sleep;
@@ -447,9 +459,7 @@ test("an empty attribute plan clears a hero's invested ranks", async () => {
 // to the old profession, so it has to happen before either of them. A run that
 // wrote skills first would apply them and then throw them away.
 test("a new secondary profession is set, and set before the bar", async () => {
-  const game = harness([{
-    hero: 6, agentId: 11, behaviour: 1, skills: null, professions: [1, 3],
-  }]);
+  const game = harness([PENDING_SECONDARY]);
   game.react("secondary:11:2", [{
     hero: 6, agentId: 11, behaviour: 1, skills: null, professions: [1, 2],
   }]);
@@ -460,7 +470,7 @@ test("a new secondary profession is set, and set before the bar", async () => {
   game.react("attributes:11:17=7,19=12", [{
     hero: 6, agentId: 11, behaviour: 1, professions: [1, 2],
     skills: [1, 2, 3, 4, 5, 6, 7, 8],
-    attributes: [[17, 7], [19, 12]] as readonly (readonly number[])[],
+    attributes: RANKS,
   }]);
 
   const result = await runTeamApply(
@@ -477,9 +487,7 @@ test("a new secondary profession is set, and set before the bar", async () => {
 });
 
 test("a bar waits for the client's profession rebuild after confirmation", async () => {
-  const initial = {
-    hero: 6, agentId: 11, behaviour: 1, skills: null, professions: [1, 3],
-  } as const;
+  const initial = PENDING_SECONDARY;
   const changed = { ...initial, professions: [1, 2] as const };
   const game = harness([initial]);
   game.react("secondary:11:2", [changed]);
@@ -508,9 +516,7 @@ test("a bar waits for the client's profession rebuild after confirmation", async
 });
 
 test("a live secondary transition may exceed the ordinary command deadline", async () => {
-  const initial = {
-    hero: 6, agentId: 11, behaviour: 1, skills: null, professions: [1, 3],
-  } as const;
+  const initial = PENDING_SECONDARY;
   const changed = { ...initial, professions: [1, 2] as const };
   const game = harness([initial]);
   const events: { state: string; elapsedMs: number }[] = [];
@@ -556,17 +562,13 @@ test("a live secondary transition may exceed the ordinary command deadline", asy
     "one retry is sent while the first command is still unobserved",
   );
   assert.deepEqual(
-    events
-      .filter((event) => event.state === "retrying")
-      .map(({ state, elapsedMs }) => ({ state, elapsedMs })),
+    transitions(events, "retrying"),
     [{ state: "retrying", elapsedMs: 3_000 }],
   );
 });
 
 test("a profession first published on the deadline receives its stability grace", async () => {
-  const initial = {
-    hero: 6, agentId: 11, behaviour: 1, skills: null, professions: [1, 3],
-  } as const;
+  const initial = PENDING_SECONDARY;
   const changed = { ...initial, professions: [1, 2] as const };
   const game = harness([initial]);
   const observedParty = game.environment.party;
@@ -610,9 +612,7 @@ test("a profession first published on the deadline receives its stability grace"
 });
 
 test("a deadline candidate that disappears is refused without extending the operation", async () => {
-  const initial = {
-    hero: 6, agentId: 11, behaviour: 1, skills: null, professions: [1, 3],
-  } as const;
+  const initial = PENDING_SECONDARY;
   const changed = { ...initial, professions: [1, 2] as const };
   const game = harness([initial]);
   const observedParty = game.environment.party;
@@ -638,9 +638,7 @@ test("a deadline candidate that disappears is refused without extending the oper
 });
 
 test("a profession must remain observed for a full stable interval", async () => {
-  const initial = {
-    hero: 6, agentId: 11, behaviour: 1, skills: null, professions: [1, 3],
-  } as const;
+  const initial = PENDING_SECONDARY;
   const changed = { ...initial, professions: [1, 2] as const };
   const game = harness([initial]);
   const baseParty = game.environment.party;
@@ -685,9 +683,7 @@ test("a profession must remain observed for a full stable interval", async () =>
 });
 
 test("cancelling during confirmation sends no dependent command", async () => {
-  const game = harness([{
-    hero: 6, agentId: 11, behaviour: 1, skills: null, professions: [1, 3],
-  }]);
+  const game = harness([PENDING_SECONDARY]);
   const operation = new AbortController();
   const secondary = game.environment.commands.setHeroSecondary;
   game.environment.commands.setHeroSecondary = (hero, profession) => {
@@ -707,9 +703,7 @@ test("cancelling during confirmation sends no dependent command", async () => {
 });
 
 test("a monoclass build clears the secondary rather than leaving it", async () => {
-  const game = harness([{
-    hero: 6, agentId: 11, behaviour: 1, skills: null, professions: [1, 3],
-  }]);
+  const game = harness([PENDING_SECONDARY]);
   const monoclass = { ...build(), professions: ["W", null] } as ReturnType<typeof build>;
   game.react("secondary:11:0", [{
     hero: 6, agentId: 11, behaviour: 1, skills: null, professions: [1, 0],
@@ -721,16 +715,14 @@ test("a monoclass build clears the secondary rather than leaving it", async () =
   game.react("attributes:11:17=7,19=12", [{
     hero: 6, agentId: 11, behaviour: 1, professions: [1, 0],
     skills: [1, 2, 3, 4, 5, 6, 7, 8],
-    attributes: [[17, 7], [19, 12]] as readonly (readonly number[])[],
+    attributes: RANKS,
   }]);
   await runTeamApply(plan([member({ hero: heroId(6), build: monoclass })]), game.environment, 1);
   assert.equal(game.sent[0], "secondary:11:0", "Profession::None is a real secondary");
 });
 
 test("a secondary the game never changes is a refusal, not a bar written anyway", async () => {
-  const game = harness([{
-    hero: 6, agentId: 11, behaviour: 1, skills: null, professions: [1, 3],
-  }]);
+  const game = harness([PENDING_SECONDARY]);
   const events: { state: string; elapsedMs: number }[] = [];
   await assert.rejects(
     runTeamApply(
@@ -746,15 +738,11 @@ test("a secondary the game never changes is a refusal, not a bar written anyway"
     "one profession retry is sent, and the bar is never sent",
   );
   assert.deepEqual(
-    events
-      .filter((event) => event.state === "retrying")
-      .map(({ state, elapsedMs }) => ({ state, elapsedMs })),
+    transitions(events, "retrying"),
     [{ state: "retrying", elapsedMs: 3_000 }],
   );
   assert.deepEqual(
-    events
-      .filter((event) => event.state === "failed")
-      .map(({ state, elapsedMs }) => ({ state, elapsedMs })),
+    transitions(events, "failed"),
     [{ state: "failed", elapsedMs: 15_000 }],
   );
 });
@@ -811,7 +799,7 @@ test("a bar the game only partly equips is applied, and says what it dropped", a
   }]);
   game.react("attributes:11:17=7,19=12", [{
     hero: 6, agentId: 11, behaviour: 1, professions: [1, 2], skills: partial,
-    attributes: [[17, 7], [19, 12]] as readonly (readonly number[])[],
+    attributes: RANKS,
   }]);
 
   const result = await runTeamApply(
@@ -910,17 +898,17 @@ test("skipped skill names accumulate across the whole team", async () => {
   game.react("skills:11:1,2,3,4,5,6,7,8", [firstPartial, second]);
   game.react("attributes:11:17=7,19=12", [{
     ...firstPartial,
-    attributes: [[17, 7], [19, 12]] as readonly (readonly number[])[],
+    attributes: RANKS,
   }, second]);
   const firstDone = {
     ...firstPartial,
-    attributes: [[17, 7], [19, 12]] as readonly (readonly number[])[],
+    attributes: RANKS,
   };
   const secondPartial = { ...second, skills: [1, 2, 82, 83, 5, 6, 7, 8] };
   game.react("skills:12:1,2,3,4,5,6,7,8", [firstDone, secondPartial]);
   game.react("attributes:12:17=7,19=12", [firstDone, {
     ...secondPartial,
-    attributes: [[17, 7], [19, 12]] as readonly (readonly number[])[],
+    attributes: RANKS,
   }]);
 
   const result = await runTeamApply(
@@ -956,9 +944,7 @@ test("a bar that never moves is still a refusal", async () => {
     "skills:11:1,2,3,4,5,6,7,8",
   ], "the safe skill-bar retry is sent exactly once");
   assert.deepEqual(
-    events
-      .filter((event) => event.state === "retrying")
-      .map(({ state, elapsedMs }) => ({ state, elapsedMs })),
+    transitions(events, "retrying"),
     [{ state: "retrying", elapsedMs: 750 }],
   );
 });
@@ -969,7 +955,7 @@ test("a bar and ranks already in place send nothing at all", async () => {
   const game = harness([{
     hero: 6, agentId: 11, behaviour: 1, professions: [1, 2],
     skills: [1, 2, 3, 4, 5, 6, 7, 8],
-    attributes: [[17, 7], [19, 12]] as readonly (readonly number[])[],
+    attributes: RANKS,
   }]);
   const result = await runTeamApply(
     plan([member({ hero: heroId(6), build: build(), behaviour: "guard" })]),

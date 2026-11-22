@@ -13,6 +13,9 @@ import {
   type Capture,
 } from "../../app/tools-cli/diagnostics/common.ts";
 
+const buckets = (counts: Record<number, number>): number[] =>
+  Array.from({ length: 18 }, (_, index) => counts[index] ?? 0);
+
 function metrics(): RendererMetrics {
   return {
     intervalMs: 2000,
@@ -53,67 +56,67 @@ function metrics(): RendererMetrics {
     wasmHeapBytes: 335_544_320,
     rendererEvents: [],
     raf: {
-      buckets: [0, 0, 0, 0, 0, 0, 0, 0, 120, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      buckets: buckets({ 8: 120 }),
       totalUs: 2_000_000,
       minUs: 16_000,
       maxUs: 17_000,
     },
     swap: {
-      buckets: [100, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      buckets: buckets({ 0: 100, 1: 20 }),
       totalUs: 12_000,
       minUs: 50,
       maxUs: 300,
     },
     submitInterval: {
-      buckets: [0, 0, 0, 0, 0, 0, 0, 0, 119, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      buckets: buckets({ 8: 119 }),
       totalUs: 1_983_333,
       minUs: 16_000,
       maxUs: 17_000,
     },
     visibleSubmitInterval: {
-      buckets: [0, 0, 0, 0, 0, 0, 0, 0, 119, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      buckets: buckets({ 8: 119 }),
       totalUs: 1_983_333,
       minUs: 16_000,
       maxUs: 17_000,
     },
     hiddenSubmitInterval: {
-      buckets: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      buckets: buckets({}),
       totalUs: 0,
       minUs: 0,
       maxUs: 0,
     },
     bitmapOut: {
-      buckets: [120, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      buckets: buckets({ 0: 120 }),
       totalUs: 4_000,
       minUs: 20,
       maxUs: 50,
     },
     bitmapPresent: {
-      buckets: [120, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      buckets: buckets({ 0: 120 }),
       totalUs: 2_000,
       minUs: 10,
       maxUs: 25,
     },
     snapshot: {
-      buckets: [0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      buckets: buckets({ 6: 1, 7: 1 }),
       totalUs: 20_000,
       minUs: 5_000,
       maxUs: 15_000,
     },
     socketSync: {
-      buckets: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      buckets: buckets({ 0: 1 }),
       totalUs: 90,
       minUs: 90,
       maxUs: 90,
     },
     socketSettle: {
-      buckets: [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      buckets: buckets({ 2: 1 }),
       totalUs: 400,
       minUs: 400,
       maxUs: 400,
     },
     inputToSubmit: {
-      buckets: [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      buckets: buckets({ 6: 1 }),
       totalUs: 8_000,
       minUs: 8_000,
       maxUs: 8_000,
@@ -552,42 +555,46 @@ describe("capture validation, format 3 visual evidence", () => {
   });
 });
 
+function format1Capture(captureLevel: 0 | 1 | 2): Capture {
+  return {
+    manifest: {
+      formatVersion: 1,
+      applicationVersion: "1.0.0",
+      sessionId: "session",
+      captureLevel,
+      exportedAt: new Date(0).toISOString(),
+      droppedEventCount: 0,
+      includedFiles: [
+        "manifest.json",
+        "summary.json",
+        "events.jsonl",
+        "histograms.json",
+        "environment.json",
+        "settings-redacted.json",
+      ],
+      redaction: "passed",
+      profilerContaminated: false,
+    },
+    summary: {
+      sessionId: "session",
+      uptimeMs: 1000,
+      captureLevel,
+      droppedEvents: 0,
+      counters: {},
+      histograms: {},
+      latest: {},
+    },
+    environment: {},
+  };
+}
+
 // Format 1 is the alpha's export, and 117 of them are in the wild. The
 // validator keeps reading it: `histograms.json` stays required there and
 // `redaction: "passed"` stays the only verdict it can offer, because nothing
 // in a format 1 export can reproduce more than that.
 describe("capture validation, format 1", () => {
   it("accepts a complete redacted capture and rejects dropped records", () => {
-    const capture: Capture = {
-      manifest: {
-        formatVersion: 1,
-        applicationVersion: "1.0.0",
-        sessionId: "session",
-        captureLevel: 0,
-        exportedAt: new Date(0).toISOString(),
-        droppedEventCount: 0,
-        includedFiles: [
-          "manifest.json",
-          "summary.json",
-          "events.jsonl",
-          "histograms.json",
-          "environment.json",
-          "settings-redacted.json",
-        ],
-        redaction: "passed",
-        profilerContaminated: false,
-      },
-      summary: {
-        sessionId: "session",
-        uptimeMs: 1000,
-        captureLevel: 0,
-        droppedEvents: 0,
-        counters: {},
-        histograms: {},
-        latest: {},
-      },
-      environment: {},
-    };
+    const capture = format1Capture(0);
     assert.deepEqual(validateCapture(capture), []);
     capture.summary.droppedEvents = 2;
     assert.match(validateCapture(capture).join("\n"), /2 flight-recorder events/);
@@ -602,36 +609,7 @@ describe("capture validation, format 1", () => {
   });
 
   it("refuses to call a Level 2 capture complete without its Chromium trace", () => {
-    const capture: Capture = {
-      manifest: {
-        formatVersion: 1,
-        applicationVersion: "1.0.0",
-        sessionId: "session",
-        captureLevel: 2,
-        exportedAt: new Date(0).toISOString(),
-        droppedEventCount: 0,
-        includedFiles: [
-          "manifest.json",
-          "summary.json",
-          "events.jsonl",
-          "histograms.json",
-          "environment.json",
-          "settings-redacted.json",
-        ],
-        redaction: "passed",
-        profilerContaminated: false,
-      },
-      summary: {
-        sessionId: "session",
-        uptimeMs: 1000,
-        captureLevel: 2,
-        droppedEvents: 0,
-        counters: {},
-        histograms: {},
-        latest: {},
-      },
-      environment: {},
-    };
+    const capture = format1Capture(2);
     assert.match(
       validateCapture(capture).join("\n"),
       /Level 2 capture has no Chromium trace/,
