@@ -74,7 +74,7 @@ test.describe("renderer Tools input", () => {
                 setActive?(active: boolean): void;
                 requestClose(): void;
                 update(state: object): void;
-                dispose(): void;
+                stop(): void;
               } | null>;
               mountTrade?(
                 host: HTMLElement,
@@ -84,7 +84,7 @@ test.describe("renderer Tools input", () => {
                 setActive?(active: boolean): void;
                 requestClose(): void;
                 update(state: object): void;
-                dispose(): void;
+                stop(): void;
               } | null>;
             },
           ): {
@@ -152,7 +152,7 @@ test.describe("renderer Tools input", () => {
                   (state as { firstHeroId?: number }).firstHeroId ?? "",
                 );
               },
-              dispose: () => panel.remove(),
+              stop: () => panel.remove(),
             });
           },
           mountTrade: (
@@ -189,7 +189,7 @@ test.describe("renderer Tools input", () => {
               },
               requestClose: hide,
               update: () => undefined,
-              dispose: () => panel.remove(),
+              stop: () => panel.remove(),
             });
           },
         });
@@ -733,7 +733,7 @@ test.describe("renderer Tools input", () => {
     }
   });
 
-  test("disposes a lazy tool that resolves after its overlay was removed", async () => {
+  test("stops a lazy tool that resolves after its overlay was removed", async () => {
     const fixture = await launchOffline("gw-toolbox-late-mount-e2e-");
     try {
       const disposed = await fixture.page.evaluate(async () => {
@@ -749,7 +749,7 @@ test.describe("renderer Tools input", () => {
               setVisible(visible: boolean): void;
               requestClose(): void;
               update(state: object): void;
-              dispose(): void;
+              stop(): void;
             }> },
           ): { dispose(): void };
         }, typeof import("../../app/renderer/surface-controller.js")];
@@ -758,7 +758,7 @@ test.describe("renderer Tools input", () => {
           setVisible(visible: boolean): void;
           requestClose(): void;
           update(state: object): void;
-          dispose(): void;
+          stop(): void;
         }) => void;
         let count = 0;
         const foundation = module.createToolboxFoundation(document.body, {
@@ -770,7 +770,7 @@ test.describe("renderer Tools input", () => {
           setVisible: () => undefined,
           requestClose: () => undefined,
           update: () => undefined,
-          dispose: () => { count += 1; },
+          stop: () => { count += 1; },
         });
         await Promise.resolve();
         return count;
