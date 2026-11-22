@@ -3,7 +3,8 @@
 Maintainer runbook. Use it when the bounded certification tools refuse a new
 ArenaNet client. Runtime rules live in [ArenaNet compatibility](arenanet-compatibility.md)
 and the code under `app/client/certification/`. Exact values live in code and
-tests.
+tests. The [patch-day drill](releasing.md#patch-day-drill) puts this runbook in
+order with the rest of the day and says what players see.
 
 ## Safe result
 
