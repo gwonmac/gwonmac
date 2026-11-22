@@ -74,16 +74,19 @@ function fixture() {
   };
 }
 
+type ReadyGameState = Extract<Parameters<TravelHost["updateGameState"]>[0], { status: "ready" }>;
+const ready = (overrides: Partial<ReadyGameState> = {}): ReadyGameState => ({
+  status: "ready", mapId: 55, travelContext: "world", characterKey: null, unlockedMapWords: null,
+  guildHall: false, hasGuildHall: false, explorable: false, ...overrides,
+});
+
 afterEach(() => vi.useRealTimers());
 
 describe("native Travel host", () => {
   it("enters and leaves a Guild Hall through one confirmed native action", async () => {
     vi.useFakeTimers();
     const { host, command } = fixture();
-    host.updateGameState({
-      status: "ready", mapId: 55, travelContext: "world", characterKey: null,
-      unlockedMapWords: null, guildHall: false, hasGuildHall: true, explorable: false,
-    });
+    host.updateGameState(ready({ hasGuildHall: true }));
 
     await host.guildHall();
     expect(command.guildHall).toHaveBeenCalledOnce();
@@ -91,29 +94,20 @@ describe("native Travel host", () => {
       status: "queued", kind: "guild-hall", target: "inside",
     });
     host.updateGameState({ status: "waiting", reason: "loading" });
-    host.updateGameState({
-      status: "ready", mapId: 4, travelContext: "world", characterKey: null,
-      unlockedMapWords: null, guildHall: true, hasGuildHall: true, explorable: false,
-    });
+    host.updateGameState(ready({ mapId: 4, guildHall: true, hasGuildHall: true }));
     expect(host.attempt.value).toEqual({ status: "idle" });
     expect(host.notice.value).toBeNull();
 
     await host.guildHall();
     expect(command.guildHall).toHaveBeenCalledTimes(2);
     host.updateGameState({ status: "waiting", reason: "loading" });
-    host.updateGameState({
-      status: "ready", mapId: 55, travelContext: "world", characterKey: null,
-      unlockedMapWords: null, guildHall: false, hasGuildHall: true, explorable: false,
-    });
+    host.updateGameState(ready({ hasGuildHall: true }));
     expect(host.attempt.value).toEqual({ status: "idle" });
   });
 
   it("refuses Guild Hall travel when the character has no hall", async () => {
     const { host, command } = fixture();
-    host.updateGameState({
-      status: "ready", mapId: 55, travelContext: "world", characterKey: null,
-      unlockedMapWords: null, guildHall: false, hasGuildHall: false, explorable: false,
-    });
+    host.updateGameState(ready());
     await expect(host.guildHall()).rejects.toThrow("does not have a Guild Hall");
     expect(command.guildHall).not.toHaveBeenCalled();
   });
@@ -121,10 +115,7 @@ describe("native Travel host", () => {
   it("keeps one Guild Hall arrival deadline across repeated loading snapshots", async () => {
     vi.useFakeTimers();
     const { host } = fixture();
-    host.updateGameState({
-      status: "ready", mapId: 55, travelContext: "world", characterKey: null,
-      unlockedMapWords: null, guildHall: false, hasGuildHall: true, explorable: false,
-    });
+    host.updateGameState(ready({ hasGuildHall: true }));
     await host.guildHall();
     host.updateGameState({ status: "waiting", reason: "loading" });
     await vi.advanceTimersByTimeAsync(20_000);
@@ -140,10 +131,7 @@ describe("native Travel host", () => {
   it("follows a Guild Hall trip that the game starts late", async () => {
     vi.useFakeTimers();
     const { host } = fixture();
-    host.updateGameState({
-      status: "ready", mapId: 55, travelContext: "world", characterKey: null,
-      unlockedMapWords: null, guildHall: false, hasGuildHall: true, explorable: false,
-    });
+    host.updateGameState(ready({ hasGuildHall: true }));
     await host.guildHall();
     await vi.advanceTimersByTimeAsync(3_000);
     expect(host.attempt.value).toEqual({ status: "idle" });
@@ -154,10 +142,7 @@ describe("native Travel host", () => {
     expect(host.attempt.value).toEqual({ status: "loading", kind: "guild-hall", target: "inside" });
     expect(host.notice.value).toMatchObject({ level: "success" });
 
-    host.updateGameState({
-      status: "ready", mapId: 4, travelContext: "world", characterKey: null,
-      unlockedMapWords: null, guildHall: true, hasGuildHall: true, explorable: false,
-    });
+    host.updateGameState(ready({ mapId: 4, guildHall: true, hasGuildHall: true }));
     expect(host.attempt.value).toEqual({ status: "idle" });
     expect(host.notice.value).toBeNull();
   });
@@ -176,10 +161,7 @@ describe("native Travel host", () => {
     const { host } = fixture();
 
     await host.travel({ mapId: 449 });
-    host.updateGameState({
-      status: "ready", mapId: 449, travelContext: "world", characterKey: null, unlockedMapWords: null,
-      guildHall: false, hasGuildHall: false, explorable: false,
-    });
+    host.updateGameState(ready({ mapId: 449 }));
     await vi.runAllTimersAsync();
 
     expect(host.attempt.value).toEqual({ status: "idle" });
@@ -207,10 +189,7 @@ describe("native Travel host", () => {
     expect(host.notice.value).toMatchObject({ level: "info" });
     expect(host.notice.value?.message).toContain("Travelling to");
 
-    host.updateGameState({
-      status: "ready", mapId: 449, travelContext: "world", characterKey: null, unlockedMapWords: null,
-      guildHall: false, hasGuildHall: false, explorable: false,
-    });
+    host.updateGameState(ready({ mapId: 449 }));
     expect(host.attempt.value).toEqual({ status: "queued", kind: "map", mapId: 55 });
     expect(host.notice.value?.message).toContain("Travelling to");
   });
@@ -252,10 +231,7 @@ describe("native Travel host", () => {
     interrupted.updateGameState({ status: "waiting", reason: "game" });
     expect(interrupted.attempt.value).toEqual({ status: "idle" });
     expect(interrupted.notice.value?.message).toContain("interrupted");
-    interrupted.updateGameState({
-      status: "ready", mapId: 449, travelContext: "world", characterKey: null, unlockedMapWords: null,
-      guildHall: false, hasGuildHall: false, explorable: false,
-    });
+    interrupted.updateGameState(ready({ mapId: 449 }));
     expect(interrupted.notice.value).toBeNull();
 
     const expired = fixture().host;
@@ -274,10 +250,7 @@ describe("native Travel host", () => {
     await host.travel({ mapId: 449 });
     host.updateGameState({ status: "waiting", reason: "loading" });
 
-    host.updateGameState({
-      status: "ready", mapId: 55, travelContext: "world", characterKey: null, unlockedMapWords: null,
-      guildHall: false, hasGuildHall: false, explorable: false,
-    });
+    host.updateGameState(ready());
 
     expect(host.attempt.value).toEqual({ status: "idle" });
     expect(host.notice.value).toMatchObject({ level: "warning" });
@@ -285,10 +258,7 @@ describe("native Travel host", () => {
     await vi.runAllTimersAsync();
     expect(host.notice.value?.message).toContain("did not confirm arrival");
 
-    host.updateGameState({
-      status: "ready", mapId: 449, travelContext: "world", characterKey: null, unlockedMapWords: null,
-      guildHall: false, hasGuildHall: false, explorable: false,
-    });
+    host.updateGameState(ready({ mapId: 449 }));
     expect(host.notice.value).toBeNull();
   });
 
@@ -300,10 +270,7 @@ describe("native Travel host", () => {
     await vi.advanceTimersByTimeAsync(30_000);
     expect(host.notice.value?.message).toContain("did not confirm arrival");
 
-    host.updateGameState({
-      status: "ready", mapId: 449, travelContext: "world", characterKey: null, unlockedMapWords: null,
-      guildHall: false, hasGuildHall: false, explorable: false,
-    });
+    host.updateGameState(ready({ mapId: 449 }));
 
     expect(host.attempt.value).toEqual({ status: "idle" });
     expect(host.notice.value).toBeNull();
@@ -314,18 +281,9 @@ describe("native Travel host", () => {
     const unlockedMapWords = Array.from({ length: 28 }, () => 0xffff_ffff);
     const characterA = travelCharacterKey("0123456789abcdef");
     const characterB = travelCharacterKey("fedcba9876543210");
-    host.updateGameState({
-      status: "ready", mapId: 55, travelContext: "world", characterKey: characterA, unlockedMapWords,
-      guildHall: false, hasGuildHall: false, explorable: false,
-    });
-    host.updateGameState({
-      status: "ready", mapId: 449, travelContext: "world", characterKey: characterA, unlockedMapWords,
-      guildHall: false, hasGuildHall: false, explorable: false,
-    });
-    host.updateGameState({
-      status: "ready", mapId: 81, travelContext: "world", characterKey: characterB, unlockedMapWords,
-      guildHall: false, hasGuildHall: false, explorable: false,
-    });
+    host.updateGameState(ready({ characterKey: characterA, unlockedMapWords }));
+    host.updateGameState(ready({ mapId: 449, characterKey: characterA, unlockedMapWords }));
+    host.updateGameState(ready({ mapId: 81, characterKey: characterB, unlockedMapWords }));
 
     await vi.waitFor(() => expect(recordHistory).toHaveBeenCalledTimes(3));
     expect(recordHistory.mock.calls.map(([value]) => value)).toEqual([
@@ -341,16 +299,10 @@ describe("native Travel host", () => {
     const { host, recordHistory } = fixture();
     const characterKey = travelCharacterKey("0123456789abcdef");
     const unlockedMapWords = Array.from({ length: 28 }, () => 0xffff_ffff);
-    host.updateGameState({
-      status: "ready", mapId: 55, travelContext: "world", characterKey: null, unlockedMapWords,
-      guildHall: false, hasGuildHall: false, explorable: false,
-    });
+    host.updateGameState(ready({ unlockedMapWords }));
 
     await host.travel({ mapId: 449 });
-    host.updateGameState({
-      status: "ready", mapId: 449, travelContext: "world", characterKey, unlockedMapWords,
-      guildHall: false, hasGuildHall: false, explorable: false,
-    });
+    host.updateGameState(ready({ mapId: 449, characterKey, unlockedMapWords }));
 
     await vi.waitFor(() => expect(recordHistory).toHaveBeenCalledTimes(2));
     expect(recordHistory.mock.calls.map(([value]) => value)).toEqual([
@@ -365,23 +317,14 @@ describe("native Travel host", () => {
     const characterA = travelCharacterKey("0123456789abcdef");
     const characterB = travelCharacterKey("fedcba9876543210");
     const unlockedMapWords = Array.from({ length: 28 }, () => 0xffff_ffff);
-    host.updateGameState({
-      status: "ready", mapId: 55, travelContext: "world", characterKey: characterA, unlockedMapWords,
-      guildHall: false, hasGuildHall: false, explorable: false,
-    });
+    host.updateGameState(ready({ characterKey: characterA, unlockedMapWords }));
     await vi.waitFor(() => expect(host.history.value).toEqual([55]));
 
     host.updateGameState({ status: "waiting", reason: "loading" });
     expect(host.history.value).toEqual([]);
-    host.updateGameState({
-      status: "ready", mapId: 55, travelContext: "world", characterKey: null, unlockedMapWords,
-      guildHall: false, hasGuildHall: false, explorable: false,
-    });
+    host.updateGameState(ready({ unlockedMapWords }));
     expect(host.history.value).toEqual([]);
-    host.updateGameState({
-      status: "ready", mapId: 55, travelContext: "world", characterKey: characterB, unlockedMapWords,
-      guildHall: false, hasGuildHall: false, explorable: false,
-    });
+    host.updateGameState(ready({ characterKey: characterB, unlockedMapWords }));
 
     await vi.waitFor(() => expect(host.history.value).toEqual([55]));
     expect(recordHistory.mock.calls.map(([value]) => value.characterKey)).toEqual([
@@ -394,14 +337,7 @@ describe("native Travel host", () => {
     const test = fixture();
     const characterKey = travelCharacterKey("0123456789abcdef");
     test.failNextHistoryWrite();
-    test.host.updateGameState({
-      status: "ready",
-      mapId: 55,
-      travelContext: "world",
-      characterKey,
-      unlockedMapWords: Array.from({ length: 28 }, () => 0xffff_ffff),
-      guildHall: false, hasGuildHall: false, explorable: false,
-    });
+    test.host.updateGameState(ready({ characterKey, unlockedMapWords: Array.from({ length: 28 }, () => 0xffff_ffff) }));
     await vi.waitFor(() => expect(test.recordHistory).toHaveBeenCalledTimes(1));
 
     await expect(test.host.loadHistory()).resolves.toEqual([55]);
@@ -411,14 +347,7 @@ describe("native Travel host", () => {
   it("refuses travel outside the active context before enqueueing", async () => {
     vi.useFakeTimers();
     const { host, command } = fixture();
-    host.updateGameState({
-      status: "ready",
-      mapId: 148,
-      travelContext: "pre-searing",
-      characterKey: null,
-      unlockedMapWords: Array.from({ length: 28 }, () => 0xffff_ffff),
-      guildHall: false, hasGuildHall: false, explorable: false,
-    });
+    host.updateGameState(ready({ mapId: 148, travelContext: "pre-searing", unlockedMapWords: Array.from({ length: 28 }, () => 0xffff_ffff) }));
 
     await expect(host.travel({ mapId: 330 })).rejects.toThrow("Only Pre-Searing");
     expect(command.travel).not.toHaveBeenCalled();
