@@ -294,7 +294,6 @@ test("key release, trace state and text editing cross preload with their values 
 // missing `event` in a manifest leaves the command dispatching nothing.
 const TOOL_COMMANDS = [
   ["tools.toggle", "gw:tools-toggle"],
-  ["trade.toggle", "gw:trade-toggle"],
   ["storage.open", "gw:storage-open"],
   ["travel.toggle", "gw:travel-toggle"],
   ["character.toggle", "gw:character-toggle"],

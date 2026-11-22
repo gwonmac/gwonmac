@@ -29,13 +29,14 @@ const shippedApplication = shippedSources().map(read).join("\n");
 // Geometry is the sole Core browser-storage owner. Remove only these exact calls
 // from the secret-surface check; any new key, argument or storage API still fails.
 const placementCalls = /localStorage\.(?:getItem\(storageKey\)|setItem\(storageKey, intent\)|removeItem\(storageKey\))/gu;
-// The Whispers icon's one-time move into settings may only read and remove its old
-// entry (docs/migrations.md); it never writes browser storage.
-const whispersIconMoveCalls = /localStorage\.(?:getItem\(STORED_KEY\)|removeItem\(STORED_KEY\))/gu;
+// The one-time moves of the Whispers icon and the Trade window into settings may only
+// read and remove their old entry (docs/migrations.md); they never write browser storage.
+const placementMoveCalls = /localStorage\.(?:getItem\(STORED_KEY\)|removeItem\(STORED_KEY\))/gu;
+const PLACEMENT_MOVES = ["app/features/whispers/renderer/icon-placement.ts", "app/features/trade-chat/renderer/window-placement.ts"];
 const withoutPlacementStorage = shippedSources().map(file => file === "app/renderer/hub-window.ts"
   ? read(file).replace(placementCalls, "approvedPlacementCall")
-  : file === "app/features/whispers/renderer/icon-placement.ts"
-    ? read(file).replace(whispersIconMoveCalls, "approvedMoveCall") : read(file)).join("\n");
+  : PLACEMENT_MOVES.includes(file)
+    ? read(file).replace(placementMoveCalls, "approvedMoveCall") : read(file)).join("\n");
 const legacyFilenameOwners = shippedSources().filter((file) =>
   /credentials\.bin|steam-session\.bin/u.test(read(file)),
 );

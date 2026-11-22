@@ -198,6 +198,26 @@ test.describe("renderer Tools input", () => {
         // again once the tool exists.
         (globalThis as unknown as { publishToolbox(state: object): void })
           .publishToolbox = (state: object) => toolbox.update(state);
+        // The stand-in client proves nothing and this launch plays the plain game, so main's facts
+        // keep Trade Chat off. Stand in for them with Features on and Trade Chat switched on, as the
+        // packaged probes do; Trade Chat names no verifier capability.
+        const realFacts = window.gwFeatureFacts?.() ?? null;
+        window.gwFeatureFacts = () => ({
+          toolsAtLaunch: true,
+          program: "none",
+          features: realFacts?.features ?? null,
+          settings: { ...window.gwToolsSettings(), gwonmacTools: true, tradeChat: true },
+        });
+        // Trade opens through its link `toggle`, as its shortcut, chat alias and Hub row call it.
+        const linksPath = "./feature-links.js";
+        const links = (await import(linksPath)) as {
+          toggleTool(target: "tradeChat", intent: "show" | "toggle"): string;
+        };
+        (globalThis as unknown as { tradeToggle(intent: "show" | "toggle"): void })
+          .tradeToggle = (intent) => {
+            const answer = links.toggleTool("tradeChat", intent);
+            if (answer === "unavailable") throw new Error("Trade Chat's link is unavailable");
+          };
         // The projection still takes what the observer feeds it. What those
         // values mean is pinned at the real boundary by
         // tests/packaged-enhancement-runtime.ts, which reads them back through
@@ -306,16 +326,16 @@ test.describe("renderer Tools input", () => {
       // Trade is an independent surface. Opening it keeps Builds visible, and
       // Escape dismisses only the last raised surface.
       await page.evaluate(() => {
-        window.dispatchEvent(new CustomEvent("gw:trade-toggle", { cancelable: true }));
+        (globalThis as unknown as { tradeToggle(intent: string): void }).tradeToggle("toggle");
       });
       await expect(trade).toBeVisible();
       await expect(tool).toBeVisible();
       await page.evaluate(() => {
-        window.dispatchEvent(new CustomEvent("gw:trade-toggle", { cancelable: true }));
+        (globalThis as unknown as { tradeToggle(intent: string): void }).tradeToggle("toggle");
       });
       await expect(trade).toBeHidden();
       await page.evaluate(() => {
-        window.dispatchEvent(new CustomEvent("gw:trade-toggle", { cancelable: true }));
+        (globalThis as unknown as { tradeToggle(intent: string): void }).tradeToggle("toggle");
       });
       await expect(trade).toBeVisible();
       await page.getByRole("button", { name: "Trade action" }).click();
@@ -326,7 +346,7 @@ test.describe("renderer Tools input", () => {
       await expect(tool).toBeVisible();
       await expect(tool).toHaveAttribute('data-active', 'true');
       await expect(trade).toHaveAttribute('data-active', 'false');
-      await page.evaluate(() => window.dispatchEvent(new CustomEvent('gw:trade-toggle', { cancelable: true, detail: 'show' })));
+      await page.evaluate(() => (globalThis as unknown as { tradeToggle(intent: string): void }).tradeToggle("show"));
       await expect(trade).toBeVisible();
       await expect(trade).toHaveAttribute('data-active', 'true');
       await expect.poll(() => isDomActiveElement(page.getByLabel('Trade field'))).toBe(true);
@@ -345,8 +365,9 @@ test.describe("renderer Tools input", () => {
         window.cancelAnimationFrame = handle => { pending.delete(handle); };
         try {
           window.dispatchEvent(new CustomEvent('gw:tools-toggle', { cancelable: true, detail: 'show' }));
-          window.dispatchEvent(new CustomEvent('gw:trade-toggle', { cancelable: true, detail: 'show' }));
-          window.dispatchEvent(new CustomEvent('gw:trade-toggle', { cancelable: true }));
+          const { tradeToggle } = globalThis as unknown as { tradeToggle(intent: string): void };
+          tradeToggle("show");
+          tradeToggle("toggle");
         } finally {
           window.requestAnimationFrame = request;
           window.cancelAnimationFrame = cancel;

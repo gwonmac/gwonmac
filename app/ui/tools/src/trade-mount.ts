@@ -2,16 +2,13 @@
 import { createApp, h, ref } from "vue";
 import TradeChatApp from "./TradeChatApp.vue";
 import type { TradeHost } from "./trade-host";
-import type { TradeChatHandle } from "../../../shared/tools-bundle-contracts";
+import type { TradeChatHandle, TradeChatMountOptions } from "../../../shared/tools-bundle-contracts";
 
 export function mountTradeChat(
   target: HTMLElement,
   options: {
     host: TradeHost;
-    mode: "standalone" | "embedded";
-    initiallyVisible?: boolean;
-    onVisibilityChange?: (visible: boolean) => void;
-  },
+  } & Pick<TradeChatMountOptions, "mode" | "placement" | "initiallyVisible" | "onVisibilityChange">,
 ): TradeChatHandle {
   const view = ref<InstanceType<typeof TradeChatApp> | null>(null);
   const visible = ref(options.initiallyVisible ?? options.mode === "standalone");
@@ -25,6 +22,7 @@ export function mountTradeChat(
       ref: view,
       host: options.host,
       mode: options.mode,
+      placement: options.placement,
       visible: visible.value,
       onClose: () => setVisible(false),
       onReady: () => { target.dataset.ready = "true"; },

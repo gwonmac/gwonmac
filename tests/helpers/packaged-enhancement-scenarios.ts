@@ -499,6 +499,7 @@ export async function assertCleanupSafetyGates() {
             whispersIconPosition: null,
             buildLibrary: true,
             tradeChat: true,
+            tradeChatWindowPosition: null,
             xunlaiStorage: true,
             travelPalette: true,
             targetReadout: false,
@@ -728,8 +729,8 @@ export async function assertToolboxFoundationLifecycle() {
       const tradeConfigurations: number[] = [];
       const chatFilterConfigurations: number[] = [];
       let pendingTradeToggles = 0;
-      let tradeAliasDispatches = 0;
-      addEventListener("gw:trade-toggle", () => { tradeAliasDispatches += 1; });
+      // How often the Trade window opened: the alias opens it through Trade's link `toggle`.
+      let tradeOpens = 0;
       const cleanupReports: {
         message: string;
         aggregateMessage: string;
@@ -919,6 +920,7 @@ export async function assertToolboxFoundationLifecycle() {
         whispersIconPosition: null,
         buildLibrary: true,
         tradeChat: true,
+        tradeChatWindowPosition: null,
       xunlaiStorage: true,
       travelPalette: true,
         targetReadout: false,
@@ -1027,6 +1029,12 @@ export async function assertToolboxFoundationLifecycle() {
         requestAnimationFrame(observe);
       });
 
+      const tradeHost = document.querySelector<HTMLElement>("#toolbox-trade");
+      if (!tradeHost) throw new Error("Toolbox foundation has no Trade host");
+      new MutationObserver((records) => {
+        for (const record of records) if (record.oldValue !== "true" && tradeHost.dataset.open === "true") tradeOpens += 1;
+      }).observe(tradeHost, { attributes: true, attributeFilter: ["data-open"], attributeOldValue: true });
+
       const toolsToggle = new CustomEvent("gw:tools-toggle", { cancelable: true });
       dispatchEvent(toolsToggle);
       pendingTradeToggles = 1;
@@ -1038,7 +1046,7 @@ export async function assertToolboxFoundationLifecycle() {
           if (
             toolsToggle.defaultPrevented
             && trade?.dataset.open === "true"
-            && tradeAliasDispatches === 1
+            && tradeOpens === 1
           ) resolve();
           else if (performance.now() >= deadline) {
             reject(new Error("Native Trade alias did not open Trade Chat"));
@@ -1064,7 +1072,7 @@ export async function assertToolboxFoundationLifecycle() {
             && document.querySelector<HTMLElement>("#toolbox-trade")?.dataset.open !== "true"
             && tradeConfigurations.at(-1) === 0
             && pendingTradeToggles === 0
-            && tradeAliasDispatches === 1
+            && tradeOpens === 1
           ) resolve();
           else if (performance.now() >= deadline) {
             reject(new Error("PvP policy did not retain saved authoring and withdraw Trade Chat"));
@@ -1074,7 +1082,7 @@ export async function assertToolboxFoundationLifecycle() {
       });
       const pvp = {
         pendingTradeToggles,
-        tradeAliasDispatches,
+        tradeOpens,
         toolboxCount: toolboxCount(),
         tradeConfiguration: tradeConfigurations.at(-1),
         authoringOpen: document.querySelector<HTMLElement>("#toolbox-foundation")?.dataset.open === "true",
@@ -1104,7 +1112,7 @@ export async function assertToolboxFoundationLifecycle() {
       );
       const recovered = {
         authoringOpen: recoveredRoot !== null && recoveredRoot.dataset.open === "true",
-        tradeAliasDispatches,
+        tradeOpens,
         toolboxCount: toolboxCount(),
         tradeConfiguration: tradeConfigurations.at(-1),
       };
@@ -1283,7 +1291,7 @@ export async function assertToolboxFoundationLifecycle() {
     );
     assert.deepEqual(result.pvp, {
       pendingTradeToggles: 0,
-      tradeAliasDispatches: 1,
+      tradeOpens: 1,
       toolboxCount: 1,
       tradeConfiguration: 0,
       authoringOpen: true,
@@ -1291,7 +1299,7 @@ export async function assertToolboxFoundationLifecycle() {
     });
     assert.deepEqual(result.recovered, {
       authoringOpen: true,
-      tradeAliasDispatches: 1,
+      tradeOpens: 1,
       toolboxCount: 1,
       tradeConfiguration: 1,
     });
@@ -1524,6 +1532,7 @@ export async function assertRollbackAfterTablePublication() {
           whispersIconPosition: null,
           buildLibrary: true,
           tradeChat: true,
+          tradeChatWindowPosition: null,
       xunlaiStorage: true,
       travelPalette: true,
           targetReadout: false,
