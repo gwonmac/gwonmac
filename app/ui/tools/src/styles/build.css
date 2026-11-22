@@ -224,7 +224,6 @@
 .favourite[aria-pressed="true"] { color: var(--ui-accent); }
 .favourite[aria-pressed="true"] svg path { fill: currentColor; }
 
-.detail-header .tag-row { margin-top: var(--ui-space-2); }
 
 .team-controls {
   display: flex;
@@ -519,7 +518,6 @@
   background: var(--ui-raised-fill);
 }
 
-.inline-action--danger { border-color: var(--ui-danger); }
 .inline-action h2 { margin: 0 0 var(--ui-space-1); }
 
 .inline-action p {

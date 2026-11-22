@@ -10,8 +10,6 @@
 .elite-panel h2 { margin: 0; color: var(--ui-text-bright); font-size: var(--ui-font-size-lg); }
 .elite-search-controls { border: 0; margin: 0; min-width: 0; display: grid; gap: var(--ui-space-2); padding: var(--ui-space-3); }
 .elite-field-label { color: var(--ui-text-muted); font-size: var(--ui-font-size-sm); }
-.elite-check { display: flex; align-items: center; gap: var(--ui-space-2); font-size: var(--ui-font-size-sm); cursor: pointer; }
-.elite-check input { accent-color: var(--ui-accent); }
 .elite-results-heading { flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; padding: 0 var(--ui-space-4) var(--ui-space-2); color: var(--ui-text-muted); font-size: var(--ui-font-size-sm); }
 .elite-results { padding: 0 var(--ui-space-2) var(--ui-space-2); }
 .elite-result { border-bottom: 1px solid var(--ui-line); }
