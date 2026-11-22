@@ -12,7 +12,7 @@ import { SHORTCUT_LABELS } from "@shared/keyboard-shortcuts";
 import type { LauncherExternalLink, LauncherNativeApi, LauncherSettingsPatch, LauncherSnapshot } from "@shared/launcher-contracts";
 import type { SettingsTarget } from "@shared/settings-catalogue";
 import { REGION_WORDS, cardFeature, changelogOf, featureOptions, readmeBlocks, type CardFeature, type FeatureOption } from "../features";
-import type { FeatureStatus } from "@shared/feature-status";
+import { runsWith, type FeatureStatus } from "@shared/feature-status";
 import FeatureArt from "./FeatureArt.vue";
 import FeatureSwitch from "./FeatureSwitch.vue";
 import MarkdownBody from "./MarkdownBody.vue";
@@ -77,6 +77,7 @@ async function change(option: FeatureOption, value: unknown) {
       </div>
       <div class="head-action">
         <button v-if="status.needs" class="primary" @click="emit('turnOn', status.needs)">Turn on {{ status.needs.name }}</button>
+        <span v-else-if="runsWith(feature)" class="muted">Runs with {{ runsWith(feature)!.name }}</span>
         <button v-else :class="status.checked ? 'secondary' : 'primary'" :disabled="status.locked" aria-describedby="feature-status" @click="emit('toggle', !status.checked)">{{ status.checked ? "Turn off" : "Turn on" }}</button>
       </div>
     </header>

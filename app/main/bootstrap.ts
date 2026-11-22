@@ -200,7 +200,7 @@ export async function startApp(shell: AppShell, hostVersion: string): Promise<vo
     host,
     launcher,
     currentSettings,
-    publishFeatureFacts: shell.publishFeatureFacts,
+    refreshFeatureGates: shell.refreshFeatureGates,
   });
 
   onAppQuit(async () => {

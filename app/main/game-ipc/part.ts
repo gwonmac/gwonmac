@@ -4,7 +4,6 @@
  * Each owner returns the channels it answers, typed against GAME_CHANNELS,
  * the way a Tool's main part does (tools-main-part.ts).
  */
-import type { BrowserWindow } from "electron";
 import type { GameChannels } from "../../shared/ipc/game.js";
 import type { AppSettings } from "../../shared/settings/index.js";
 import type { ClientService } from "../client-service.js";
@@ -27,8 +26,8 @@ export type GameIpcInput = Readonly<{
   host: WindowHost;
   launcher: LauncherOrchestrator;
   currentSettings: () => AppSettings;
-  /** Sends these game windows their Feature facts if they changed (app-shell.ts). */
-  publishFeatureFacts: (windows: readonly BrowserWindow[]) => void;
+  /** Brings menus, shortcuts, Tools main parts and every window's Feature facts up to date (app-shell.ts). */
+  refreshFeatureGates: () => void;
 }>;
 
 /** Any subset of the Core game channels, each typed against its table entry. */

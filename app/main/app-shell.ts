@@ -44,8 +44,8 @@ export interface AppShell {
     apply: ((settings: AppSettings) => Promise<void>) | null,
   ) => void;
   readonly attachAutomaticUpdateCheck: (schedule: (() => void) | null) => void;
-  /** Sends these game windows their Feature facts if they changed, e.g. after a failed installation. */
-  readonly publishFeatureFacts: (windows: readonly BrowserWindow[]) => void;
+  /** Brings every Feature gate up to date, e.g. after a failed installation changed a window's facts. */
+  readonly refreshFeatureGates: () => void;
 }
 
 export function createAppShell(): AppShell {
@@ -55,6 +55,7 @@ export function createAppShell(): AppShell {
   let scheduleAutomaticAppUpdateCheck: (() => void) | null = null;
   let secondInstanceRequested = false;
   const publishedFacts = new WeakMap<BrowserWindow, string>();
+  let refreshedPhase: DownloadProgress["phase"] | null = null;
 
   const preferences = new PreferencesCoordinator(
     () => gamePaths(),
@@ -92,7 +93,11 @@ export function createAppShell(): AppShell {
       for (const win of windows) updateLongRunningTaskFeedback(next, win);
     }
     // A prepared or replaced client brings the verifier's statuses the Feature decision reads.
-    if (currentSettings) refreshFeatureGates(currentSettings);
+    // They change with the phase, not with each byte of a download.
+    if (next.phase !== refreshedPhase) {
+      refreshedPhase = next.phase;
+      if (currentSettings) void refreshFeatureGates(currentSettings);
+    }
     launcher?.clientChanged();
     if (
       next.phase === "ready"
@@ -103,13 +108,18 @@ export function createAppShell(): AppShell {
     }
   }
 
-  /** Brings main's Feature gates and every game window's Feature facts up to date. */
-  function refreshFeatureGates(settings: AppSettings): void {
+  /**
+   * Brings every Feature gate up to date: the Tools main parts, menus, shortcuts and each game
+   * window's facts. Resolves once the Tools file gates settled.
+   */
+  function refreshFeatureGates(settings: AppSettings): Promise<void> {
+    const tools = applyToolsSettings?.(settings) ?? Promise.resolve();
     updateToolsMenuItems(settings);
     for (const win of windowRegistry.gameWindows()) {
       updateWindowShortcuts(win, settings);
     }
     publishFeatureFacts(windowRegistry.gameWindows(), settings);
+    return tools;
   }
 
   /** Sends each game window its Feature facts when they differ from what it last got. */
@@ -125,8 +135,7 @@ export function createAppShell(): AppShell {
   /** Publish the one durable Settings snapshot to every live game projection. */
   async function publishSettings(settings: AppSettings): Promise<void> {
     currentSettings = settings;
-    await applyToolsSettings?.(settings);
-    refreshFeatureGates(settings);
+    await refreshFeatureGates(settings);
     for (const win of windowRegistry.windows()) emit(win, GAME_CHANNELS.settingsEvent, settings);
     launcher?.publish();
   }
@@ -152,8 +161,8 @@ export function createAppShell(): AppShell {
     attachAutomaticUpdateCheck: (schedule) => {
       scheduleAutomaticAppUpdateCheck = schedule;
     },
-    publishFeatureFacts: (windows) => {
-      if (currentSettings) publishFeatureFacts(windows, currentSettings);
+    refreshFeatureGates: () => {
+      if (currentSettings) void refreshFeatureGates(currentSettings);
     },
   };
 }

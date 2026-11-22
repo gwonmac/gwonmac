@@ -3,14 +3,12 @@ import { BUILD_CHECK_FAILED } from "@shared/contracts";
 import type { FeatureId } from "@shared/feature-contracts";
 import type { GlobalTool, LauncherSnapshot } from "@shared/launcher-contracts";
 import {
-  alsoOnNotice,
   badgeOf,
   cardFeature,
   featureOptions,
   featureStatus,
   launcherFeatureState,
   parseChangelog,
-  turnOnChanges,
 } from "./features";
 import { showsReason } from "@shared/feature-status";
 import { fixtureFacts, fixtureFeatureChecksFor, fixtureSnapshot } from "./fixtures";
@@ -47,14 +45,6 @@ describe("Features tab status", () => {
     expect({ text: status.text, tone: status.tone, locked: status.locked, shown: showsReason(status) }).toEqual({ text, tone, locked, shown });
   });
 
-  it("turns on what a feature needs and names it in the notice", () => {
-    const tools = withSwitches(loaded, { "quick-travel": false });
-    const { changes, alsoOn } = turnOnChanges(card("progress"), tools);
-    // Progress shares the Travel switch until plan step 4.4: one change, and Travel is named.
-    expect(changes).toEqual([{ tool: "quick-travel", enabled: true }]);
-    expect(alsoOnNotice(card("progress"), alsoOn)).toBe("Progress is on. Travel is on too, because Progress needs it.");
-    expect(turnOnChanges(card("progress"), loaded)).toEqual({ changes: [], alsoOn: [] });
-  });
 });
 
 describe("Features tab CHANGELOG", () => {

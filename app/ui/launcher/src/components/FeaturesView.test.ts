@@ -52,7 +52,6 @@ describe("Features tab", () => {
   it.each([
     { state: "plain game", id: "travel", tools: { ...loaded, configured: false }, checks: proved, text: "Off while you play the plain game.", stored: true, action: "Turn off", sends: null },
     { state: "waiting for a restart", id: "travel", tools: { ...loaded, loaded: false, restartRequired: true }, checks: proved, text: "Starts the next time you open Guild Wars.", stored: true, action: "Turn off", sends: { tool: "quick-travel", enabled: false } },
-    { state: "needs another feature", id: "progress", tools: withSwitches(loaded, { "quick-travel": false }), checks: proved, text: "Needs Travel. Turn it on first.", stored: false, action: "Turn on Travel", sends: { tool: "quick-travel", enabled: true } },
     { state: "needs a GWonMac update", id: "quickItemMove", tools: withSwitches(loaded, { "quick-item-move": true }), checks: patchDay, text: "Needs a GWonMac update for this Guild Wars build.", stored: true, action: "Turn off", sends: { tool: "quick-item-move", enabled: false } },
     { state: "build check failed", id: "chatFilters", tools: withSwitches(loaded, { "chat-filters": true }), checks: patchDay, text: BUILD_CHECK_FAILED, stored: true, action: "Turn off", sends: { tool: "chat-filters", enabled: false } },
     { state: "checking the build", id: "skillCooldowns", tools: loaded, checks: null, text: "Checking this Guild Wars build…", stored: true, action: "Turn off", sends: { tool: "skill-cooldowns", enabled: false } },
@@ -83,6 +82,22 @@ describe("Features tab", () => {
     expect(native.tools.setFeature.mock.calls).toEqual(sends ? [[sends]] : []);
   });
 
+  // Progress has no switch of its own: its card and page never move Travel's switch.
+  it("shows a Feature that runs with another without a switch of its own", async () => {
+    const { wrapper, native } = view(withSwitches(loaded, { "quick-travel": false }), proved);
+    const card = cardOf(wrapper, "progress");
+    expect({ switch: card.find('[role="switch"]').exists(), runsWith: card.get(".runs-with").text(), reason: card.get("#reason-progress").text() })
+      .toEqual({ switch: false, runsWith: "Runs with Travel", reason: "Needs Travel. Turn it on first." });
+    await card.get(".card-link").trigger("click");
+    await pressed(wrapper, "Turn on Travel").trigger("click");
+    await flushPromises();
+    expect(native.tools.setFeature.mock.calls).toEqual([[{ tool: "quick-travel", enabled: true }]]);
+
+    const on = view(loaded, proved).wrapper;
+    await cardOf(on, "progress").get(".card-link").trigger("click");
+    expect({ action: on.find(".head-action button").exists(), text: on.get(".head-action").text() }).toEqual({ action: false, text: "Runs with Travel" });
+  });
+
   it.each([
     { state: "plain game", tools: { ...loaded, configured: false }, status: "Every Feature is off. Turn off the plain game to get each one back as it was.", checked: true, restart: false },
     { state: "waiting for a restart", tools: { ...loaded, loaded: false, restartRequired: true }, status: "Your choices are saved. Restart the launcher to load Features.", checked: false, restart: true },
@@ -104,20 +119,6 @@ describe("Features tab", () => {
     const waiting = view({ ...loaded, loaded: false, restartRequired: true }, proved, bridge(), running).wrapper;
     expect(waiting.get(".plain-strip").text()).toContain("Close every game window before restarting the launcher.");
     expect(pressed(waiting, "Restart launcher").attributes("disabled")).toBeDefined();
-  });
-
-  it("turns on what a Feature needs, offers Undo and gives the keyboard back to the switch", async () => {
-    const { wrapper, native } = view(withSwitches(loaded, { "quick-travel": false }), proved);
-    await cardOf(wrapper, "progress").get('[role="switch"]').setValue(true);
-    await flushPromises();
-    expect(native.tools.setFeature).toHaveBeenCalledWith({ tool: "quick-travel", enabled: true });
-    expect(wrapper.get(".toast").text()).toContain("Progress is on. Travel is on too, because Progress needs it.");
-
-    await pressed(wrapper, "Undo").trigger("click");
-    await flushPromises();
-    expect(native.tools.setFeature).toHaveBeenLastCalledWith({ tool: "quick-travel", enabled: false });
-    expect(wrapper.find(".toast").exists()).toBe(false);
-    expect(document.activeElement).toBe(cardOf(wrapper, "progress").get('[role="switch"]').element);
   });
 
   it("keeps a plain-game switch in the Tab order with its saved choice, held", async () => {
