@@ -48,78 +48,6 @@ import {
   splitSections,
 } from "../../app/main/core/wasm-binary.js";
 
-const CURSOR_TOOLBOX: EnhancementCapabilities = Object.freeze({
-  nativeCursor: true,
-  targetObservation: false,
-  partyObservation: true,
-  teamApply: false,
-  travelAction: false,
-  xunlaiAction: false,
-  chatAliases: false,
-  chatFiltering: false,
-  skillSlotGeometry: false,
-  skillCooldownObservation: false,
-  playerEffectObservation: false,
-    effectIconGeometry: false,
-    alcoholObservation: false,
-    nativeHudRendering: false,
-    resignAction: false,
-    whisperChat: false,
-    chatPrint: false,
-    progressObservation: false,
-  playRegionObservation: true,
-    preGameControls: false,
-    characterSwitchAction: false,
-    quickItemMove: false,
-});
-const CURSOR_ONLY: EnhancementCapabilities = Object.freeze({
-  nativeCursor: true,
-  targetObservation: false,
-  partyObservation: false,
-  teamApply: false,
-  travelAction: false,
-  xunlaiAction: false,
-  chatAliases: false,
-  chatFiltering: false,
-  skillSlotGeometry: false,
-  skillCooldownObservation: false,
-  playerEffectObservation: false,
-    effectIconGeometry: false,
-    alcoholObservation: false,
-    nativeHudRendering: false,
-    resignAction: false,
-    whisperChat: false,
-    chatPrint: false,
-    progressObservation: false,
-  playRegionObservation: false,
-    preGameControls: false,
-    characterSwitchAction: false,
-    quickItemMove: false,
-});
-const CURSOR_TARGET: EnhancementCapabilities = Object.freeze({
-  nativeCursor: true,
-  targetObservation: true,
-  partyObservation: false,
-  teamApply: false,
-  travelAction: false,
-  xunlaiAction: false,
-  chatAliases: false,
-  chatFiltering: false,
-  skillSlotGeometry: false,
-  skillCooldownObservation: false,
-  playerEffectObservation: false,
-    effectIconGeometry: false,
-    alcoholObservation: false,
-    nativeHudRendering: false,
-    resignAction: false,
-    whisperChat: false,
-    chatPrint: false,
-    progressObservation: false,
-  playRegionObservation: true,
-    preGameControls: false,
-    characterSwitchAction: false,
-    quickItemMove: false,
-});
 const NO_CAPABILITIES: EnhancementCapabilities = Object.freeze({
   nativeCursor: false,
   targetObservation: false,
@@ -132,18 +60,24 @@ const NO_CAPABILITIES: EnhancementCapabilities = Object.freeze({
   skillSlotGeometry: false,
   skillCooldownObservation: false,
   playerEffectObservation: false,
-    effectIconGeometry: false,
-    alcoholObservation: false,
-    nativeHudRendering: false,
-    resignAction: false,
-    whisperChat: false,
-    chatPrint: false,
-    progressObservation: false,
+  effectIconGeometry: false,
+  alcoholObservation: false,
+  nativeHudRendering: false,
+  resignAction: false,
+  whisperChat: false,
+  chatPrint: false,
+  progressObservation: false,
   playRegionObservation: false,
-    preGameControls: false,
-    characterSwitchAction: false,
-    quickItemMove: false,
+  preGameControls: false,
+  characterSwitchAction: false,
+  quickItemMove: false,
 });
+const withCapabilities = (
+  enabled: Partial<EnhancementCapabilities>,
+): EnhancementCapabilities => Object.freeze({ ...NO_CAPABILITIES, ...enabled });
+const CURSOR_TOOLBOX = withCapabilities({ nativeCursor: true, partyObservation: true, playRegionObservation: true });
+const CURSOR_ONLY = withCapabilities({ nativeCursor: true });
+const CURSOR_TARGET = withCapabilities({ nativeCursor: true, targetObservation: true, playRegionObservation: true });
 
 const scratchDirs: string[] = [];
 after(async () => {
@@ -616,6 +550,12 @@ function options(
   };
 }
 
+const prepare = (
+  value: ModuleFixture,
+  certification: ClientCertification,
+  capabilities: EnhancementCapabilities,
+) => prepareClientModule(options(value, certification, capabilities));
+
 async function seedCache(cacheRoot: string): Promise<void> {
   const dir = join(cacheRoot, "stale", "0");
   await mkdir(dir, { recursive: true });
@@ -634,9 +574,7 @@ describe("client module preparation", () => {
       enhancementBuild: value.enhancementBuild,
     };
 
-    const prepared = await prepareClientModule(
-      options(value, certification, CURSOR_TOOLBOX),
-    );
+    const prepared = await prepare(value, certification, CURSOR_TOOLBOX);
 
     assert.deepEqual(prepared.gameFileSaving, { status: "available" });
     assert.deepEqual(prepared.effectiveCapabilities, CURSOR_TOOLBOX);
@@ -686,16 +624,7 @@ describe("client module preparation", () => {
     const value = await fixture();
     await seedCache(value.enhancementCacheRoot);
 
-    const prepared = await prepareClientModule(
-      options(
-        value,
-        {
-          templateSaveBuild: value.templateSaveBuild,
-          enhancementBuild: null,
-        },
-        CURSOR_TOOLBOX,
-      ),
-    );
+    const prepared = await prepare(value, { templateSaveBuild: value.templateSaveBuild, enhancementBuild: null }, CURSOR_TOOLBOX);
 
     assert.deepEqual(prepared.gameFileSaving, { status: "available" });
     assert.deepEqual(prepared.effectiveCapabilities, NO_CAPABILITIES);
@@ -778,9 +707,7 @@ describe("client module preparation", () => {
       seedCache(value.enhancementCacheRoot),
     ]);
 
-    const prepared = await prepareClientModule(
-      options(value, { templateSaveBuild: null, enhancementBuild: null }, CURSOR_TOOLBOX),
-    );
+    const prepared = await prepare(value, { templateSaveBuild: null, enhancementBuild: null }, CURSOR_TOOLBOX);
 
     assert.deepEqual(prepared, {
       wasmPath: value.officialWasmPath,
@@ -851,13 +778,7 @@ describe("client module preparation", () => {
   it("serves independently certified enhancements when file proof refuses", async () => {
     const value = await fixture();
     const directEnhancement = enhancementBuild(value.official);
-    const prepared = await prepareClientModule(
-      options(
-        value,
-        { templateSaveBuild: null, enhancementBuild: directEnhancement },
-        CURSOR_TOOLBOX,
-      ),
-    );
+    const prepared = await prepare(value, { templateSaveBuild: null, enhancementBuild: directEnhancement }, CURSOR_TOOLBOX);
 
     assert.deepEqual(prepared.gameFileSaving, {
       status: "unavailable",
@@ -895,7 +816,7 @@ describe("client module preparation", () => {
       templateSaveBuild: value.templateSaveBuild,
       enhancementBuild: value.enhancementBuild,
     };
-    const unrepaired = await prepareClientModule(options(value, certification, CURSOR_TOOLBOX));
+    const unrepaired = await prepare(value, certification, CURSOR_TOOLBOX);
     // A record whose guard passes for this input, naming bodies this module does not have.
     const prepared = await prepareClientModule({
       ...options(value, certification, CURSOR_TOOLBOX),
@@ -923,16 +844,7 @@ describe("client module preparation", () => {
     const value = await fixture();
     await seedCache(value.enhancementCacheRoot);
 
-    const prepared = await prepareClientModule(
-      options(
-        value,
-        {
-          templateSaveBuild: value.templateSaveBuild,
-          enhancementBuild: value.enhancementBuild,
-        },
-        NO_CAPABILITIES,
-      ),
-    );
+    const prepared = await prepare(value, { templateSaveBuild: value.templateSaveBuild, enhancementBuild: value.enhancementBuild }, NO_CAPABILITIES);
 
     assert.deepEqual(prepared.gameFileSaving, { status: "available" });
     assert.equal(prepared.enhancementBuild, null);
@@ -997,9 +909,7 @@ describe("client module preparation", () => {
       templateSaveBuild: value.templateSaveBuild,
       enhancementBuild: value.enhancementBuild,
     };
-    const first = await prepareClientModule(
-      options(value, certification, CURSOR_TOOLBOX),
-    );
+    const first = await prepare(value, certification, CURSOR_TOOLBOX);
     const compatibilityWasm = join(
       value.compatibilityCacheRoot,
       value.officialSha256,
@@ -1011,9 +921,7 @@ describe("client module preparation", () => {
       writeFile(first.wasmPath, "tampered"),
     ]);
 
-    const rebuilt = await prepareClientModule(
-      options(value, certification, CURSOR_TOOLBOX),
-    );
+    const rebuilt = await prepare(value, certification, CURSOR_TOOLBOX);
 
     assert.equal(rebuilt.failure, null);
     assert.equal(
@@ -1037,9 +945,7 @@ describe("client module preparation", () => {
       templateSaveBuild: value.templateSaveBuild,
       enhancementBuild: value.enhancementBuild,
     };
-    const first = await prepareClientModule(
-      options(value, certification, CURSOR_TOOLBOX),
-    );
+    const first = await prepare(value, certification, CURSOR_TOOLBOX);
     const metadataPath = join(
       value.enhancementCacheRoot,
       value.enhancementBuild.sha256,
@@ -1064,9 +970,7 @@ describe("client module preparation", () => {
       ),
       "missing-or-invalid",
     );
-    const rebuilt = await prepareClientModule(
-      options(value, certification, CURSOR_TOOLBOX),
-    );
+    const rebuilt = await prepare(value, certification, CURSOR_TOOLBOX);
     assert.equal(rebuilt.failure, null);
     assert.equal(
       sha256(await readFile(rebuilt.wasmPath)),
@@ -1085,16 +989,7 @@ describe("client module preparation", () => {
       } satisfies EnhancementOutputHashes,
     };
 
-    const prepared = await prepareClientModule(
-      options(
-        value,
-        {
-          templateSaveBuild: value.templateSaveBuild,
-          enhancementBuild: failedProfile,
-        },
-        CURSOR_TOOLBOX,
-      ),
-    );
+    const prepared = await prepare(value, { templateSaveBuild: value.templateSaveBuild, enhancementBuild: failedProfile }, CURSOR_TOOLBOX);
 
     assert.deepEqual(prepared.gameFileSaving, { status: "available" });
     assert.equal(prepared.enhancementBuild, failedProfile);
@@ -1113,9 +1008,7 @@ describe("client module preparation", () => {
       enhancementBuild: value.enhancementBuild,
     };
 
-    const cursorOnly = await prepareClientModule(
-      options(value, certification, CURSOR_ONLY),
-    );
+    const cursorOnly = await prepare(value, certification, CURSOR_ONLY);
     const cursorBytes = await readFile(cursorOnly.wasmPath);
     assert.equal(
       await inspectEnhancementCache(
@@ -1134,9 +1027,7 @@ describe("client module preparation", () => {
       "missing-or-invalid",
     );
 
-    const cursorTarget = await prepareClientModule(
-      options(value, certification, CURSOR_TARGET),
-    );
+    const cursorTarget = await prepare(value, certification, CURSOR_TARGET);
     const cursorTargetBytes = await readFile(cursorTarget.wasmPath);
     assert.equal(cursorTarget.wasmPath, cursorOnly.wasmPath);
     assert.notEqual(sha256(cursorTargetBytes), sha256(cursorBytes));

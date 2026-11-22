@@ -9,6 +9,24 @@ import { PROFESSION_COMMAND_TRACE_BYTES } from "../../app/renderer/profession-co
 
 const CONFIG = Object.freeze([0x1122_3344, 0xaabb_ccdd, 7]);
 
+const FULL_NEEDS = {
+  snapshot: true,
+  cursor: true,
+  toolbox: true,
+  commandPayloadBytes: 128,
+  professionTrace: true,
+  professionTraceBytes: PROFESSION_COMMAND_TRACE_BYTES,
+};
+const NO_NEEDS = {
+  snapshot: false,
+  cursor: false,
+  toolbox: false,
+  commandPayloadBytes: 0,
+  professionTrace: false,
+  professionTraceBytes: 0,
+};
+const SNAPSHOT_ONLY = { ...NO_NEEDS, snapshot: true };
+
 function allocator(options: Readonly<{
   failAt?: number;
   throwingFree?: number;
@@ -42,14 +60,7 @@ function allocate(
     malloc: fake.malloc,
     free: fake.free,
     configWords: CONFIG,
-    needs: {
-      snapshot: true,
-      cursor: true,
-      toolbox: true,
-      commandPayloadBytes: 128,
-      professionTrace: true,
-      professionTraceBytes: PROFESSION_COMMAND_TRACE_BYTES,
-    },
+    needs: FULL_NEEDS,
   });
   core.initialize();
   return {
@@ -100,14 +111,7 @@ describe("companion core memory installation", () => {
       malloc: fake.malloc,
       free: fake.free,
       configWords: CONFIG,
-      needs: {
-        snapshot: false,
-        cursor: false,
-        toolbox: false,
-        commandPayloadBytes: 0,
-        professionTrace: false,
-        professionTraceBytes: 0,
-      },
+      needs: NO_NEEDS,
     });
     core.initialize();
 
@@ -133,14 +137,7 @@ describe("companion core memory installation", () => {
           malloc: fake.malloc,
           free: fake.free,
           configWords: CONFIG,
-          needs: {
-            snapshot: true,
-            cursor: true,
-            toolbox: true,
-            commandPayloadBytes: 128,
-            professionTrace: true,
-            professionTraceBytes: PROFESSION_COMMAND_TRACE_BYTES,
-          },
+          needs: FULL_NEEDS,
         }),
         /allocation failed/,
       );
@@ -160,14 +157,7 @@ describe("companion core memory installation", () => {
         malloc: fake.malloc,
         free: fake.free,
         configWords: CONFIG,
-        needs: {
-          snapshot: true,
-          cursor: true,
-          toolbox: true,
-          commandPayloadBytes: 128,
-          professionTrace: true,
-          professionTraceBytes: PROFESSION_COMMAND_TRACE_BYTES,
-        },
+        needs: FULL_NEEDS,
       }),
       /ends past the heap/,
     );
@@ -186,14 +176,7 @@ describe("companion core memory installation", () => {
       malloc: fake.malloc,
       free: fake.free,
       configWords: CONFIG,
-      needs: {
-        snapshot: false,
-        cursor: false,
-        toolbox: false,
-        commandPayloadBytes: 0,
-        professionTrace: false,
-        professionTraceBytes: 0,
-      },
+      needs: NO_NEEDS,
     });
 
     assert.equal(
@@ -230,14 +213,7 @@ describe("companion core memory installation", () => {
         },
         free: (pointer) => frees.push(pointer),
         configWords: CONFIG,
-        needs: {
-          snapshot: true,
-          cursor: false,
-          toolbox: false,
-          commandPayloadBytes: 0,
-          professionTrace: false,
-          professionTraceBytes: 0,
-        },
+        needs: SNAPSHOT_ONLY,
       }),
       /reused a live pointer/,
     );
@@ -257,14 +233,7 @@ describe("companion core memory installation", () => {
         malloc: fake.malloc,
         free: fake.free,
         configWords: CONFIG,
-        needs: {
-          snapshot: true,
-          cursor: true,
-          toolbox: true,
-          commandPayloadBytes: 128,
-          professionTrace: true,
-          professionTraceBytes: PROFESSION_COMMAND_TRACE_BYTES,
-        },
+        needs: FULL_NEEDS,
       }),
       (error) => {
         assert.ok(error instanceof AggregateError);
@@ -310,14 +279,7 @@ describe("companion core memory installation", () => {
           malloc: fake.malloc,
           free: fake.free,
           configWords: CONFIG,
-          needs: {
-            snapshot: true,
-            cursor: false,
-            toolbox: false,
-            commandPayloadBytes: 0,
-            professionTrace: false,
-            professionTraceBytes: 0,
-          },
+          needs: SNAPSHOT_ONLY,
         });
         if (initializedBeforeRelease) core.initialize();
         if (release === "observer") core.releaseObserverMemory();
