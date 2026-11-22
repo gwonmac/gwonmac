@@ -362,7 +362,8 @@ app/features/<id>/
                  network, settings (each with label and help), tool (its renderer event), hub, shortcuts,
                  shots, parts; app/features/define.ts documents each field
   README.md      what it does, for players, in the Markdown subset app/features/contract.ts allows
-  CHANGELOG.md   player-facing changes under "## Unreleased"; the release stamps the version
+  CHANGELOG.md   one "- " bullet per player-facing change under "## Unreleased"; pnpm release:notes
+                 stamps the version and builds the release notes (docs/releasing.md#feature-notes)
   media/         shot-1.webp … one per `shots` caption (.gitkeep while empty)
   companion.ts   the game-host part (renderer)
   main.ts        the main-process part

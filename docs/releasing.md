@@ -22,7 +22,7 @@ One maintainer, about 15 minutes of attention:
 
 | Step | Who | What |
 | --- | --- | --- |
-| 1 | maintainer | Merge the release post for `1.4.0` with `draft: true` ([Launcher news](launcher-news.md)). The app bundles it as "What's new"; the website and the news feed leave it out until step 7. |
+| 1 | maintainer | Write the release post for `1.4.0` with `draft: true` ([Launcher news](launcher-news.md)). Run `pnpm release:notes 1.4.0 --dry-run`, then `pnpm release:notes 1.4.0` ([Feature notes](#feature-notes)), check the wording, and merge. The app bundles the post as "What's new"; the website and the news feed leave it out until step 7. |
 | 2 | maintainer | **Actions → Release → Run workflow** on `main`, version `1.4.0`. |
 | 3 | `release` reviewer | Approve the `release` environment once. |
 | 4 | machines | `qualify` checks the build against the current ArenaNet client (no secrets). In parallel, `build` signs, notarizes, and staples the app and DMG, checks the pinned Developer ID, runs the packaged and Keychain tests, and attests the ZIP and DMG. `draft` then tags the commit `v1.4.0` and creates a draft release with the ZIP, DMG, `RELEASES.json`, and `SHA256SUMS.txt`. Nothing is committed. |
@@ -127,6 +127,33 @@ generated notes into Features (`feat`), Fixes (`fix`), and Other changes;
 `.github/release.yml` hides Dependabot. Each release also gets one player post
 on the website, which feeds the launcher news. See
 [Launcher news](launcher-news.md).
+
+### Feature notes
+
+A PR that changes what players see in a Feature adds one `- ` bullet under
+`## Unreleased` in `app/features/<id>/CHANGELOG.md`, in player words. Indented
+lines continue a bullet. `pnpm release:notes <version>` (`scripts/release.ts
+notes`) then, in step 1:
+
+- builds a `## Features` section with one bullet per change, led by the
+  feature's `name` from its `feature.ts`: `- **Whispers:** Opens from the Hub.`
+  Features are in name order; a feature with an empty `## Unreleased` is left
+  out;
+- writes that section into the draft post whose `launcherId` is the version's.
+  It replaces the section an earlier run wrote, otherwise it goes before the
+  post's first other `##` section or the technical record link;
+- for a Stable version, turns each non-empty `## Unreleased` into
+  `## <version>` and puts a fresh empty `## Unreleased` on top. An empty one
+  stays as it is. A Beta or RC writes only the post: its changes stay under
+  `## Unreleased`, so the Stable release that ships them lists them too.
+
+It refuses, and writes nothing, when a changelog has no `## Unreleased`, holds
+text that is not a bullet, or already has `## <version>`; when the version has
+no draft post; or when the post with these notes is a story the news feed would
+refuse (`parseNewsStory`, the parser installed apps use). `--dry-run` prints
+the notes and each file it would write. When no feature has changes it writes
+nothing, so a second run changes nothing. Feature changes merged after step 1
+go to the next release.
 
 ## Secrets
 
