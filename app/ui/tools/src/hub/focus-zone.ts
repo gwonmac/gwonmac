@@ -65,6 +65,8 @@ export function findFocusKey(root: ParentNode, key: string): HTMLElement | null 
 }
 
 const OWN_ARROWS = 'select,input[type="range"],input[role=combobox],textarea';
+/** A column ↑ ↓ stay inside: a nav, a scrolled well, or the launcher Settings page's scrolled body, beside its section nav. */
+const COLUMN = 'nav,.ui-scroll,.hub-settings-host .settings-content';
 const clamp = (index: number, count: number) => Math.max(0, Math.min(count - 1, index));
 
 export function useFocusZone(zone: Ref<HTMLElement | undefined>, options: FocusZoneOptions = {}) {
@@ -77,7 +79,7 @@ export function useFocusZone(zone: Ref<HTMLElement | undefined>, options: FocusZ
     const element = zone.value;
     if (!element || target.matches(OWN_ARROWS) || target.isContentEditable) return null;
     if (!target.matches('input,button,a[href],summary') && target.scrollHeight > target.clientHeight) return null;
-    const column = target.parentElement?.closest<HTMLElement>('nav,.ui-scroll') ?? element;
+    const column = target.parentElement?.closest<HTMLElement>(COLUMN) ?? element;
     const ordered = focusableElements(element.contains(column) ? column : element).sort((a, b) => {
       const left = a.getBoundingClientRect(), right = b.getBoundingClientRect();
       return left.top - right.top || left.left - right.left;
