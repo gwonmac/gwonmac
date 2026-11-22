@@ -2,10 +2,9 @@ import type { ClientCompatibility } from "@shared/contracts";
 import { capabilityRecord } from "@shared/enhancement-contracts";
 import { LAUNCH_MODE_SWITCH, featureSwitchOf, type FeatureSwitchSettings } from "@shared/feature-contracts";
 import type { FeatureFacts } from "@shared/feature-resolve";
-import { GLOBAL_TOOLS, GLOBAL_TOOL_FEATURES, launcherToolSettings, type LauncherSnapshot } from "@shared/launcher-contracts";
+import { GLOBAL_TOOLS, GLOBAL_TOOL_FEATURES, launcherSettings, launcherToolSettings, type LauncherSnapshot } from "@shared/launcher-contracts";
 import { DEFAULT_SETTINGS } from "@shared/settings/index";
 import { resolveShortcuts } from "@shared/keyboard-shortcuts";
-import { DEFAULT_CARTOGRAPHY_PRESET_LIBRARY } from "@shared/cartography-overlay";
 import { LEGACY_PRIMARY_PROFILE_ID, parseProfileId } from "@shared/multiple-accounts";
 
 const fixtureBase: Omit<LauncherSnapshot, "features"> = {
@@ -54,65 +53,8 @@ const fixtureBase: Omit<LauncherSnapshot, "features"> = {
     },
   },
   shortcuts: resolveShortcuts({}),
-  settings: {
-    alcoholTimerPosition: { corner: "top-left", x: 4, y: 58, locked: true },
-    targetReadoutPosition: null,
-    compassButtonsShown: true,
-    compassButtonsOffset: { x: 0, y: 0 },
-    uiStyle: DEFAULT_SETTINGS.uiStyle,
-    uiFont: DEFAULT_SETTINGS.uiFont,
-    uiCustomTheme: DEFAULT_SETTINGS.uiCustomTheme,
-    uiPanelOpacity: DEFAULT_SETTINGS.uiPanelOpacity,
-    uiTextSize: DEFAULT_SETTINGS.uiTextSize,
-    controllerPromptStyle: DEFAULT_SETTINGS.controllerPromptStyle,
-    autoRelogAfterReload: DEFAULT_SETTINGS.autoRelogAfterReload,
-    characterSwitchProfession: DEFAULT_SETTINGS.characterSwitchProfession,
-    characterSwitchLevel: DEFAULT_SETTINGS.characterSwitchLevel,
-    characterSwitchLocation: DEFAULT_SETTINGS.characterSwitchLocation,
-    skillKeyBindings: DEFAULT_SETTINGS.skillKeyBindings,
-    skillCooldownColor: DEFAULT_SETTINGS.skillCooldownColor,
-    chatFilterAllyDrops: DEFAULT_SETTINGS.chatFilterAllyDrops,
-    chatFilterHallOfHeroes: DEFAULT_SETTINGS.chatFilterHallOfHeroes,
-    chatFilterTitleAchievements: DEFAULT_SETTINGS.chatFilterTitleAchievements,
-    reminderCons: DEFAULT_SETTINGS.reminderCons,
-    reminderPcons: DEFAULT_SETTINGS.reminderPcons,
-    reminderAlcohol: DEFAULT_SETTINGS.reminderAlcohol,
-    reminderBeforeEnd: DEFAULT_SETTINGS.reminderBeforeEnd,
-    reminderAtEnd: DEFAULT_SETTINGS.reminderAtEnd,
-    reminderSound: DEFAULT_SETTINGS.reminderSound,
-    autoCheckUpdates: true,
-    renderScale: 2,
-    showDiagnostics: false,
-    disableSteamLogin: false,
-    pasteCleanup: true,
-    hubCalculators: true,
-    whispersIcon: true,
-    whispersIconPosition: null,
-    whispersWindowPosition: null,
-    tradeChatWindowPosition: null,
-    cartographyOverlayEnabled: false,
-    cartographyGridEnabled: false,
-    cartographyRouteEnabled: true,
-    cartographyQuestRouteEnabled: true,
-    cartographyCompassGridEnabled: false,
-    compassRangeIndicatorsEnabled: false,
-    compassRangeEarshotEnabled: true,
-    compassRangeCastEnabled: true,
-    compassRangeSpiritEnabled: true,
-    compassRangeSpiritExtendedEnabled: true,
-    compassRangeEarshotOpacity: 95,
-    compassRangeCastOpacity: 95,
-    compassRangeSpiritOpacity: 95,
-    compassRangeSpiritExtendedOpacity: 95,
-    compassRangeTheme: "color",
-    cartographyRevealMode: "off",
-    cartographyPresetLibrary: DEFAULT_CARTOGRAPHY_PRESET_LIBRARY,
-    cartographyWalkabilityOpacity: 55,
-    cartographyGridOpacity: 65,
-    cartographyControlIdleOpacity: 35,
-    eliteSkillsEnabled: true,
-    eliteMissionMapMarkers: "saved",
-  },
+  // Every launcher and Hub option at its default: a new Feature option needs no line here.
+  settings: launcherSettings(DEFAULT_SETTINGS),
   texturePacks: {
     selectedPackId: null,
     packs: [],
