@@ -133,7 +133,8 @@ selection.
 | `app/client/certification/` | Client certification and deterministic WASM transforms |
 | `app/main/protocol.ts` | `gw://app` routing and range responses |
 | `app/shared/ipc/` | The channel tables, one per window role: each channel's string, argument tuple, and result, declared once (`game.ts` Core, `launcher.ts`, and `tools.ts` composed from each Tool's `shared/ipc.ts`) |
-| `app/main/ipc-channel-registry.ts` | The typed handler builder (`channel`), the exactly-one-owner check (`ownedOnce`), the one map from each boundary (`game`, `launcher`, `tools`) to its window role and tables, and one `register(windows, boundary, handlers)` for every invoke channel: sender role check and refused-argument reporting |
+| `app/main/ipc-channel-registry.ts` | The typed handler builder (`channel`), the exactly-one-owner check (`ownedOnce`), the one map from each boundary (`game`, `launcher`, `tools`) to its window role and tables, and `register(windows, boundary, handlers)` for every invoke channel and `registerSend` for every send channel (no answer): the same sender proof (role, main frame, canonical URL) and refused-argument reporting |
+| `app/main/hardened-web-contents.ts` | The lock-down the game window, launcher and Steam sign-in sheet share: hardened `webPreferences`, popup and webview refusal, navigation and redirect pinning, deny-all permissions |
 | `app/main/ipc-values.ts` | The parser kit (`args`, `nothing`, `one`) and bounded IPC value validation |
 | `app/main/game-ipc/` | Core game-window channels: one owner part per concern (client, network, secrets, settings, diagnostics, app, clipboard, templates); `register.ts` proves each channel has one owner |
 | `app/main/launcher-ipc.ts` | Launcher channels: one owner part per concern, each request's parser, action, and native confirmation |
@@ -361,8 +362,10 @@ fallback.
 The main process owns all game TCP sockets. The renderer never receives a
 native socket handle.
 
-The socket manager permits only approved public destinations and the required
-ports. It closes all sockets owned by a renderer after reload, renderer loss,
+The socket manager permits any public IPv4 unicast address on the three
+required ports (6112, 80 and 443), and refuses loopback, private, link-local and
+other non-public ranges. It does not tie a socket to an ArenaNet name: the
+official client connects to the addresses it was given. It closes all sockets owned by a renderer after reload, renderer loss,
 or quit. Per-socket and per-renderer queue limits bound backpressure.
 
 The renderer copies each outbound WASM view into a compact byte array before it
@@ -371,6 +374,12 @@ the size of WASM memory that backs the original view.
 
 DNS accepts only approved ArenaNet and Guild Wars names. The main process owns
 the official client's required datacenter fallback.
+
+The shared ArenaNet request ceiling (`ARENANET_REQUEST_CEILING`) bounds the app's
+own downloads: the client patch and chunk store, and the skill catalogue. Game
+sockets and the web proxy carry the official client's own traffic, so the
+destination allowlists (public IPv4 on three ports, the proxy's web hosts, DNS
+names) bound them instead, and the ceiling does not apply to them.
 
 Diagnostics can record sizes, durations, and closed outcomes. It never records
 packet contents.

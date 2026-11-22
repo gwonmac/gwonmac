@@ -1,6 +1,16 @@
 /**
- * What a game connection is allowed to reach: three ports, public IPv4 unicast,
- * and the ArenaNet domain suffixes.
+ * What a game connection is allowed to reach. Two different rules, on purpose:
+ *
+ * - A socket may connect to any public IPv4 unicast address on three ports
+ *   (6112, 80, 443). It is not tied to a name: the official client connects to
+ *   the addresses it was given, so the host allowlists below do not apply.
+ * - DNS answers only the ArenaNet domain suffixes (`ALLOWED_DOMAINS`).
+ *
+ * The shared request ceiling (`ARENANET_REQUEST_CEILING`) is not a rule of
+ * this file. It bounds the app's own downloads (the patch client, the chunk
+ * store, the skill catalogue). Game sockets and the web proxy carry the
+ * official client's own traffic, and the allowlists here and in
+ * `proxy-routes.ts` bound where it may go.
  *
  * Every rule here is a refusal. Loopback, link-local, RFC1918, carrier-grade
  * NAT, this-network, benchmarking and multicast are all excluded, so a hostile
