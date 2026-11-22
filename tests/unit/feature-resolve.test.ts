@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { ClientCompatibility, OptionalFeatureStatus } from "../../app/shared/contracts.js";
 import { capabilityRecord, type EnhancementCapability } from "../../app/shared/enhancement-contracts.js";
-import { FEATURES, type FeatureActivationSettings, type FeatureId } from "../../app/shared/feature-contracts.js";
+import { FEATURES, FEATURE_SELECTION_POLICIES, type FeatureSwitchSettings, type FeatureId } from "../../app/shared/feature-contracts.js";
 import {
   onWhereAllowed,
   resolve,
@@ -23,18 +23,17 @@ function features(changed: Partial<Record<EnhancementCapability, OptionalFeature
   };
 }
 
-const ACTIVATION_SETTINGS = [...new Set(FEATURES.flatMap((feature) =>
-  feature.activation.kind === "setting" ? [feature.activation.setting, feature.activation.master] : [feature.activation.setting]))];
+const SWITCHES = Object.values(FEATURE_SELECTION_POLICIES).flatMap((policy) => policy.switch ?? []);
 
 const PLAYING: FeatureState = Object.freeze({
   toolsAtLaunch: true,
-  settings: Object.fromEntries(ACTIVATION_SETTINGS.map((key) => [key, true])),
+  settings: Object.fromEntries(SWITCHES.map((key) => [key, true])),
   program: "none",
   playRegion: "pve",
   features: features(),
 });
 const feature = (id: FeatureId) => FEATURES.find((each) => each.id === id)!;
-const playing = (changed: Partial<FeatureState>, settings: Partial<FeatureActivationSettings> = {}): FeatureState =>
+const playing = (changed: Partial<FeatureState>, settings: Partial<FeatureSwitchSettings> = {}): FeatureState =>
   ({ ...PLAYING, ...changed, settings: { ...PLAYING.settings, ...settings } });
 
 test("resolve names the first reason a feature is off", () => {

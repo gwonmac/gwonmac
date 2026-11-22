@@ -125,15 +125,39 @@ section but edits only the in-game ones; the others (↗) open the launcher.
    and every scope list from it. Never write a second list by hand.
 2. **Name it.** A feature setting names itself in its declaration with `label`
    and `help`; the contract check fails without them, and setting-copy and the
-   catalogue read the label through `featureSettingText`. A core setting gets
+   catalogue read both through `featureSettingText`, so a Settings row, its
+   search result and the Feature page use the same words. A Feature's switch
+   names nothing (see [Feature switches](#feature-switches)). A core setting gets
    its label, detail and "when it applies" note in
    `app/shared/setting-copy.ts`. For an enum, the option labels are a record
    keyed by the enum's values, so a value without a label does not compile.
 3. **Make it findable.** Add one entry to `app/shared/settings-catalogue.ts`
-   with its section and keywords.
+   with its section and keywords. A feature setting's entry takes its label and
+   help from the manifest; never write them again there.
 4. **Draw the control** in the section's component under
    `app/ui/launcher/src/components/`, with `data-setting="<id>"`, using the
    copy from step 2.
+
+## Feature switches
+
+Each Feature has one switch, and one rule finds it: the setting its manifest
+declares with `featureSwitch` (`app/features/define.ts`). The switch keeps the
+key released apps already store (`whispersEnabled`, `tradeChat`, `travelPalette`,
+…), so no player file needs a migration. A Feature with no switch of its own
+(Progress, Team Apply) runs while the Features it `requires` run; its card moves
+their switch. `resolve` reads only these switches and the launch mode
+(`gwonmacTools`).
+
+Players see a card's switch under the Feature's `name` and `summary`, so the
+switch names nothing itself and the contract check refuses a `label` or `help`
+on it. The launch mode's switch names itself, **Play the plain game**, because
+players see it inverted: the control is on while `gwonmacTools` is off.
+
+Never rename a switch key. `tests/unit/player-data-fixtures.test.ts` lists the
+key each Feature reads, and fails when a Feature reads another one or a stored
+choice no longer reaches it.
+
+## Player data
 
 A setting that a released app already wrote must keep reading every value that
 app stored: `tests/unit/player-data-fixtures.test.ts` loads files written by

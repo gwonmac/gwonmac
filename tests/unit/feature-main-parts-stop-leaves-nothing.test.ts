@@ -43,16 +43,13 @@ export async function resolve(specifier, context, next) {
 const handlers = ((globalThis as { __gwonmacIpcHandlers?: Map<string, unknown> }).__gwonmacIpcHandlers ??= new Map());
 const { createToolsRuntime } = await import("../../app/main/tools-runtime.ts");
 const { DEFAULT_SETTINGS } = await import("../../app/shared/settings/index.ts");
-const { FEATURES } = await import("../../app/shared/feature-contracts.ts");
+const { FEATURE_SELECTION_POLICIES } = await import("../../app/shared/feature-contracts.ts");
 
 type RuntimeInput = Parameters<typeof createToolsRuntime>[0];
 
 /** Every feature's switch on, so every part starts what it shows. */
 const ALL_ON: Record<string, boolean> = {};
-for (const { activation } of FEATURES) {
-  ALL_ON[activation.setting] = true;
-  if (activation.kind === "setting") ALL_ON[activation.master] = true;
-}
+for (const { switch: own } of Object.values(FEATURE_SELECTION_POLICIES)) if (own !== null) ALL_ON[own] = true;
 const ALL_OFF = Object.fromEntries(Object.keys(ALL_ON).map((key) => [key, false]));
 
 let ledger: LeakLedger;

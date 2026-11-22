@@ -5,7 +5,7 @@
  */
 import type { ClientCompatibility, OptionalFeatureStatus } from "../../app/shared/contracts.ts";
 import { capabilityRecord, type EnhancementCapability } from "../../app/shared/enhancement-contracts.ts";
-import { featureActivationSettings, type FeatureActivationSettings } from "../../app/shared/feature-contracts.ts";
+import { featureSwitchSettings, type FeatureSwitchSettings } from "../../app/shared/feature-contracts.ts";
 import type { FeatureFacts } from "../../app/shared/feature-resolve.ts";
 
 export function provenChecks(
@@ -18,6 +18,6 @@ export function provenChecks(
   };
 }
 
-export function provenFacts(settings: Partial<FeatureActivationSettings>): FeatureFacts {
-  return { toolsAtLaunch: true, settings: featureActivationSettings(settings), program: "none", features: provenChecks() };
+export function provenFacts(settings: Partial<FeatureSwitchSettings>): FeatureFacts {
+  return { toolsAtLaunch: true, settings: featureSwitchSettings(settings), program: "none", features: provenChecks() };
 }

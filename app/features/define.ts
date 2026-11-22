@@ -14,7 +14,7 @@
  */
 import type { EnhancementCapability, EnhancementProgram } from "../shared/enhancement-contracts.js";
 import type { ShortcutBinding } from "../shared/keyboard-shortcuts.js";
-import type { SettingSpec } from "../shared/settings/define.js";
+import { setting, type SettingScope, type SettingSpec } from "../shared/settings/define.js";
 import type { SettingsSection } from "../shared/settings-catalogue.js";
 import type { HubIconKind } from "../shared/ui/hub-icon.js";
 
@@ -31,13 +31,6 @@ export type HubToolRow = Readonly<{
   aliases?: readonly string[];
   open: Readonly<{ show?: true; page?: true; closesHub?: true }> | Readonly<{ settings: SettingsSection }>;
 }>;
-
-/** What selects a feature, before its region and any live-state gate. */
-export type FeatureActivation =
-  /** The master switch itself: on loads Features at launch, off is the plain game. */
-  | Readonly<{ kind: "master"; setting: string }>
-  /** Selected by its own setting while the master switch is on (not in the plain game). */
-  | Readonly<{ kind: "setting"; setting: string; master: string }>;
 
 /**
  * How the Features tab groups a feature (Group by: Kind). `mode` is the launch mode
@@ -80,7 +73,24 @@ export type FeaturePartKind = (typeof FEATURE_PART_KINDS)[number];
 
 /** The words a player sees for one feature setting: its row label and one line of help. */
 export type FeatureSettingText = Readonly<{ label: string; help: string }>;
-export type FeatureSettingSpecs = Readonly<Record<string, SettingSpec<unknown> & FeatureSettingText>>;
+/** Marks a Feature's switch; only `featureSwitch` sets it. */
+export type FeatureSwitchMark = Readonly<{ switch: true }>;
+type FeatureSwitchSpec = SettingSpec<boolean> & FeatureSwitchMark & Partial<FeatureSettingText>;
+export type FeatureSettingSpecs = Readonly<Record<string, (SettingSpec<unknown> & FeatureSettingText) | FeatureSwitchSpec>>;
+
+/**
+ * A Feature's switch: the stored boolean that turns it on, declared in its `settings` under the
+ * key released apps already store (the key rule in docs/settings.md). A Feature has at most one;
+ * one without a switch follows the Features it `requires`. Players see a card's switch under the
+ * Feature's `name` and `summary`, so it names nothing itself (./contract.ts). The launch mode's
+ * switch names itself: players see it inverted, as "Play the plain game".
+ */
+/** The key of a feature's switch, or never for a feature without one. */
+export type FeatureSwitchKey<Each> = Each extends Readonly<{ settings: infer Specs }>
+  ? { [Key in keyof Specs]: Specs[Key] extends FeatureSwitchMark ? Key : never }[keyof Specs] & string
+  : never;
+export const featureSwitch = <const Options extends SettingScope & Partial<FeatureSettingText>>(fallback: boolean, options: Options) =>
+  setting.boolean(fallback, { ...options, switch: true as const });
 
 export type FeatureDefinition = Readonly<{
   /**
@@ -98,10 +108,8 @@ export type FeatureDefinition = Readonly<{
   purpose?: FeaturePurpose;
   /** A Lucide icon name in kebab case, from lucide-vue-next, the set the launcher uses. */
   icon: string;
-  /** Settings this feature owns, each with a label and help. Another feature may name one in its activation. */
+  /** Settings this feature owns: its switch (`featureSwitch`), and options, each with a label and help. */
   settings?: FeatureSettingSpecs;
-  /** The setting that selects the feature. It stays until plan step 4.4 settles the settings keys. */
-  activation: FeatureActivation;
   /** The coarse region rule; a feature's live-state gate stays authoritative. */
   region: "any" | "non-pvp" | "pve";
   /** Features that must be on for this one to run, by id (app/shared/feature-resolve.ts). */
@@ -116,7 +124,7 @@ export type FeatureDefinition = Readonly<{
   programs?: readonly EnhancementProgram[];
   /** The internet hosts its `main` part reaches. Absent: it reaches none. */
   network?: readonly string[];
-  /** Enabling Tools in first-run setup also turns this feature's setting on. */
+  /** Enabling Tools in first-run setup also turns this feature's switch on. */
   optInWithTools?: true;
   /** The feature's switch in Settings › Tools, shown with `name` and `summary`; GLOBAL_TOOLS keeps FEATURES order. */
   tool?: Readonly<{

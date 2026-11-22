@@ -343,8 +343,8 @@ Use only the layers the feature needs:
 
 | Concern | One owner | Reusable contract |
 | --- | --- | --- |
-| Saved player choice | The feature's `settings` in `app/features/<id>/feature.ts`, built with [`setting`](../app/shared/settings/) | Types, defaults, parsing, Hub rows and the renderer projection derive from that one table. Add an entry only when the feature needs player configuration. |
-| Product activation and coarse region rule | [`FEATURE_SELECTION_POLICIES`](../app/shared/feature-contracts.ts) | Add one stable `FeatureId`. The runtime policy must project that exact ID. |
+| Saved player choice | The feature's `settings` in `app/features/<id>/feature.ts`, built with [`setting`](../app/shared/settings/), its switch with `featureSwitch` ([Feature switches](settings.md#feature-switches)) | Types, defaults, parsing, Hub rows and the renderer projection derive from that one table. Add an entry only when the feature needs player configuration. |
+| Feature switch and coarse region rule | [`FEATURE_SELECTION_POLICIES`](../app/shared/feature-contracts.ts) | Add one stable `FeatureId`. The runtime policy must project that exact ID. |
 | Certified client support | [`enhancement-contracts.ts`](../app/shared/enhancement-contracts.ts) and `app/client/certification/` | Add an independently provable capability. Keep defaults, validators and verifier consumers aligned; the [typed verifier fixture](../tests/electron/fixtures/local-verifier-app/main.mjs) uses canonical defaults instead of a second complete capability list. A product setting cannot grant native authority. |
 | Fixed native publication | [`createCompanionRegionInstallation`](../app/renderer/companion-region-installation.ts) | Own allocation, activation withdrawal, freshness, and disposal for one bounded region. |
 | Live settings and map policy | [`createCompanionPolicySource`](../app/renderer/companion-policy-source.ts) | Consume one immutable snapshot. Do not subscribe to Settings or classify play regions again. |

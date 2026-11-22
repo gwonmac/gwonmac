@@ -15,7 +15,7 @@ import { CARTOGRAPHY_BUILTIN_PRESETS } from "../../app/shared/cartography-overla
 import { resolveShortcuts } from "../../app/shared/keyboard-shortcuts.js";
 import { launcherToolSettings, type SettingsWrite } from "../../app/shared/launcher-contracts.js";
 import { capabilityRecord } from "../../app/shared/enhancement-contracts.js";
-import { FEATURES } from "../../app/shared/feature-contracts.js";
+import { FEATURES, FEATURE_SELECTION_POLICIES } from "../../app/shared/feature-contracts.js";
 import { resolve, type FeatureState } from "../../app/shared/feature-resolve.js";
 
 type ResetOutcome = Awaited<ReturnType<PreferencesCoordinator["resetSettings"]>>;
@@ -114,7 +114,7 @@ it("applies each settings write kind the launcher and the Hub send", async () =>
 it("the plain game stops every feature, and turning it off brings back each one as it was", async () => {
   const { coordinator } = await fixture();
   // Every feature's own switch gets a choice, half of them away from its default.
-  const switches = [...new Set(FEATURES.flatMap((feature) => feature.activation.kind === "setting" ? [feature.activation.setting] : []))];
+  const switches = FEATURES.flatMap((feature) => feature.kind === "mode" ? [] : FEATURE_SELECTION_POLICIES[feature.id].switch ?? []);
   await coordinator.write({ kind: "settings", patch: {
     gwonmacTools: true,
     ...Object.fromEntries(switches.map((key, index) => [key, index % 2 === 0 ? !DEFAULT_SETTINGS[key] : DEFAULT_SETTINGS[key]])),

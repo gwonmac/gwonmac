@@ -1,5 +1,5 @@
 import { setting } from "../../shared/settings/define.js";
-import { defineFeature } from "../define.js";
+import { defineFeature, featureSwitch } from "../define.js";
 
 const DETAIL = { hub: true, rendererWritable: true } as const;
 
@@ -12,11 +12,7 @@ export default defineFeature({
   icon: "arrow-left-right",
   settings: {
     /** Character Switch's own switch; the plain game (`gwonmacTools` off) stops it too. */
-    characterSwitchEnabled: setting.boolean(true, {
-      tools: true,
-      label: "Switch Character",
-      help: "Allows Switch Character and its shortcut.",
-    }),
+    characterSwitchEnabled: featureSwitch(true, { tools: true }),
     /** Show the canonical profession icon and profession names in Character Switch. */
     characterSwitchProfession: setting.boolean(true, {
       ...DETAIL,
@@ -36,7 +32,6 @@ export default defineFeature({
       help: "Shows where each character is, when the map is a known Travel place.",
     }),
   },
-  activation: { kind: "setting", setting: "characterSwitchEnabled", master: "gwonmacTools" },
   region: "any",
   uses: ["characterSwitchAction"],
   tool: {

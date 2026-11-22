@@ -1,17 +1,15 @@
 /**
- * Projects launcher feature switches from the canonical activation policy.
+ * Projects launcher feature switches from the feature switches (app/shared/feature-contracts.ts).
  * Explicit shortcut replacement resolves conflicts across every app action.
  */
 import type { AppSettingsPatch } from "../../shared/contracts.js";
 import type { AppSettings } from "../../shared/settings/index.js";
-import { FEATURES, FEATURE_SELECTION_POLICIES } from "../../shared/feature-contracts.js";
+import { FEATURES, LAUNCH_MODE_SWITCH, featureSwitchOf } from "../../shared/feature-contracts.js";
 import { resolveShortcuts, shortcutConflict, shortcutReserved, shortcutUsedByHub, withShortcutOverride, type ShortcutAction, type ShortcutBinding } from "../../shared/keyboard-shortcuts.js";
 
-/** The master switch, then each feature that opts in with it, in FEATURES order. */
-const FIRST_RUN_SETTINGS = [...new Set(FEATURES.flatMap((feature) =>
-  feature.activation.kind === "master" || "optInWithTools" in feature
-    ? [FEATURE_SELECTION_POLICIES[feature.id].activation.setting]
-    : []))];
+/** The launch mode's switch, then the switch of each feature that opts in with it, in FEATURES order. */
+const FIRST_RUN_SETTINGS = [LAUNCH_MODE_SWITCH, ...FEATURES.flatMap((feature) =>
+  "optInWithTools" in feature ? [featureSwitchOf(feature.id)] : [])];
 
 /** Keep the existing first-run opt-in; new controls do not change player defaults. */
 export function allGlobalToolsPatch(enabled: boolean): AppSettingsPatch {

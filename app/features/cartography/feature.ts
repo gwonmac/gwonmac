@@ -17,7 +17,7 @@ import {
 import { isEliteMissionMapMarkers, type EliteMissionMapMarkers } from "../../shared/elite-map-settings.js";
 import { NO_OVERLAY_OFFSET, readOverlayOffset, type OverlayOffset } from "../../shared/overlay-placement.js";
 import { setting } from "../../shared/settings/define.js";
-import { defineFeature } from "../define.js";
+import { defineFeature, featureSwitch } from "../define.js";
 
 const MAP_LAYER = { hub: true, rendererWritable: true } as const;
 const rangeShown = (range: string) => setting.boolean(true, {
@@ -45,11 +45,7 @@ export default defineFeature({
   icon: "map",
   settings: {
     /** Enable map guidance and its controls without changing saved layer visibility. */
-    cartographyEnabled: setting.boolean(true, {
-      tools: true,
-      label: "Maps",
-      help: "Turns on map guidance and its controls. Each layer keeps its own switch.",
-    }),
+    cartographyEnabled: featureSwitch(true, { tools: true }),
     /** Show certified walkability on the native Compass and Mission Map. */
     cartographyOverlayEnabled: setting.boolean(false, {
       ...MAP_LAYER,
@@ -177,7 +173,6 @@ export default defineFeature({
       },
     ),
   },
-  activation: { kind: "setting", setting: "cartographyEnabled", master: "gwonmacTools" },
   region: "pve",
   tool: {
     id: "maps",

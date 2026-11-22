@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { BrowserWindow } from "electron";
 import { attachFeatureLaunch, featureFacts, featureOn } from "../../app/main/feature-decision.ts";
-import { FEATURES } from "../../app/shared/feature-contracts.ts";
+import { FEATURES, FEATURE_SELECTION_POLICIES } from "../../app/shared/feature-contracts.ts";
 import { resolve, resolveFeature } from "../../app/shared/feature-resolve.ts";
 import { DEFAULT_SETTINGS } from "../../app/shared/settings/index.ts";
 import { provenChecks } from "../helpers/feature-facts.ts";
@@ -39,8 +39,7 @@ test("the facts main sends carry the verifier's statuses, so a patch day reads a
   assert.equal(featureOn("quickItemMove", SETTINGS), false, "menus and shortcuts withhold it");
   assert.equal(featureOn("whispers", SETTINGS), true, "only its area is missing in main");
   // The facts hold only the switches that select Features, not every setting.
-  assert.deepEqual(Object.keys(facts.settings).sort(), [...new Set(FEATURES.flatMap(({ activation }) =>
-    activation.kind === "setting" ? [activation.setting, activation.master] : [activation.setting]))].sort());
+  assert.deepEqual(Object.keys(facts.settings).sort(), Object.values(FEATURE_SELECTION_POLICIES).flatMap((policy) => policy.switch ?? []).sort());
 
   assert.equal(featureOn("whispers", SETTINGS, failedWindow), false, "a failed installation stays in its window");
   assert.deepEqual(resolveFeature("whispers", { ...featureFacts(SETTINGS, failedWindow), playRegion: "pve" }), { on: false, reason: "not-proven" });

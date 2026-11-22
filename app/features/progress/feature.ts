@@ -1,6 +1,6 @@
 import { defineFeature } from "../define.js";
 
-/** Progress is a page of the Travel app, so it follows the Travel setting. */
+/** Progress is a page of the Travel app: it has no switch of its own and runs while Travel does. */
 export default defineFeature({
   id: "progress",
   name: "Progress",
@@ -8,7 +8,6 @@ export default defineFeature({
   kind: "maps",
   purpose: "around",
   icon: "list-checks",
-  activation: { kind: "setting", setting: "travelPalette", master: "gwonmacTools" },
   region: "pve",
   requires: ["travel"],
   uses: ["progressObservation"],

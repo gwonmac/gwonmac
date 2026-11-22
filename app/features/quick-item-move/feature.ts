@@ -1,5 +1,4 @@
-import { setting } from "../../shared/settings/define.js";
-import { defineFeature } from "../define.js";
+import { defineFeature, featureSwitch } from "../define.js";
 
 export default defineFeature({
   id: "quickItemMove",
@@ -10,13 +9,8 @@ export default defineFeature({
   icon: "mouse-pointer-click",
   settings: {
     /** Move clicked item stacks through the open storage or trade window. */
-    quickItemMove: setting.boolean(false, {
-      tools: true,
-      label: "Quick Item Move",
-      help: "Control-click moves a whole stack while storage or a trade window is open.",
-    }),
+    quickItemMove: featureSwitch(false, { tools: true }),
   },
-  activation: { kind: "setting", setting: "quickItemMove", master: "gwonmacTools" },
   region: "non-pvp",
   uses: ["quickItemMove"],
   tool: {

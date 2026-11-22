@@ -1,5 +1,4 @@
-import { setting } from "../../shared/settings/define.js";
-import { defineFeature } from "../define.js";
+import { defineFeature, featureSwitch } from "../define.js";
 
 export default defineFeature({
   id: "tradeChat",
@@ -10,13 +9,8 @@ export default defineFeature({
   icon: "coins",
   settings: {
     /** Show the read-only Trade Chat surface and allow its app shortcut. */
-    tradeChat: setting.boolean(true, {
-      tools: true,
-      label: "Trade Chat",
-      help: "Shows the Trade Chat window and allows its shortcut.",
-    }),
+    tradeChat: featureSwitch(true, { tools: true }),
   },
-  activation: { kind: "setting", setting: "tradeChat", master: "gwonmacTools" },
   region: "non-pvp",
   programs: ["toolbox-foundation", "toolbox-commands", "xunlai-storage"],
   /** The public trade feeds, TRADE_SOURCE_URLS in app/shared/trade-chat.ts. */

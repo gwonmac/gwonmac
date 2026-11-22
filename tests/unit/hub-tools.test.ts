@@ -31,8 +31,8 @@ const OLD_HUB_WORDS = [
 ] as const;
 
 /** Settings with every feature selected, so the Hub's commands list every Tools row. */
-const everyFeature = Object.fromEntries(Object.values(FEATURE_SELECTION_POLICIES).flatMap(({ activation }) =>
-  [[activation.setting, true], ...('master' in activation ? [[activation.master, true]] : [])]));
+const everyFeature = Object.fromEntries(Object.values(FEATURE_SELECTION_POLICIES).flatMap(({ switch: own }) =>
+  own === null ? [] : [[own, true]]));
 
 test('every word a Tools row answered still finds it', () => {
   // The Tools rows as the Hub's built-in commands draw them (hub-commands.ts).

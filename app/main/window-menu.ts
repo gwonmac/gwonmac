@@ -22,7 +22,7 @@ import type { LauncherDestination, LauncherProfileSummary } from "../shared/laun
 import { EXTERNAL_URLS, type TextEditCommand } from "../shared/contracts.js";
 import type { AppSettings } from "../shared/settings/index.js";
 import { errorCode } from "../shared/errors.js";
-import type { FeatureActivationSettings } from "../shared/feature-contracts.js";
+import type { FeatureSwitchSettings } from "../shared/feature-contracts.js";
 import { featureOn } from "./feature-decision.js";
 import { logEvent, reloadTranscriptForWindow } from "./diagnostics.js";
 import { exportDiagnosticsReport } from "./diagnostics-export.js";
@@ -114,7 +114,7 @@ export function installNativeApplicationMenu(
   Menu.setApplicationMenu(menu);
 }
 
-type ToolMenuSettings = FeatureActivationSettings & Pick<AppSettings, "shortcutOverrides">;
+type ToolMenuSettings = FeatureSwitchSettings & Pick<AppSettings, "shortcutOverrides">;
 // Electron makes accelerators immutable. Retain the existing menu builder,
 // not a second mutable copy of either menu items or settings.
 let rebuildGameMenu: ((settings: ToolMenuSettings) => void) | undefined;
