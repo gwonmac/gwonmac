@@ -10,9 +10,9 @@ import {
   featureStatus,
   launcherFeatureState,
   parseChangelog,
-  showsReason,
   turnOnChanges,
 } from "./features";
+import { showsReason } from "@shared/feature-status";
 import { fixtureFacts, fixtureFeatureChecksFor, fixtureSnapshot } from "./fixtures";
 
 type Tools = LauncherSnapshot["tools"];
