@@ -299,7 +299,6 @@ const TOOL_COMMANDS = [
   ["travel.toggle", "gw:travel-toggle"],
   ["character.toggle", "gw:character-toggle"],
   ["game.call-target", "gw:call-target"],
-  ["game.resign", "gw:resign-show"],
 ] as const;
 
 test("a tool command is unhandled when no listener claims its event, and fails when the listener refuses", async () => {

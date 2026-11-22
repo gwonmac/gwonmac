@@ -10,7 +10,7 @@
  * A feature that runs on the building blocks alone builds its part with
  * `featurePart`, the `game` kind of app/features/parts.ts: it gives one `start`
  * that returns what stops it, and never asks whether it is on. A feature that also hosts memory on a pinned COMPANION_PARTS
- * line (Reminders, Progress) or calls its certified stage's exports (Chat Filters) writes that
+ * line (Reminders, Progress) or calls its certified stage's exports (Chat Filters, Resign) writes that
  * line by hand and hands its session to the featurePart it prepares. A hand-written part asks `on(id)`; both answer
  * from resolve (app/shared/feature-resolve.ts) with main's facts and the live
  * play region, never from the settings alone.

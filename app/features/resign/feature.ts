@@ -15,9 +15,10 @@ export default defineFeature({
   uses: ["resignAction"],
   tool: {
     id: "resign",
-    event: "gw:resign-show",
   },
   shortcuts: [{ action: "game.resign", binding: null, menuItem: "resign-game" }],
+  /** Its shortcut and menu item show the confirmation through `toggle` (shared/link.ts). */
+  offers: ["toggle"],
   shots: [],
   parts: ["game"],
 });
