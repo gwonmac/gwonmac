@@ -72,12 +72,25 @@ export function useFloatingWindow(options: {
    * returns the panel to that place and size (HUB-109).
    */
   let intent: FloatingWindowPlacement | null = null;
-  /** The placement the store holds, so a save coming back, or an unmoved window, saves nothing. */
+  /** The placement the store holds, so an unmoved window saves nothing. */
   let saved: FloatingWindowPlacement | null = null;
+  /** Placements this window saved that the store has not given back yet, oldest first. */
+  const unanswered: string[] = [];
+  /** True while the player drags or resizes the window. */
+  let adjusting = false;
+  let persistTimer: ReturnType<typeof setTimeout> | null = null;
   let mounted = false;
-  // A placement from the store (at once, or later: a Reset, another game window's move) replaces this one.
+  // A placement from the store (at once, or later: a Reset, another game window's move) replaces
+  // this one. The store giving back this window's own saves, or anything while the player is
+  // still placing it, changes nothing: an older save must not rewind a newer move or size.
   const stopStore = store?.subscribe((placement) => {
-    if (JSON.stringify(placement) === JSON.stringify(intent)) return;
+    const text = JSON.stringify(placement);
+    const echo = unanswered.indexOf(text);
+    if (echo !== -1) {
+      unanswered.splice(0, echo + 1);
+      return;
+    }
+    if (adjusting || persistTimer !== null || text === JSON.stringify(intent)) return;
     const box = placeFloatingWindow(placement, viewport(), minimum);
     intent = saved = box ? placement : null;
     position.value = box ? { left: box.left, top: box.top } : { ...options.initialPosition };
@@ -143,6 +156,7 @@ export function useFloatingWindow(options: {
     const offsetY = event.clientY - box.top;
     handle.setPointerCapture(event.pointerId);
     element.dataset.dragging = "";
+    adjusting = true;
     const move = (next: PointerEvent) => {
       position.value = {
         left: Math.max(margin, Math.min(
@@ -157,6 +171,7 @@ export function useFloatingWindow(options: {
     };
     const finish = () => {
       delete element.dataset.dragging;
+      adjusting = false;
       remember();
       handle.removeEventListener("pointermove", move);
       handle.removeEventListener("pointerup", finish);
@@ -170,10 +185,12 @@ export function useFloatingWindow(options: {
   };
 
   let disposeResize: (() => void) | null = null;
-  let persistTimer: ReturnType<typeof setTimeout> | null = null;
   const persistPlacement = () => {
     if (!store || intent === null || intent === saved) return;
     saved = intent;
+    // A store that never gives saves back (browser storage) keeps this list short.
+    unanswered.push(JSON.stringify(intent));
+    if (unanswered.length > 8) unanswered.shift();
     store.save(intent);
   };
   const schedulePersistence = () => {
@@ -212,6 +229,7 @@ export function useFloatingWindow(options: {
       }),
       resize: (width, height) => { size.value = { width, height }; remember(); },
       setActive: (active) => {
+        adjusting = active;
         if (!panel.value) return;
         if (active) panel.value.dataset.resizing = "";
         else delete panel.value.dataset.resizing;

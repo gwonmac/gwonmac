@@ -276,8 +276,6 @@ export function createToolboxFoundation(
   if (window.gwHub?.visible) onHub();
 
   return {
-    /** Trade Chat's link while this host has a Trade slot, as provided to the registry. */
-    trade: trade ? tradeLink : null,
     update(next: ToolboxState) {
       state = next;
       builds.tool?.update(next);

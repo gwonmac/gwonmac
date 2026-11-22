@@ -89,7 +89,6 @@ test.describe("renderer Tools input", () => {
             },
           ): {
             update(state: object): void;
-            trade: { toggle(intent: "show" | "toggle"): string } | null;
           };
         };
         let gameKeys = 0;
@@ -199,9 +198,16 @@ test.describe("renderer Tools input", () => {
         // again once the tool exists.
         (globalThis as unknown as { publishToolbox(state: object): void })
           .publishToolbox = (state: object) => toolbox.update(state);
-        // Trade opens through its link `toggle` (its shortcut, chat alias and Hub row call it).
+        // Trade opens through its link `toggle`, as its shortcut, chat alias and Hub row call it.
+        const linksPath = "./feature-links.js";
+        const links = (await import(linksPath)) as {
+          toggleTool(target: "tradeChat", intent: "show" | "toggle"): string;
+        };
         (globalThis as unknown as { tradeToggle(intent: "show" | "toggle"): void })
-          .tradeToggle = (intent) => { toolbox.trade?.toggle(intent); };
+          .tradeToggle = (intent) => {
+            const answer = links.toggleTool("tradeChat", intent);
+            if (answer === "unavailable") throw new Error("Trade Chat's link is unavailable");
+          };
         // The projection still takes what the observer feeds it. What those
         // values mean is pinned at the real boundary by
         // tests/packaged-enhancement-runtime.ts, which reads them back through
