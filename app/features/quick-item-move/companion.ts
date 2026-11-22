@@ -3,9 +3,9 @@
  * has Quick Item Move on, this part turns the stage's controls on and publishes Control and Shift
  * to them.
  *
- * The stage needs a scratch payload in the heap, and that allocation keeps this line's place in
- * COMPANION_PARTS (the heap layout), so the line is written by hand: it hosts the memory and
- * hands its session to the feature's `featurePart`.
+ * The stage needs a scratch payload in the heap, so the part is written by hand: it owns that
+ * memory (its place is "quickItemMove" in COMPANION_HEAP_LAYOUT) and hands its session to the
+ * feature's `featurePart`.
  */
 import {
   QUICK_ITEM_MOVE_SCRATCH_BYTES,

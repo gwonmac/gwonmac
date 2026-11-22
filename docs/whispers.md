@@ -44,8 +44,8 @@ game-thread drain. The mailbox and the private chat region belong to the chat
 substrate behind `game.chat` (`app/renderer/chat-installation.ts`), not to
 Whispers, so an invite needs no Whispers: the slot opens (and the kernel gets
 the chat bit) while Whispers listens or one line is on its way, and closes
-after. The region keeps the heap place it had under Whispers, so the Whispers
-line in `COMPANION_PARTS` hosts its memory phases. Its enqueue accepts only `/invite ` followed by one to twenty
+after. The chat substrate's part owns the region and its place in
+`COMPANION_HEAP_LAYOUT`, the place it had under Whispers. Its enqueue accepts only `/invite ` followed by one to twenty
 name units without a control character, quote, comma, surrogate, or leading or
 trailing space. The whisper enqueue still accepts only whisper lines. One chat
 command is pending at a time. The drained mailbox is the only receipt; Guild

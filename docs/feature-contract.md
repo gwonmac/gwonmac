@@ -43,8 +43,8 @@ pnpm check
 
 The id is camelCase; the folder is its kebab case (`quickNote` → `app/features/quick-note/`).
 The scaffold ([`scripts/new-feature.ts`](../scripts/new-feature.ts)) writes the folder with a
-game part that does nothing visible, adds the Feature to `FEATURES` and its part to
-`FEATURE_PARTS`, and passes every contract check as written. It refuses an id that exists.
+game part that does nothing visible, adds the Feature to `FEATURES` and its part's export line
+to `app/features/companion-parts.ts`, and passes every contract check as written. It refuses an id that exists.
 Then fill in the summary, the README and the game part, and run `pnpm check` again.
 
 ## The folder
@@ -171,8 +171,8 @@ capability, and a product setting cannot either.
 
 - the contract on every folder (`tests/policy/feature-contract.test.ts`), each message naming
   the file and what to change;
-- `tests/unit/every-companion-part-is-registered.test.ts`: a `companion.ts` not in
-  `FEATURE_PARTS`, or with another Feature's id;
+- `tests/unit/every-companion-part-is-registered.test.ts`: a `companion.ts` with no line in
+  `companion-parts.ts`, or with another Feature's id;
 - `tests/policy/feature-docs.test.ts`: the website page and `$docs.<page>` links;
 - ESLint import boundaries: renderer code outside the folder reaches only `feature.ts`,
   `renderer/host.ts` and `shared/`;
@@ -186,10 +186,19 @@ capability, and a product setting cannot either.
 
 ### Shared files a new Feature touches
 
-The scaffold writes both registry lines: the Feature in `FEATURES` and its game part in
-`FEATURE_PARTS` (`app/features/companion-parts.ts`). The renderer is one static Rollup graph,
-so a game part needs its import there; `every-companion-part-is-registered.test.ts` names a
-missing line.
+The scaffold writes both registry lines: the Feature in `FEATURES` and its game part's
+`export { default as <id> } from …` line in `app/features/companion-parts.ts`. The renderer is
+one static Rollup graph and the unit tests run the TypeScript directly, so a game part needs
+that import line (a generated list would need a build plugin);
+`every-companion-part-is-registered.test.ts` names a missing line. The order of the parts does
+not matter.
+
+A part that owns memory (a certified stage with its own region, as Reminders' chat print) also
+takes a place in `COMPANION_HEAP_LAYOUT` (`app/renderer/tools-companion-part.ts`): add its id at
+the end, so the memory that already works never moves. The installer refuses a part that
+allocates or names a region without a place, and
+`tests/unit/the-companion-heap-layout-stays-fixed.test.ts` pins the layout. A group A Feature
+owns no memory and never touches it.
 
 Tests and fixtures that list every Feature keep literal values for the Features they name and
 take a newer Feature's rows from its manifest, so a new Feature adds nothing to them:

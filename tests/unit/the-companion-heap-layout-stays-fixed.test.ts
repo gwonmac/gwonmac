@@ -1,13 +1,13 @@
-// The Tools companion allocates its memory in COMPANION_PARTS order, and that
-// order is the heap layout the kernel and the proofs expect. Building blocks
+// The Tools companion allocates its memory in COMPANION_HEAP_LAYOUT order, the
+// heap layout every player's game already runs with. Building blocks
 // (app/renderer/game-blocks.ts) wrap the substrates and must not move it: a
-// block that allocated, or a part that changed place, would shift every region
+// block that allocated, or an edit to the layout table, would shift every region
 // after it without failing typecheck. This test pins the layout with every
 // capability on.
 import assert from "node:assert/strict";
 import test from "node:test";
-import { COMPANION_PARTS } from "../../app/features/companion-parts.ts";
 import { prepareToolsCompanionExtension } from "../../app/renderer/certified-companion-tools-installation.ts";
+import { COMPANION_HEAP_LAYOUT } from "../../app/renderer/tools-companion-part.ts";
 import { capabilityRecord } from "../../app/shared/enhancement-contracts.ts";
 import {
   FRIEND_OBSERVER_MANIFEST_SECTION,
@@ -56,10 +56,9 @@ test("the Tools companion allocates the same regions in the same order", async (
     return pointer;
   });
 
-  assert.deepEqual(COMPANION_PARTS.map((part) => part.id), [
-    "observation", "friends", "quickItemMove", "whispers", "reminders", "skillHud", "alcohol",
-    "alcoholTimer", "progress", "effects", "effectTimers", "xunlaiStorage", "travel", "teamApply",
-    "tools", "cartography", "targetReadout", "resign", "tradeChat", "chatFilters",
+  assert.deepEqual(COMPANION_HEAP_LAYOUT, [
+    "friends", "quickItemMove", "chat", "reminders", "skillHud", "alcohol", "gameProgress", "effects",
+    "xunlaiStorage", "travel",
   ]);
   assert.deepEqual(extension.ownedRegions().map(({ name, pointer, size, align }) => [name, pointer, size, align]), [
     ["friend snapshot", 4096, 12312, 4],

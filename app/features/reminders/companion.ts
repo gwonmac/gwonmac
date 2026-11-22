@@ -4,9 +4,9 @@
  * Several reminders at once still chime once. It reads `game.effects` and
  * `game.alcohol` only while an option asks for them.
  *
- * Chat print is Reminders' own certified stage, and its memory keeps this line's
- * place in COMPANION_PARTS (the heap layout), so the line is written by hand: it
- * hosts the memory and hands its session to the feature's `featurePart`.
+ * Chat print is Reminders' own certified stage with its own memory, so the part
+ * is written by hand: it owns the memory (its place is "reminders" in
+ * COMPANION_HEAP_LAYOUT) and hands its session to the feature's `featurePart`.
  */
 import { CHAT_PRINT_PREFIX } from "../../shared/chat-print.js";
 import {

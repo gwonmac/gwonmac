@@ -1,14 +1,15 @@
-// A feature's companion.ts does nothing until COMPANION_PARTS or FEATURE_PARTS
-// lists it, and a part with another feature's id would be gated by the wrong manifest. Neither
-// mistake fails typecheck; only the CI Electron suites would notice.
+// A feature's companion.ts does nothing until app/features/companion-parts.ts exports it, and a
+// part with another feature's id would be gated by the wrong manifest. Neither mistake fails
+// typecheck; only the CI Electron suites would notice.
 import assert from "node:assert/strict";
 import { existsSync, readdirSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { pathToFileURL } from "node:url";
-import { COMPANION_PARTS, FEATURE_PARTS } from "../../app/features/companion-parts.ts";
+import * as featureParts from "../../app/features/companion-parts.ts";
+import { SUBSTRATE_PARTS } from "../../app/renderer/tools-companion-substrates.ts";
 
-const PARTS = [...COMPANION_PARTS, ...FEATURE_PARTS];
+const PARTS = [...SUBSTRATE_PARTS, ...Object.values(featureParts)];
 
 const features = path.resolve(import.meta.dirname, "../../app/features");
 const folders = readdirSync(features, { withFileTypes: true })
@@ -21,7 +22,7 @@ test("every feature folder with a companion part has a registry line under its m
     const url = (file: string) => pathToFileURL(path.join(features, folder, file)).href;
     const { default: part } = await import(url("companion.ts"));
     const { default: manifest } = await import(url("feature.ts"));
-    assert.ok(PARTS.includes(part), `${folder}/companion.ts is not in COMPANION_PARTS or FEATURE_PARTS`);
+    assert.ok(PARTS.includes(part), `${folder}/companion.ts has no line in app/features/companion-parts.ts`);
     assert.equal(part.id, manifest.id, `${folder}/companion.ts names another feature`);
   }
 });

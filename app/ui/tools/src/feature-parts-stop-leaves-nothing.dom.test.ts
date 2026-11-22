@@ -4,8 +4,8 @@
  * Hub source and no bridge or play-region subscription. A leak that survives Stop keeps working
  * after the player turned the feature off, and only a long session shows it.
  *
- * The parts run through their real entry points: the Tools installer for every COMPANION_PARTS
- * line, on the real Hub with its real view, in happy-dom. Only the boundaries are stubbed:
+ * The parts run through their real entry points: the Tools installer for every companion part,
+ * on the real Hub with its real view, in happy-dom. Only the boundaries are stubbed:
  * ArenaNet's module (every export answers 1), the preload bridge, the kernel's dispatch, and the
  * built Tools bundle: its Vue apps read the whole bridge and have their own component tests, so a
  * stand-in records each app a part mounts and whether the part disposes it.
