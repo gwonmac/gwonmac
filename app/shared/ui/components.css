@@ -646,6 +646,19 @@
   opacity: 1;
 }
 
+/* Every search field in a Tools window starts with this magnifier (SEARCH_GLYPH in
+ * app/shared/ui/hub-search.ts); at most one control follows the input. */
+.ui-input-group > .ui-search-glyph {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-inline-start: var(--ui-space-1);
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 1.75;
+}
+
 /* Label above, control below, hint under that. The hint is the reason this is
  * a component: an explanation styled like body text competes with its label. */
 .ui-field {

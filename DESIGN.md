@@ -89,8 +89,10 @@ has the job. `pnpm ui:sweep` checks the rules marked *swept*
   (⌘J) right of the primary.
 - **Search field.** The search glyph at the left, the input, then at most one
   control inside the field at the right: a `/` key hint, a clear button, or the
-  view's settings gear. The Hub uses `.ui-hub-search`, Tools use
-  `.ui-input-group`. *Swept:* a control inside a field is not an `overlap`.
+  view's settings gear. The Hub uses `.ui-hub-search` with the Hub's diamond;
+  Tools use `.ui-input-group` with the magnifier (`.ui-search-glyph`). Both
+  glyphs live in `app/shared/ui/hub-search.ts`. *Swept:* `search-glyph`; a
+  control inside a field is not an `overlap`.
 - **Empty and loading.** Empty is `.ui-empty`: a short title ("No saved teams
   yet", "No matching prices"), one sentence that says what to do, and an
   action when one helps. Loading names what loads ("Loading trader prices…");

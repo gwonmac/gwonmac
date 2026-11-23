@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { SEARCH_GLYPH } from "../../../shared/ui/hub-search";
 import {
   computed,
   nextTick,
@@ -891,6 +892,7 @@ useClassicFrame(panel);
         </div>
         <form class="trade-search" role="search" @submit.prevent="runSearch()">
           <label class="ui-input-group">
+            <svg class="ui-search-glyph" viewBox="0 0 20 20" aria-hidden="true" v-html="SEARCH_GLYPH"></svg>
             <span class="ui-sr-only">Search offers or character names</span>
             <input
               ref="searchInput"

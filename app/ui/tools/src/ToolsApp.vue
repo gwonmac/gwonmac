@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { SEARCH_GLYPH } from "../../../shared/ui/hub-search";
 import BuildAttributes from "./components/BuildAttributes.vue";
 import ProfessionIcon from "./components/ProfessionIcon.vue";
 import {
@@ -386,7 +387,7 @@ useClassicFrame(panel);
             </div>
 
             <label class="ui-input-group">
-              <span aria-hidden="true">⌕</span>
+              <svg class="ui-search-glyph" viewBox="0 0 20 20" aria-hidden="true" v-html="SEARCH_GLYPH"></svg>
               <span class="ui-sr-only">Search library</span>
               <input
                 ref="search"

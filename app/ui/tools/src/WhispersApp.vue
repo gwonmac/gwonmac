@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { SEARCH_GLYPH } from "../../../shared/ui/hub-search";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from "vue";
 import { findPeople, whisperUnread, WHISPER_SOUNDS, type Person, type WhisperSession, type WhisperSound } from "../../../shared/whisper-session";
 import { optionFor } from "../../../shared/setting-copy";
@@ -411,7 +412,7 @@ useClassicFrame(panel);
     </header>
     <div class="whisper-layout">
     <div v-show="!selected" class="ui-scroll whisper-picker" :data-searching="Boolean(search.trim())">
-      <form class="ui-input-group whisper-search" @submit.prevent="submitSearch"><label class="whisper-sr-only" for="whisper-person">Character name</label><input id="whisper-person" v-model="search" placeholder="Find a friend…" autocomplete="off" role="combobox" aria-autocomplete="list" :aria-controls="search.trim() ? 'whisper-suggestions' : 'whisper-people-options'" :aria-expanded="pickerOptions.length > 0" :aria-activedescendant="suggestionIndex >= 0 && pickerOptions[suggestionIndex] !== undefined ? pickerOptionId(suggestionIndex) : undefined" @input="searchInput" @keydown="searchKeydown"/><button data-variant="primary" class="ui-button whisper-control" type="submit" :disabled="!search.trim()" aria-label="Whisper"><span class="whisper-compose-label">Whisper</span><svg class="whisper-compose-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5 4 4M4 20l4-1L21 6l-4-4L4 15v5Zm7-16H4v7"/></svg></button></form>
+      <form class="ui-input-group whisper-search" @submit.prevent="submitSearch"><svg class="ui-search-glyph" viewBox="0 0 20 20" aria-hidden="true" v-html="SEARCH_GLYPH"></svg><label class="whisper-sr-only" for="whisper-person">Character name</label><input id="whisper-person" v-model="search" placeholder="Find a friend…" autocomplete="off" role="combobox" aria-autocomplete="list" :aria-controls="search.trim() ? 'whisper-suggestions' : 'whisper-people-options'" :aria-expanded="pickerOptions.length > 0" :aria-activedescendant="suggestionIndex >= 0 && pickerOptions[suggestionIndex] !== undefined ? pickerOptionId(suggestionIndex) : undefined" @input="searchInput" @keydown="searchKeydown"/><button data-variant="primary" class="ui-button whisper-control" type="submit" :disabled="!search.trim()" aria-label="Whisper"><span class="whisper-compose-label">Whisper</span><svg class="whisper-compose-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5 4 4M4 20l4-1L21 6l-4-4L4 15v5Zm7-16H4v7"/></svg></button></form>
       <p v-if="pickerError" class="whisper-notice" role="alert">{{ pickerError }}</p>
       <div class="whisper-source-filters" role="group" aria-label="Suggestion sources">
         <span>Suggest from</span>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { SEARCH_GLYPH } from "../../../../shared/ui/hub-search";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import {
   type TraderPriceHistoryProblem,
@@ -279,6 +280,7 @@ function relativeAge(timestamp: number): string {
         >{{ CATEGORY_LABELS[entry] }}</button>
       </div>
       <label class="ui-input-group trader-item-search">
+        <svg class="ui-search-glyph" viewBox="0 0 20 20" aria-hidden="true" v-html="SEARCH_GLYPH"></svg>
         <span class="ui-sr-only">Search trader items</span>
         <input v-model="query" type="search" maxlength="80" placeholder="Search trader items" @keydown="onSearchKeydown">
       </label>

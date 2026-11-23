@@ -12,6 +12,7 @@
  * - selection-stripe: a selected row or card marks itself with an edge stripe.
  * - selection-style: a selected row or card is drawn other than with the shared selection tokens.
  * - header-tile: a window header carries a decorative icon tile beside its title.
+ * - search-glyph: a search field has no search glyph at its left.
  */
 export type AuditFinding = Readonly<{ rule: string; target: string; detail: string }>;
 
@@ -136,6 +137,15 @@ export function auditLayout(ignore: string): AuditFinding[] {
       const rect = child.getBoundingClientRect();
       if (rect.width >= 16 && rect.height >= 16) findings.push({ rule: "header-tile", target: describe(child), detail: `${Math.round(rect.width)}×${Math.round(rect.height)}px decorative tile` });
     }
+  }
+  // Search fields: the glyph at the left of the input, inside the same field.
+  for (const input of document.body.querySelectorAll("input[type=search], input[role=combobox], [role=search] input")) {
+    if (!visible(input)) continue;
+    const field = input.closest(".ui-input-group, .ui-hub-search, label") ?? input;
+    // Where the typed text starts: a glyph may sit beside the input or over its left padding.
+    const left = input.getBoundingClientRect().left + parseFloat(getComputedStyle(input).paddingLeft);
+    const glyph = [...field.querySelectorAll("svg")].some((svg) => visible(svg) && svg.getBoundingClientRect().right <= left + 1);
+    if (!glyph) findings.push({ rule: "search-glyph", target: describe(input), detail: JSON.stringify(input.getAttribute("placeholder") ?? input.getAttribute("aria-label") ?? "") });
   }
   // Overlap: leaves that carry text, and controls, that are not inside one another.
   const pieces = [...document.body.querySelectorAll("*")].filter((element) => visible(element) && (element.matches(controls)

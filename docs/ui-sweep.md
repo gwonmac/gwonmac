@@ -42,8 +42,9 @@ The in-game panels run the production modules on the production markup from
 | `selection-stripe` | a selected row, option or tile marked with an edge bar | the 2 px gold stripe on Hub, Trade and Build Library rows |
 | `selection-style` | a selected item not drawn with the shared selection tokens | Hub, Trade and Build Library rows, each with its own shadow |
 | `header-tile` | a decorative icon tile beside a window title | the "GW" and market tiles in the Build Library and Trade headers |
+| `search-glyph` | a search field with no search glyph at its left | the Library's text "⌕" and the Trade and Whispers searches with no glyph |
 
-The last three check the pattern rules in [DESIGN.md](../DESIGN.md#one-pattern-per-job); each
+The last four check the pattern rules in [DESIGN.md](../DESIGN.md#one-pattern-per-job); each
 failed on `main` before the change that fixed it.
 
 A list that scrolls up and down is normal: rows half scrolled out of it are not findings. While a

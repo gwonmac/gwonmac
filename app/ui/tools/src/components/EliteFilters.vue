@@ -1,5 +1,6 @@
 <!-- Discovery filters for All matches; each filter has exactly one control. The Hunt list ignores them. -->
 <script setup lang="ts">
+import { SEARCH_GLYPH } from "../../../../shared/ui/hub-search";
 import { computed, ref } from "vue";
 import { ELITE_REGIONS, type EliteLearnedFilter, type EliteViewPreferences } from "../../../../shared/elite-skills";
 import { optionFor } from "../../../../shared/setting-copy";
@@ -34,8 +35,11 @@ defineExpose({ searchInput });
 </script>
 <template>
   <fieldset class="elite-search-controls" aria-label="Filters" :disabled="disabled">
-    <input ref="searchInput" type="search" class="ui-input" maxlength="200" placeholder="Find a skill, boss or area…" aria-label="Search skill, boss or area"
-      :value="preferences.search" @input="emit('change', { search: ($event.target as HTMLInputElement).value, focusedSkill: null })" />
+    <label class="ui-input-group">
+      <svg class="ui-search-glyph" viewBox="0 0 20 20" aria-hidden="true" v-html="SEARCH_GLYPH"></svg>
+      <input ref="searchInput" type="search" maxlength="200" placeholder="Find a skill, boss or area…" aria-label="Search skill, boss or area"
+        :value="preferences.search" @input="emit('change', { search: ($event.target as HTMLInputElement).value, focusedSkill: null })" />
+    </label>
     <div class="elite-profession-choices" role="group" aria-label="Professions">
       <button v-for="profession in professions" :key="profession.code" class="elite-profession" :data-profession="profession.code"
         :aria-label="profession.name" :aria-pressed="selected.includes(profession.code)" :title="profession.name" @click="toggleProfession(profession.code)">
