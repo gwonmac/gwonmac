@@ -69,10 +69,11 @@ export async function installCartography(options: Readonly<{
   canvas: HTMLCanvasElement;
   settings(): AppSettings;
   persist(patch: RendererSettingsPatch): Promise<AppSettings>;
-  /** Main owns validation and saving; the renderer supplies bounded observations only. */
-  exportEvidence(
-    capture: CartographyEvidenceCapture,
-  ): Promise<CartographyEvidenceExportResult>;
+  /**
+   * Main owns validation and saving; the renderer supplies bounded observations only. Null outside
+   * development builds: players get no Live evidence panel.
+   */
+  exportEvidence: ((capture: CartographyEvidenceCapture) => Promise<CartographyEvidenceExportResult>) | null;
   getMapKnowledge(kernelSha256: string): Promise<readonly CartographyMapKnowledge[]>;
   recordMapKnowledge(
     value: CartographyMapKnowledge,
