@@ -8,7 +8,7 @@ import {
   type EliteTracking, type EliteUpdate,
 } from "../../../shared/elite-skills.js";
 import { isTravelCharacterKey, type TravelCharacterKey } from "../../../shared/travel-history.js";
-import { jsonDocument } from "../../json-document.js";
+import { jsonDocument } from "../../../main/core/json-document.js";
 
 type Document = Readonly<{ formatVersion: 1; characters: Readonly<Record<string, EliteTracking>> }>;
 const EMPTY: Document = Object.freeze({ formatVersion: 1, characters: Object.freeze({}) });

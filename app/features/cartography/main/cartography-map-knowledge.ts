@@ -8,7 +8,7 @@ import {
   parseCartographyMapKnowledge,
   type CartographyMapKnowledge,
 } from "../shared/cartography-map-knowledge.js";
-import { jsonDocument } from "../../json-document.js";
+import { jsonDocument } from "../../../main/core/json-document.js";
 
 const FORMAT_VERSION = 1;
 const BASE64 = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/u;

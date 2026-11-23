@@ -7,7 +7,7 @@ import {
   parseTradeSavedState,
   type TradeSavedState,
 } from "../../../shared/trade-chat.js";
-import { jsonDocument } from "../../json-document.js";
+import { jsonDocument } from "../../../main/core/json-document.js";
 
 const savedDocument = jsonDocument({ parse: parseTradeSavedState, empty: EMPTY_TRADE_SAVED_STATE });
 

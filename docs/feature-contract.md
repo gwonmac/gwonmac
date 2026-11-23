@@ -69,7 +69,7 @@ first seven rows; the others belong to a Feature with a window, a Hub page or a 
 | `renderer/window.ts` | Its window part (`windowPart`): the link that opens it and the lazy start of its view. |
 | `ui/` | Its own views, built into the Tools bundle: its window view, its Hub source and its Hub pages. |
 | `main.ts` | Its main part (`mainPart`). |
-| `main/` | Main-process-only modules: stores (`app/features/json-document.ts` keeps a JSON file), files, IPC parsing. |
+| `main/` | Main-process-only modules: stores (`app/main/core/json-document.ts` keeps a JSON file), files, IPC parsing. |
 | `shared/ipc.ts` | Its channel table and its `window.gwNative` namespace. |
 | `shared/link.ts` | The types of the link it offers other Features (`offers`). |
 

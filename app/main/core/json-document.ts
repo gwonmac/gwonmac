@@ -9,9 +9,9 @@
  * saved offers use it (their main/ folders).
  */
 import { readFile } from "node:fs/promises";
-import { writeAtomicJson } from "../main/core/atomic-file.js";
-import { quarantineCorruptDocument } from "../main/core/corrupt-document.js";
-import { Mutex } from "../main/core/mutex.js";
+import { writeAtomicJson } from "./atomic-file.js";
+import { quarantineCorruptDocument } from "./corrupt-document.js";
+import { Mutex } from "./mutex.js";
 
 /** Player data is private to the player's account on this Mac. */
 const DOCUMENT_MODE = 0o600;
