@@ -87,8 +87,9 @@ has the job. `pnpm ui:sweep` checks the rules marked *swept*
   painted row. Nothing scrolls sideways. *Swept:* `sideways-scroll`.
 - **Footer action bar.** Status or key hints at the left, actions at the right;
   Cancel sits left of the action it cancels, and the completion action is the
-  primary. In game windows the primary shows its ↵ key; the Hub keeps Actions
-  (⌘J) right of the primary.
+  primary, the rightmost button. In game windows the primary shows its ↵ key;
+  where a bar has an Actions menu (⌘J: the Hub, the Trade inspector), it sits
+  right of the primary. *Swept:* `footer-order`.
 - **Search field.** The search glyph at the left, the input, then at most one
   control inside the field at the right: a `/` key hint, a clear button, or the
   view's settings gear. The Hub uses `.ui-hub-search` with the Hub's diamond;

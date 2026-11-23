@@ -95,6 +95,12 @@ const SURFACES: readonly Surface[] = [
       { name: "trade", path: "/?trade=1" },
       // The floating Tools windows outside the Hub: their window headers are part of the pattern set.
       { name: "build-library", path: "/" },
+      { name: "build-detail", path: "/", open: async (page: Page) => {
+        await page.locator("#builds-library-tab").click();
+        await page.locator("#library-items .library-row").first().click();
+        await page.mouse.move(0, 0); // so the selected row shows selection, not hover
+        await page.waitForTimeout(300);
+      } },
       { name: "whispers", path: "/?whispers", open: async (page: Page) => { await page.locator(".whisper-launcher").click(); } },
     ],
   },

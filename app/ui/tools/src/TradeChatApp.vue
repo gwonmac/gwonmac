@@ -1099,19 +1099,19 @@ useClassicFrame(panel);
           <footer class="inspector-actions">
             <span class="inspector-primary">
               <button
+                v-if="!playerName"
+                class="ui-button inspector-listings"
+                :aria-label="`Show listings from ${selected.sender}`"
+                @click="$event.detail <= 1 && openPlayer(selected.sender, selected.timestamp)"
+              >Show listings<kbd class="ui-kbd" aria-hidden="true" :data-hidden="rowFocused ? undefined : ''">⌘↵</kbd></button>
+              <span v-if="!whispersEnabled" id="trade-whisper-reason" class="inspector-reason">Whispers is off</span>
+              <button
                 class="ui-button inspector-whisper"
                 data-variant="primary"
                 :disabled="!whispersEnabled"
                 :aria-describedby="whispersEnabled ? undefined : 'trade-whisper-reason'"
                 @click="whisper(selected, $event)"
               ><bdi>Whisper {{ selected.sender }}</bdi><kbd class="ui-kbd" aria-hidden="true" :data-hidden="rowFocused ? undefined : ''">↵</kbd></button>
-              <span v-if="!whispersEnabled" id="trade-whisper-reason" class="inspector-reason">Whispers is off</span>
-              <button
-                v-if="!playerName"
-                class="ui-button inspector-listings"
-                :aria-label="`Show listings from ${selected.sender}`"
-                @click="$event.detail <= 1 && openPlayer(selected.sender, selected.timestamp)"
-              >Show listings<kbd class="ui-kbd" aria-hidden="true" :data-hidden="rowFocused ? undefined : ''">⌘↵</kbd></button>
             </span>
             <details ref="offerActions" class="offer-actions">
               <summary class="ui-button" aria-haspopup="menu" @click.prevent="onActionsClick" @keydown="onActionsKeydown">Actions <kbd class="ui-kbd" aria-hidden="true">⌘J</kbd></summary>

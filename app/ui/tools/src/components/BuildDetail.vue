@@ -640,16 +640,16 @@ defineExpose({
       >Discard</button>
       <button
         class="ui-button"
-        data-variant="primary"
-        :disabled="!editor.dirty.value || !editor.valid.value || !editor.draft.value.name.trim() || controller.saving.value"
-        @click="editor.requestSave"
-      >Save changes</button>
-      <button
-        class="ui-button"
         :title="!editor.valid.value ? 'Repair this build before exporting it' : undefined"
         :disabled="!editor.valid.value"
         @click="startExporting"
       >Export build</button>
+      <button
+        class="ui-button"
+        data-variant="primary"
+        :disabled="!editor.dirty.value || !editor.valid.value || !editor.draft.value.name.trim() || controller.saving.value"
+        @click="editor.requestSave"
+      >Save changes</button>
     </footer>
   </article>
 </template>
