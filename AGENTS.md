@@ -30,6 +30,7 @@ pnpm install --frozen-lockfile   # Apple Silicon, Node >= 22.19, pnpm 11, Rust v
 pnpm dev                         # build and open the real launcher
 pnpm check                       # fast check: typecheck, lint, unit, certification, policy, Tools and launcher UI tests
 pnpm typecheck                   # all TypeScript projects
+pnpm ui:sweep                    # screenshots and layout rules for every UI surface, headless
 ```
 
 Never run Electron or Playwright UI suites locally (`pnpm test:electron`,
@@ -38,7 +39,9 @@ from the person working on this Mac. CI runs them: `ci.yml` runs the Hub suite
 on Linux; `macos.yml` runs the `@macos` Hub specs and the Electron suite, all
 of it on main and the tests tagged `@journey` on PRs that change app, build, or
 test code (its `paths` filter). Tag an Electron test `@journey` only when it
-guards a path every player takes. The Hub's keyboard, focus and DOM rules run
+guards a path every player takes. `pnpm ui:sweep` is headless and takes no
+focus, so run it locally after any interface change and read its contact sheet
+([UI sweep](docs/ui-sweep.md)). The Hub's keyboard, focus and DOM rules run
 in Node and vitest inside `pnpm check`; its Playwright suite keeps only what
 needs a real browser ([Hub tests](docs/hub-contract.md#tests)). Client-artifact
 tests need the official client and run in release qualification and client
