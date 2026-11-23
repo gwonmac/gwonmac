@@ -1,3 +1,13 @@
+/**
+ * The gw-dat-decode helper process: one compressed Guild Wars archive stream on
+ * stdin, bounded in size and in its declared unpacked size, and one answer on
+ * stdout. By default it decodes a texture and writes "GWIC", the
+ * width and height (u16 each, little-endian) and the RGBA pixels; `--raw`
+ * writes "GWDB", the unpacked size (u32) and the unpacked bytes. Any other
+ * input ends with a nonzero exit code and no answer. The decoding itself is
+ * the vendored port in vendor/gwdat; app/main/core/gw-dat-decoder.ts spawns
+ * this helper per asset and owns its timeout and output limit.
+ */
 #include <cstdint>
 #include <iostream>
 #include <string_view>
