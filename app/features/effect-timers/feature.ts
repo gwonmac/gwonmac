@@ -7,6 +7,7 @@ export default defineFeature({
   kind: "fight",
   presence: "screen",
   icon: "hourglass",
+  version: "1.0",
   settings: {
     /** Show exact remaining durations over the controlled player's native Effects icons. */
     effectTimersEnabled: featureSwitch(false, { tools: true }),

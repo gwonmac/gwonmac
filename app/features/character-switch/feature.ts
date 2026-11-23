@@ -10,6 +10,7 @@ export default defineFeature({
   kind: "party",
   presence: "tool",
   icon: "arrow-left-right",
+  version: "1.0",
   settings: {
     /** Character Switch's own switch; the plain game (`gwonmacTools` off) stops it too. */
     characterSwitchEnabled: featureSwitch(true, { tools: true }),

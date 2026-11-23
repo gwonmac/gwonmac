@@ -85,6 +85,7 @@ function checkFolder({ folder, manifest, files, readme, changelog, imports }: Fe
   if (manifest.summary.trim() === "") problems.push(`${at}/feature.ts: summary is empty.`);
   if (manifest.settingsHelp?.trim() === "") problems.push(`${at}/feature.ts: settingsHelp is empty; remove it or say the rule.`);
   if (!KEBAB.test(manifest.icon)) problems.push(`${at}/feature.ts: icon "${manifest.icon}" is not a Lucide icon name in kebab case, such as "map-pin".`);
+  if (!FEATURE_VERSION.test(manifest.version)) problems.push(`${at}/feature.ts: version "${manifest.version}" is not major.minor, such as "1.0".`);
   if (manifest.kind === "mode" && manifest.presence !== undefined) {
     problems.push(`${at}/feature.ts: the launch mode is the plain-game strip, not a card; remove presence.`);
   } else if (manifest.kind !== "mode" && manifest.presence === undefined) {
@@ -178,16 +179,20 @@ function checkParts(at: string, manifest: FeatureDefinition, files: readonly str
 /**
  * A staged option reads as false where the build does not show it (HIDDEN_SETTING_VALUE in
  * app/shared/settings/index.ts), so it must be a boolean, whose false is its off value; a whole
- * Feature is staged on its manifest, not on its switch. Its README lines wait outside README.md
- * until it ships (docs/feature-contract.md#release-stages), so the website does not show them.
+ * Feature is staged on its manifest, not on its switch. A `dev` option's README lines wait outside
+ * README.md until it ships (docs/feature-contract.md#release-stages), so the website does not show
+ * them; a `beta` option ships to players, so its lines are in the README.
  */
+/** A Feature's own version: `major.minor`, without leading zeroes. */
+export const FEATURE_VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)$/u;
+
 function checkStagedSetting(at: string, key: string, spec: SettingSpec<unknown>, isSwitch: boolean, readme: string | null): string[] {
   const problems: string[] = [];
   if (isSwitch) problems.push(`${at}/feature.ts: switch ${key} has a stage; stage the whole Feature with stage on its manifest instead.`);
   else if (spec.kind !== "boolean") {
     problems.push(`${at}/feature.ts: setting ${key} has a stage but is of kind ${spec.kind}; where it is hidden it reads as false, so only a boolean option, whose false is off, may have one.`);
   }
-  if (readme !== null && readme.includes(`/${key}"}`)) {
+  if (spec.stage === "dev" && readme !== null && readme.includes(`/${key}"}`)) {
     problems.push(`${at}/README.md: names ${key}, which has stage "${spec.stage}"; keep its lines in STAGED.md beside it until the option ships, so players do not read about it.`);
   }
   return problems;

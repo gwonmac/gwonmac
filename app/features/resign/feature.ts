@@ -7,6 +7,7 @@ export default defineFeature({
   kind: "party",
   presence: "action",
   icon: "flag",
+  version: "1.0",
   settings: {
     /** Allow the confirmed PvE resign shortcut when Tools are enabled. */
     resignEnabled: featureSwitch(false, { tools: true }),

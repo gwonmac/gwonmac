@@ -13,6 +13,7 @@ export default defineFeature({
   kind: "around",
   presence: "tool",
   icon: "map-pin",
+  version: "1.0",
   settings: {
     /** Allow the focused Travel palette and its explicit map command. */
     travelPalette: featureSwitch(true, { tools: true }),

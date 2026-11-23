@@ -7,6 +7,7 @@ export default defineFeature({
   kind: "inventory",
   presence: "tool",
   icon: "archive",
+  version: "1.0",
   settings: {
     /** Allow the explicit local Xunlai window command in supported outposts. */
     xunlaiStorage: featureSwitch(false, { tools: true }),

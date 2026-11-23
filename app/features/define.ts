@@ -102,15 +102,23 @@ export type FeatureDefinition = Readonly<{
   presence?: FeaturePresence;
   /** A Lucide icon name in kebab case, from lucide-vue-next, the set the launcher uses. */
   icon: string;
+  /**
+   * The Feature's own version, `major.minor`, starting at `1.0`; its card shows it. Raise it in
+   * the change that adds a CHANGELOG bullet: the minor for a change, the major when players must
+   * learn it again. A release stamps it beside the app version and refuses a Feature whose
+   * changes ship under the version it already released (scripts/release.ts).
+   */
+  version: string;
   /** Settings this feature owns: its switch (`featureSwitch`), and options, each with a label and help. */
   settings?: FeatureSettingSpecs;
   /** One line under the Settings heading on its Feature page, for a rule that spans its options. */
   settingsHelp?: string;
   /**
-   * A Feature still in development: it runs and shows only in builds at this stage or later
-   * (app/shared/release.ts). Elsewhere resolve has it off as `not-in-release`, so the catalog, its
-   * Hub rows and shortcuts leave it out, and its website page is not built. Delete the line to
-   * ship it (docs/feature-contract.md#release-stages).
+   * A Feature not yet stable. `beta` ships in every build with a Beta label on its card and page,
+   * so players can try it. `dev` runs and shows only in development builds; elsewhere resolve has
+   * it off as `not-in-release`, so the catalog, its Hub rows and shortcuts leave it out, and its
+   * website page is not built. Delete the line to ship it as stable
+   * (docs/feature-contract.md#release-stages).
    */
   stage?: ManifestStage;
   /** The coarse region rule; a feature's live-state gate stays authoritative. */

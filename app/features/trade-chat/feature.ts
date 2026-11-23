@@ -10,6 +10,7 @@ export default defineFeature({
   kind: "chat",
   presence: "tool",
   icon: "coins",
+  version: "1.0",
   settings: {
     /** Show the read-only Trade Chat surface and allow its app shortcut. */
     tradeChat: featureSwitch(true, { tools: true }),

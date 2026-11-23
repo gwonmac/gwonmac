@@ -52,14 +52,17 @@ describe("Features tab CHANGELOG", () => {
     { name: "only unreleased notes", text: "# Changelog\n\n## Unreleased\n\n- New thing.\n", versions: [] },
     { name: "a released version", text: "## Unreleased\n\n## 1.2.0\n\n- Shows the route.\n- Saves faster.\n", versions: [{ version: "1.2.0", count: 2 }] },
     { name: "an empty released section", text: "## 1.3.0\n\n## 1.2.0\n\n- Shows the route.\n", versions: [{ version: "1.2.0", count: 1 }] },
+    // The release stamps the Feature's own version beside the app version; the badge still compares the app version.
+    { name: "a stamped Feature version", text: "## 1.3.0 · v1.1\n\n- Saves faster.\n\n## 1.2.0\n\n- Shows the route.\n", versions: [{ version: "1.3.0", featureVersion: "1.1", count: 1 }, { version: "1.2.0", count: 1 }] },
   ])("reads $name", ({ text, versions }) => {
-    expect(parseChangelog(text).map(({ version, items }) => ({ version, count: items.length }))).toEqual(versions);
+    expect(parseChangelog(text).map(({ version, featureVersion, items }) => ({ version, ...(featureVersion ? { featureVersion } : {}), count: items.length }))).toEqual(versions);
   });
 
   it.each([
     { name: "new in this version", text: "## 1.2.0\n\n- Added.\n", badge: "New" },
     { name: "changed in this version", text: "## 1.2.0\n\n- Changed.\n\n## 1.1.0\n\n- Added.\n", badge: "Updated" },
     { name: "changed earlier", text: "## 1.1.0\n\n- Added.\n", badge: null },
+    { name: "with a stamped Feature version", text: "## 1.2.0 · v1.1\n\n- Changed.\n\n## 1.1.0\n\n- Added.\n", badge: "Updated" },
   ])("badges a feature $name", ({ text, badge }) => {
     expect(badgeOf(parseChangelog(text), "1.2.0")).toBe(badge);
   });

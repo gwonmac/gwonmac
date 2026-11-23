@@ -20,7 +20,7 @@ import type { SettingsTarget } from "@shared/settings-catalogue";
 import { navigateTabs } from "@shared/ui/focusable";
 import type { InGamePatch, InGameSettings, InGameTools } from "../settings-host";
 import type { PerformSave } from "../save-status";
-import { REGION_WORDS, cardFeature, changelogOf, featureStageLabel, readmeBlocks, type CardFeature } from "../features";
+import { REGION_WORDS, cardFeature, changelogOf, featureStageLabel, presenceTag, readmeBlocks, type CardFeature } from "../features";
 import { switchOf, type FeatureStatus } from "@shared/feature-status";
 import DiscordIcon from "./DiscordIcon.vue";
 import FeatureArt from "./FeatureArt.vue";
@@ -93,8 +93,10 @@ const usesGame = computed(() => uses.value.sees.length + uses.value.draws.length
 const needs = computed(() => ("requires" in props.feature ? props.feature.requires : []).flatMap((id) => cardFeature(id) ?? []));
 /** The switch the header button moves; Settings search opens the page at it. */
 const switchSetting = computed(() => `tool:${switchOf(props.feature)}`);
-/** "Beta" or "Dev" beside the name of a Feature still in development; the catalog shows it only in builds at that stage. */
+/** "Beta" or "Dev" beside the name of a Feature still in development: Beta ships in every build, Dev only in development builds. */
 const stageLabel = computed(() => featureStageLabel(props.feature));
+/** How the player meets the Feature: on screen, from the Hub or its shortcut, or on its own. */
+const howToUse = computed(() => presenceTag(props.feature, props.shortcuts));
 const source = computed(() => `https://github.com/${RELEASE_REPO}/tree/main/app/features/${folderForId(props.feature.id)}`);
 /** What the Feedback tab sends and shows about the Feature: the status line in words. */
 const feedbackFeature = computed(() => ({
@@ -161,7 +163,7 @@ const feedbackFeature = computed(() => ({
         <section v-if="versions.length" aria-labelledby="new-title">
           <h2 id="new-title">What’s new</h2>
           <div v-for="(entry, index) in versions" :key="entry.version" class="version">
-            <span><strong>{{ entry.version }}</strong><small v-if="index === 0 && entry.version === appVersion">This version</small></span>
+            <span><strong>{{ entry.featureVersion ? `v${entry.featureVersion}` : entry.version }}</strong><small v-if="entry.featureVersion" class="app-version">GWonMac {{ entry.version }}</small><small v-if="index === 0 && entry.version === appVersion">This version</small></span>
             <ul><li v-for="(item, itemIndex) in entry.items" :key="itemIndex"><MarkdownInline :parts="item" @link="emit('link', $event)" /></li></ul>
           </div>
         </section>
@@ -169,6 +171,8 @@ const feedbackFeature = computed(() => ({
 
       <aside class="facts" aria-label="About this Feature">
         <dl>
+          <div><dt>Version</dt><dd>{{ feature.version }}<template v-if="stageLabel"> · {{ stageLabel }}</template></dd></div>
+          <div v-if="howToUse"><dt>How to use</dt><dd>{{ howToUse }}</dd></div>
           <div><dt>Works in</dt><dd>{{ REGION_WORDS[feature.region] }}</dd></div>
           <div v-if="needs.length"><dt>Needs</dt><dd><template v-for="(each, index) in needs" :key="each.id"><template v-if="index > 0">, </template><button class="text-link" @click="emit('open', each.id)">{{ each.name }}</button></template></dd></div>
           <div v-if="'hub' in feature"><dt>In the Hub</dt><dd>Type <kbd>{{ feature.name.toLowerCase() }}</kbd></dd></div>
@@ -245,6 +249,7 @@ const feedbackFeature = computed(() => ({
 .version { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--line); }
 .version > span { display: grid; gap: 4px; align-content: start; font-size: var(--fs-md); }
 .version small { color: var(--gold-text); font-size: var(--fs-xs); }
+.version small.app-version { color: var(--muted); }
 .version ul { margin: 0; padding-left: 18px; color: var(--text-soft); font-size: var(--fs-md); line-height: 1.6; }
 
 .facts { position: sticky; top: 0; display: flex; flex-direction: column; gap: 16px; }

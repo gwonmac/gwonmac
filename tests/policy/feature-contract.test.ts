@@ -22,6 +22,7 @@ const manifest = (id: string, more: Partial<FeatureDefinition> = {}): FeatureDef
   kind: "fight",
   presence: "screen",
   icon: "bell",
+  version: "1.0",
   settings: { [`${id}Enabled`]: aSwitch },
   region: "pve",
   shots: [],

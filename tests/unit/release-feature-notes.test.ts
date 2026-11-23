@@ -20,8 +20,9 @@ describe("stamping a feature changelog", () => {
   // Wrong behaviours: an empty section gains an empty "## 1.4.0" heading in every
   // feature; changes or older versions are lost; no fresh "## Unreleased" stays on
   // top, so the next change lands under the shipped version; a changelog without
-  // the heading is skipped silently and its changes never reach players.
-  const cases: { name: string; text: string; entries?: string[]; stamped?: string; error?: RegExp }[] = [
+  // the heading is skipped silently and its changes never reach players; changes
+  // ship under a Feature version an earlier release already stamped.
+  const cases: { name: string; text: string; featureVersion?: string; entries?: string[]; stamped?: string; error?: RegExp }[] = [
     { name: "empty section stays as it is", text: "## Unreleased\n", entries: [], stamped: "## Unreleased\n" },
     {
       name: "several changes move under the version, older versions stay",
@@ -44,10 +45,23 @@ describe("stamping a feature changelog", () => {
       text: "## Unreleased\n- Shows the zone name.\n\n## 1.4.0\n- First release.\n",
       error: /CHANGELOG\.md: "## 1\.4\.0" is already stamped/u,
     },
+    {
+      name: "the Feature version stands beside the app version",
+      text: "## Unreleased\n- Shows the zone name.\n\n## 1.3.0\n- First release.\n",
+      featureVersion: "1.1",
+      entries: ["Shows the zone name."],
+      stamped: "## Unreleased\n\n## 1.4.0 · v1.1\n- Shows the zone name.\n\n## 1.3.0\n- First release.\n",
+    },
+    {
+      name: "changes under a Feature version that already shipped are a clear error",
+      text: "## Unreleased\n- Shows the zone name.\n\n## 1.3.0 · v1.1\n- Remembers its place.\n",
+      featureVersion: "1.1",
+      error: /app\/features\/whispers\/feature\.ts: version "1\.1" already shipped in "## 1\.3\.0 · v1\.1"; raise it/u,
+    },
   ];
-  for (const { name, text, entries, stamped, error } of cases) {
+  for (const { name, text, featureVersion, entries, stamped, error } of cases) {
     it(name, () => {
-      const stamp = () => stampChangelog(text, "1.4.0", "app/features/whispers/CHANGELOG.md");
+      const stamp = () => stampChangelog(text, "1.4.0", "app/features/whispers/CHANGELOG.md", undefined, featureVersion);
       if (error) assert.throws(stamp, error);
       else assert.deepEqual(stamp(), { entries, text: stamped });
     });
@@ -105,8 +119,8 @@ describe("release notes plan", () => {
     ].join("\n"),
   });
   const changelogs = (whispers: string) => [
-    { file: "app/features/whispers/CHANGELOG.md", name: "Whispers", text: whispers },
-    { file: "app/features/alcohol-timer/CHANGELOG.md", name: "Alcohol Timer", text: "## Unreleased\n" },
+    { file: "app/features/whispers/CHANGELOG.md", name: "Whispers", version: "1.1", text: whispers },
+    { file: "app/features/alcohol-timer/CHANGELOG.md", name: "Alcohol Timer", version: "1.0", text: "## Unreleased\n" },
   ];
 
   // Wrong behaviours: the notes land after the technical record or replace the
@@ -115,7 +129,7 @@ describe("release notes plan", () => {
   it("stamps changed changelogs and puts the notes into the post as a story today's feed accepts", () => {
     const plan = releaseNotesPlan("1.4.0", changelogs("## Unreleased\n- Opens from the Hub.\n"), [post("1.3.0"), post("1.4.0")]);
     assert.deepEqual(plan.writes.map(({ file, change }) => [file, change]), [
-      ["app/features/whispers/CHANGELOG.md", "## Unreleased becomes ## 1.4.0"],
+      ["app/features/whispers/CHANGELOG.md", "## Unreleased becomes ## 1.4.0 · v1.1"],
       ["website/content/posts/15.gwonmac-1-4-0.md", "## Features section"],
     ]);
     const written = plan.writes[1]!.text;
@@ -140,9 +154,9 @@ describe("release notes plan", () => {
     assert.deepEqual(plan.writes.map(({ file }) => file), ["website/content/posts/15.gwonmac-1-4-0-beta-1.md"]);
   });
 
-  // Wrong behaviours: a Stable post tells players about a Feature or option they cannot see; a
-  // left-out change is stamped with the version, so it never reaches the release that ships it;
-  // a shipped change keeps its option key in the stamped changelog.
+  // Wrong behaviours: a post tells players about a Feature or option still in development; a
+  // shipped Beta change is left out; a left-out change is stamped with the version, so it never
+  // reaches the release that ships it; a shipped change keeps its option key in the stamped changelog.
   it("lists only what the release shows, and keeps the rest under Unreleased", () => {
     const whispers = [
       "## Unreleased",
@@ -152,21 +166,24 @@ describe("release notes plan", () => {
       "",
     ].join("\n");
     const staged = [
-      { file: "app/features/whispers/CHANGELOG.md", name: "Whispers", text: whispers,
+      { file: "app/features/whispers/CHANGELOG.md", name: "Whispers", version: "1.1", text: whispers,
         settings: { whispersEnabled: {}, whispersSound: { stage: "beta" as const }, whispersPreview: { stage: "dev" as const } } },
-      { file: "app/features/alcohol-timer/CHANGELOG.md", name: "Alcohol Timer", text: "## Unreleased\n- Counts down.\n", stage: "beta" as const },
+      { file: "app/features/alcohol-timer/CHANGELOG.md", name: "Alcohol Timer", version: "1.0", text: "## Unreleased\n- Counts down.\n", stage: "beta" as const },
+      { file: "app/features/quick-note/CHANGELOG.md", name: "Quick Note", version: "1.0", text: "## Unreleased\n- Keeps a note.\n", stage: "dev" as const },
     ];
-    const listed = (version: string) => releaseNotesPlan(version, staged, [post(version)]).notes;
-    assert.equal(listed("1.4.0"), "## Features\n\n- **Whispers:** Opens from the Hub.\n");
-    assert.equal(listed("1.4.0-beta.1"), [
+    const shipped = [
       "## Features", "",
       "- **Alcohol Timer:** Counts down.",
       "- **Whispers:** Opens from the Hub.",
       "- **Whispers:** Plays a sound.", "",
-    ].join("\n"));
-    assert.equal(
-      releaseNotesPlan("1.4.0", staged, [post("1.4.0")]).writes[0]!.text,
-      "## Unreleased\n\n- [whispersSound] Plays a sound.\n- [whispersPreview] Shows a preview.\n\n## 1.4.0\n- Opens from the Hub.\n",
+    ].join("\n");
+    for (const version of ["1.4.0", "1.4.0-beta.1"]) assert.equal(releaseNotesPlan(version, staged, [post(version)]).notes, shipped, version);
+    assert.deepEqual(
+      releaseNotesPlan("1.4.0", staged, [post("1.4.0")]).writes.slice(0, 2).map(({ text }) => text),
+      [
+        "## Unreleased\n\n- [whispersPreview] Shows a preview.\n\n## 1.4.0 · v1.1\n- Opens from the Hub.\n- Plays a sound.\n",
+        "## Unreleased\n\n## 1.4.0 · v1.0\n- Counts down.\n",
+      ],
     );
     assert.equal(
       stampChangelog("## Unreleased\n- [whispersSound] Plays a sound.\n", "1.5.0", "app/features/whispers/CHANGELOG.md").text,

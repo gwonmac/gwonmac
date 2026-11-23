@@ -13,6 +13,7 @@ export default defineFeature({
   kind: "fight",
   presence: "screen",
   icon: "wine",
+  version: "1.0",
   settings: {
     alcoholTimerEnabled: featureSwitch(false, { tools: true }),
     alcoholTimerPosition: setting.position(

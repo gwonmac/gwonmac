@@ -7,6 +7,7 @@ export default defineFeature({
   kind: "inventory",
   presence: "action",
   icon: "mouse-pointer-click",
+  version: "1.0",
   settings: {
     /** Move clicked item stacks through the open storage or trade window. */
     quickItemMove: featureSwitch(false, { tools: true }),

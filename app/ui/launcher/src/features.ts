@@ -45,7 +45,7 @@ export const pageOf = (id: FeatureId): FeatureId => {
 
 /**
  * The label beside the name of a Feature or option still in development, where the build shows it:
- * "Beta" in Beta and development builds, "Dev" only in development builds.
+ * "Beta" in every build (Beta Features ship), "Dev" only in development builds. Cards show it too.
  */
 export const STAGE_LABELS: Readonly<Record<ManifestStage, string>> = { beta: "Beta", dev: "Dev" };
 export const featureStageLabel = (feature: CardFeature): string | null => {
@@ -90,7 +90,7 @@ export function groupCards(
 }
 
 /**
- * The card tag that says how a player meets a Feature once it is on (its manifest `presence`).
+ * How a player meets a Feature once it is on (its manifest `presence`), on its Feature page.
  * A tool or action names its own shortcut as the player set it.
  */
 export function presenceTag(feature: CardFeature, shortcuts: LauncherSnapshot["shortcuts"]): string | null {
@@ -120,14 +120,19 @@ const fileOf = (files: Readonly<Record<string, string>>, feature: CardFeature, n
 export const readmeBlocks = (feature: CardFeature, links = true): readonly MarkdownBlock[] =>
   parseMarkdown(fileOf(readmes, feature, "README.md"), { link: (href) => links ? guideLink(href) : null, image: () => null });
 
-export type ChangelogVersion = Readonly<{ version: string; items: readonly (readonly MarkdownInline[])[] }>;
+/** One released CHANGELOG heading: the app version it shipped in and, since manifests carry one, the Feature's own version. */
+export type ChangelogVersion = Readonly<{ version: string; featureVersion?: string; items: readonly (readonly MarkdownInline[])[] }>;
 
-/** The released versions in a CHANGELOG, newest first; `## Unreleased` waits for the release script (plan step 7.2). */
+/**
+ * The released versions in a CHANGELOG, newest first. The release script stamps `## Unreleased` as
+ * `## <app version> · v<feature version>` (scripts/release.ts); headings stamped before Features had
+ * versions carry the app version alone.
+ */
 export function parseChangelog(text: string, links = true): readonly ChangelogVersion[] {
-  const versions: { version: string; items: (readonly MarkdownInline[])[] }[] = [];
+  const versions: { version: string; featureVersion?: string; items: (readonly MarkdownInline[])[] }[] = [];
   for (const line of text.split("\n").map((each) => each.trim())) {
-    const heading = /^## (.+)$/u.exec(line);
-    if (heading) versions.push({ version: heading[1]!, items: [] });
+    const heading = /^## (.+?)(?: · v(\d+\.\d+))?$/u.exec(line);
+    if (heading) versions.push({ version: heading[1]!, ...(heading[2] ? { featureVersion: heading[2] } : {}), items: [] });
     else if (line.startsWith("- ") && versions.length > 0) versions.at(-1)!.items.push(markdownInline(line.slice(2), { link: (href) => links ? guideLink(href) : null, image: () => null }));
   }
   return versions.filter(({ version, items }) => version !== "Unreleased" && items.length > 0);

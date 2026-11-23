@@ -154,6 +154,8 @@ export function groupReleaseNotes(generated: string): string {
 
 /** The heading each feature's CHANGELOG.md collects player-facing changes under (app/features/contract.ts). */
 const UNRELEASED = "## Unreleased";
+/** Between the app version and the Feature's own in a stamped heading: `## 1.4.0 · v1.1` (parseChangelog in the launcher reads it). */
+const FEATURE_VERSION_MARK = " · v";
 /** The release post section the notes command owns: each run replaces it. */
 const FEATURE_NOTES = "## Features";
 /** The last line of every release post (docs/launcher-news.md). */
@@ -183,12 +185,18 @@ export interface StampedChangelog {
  * is one `- ` bullet; indented lines continue it. `ships` answers for each change,
  * by the option key it starts with or null, whether this release ships it; a
  * change it leaves out stays under `## Unreleased`.
+ *
+ * With the Feature's own `featureVersion` (its manifest `version`) the heading is
+ * `## <version> · v<featureVersion>`, and changes that would ship under the
+ * feature version the newest heading already carries are refused: the change
+ * that wrote them forgot to raise it.
  */
 export function stampChangelog(
   text: string,
   version: string,
   file: string,
   ships: (option: string | null) => boolean = () => true,
+  featureVersion?: string,
 ): StampedChangelog {
   const lines = text.split("\n");
   const start = lines.indexOf(UNRELEASED);
@@ -216,13 +224,18 @@ export function stampChangelog(
   const shipped = changes.filter(({ option }) => ships(option));
   const entries = shipped.map(({ entry }) => entry);
   if (entries.length === 0) return { entries, text };
-  if (lines.includes(`## ${version}`)) {
+  if (lines.some((line) => line === `## ${version}` || line.startsWith(`## ${version}${FEATURE_VERSION_MARK}`))) {
     throw new Error(`${file}: "## ${version}" is already stamped; move these changes into it by hand or release them in the next version.`);
   }
+  const newest = next < 0 ? undefined : lines[next];
+  if (featureVersion !== undefined && newest?.endsWith(`${FEATURE_VERSION_MARK}${featureVersion}`)) {
+    throw new Error(`${file.replace(/CHANGELOG\.md$/u, "feature.ts")}: version "${featureVersion}" already shipped in "${newest}"; raise it for these changes: the minor for a change, the major when players must learn the Feature again.`);
+  }
+  const heading = featureVersion === undefined ? `## ${version}` : `## ${version}${FEATURE_VERSION_MARK}${featureVersion}`;
   const waiting = changes.filter((change) => !shipped.includes(change)).flatMap(({ written }) => written);
   const stamped = [
     ...lines.slice(0, start), UNRELEASED, ...(waiting.length ? ["", ...waiting] : []),
-    "", `## ${version}`, ...shipped.flatMap(({ shipped: written }) => written), "", ...lines.slice(end),
+    "", heading, ...shipped.flatMap(({ shipped: written }) => written), "", ...lines.slice(end),
   ];
   return { entries, text: `${stamped.join("\n").trimEnd()}\n` };
 }
@@ -298,6 +311,8 @@ export interface ReleaseFile {
 export interface FeatureChangelog extends ReleaseFile {
   /** The feature's player name: `name` in its feature.ts. */
   readonly name: string;
+  /** The Feature's own version: `version` in its feature.ts, stamped beside the app version. */
+  readonly version: string;
   /** The Feature's `stage` and its settings from feature.ts: a release leaves out what its stage does not show. */
   readonly stage?: ManifestStage | undefined;
   readonly settings?: Readonly<Record<string, Readonly<{ stage?: ManifestStage }>>> | undefined;
@@ -316,9 +331,9 @@ export interface ReleaseNotesPlan {
  * and the version's draft release post with its `## Features` section. A
  * pre-release writes only the post: its changes stay under `## Unreleased`
  * until the Stable release that ships them, so that release lists them too.
- * A release lists only what its stage shows (app/shared/release.ts): Stable
- * leaves out beta and dev Features and options, Beta leaves out dev ones, and
- * their changes stay under `## Unreleased` until the item ships.
+ * A release lists only what its stage shows (app/shared/release.ts): every
+ * release leaves out dev Features and options, and their changes stay under
+ * `## Unreleased` until the item ships. Beta ones ship with their label.
  */
 export function releaseNotesPlan(
   version: string,
@@ -340,7 +355,7 @@ export function releaseNotesPlan(
       throw new Error(`${changelog.file}: "[${option}]" names no setting of this Feature; start the change with the key of one of its options in feature.ts, or drop the brackets.`);
     }
     return shownAt(setting.stage, stage);
-  }) }));
+  }, changelog.version) }));
   const notes = featureReleaseNotes(stamped);
   if (!notes) return { notes, writes: [] };
   const text = withFeatureNotes(post.text, notes);
@@ -353,7 +368,7 @@ export function releaseNotesPlan(
   return {
     notes,
     writes: [
-      ...changed.map(({ file, text: stampedText }) => ({ file, text: stampedText, change: `${UNRELEASED} becomes ## ${version}` })),
+      ...changed.map(({ file, text: stampedText, version: own }) => ({ file, text: stampedText, change: `${UNRELEASED} becomes ## ${version}${FEATURE_VERSION_MARK}${own}` })),
       { file: post.file, text, change: `${FEATURE_NOTES} section` },
     ],
   };
@@ -368,8 +383,8 @@ async function featureChangelogs(root: string): Promise<FeatureChangelog[]> {
   return Promise.all(folders.map(async (folder) => {
     const manifest = await import(pathToFileURL(path.join(features, folder, "feature.ts")).href) as { default: FeatureDefinition };
     const file = `app/features/${folder}/CHANGELOG.md`;
-    const { name, stage, settings } = manifest.default;
-    return { file, name, stage, settings, text: readFileSync(path.join(root, file), "utf8") };
+    const { name, version, stage, settings } = manifest.default;
+    return { file, name, version, stage, settings, text: readFileSync(path.join(root, file), "utf8") };
   }));
 }
 

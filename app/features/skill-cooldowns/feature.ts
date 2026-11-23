@@ -14,6 +14,7 @@ export default defineFeature({
   kind: "fight",
   presence: "screen",
   icon: "timer",
+  version: "1.0",
   settings: {
     /** Show Guild Wars' observed recharge state as display-only countdowns. */
     skillCooldownOverlayEnabled: featureSwitch(true, { tools: true }),

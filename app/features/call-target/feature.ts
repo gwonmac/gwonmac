@@ -7,6 +7,7 @@ export default defineFeature({
   kind: "fight",
   presence: "action",
   icon: "megaphone",
+  version: "1.0",
   settings: {
     /** Opt-in Command shortcut for the default target-call chord. */
     callTargetEnabled: featureSwitch(false, { tools: true }),

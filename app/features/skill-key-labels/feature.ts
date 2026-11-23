@@ -14,6 +14,7 @@ export default defineFeature({
   kind: "fight",
   presence: "screen",
   icon: "keyboard",
+  version: "1.0",
   settings: {
     /** Display-only labels that mirror the player's eight Guild Wars bindings. */
     skillKeyBindings: setting.value(

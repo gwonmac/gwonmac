@@ -10,6 +10,7 @@ export default defineFeature({
   kind: "fight",
   presence: "background",
   icon: "bell",
+  version: "1.0",
   settingsHelp: "Choose at least one item and one time, or no reminder appears.",
   settings: {
     remindersEnabled: featureSwitch(false, { tools: true }),

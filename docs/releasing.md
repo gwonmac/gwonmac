@@ -292,16 +292,19 @@ notes`) then, in step 1:
   It replaces the section an earlier run wrote, otherwise it goes before the
   post's first other `##` section or the technical record link;
 - for a Stable version, turns each non-empty `## Unreleased` into
-  `## <version>` and puts a fresh empty `## Unreleased` on top. An empty one
+  `## <version> · v<feature version>` (the manifest `version`) and puts a fresh
+  empty `## Unreleased` on top. An empty one
   stays as it is. A Beta or RC writes only the post: its changes stay under
   `## Unreleased`, so the Stable release that ships them lists them too.
 
 A release lists only the Features and options its stage shows
-([Release stages](feature-contract.md#release-stages)): Stable leaves out `beta` and `dev`
-ones, Beta and RC leave out `dev` ones, and their bullets stay under `## Unreleased`.
+([Release stages](feature-contract.md#release-stages)): every release lists Beta ones and
+leaves out `dev` ones, whose bullets stay under `## Unreleased`.
 
 It refuses, and writes nothing, when a changelog has no `## Unreleased`, holds
-text that is not a bullet, or already has `## <version>`; when the version has
+text that is not a bullet, or already has `## <version>`; when a Feature's
+bullets would ship under the feature version its newest heading already carries
+([The Feature version](feature-contract.md#the-feature-version)); when the version has
 no draft post; or when the post with these notes is a story the news feed would
 refuse (`parseNewsStory`, the parser installed apps use). `--dry-run` prints
 the notes and each file it would write. When no feature has changes it writes

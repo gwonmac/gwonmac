@@ -16,13 +16,12 @@ import type { InGameNative, InGamePatch, InGameSettings } from "../settings-host
 import {
   CARD_FEATURES,
   cardsAt,
-  REGION_WORDS,
   badgeOf,
   changelogOf,
   featureStatus,
   groupCards,
   FEATURE_GROUPS,
-  presenceTag,
+  featureStageLabel,
   pageOf,
   partsOf,
   launcherFeatureState,
@@ -298,8 +297,7 @@ function onSearchKey(event: KeyboardEvent) {
                 <p v-if="showsReason(statusOf(each))" :id="`reason-${each.id}`" class="reason" :class="statusOf(each).tone">{{ statusOf(each).text }}</p>
               </div>
               <div class="card-foot">
-                <span v-if="presenceTag(each, snapshot.shortcuts)" class="chip">{{ presenceTag(each, snapshot.shortcuts) }}</span>
-                <span class="chip">{{ REGION_WORDS[each.region] }}</span>
+                <span class="card-meta"><span class="version">v{{ each.version }}</span><span v-if="featureStageLabel(each)" class="chip accent">{{ featureStageLabel(each) }}</span></span>
                 <FeatureSwitch :checked="statusOf(each).checked" :label="each.name" :locked="statusOf(each).locked" :describedby="showsReason(statusOf(each)) ? `reason-${each.id}` : undefined" @change="toggle(each, $event)" />
               </div>
             </template>
@@ -393,6 +391,8 @@ function onSearchKey(event: KeyboardEvent) {
 .reason.muted, .tile-copy small.muted { color: var(--muted); }
 .reason.warning, .tile-copy small.warning { color: var(--warning); }
 .card-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: auto; padding: 8px 16px 12px; }
+.card-meta { display: flex; align-items: center; gap: 8px; }
+.card-meta .version { color: var(--muted); font-size: var(--fs-xs); font-variant-numeric: tabular-nums; }
 .tile { display: flex; align-items: center; gap: 12px; padding: 8px 10px 8px 8px; border-radius: var(--radius-md); background: var(--surface-row); }
 .tile-copy { flex: 1 1 auto; min-width: 0; display: grid; gap: 2px; }
 .tile-copy strong { font-size: var(--fs-md); font-weight: 600; }

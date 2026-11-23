@@ -63,7 +63,7 @@ first seven rows; the others belong to a Feature with a window, a Hub page or a 
 | `feature.ts` | The manifest (`defineFeature`), read by every process. Data only. |
 | `companion.ts` | The game part (`featurePart`), renderer only. |
 | `README.md` | What it does, for players: the launcher's Feature page and `/docs/<folder>` on the website. |
-| `CHANGELOG.md` | One `- ` bullet per player-facing change under `## Unreleased`. |
+| `CHANGELOG.md` | One `- ` bullet per player-facing change under `## Unreleased`; raise the manifest `version` with it. |
 | `media/` | `shot-1.webp`, `shot-2.webp`, … one per `shots` caption (`.gitkeep` while empty). |
 | `renderer/` | Other renderer-only modules of the Feature (DOM, formatting, overlays, stylesheets). No Node.js. |
 | `shared/` | Contracts and pure logic that two processes read. |
@@ -154,19 +154,22 @@ Examples: [`skill-cooldowns/`](../app/features/skill-cooldowns/) and
 
 ## Release stages
 
-A Feature, or one option of it, that is still in development stays on main with one manifest
-line, `stage: "beta"` or `stage: "dev"`, instead of on a side branch. Without the line it is
-stable and shows everywhere.
+A Feature, or one option of it, that is not finished stays on main with one manifest line
+instead of on a side branch. Without the line it is stable.
 
-| Build | Shows |
-| --- | --- |
-| Development (`pnpm dev`, not packaged) | stable, `beta` and `dev` |
-| Packaged Beta or RC (`1.4.0-beta.1`, `1.4.0-rc.1`) | stable and `beta` |
-| Packaged Stable (`1.4.0`) | stable only |
+| Manifest | Ships | Label |
+| --- | --- | --- |
+| no `stage` | in every build | none |
+| `stage: "beta"` | in every build, Stable included: players try it and tell us | "Beta" on its card, its Feature page and its option row |
+| `stage: "dev"` | only in development builds (`pnpm dev`, not packaged) | "Dev" |
 
 Bootstrap derives the build's stage once (`buildStage` in
 [`app/shared/release.ts`](../app/shared/release.ts)), and the Feature facts carry it to the
-launcher, the Hub and every game window.
+launcher, the Hub and every game window. Only a development build shows `dev` items; Beta, RC
+and Stable builds show the same Features.
+
+The rules below are for a `dev` item in a packaged build, the only place a stage hides
+anything:
 
 - **A staged Feature** (`stage` on its `defineFeature`): where the build does not show it,
   `resolve` answers off with `not-in-release`, a reason players never read. The catalog does not
@@ -176,17 +179,17 @@ launcher, the Hub and every game window.
   Settings search does not find it, and the game reads it as `false`, so its code does not run.
   The stored value stays as it is. Only a boolean option that is not the switch may have a stage
   (the contract checks it); stage a whole Feature on its manifest.
-- **The label.** Where it shows, a staged Feature or option has a "Beta" (or, in development
-  builds, "Dev") label beside its name, on its Feature page and its option row.
-- **Words for players wait.** A staged Feature's README stays in place (the website leaves its
-  page out). A staged option's README lines move to `STAGED.md` beside the README, with where they
-  go back; the contract refuses a README that names a staged option. Its CHANGELOG bullet starts
-  with the setting key, `- [cartographyQuestRouteEnabled] Leads to your quest.`; the release
-  notes leave it out, and it stays under `## Unreleased`, until a release shows the option
+- **Words for players wait.** A `dev` Feature's README stays in place (the website leaves its
+  page out). A `dev` option's README lines move to `STAGED.md` beside the README, with where they
+  go back; the contract refuses a README that names a `dev` option. A Beta Feature or option is
+  documented like a stable one.
+- **Changes wait.** A staged option's CHANGELOG bullet starts with the setting key,
+  `- [cartographyQuestRouteEnabled] Leads to your quest.`; the release notes leave a `dev`
+  option's bullet out, and it stays under `## Unreleased`, until it ships
   ([releasing](releasing.md#feature-notes)).
 
-**Ship it:** delete the `stage` line. For an option, also move its lines from `STAGED.md` back
-into the README. The next release that shows it lists its CHANGELOG bullet without the key.
+**Move on:** `dev` to `beta` when players may try it; delete the `stage` line when it is
+finished. For a `dev` option, also move its lines from `STAGED.md` back into the README.
 
 ## Links between Features
 
@@ -248,11 +251,20 @@ Markdown subset, so the launcher and the website show the same text:
   one `>` note.
 - Links only to `https://www.gwonmac.com` or a docs page as `$docs.<page>`. No images,
   tables or other HTML.
-- Nothing about an option that still has a `stage` ([Release stages](#release-stages)).
+- Nothing about an option with `stage: "dev"` ([Release stages](#release-stages)).
 
 The CHANGELOG keeps a `## Unreleased` heading. Add one `- ` bullet per player-facing change
 under it; `pnpm release:notes` stamps the version and builds the release notes from it
 ([releasing](releasing.md#feature-notes)).
+
+### The Feature version
+
+Each manifest has a `version`, `major.minor`, starting at `"1.0"`. The card and the Feature
+page show it, so a player can say which one they use. Raise it in the change that adds a
+CHANGELOG bullet: the minor (`1.0` → `1.1`) for a change, the major (`1.4` → `2.0`) when
+players must learn the Feature again. Several changes in one release share one raise. The
+release stamps the bullets as `## <app version> · v<feature version>` and refuses a Feature
+whose bullets would ship under the version its newest heading already carries.
 
 ## What the verifier gates
 
