@@ -66,39 +66,39 @@ export default defineFeature({
     ),
     /** Grid, reveal ranges, and unseen-cell strength, as a whole percentage. */
     cartographyGridOpacity: cartographyOpacity(65, "Grid opacity", "How strongly the grid, the reveal range and unexplored cells show."),
-    /** Visibility of the collapsed Compass control, as a whole percentage. */
+    /** Visibility of the closed Compass dock button, as a whole percentage. */
     cartographyControlIdleOpacity: setting.integer(
       35,
       { min: CARTOGRAPHY_CONTROL_IDLE_OPACITY_MIN, max: CARTOGRAPHY_CONTROL_IDLE_OPACITY_MAX },
       {
         hub: true,
         appearance: true,
-        label: "Compass control visibility",
-        help: "How visible the closed Compass control is while you do not use it.",
+        label: "Compass button visibility",
+        help: "How visible the closed Compass button is while you do not use it.",
         keywords: "compass opacity idle",
         unit: "%",
       },
     ),
-    /** Draw the two buttons beside the Compass; every choice they offer is also on the map Feature pages. */
+    /** Draw the Compass dock's button (renderer/compass-dock.ts); every choice it offers is also on the map Feature pages. */
     compassButtonsShown: setting.boolean(true, {
       hub: true,
       appearance: true,
-      label: "Show compass buttons",
-      help: "Shows the two buttons beside the Compass. Every choice they offer is also on the map Feature pages.",
-      keywords: "hide compass buttons controls map",
+      label: "Show Compass button",
+      help: "Shows the button beside the Compass that opens the controls of the map Features that are on. Every choice it offers is also on their Feature pages.",
+      keywords: "hide compass buttons dock controls map",
     }),
-    /** How far the player dragged the Compass buttons from their place beside the Compass, in pixels. */
+    /** How far the player dragged the Compass button from its place beside the Compass, in pixels. Released apps moved two buttons with it. */
     compassButtonsOffset: setting.position(
       NO_OVERLAY_OFFSET,
       (value): OverlayOffset | undefined => readOverlayOffset(value),
       {
         ...MAP_LAYER,
         appearance: true,
-        error: "Compass buttons position is invalid",
-        launcherError: "Compass buttons position is invalid",
-        label: "Compass buttons position",
-        help: "Drag a button in a game window to move both. Put back returns them beside the Compass.",
-        keywords: "move drag reset compass buttons",
+        error: "Compass button position is invalid",
+        launcherError: "Compass button position is invalid",
+        label: "Compass button position",
+        help: "Drag the button in a game window to move it. Put back returns it beside the Compass.",
+        keywords: "move drag reset compass buttons dock",
       },
     ),
   },

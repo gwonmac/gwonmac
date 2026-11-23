@@ -1,15 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import {
-  CARTOGRAPHY_BUILTIN_PRESETS,
-  type CartographyPresetLibrary,
-} from "../../app/shared/cartography-overlay.js";
-import {
-  encodeCartographyPresetRef,
-  parseCartographyPresetRef,
-} from "../../app/features/cartography/renderer/cartography-preset-select.js";
-import { describeCartographyQaStatus } from "../../app/features/cartography/renderer/overlay-controls.js";
+import { describeCartographyQaStatus } from "../../app/features/cartography/renderer/live-evidence.js";
 import {
   cartographyOverlayDisposition,
   createCartographyOverlayGate,
@@ -17,84 +9,19 @@ import {
 import type { CartographyState } from
   "../../app/features/cartography/renderer/cartography-model.js";
 
-const library: CartographyPresetLibrary = {
-  activePreset: { kind: "builtin", id: "cartographer" },
-  customPresets: [{
-    id: "mine",
-    name: "Night route",
-    style: CARTOGRAPHY_BUILTIN_PRESETS.monochrome.style,
-  }],
-};
-
 const worldObserver = {
   status: 0, sequence: 0, generation: 0, frameId: 0, visible: 0,
   continent: 0, zoom: 0,
   topLeftX: 0, topLeftY: 0, bottomRightX: 0, bottomRightY: 0,
 } as const;
 
-test("Cartography preset references round-trip only known presets", () => {
-  assert.deepEqual(parseCartographyPresetRef("builtin:cartographer", library), {
-    kind: "builtin", id: "cartographer",
-  });
-  assert.deepEqual(parseCartographyPresetRef("custom:mine", library), {
-    kind: "custom", id: "mine",
-  });
-  assert.equal(
-    encodeCartographyPresetRef({ kind: "builtin", id: "monochrome" }),
-    "builtin:monochrome",
-  );
-  for (const value of [
-    "", "cartographer", "builtin:", "builtin:unknown", "custom:", "custom:missing",
-    "other:mine", "custom:mine:extra",
-  ]) {
-    assert.equal(parseCartographyPresetRef(value, library), null, value);
-  }
-});
-
-test("compact Cartography controls avoid frame-loop layout reads and static inline paint", () => {
-  const controls = readFileSync(
-    "app/features/cartography/renderer/overlay-controls.ts",
-    "utf8",
-  );
-  assert.doesNotMatch(controls, /offsetHeight|style\.cssText/u);
-  assert.match(controls, /canonical !== settings/u);
-  assert.match(controls, /boxChanged \|\| placementChanged \|\| becameVisible/u);
-});
-
-test("Cartography controls open only by click and remain open after pointer movement", () => {
-  const controls = readFileSync(
-    "app/features/cartography/renderer/overlay-controls.ts",
-    "utf8",
-  );
-  assert.match(controls, /trigger\.addEventListener\("click", \(\) => setOpen\(!open\)\)/u);
-  assert.doesNotMatch(controls, /pointerenter|pointerleave|matches\(":hover"\)|transient|collapseTimer/u);
-  assert.match(controls, /if \(open && event\.target instanceof Node/u);
-});
-
-test("Compass range controls open only by click", () => {
-  const controls = readFileSync(
-    "app/features/cartography/renderer/compass-range-controls.ts",
-    "utf8",
-  );
-  assert.match(
-    controls,
-    /trigger\.addEventListener\("click", \(\) => setOpen\(!open\)\)/u,
-  );
-  assert.doesNotMatch(
-    controls,
-    /pointerenter|pointerleave|focusin|focusout|matches\(":hover"\)|collapseTimer/u,
-  );
-  assert.match(controls, /if \(open && event\.target instanceof Node/u);
-  assert.match(controls, /allButton\.addEventListener\("click", toggleAll\)/u);
-});
-
-test("compact Cartography panel keeps guidance progressively disclosed", () => {
-  const controls = readFileSync(
-    "app/features/cartography/renderer/overlay-controls.ts",
-    "utf8",
-  );
-  assert.doesNotMatch(controls, /cartography-overlay-hint|Hold <kbd>|Numbers: solid/u);
-  assert.match(controls, /const qa = document\.createElement\("details"\)/u);
+// Wrong behaviours: the dock opens on hover and covers the Compass while the player walks past it,
+// or stays open after a click elsewhere in the game.
+test("the Compass dock opens only by click and closes on a press elsewhere", () => {
+  const dock = readFileSync("app/features/cartography/renderer/compass-dock.ts", "utf8");
+  assert.match(dock, /trigger\.addEventListener\("click", \(\) => setOpen\(!open\)\)/u);
+  assert.doesNotMatch(dock, /pointerenter|pointerleave|mouseenter|matches\(":hover"\)|collapseTimer/u);
+  assert.match(dock, /if \(open && event\.target instanceof Node && !root\.contains\(event\.target\)\) setOpen\(false\)/u);
 });
 
 const unavailable = (reason: "unsupported-area" | "loading"): CartographyState => ({

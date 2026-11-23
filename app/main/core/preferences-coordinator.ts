@@ -5,7 +5,6 @@
  */
 import type { AppSettingsPatch, RendererSettingsPatch, SettingsResetOutcome } from "../../shared/contracts.js";
 import { AppError } from "../../shared/errors.js";
-import { selectCartographyPreset } from "../../shared/cartography-presets.js";
 import { isDeepStrictEqual } from "node:util";
 import type {
   TravelPreferencesDocument,
@@ -143,36 +142,7 @@ export class PreferencesCoordinator {
   }
 
   #updateRendererSettings(patch: RendererSettingsPatch): Promise<AppSettings> {
-    const { cartographyPresetSelection, ...storedPatch } = patch;
-    if (
-      cartographyPresetSelection !== undefined
-      && Object.hasOwn(storedPatch, "cartographyPresetLibrary")
-    ) {
-      throw new AppError(
-        "bad_settings",
-        "Cartography selection and library replacement are mutually exclusive",
-      );
-    }
-    return this.#commitSettings((current) => {
-      if (cartographyPresetSelection === undefined) {
-        return { ...current, ...storedPatch };
-      }
-      const library = selectCartographyPreset(
-        current.cartographyPresetLibrary,
-        cartographyPresetSelection,
-      );
-      if (library === null) {
-        throw new AppError(
-          "bad_settings",
-          "The selected Cartography preset no longer exists",
-        );
-      }
-      return {
-        ...current,
-        ...storedPatch,
-        cartographyPresetLibrary: library,
-      };
-    });
+    return this.#commitSettings((current) => ({ ...current, ...patch }));
   }
 
   async resetSettings(): Promise<SettingsResetOutcome> {

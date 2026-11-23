@@ -9,7 +9,7 @@ import { parseRendererSettingsPatch, parseSettings } from "../../app/main/core/s
 const corner = { corner: "bottom-right", x: 30, y: 80 } as const;
 const offset = { x: -40, y: 12 };
 
-test("Target Distance starts at the top centre and the compass buttons beside the Compass, shown", () => {
+test("Target Distance starts at the top centre and the Compass dock beside the Compass, shown", () => {
   assert.equal(DEFAULT_SETTINGS.targetReadoutPosition, null);
   assert.deepEqual(DEFAULT_SETTINGS.compassButtonsOffset, { x: 0, y: 0 });
   assert.equal(DEFAULT_SETTINGS.compassButtonsShown, true);

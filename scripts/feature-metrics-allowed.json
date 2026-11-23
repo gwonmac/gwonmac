@@ -584,11 +584,6 @@
       "reason": "Input host: sends Call Target's chord against the held keys only it knows (#84)."
     },
     {
-      "name": "gw:compass-control-open",
-      "category": "inside one Feature",
-      "reason": "Maps only: one compass control closes the other; no code outside Maps sees it."
-    },
-    {
       "name": "gw:diagnostics-toggle",
       "category": "host plumbing",
       "reason": "Menu command to the diagnostics overlay."

@@ -2,6 +2,7 @@
  * Owns standard player-centred range rings on the certified native Compass.
  * The native Compass edge is the single 5000-unit scale reference.
  */
+import type { AppSettings } from "../../../shared/settings/index.js";
 import type { ScreenBox } from "./frame-placement.js";
 import {
   COMPASS_RANGE_INDICATORS,
@@ -9,6 +10,7 @@ import {
   COMPASS_RANGE_OPACITY_MIN,
   DEFAULT_COMPASS_RANGE_OPACITY,
   compassRangeColor,
+  type CompassRange,
   type CompassRangeId,
   type CompassRangeTheme,
 } from "../../../shared/compass-ranges.js";
@@ -22,6 +24,20 @@ export type CompassRangeSelection = Readonly<{
   id: CompassRangeId;
   opacity: number;
 }>;
+
+/**
+ * The rings to draw: none while Compass ranges is off, otherwise each range the player chose, at
+ * its saved opacity or the one a dock slider previews. Turning the Feature off keeps the choices.
+ */
+export function visibleCompassRanges(
+  settings: AppSettings,
+  previewOpacity: (key: CompassRange["opacitySetting"]) => number | null = () => null,
+): readonly CompassRangeSelection[] {
+  if (!settings.compassRangeIndicatorsEnabled) return [];
+  return COMPASS_RANGE_INDICATORS
+    .filter(({ enabledSetting }) => settings[enabledSetting] === true)
+    .map(({ id, opacitySetting }) => ({ id, opacity: previewOpacity(opacitySetting) ?? settings[opacitySetting] }));
+}
 export type CompassRangeProjection = Readonly<{
   centerX: number;
   centerY: number;
