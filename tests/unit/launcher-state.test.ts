@@ -52,9 +52,8 @@ describe("launcher presentation state", () => {
     const accepted: Record<string, Record<string, unknown>> = {
       "render quality": { renderScale: 1.5 },
       "independent Compass grid": { cartographyCompassGridEnabled: true },
-      "Elite Skills": { eliteSkillsEnabled: false, eliteMissionMapMarkers: "all" },
+      "Elite Skills": { eliteMissionMapMarkers: "all" },
       "Compass range": {
-        compassRangeIndicatorsEnabled: true,
         compassRangeCastEnabled: false,
         compassRangeCastOpacity: 62,
         compassRangeTheme: "monochrome",
@@ -86,7 +85,7 @@ describe("launcher presentation state", () => {
       { uiPanelOpacity: "80" }, { uiCustomTheme: {} },
       { uiCustomTheme: { ...DEFAULT_CUSTOM_UI_THEME, accent: "red" } },
       { uiCustomTheme: { ...DEFAULT_CUSTOM_UI_THEME, extra: true } },
-      { characterSwitchLocation: "false" }, { cartographyEnabled: true },
+      { characterSwitchLocation: "false" }, { cartographyGridEnabled: true },
       { characterSwitchEnabled: false }, { skillKeyBindings: [] },
       { skillCooldownColor: { kind: "custom", value: "red" } },
     ];
@@ -109,7 +108,7 @@ describe("launcher presentation state", () => {
       characterSwitchLocation: false, autoRelogAfterReload: true, skillCooldownColor: { kind: "custom", value: "#123456" },
     });
     for (const invalid of [
-      { characterSwitchLocation: "false" }, { cartographyEnabled: true },
+      { characterSwitchLocation: "false" }, { cartographyGridEnabled: true },
       { characterSwitchEnabled: false }, { skillKeyBindings: [] },
       { skillCooldownColor: { kind: "custom", value: "red" } },
     ]) assert.throws(() => parseLauncherSettingsPatch(invalid));

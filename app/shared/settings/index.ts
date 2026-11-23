@@ -91,6 +91,15 @@ export type UnreadableSetting = Readonly<{ field: string; error: string }>;
  * The document's own shape (an object, its format version) is the caller's to
  * check.
  */
+/**
+ * Maps was one Feature until 2026-11, switched by `cartographyEnabled`. Its layers became four
+ * Features whose switches are the layer keys released apps already stored. A file in which the
+ * player turned Maps off keeps every map Feature off; the next save drops the old key, so this
+ * runs once (docs/migrations.md, "Maps switch split").
+ */
+const RETIRED_MAPS_SWITCH = "cartographyEnabled";
+const MAP_SWITCHES = ["cartographyGridEnabled", "cartographyRouteEnabled", "compassRangeIndicatorsEnabled", "eliteSkillsEnabled"] as const;
+
 export function readSettings(source: Readonly<Record<string, unknown>>): Readonly<{
   settings: AppSettings;
   unreadable: readonly UnreadableSetting[];
@@ -104,5 +113,6 @@ export function readSettings(source: Readonly<Record<string, unknown>>): Readonl
     // A read may answer `null` (a cleared value), so only `undefined` falls back.
     settings[key] = value !== undefined ? value : spec.fresh ? spec.fresh() : spec.fallback;
   }
+  if (source[RETIRED_MAPS_SWITCH] === false) for (const key of MAP_SWITCHES) settings[key] = false;
   return { settings: settings as AppSettings, unreadable };
 }

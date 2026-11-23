@@ -9,28 +9,11 @@ import {
   normaliseCartographyPresetLibrary,
   type CartographyPresetLibrary,
 } from "../../shared/cartography-overlay.js";
-import {
-  COMPASS_RANGE_OPACITY_MAX,
-  COMPASS_RANGE_OPACITY_MIN,
-  COMPASS_RANGE_THEMES,
-  DEFAULT_COMPASS_RANGE_OPACITY,
-} from "../../shared/compass-ranges.js";
-import { ELITE_MISSION_MAP_MARKER_LABELS, ELITE_MISSION_MAP_MARKERS } from "../../shared/elite-map-settings.js";
 import { NO_OVERLAY_OFFSET, readOverlayOffset, type OverlayOffset } from "../../shared/overlay-placement.js";
 import { setting } from "../../shared/settings/define.js";
 import { defineFeature, featureSwitch } from "../define.js";
 
 const MAP_LAYER = { hub: true, rendererWritable: true } as const;
-const rangeShown = (range: string) => setting.boolean(true, {
-  ...MAP_LAYER,
-  label: `${range} range`,
-  help: `Draws the ${range} range ring while Compass ranges are on.`,
-});
-const rangeOpacity = (range: string) => setting.integer(
-  DEFAULT_COMPASS_RANGE_OPACITY,
-  { min: COMPASS_RANGE_OPACITY_MIN, max: COMPASS_RANGE_OPACITY_MAX },
-  { ...MAP_LAYER, label: `${range} range opacity`, help: `How strongly the ${range} range ring shows.`, unit: "%" },
-);
 const cartographyOpacity = (fallback: number, label: string, help: string) => setting.integer(
   fallback,
   { min: CARTOGRAPHY_OPACITY_MIN, max: CARTOGRAPHY_OPACITY_MAX },
@@ -39,84 +22,20 @@ const cartographyOpacity = (fallback: number, label: string, help: string) => se
 
 export default defineFeature({
   id: "cartography",
-  name: "Maps",
-  summary: "Exploration grid, walkable terrain, a walking route and Compass ranges on supported PvE maps.",
+  name: "Exploration grid",
+  summary: "Shows what is left to explore on the Mission Map and World Map.",
   kind: "around",
   presence: "screen",
   icon: "map",
   settings: {
-    /** Enable map guidance and its controls without changing saved layer visibility. */
-    cartographyEnabled: featureSwitch(true, { tools: true }),
-    /** Show certified walkability on the native Compass and Mission Map. */
-    cartographyOverlayEnabled: setting.boolean(false, {
-      ...MAP_LAYER,
-      tools: true,
-      label: "Walkable terrain",
-      help: "Shades the areas you cannot walk on, on the Compass and the Mission Map.",
-      keywords: "walkability keys shortcut hotkey keyboard",
-    }),
-    /** Draw the game's fixed cartography cells over both native map surfaces. */
-    cartographyGridEnabled: setting.boolean(false, {
-      ...MAP_LAYER,
-      tools: true,
-      label: "Exploration grid",
-      help: "Shows remaining exploration on the Mission Map and World Map.",
-      keywords: "cartographer explore keys shortcut hotkey keyboard",
-    }),
-    /** Draw the walking route to the point the player sets on the Mission Map or World Map. On by
-     * default: nothing draws until the player sets a target. */
-    cartographyRouteEnabled: setting.boolean(true, {
-      ...MAP_LAYER,
-      tools: true,
-      label: "Walking route",
-      help: "Draws a line along walkable ground to the point you set. Right-click the Mission Map or World Map to set or remove it.",
-      keywords: "path navigate waypoint target keys shortcut hotkey keyboard",
-    }),
-    /** Without the player's own target, lead the walking route to the active quest's marker. In
-     * development: a tester found it unpolished, so only development builds show it; its README
-     * lines wait in STAGED.md. */
-    cartographyQuestRouteEnabled: setting.boolean(true, {
-      stage: "dev",
-      hub: true,
-      tools: true,
-      label: "Route to quest",
-      help: "Without your own target, the walking route leads to your active quest.",
-      keywords: "quest objective marker path",
-      dependsOn: "cartographyRouteEnabled",
-    }),
+    /** The Exploration grid's switch: the game's fixed cartography cells on the Mission Map and World Map. Released apps stored it as a Maps layer. */
+    cartographyGridEnabled: featureSwitch(false, { rendererWritable: true, tools: true, keywords: "cartographer explore keys shortcut hotkey keyboard" }),
     /** Include the Compass in exploration-grid presentation; off by default. */
     cartographyCompassGridEnabled: setting.boolean(false, {
       hub: true,
       label: "Markers on Compass",
       help: "Adds nearby unexplored cells to the Compass.",
       keywords: "unexplored cells",
-      dependsOn: "cartographyGridEnabled",
-    }),
-    /** Draw standard Guild Wars ranges around the player on the Compass. */
-    compassRangeIndicatorsEnabled: setting.boolean(false, {
-      ...MAP_LAYER,
-      tools: true,
-      label: "Compass ranges",
-      help: "Draws range rings around you on the Compass.",
-      keywords: "earshot shout cast casting spirit aggro rings",
-    }),
-    compassRangeEarshotEnabled: rangeShown("Shout"),
-    compassRangeCastEnabled: rangeShown("Cast"),
-    compassRangeSpiritEnabled: rangeShown("Spirit"),
-    compassRangeSpiritExtendedEnabled: rangeShown("Ext. Spirit"),
-    compassRangeEarshotOpacity: rangeOpacity("Shout"),
-    compassRangeCastOpacity: rangeOpacity("Cast"),
-    compassRangeSpiritOpacity: rangeOpacity("Spirit"),
-    compassRangeSpiritExtendedOpacity: rangeOpacity("Ext. Spirit"),
-    /** Shared color treatment for all standard Compass range rings. */
-    compassRangeTheme: setting.enum(COMPASS_RANGE_THEMES, "color", {
-      ...MAP_LAYER,
-      launcherError: "Compass range theme is invalid",
-      label: "Range colors",
-      dependsOn: "compassRangeIndicatorsEnabled",
-      help: "Color gives each ring its own color. Monochrome draws every ring in white.",
-      keywords: "compass ranges rings appearance monochrome",
-      choices: { color: "Color", monochrome: "Monochrome" },
     }),
     /** Persistent Compass footprint; Mission Map hover uses Shift or Option+Shift. */
     cartographyRevealMode: setting.enum(CARTOGRAPHY_REVEAL_MODES, "off", {
@@ -143,8 +62,6 @@ export default defineFeature({
         keywords: "colors theme cartographer",
       },
     ),
-    /** Walkability veil and boundary strength, as a whole percentage. */
-    cartographyWalkabilityOpacity: cartographyOpacity(55, "Walkable terrain opacity", "How strongly the terrain shade and its border show."),
     /** Grid, reveal ranges, and unseen-cell strength, as a whole percentage. */
     cartographyGridOpacity: cartographyOpacity(65, "Grid opacity", "How strongly the grid, the reveal range and unexplored cells show."),
     /** Visibility of the collapsed Compass control, as a whole percentage. */
@@ -179,44 +96,25 @@ export default defineFeature({
         keywords: "move drag reset compass buttons",
       },
     ),
-    /** Show the Elite Skills planner and its map markers while Maps are on. */
-    eliteSkillsEnabled: setting.boolean(true, {
-      ...MAP_LAYER,
-      tools: true,
-      label: "Elite skill planner",
-      help: "Adds the planner to the World Map and your Hunt list to the Mission Map.",
-      keywords: "elite capture hunt boss signet",
-    }),
-    /** Capture locations that the Mission Map shows during play. */
-    eliteMissionMapMarkers: setting.enum(ELITE_MISSION_MAP_MARKERS, "saved", {
-      ...MAP_LAYER,
-      tools: true,
-      launcherError: "Mission Map markers are invalid",
-      label: "Mission Map markers",
-      help: "Which boss markers the Mission Map shows: your Hunt list, all planner matches, or none.",
-      keywords: "elite hunt",
-      choices: ELITE_MISSION_MAP_MARKER_LABELS,
-      dependsOn: "eliteSkillsEnabled",
-    }),
   },
   region: "pve",
-  /** Every layer runs on the certified Cartography stage: a refused stage turns Maps off with a reason. */
+  /**
+   * Every map layer runs on the certified Cartography stage: a refused stage turns it off with a
+   * reason. This folder also holds the map engine that Walking route, Compass ranges and the Elite
+   * Skill Planner draw with; it runs while any of them is on (MAP_FEATURES).
+   */
   uses: ["cartography"],
   tool: {
     id: "maps",
-    keywords: "grid terrain compass opacity",
+    keywords: "maps grid cartographer explore opacity",
   },
   hub: {
     command: "maps", order: 6,
-    row: { detail: "Exploration grid, walkable terrain, walking route and Compass ranges", iconKind: "maps", action: "Adjust maps", open: { featurePage: true } },
+    row: { detail: "Remaining exploration on the Mission Map and World Map", iconKind: "maps", action: "Adjust the grid", open: { featurePage: true } },
   },
   shortcuts: [
     { action: "cartography.grid.toggle", binding: null, label: "Exploration grid" },
-    { action: "cartography.walkability.toggle", binding: null, label: "Walkable terrain" },
-    { action: "cartography.route.toggle", binding: null, label: "Walking route" },
   ],
-  /** The Build Library shows where an elite skill can be captured (shared/link.ts). */
-  offers: ["findElite"],
   shots: [],
   parts: ["game", "main"],
 });

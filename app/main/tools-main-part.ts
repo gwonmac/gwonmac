@@ -28,7 +28,7 @@ export type ToolsMainInput = Readonly<{
   isFeatureEnabled(feature: FeatureId): boolean;
   /**
    * Runs one operation behind this part's file gate: one at a time, refused
-   * with "<label> is disabled" while the feature is off. Every settings change
+   * with "<label> is disabled" while the part is not active. Every settings change
    * and the runtime's disposal wait for the gate to drain.
    */
   run<Value>(operation: () => Promise<Value>): Promise<Value>;
@@ -50,6 +50,8 @@ export type ToolsMainPart<Contract extends AnyToolContract> = Readonly<{
   feature: FeatureId;
   /** Names the feature in a refused gated operation. */
   label: string;
+  /** Whether the part's operations run now, given which Features are on: its own feature unless it says otherwise. */
+  active(on: (feature: FeatureId) => boolean): boolean;
   contract: Contract;
   create(input: ToolsMainInput): ToolsMainSession<Handlers<Contract["channels"]>>;
 }>;
@@ -59,17 +61,21 @@ export type ToolsMainPart<Contract extends AnyToolContract> = Readonly<{
  * builds its stores and answers every channel of its contract: the channels stay registered
  * and the file gate refuses them while the feature is off. A part with work between requests
  * also returns `start`, which runs while the Feature decision has the feature on; what it
- * returns is stopped when the decision turns it off and when Tools stops.
+ * returns is stopped when the decision turns it off and when Tools stops. An engine several
+ * Features share (the map engine) passes `active` to run while any of them is on.
  */
 export function mainPart<Contract extends AnyToolContract, Running extends RunningPart>(part: Readonly<{
   feature: PartOwner<"main">;
   label: string;
+  active?(on: (feature: FeatureId) => boolean): boolean;
   contract: Contract;
   create(input: ToolsMainInput): Readonly<{ channels: Handlers<Contract["channels"]>; start?(): Running }>;
 }>): ToolsMainPart<Contract> {
+  const active = part.active ?? ((on: (feature: FeatureId) => boolean) => on(part.feature));
   return Object.freeze({
     feature: part.feature,
     label: part.label,
+    active,
     contract: part.contract,
     create(input: ToolsMainInput) {
       const { channels, start } = part.create(input);
@@ -81,7 +87,7 @@ export function mainPart<Contract extends AnyToolContract, Running extends Runni
         stopping?.stop();
       };
       const sync = () => {
-        if (input.isFeatureEnabled(part.feature)) running ??= start();
+        if (active(input.isFeatureEnabled)) running ??= start();
         else stop();
       };
       sync();
@@ -94,6 +100,7 @@ export function mainPart<Contract extends AnyToolContract, Running extends Runni
 export type AnyToolsMainPart = Readonly<{
   feature: FeatureId;
   label: string;
+  active(on: (feature: FeatureId) => boolean): boolean;
   contract: AnyToolContract;
   create(input: ToolsMainInput): ToolsMainSession<HandlersPart<ToolsChannels>>;
 }>;

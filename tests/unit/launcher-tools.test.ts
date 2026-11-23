@@ -36,7 +36,7 @@ describe("global launcher Tools", () => {
 
   it("preserves the existing fresh-install opt-in without enabling new features", () => {
     assert.deepEqual(allGlobalToolsPatch(true), { gwonmacTools: true, buildLibrary: true, travelPalette: true, xunlaiStorage: true });
-    assert.deepEqual(globalToolPatch("maps", false), { cartographyEnabled: false });
+    assert.deepEqual(globalToolPatch("maps", false), { cartographyGridEnabled: false });
     assert.deepEqual(globalToolPatch("character-switch", false), { characterSwitchEnabled: false });
   });
 

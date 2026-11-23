@@ -166,10 +166,12 @@ describe("window shortcut input", () => {
     assert.equal(press("KeyR"), true);
     assert.equal(press("KeyG"), true);
     assert.equal(press("KeyL"), true);
-    updateWindowShortcuts(win, { ...settings, gwonmacTools: true, cartographyEnabled: false });
+    // The grid shortcut is the Exploration grid's switch, so it still shows the grid; walkable
+    // terrain is an option of Walking route and stays off with it.
+    updateWindowShortcuts(win, { ...settings, gwonmacTools: true, cartographyGridEnabled: false, cartographyRouteEnabled: false });
     assert.equal(press("KeyG"), true);
     assert.equal(press("KeyL"), true);
-    assert.deepEqual(actions, ["hub.toggle", "hub.toggle", "cartography.grid.toggle", "cartography.walkability.toggle"]);
+    assert.deepEqual(actions, ["hub.toggle", "hub.toggle", "cartography.grid.toggle", "cartography.walkability.toggle", "cartography.grid.toggle"]);
   });
   it("runs one Command action, preserves Control, and contains Command repeats", async () => {
     const { win, dispatch: beforeInput } = fakeWindow();

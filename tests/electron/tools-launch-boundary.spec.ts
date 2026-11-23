@@ -8,7 +8,7 @@ for (const tools of [false, true]) {
   test(`${tools ? "Tools" : "Core"} launch enforces Maps transport ownership`, { tag: "@journey" }, async () => {
     const fixture = await launchOffline("gw-tools-boundary-", {}, async (userData) => {
       await writeFile(path.join(userData, "settings.json"), JSON.stringify({
-        gwonmacTools: tools, cartographyEnabled: true,
+        gwonmacTools: tools, cartographyRouteEnabled: true,
       }), { mode: 0o600 });
     });
     try {
@@ -30,11 +30,15 @@ for (const tools of [false, true]) {
           width: 1, height: 1, revealRadius: 1, words: [1],
         });
       });
+      // The map engine answers while any map Feature is on: here only the Walking route.
       expect(await read()).toEqual([]);
-      await launcher.evaluate(() => window.launcherNative.tools.setFeature({ tool: "maps", enabled: false }));
+      const setMapFeatures = (enabled: boolean) => launcher.evaluate(async (on) => {
+        for (const tool of ["maps", "walking-route", "compass-ranges", "elite-skills"] as const) await window.launcherNative.tools.setFeature({ tool, enabled: on });
+      }, enabled);
+      await setMapFeatures(false);
       await expect(read()).rejects.toThrow(/Maps is disabled/);
       await expect(record()).rejects.toThrow(/Maps is disabled/);
-      await launcher.evaluate(() => window.launcherNative.tools.setFeature({ tool: "maps", enabled: true }));
+      await setMapFeatures(true);
       expect(await read()).toEqual([]);
       await launcher.evaluate(() => window.launcherNative.tools.setMasterEnabled(false));
       await expect(read()).rejects.toThrow(/Maps is disabled/);

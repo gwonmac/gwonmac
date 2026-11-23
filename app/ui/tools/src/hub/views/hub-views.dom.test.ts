@@ -62,7 +62,7 @@ beforeEach(() => {
   if (document.pointerLockElement === undefined) Object.defineProperty(document, 'pointerLockElement', { configurable: true, value: null });
   localStorage.clear();
   document.body.replaceChildren();
-  settings = { ...DEFAULT_SETTINGS, gwonmacTools: true, tradeChat: true, whispersEnabled: true, xunlaiStorage: true, cartographyEnabled: true, characterSwitchEnabled: true };
+  settings = { ...DEFAULT_SETTINGS, gwonmacTools: true, tradeChat: true, whispersEnabled: true, xunlaiStorage: true, cartographyGridEnabled: true, characterSwitchEnabled: true };
   const market = ['WTS armbraces 30e/ea', 'WTB armbraces 28e/ea', 'WTS 20 ectos for 100k', 'WTB 25 ectos for 100k']
     .flatMap((message, group) => Array.from({ length: 6 }, (_, index) => ({ source: 'kamadan' as const, message, sender: `Sample ${group} ${index}`, timestamp: Date.now() - index * 60_000 })));
   Object.assign(window, {

@@ -17,10 +17,13 @@ import { isDigest } from "../../shared/digest.js";
 import { eliteWikiUrl, parseEliteWikiRequest } from "./shared/elite-wiki.js";
 import { parseEliteCharacter, parseEliteUpdate } from "../../shared/elite-skills.js";
 import { ValidationError } from "../../shared/errors.js";
+import { anyMapFeatureOn } from "./shared/map-features.js";
 
 export default mainPart({
   feature: "cartography",
   label: "Maps",
+  /** The map engine serves every map Feature, so its stores answer while any of them is on. */
+  active: anyMapFeatureOn,
   contract,
   create({ paths, accounts, preferences, clientFingerprint, getClientSession, run }) {
     const knowledge = new CartographyMapKnowledgeStore(paths.cartographyMapKnowledge);

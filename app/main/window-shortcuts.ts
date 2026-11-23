@@ -10,6 +10,7 @@ import type { GameTextEditCommand, TextEditCommand } from "../shared/contracts.j
 import type { AppSettings } from "../shared/settings/index.js";
 import type { FeatureSwitchSettings } from "../shared/feature-contracts.js";
 import { featureOn } from "./feature-decision.js";
+import { shortcutGateSettings } from "../shared/shortcut-commands.js";
 import {
   resolveShortcuts,
   HUB_SHORTCUT,
@@ -236,7 +237,7 @@ class WindowShortcuts {
   update(settings: FeatureSwitchSettings & Pick<AppSettings, "shortcutOverrides">): void {
     this.#hubAvailable = hubShortcutAvailable(settings.shortcutOverrides);
     this.#shortcuts = resolveShortcuts(settings.shortcutOverrides);
-    this.#enabled = new Set(SHORTCUT_ACTIONS.filter((action) => featureOn(SHORTCUT_FEATURES[action], settings, this.#win)));
+    this.#enabled = new Set(SHORTCUT_ACTIONS.filter((action) => featureOn(SHORTCUT_FEATURES[action], shortcutGateSettings(action, settings), this.#win)));
   }
 
   release(code: string): void {

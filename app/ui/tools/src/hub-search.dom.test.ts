@@ -36,7 +36,7 @@ const answers: [query: string, primary: RegExp, finding: string][] = [
   ['gh', /^Travel to Guild Hall/u, 'HUB-010: Guild Hall is a place'],
   ['Seeker’s Passage', /^Travel to Seeker's Passage/u, 'HUB-143: typographic apostrophes fold'],
   ['tp kamadan', /^Travel to Kamadan/u, 'HUB-142: scope aliases'],
-  ['ma', /^Adjust maps/u, 'HUB-058: a tool named by the query leads places that start the same'],
+  ['wa', /^Adjust the route/u, 'HUB-058: a tool named by the query leads places that start the same'],
   ['tra', /^Browse travel/u, 'HUB-058: a name that starts with the query beats a later word'],
   ['ascalon city', /^Travel to Ascalon City/u, 'HUB-056: the available exact place, not the disabled pre-Searing one'],
   ['char f', /^Switch to Fixture Ranger/u, 'HUB-056: the eligible character'],
@@ -76,11 +76,11 @@ test('a character ranks ahead of a build that matches the same way', async () =>
 test('a setting row opens Hub Settings at its control; launcher settings, Keys rows and the Settings command each open their own page (HUB-064)', async () => {
   await mountFixture();
   // An in-Hub setting found by its words opens the Settings page at that control, focused.
-  await ask('elite skill');
+  await ask('markers on compass');
   expect(primary().textContent).toMatch(/^Open setting/u);
   press('Enter'); await settle();
   expect(caption()).toBe('Settings');
-  const control = () => q('[data-setting="eliteSkillsEnabled"]')!;
+  const control = () => q('[data-setting="cartographyCompassGridEnabled"]')!;
   expect(control().classList.contains('setting-focus')).toBe(true);
   expect(document.activeElement).toBe(control().querySelector('input'));
   expect(action()).toBeUndefined();
@@ -126,7 +126,7 @@ test('places rank before the cap, and the rest are one row away in Travel (HUB-0
   expect(q<HTMLInputElement>('input[aria-label="Destination, phrase, or friend"]')!.value).toBe('k');
 });
 
-const pins = ['travel', 'settings', 'commands', 'hub-preferences', 'maps'];
+const pins = ['travel', 'settings', 'commands', 'hub-preferences', 'walking-route'];
 test.each([2, 5])('pins on an empty Home keep a selection (%i pins)', async count => {
   await mountWith('', shortcuts(pins.slice(0, count).map(id => ({ id, phrase: '', pinned: true }))));
   await settle();

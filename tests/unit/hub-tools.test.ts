@@ -16,9 +16,9 @@ import { provenFacts } from "../helpers/feature-facts.ts";
 test('the Tools rows keep one place each, in the order players know', () => {
   const orders = FEATURES.flatMap(feature => 'hub' in feature ? [feature.hub.order] : []);
   assert.equal(new Set(orders).size, orders.length);
-  assert.deepEqual(HUB_TOOL_ORDER, ['travel', 'character', 'whispers', 'builds', 'trade', 'storage', 'maps', 'accounts']);
+  assert.deepEqual(HUB_TOOL_ORDER, ['travel', 'character', 'whispers', 'builds', 'trade', 'storage', 'maps', 'walking-route', 'compass-ranges', 'elite-skills', 'accounts']);
   // Travel and Build Library attach their own rows; Core draws the rest from the manifests.
-  assert.deepEqual(HUB_TOOL_ROWS.map(row => row.id), ['character', 'whispers', 'trade', 'storage', 'maps']);
+  assert.deepEqual(HUB_TOOL_ROWS.map(row => row.id), ['character', 'whispers', 'trade', 'storage', 'maps', 'walking-route', 'compass-ranges', 'elite-skills']);
 });
 
 /** Every word the hand-written Hub rows matched before the manifests owned them. */
@@ -27,7 +27,10 @@ const OLD_HUB_WORDS = [
   ['whispers', 'friends people message chat'],
   ['character', 'relog profession characters alts'],
   ['storage', 'chest bank'],
-  ['maps', 'grid terrain compass opacity'],
+  // Maps split into its layers (2026-11): each old word finds the layer it was about.
+  ['maps', 'grid opacity'],
+  ['walking-route', 'terrain'],
+  ['compass-ranges', 'compass'],
 ] as const;
 
 /** Settings with every feature selected, so the Hub's commands list every Tools row. */

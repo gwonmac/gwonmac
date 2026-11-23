@@ -176,6 +176,13 @@ Never rename a switch key. `tests/unit/player-data-fixtures.test.ts` lists the
 key each Feature reads, and fails when a Feature reads another one or a stored
 choice no longer reaches it.
 
+When one Feature splits into several, an existing key becomes each new
+Feature's switch, and the retired switch is read once on load: the Maps split
+(2026-11) made the grid, route, range and planner keys the switches of
+Exploration grid, Walking route, Compass ranges and the Elite Skill Planner,
+and a stored `cartographyEnabled: false` turns all four off (`readSettings`).
+The first save drops the retired key.
+
 ## Player data
 
 A setting that a released app already wrote must keep reading every value that

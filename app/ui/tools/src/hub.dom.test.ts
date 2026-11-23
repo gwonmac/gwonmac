@@ -299,13 +299,12 @@ test('trade query opens the same floating searchable tool with the words as type
   expect(document.querySelector<HTMLInputElement>('#toolbox-foundation .trade-search input')!.value).toBe('Polar Bear');
 });
 
-test('Maps controls save inline without navigating away', async () => {
+test('Exploration grid controls save inline without navigating away', async () => {
   await mountFixture();
-  send('hub-fixture-settings', { cartographyEnabled: true }); await settle();
+  send('hub-fixture-settings', { cartographyGridEnabled: true }); await settle();
   await go('maps');
   expect(caption()).toBe('Settings');
-  expect(document.querySelector('.feature-page h1')?.textContent).toBe('Maps');
-  click(byRole('switch', 'Exploration grid')[0]!); await settle();
+  expect(document.querySelector('.feature-page h1')?.textContent).toBe('Exploration grid');
   const slider = () => narrow(HTMLInputElement, byRole('slider', 'Grid opacity')[0]);
   expect(slider()).toBeDefined();
   fill(slider(), '45'); slider().dispatchEvent(new Event('change', { bubbles: true })); await settle();

@@ -551,6 +551,30 @@
       "name": "whispers",
       "category": "registry or contract",
       "reason": "Hub people reaches Whispers only through its typed link (`HubLinks`) and words its Off reason by its id when the link turns null."
+    },
+    {
+      "file": "app/features/cartography/companion.ts",
+      "name": "eliteSkills",
+      "category": "inside one Feature",
+      "reason": "The map engine's game part draws the Elite Skill Planner and provides its link `findElite`; the planner's code lives with the engine it draws with."
+    },
+    {
+      "file": "app/features/walking-route/feature.ts",
+      "name": "cartography",
+      "category": "certified stage or verifier",
+      "reason": "`uses` names the certified `cartography` stage this map Feature draws with."
+    },
+    {
+      "file": "app/features/compass-ranges/feature.ts",
+      "name": "cartography",
+      "category": "certified stage or verifier",
+      "reason": "`uses` names the certified `cartography` stage this map Feature draws with."
+    },
+    {
+      "file": "app/features/elite-skills/feature.ts",
+      "name": "cartography",
+      "category": "certified stage or verifier",
+      "reason": "`uses` names the certified `cartography` stage this map Feature draws with."
     }
   ],
   "gwEvents": [

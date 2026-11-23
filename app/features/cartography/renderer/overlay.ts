@@ -576,7 +576,10 @@ export function mountCartographyOverlay(options: Readonly<{
         nextModelPoll = now + MODEL_POLL_MS;
       }
       presentation = readCartographyPresentation(state, options.modelSources);
-      const settings = options.settings();
+      const saved = options.settings();
+      // Each layer key is its Feature's switch, or an option of one: walkable terrain is Walking
+      // route's shade, so it draws only while Walking route is on (../shared/map-features.ts).
+      const settings = { ...saved, cartographyOverlayEnabled: saved.cartographyRouteEnabled && saved.cartographyOverlayEnabled };
       const style = resolveCartographyPreset(settings.cartographyPresetLibrary);
       const canvasBox = options.canvas.getBoundingClientRect();
       const compass = options.modelSources.compass.snapshot();

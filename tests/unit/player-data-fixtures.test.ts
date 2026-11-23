@@ -78,7 +78,7 @@ const STORED_SWITCHES: Readonly<Partial<Record<FeatureId, string>>> = {
   xunlaiStorage: "xunlaiStorage",
   quickItemMove: "quickItemMove",
   tradeChat: "tradeChat",
-  cartography: "cartographyEnabled",
+  cartography: "cartographyGridEnabled",
   targetReadout: "targetReadout",
   skillKeyLabels: "skillKeyLabelsEnabled",
   skillCooldowns: "skillCooldownOverlayEnabled",
@@ -168,14 +168,17 @@ interface Row {
   readonly partial?: true;
   /** Settings the current app drops on purpose: the loaded value must not have them. */
   readonly absent?: readonly string[];
+  /** For EVERY_STORED_SETTING: the values a migration sets on purpose instead of the stored ones. */
+  readonly migrated?: Readonly<Record<string, unknown>>;
 }
 
 /** The same row for several tags, when each tag's file loads to the same value. */
 const each = (tags: readonly string[], row: Omit<Row, "tag">): Row[] => tags.map((tag) => ({ tag, ...row }));
 const BOTH = [OLD, NEW];
 
-// 1.0 clean cut (49da271f): these three are no longer read, so they are not kept.
-const DROPPED_SETTINGS = ["dataStrategy", "extendedMemoryEnabled", "teamManagement", "updateTrack"];
+// 1.0 clean cut (49da271f): these are no longer read, so they are not kept. The Maps switch
+// (cartographyEnabled) split into the four map Features' switches (2026-11); "off" turns all four off.
+const DROPPED_SETTINGS = ["dataStrategy", "extendedMemoryEnabled", "teamManagement", "updateTrack", "cartographyEnabled"];
 /** `expect` for a settings file: every field it stores, except its marker and the dropped ones. */
 const EVERY_STORED_SETTING = Symbol("every stored setting");
 
@@ -247,15 +250,20 @@ const ROWS: readonly Row[] = [
     variant: "custom", file: "settings.json", loader: "loadSettings", partial: true, absent: DROPPED_SETTINGS,
     guards: "every stored setting keeps its value: a narrowed reader, or a rename without an alias, would lose it",
     expect: EVERY_STORED_SETTING,
-  }),
+  }).map((row) => row.tag === NEW ? {
+    ...row,
+    // 2026.11 stored Maps off over a grid and ranges that were on: the player saw no map layer,
+    // so all four map Features load off.
+    migrated: { cartographyGridEnabled: false, cartographyRouteEnabled: false, compassRangeIndicatorsEnabled: false, eliteSkillsEnabled: false },
+  } : row),
   ...each(BOTH, {
     variant: "defaults", file: "settings.json", loader: "featuresOn(loadSettings)",
     guards: "the plain game a release starts in (gwonmacTools off) keeps every Feature off", expect: [],
   }),
   {
     tag: OLD, variant: "custom", file: "settings.json", loader: "featuresOn(loadSettings)",
-    guards: "every switch 2026.8 stored reaches its Feature; a switch it never wrote takes today's default",
-    expect: ["tools", "characterSwitch", "xunlaiStorage", "cartography", "targetReadout", "skillKeyLabels"],
+    guards: "every switch 2026.8 stored reaches its Feature; a switch it never wrote takes today's default; Maps on keeps the layers it showed",
+    expect: ["tools", "characterSwitch", "eliteSkills", "xunlaiStorage", "walkingRoute", "targetReadout", "skillKeyLabels"],
   },
   {
     tag: NEW, variant: "custom", file: "settings.json", loader: "featuresOn(loadSettings)",
@@ -440,7 +448,7 @@ describe("player data written by released apps", () => {
       const before = await filesIn(root);
       const context: Context = { file: join(root, row.file), recovered: [] };
 
-      const expected = row.expect === EVERY_STORED_SETTING ? await storedSettings(context.file) : row.expect;
+      const expected = row.expect === EVERY_STORED_SETTING ? { ...await storedSettings(context.file), ...row.migrated } : row.expect;
       const loaded = await LOADERS[row.loader]!(context);
 
       if (row.partial) {

@@ -61,7 +61,6 @@ describe("settings", () => {
       controllerPromptStyle: "game-default",
       uiPanelOpacity: 94,
       uiTextSize: 100,
-      cartographyEnabled: true,
       characterSwitchEnabled: true,
       resignEnabled: false,
       whispersEnabled: false,
@@ -154,7 +153,7 @@ describe("settings", () => {
   });
 
   it("defaults Elite Skills on for existing settings and validates its Mission Map markers", () => {
-    assert.equal(parseSettings({ cartographyEnabled: true }).eliteSkillsEnabled, true);
+    assert.equal(parseSettings({}).eliteSkillsEnabled, true);
     assert.throws(() => parseSettingsPatch({ eliteMissionMapMarkers: "target" }), AppError);
     assert.deepEqual(parseRendererSettingsPatch({ eliteSkillsEnabled: false, eliteMissionMapMarkers: "all" }), {
       eliteSkillsEnabled: false,
@@ -543,7 +542,6 @@ describe("settings", () => {
       "callTargetEnabled",
       "cartographyCompassGridEnabled",
       "cartographyControlIdleOpacity",
-      "cartographyEnabled",
       "cartographyGridEnabled",
       "cartographyGridOpacity",
       "cartographyOverlayEnabled",

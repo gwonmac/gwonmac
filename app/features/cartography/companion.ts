@@ -1,9 +1,10 @@
 /**
- * Maps in the game host: Elite Skills inside the native maps, and the player
- * state and live play region the Maps stage reads. Both follow the shared
+ * The map engine in the game host: the Elite Skill Planner inside the native
+ * maps, and the player state and live play region the Cartography stage reads,
+ * while any map Feature is on (./shared/map-features.ts). Both follow the shared
  * snapshot and party feeds. While the walking route leads to the active quest,
- * it reads the quest's marker from `game.progress`. Its link `findElite` opens the Elite Skills
- * planner for the Build Library.
+ * it reads the quest's marker from `game.progress`. It provides the Elite Skill
+ * Planner's link `findElite` for the Build Library.
  */
 import {
   clearCartographyPlayerState,
@@ -13,6 +14,7 @@ import {
 } from "./renderer/cartography-player-state.js";
 import { createEliteMapInstallation } from "./renderer/elite-map-installation.js";
 import { provideLink } from "../../renderer/feature-links.js";
+import { anyMapFeatureOn } from "./shared/map-features.js";
 import type { ToolsCompanionPart } from "../../renderer/tools-companion-part.js";
 
 export default {
@@ -29,9 +31,9 @@ export default {
                 && state.mapId === region.mapId && state.onWorldMap };
           },
         });
-        const stopLink = provideLink("cartography", { findElite: (skillId) => eliteMaps.find(skillId) });
+        const stopLink = provideLink("eliteSkills", { findElite: (skillId) => eliteMaps.find(skillId) });
         let identity = "";
-        const wanted = () => context.on("cartography");
+        const wanted = () => anyMapFeatureOn((id) => context.on(id));
         observation.observeStateWhen(wanted);
         observation.observePartyWhen(wanted);
         observation.observeTargetWhen(wanted);
@@ -45,6 +47,7 @@ export default {
             const next = region.status === "ready" ? `${region.characterKey}:${region.mapId}` : "";
             if (next !== identity) { observation.setParty(null); identity = next; }
             const { settings } = context.snapshot();
+            // Each key is its map Feature's switch, so with the engine on it reads as that Feature on.
             const on = wanted();
             eliteMaps.update(on && settings.eliteSkillsEnabled);
             if (on && settings.cartographyRouteEnabled && settings.cartographyQuestRouteEnabled) {

@@ -23,15 +23,23 @@ cell markers can be copied and
 imported as versioned text. Each color has a picker and a six-digit hex field.
 Opacity and line width have a slider and a numeric field. Slider values preview
 while dragging and save on release. Saved changes update every open game window
-without a reload when Tools and Maps are active.
+without a reload when Tools and a map Feature are active.
+
+The map engine in this folder draws for four Features, each with its own switch:
+Exploration grid (`cartographyGridEnabled`, this folder's manifest), Walking
+route (`cartographyRouteEnabled`, `app/features/walking-route/`), Compass ranges
+(`compassRangeIndicatorsEnabled`, `app/features/compass-ranges/`) and the Elite
+Skill Planner (`eliteSkillsEnabled`, `app/features/elite-skills/`). Each one
+declares `uses: ["cartography"]`; the engine runs while any of them is on
+(`shared/map-features.ts`). Below, "Maps" means that engine.
 
 A Core launch installs no Maps or Compass native hooks, imports no Maps renderer
 implementation, and exposes no Maps IPC. Tools mode installs the certified hooks;
-its Maps switch then controls live activity. Turning Tools off stops activity
+the map Features' switches then control live activity. Turning Tools off stops activity
 immediately; restart the application to load the Core client without those hooks.
 The game host reaches Maps through one entry,
 `app/features/cartography/renderer/host.ts`, once the official client is
-instantiated; the host reads the switch through the feature's manifest. Elite
+instantiated; the host reads the switches through the map Features' manifests. Elite
 Skills on the native maps run as the `cartography` companion part.
 
 Maps follows its manifest's region rule, PvE only. While the live play region
@@ -45,8 +53,8 @@ applies the manifest rule. The part removes the reader with its presentation.
 Without a reader (before activation, after disposal, or when no companion is
 certified) the region is unknown and Maps stays hidden.
 
-Maps settings remain available in the plain game. The page explains how to
-enable Maps and whether an application restart is needed. An illustrative
+Map settings remain available in the plain game. Each page explains how to
+enable its Feature and whether an application restart is needed. An illustrative
 preview shows the selected colors, border, and remaining markers without a game
 session. Inspection outlines and Compass inspection options are disclosed
 separately. **Use Cartographer defaults** selects the built-in style without
@@ -248,7 +256,7 @@ Compass ranges also work without opening the Mission Map. Their radii are
 5000-unit Compass edge. Click the separate circular control beside the Compass
 to open its menu. Use the menu to show or hide all ranges, choose individual
 ranges, and preview each ring's opacity. Turning the master off preserves those
-choices. The Maps Feature page provides the same durable controls.
+choices. The Compass ranges Feature page provides the same durable controls.
 
 The Cartography and Compass-range controls form one centred stack. A lone
 available control remains centred by itself. Both menus use the same size,
