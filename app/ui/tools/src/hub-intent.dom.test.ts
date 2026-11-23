@@ -413,7 +413,7 @@ test('Resign sends once from its armed confirmation, and says before Enter why i
   // The fixture's lifecycle control reopens the Hub, as the spec saw before it searched.
   expect(hubOpen()).toBe(true);
   fill(search(), 'resign'); await flush();
-  expect([row('resign')?.getAttribute('aria-disabled'), detail(row('resign'))]).toEqual(['true', 'Resign is available with Tools enabled in a PvE area.']);
+  expect([row('resign')?.getAttribute('aria-disabled'), detail(row('resign'))]).toEqual(['true', 'Resign is available in a PvE area with Features on.']);
 });
 
 // ---- Rows that say why before Enter -----------------------------------------------------------

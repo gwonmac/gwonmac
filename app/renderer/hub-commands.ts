@@ -42,7 +42,7 @@ export function createHubCommands(hub: CommandsHub, openSettings: (target?: Sett
           // A tool that opens after the Hub closes never refuses: the Hub is gone (Xunlai Storage).
           : open.closesHub ? () => { hub.close(); toggleTool(open.link, 'show'); }
           : () => show(open.link);
-        return { id: tool.id, title: tool.title, keywords: tool.keywords, detail: tool.detail, iconKind: tool.iconKind, ...(tool.aliases ? { aliases: tool.aliases } : {}), group: 'Tools',
+        return { id: tool.id, title: tool.title, keywords: tool.keywords, detail: tool.detail, iconKind: tool.iconKind, ...(tool.aliases ? { aliases: tool.aliases } : {}), group: 'Features',
           action: tool.action ?? `Open ${tool.title}`, ...('page' in open && open.page ? { navigate: run } : {}), run };
       }),
       { id: 'commands', title: 'Commands', detail: 'Search words, calculator examples and keys', aliases: ['?'], keywords: 'help guide examples cheatsheet shortcuts keys', group: 'Commands', action: 'Browse commands', run: () => hub.showRows('Commands', examples) },
@@ -109,7 +109,7 @@ export function createHubCommands(hub: CommandsHub, openSettings: (target?: Sett
       const parsed = parseHubQuery(query);
       const trade = hubLinks().tradeChat;
       return parsed.scope === 'trade' && parsed.term && trade
-        ? [{ id: 'trade:query', iconKind: 'trade', title: `Search Trade for ${parsed.text}`, detail: 'Offers and character names', group: 'Tools', action: `Search Trade for ${parsed.text}`,
+        ? [{ id: 'trade:query', iconKind: 'trade', title: `Search Trade for ${parsed.text}`, detail: 'Offers and character names', group: 'Features', action: `Search Trade for ${parsed.text}`,
           run: () => { if (trade.search(parsed.text) === 'unavailable') throw new Error(UNAVAILABLE_HERE); } }] : [];
     },
     commands,

@@ -46,8 +46,8 @@ export default {
             const playRegion = context.playRegion();
             if (playRegion !== "pve") {
               throw new Error(playRegion === "pvp"
-                ? "GWonMac Tools are unavailable during PvP play"
-                : "GWonMac Tools are unavailable while the region is unknown");
+                ? "Apply team is unavailable during PvP play"
+                : "Apply team is unavailable while the region is unknown");
             }
             const party = observation.party;
             if (party === null || party.status !== "ready") {

@@ -171,7 +171,7 @@ function settings(input: LauncherIpcInput) {
           defaultId: 1,
           cancelId: 1,
           message: "Reset all app settings?",
-          detail: "This resets launcher and game preferences, Tools, shortcuts, custom map styles, and custom panel colors. Original textures will be selected. Accounts, saved logins, game files, imported texture packs, builds, templates, screenshots, and chat logs are kept.",
+          detail: "This resets launcher and game preferences, Features, shortcuts, custom map styles, and custom panel colors. Original textures will be selected. Accounts, saved logins, game files, imported texture packs, builds, templates, screenshots, and chat logs are kept.",
         });
         if (response !== 0) return;
         await orchestrator.resetSettings();
@@ -190,7 +190,7 @@ function settings(input: LauncherIpcInput) {
           defaultId: 1,
           cancelId: 1,
           message: "Replace your settings with the copied ones?",
-          detail: "This replaces launcher and game preferences, the choices for each Tool, shortcuts, custom map styles, custom panel colors and the launcher's Home choices. The plain game switch stays as it is on this Mac. Accounts, saved logins, game files, texture packs and Travel favourites are kept.",
+          detail: "This replaces launcher and game preferences, the choices for each Feature, shortcuts, custom map styles, custom panel colors and the launcher's Home choices. The plain game switch stays as it is on this Mac. Accounts, saved logins, game files, texture packs and Travel favourites are kept.",
         });
         if (response !== 0) return { status: "cancelled" } as const;
         const { settings, launcherContent, skipped } = read.transfer;
@@ -246,7 +246,7 @@ function gameFiles({ clientRuntime, paths }: LauncherIpcInput) {
           defaultId: 1,
           cancelId: 1,
           message: "Reset and redownload game files?",
-          detail: "Accounts, saved logins, settings, Tools, shortcuts, builds, templates, screenshots, and chat logs are kept.",
+          detail: "Accounts, saved logins, settings, Features, shortcuts, builds, templates, screenshots, and chat logs are kept.",
         });
         if (response !== 0) return;
         await requestFullGameFilesReset(paths);

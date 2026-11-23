@@ -7,12 +7,9 @@
  * away while resolve has it off. Attached as one built-in source (hub-builtins.ts).
  */
 import { featureStatus, runsWith, SWITCH_FEATURES, switchedOn, switchOf, type FeatureStatus, type SwitchFeature } from '../shared/feature-status.js';
-import { HUB_SCOPE_FEATURES, hubScopeWord, hubTier, normaliseHubQuery, type HubRow, type HubSource, type HubTask } from '../shared/hub.js';
+import { HUB_SCOPE_FEATURES, hubFeatureReasonId, hubScopeWord, hubTier, normaliseHubQuery, type HubRow, type HubSource, type HubTask } from '../shared/hub.js';
 import { HUB_TOOL_ROWS } from '../shared/hub-tools.js';
 import type { SettingsTarget } from '../shared/settings-catalogue.js';
-
-/** The group off Features list under; it follows the live Tools and Commands (rankHubRows). */
-export const HUB_FEATURES_GROUP = 'Features';
 
 /** A name match only: every typed word starts a word of the Feature's name or a Hub alias, not its keywords. */
 function named(feature: SwitchFeature, query: string): boolean {
@@ -63,7 +60,7 @@ export function createHubFeatures(open: (target: SettingsTarget) => (task: HubTa
         if (status.resolution.on || status.resolution.reason === 'not-in-release') return [];
         const action = actionOf(feature, status);
         const iconKind = HUB_TOOL_ROWS.find(row => row.feature === feature.id)?.iconKind;
-        return [{ id: `feature:${feature.id}`, title: feature.name, detail: status.text, group: HUB_FEATURES_GROUP, ...(iconKind ? { iconKind } : {}),
+        return [{ id: hubFeatureReasonId(feature.id), title: feature.name, detail: status.text, group: 'Features', ...(iconKind ? { iconKind } : {}),
           ...(action ? { action: action.label, run: open(action.target) } : { action: `${feature.name} is off`, unavailable: status.text, run() {} }) }];
       });
     },

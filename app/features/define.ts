@@ -20,7 +20,7 @@ import { setting, type SettingScope, type SettingSpec } from "../shared/settings
 import type { HubIconKind } from "../shared/ui/hub-icon.js";
 
 /**
- * A Tools row Core draws for a tool without loading its code: its detail, its icon, its action
+ * A Features row Core draws for a tool without loading its code: its detail, its icon, its action
  * name (`Open <name>` by default) and how it opens; it matches the tool's `keywords`. A row
  * opens its tool through its Feature's link `toggle` (`offers`), asked to `show` (never to
  * close): in place (`{}`), as a Hub page (`page`, so Right Arrow opens it too) or after the Hub
@@ -164,8 +164,8 @@ export type FeatureDefinition = Readonly<{
     event?: `gw:${string}`;
   }>;
   /**
-   * The Hub's Tools row that runs this feature's tool and shows its shortcut, by its id
-   * `command`; it needs `tool`. `order` places it among the Tools rows, lowest first;
+   * The Hub's Features row that runs this feature's tool and shows its shortcut, by its id
+   * `command`; it needs `tool`. `order` places it among the Features rows, lowest first;
    * `keyOrder`, when present, also lists the shortcut on the Hub's Commands page, lowest
    * first. With `row`, Core draws the row from this manifest (app/shared/hub-tools.ts); a
    * tool whose own Hub source attaches the row (Travel, Build Library) leaves it out.

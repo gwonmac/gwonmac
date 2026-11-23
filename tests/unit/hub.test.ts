@@ -80,7 +80,7 @@ test('search folds typographic punctuation and matches parenthesised name words 
 
 test('root search orders groups by their best answer, tools before places, and keeps a scoped page and Continue in source order (HUB-058, HUB-185)', () => {
   const grouped = (id: string, title: string, group: string): HubRow => ({ ...row(id, title), group });
-  const maps = grouped('maps', 'Maps', 'Tools'), travel = grouped('travel', 'Travel', 'Tools'), place = grouped('place:1', 'Maguuma Stade', 'Places');
+  const maps = grouped('maps', 'Maps', 'Features'), travel = grouped('travel', 'Travel', 'Features'), place = grouped('place:1', 'Maguuma Stade', 'Places');
   const settings = grouped('settings', 'Settings', 'Commands'), commands = grouped('commands', 'Commands', 'Commands'), card = grouped('card', '1p in g', 'Calculator');
   const none = { phrases: new Set<string>(), answers: () => false };
   const cases: [string, readonly HubRow[], string, Parameters<typeof rankHubRows>[2], readonly string[]][] = [

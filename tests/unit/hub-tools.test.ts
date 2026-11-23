@@ -42,7 +42,7 @@ test('every word a Tools row answered still finds it', () => {
     const hub = { close() {}, resume() {}, showRows() {}, suspend() {}, shortcuts: { lookup: () => undefined } };
     const { commands } = createHubCommands(hub, () => async () => {});
     assert.ok(commands);
-    const rows = commands('').filter(row => row.group === 'Tools');
+    const rows = commands('').filter(row => row.group === 'Features');
     assert.deepEqual(rows.map(row => row.id), HUB_TOOL_ROWS.map(tool => tool.id));
     for (const [id, words] of OLD_HUB_WORDS) for (const word of words.split(' ')) {
       assert.ok(matchHubRows(rows, word).some(row => row.id === id), `${word} finds ${id}`);

@@ -57,7 +57,7 @@ test("Tools reset promises and clears both Travel preference owners", { tag: "@j
     expect(await app.evaluate(() => globalThis.__resetRestart.options))
       .toMatchObject({
         message: "Reset all app settings?",
-        detail: "This resets launcher and game preferences, Tools, shortcuts, custom map styles, and custom panel colors. Original textures will be selected. Accounts, saved logins, game files, imported texture packs, builds, templates, screenshots, and chat logs are kept.",
+        detail: "This resets launcher and game preferences, Features, shortcuts, custom map styles, and custom panel colors. Original textures will be selected. Accounts, saved logins, game files, imported texture packs, builds, templates, screenshots, and chat logs are kept.",
       });
     const settings = JSON.parse(
       await readFile(path.join(userData, "settings.json"), "utf8"),

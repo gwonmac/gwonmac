@@ -72,7 +72,7 @@ test('the scope word of an off Feature finds its row, and the Feature adds nothi
   await mountFixture('&features=plain-game');
   await ask('whisper romi');
   expect(q('.hub-row[data-id="feature:whispers"] .hub-detail')?.textContent).toBe('Off while you play the plain game.');
-  // Whispers' own Tools row, and every person row it would add, stay away.
+  // Whispers' own Features row, and every person row it would add, stay away.
   expect([...document.querySelectorAll<HTMLElement>('.hub-row')].map(row => row.dataset.id)).toEqual(['feature:whispers']);
   // Enter on a reason with no action runs nothing; Home's empty search lists no off Feature.
   press('Enter');
