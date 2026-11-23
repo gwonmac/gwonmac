@@ -141,7 +141,10 @@ Examples: [`skill-cooldowns/`](../app/features/skill-cooldowns/) and
 - **The switch.** One per Feature, declared with `featureSwitch(fallback, { tools: true })`, for a
   new Feature under the key `<id>Enabled` (released keys such as `travelPalette` never change). It names nothing: players see it under the Feature's name and
   summary, so the contract refuses a `label` or `help` on it. A Feature without a switch
-  lists in `requires` the Features it runs with. Never rename a released switch key
+  lists in `requires` the Features it runs with and is a **part** of the first of them that has a
+  switch: no card of its own, a section on that Feature's page (launcher and website), and no
+  options (the contract refuses them). Use a part when a player would never want it on while the
+  other is off but it needs its own proof (Team Apply in the Build Library). Never rename a released switch key
   ([Feature switches](settings.md#feature-switches)).
 - **Options.** Each one is a `setting.*` from
   [`app/shared/settings/define.ts`](../app/shared/settings/define.ts) with a `label` and

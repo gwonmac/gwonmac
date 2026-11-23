@@ -13,7 +13,7 @@ import {
   type FeatureSettingKey,
 } from "@shared/feature-contracts";
 import { featureShown, type FeatureState } from "@shared/feature-resolve";
-import { featureStatus as sharedStatus, SWITCH_FEATURES, switchOf, type FeatureStatus, type SwitchFeature } from "@shared/feature-status";
+import { featureStatus as sharedStatus, runsWith, SWITCH_FEATURES, switchOf, type FeatureStatus, type SwitchFeature } from "@shared/feature-status";
 import type { GlobalTool, LauncherSnapshot } from "@shared/launcher-contracts";
 import { markdownInline, parseMarkdown, type MarkdownBlock, type MarkdownInline } from "@shared/launcher-markdown";
 import { shortcutDisplay, type ShortcutAction } from "@shared/keyboard-shortcuts";
@@ -23,13 +23,25 @@ import { settingShown } from "@shared/settings/index";
 import type { SettingSpec } from "@shared/settings/define";
 import { guideLink } from "./guide";
 
-/** A feature with a card: every feature but the launch mode, which is the plain-game strip. */
+/**
+ * A Feature the tab shows: every feature but the launch mode, which is the plain-game strip. One
+ * with a switch of its own has a card and a page. One without (Progress, Team Apply) is a part of
+ * the Feature it runs with: a section on that Feature's page, with no card.
+ */
 export type CardFeature = SwitchFeature;
-export const CARD_FEATURES: readonly CardFeature[] = SWITCH_FEATURES;
-const byId = new Map<FeatureId, CardFeature>(CARD_FEATURES.map((feature) => [feature.id, feature]));
+export const CARD_FEATURES: readonly CardFeature[] = SWITCH_FEATURES.filter((feature) => runsWith(feature) === null);
+const byId = new Map<FeatureId, CardFeature>(SWITCH_FEATURES.map((feature) => [feature.id, feature]));
 export const cardFeature = (id: FeatureId): CardFeature | undefined => byId.get(id);
 /** The cards a build at `stage` shows: a Feature with a later manifest `stage` is not in this release. */
 export const cardsAt = (stage: ReleaseStage): readonly CardFeature[] => CARD_FEATURES.filter((feature) => featureShown(feature, stage));
+/** The parts a Feature's page shows in a build at `stage`. */
+export const partsOf = (feature: CardFeature, stage: ReleaseStage): readonly CardFeature[] =>
+  SWITCH_FEATURES.filter((each) => runsWith(each)?.id === feature.id && featureShown(each, stage));
+/** The Feature whose page shows `id`: its own, or for a part, the Feature it runs with. */
+export const pageOf = (id: FeatureId): FeatureId => {
+  const feature = byId.get(id);
+  return feature ? (runsWith(feature) ?? feature).id : id;
+};
 
 /**
  * The label beside the name of a Feature or option still in development, where the build shows it:
@@ -79,8 +91,7 @@ export function groupCards(
 
 /**
  * The card tag that says how a player meets a Feature once it is on (its manifest `presence`).
- * A tool or action names its own shortcut as the player set it. A card that is part of another
- * Feature shows no tag: it shows up inside that Feature.
+ * A tool or action names its own shortcut as the player set it.
  */
 export function presenceTag(feature: CardFeature, shortcuts: LauncherSnapshot["shortcuts"]): string | null {
   const { shortcuts: declared }: FeatureDefinition = feature;

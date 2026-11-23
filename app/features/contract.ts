@@ -97,6 +97,9 @@ function checkFolder({ folder, manifest, files, readme, changelog, imports }: Fe
   if (switches.length === 0 && (manifest.kind === "mode" || (manifest.requires ?? []).length === 0)) {
     problems.push(`${at}/feature.ts: no switch; declare one with featureSwitch, or list in requires the features it runs with.`);
   }
+  if (switches.length === 0 && (manifest.requires ?? []).length > 0 && settings.length > 0) {
+    problems.push(`${at}/feature.ts: ${settings.map(([key]) => key).join(", ")} have no page to show on; a feature without a switch is a section of the one it runs with, so its options belong there.`);
+  }
   if (manifest.tool !== undefined && switches.length === 0) {
     problems.push(`${at}/feature.ts: tool needs a switch of its own; its card and Feature page turn it, so declare one in settings with featureSwitch.`);
   }

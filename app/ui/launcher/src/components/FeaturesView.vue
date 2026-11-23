@@ -23,13 +23,15 @@ import {
   groupCards,
   FEATURE_GROUPS,
   presenceTag,
+  pageOf,
+  partsOf,
   launcherFeatureState,
   type CardFeature,
   type CardSize,
   type FeatureFilter,
   type SwitchChange,
 } from "../features";
-import { runsWith, showsReason, switchOf } from "@shared/feature-status";
+import { showsReason, switchOf, SWITCH_FEATURES } from "@shared/feature-status";
 import { fixtureFacts } from "../fixtures";
 import { revealSetting } from "../reveal-setting";
 import { useSaveStatus, type PerformSave } from "../save-status";
@@ -97,7 +99,7 @@ const state = computed(() => launcherFeatureState(props.snapshot.features));
 /** The stage this build shows (app/shared/release.ts): a Feature or option with a later one is not in this release. */
 const stage = computed(() => props.snapshot.features.stage);
 const cards = computed(() => cardsAt(stage.value));
-const statuses = computed(() => new Map(CARD_FEATURES.map((each) => [each.id, featureStatus(each, state.value, tools.value)])));
+const statuses = computed(() => new Map(SWITCH_FEATURES.map((each) => [each.id, featureStatus(each, state.value, tools.value)])));
 const statusOf = (each: CardFeature) => statuses.value.get(each.id)!;
 const badges = computed(() => new Map(CARD_FEATURES.map((each) => [each.id, badgeOf(changelogOf(each), props.snapshot.appVersion)])));
 const groups = computed(() => groupCards(filter.value, query.value, (each) => statusOf(each).checked, stage.value));
@@ -107,7 +109,9 @@ const filters = computed(() => [
   { id: "on", name: `On (${onCount.value})` },
   ...FEATURE_GROUPS,
 ]);
-const shown = computed(() => cards.value.find((each) => each.id === feature.value) ?? null);
+/** A part's page is the page of the Feature it runs with (Progress → Travel). */
+const shown = computed(() => feature.value === null ? null : cards.value.find((each) => each.id === pageOf(feature.value!)) ?? null);
+const shownParts = computed(() => shown.value ? partsOf(shown.value, stage.value).map((part) => ({ feature: part, status: statusOf(part) })) : []);
 
 /** The launch mode's words, from its manifest; its switch is inverted (on while `gwonmacTools` is off). */
 const PLAIN_GAME = featureSettingText("gwonmacTools");
@@ -148,9 +152,8 @@ async function attempt(action: () => Promise<unknown>) {
 }
 
 async function toggle(each: CardFeature, on: boolean) {
-  // A switchless Feature has nothing of its own to turn off: its switch is the one it runs with.
   // A Feature that needs another reads "Needs X" and offers "Turn on X" (resolve's reason).
-  if (statusOf(each).locked || (!on && runsWith(each))) return;
+  if (statusOf(each).locked) return;
   await attempt(() => apply([{ tool: switchOf(each), enabled: on }]));
 }
 
@@ -218,6 +221,7 @@ function onSearchKey(event: KeyboardEvent) {
       v-if="shown"
       :feature="shown"
       :status="statusOf(shown)"
+      :parts="shownParts"
       :settings="snapshot.settings"
       :shortcuts="snapshot.shortcuts"
       :api="native?.tools"
@@ -294,10 +298,9 @@ function onSearchKey(event: KeyboardEvent) {
                 <p v-if="showsReason(statusOf(each))" :id="`reason-${each.id}`" class="reason" :class="statusOf(each).tone">{{ statusOf(each).text }}</p>
               </div>
               <div class="card-foot">
-                <span v-if="!runsWith(each) && presenceTag(each, snapshot.shortcuts)" class="chip">{{ presenceTag(each, snapshot.shortcuts) }}</span>
+                <span v-if="presenceTag(each, snapshot.shortcuts)" class="chip">{{ presenceTag(each, snapshot.shortcuts) }}</span>
                 <span class="chip">{{ REGION_WORDS[each.region] }}</span>
-                <span v-if="runsWith(each)" class="runs-with">Part of {{ runsWith(each)!.name }}</span>
-                <FeatureSwitch v-else :checked="statusOf(each).checked" :label="each.name" :locked="statusOf(each).locked" :describedby="showsReason(statusOf(each)) ? `reason-${each.id}` : undefined" @change="toggle(each, $event)" />
+                <FeatureSwitch :checked="statusOf(each).checked" :label="each.name" :locked="statusOf(each).locked" :describedby="showsReason(statusOf(each)) ? `reason-${each.id}` : undefined" @change="toggle(each, $event)" />
               </div>
             </template>
             <template v-else>
@@ -306,8 +309,7 @@ function onSearchKey(event: KeyboardEvent) {
                 <strong><button class="card-link" @click="open(each.id)">{{ each.name }}</button><span v-if="badges.get(each.id)" class="dot" :title="badges.get(each.id) ?? undefined"></span><span v-if="badges.get(each.id)" class="visually-hidden">{{ badges.get(each.id) }}</span></strong>
                 <small :id="`reason-${each.id}`" :class="showsReason(statusOf(each)) ? statusOf(each).tone : 'muted'">{{ showsReason(statusOf(each)) ? statusOf(each).text : each.summary }}</small>
               </span>
-              <span v-if="runsWith(each)" class="runs-with">Part of {{ runsWith(each)!.name }}</span>
-              <FeatureSwitch v-else :checked="statusOf(each).checked" :label="each.name" :locked="statusOf(each).locked" :describedby="showsReason(statusOf(each)) ? `reason-${each.id}` : undefined" @change="toggle(each, $event)" />
+              <FeatureSwitch :checked="statusOf(each).checked" :label="each.name" :locked="statusOf(each).locked" :describedby="showsReason(statusOf(each)) ? `reason-${each.id}` : undefined" @change="toggle(each, $event)" />
             </template>
           </article>
         </div>
@@ -387,7 +389,6 @@ function onSearchKey(event: KeyboardEvent) {
 .card-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px; padding: 14px 16px 4px; }
 .card-body h3 { margin: 0; font-size: 15px; font-weight: 600; }
 .summary { display: -webkit-box; margin: 0; overflow: hidden; color: var(--muted); font-size: var(--fs-sm); line-height: 1.45; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-.runs-with { color: var(--muted); font-size: var(--fs-xs); white-space: nowrap; }
 .reason { margin: 2px 0 0; font-size: var(--fs-xs); line-height: 1.4; }
 .reason.muted, .tile-copy small.muted { color: var(--muted); }
 .reason.warning, .tile-copy small.warning { color: var(--warning); }

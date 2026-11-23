@@ -82,20 +82,13 @@ describe("Features tab", () => {
     expect(native.tools.setFeature.mock.calls).toEqual(sends ? [[sends]] : []);
   });
 
-  // Progress has no switch of its own: its card and page never move Travel's switch.
-  it("shows a Feature that runs with another without a switch of its own", async () => {
-    const { wrapper, native } = view(withSwitches(loaded, { "quick-travel": false }), proved);
-    const card = cardOf(wrapper, "progress");
-    expect({ switch: card.find('[role="switch"]').exists(), runsWith: card.get(".runs-with").text(), reason: card.get("#reason-progress").text() })
-      .toEqual({ switch: false, runsWith: "Part of Travel", reason: "Needs Travel. Turn it on first." });
-    await card.get(".card-link").trigger("click");
-    await pressed(wrapper, "Turn on Travel").trigger("click");
-    await flushPromises();
-    expect(native.tools.setFeature.mock.calls).toEqual([[{ tool: "quick-travel", enabled: true }]]);
-
-    const on = view(loaded, proved).wrapper;
-    await cardOf(on, "progress").get(".card-link").trigger("click");
-    expect({ action: on.find(".head-action").exists(), status: on.get("#feature-status").text() }).toEqual({ action: false, status: "On · part of Travel" });
+  // Progress has no switch of its own: it is a section of Travel's page, not a card.
+  it("shows a Feature without a switch of its own as a section of the one it runs with", async () => {
+    const { wrapper } = view(loaded, proved);
+    expect(wrapper.find('[data-feature="progress"]').exists()).toBe(false);
+    await cardOf(wrapper, "travel").get(".card-link").trigger("click");
+    expect(wrapper.get("#part-progress").text()).toBe("Progress");
+    expect(wrapper.get("#feature-status").text()).toBe("On");
   });
 
   it.each([
