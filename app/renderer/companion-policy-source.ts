@@ -10,6 +10,7 @@ import { FEATURES, type FeatureId } from "../shared/feature-contracts.js";
 import { resolve, type FeatureFacts, type FeatureResolution, type FeatureState } from "../shared/feature-resolve.js";
 import type { CompanionPlayRegionState } from "./companion-play-region-snapshot.js";
 import type { OptionalToolSettings, RuntimePlayRegion } from "./enhancement-runtime-policy.js";
+import { safely } from "./contained.js";
 
 type CompanionPolicyReason = "launch" | "region" | "settings";
 
@@ -85,7 +86,7 @@ export function createCompanionPolicySource<Settings extends OptionalToolSetting
   const publish = (reason: Exclude<CompanionPolicyReason, "launch">) => {
     snapshot = makeSnapshot();
     const update = Object.freeze({ reason, snapshot });
-    for (const listener of listeners) listener(update);
+    for (const listener of listeners) safely("a Tools policy listener", () => listener(update));
   };
   const onSettings = () => {
     if (disposed) return;

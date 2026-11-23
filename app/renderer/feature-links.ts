@@ -13,12 +13,13 @@ import {
 import { FEATURES, type FeatureId } from "../shared/feature-contracts.js";
 import type { FeatureOff } from "../shared/feature-resolve.js";
 import { featureOff, featureOn } from "./feature-on.js";
+import { safely } from "./contained.js";
 
 type AnyLink = Readonly<Record<string, (...args: never[]) => unknown>>;
 
 const provided = new Map<LinkTarget, FeatureLinkApis[LinkTarget]>();
 const listeners = new Set<() => void>();
-const changed = () => { for (const listener of listeners) listener(); };
+const changed = () => { for (const listener of listeners) safely("a link-change listener", listener); };
 
 /** Offers `target`'s link to the Features that name it, until the returned stop. */
 export function provideLink<Target extends LinkTarget>(target: Target, link: FeatureLinkApis[Target]): () => void {
