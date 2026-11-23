@@ -1,6 +1,6 @@
-<script setup lang="ts">
+<script lang="ts">
 /**
- * A Feature's Settings on its page: one row per option its manifest declares, drawn by type
+ * A Feature's Settings, its page's Settings tab: one row per option its manifest declares, drawn by type
  * (switch, number, choice, position), the few values with a control of their own (a map style,
  * Compass rings, colours, skill labels), and its shortcuts. One block for both hosts: the
  * launcher's Features tab and the Hub's Features section pass their own settings, save and
@@ -25,17 +25,6 @@ import CompassRangesControl from "./feature-controls/CompassRangesControl.vue";
 import CooldownColorControl from "./feature-controls/CooldownColorControl.vue";
 import MapStyleControl from "./feature-controls/MapStyleControl.vue";
 
-const props = withDefaults(defineProps<{
-  feature: CardFeature;
-  /** The stage this build shows: an option with a later manifest `stage` gets no row (app/shared/release.ts). */
-  stage: ReleaseStage;
-  settings: InGameSettings;
-  shortcuts: LauncherSnapshot["shortcuts"];
-  api?: InGameTools | undefined;
-  save: (patch: InGamePatch) => Promise<void>;
-  performSave: PerformSave;
-}>(), { api: undefined });
-
 type Save = (patch: InGamePatch) => Promise<void>;
 type Control = Readonly<{
   component: Component;
@@ -59,10 +48,31 @@ const CONTROLS: Readonly<Partial<Record<string, Control>>> = {
 };
 const claimed = new Set(Object.values(CONTROLS).flatMap((control) => control?.claims ?? []));
 
-const values = computed<Readonly<Record<string, unknown>>>(() => props.settings);
 /** The options this host may change; a value without a control has none here (Travel favourites live in Travel). */
-const options = computed(() => featureOptions(props.feature, props.stage).filter((option) => option.key in values.value
-  && (CONTROLS[option.key] !== undefined || (!claimed.has(option.key) && option.kind !== "value"))));
+function settingOptions(feature: CardFeature, stage: ReleaseStage, settings: InGameSettings): FeatureOption[] {
+  return featureOptions(feature, stage).filter((option) => option.key in settings
+    && (CONTROLS[option.key] !== undefined || (!claimed.has(option.key) && option.kind !== "value")));
+}
+/** Whether this host draws any setting for the Feature: its page shows a Settings tab only then. */
+export function hasFeatureSettings(feature: CardFeature, stage: ReleaseStage, settings: InGameSettings): boolean {
+  return settingOptions(feature, stage, settings).length > 0 || ("shortcuts" in feature && feature.shortcuts.length > 0);
+}
+</script>
+
+<script setup lang="ts">
+const props = withDefaults(defineProps<{
+  feature: CardFeature;
+  /** The stage this build shows: an option with a later manifest `stage` gets no row (app/shared/release.ts). */
+  stage: ReleaseStage;
+  settings: InGameSettings;
+  shortcuts: LauncherSnapshot["shortcuts"];
+  api?: InGameTools | undefined;
+  save: (patch: InGamePatch) => Promise<void>;
+  performSave: PerformSave;
+}>(), { api: undefined });
+
+const values = computed<Readonly<Record<string, unknown>>>(() => props.settings);
+const options = computed(() => settingOptions(props.feature, props.stage, props.settings));
 const shortcutRows = computed(() => "shortcuts" in props.feature ? props.feature.shortcuts : []);
 const dimmed = (option: FeatureOption) => option.dependsOn !== undefined && values.value[option.dependsOn] === false;
 const atFallback = (option: FeatureOption & { kind: "position" }) => JSON.stringify(values.value[option.key]) === JSON.stringify(option.fallback);
@@ -77,8 +87,7 @@ function choose(option: FeatureOption & { kind: "choice" }, event: Event) {
 </script>
 
 <template>
-  <section v-if="options.length || shortcutRows.length" aria-labelledby="settings-title" class="feature-settings">
-    <h2 id="settings-title">Settings</h2>
+  <section v-if="options.length || shortcutRows.length" class="feature-settings">
     <p v-if="'settingsHelp' in feature" class="settings-help">{{ feature.settingsHelp }}</p>
     <template v-for="option in options" :key="option.key">
       <template v-if="CONTROLS[option.key]">
@@ -108,7 +117,6 @@ function choose(option: FeatureOption & { kind: "choice" }, event: Event) {
 <!-- Not scoped: the controls in ./feature-controls draw the same rows. -->
 <style>
 .feature-settings { display: flex; flex-direction: column; }
-.feature-settings > h2 { margin: 0; font-size: var(--fs-lg); font-weight: 600; }
 .feature-settings .settings-help { margin: 4px 0 0; color: var(--muted); font-size: var(--fs-sm); }
 .feature-settings .row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--line); }
 .feature-settings .row.dimmed .row-label { opacity: .55; }

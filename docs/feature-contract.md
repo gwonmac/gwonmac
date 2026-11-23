@@ -1,8 +1,10 @@
 # Feature contract
 
 A Feature is one thing a player can turn on: a card in the launcher's Features tab, a
-Feature page there (and in the Hub's Settings) with its switch, options and shortcuts, and a
-page on www.gwonmac.com. Each Feature is one folder,
+Feature page there (and in the Hub's Settings) with its switch in the header and tabs for
+General (its README, what it uses, what's new), Settings (its options and shortcuts, when it
+has any) and Feedback (a report that names the Feature and whether it ran), and a page on
+www.gwonmac.com. Each Feature is one folder,
 `app/features/<folder>/`, and one entry in `FEATURES` in
 [`app/features/index.ts`](../app/features/index.ts), plus one export line in
 `app/features/companion-parts.ts` when it has a game part

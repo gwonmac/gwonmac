@@ -328,9 +328,11 @@ async function updateContent(content: NonNullable<LauncherPreferencesPatch["cont
         :snapshot="featuresSnapshot"
         :native="native"
         :target="featureTarget"
+        :send-feedback="sendFeedback"
         @fixture="showFeaturesFixture"
         @settings="openSettings"
         @external="openExternal"
+        @url="openUrl"
         @link="followGuideLink"
       />
 
@@ -349,7 +351,7 @@ async function updateContent(content: NonNullable<LauncherPreferencesPatch["cont
         @delete="id => runAction('The account could not be deleted.', () => native?.profiles.delete(id))"
       />
 
-      <HelpView v-else-if="route === 'help'" :send="sendFeedback" :page="helpPage" @external="openExternal" @url="openUrl" @settings="openSettings" @link="followGuideLink" />
+      <HelpView v-else-if="route === 'help'" :send="sendFeedback" :app-version="snapshot.appUpdate.currentVersion" :page="helpPage" @external="openExternal" @url="openUrl" @settings="openSettings" @link="followGuideLink" />
 
       <SettingsView v-else :snapshot="settingsSnapshot" :native="native" :launcher="{ snapshot, native }" :target="settingsTarget" @fixture="snapshot = $event" @section="settingsSection = $event" @features="openSettings" />
     </main>

@@ -3,7 +3,7 @@
  * Electron main. Domain owners remain in main; this file only names validated
  * commands and the rebuildable projection the Vue application renders.
  */
-import type { FeatureFacts } from "./feature-resolve.js";
+import type { FeatureFacts, FeatureOffReason } from "./feature-resolve.js";
 import { FEATURES, type GlobalTool } from "../features/index.js";
 import type {
   AppSettingsPatch,
@@ -319,20 +319,41 @@ export interface LauncherFeedback {
   readonly message: string;
   /** Present only when the player asked for an answer. */
   readonly email?: string;
+  /** Present when the player wrote it on a Feature's page: which Feature, and whether it ran. */
+  readonly feature?: LauncherFeedbackFeature;
+}
+
+/** "on", or why the Feature was off when the player wrote (resolve's reason, app/shared/feature-resolve.ts). */
+export const LAUNCHER_FEEDBACK_FEATURE_STATES = [
+  "on", "not-in-release", "plain-game", "needs", "switched-off", "needs-restart", "needs-update", "not-proven", "checking", "wrong-area",
+] as const satisfies readonly ("on" | FeatureOffReason)[];
+export type LauncherFeedbackFeatureState = (typeof LAUNCHER_FEEDBACK_FEATURE_STATES)[number];
+export interface LauncherFeedbackFeature {
+  readonly id: FeatureId;
+  readonly state: LauncherFeedbackFeatureState;
+}
+
+const FEATURE_IDS: ReadonlySet<string> = new Set(FEATURES.map((feature) => feature.id));
+function parseFeedbackFeature(value: unknown): LauncherFeedbackFeature {
+  const source = exactObject(value, ["id", "state"], "feedback feature");
+  if (typeof source.id !== "string" || !FEATURE_IDS.has(source.id)) throw new Error("feedback feature is invalid");
+  if (typeof source.state !== "string" || !LAUNCHER_FEEDBACK_FEATURE_STATES.includes(source.state as LauncherFeedbackFeatureState)) throw new Error("feedback feature state is invalid");
+  return { id: source.id as FeatureId, state: source.state as LauncherFeedbackFeatureState };
 }
 
 export function parseLauncherFeedback(value: unknown): LauncherFeedback {
-  const source = exactObject(value, ["kind", "message", "email"], "feedback");
+  const source = exactObject(value, ["kind", "message", "email", "feature"], "feedback");
   if (typeof source.kind !== "string" || !LAUNCHER_FEEDBACK_KINDS.includes(source.kind as LauncherFeedbackKind)) throw new Error("feedback kind is invalid");
   const kind = source.kind as LauncherFeedbackKind;
   if (typeof source.message !== "string") throw new Error("feedback message is invalid");
   const message = source.message.trim();
   if (!message || message.length > LAUNCHER_FEEDBACK_MESSAGE_LIMIT) throw new Error("feedback message is invalid");
-  if (source.email === undefined) return { kind, message };
+  const feature = source.feature === undefined ? {} : { feature: parseFeedbackFeature(source.feature) };
+  if (source.email === undefined) return { kind, message, ...feature };
   if (typeof source.email !== "string") throw new Error("feedback email is invalid");
   const email = source.email.trim();
   if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(email)) throw new Error("feedback email is invalid");
-  return { kind, message, email };
+  return { kind, message, email, ...feature };
 }
 
 export function parseGlobalTool(value: unknown): GlobalTool {

@@ -277,11 +277,16 @@ export async function openFeatures(fixture: OfflineFixture, feature?: FeatureId)
   const page = fixture.app.windows().find(candidate => candidate.url().endsWith("/launcher/index.html")) ?? fixture.page;
   await page.getByRole("navigation", { name: "Main navigation" }).getByRole("button", { name: "Features", exact: true }).click();
   await page.locator(".features-page").waitFor();
-  if (feature) {
-    await page.locator(`[data-feature="${feature}"] .card-link`).click();
-    await page.locator(".feature-page").waitFor();
-  }
+  if (feature) await openFeaturePage(page, feature);
   return page;
+}
+
+/** Opens a Feature's page from its card, on its Settings tab when it has one: every caller wants its controls. */
+export async function openFeaturePage(page: Page, feature: FeatureId): Promise<void> {
+  await page.locator(`[data-feature="${feature}"] .card-link`).click();
+  await page.locator(".feature-page").waitFor();
+  const settings = page.getByRole("tab", { name: "Settings", exact: true });
+  if (await settings.count()) await settings.click();
 }
 
 export async function openSettings(

@@ -1,22 +1,22 @@
 <script setup lang="ts">
 /**
  * The launcher's one help destination: the bundled Guide, open issues in
- * ArenaNet's official client, and where to report a problem. The feedback form
- * shows success only after main confirms that Basin accepted the report.
+ * ArenaNet's official client, and where to report a problem (./FeedbackForm.vue).
  */
 import { computed, nextTick, ref } from "vue";
-import { Check, ExternalLink, Github, Info, Smartphone } from "lucide-vue-next";
-import { LAUNCHER_FEEDBACK_MESSAGE_LIMIT, parseLauncherFeedback, type LauncherExternalLink, type LauncherFeedback, type LauncherFeedbackKind } from "@shared/launcher-contracts";
+import { ExternalLink, Github, Info, Smartphone } from "lucide-vue-next";
+import type { LauncherExternalLink, LauncherFeedback } from "@shared/launcher-contracts";
 import type { MarkdownBlock, MarkdownInline as Inline } from "@shared/launcher-markdown";
 import type { SettingsTarget } from "@shared/settings-catalogue";
 import { GUIDE_HELP_PAGES, GUIDE_PAGES, parseGuideAction, type GuidePageId } from "../guide";
 import DiscordIcon from "./DiscordIcon.vue";
+import FeedbackForm from "./FeedbackForm.vue";
 import MarkdownBody from "./MarkdownBody.vue";
 import MarkdownInline from "./MarkdownInline.vue";
 
 export type HelpPage = GuidePageId | "report";
 
-const props = defineProps<{ send: (feedback: LauncherFeedback) => Promise<void>; page?: HelpPage | undefined }>();
+const props = defineProps<{ send: (feedback: LauncherFeedback) => Promise<void>; appVersion?: string | undefined; page?: HelpPage | undefined }>();
 const emit = defineEmits<{ external: [kind: LauncherExternalLink]; url: [url: string]; settings: [target: SettingsTarget]; link: [actionId: string] }>();
 
 const active = ref<HelpPage>(props.page ?? "known-issues");
@@ -62,30 +62,6 @@ const issueIntro = computed(() => {
   return blocks.slice(0, first < 0 ? blocks.length : first);
 });
 
-const kind = ref<LauncherFeedbackKind>("problem");
-const message = ref("");
-const email = ref("");
-const state = ref<"editing" | "sending" | "sent" | "failed">("editing");
-// The same parser main applies, so the button enables only for a report main accepts.
-const feedback = computed(() => {
-  try {
-    return parseLauncherFeedback({ kind: kind.value, message: message.value, ...(email.value.trim() ? { email: email.value } : {}) });
-  } catch {
-    return null;
-  }
-});
-
-async function submit() {
-  if (!feedback.value || state.value === "sending") return;
-  state.value = "sending";
-  try {
-    await props.send(feedback.value);
-    message.value = "";
-    state.value = "sent";
-  } catch {
-    state.value = "failed";
-  }
-}
 </script>
 
 <template>
@@ -137,17 +113,7 @@ async function submit() {
 
           <section class="feedback-card" aria-labelledby="feedback-title">
             <h2 id="feedback-title">Tell us about a problem or an idea</h2>
-            <div v-if="state === 'sent'" class="feedback-sent" role="status"><Check /><strong>Thanks, we got your message.</strong><button class="text-link" @click="state = 'editing'">Send another</button></div>
-            <form v-else class="feedback-form" @submit.prevent="submit">
-              <label>Message<textarea v-model="message" rows="5" :maxlength="LAUNCHER_FEEDBACK_MESSAGE_LIMIT" placeholder="What did you do, and what happened? A short description is enough." /></label>
-              <div class="form-row">
-                <label>Type<select v-model="kind"><option value="problem">Problem</option><option value="idea">Idea</option><option value="other">Something else</option></select></label>
-                <label>Email (optional)<input v-model="email" type="email" autocomplete="email" placeholder="Only if you want an answer" /></label>
-              </div>
-              <p class="feedback-note">Your message goes to the gwonmac team through Basin, a form service, together with your app version and macOS version. Nothing else is sent.</p>
-              <p v-if="state === 'failed'" class="inline-message" role="alert">Your message could not be sent. Check your connection and try again, or ask on Discord.</p>
-              <div class="form-actions"><button type="submit" class="primary" :disabled="!feedback || state === 'sending'">{{ state === 'sending' ? 'Sending…' : 'Send' }}</button></div>
-            </form>
+            <FeedbackForm :send="send" :app-version="appVersion" />
           </section>
         </template>
 

@@ -243,10 +243,29 @@ describe("unified launcher shell", () => {
     expect(wrapper.get(".help-page h1").text()).toBe("Known issues");
     await wrapper.findAll(".help-nav button").find((button) => button.text() === "Report a problem")!.trigger("click");
     await wrapper.get(".feedback-form textarea").setValue("Add a damage monitor.");
-    await wrapper.get(".feedback-form select").setValue("idea");
+    await wrapper.get('.feedback-form input[value="idea"]').setValue();
     await wrapper.get(".feedback-form").trigger("submit");
     await flushPromises();
     expect(send).toHaveBeenCalledWith({ kind: "idea", message: "Add a damage monitor." });
+    wrapper.unmount();
+  });
+
+  // A report from a Feature's page must say which Feature, and whether it ran, or it cannot be traced.
+  it("sends a Feature page's feedback with that Feature and its state", async () => {
+    const send = vi.fn(async () => undefined);
+    installNative({ feedback: { send } });
+    const wrapper = mount(App);
+    await flushPromises();
+    await wrapper.findAll(".titlebar nav button").find((button) => button.text() === "Features")!.trigger("click");
+    await wrapper.get('[data-feature="travel"] .card-link').trigger("click");
+    await flushPromises();
+    await wrapper.get("#feature-tab-feedback").trigger("click");
+    expect(wrapper.get(".feedback-attached").text()).toContain("Travel");
+    await wrapper.get(".feedback-form textarea").setValue("It took me to the wrong outpost.");
+    await wrapper.get(".feedback-form").trigger("submit");
+    await flushPromises();
+    expect(send).toHaveBeenCalledWith({ kind: "problem", message: "It took me to the wrong outpost.", feature: { id: "travel", state: expect.any(String) } });
+    expect(wrapper.text()).toContain("Thanks, we got your message about Travel.");
     wrapper.unmount();
   });
 

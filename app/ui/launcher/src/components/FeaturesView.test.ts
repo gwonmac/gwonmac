@@ -87,7 +87,7 @@ describe("Features tab", () => {
     const { wrapper, native } = view(withSwitches(loaded, { "quick-travel": false }), proved);
     const card = cardOf(wrapper, "progress");
     expect({ switch: card.find('[role="switch"]').exists(), runsWith: card.get(".runs-with").text(), reason: card.get("#reason-progress").text() })
-      .toEqual({ switch: false, runsWith: "Runs with Travel", reason: "Needs Travel. Turn it on first." });
+      .toEqual({ switch: false, runsWith: "Part of Travel", reason: "Needs Travel. Turn it on first." });
     await card.get(".card-link").trigger("click");
     await pressed(wrapper, "Turn on Travel").trigger("click");
     await flushPromises();
@@ -95,7 +95,7 @@ describe("Features tab", () => {
 
     const on = view(loaded, proved).wrapper;
     await cardOf(on, "progress").get(".card-link").trigger("click");
-    expect({ action: on.find(".head-action button").exists(), text: on.get(".head-action").text() }).toEqual({ action: false, text: "Runs with Travel" });
+    expect({ action: on.find(".head-action").exists(), status: on.get("#feature-status").text() }).toEqual({ action: false, status: "On · part of Travel" });
   });
 
   it.each([
