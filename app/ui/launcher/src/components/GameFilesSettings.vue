@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/**
+ * The Game files section of Settings: the download and its progress, repair, and the reset that
+ * removes only downloaded client data. The page loads the file details and runs each action.
+ */
 import { computed } from "vue";
 import { RotateCcw, Wrench } from "lucide-vue-next";
 import type { CacheInfo } from "@shared/contracts";
@@ -89,7 +93,7 @@ const status = computed(() => {
     <details>
       <summary>Advanced</summary>
       <button class="danger-button small" @click="reset"><RotateCcw />Reset and redownload game files</button>
-      <p>This removes only downloaded Guild Wars client data after restart. Profiles, saved logins, application settings, Tools, shortcuts, builds, templates, screenshots, chat logs, and window positions are kept.</p>
+      <p>This removes only downloaded Guild Wars client data after restart. Accounts, saved logins, application settings, Features, shortcuts, builds, templates, screenshots, chat logs, and window positions are kept.</p>
     </details>
   </div>
 </template>
