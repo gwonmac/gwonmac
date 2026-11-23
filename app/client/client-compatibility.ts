@@ -110,6 +110,23 @@ export async function readClientCandidate(
   }
 }
 
+/**
+ * The one rule for whether a served generation is an unconfirmed candidate: a
+ * pending marker that names exactly its fingerprint. Every activation asks
+ * this, whether the generation was published by this launch or by an earlier
+ * one, so a candidate that outlived an ordinary restart can still be confirmed.
+ */
+export async function pendingCandidateFingerprint(
+  artifacts: string,
+  clientFingerprint: string,
+): Promise<string | null> {
+  const candidate = await readClientCandidate(artifacts);
+  return candidate.status === "pending" &&
+    candidate.fingerprint === clientFingerprint
+    ? clientFingerprint
+    : null;
+}
+
 export function clientFingerprint(manifest: Manifest): string {
   const files = [...JSPI_ARTIFACTS, ...COMMON_ARTIFACTS, SNAPSHOT]
     .map((name) => {

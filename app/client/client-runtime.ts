@@ -67,6 +67,7 @@ import { prepareClientModule } from "./certification/client-module.js";
 import {
   clearRejectedClient,
   confirmClientCandidate,
+  pendingCandidateFingerprint,
   readClientCandidate,
   readRejectedClient,
   rejectClientCandidate,
@@ -593,11 +594,11 @@ export class ClientRuntime {
   private async activateStore(
     store: ChunkStore,
     clientFingerprint: string,
-    candidateFingerprint: string | null = null,
   ): Promise<ActiveClient> {
     this.initialResidencyRecorded = false;
-    const [enhancement] = await Promise.all([
+    const [enhancement, candidateFingerprint] = await Promise.all([
       this.selectClientWasm(),
+      pendingCandidateFingerprint(this.options.paths.artifacts, clientFingerprint),
       this.recordResidency(store),
     ]);
     const previous = this.activeSlot.current;
@@ -628,7 +629,6 @@ export class ClientRuntime {
   private async activateManifest(
     manifest: Manifest,
     clientFingerprint: string,
-    candidateFingerprint: string | null = null,
   ): Promise<ActiveClient> {
     const entry = manifest.entry(SNAPSHOT);
     if (!entry) throw new Error("client manifest has no snapshot");
@@ -640,7 +640,6 @@ export class ClientRuntime {
         manifest.compression,
       ),
       clientFingerprint,
-      candidateFingerprint,
     );
   }
 
@@ -666,7 +665,6 @@ export class ClientRuntime {
         "last published client failed integrity verification",
       );
     }
-    const candidate = await readClientCandidate(this.options.paths.artifacts);
     return this.activateStore(
       this.createStore(
         value.size,
@@ -675,10 +673,6 @@ export class ClientRuntime {
         value.compressionMode,
       ),
       value.clientFingerprint,
-      candidate.status === "pending" &&
-        candidate.fingerprint === value.clientFingerprint
-        ? candidate.fingerprint
-        : null,
     );
   }
 
@@ -812,12 +806,11 @@ export class ClientRuntime {
       const active = await this.activateManifest(
         result.manifest,
         result.fingerprint,
-        result.candidate ? result.fingerprint : null,
       );
       await this.pruneChunkCache();
       this.clientReady(active);
       updateSpan.end({
-        status: result.candidate ? "candidate" : "ready",
+        status: this.candidateHealthToken ? "candidate" : "ready",
         code: null,
         fingerprint: diagnosticDigest(result.fingerprint),
       });
