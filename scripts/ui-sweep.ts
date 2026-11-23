@@ -69,6 +69,11 @@ const SURFACES: readonly Surface[] = [
     scenes: [
       ...LAUNCHER_SCENES.map((scene) => ({ name: scene, path: `/?fixture=${scene}` })),
       ...LAUNCHER_TABS.map((tab) => ({ name: `tab-${tab.toLowerCase()}`, path: "/?fixture=features", open: launcherTab(tab) })),
+      { name: "help-report", path: "/?fixture=features", open: async (page: Page) => {
+        await launcherTab("Help")(page);
+        await page.getByRole("button", { name: "Report a problem", exact: true }).click();
+        await page.waitForTimeout(300);
+      } },
     ],
   },
   {

@@ -73,7 +73,9 @@ has the job. `pnpm ui:sweep` checks the rules marked *swept*
   bare ×. Launcher modals use `.icon-button` with the X icon.
 - **One choice from a short set** (switch a view, filter by two to five
   values): `.ui-segment`, with `role=tablist` when it switches panels. No
-  underline tabs. The launcher uses `.segmented`.
+  underline tabs. The launcher uses `.segmented`, and `.pill` toggles
+  (`aria-pressed`) for filters above a list. Their selected state is neutral
+  (`--surface-selected` or `--control`), never gold.
 - **Group labels.** In the Hub every group of results or tiles has the
   `.hub-group` label: display type, accent colour, body size; a count or key
   hint sits at the right in muted caption text. In a Tools window a section

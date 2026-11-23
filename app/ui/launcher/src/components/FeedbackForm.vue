@@ -94,7 +94,7 @@ async function submit() {
 .feedback-kinds legend { margin-bottom: 8px; padding: 0; color: var(--text-soft); font-size: var(--fs-md); }
 .feedback-kinds label { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 14px; border: 1px solid var(--line); border-radius: var(--radius-md); color: var(--muted); background: var(--sunken); cursor: pointer; }
 .feedback-kinds label:hover { color: var(--text); }
-.feedback-kinds label.selected { border-color: var(--gold-line); color: var(--gold-text); background: var(--gold-tint); }
+.feedback-kinds label.selected { color: var(--text); background: var(--surface-selected); }
 .feedback-kinds label:has(input:focus-visible) { outline: 2px solid var(--focus); outline-offset: 2px; }
 .feedback-kinds input { position: absolute; opacity: 0; pointer-events: none; }
 .feedback-kinds svg { width: 16px; height: 16px; }

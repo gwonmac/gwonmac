@@ -269,7 +269,7 @@ function onSearchKey(event: KeyboardEvent) {
         <div class="filters" role="group" aria-label="Show Features">
           <template v-for="(each, index) in filters" :key="each.id">
             <span v-if="index === 2" class="filter-divider" aria-hidden="true"></span>
-            <button class="pill" :class="{ selected: filter === each.id }" :aria-pressed="filter === each.id" @click="filter = each.id">{{ each.name }}</button>
+            <button class="pill" :aria-pressed="filter === each.id" @click="filter = each.id">{{ each.name }}</button>
           </template>
         </div>
         <span class="count">{{ cards.length }} Features</span>
@@ -353,9 +353,6 @@ function onSearchKey(event: KeyboardEvent) {
 .catalog-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding-bottom: 13px; border-bottom: 1px solid var(--line); }
 .filters { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin-right: auto; }
 .filter-divider { width: 1px; height: 16px; margin: 0 6px; background: var(--line); }
-.pill { padding: 6px 12px; border: 1px solid transparent; border-radius: var(--radius-pill); color: var(--muted); font-size: var(--fs-xs); }
-.pill:hover { color: var(--text); }
-.pill.selected { color: var(--text); background: var(--control); border-color: var(--line); }
 .count { color: var(--muted); font-size: var(--fs-xs); }
 /* When the filters take the whole row, the view controls wrap to the right edge together. */
 .count { margin-left: auto; }
