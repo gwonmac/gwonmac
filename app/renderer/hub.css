@@ -116,9 +116,11 @@
 
 .hub-view .travel-header-actions { top:4px; right:8px; }
 .hub-view .travel-header-actions :is(.travel-customize,.travel-close) { background:transparent; border:0; box-shadow:none; width:36px; height:36px; }
-.hub-view .travel-body { flex:1; min-height:0; padding:0 12px 16px; }
-.hub-view .travel-section-head { padding:12px 12px 8px; margin:0; }
-.hub-view .travel-section-head h2,.hub-view .travel-section-head span,.hub-view .travel-result-heading { font-size:var(--ui-type-caption-size); font-weight:500; color:var(--ui-text-muted); }
+.hub-view .travel-body { flex:1; min-height:0; padding:0 8px 16px; }
+/* Travel's group labels are the Hub's: the same type, colour and inset as .hub-group. */
+.hub-view .travel-section-head { padding:12px 10px 6px; margin:0; }
+.hub-view .travel-section-head h2 { color:var(--ui-accent-text); font:var(--ui-type-body-size)/var(--ui-type-body-line) var(--ui-font-display); }
+.hub-view .travel-section-head span,.hub-view .travel-result-heading { font-size:var(--ui-type-caption-size); font-weight:500; color:var(--ui-text-muted); }
 .hub-view .travel-section + .travel-section { border:0; margin-top:8px; padding-top:0; }
 .hub-view .travel-recent-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:2px 8px; }
 .hub-view .travel-favorite-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; }
