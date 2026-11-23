@@ -100,7 +100,7 @@ export class ProfileRuntimeStore {
   /**
    * Cancel waiting: takes queued profiles out of the queue and back to the row
    * they had before Play. A retry returns to Failed, so its failed window
-   * still offers Try again; every other profile returns to Ready.
+   * still offers Retry; every other profile returns to Ready.
    */
   releaseQueued(profileIds: readonly ProfileId[]): void {
     for (const profileId of profileIds) {

@@ -245,7 +245,7 @@ export class MultipleAccountsController {
   /**
    * Appends the profiles of one Play to the one ordered launch queue and
    * returns the ones it queued; `drain` opens them. A failed profile queues
-   * even while its failed window is still registered, so Try again replaces
+   * even while its failed window is still registered, so Retry replaces
    * that window.
    */
   queue(profileIds: readonly ProfileId[]): readonly ProfileId[] {
@@ -548,7 +548,7 @@ export class MultipleAccountsController {
     const profile = storage.kind === "isolated" ? this.profileFor(profileId) : null;
     let existing = windowRegistry.profileWindow(profileId);
     if (retry) {
-      // Try again replaces a failed window and starts with fresh recovery,
+      // Retry replaces a failed window and starts with fresh recovery,
       // also when the player already closed that window.
       resetRendererRecovery(storage.windowState);
       if (existing && !existing.isDestroyed()) existing.destroy();

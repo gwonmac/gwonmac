@@ -956,7 +956,7 @@ useClassicFrame(panel);
             type="button"
             class="ui-link"
             @click="$event.detail <= 1 && retrySearch()"
-          >Try again</button>
+          >Retry</button>
           {{ filtered.length }}
           {{ filtered.length === 1 ? "offer" : "offers" }}
         </span>
@@ -977,7 +977,7 @@ useClassicFrame(panel);
         >
           <strong>Waiting for {{ sourceLabel }} to reconnect</strong>
           <p>Your search runs as soon as the feed is back.</p>
-          <button class="ui-button" @click="$event.detail <= 1 && retrySearch()">Try again</button>
+          <button class="ui-button" @click="$event.detail <= 1 && retrySearch()">Retry</button>
         </div>
         <div
           v-else-if="playerSearching || searching || (!visibleMessages.length && (current.status === 'connecting' || current.status === 'reconnecting'))"
@@ -1000,12 +1000,12 @@ useClassicFrame(panel);
             v-if="playerProblem"
             class="ui-button"
             @click="$event.detail <= 1 && openPlayer(playerName, null)"
-          >Try again</button>
+          >Retry</button>
           <button
             v-else-if="current.status === 'unavailable' || searchProblem"
             class="ui-button"
             @click="$event.detail <= 1 && retrySearch()"
-          >Try again</button>
+          >Retry</button>
           <button v-else-if="hiddenByIntent" class="ui-button" @click="$event.detail <= 1 && (intent = 'all')">Show all</button>
           <button v-else-if="typedFilter" class="ui-button" @click="$event.detail <= 1 && runSearch()">Search {{ sourceLabel }} history</button>
         </div>

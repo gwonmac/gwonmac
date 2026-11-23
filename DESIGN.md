@@ -56,7 +56,7 @@ and answers one question: which accounts should open? Account administration
 uses progressive disclosure:
 
 1. Compact rows show selection checkboxes, launch state, **Play** or **Show**,
-   and **Try again** or **Cancel** where they apply. The main launch button opens
+   and **Retry** or **Cancel** where they apply. The main launch button opens
    the checked group. The list scrolls inside the picker, so many accounts never
    move the primary action off-screen.
 2. **Edit** changes an account's name, icon, and color.

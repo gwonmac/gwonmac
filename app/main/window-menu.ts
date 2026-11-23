@@ -63,7 +63,7 @@ export interface AccountMenuActions {
 
 function accountMenuItems(reveal: LauncherReveal, actions: AccountMenuActions): MenuItemConstructorOptions[] {
   const status = {
-    ready: "", running: " — Open", failed: " — Try again",
+    ready: "", running: " — Open", failed: " — Retry",
     queued: " — Waiting", opening: " — Opening…", checking: " — Opening…",
   };
   return [

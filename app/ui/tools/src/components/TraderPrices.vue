@@ -306,7 +306,7 @@ function relativeAge(timestamp: number): string {
     <div v-if="quoteProblem" class="trader-price-error ui-empty" role="alert">
       <strong>Trader prices unavailable</strong>
       <p>{{ quoteProblem }}</p>
-      <button class="ui-button" type="button" @click="loadQuotes">Try again</button>
+      <button class="ui-button" type="button" @click="loadQuotes">Retry</button>
     </div>
     <div v-else class="trader-prices-workspace">
       <section class="trader-catalogue ui-well" aria-label="Trader item catalogue">
@@ -369,7 +369,7 @@ function relativeAge(timestamp: number): string {
         </div>
         <div v-if="historyProblem" class="trader-history-error" role="alert">
           <p>{{ HISTORY_PROBLEM_MESSAGES[historyProblem] }}</p>
-          <button class="ui-button" type="button" @click="loadHistory()">Try again</button>
+          <button class="ui-button" type="button" @click="loadHistory()">Retry</button>
         </div>
         <PriceHistoryChart v-else :points="history" :loading="historyLoading" :item-name="selected.name" />
         <p class="trader-price-source">Observed trader quotes from Kamadan. Prices can change in Guild Wars before the next update.</p>

@@ -16,7 +16,7 @@ Failure in one profile does not close another profile.
 The account picker offers **Play** or **Show** beside each account. These
 actions affect only that account and do not change the remembered selection.
 Checkboxes choose the group for the main launch button. Opening accounts
-cannot be launched again; failed accounts offer **Try again**. The picker
+cannot be launched again; failed accounts offer **Retry**. The picker
 scrolls when the account list exceeds the available window height. Waiting
 accounts offer **Cancel** without changing the remembered selection.
 
@@ -151,7 +151,7 @@ profile at a time and takes the next one from the queue each time, so Cancel
 waiting removes any profile that has not started, also while an earlier
 profile of the same Play is still opening. Cancel returns a profile to the
 row it had before Play: Ready, or Failed for a retry, so its failed window
-still offers Try again. A Play that joins a running drain
+still offers Retry. A Play that joins a running drain
 waits for its own profiles and fails only if one of them failed; new windows
 cascade from the first profile of each Play. The first candidate window
 completes the existing client canary before another profile starts; if the
@@ -172,7 +172,7 @@ renderer; it does not imply a game-server login or network connection. Hidden
 and minimized windows remain Open. Normal closure returns the profile to
 Ready. Renderer failure removes Open immediately: automatic recovery and
 manual reload use Opening until the replacement document submits its first
-frame; unrecovered failure offers Try again. Reload does not restore old
+frame; unrecovered failure offers Retry. Reload does not restore old
 bounds or steal focus. Late startup checks cannot promote a closed or replaced
 window back to Open.
 

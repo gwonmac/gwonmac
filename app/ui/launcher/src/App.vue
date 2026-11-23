@@ -312,7 +312,7 @@ async function updateContent(content: NonNullable<LauncherPreferencesPatch["cont
 </script>
 
 <template>
-  <div v-if="startupError" class="launcher-boot launcher-error" role="alert"><AlertTriangle /><h1>The launcher could not open</h1><p>Your accounts and game files were not changed.</p><button class="primary" @click="retryStartup">Try again</button></div>
+  <div v-if="startupError" class="launcher-boot launcher-error" role="alert"><AlertTriangle /><h1>The launcher could not open</h1><p>Your accounts and game files were not changed.</p><button class="primary" @click="retryStartup">Retry</button></div>
   <div v-else-if="!synchronized" class="launcher-boot" role="status">Opening launcher…</div>
   <div v-else class="app-shell" :class="{ 'settings-shell': route === 'settings' }">
     <LauncherHeader :route="route" :simple="simple" @navigate="navigate" @settings="openSettings()" @external="openExternal" />

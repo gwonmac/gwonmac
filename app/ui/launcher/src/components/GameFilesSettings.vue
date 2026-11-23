@@ -76,7 +76,7 @@ const status = computed(() => {
       </div>
       <button v-if="background.status === 'running'" class="secondary small" @click="pause">Pause</button>
       <button v-else-if="background.status === 'paused' || background.status === 'failed'" class="secondary small" @click="resume">
-        {{ background.status === 'failed' ? 'Try again' : 'Resume' }}
+        {{ background.status === 'failed' ? 'Retry' : 'Resume' }}
       </button>
       <progress v-if="backgroundProgress" :value="backgroundProgress.received" :max="backgroundProgress.total || 1" />
     </div>
