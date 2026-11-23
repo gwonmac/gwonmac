@@ -17,7 +17,8 @@ import { resumeSearchInput } from './search-input.js';
 import { installHubWindow } from './hub-window.js';
 import { attachClassicFrame } from '../shared/ui/frame.js';
 import { resolveShortcuts } from '../shared/keyboard-shortcuts.js';
-import { isHubShortcuts, isLibraryHubShortcut, LIBRARY_UNAVAILABLE, type HubShortcut } from '../shared/hub-preferences.js';
+import { isHubShortcuts, type HubShortcut } from '../shared/hub-preferences.js';
+import { createHubShortcutStore } from './hub-shortcuts.js';
 import { currencyIcon } from '../shared/currency-assets.js';
 import { armConfirmation, closeDisclosure } from './surface-controller.js';
 import { composeHubResults, chooseHubSelection } from './hub-results.js';
@@ -228,7 +229,9 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
   const report = (message: string, receipt = false) => showStatus(status.report(message, receipt));
   /** The rows sources leave the Hub to match: they follow every result (HubSource `commands`). */
   const commandRows = (query = state.query) => enabledSources().flatMap(source => source.commands?.(query) ?? []);
-  const shortcuts = () => [...(window.gwToolsSettings?.().hubShortcuts ?? []), ...enabledSources().flatMap(source => source.shortcuts?.get() ?? [])];
+  /** Where each saved phrase and pin lives is hub-shortcuts.ts's to decide. */
+  const savedShortcuts = createHubShortcutStore(() => enabledSources().flatMap(source => source.shortcuts ?? []));
+  const shortcuts = savedShortcuts.get;
   const lookup = (id: string): HubRow | undefined => enabledSources().map(source => source.lookup?.(id)).find(Boolean)
     ?? commandRows().find(row => row.id === id);
   /**
@@ -241,13 +244,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
   }
   const shortcutStore = { get: () => shortcuts(), lookup, save: saveShortcuts, exactlyNamed };
   async function saveShortcuts(value: readonly HubShortcut[]) {
-    const privateEntries = value.filter(entry => isLibraryHubShortcut(entry.id));
-    const globalEntries = value.filter(entry => !isLibraryHubShortcut(entry.id));
-    if (!isHubShortcuts(privateEntries) || !isHubShortcuts(globalEntries)) throw new Error('Invalid Hub shortcuts');
-    const owner = [...sources.keys()].find(source => sourceEnabled(source) && source.shortcuts);
-    if (owner?.shortcuts && JSON.stringify(privateEntries) !== JSON.stringify(owner.shortcuts.get())) await owner.shortcuts.save(privateEntries);
-    else if (privateEntries.length && !owner) throw new Error(LIBRARY_UNAVAILABLE);
-    if (JSON.stringify(globalEntries) !== JSON.stringify(window.gwToolsSettings?.().hubShortcuts ?? [])) await window.gwNative.settings.set({ hubShortcuts: globalEntries });
+    await savedShortcuts.save(value);
     refresh();
   }
   function select(id: string | null, scroll = false) {
