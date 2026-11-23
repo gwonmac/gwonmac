@@ -14,7 +14,7 @@ import {
   type TravelHistoryDocument,
 } from "../../../shared/travel-history.js";
 import { travelMapIdFromReleasedStorage } from "../../../shared/travel-map-id.js";
-import { jsonDocument } from "../../json-document.js";
+import { jsonDocument } from "../../../main/core/json-document.js";
 
 const historyDocument = jsonDocument({
   parse: (value) => parseTravelHistoryDocument(runtimeHistory(value)),
