@@ -71,7 +71,7 @@ export function auditLayout(ignore: string): AuditFinding[] {
       // Every clipping box decides whether the control is in view at all; only the axes a box does
       // not scroll can cut it, since a row half scrolled out of a list is normal.
       let view = { left: 0, top: 0, right: width, bottom: height };
-      let cutBox = { ...view };
+      let cutBox = { left: -Infinity, top: -Infinity, right: Infinity, bottom: Infinity };
       // Once a box scrolls in an axis, it decides what shows in that axis; frames around it do not.
       let scrolledX = false;
       let scrolledY = false;
@@ -85,6 +85,9 @@ export function auditLayout(ignore: string): AuditFinding[] {
         if (!scrolledX) cutBox = { ...cutBox, left: Math.max(cutBox.left, r.left), right: Math.min(cutBox.right, r.right) };
         if (!scrolledY) cutBox = { ...cutBox, top: Math.max(cutBox.top, r.top), bottom: Math.min(cutBox.bottom, r.bottom) };
       }
+      // The window is the outermost frame: it cuts only in an axis no box scrolls.
+      if (!scrolledX) cutBox = { ...cutBox, left: Math.max(cutBox.left, 0), right: Math.min(cutBox.right, width) };
+      if (!scrolledY) cutBox = { ...cutBox, top: Math.max(cutBox.top, 0), bottom: Math.min(cutBox.bottom, height) };
       const inView = rect.right > view.left && rect.left < view.right && rect.bottom > view.top && rect.top < view.bottom;
       const cut = Math.max(cutBox.left - rect.left, cutBox.top - rect.top, rect.right - cutBox.right, rect.bottom - cutBox.bottom);
       if (cut > 2 && inView) findings.push({ rule: "control-cut-off", target: describe(element), detail: `${Math.round(cut)}px of ${JSON.stringify((element.textContent ?? element.getAttribute("aria-label") ?? "").trim().slice(0, 30))} hidden` });
