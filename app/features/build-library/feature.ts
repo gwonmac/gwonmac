@@ -5,7 +5,7 @@ export default defineFeature({
   name: "Build Library",
   summary: "Save and load skill builds.",
   kind: "party",
-  purpose: "characters",
+  presence: "tool",
   icon: "book-open",
   settings: {
     /**

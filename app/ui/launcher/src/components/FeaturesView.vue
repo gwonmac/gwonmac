@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
- * The Features catalog: the plain-game strip, the cards in Large or Compact size grouped by Kind
- * or Purpose, and each Feature's page. The launcher draws it as its Features tab; the Hub draws it
+ * The Features catalog: the plain-game strip, the cards in Large or Compact size grouped by what
+ * the player is doing, and each Feature's page. The launcher draws it as its Features tab; the Hub draws it
  * as the Features section of its Settings page (`embedded`). Statuses come from resolve through
  * ../features.ts; switches and options write through the host's bridge, or, in a browser preview,
  * change the shown fixture. Every write goes through one save status (../save-status.ts): the
@@ -21,12 +21,12 @@ import {
   changelogOf,
   featureStatus,
   groupCards,
-  groupsFor,
+  FEATURE_GROUPS,
+  presenceTag,
   launcherFeatureState,
   type CardFeature,
   type CardSize,
   type FeatureFilter,
-  type GroupBy,
   type SwitchChange,
 } from "../features";
 import { runsWith, showsReason, switchOf } from "@shared/feature-status";
@@ -82,7 +82,6 @@ watch(size, (next) => { try { localStorage.setItem(SIZE_KEY, next); } catch { /*
 
 const query = ref("");
 const filter = ref<FeatureFilter>("all");
-const groupBy = ref<GroupBy>("kind");
 /** Restart launcher is not a save: its failure has a line of its own. */
 const restartError = ref("");
 const page = ref<HTMLElement | null>(null);
@@ -101,12 +100,12 @@ const cards = computed(() => cardsAt(stage.value));
 const statuses = computed(() => new Map(CARD_FEATURES.map((each) => [each.id, featureStatus(each, state.value, tools.value)])));
 const statusOf = (each: CardFeature) => statuses.value.get(each.id)!;
 const badges = computed(() => new Map(CARD_FEATURES.map((each) => [each.id, badgeOf(changelogOf(each), props.snapshot.appVersion)])));
-const groups = computed(() => groupCards(groupBy.value, filter.value, query.value, (each) => statusOf(each).checked, stage.value));
+const groups = computed(() => groupCards(filter.value, query.value, (each) => statusOf(each).checked, stage.value));
 const onCount = computed(() => cards.value.filter((each) => statusOf(each).checked).length);
 const filters = computed(() => [
   { id: "all", name: "All" },
   { id: "on", name: `On (${onCount.value})` },
-  ...groupsFor(groupBy.value),
+  ...FEATURE_GROUPS,
 ]);
 const shown = computed(() => cards.value.find((each) => each.id === feature.value) ?? null);
 
@@ -211,10 +210,6 @@ function clearSearch() {
 function onSearchKey(event: KeyboardEvent) {
   if (event.key === "Escape" && query.value) { event.preventDefault(); query.value = ""; }
 }
-function pickGroup(next: GroupBy) {
-  if (filter.value !== "all" && filter.value !== "on") filter.value = "all";
-  groupBy.value = next;
-}
 </script>
 
 <template>
@@ -246,7 +241,7 @@ function pickGroup(next: GroupBy) {
       <div class="page-head">
         <div>
           <h1>Features</h1>
-          <p>Optional additions to the official game, made by the GWonMac project. Each one runs only on Guild Wars builds that GWonMac has checked.</p>
+          <p>Optional additions to the official game. Each one runs only on Guild Wars builds that GWonMac has checked.</p>
         </div>
         <label class="catalog-search">
           <Search aria-hidden="true" />
@@ -275,11 +270,6 @@ function pickGroup(next: GroupBy) {
           </template>
         </div>
         <span class="count">{{ cards.length }} Features</span>
-        <span id="group-label" class="group-label">Group by</span>
-        <div class="segment" role="group" aria-labelledby="group-label">
-          <button :class="{ selected: groupBy === 'kind' }" :aria-pressed="groupBy === 'kind'" @click="pickGroup('kind')">Kind</button>
-          <button :class="{ selected: groupBy === 'purpose' }" :aria-pressed="groupBy === 'purpose'" @click="pickGroup('purpose')">Purpose</button>
-        </div>
         <div class="segment" role="group" aria-label="Card size">
           <button class="icon-only" :class="{ selected: size === 'large' }" :aria-pressed="size === 'large'" aria-label="Large cards" title="Large cards" @click="size = 'large'"><LayoutGrid aria-hidden="true" /></button>
           <button class="icon-only" :class="{ selected: size === 'compact' }" :aria-pressed="size === 'compact'" aria-label="Compact list" title="Compact list" @click="size = 'compact'"><List aria-hidden="true" /></button>
@@ -304,6 +294,7 @@ function pickGroup(next: GroupBy) {
                 <p v-if="showsReason(statusOf(each))" :id="`reason-${each.id}`" class="reason" :class="statusOf(each).tone">{{ statusOf(each).text }}</p>
               </div>
               <div class="card-foot">
+                <span v-if="!runsWith(each) && presenceTag(each, snapshot.shortcuts)" class="chip">{{ presenceTag(each, snapshot.shortcuts) }}</span>
                 <span class="chip">{{ REGION_WORDS[each.region] }}</span>
                 <span v-if="runsWith(each)" class="runs-with">Part of {{ runsWith(each)!.name }}</span>
                 <FeatureSwitch v-else :checked="statusOf(each).checked" :label="each.name" :locked="statusOf(each).locked" :describedby="showsReason(statusOf(each)) ? `reason-${each.id}` : undefined" @change="toggle(each, $event)" />
@@ -365,10 +356,9 @@ function pickGroup(next: GroupBy) {
 .pill { padding: 6px 12px; border: 1px solid transparent; border-radius: var(--radius-pill); color: var(--muted); font-size: var(--fs-xs); }
 .pill:hover { color: var(--text); }
 .pill.selected { color: var(--text); background: var(--control); border-color: var(--line); }
-.count, .group-label { color: var(--muted); font-size: var(--fs-xs); }
+.count { color: var(--muted); font-size: var(--fs-xs); }
 /* When the filters take the whole row, the view controls wrap to the right edge together. */
 .count { margin-left: auto; }
-.group-label { margin-right: -10px; }
 .segment { display: flex; gap: 2px; padding: 2px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--control); }
 .segment button { min-height: 26px; padding: 0 10px; border-radius: var(--radius-sm); color: var(--muted); font-size: var(--fs-xs); }
 .segment button.icon-only { display: grid; place-items: center; width: 30px; padding: 0; }

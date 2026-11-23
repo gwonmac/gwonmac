@@ -43,7 +43,7 @@ is platform work, not a group A Feature. Do not read it any other way.
 ## Start
 
 ```bash
-pnpm new-feature quickNote --kind combat   # --purpose picks another player goal
+pnpm new-feature quickNote --kind fight --presence tool
 pnpm check
 ```
 
@@ -94,7 +94,7 @@ the shapes; [`app/features/contract.ts`](../app/features/contract.ts) checks the
 | --- | --- | --- |
 | `id` | camelCase; the folder is its kebab case; listed once in `FEATURES` | contract: id matches folder, registered, listed once |
 | `name`, `summary` | Card title and one plain sentence under it | contract: not empty |
-| `kind`, `purpose` | Features tab groups (`FEATURE_KINDS`, `FEATURE_PURPOSES`) | TypeScript; contract: every card names a purpose |
+| `kind`, `presence` | Features tab group (`FEATURE_KINDS`, what the player is doing) and the card tag that says how players meet it (`FEATURE_PRESENCES`) | TypeScript; contract: every card names a presence |
 | `icon` | A Lucide icon name in kebab case | contract: kebab case; launcher test: the name is in [`feature-icon.ts`](../app/ui/launcher/src/feature-icon.ts), which imports only the icons Features use (pick one there, or add a line) |
 | `settings` | The switch, and options (below) | contract: one switch, labels and help |
 | `settingsHelp` | Optional: one line under Settings on its Feature page, for a rule that spans its options (Reminders: an item and a time) | contract: not empty when present |

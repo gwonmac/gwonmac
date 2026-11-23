@@ -18,7 +18,7 @@ const read = (file: string): string | null => {
   const absolute = path.join(root, file);
   return existsSync(absolute) ? readFileSync(absolute, "utf8") : null;
 };
-const scaffold = newFeatureFiles({ id: "quickNote", kind: "combat" }, read);
+const scaffold = newFeatureFiles({ id: "quickNote", kind: "fight" }, read);
 const AT = "app/features/quick-note/";
 
 const scratch = mkdtempSync(path.join(tmpdir(), "gwonmac-new-feature-"));
@@ -74,7 +74,7 @@ test("the scaffold writes one folder plus its registry lines", () => {
 test("the scaffolded Feature keeps the contract as written", async () => {
   const folder = await scaffoldedFolder();
   assert.equal(folder.manifest.id, "quickNote");
-  assert.equal(folder.manifest.kind, "combat");
+  assert.equal(folder.manifest.kind, "fight");
   assert.deepEqual(contractWith(folder), []);
 });
 
@@ -83,8 +83,8 @@ test("the scaffold refuses an id or kind it cannot use", () => {
     [{ id: "targetReadout" }, "app/features/target-readout/ already exists; pick another id or change that Feature."],
     [{ id: "quick-note" }, `"quick-note" is not a Feature id: use camelCase letters and digits, starting with a lowercase letter, such as "quickNote".`],
     [{ id: "QuickNote" }, `"QuickNote" is not a Feature id: use camelCase letters and digits, starting with a lowercase letter, such as "quickNote".`],
-    [{ id: "quickNote", kind: "mode" }, `--kind "mode" is not a card kind; use one of maps, combat, party, chat, items, helpers (FEATURE_KINDS in app/features/define.ts).`],
-    [{ id: "quickNote", purpose: "fun" }, `--purpose "fun" is not a purpose; use one of around, fight, talk, inventory, characters (FEATURE_PURPOSES in app/features/define.ts).`],
+    [{ id: "quickNote", kind: "mode" }, `--kind "mode" is not a card kind; use one of around, fight, party, chat, inventory (FEATURE_KINDS in app/features/define.ts).`],
+    [{ id: "quickNote", presence: "fun" }, `--presence "fun" is not a presence; use one of screen, tool, action, background (FEATURE_PRESENCES in app/features/define.ts).`],
   ];
   for (const [options, message] of refusals) assert.throws(() => newFeatureFiles(options, read), { message });
 });

@@ -10,8 +10,8 @@ export default defineFeature({
   id: "travel",
   name: "Travel",
   summary: "Search destinations and travel between outposts.",
-  kind: "maps",
-  purpose: "around",
+  kind: "around",
+  presence: "tool",
   icon: "map-pin",
   settings: {
     /** Allow the focused Travel palette and its explicit map command. */

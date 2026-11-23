@@ -183,10 +183,11 @@ describe("Features tab", () => {
     expect((search.element as HTMLInputElement).value).toBe("");
   });
 
-  it("groups by purpose and filters to the switches that are on", async () => {
+  it("groups cards by what the player is doing, tags how each shows up, and filters to the switches that are on", async () => {
     const { wrapper } = view(loaded, proved);
-    await pressed(wrapper, "Purpose").trigger("click");
-    expect(wrapper.findAll(".feature-group h2").map((heading) => heading.text().replace(/\s*\d+$/u, ""))).toEqual(["Get around", "Fight", "Chat and trade", "Inventory", "Characters"]);
+    expect(wrapper.findAll(".feature-group h2").map((heading) => heading.text().replace(/\s*\d+$/u, ""))).toEqual(["Getting around", "Fighting", "Party & builds", "Chat & trade", "Inventory"]);
+    expect(wrapper.findAll('[data-feature="travel"] .chip').map((chip) => chip.text())).toEqual(["Opens with ⌘T", "PvE"]);
+    expect(wrapper.find('[data-feature="resign"] .chip').text()).toBe("Acts when you ask");
     const on = wrapper.findAll(".pill").find((pill) => pill.text().startsWith("On"))!;
     await on.trigger("click");
     const shown = wrapper.findAll("[data-feature]").map((card) => card.attributes("data-feature"));

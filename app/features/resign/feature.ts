@@ -4,8 +4,8 @@ export default defineFeature({
   id: "resign",
   name: "Resign",
   summary: "Ask before sending /resign in PvE. Enter confirms; Escape cancels.",
-  kind: "helpers",
-  purpose: "fight",
+  kind: "party",
+  presence: "action",
   icon: "flag",
   settings: {
     /** Allow the confirmed PvE resign shortcut when Tools are enabled. */

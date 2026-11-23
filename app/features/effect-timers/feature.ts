@@ -4,8 +4,8 @@ export default defineFeature({
   id: "effectTimers",
   name: "Effect Timers",
   summary: "Show exact remaining time on your native Effects icons.",
-  kind: "combat",
-  purpose: "fight",
+  kind: "fight",
+  presence: "screen",
   icon: "hourglass",
   settings: {
     /** Show exact remaining durations over the controlled player's native Effects icons. */

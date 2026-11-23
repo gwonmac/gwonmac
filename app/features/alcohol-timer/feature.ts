@@ -10,8 +10,8 @@ export default defineFeature({
   id: "alcoholTimer",
   name: "Alcohol Timer",
   summary: "A quiet, movable alcohol countdown. Hidden when sober; amber in the last 15 seconds.",
-  kind: "helpers",
-  purpose: "characters",
+  kind: "fight",
+  presence: "screen",
   icon: "wine",
   settings: {
     alcoholTimerEnabled: featureSwitch(false, { tools: true }),

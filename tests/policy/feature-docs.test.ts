@@ -41,7 +41,7 @@ test("the pages follow the Features tab: the launch mode first, then each kind u
   assert.equal(pages[0]?.name, "tools");
   assert.match(pages[0]?.text ?? "", /^tab: Features$/mu);
   const sections = pages.flatMap((page) => /^section: "(.+)"$/mu.exec(page.text)?.[1] ?? []);
-  assert.deepEqual(sections, ["Maps & travel", "Combat", "Party & builds", "Chat & trade", "Items", "Helpers"]);
+  assert.deepEqual(sections, ["Getting around", "Fighting", "Party & builds", "Chat & trade", "Inventory"]);
 });
 
 test("no hand-written docs page takes a Feature's page", () => {

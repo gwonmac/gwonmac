@@ -7,8 +7,8 @@ export default defineFeature({
   id: "reminders",
   name: "Reminders",
   summary: "Remind you in chat before cons, pcons or alcohol run out. Only you see these lines.",
-  kind: "helpers",
-  purpose: "fight",
+  kind: "fight",
+  presence: "background",
   icon: "bell",
   settingsHelp: "Choose at least one item and one time, or no reminder appears.",
   settings: {

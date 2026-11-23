@@ -3,7 +3,7 @@
  * a feature has one switch (or follows the features it requires) and a tool has its own, a card's switch takes the
  * feature's name and summary while every other setting names itself, one shot file per caption, README.md stays inside the
  * small Markdown subset the launcher renders, CHANGELOG.md has `## Unreleased`, every card
- * names a purpose, `requires` has no cycles, `uses` names only capabilities and stages the
+ * names a presence, `requires` has no cycles, `uses` names only capabilities and stages the
  * verifier knows, a folder that imports a certified stage's contract names that stage in `uses`
  * (so a refused stage turns the Feature off with a reason), every link names a Feature that
  * offers the methods it calls, FEATURES lists each id once, `parts` and the part files agree in
@@ -85,10 +85,10 @@ function checkFolder({ folder, manifest, files, readme, changelog, imports }: Fe
   if (manifest.summary.trim() === "") problems.push(`${at}/feature.ts: summary is empty.`);
   if (manifest.settingsHelp?.trim() === "") problems.push(`${at}/feature.ts: settingsHelp is empty; remove it or say the rule.`);
   if (!KEBAB.test(manifest.icon)) problems.push(`${at}/feature.ts: icon "${manifest.icon}" is not a Lucide icon name in kebab case, such as "map-pin".`);
-  if (manifest.kind === "mode" && manifest.purpose !== undefined) {
-    problems.push(`${at}/feature.ts: the launch mode is the plain-game strip, not a card; remove purpose.`);
-  } else if (manifest.kind !== "mode" && manifest.purpose === undefined) {
-    problems.push(`${at}/feature.ts: no purpose; the Features tab groups every card by it (one of FEATURE_PURPOSES in app/features/define.ts).`);
+  if (manifest.kind === "mode" && manifest.presence !== undefined) {
+    problems.push(`${at}/feature.ts: the launch mode is the plain-game strip, not a card; remove presence.`);
+  } else if (manifest.kind !== "mode" && manifest.presence === undefined) {
+    problems.push(`${at}/feature.ts: no presence; its card tag says how players meet it (one of FEATURE_PRESENCES in app/features/define.ts).`);
   }
 
   const settings = Object.entries(manifest.settings ?? {});

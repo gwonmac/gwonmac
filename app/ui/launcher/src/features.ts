@@ -3,12 +3,11 @@
  * README.md and CHANGELOG.md; every status comes from resolve (app/shared/feature-resolve.ts).
  * The words for each reason and the switch each card moves are shared with the Hub
  * (app/shared/feature-status.ts). This module adds only what the tab itself decides: how cards
- * group, and the switch changes that turn a feature on together with what it needs.
+ * group, the tag that says how a Feature shows up, and the switch changes that turn a feature on together with what it needs.
  */
 import type { FeatureDefinition } from "../../../features/define";
 import {
   FEATURE_KIND_LABELS,
-  FEATURE_PURPOSE_LABELS,
   folderForId,
   type FeatureId,
   type FeatureSettingKey,
@@ -17,6 +16,7 @@ import { featureShown, type FeatureState } from "@shared/feature-resolve";
 import { featureStatus as sharedStatus, SWITCH_FEATURES, switchOf, type FeatureStatus, type SwitchFeature } from "@shared/feature-status";
 import type { GlobalTool, LauncherSnapshot } from "@shared/launcher-contracts";
 import { markdownInline, parseMarkdown, type MarkdownBlock, type MarkdownInline } from "@shared/launcher-markdown";
+import { shortcutDisplay, type ShortcutAction } from "@shared/keyboard-shortcuts";
 import type { ManifestStage, ReleaseStage } from "@shared/release";
 import { featureOptionKeys } from "@shared/settings-catalogue";
 import { settingShown } from "@shared/settings/index";
@@ -56,30 +56,44 @@ export const REGION_WORDS: Readonly<Record<CardFeature["region"], string>> = { p
 export const featureStatus = (feature: CardFeature, state: FeatureState, tools: LauncherSnapshot["tools"]): FeatureStatus =>
   sharedStatus(feature, state, tools.features[switchOf(feature)].enabled);
 
-export type GroupBy = "kind" | "purpose";
 export type CardSize = "large" | "compact";
 export type FeatureFilter = "all" | "on" | string;
 
-export const groupName = (feature: CardFeature, by: GroupBy) => by === "kind" ? feature.kind : feature.purpose;
-export function groupsFor(by: GroupBy): readonly Readonly<{ id: string; name: string }>[] {
-  const labels: Readonly<Record<string, string>> = by === "kind" ? FEATURE_KIND_LABELS : FEATURE_PURPOSE_LABELS;
-  return Object.entries(labels).map(([id, name]) => ({ id, name }));
-}
+export const FEATURE_GROUPS: readonly Readonly<{ id: string; name: string }>[] =
+  Object.entries(FEATURE_KIND_LABELS).map(([id, name]) => ({ id, name }));
 
 /** The groups to show, each with its matching cards in a build at `stage`; empty groups are left out. */
 export function groupCards(
-  by: GroupBy,
   filter: FeatureFilter,
   query: string,
   checked: (feature: CardFeature) => boolean,
   stage: ReleaseStage,
 ): readonly Readonly<{ id: string; name: string; features: readonly CardFeature[] }>[] {
   const words = query.trim().toLowerCase();
-  const matches = (feature: CardFeature) => (filter === "all" || (filter === "on" ? checked(feature) : groupName(feature, by) === filter))
+  const matches = (feature: CardFeature) => (filter === "all" || (filter === "on" ? checked(feature) : feature.kind === filter))
     && (!words || `${feature.name} ${feature.summary}`.toLowerCase().includes(words));
-  return groupsFor(by)
-    .map((group) => ({ ...group, features: cardsAt(stage).filter((feature) => groupName(feature, by) === group.id && matches(feature)) }))
+  return FEATURE_GROUPS
+    .map((group) => ({ ...group, features: cardsAt(stage).filter((feature) => feature.kind === group.id && matches(feature)) }))
     .filter((group) => group.features.length > 0);
+}
+
+/**
+ * The card tag that says how a player meets a Feature once it is on (its manifest `presence`).
+ * A tool or action names its own shortcut as the player set it. A card that is part of another
+ * Feature shows no tag: it shows up inside that Feature.
+ */
+export function presenceTag(feature: CardFeature, shortcuts: LauncherSnapshot["shortcuts"]): string | null {
+  const { shortcuts: declared }: FeatureDefinition = feature;
+  const own = declared?.find((each) => each.label === undefined);
+  const binding = own ? shortcuts[own.action as ShortcutAction] ?? null : null;
+  const keys = binding ? shortcutDisplay(binding) : null;
+  switch (feature.presence) {
+    case "screen": return "On screen";
+    case "tool": return keys ? `Opens with ${keys}` : "Opens from the Hub";
+    case "action": return keys ? `Acts on ${keys}` : "Acts when you ask";
+    case "background": return "Works on its own";
+    default: return null;
+  }
 }
 
 export type SwitchChange = Readonly<{ tool: GlobalTool; enabled: boolean }>;

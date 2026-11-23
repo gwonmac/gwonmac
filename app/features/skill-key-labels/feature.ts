@@ -11,8 +11,8 @@ export default defineFeature({
   id: "skillKeyLabels",
   name: "Skill Key Labels",
   summary: "Show your own control labels on the eight skill slots.",
-  kind: "combat",
-  purpose: "fight",
+  kind: "fight",
+  presence: "screen",
   icon: "keyboard",
   settings: {
     /** Display-only labels that mirror the player's eight Guild Wars bindings. */
