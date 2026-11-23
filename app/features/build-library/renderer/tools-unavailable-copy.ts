@@ -14,7 +14,7 @@ import {
   type ClientCompatibility,
   type OptionalFeatureStatus,
   type UnavailableReason,
-} from "./contracts.js";
+} from "../../../shared/contracts.js";
 
 type ReasonCopy = Readonly<Record<UnavailableReason, string | null>>;
 

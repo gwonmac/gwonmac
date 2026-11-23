@@ -4,7 +4,7 @@ import type { OptionalFeatureStatus, RequiredFeatureStatus } from "../../app/sha
 import {
   toolsUnavailableCopy,
   type ToolsCopyFeatures,
-} from "../../app/shared/tools-unavailable-copy.js";
+} from "../../app/features/build-library/renderer/tools-unavailable-copy.js";
 
 const unavailable = (reason: "game-update" | "preparation-failed" | "check-failed"): OptionalFeatureStatus =>
   ({ status: "unavailable", reason });

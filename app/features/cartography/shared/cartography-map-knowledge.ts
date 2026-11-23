@@ -3,8 +3,8 @@
  * main. Main owns persistence; the renderer owns display-time aggregation.
  */
 import { CARTOGRAPHY_REACHABILITY_MAX_CELLS } from
-  "./cartography-reachability-kernel-contract.js";
-import { isDigest } from "./digest.js";
+  "../../../shared/cartography-reachability-kernel-contract.js";
+import { isDigest } from "../../../shared/digest.js";
 
 export const CARTOGRAPHY_MAP_KNOWLEDGE_LIMIT = 2_048;
 

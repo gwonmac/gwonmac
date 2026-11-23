@@ -3,7 +3,7 @@
  * reveal mode. Persisted records stay immutable and main-owned.
  */
 import type { CartographyMapKnowledge } from
-  "../../../shared/cartography-map-knowledge.js";
+  "../shared/cartography-map-knowledge.js";
 
 export function mergeCartographyMapKnowledge(
   records: readonly CartographyMapKnowledge[],
