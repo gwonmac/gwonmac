@@ -2,7 +2,11 @@
  * Renderer-side owner of the one certified local Xunlai action.
  * It initializes the fixed DataWindow payload and exposes one guarded command.
  */
-import type { StorageCommand } from "../../../shared/storage-command.js";
+/** The one named local Xunlai action: open the chest, or say why it cannot open here. */
+export type StorageCommand = Readonly<{
+  open(): void;
+  unavailable(): string | null;
+}>;
 
 const DATA_WINDOW_WORDS = 3;
 

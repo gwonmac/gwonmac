@@ -10,7 +10,6 @@ import type { TravelFriends } from "./friends.js";
 import type { GameProgressState } from "./game-progress.js";
 import type { ToolboxObservation } from "./builds/live-party.js";
 import type { TeamApplyCommands } from "./builds/team-apply-runner.js";
-import type { StorageCommand } from "./storage-command.js";
 import type { TravelCommand, TravelGameState } from "./travel-command.js";
 import type { ToolsGwNativeApi } from "./contracts.js";
 import type { ToolLink } from "../features/links.js";
@@ -83,9 +82,6 @@ export type ToolsAppMountOptions = Readonly<{
   templateFiles: TemplateFiles | null;
   /** Team Apply's certified commands, read at each Apply; null while Team Apply is off or the module has none. */
   commands: () => TeamApplyCommands | null;
-  storage: StorageCommand | null;
-  /** Why `storage` is null, in the player's words; null when it is not. */
-  storageUnavailable: string | null;
   /** Why `publishTemplate` is null, in the player's words; null when it is not. */
   publishUnavailable: string | null;
   applyUnavailable: string | null;

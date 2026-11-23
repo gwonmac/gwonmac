@@ -128,7 +128,7 @@ export function createStorageController(
       return "unavailable";
     }
   };
-  const link: XunlaiStorageLink = Object.freeze({ toggle, blocked: unavailable });
+  const link: XunlaiStorageLink = Object.freeze({ toggle });
   sync();
 
   return Object.freeze({

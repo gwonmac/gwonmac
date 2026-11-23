@@ -74,8 +74,6 @@ const templateFilesOpen = ref(false);
 const draftCode = ref("");
 const draftName = ref("");
 const clipboardProblem = ref("");
-const storageProblem = ref("");
-const openingStorage = ref(false);
 const buildContext = ref<AuthoringContext>("standalone");
 const buildDetail = ref<InstanceType<typeof BuildDetail> | null>(null);
 const teamDetail = ref<InstanceType<typeof TeamDetail> | null>(null);
@@ -186,21 +184,6 @@ const saveAndNavigate = async () => {
 const requestClose = () => navigate(() => emit("close"));
 defineExpose({ requestClose });
 
-const openStorage = async () => {
-  storageProblem.value = "";
-  openingStorage.value = true;
-  try {
-    await props.host.openStorage();
-    emit("close");
-  } catch (cause) {
-    storageProblem.value = cause instanceof Error
-      ? cause.message
-      : "Storage could not be opened.";
-  } finally {
-    openingStorage.value = false;
-  }
-};
-
 const captureCurrentParty = async () => {
   const captured = await controller.captureCurrentParty();
   if (!captured) return;
@@ -307,13 +290,6 @@ useClassicFrame(panel);
         </div>
         <span v-if="controller.saving.value" class="ui-chip" data-level="warn" role="status">Saving…</span>
         <button
-          class="ui-button window-storage"
-          :disabled="openingStorage || host.storageUnavailable !== null"
-          :title="host.storageUnavailable ?? 'Open Xunlai Storage'"
-          :aria-label="host.storageUnavailable ?? 'Open Xunlai Storage'"
-          @click="openStorage"
-        >{{ openingStorage ? "Opening…" : "Storage" }}</button>
-        <button
           v-if="mode === 'embedded'"
           class="ui-window-close window-close"
           data-icon
@@ -323,10 +299,6 @@ useClassicFrame(panel);
           ×
         </button>
       </header>
-
-      <div v-if="storageProblem" class="ui-banner" data-tone="warning" role="alert">
-        {{ storageProblem }}
-      </div>
 
       <div
         v-if="controller.skillProblem.value"

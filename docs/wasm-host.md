@@ -341,8 +341,8 @@ unknown regions.
 
 If live integration is unavailable while the plain game is off and Build Library
 remains enabled, the host can still mount the saved-library part of Tools. Players can
-edit, import, and export builds and teams. Live party observation, storage
-opening, and Apply remain unavailable. This host-only surface does not become
+edit, import, and export builds and teams. Live party observation and Apply
+remain unavailable. This host-only surface does not become
 certification authority.
 
 ## Companion architecture
@@ -413,7 +413,7 @@ actions proves, and parser generation includes only commands backed by proved
 actions. The profile exports no generic opcode, packet, dispatcher, or address
 surface.
 
-The same named storage action backs the Tools button and Xunlai Storage's shortcut (Command-S). It
+The named storage action backs Xunlai Storage's shortcut (Command-S), menu item and Hub row. It
 queues a fixed `{ agent: 0, type: 0, data: 3 }` DataWindow payload, then calls
 the certified client DataWindow handler at the existing game-thread drain. It
 does not send that payload to ArenaNet. The action is enabled only with its

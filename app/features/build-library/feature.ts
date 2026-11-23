@@ -35,9 +35,9 @@ export default defineFeature({
   offers: ["toggle", "load", "save", "list"],
   /**
    * "Find capture locations" on an elite skill opens Maps' Elite Skills planner; applying a team
-   * or a build sends Team Apply's certified commands; the storage button opens Xunlai Storage.
+   * or a build sends Team Apply's certified commands.
    */
-  links: { eliteSkills: ["findElite"], teamApply: ["commands"], xunlaiStorage: ["toggle", "blocked"] },
+  links: { eliteSkills: ["findElite"], teamApply: ["commands"] },
   shots: [],
   parts: ["window", "main"],
 });

@@ -4,12 +4,9 @@
  * only the renderer can do for the Library: write a build where the game's own template dialog
  * finds it, and move template files in and out, when this client lists templates written to its
  * mount. It reads and writes the saved library through the data part (./library-file.ts), the
- * same one its link uses. Applying a team reaches Team Apply's certified commands, "Find capture
- * locations" reaches Maps, and the storage button reaches Xunlai Storage, through the links the
- * manifest names.
+ * same one its link uses. Applying a team reaches Team Apply's certified commands and "Find capture
+ * locations" reaches Maps, through the links the manifest names.
  */
-import type { StorageCommand } from "../../../shared/storage-command.js";
-import type { FeatureLinks } from "../../links.js";
 import type { EmbeddedToolsBundle, PublishableTemplate, PublishedTemplate } from "../../../shared/tools-bundle-contracts.js";
 import { toolsUnavailableCopy } from "./tools-unavailable-copy.js";
 import type { WindowContext, WindowRunning } from "../../../renderer/window-part.js";
@@ -42,23 +39,6 @@ async function publishTemplate({ name: raw, code }: PublishableTemplate): Promis
   return Object.freeze({ fileName: `${name}.txt`, location: "Skills — press Refresh List in Guild Wars to see it" });
 }
 
-/** What the storage button reads while Xunlai Storage is off (switched off, plain game, PvP). */
-const STORAGE_OFF = "Xunlai Storage is off here.";
-
-/** Xunlai Storage as the storage button uses it: it opens through Xunlai's `toggle` and says why it cannot. */
-function storageThrough(links: FeatureLinks<"buildLibrary">): StorageCommand {
-  const unavailable = (): string | null => {
-    const blocked = links.xunlaiStorage?.blocked() ?? STORAGE_OFF;
-    return blocked === "unavailable" ? STORAGE_OFF : blocked;
-  };
-  return Object.freeze({
-    unavailable,
-    open() {
-      if (links.xunlaiStorage?.toggle("show") !== "shown") throw new Error(unavailable() ?? STORAGE_OFF);
-    },
-  });
-}
-
 /**
  * A failure is reported rather than swallowed: an empty panel that explains nothing costs a
  * debugging session, so this one says what went wrong and leaves the reason in the console.
@@ -84,13 +64,10 @@ export async function startLibraryWindow(context: WindowContext<"buildLibrary">)
     ]);
     // Whether this session's client discovers templates written to its mount.
     const templatePublishing = session.compatibility?.features.gameFileSaving.status === "available";
-    // Null is a module derived without the storage command: an absence in the bytes, worded by its reason.
-    const storage = session.compatibility?.features.xunlaiAction.status === "available" ? storageThrough(links) : null;
     const unavailable = toolsUnavailableCopy(session.compatibility?.features, {
       // The module holds the command queue when the build proved Team Apply, even while its link
       // still waits for the build check.
       teamApply: commands() !== null || session.compatibility?.features.teamApply.status === "available",
-      storage: storage !== null,
       publish: templatePublishing,
     });
     const app = bundle.mountToolsApp(host, {
@@ -111,8 +88,6 @@ export async function startLibraryWindow(context: WindowContext<"buildLibrary">)
         ? createTemplateFiles({ filesystem: templateFilesystem, exportToDisk: (entries) => window.gwNative.templates.export(entries) })
         : null,
       commands,
-      storage,
-      storageUnavailable: unavailable.storage,
       publishUnavailable: unavailable.publish,
       applyUnavailable: unavailable.apply,
       observationUnavailable: unavailable.observation,

@@ -564,7 +564,6 @@ test.describe("renderer Tools input", () => {
         const storageLinks = await import(storageLinksPath) as typeof import("../../app/renderer/feature-links.js");
         storageLinks.provideLink("xunlaiStorage", {
           toggle: () => { openStorage(); return "shown"; },
-          blocked: () => null,
         });
         canvas.addEventListener("keydown", (event) => {
           if (event.key !== "Shift") return;
