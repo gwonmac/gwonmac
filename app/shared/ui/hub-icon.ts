@@ -12,6 +12,7 @@ const paths = {
   person: '<circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/>',
   whispers: '<path d="M20 4H4v12h4l4 4v-4h8V4ZM8 8h8M8 12h5"/>',
   storage: '<path d="M3 10h18v11H3V10Zm0 0V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v3M8 3v7M16 3v7M10 10v5h4v-5"/>',
+  progress: '<path d="m3 7 2 2 4-4M3 17l2 2 4-4M13 6h8M13 12h8M13 18h8"/>',
   maps: '<path d="m3 5 6-2 6 2 6-2v16l-6 2-6-2-6 2V5ZM9 3v16M15 5v16"/>',
   game: '<rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>',
   settings: '<path d="M4 7h16M4 17h16"/><circle cx="8" cy="7" r="3"/><circle cx="16" cy="17" r="3"/>',

@@ -58,9 +58,10 @@ test('Command-Backspace and breadcrumb ancestors restore history; Backspace only
   expect(back().getAttribute('title')).toBe('Back (⌘⌫)');
   expect(back().getAttribute('aria-keyshortcuts')).toBe('Meta+Backspace');
   expect(back().getAttribute('aria-description')).toBe('Return to Accounts');
-  expect(text('.hub-legend')).toContain('⌘⌫ Back');
   fill(search(), 'keep'); press('Backspace');
   expect(search().value).toBe('kee');
+  // Esc now clears the text, so the legend names ⌘⌫ for Back.
+  expect(text('.hub-legend')).toContain('⎋ Clear⌘⌫ Back');
   expect(caption()).toBe('Second');
   // An empty query is a no-op for Backspace, held or not: it never leaves the page.
   fill(search(), ''); hold('Backspace', 3); await settle();

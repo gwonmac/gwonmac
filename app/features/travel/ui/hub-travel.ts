@@ -120,7 +120,7 @@ export function createHubTravel(host: TravelHost, hub: HubPresenter<HTMLElement>
   /** Travel's own search phrases for one place: they find it as exactly as its name. */
   const phrases = (mapId: number, query: string) => preferences.searchSynonyms(query).filter(entry => entry.mapId === mapId).map(entry => entry.term);
   const toolRow = (): HubRow => ({ id: 'travel', iconKind: 'travel', title: TOOL_PRESENTATION['quick-travel'].label, detail: loadError || 'Outposts, favourites, recent places and Guild Hall', group: 'Features', keywords: 'tp teleport destination', action: 'Browse travel', navigate: open, run: open });
-  const progressRow = (): HubRow => ({ id: 'progress', title: 'Progress', detail: progress.value.status === 'ready' ? 'Missions, vanquishes and outposts still to do' : 'Missions, vanquishes and outposts · in an outpost or explorable area',
+  const progressRow = (): HubRow => ({ id: 'progress', iconKind: 'progress', title: 'Progress', detail: progress.value.status === 'ready' ? 'Missions, vanquishes and outposts still to do' : 'Missions, vanquishes and outposts · in an outpost or explorable area',
     group: 'Features', keywords: 'protector guardian vanquisher cartographer title missions hm vq', action: 'Show progress', navigate: () => openProgress(), run: () => openProgress() });
   /** A goal word ("vq", "guardian") offers that goal of the campaign the player is in. */
   function goalRows(query: string): HubRow[] {

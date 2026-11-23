@@ -581,7 +581,7 @@ test('Invite to a friend in another map says why before Enter and sends nothing'
   // D-2: the person page keeps focus in search and moves the active descendant.
   expect([caption(), document.activeElement === search()]).toEqual(['Zed Alpha', true]);
   // The footer keeps both slots and a key legend; a person page has no details to show.
-  expect([shown(actionsButton()), actionsButton().disabled, text('.hub-legend')]).toEqual([true, true, '↑↓ Select⎋ Back⌘⌫ Back']);
+  expect([shown(actionsButton()), actionsButton().disabled, text('.hub-legend')]).toEqual([true, true, '↑↓ Select⎋ Back']);
   press('ArrowDown'); press('ArrowDown'); await flush();
   expect([document.activeElement === search(), search().getAttribute('aria-activedescendant')]).toEqual([true, 'hub-result-2']);
   expect(selected()?.textContent).toContain('Invite to party');

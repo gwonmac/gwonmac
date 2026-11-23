@@ -113,6 +113,7 @@ export default defineFeature({
       ...MAP_LAYER,
       launcherError: "Compass range theme is invalid",
       label: "Range colors",
+      dependsOn: "compassRangeIndicatorsEnabled",
       help: "Color gives each ring its own color. Monochrome draws every ring in white.",
       keywords: "compass ranges rings appearance monochrome",
       choices: { color: "Color", monochrome: "Monochrome" },
@@ -174,7 +175,7 @@ export default defineFeature({
         error: "Compass buttons position is invalid",
         launcherError: "Compass buttons position is invalid",
         label: "Compass buttons position",
-        help: "Drag a button in a game window to move both. Reset puts them back beside the Compass.",
+        help: "Drag a button in a game window to move both. Put back returns them beside the Compass.",
         keywords: "move drag reset compass buttons",
       },
     ),
@@ -207,7 +208,7 @@ export default defineFeature({
   },
   hub: {
     command: "maps", order: 6,
-    row: { detail: "Exploration grid, walkable terrain, walking route and compass ranges", iconKind: "maps", action: "Adjust maps", open: { featurePage: true } },
+    row: { detail: "Exploration grid, walkable terrain, walking route and Compass ranges", iconKind: "maps", action: "Adjust maps", open: { featurePage: true } },
   },
   shortcuts: [
     { action: "cartography.grid.toggle", binding: null, label: "Exploration grid" },

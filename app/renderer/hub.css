@@ -187,7 +187,7 @@
 .hub-view .character-switch-panel[data-layout=horizontal] .character-switch-name { font:500 var(--ui-type-caption-size)/var(--ui-type-caption-line) var(--ui-font-interface); white-space:normal; }
 .hub-view .character-switch-panel[data-layout=horizontal] .character-switch-meta { font:var(--ui-type-caption-size)/var(--ui-type-caption-line) var(--ui-font-interface); white-space:normal; }
 .hub-view .character-switch-settings fieldset:has(input[name=character-switch-layout]) { display:none; }
-.hub-view .travel-history .travel-recent-grid { display:flex; gap:10px; overflow-x:auto; padding:2px 1px 10px; scroll-snap-type:x proximity; }
+.hub-view .travel-history .travel-recent-grid { display:flex; gap:10px; overflow-x:auto; scrollbar-width:thin; padding:2px 1px 10px; scroll-snap-type:x proximity; }
 .hub-view .travel-history .travel-recent { flex:0 0 190px; min-height:124px; display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:10px; padding:14px; background:var(--ui-well-fill); scroll-snap-align:start; }
 .hub-view .travel-history .travel-recent > svg:last-child { display:none; }
 .hub-view .travel-history .travel-recent strong { white-space:normal; line-height:1.3; }

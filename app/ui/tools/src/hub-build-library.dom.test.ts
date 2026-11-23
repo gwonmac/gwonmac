@@ -211,7 +211,7 @@ test('the Library lists every saved team, and a team typed alone stays review-on
 test('a team review names its changes, and a repeat Apply says the party already matches (⌘R hides the receipt)', async () => {
   await mountFixture();
   fill(search(), 'team gom afk'); await settle(); press('ArrowRight'); await settle();
-  expect(text('.hub-build-review')).toContain('Switches to Hard Mode');
+  expect(text('.hub-build-review')).toContain('Switch to Hard Mode');
   click(button('Apply team GOM AFK')!); await settle();
   expect(hubOpen()).toBe(false);
   click(button('Open Hub', true)!); await settle();

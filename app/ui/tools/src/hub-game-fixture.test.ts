@@ -399,9 +399,9 @@ test('team previews name removals, a roster rebuild and the mode change before A
   const duplicate = { ...trio, id: teamId('duplicate'), name: original.name, mode: 'normal' as const };
   const reordered = { ...original, id: teamId('reordered'), name: 'GOM reordered', slots: mapTeamSlots(original.slots, (slot, index) => index === 1 ? original.slots[2] : index === 2 ? original.slots[1] : slot) };
   const { source, unmount } = await mountLibrary({ ...host, loadLibrary: async () => ({ ...loaded, library: { ...loaded.library, teams: [trio, reordered, original, duplicate, keep] } }) }, { hub: host });
-  expect(source.search('team gom trio')[0]?.preview).toContain('Removes Gwen, Tahlkora, Razah, Vekk');
-  expect(source.search('team gom reordered')[0]?.preview).toContain('Rebuilds hero order');
-  expect(source.search('team gom reordered')[0]?.preview).toContain('Switches to Hard Mode');
+  expect(source.search('team gom trio')[0]?.preview).toContain('Remove Gwen, Tahlkora, Razah, Vekk');
+  expect(source.search('team gom reordered')[0]?.preview).toContain('Rebuild hero order');
+  expect(source.search('team gom reordered')[0]?.preview).toContain('Switch to Hard Mode');
   expect(source.search('team gom afk').map(row => row.detail).sort()).toEqual(['Saved team · Hard Mode · 7 heroes', 'Saved team · Keep difficulty · 3 heroes', 'Saved team · Normal Mode · 3 heroes']);
   unmount();
 });
