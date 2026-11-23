@@ -37,6 +37,7 @@ import { listIndexAfter, listKeyStep, listPage } from "../../../shared/ui/list-k
 import { isHubBackKey } from "../../../shared/keyboard-shortcuts";
 import { characterKey } from "../../../shared/player-text";
 import { useFloatingWindow } from "./use-floating-window";
+import { useNotice } from "./use-notice";
 import type { FloatingWindowPlacementStore } from "../../../shared/ui/window-placement";
 import TradeIcon from "./TradeIcon.vue";
 import TraderPrices from "./components/TraderPrices.vue";
@@ -77,7 +78,9 @@ const playerMessages = ref<TradeMessage[]>([]);
 const playerSearching = ref(false);
 const playerProblem = ref("");
 const playerReturn = ref<PlayerReturnState | null>(null);
-const notice = ref<{ text: string; tone: "success" | "warning" | "error"; copyFor?: "Character name" | "Offer" } | null>(null);
+type TradeNotice = { text: string; tone: "success" | "warning" | "error"; copyFor?: "Character name" | "Offer" };
+// A success fades after 3 seconds; a warning or error stays until the next notice.
+const { notice, show } = useNotice<TradeNotice>((each) => each.tone === "success" ? 3_000 : null);
 const detailOpen = ref(false);
 const savedOpen = ref(false);
 const savedTab = ref<"offers" | "players">("offers");
@@ -184,7 +187,6 @@ let subscriptionRevision = 0;
 let searchQueued = false;
 let stopEvents: (() => void) | null = null;
 let clock: ReturnType<typeof setInterval> | null = null;
-let noticeTimer: number | null = null;
 let savedRevision = 0;
 let confirmedSaved: TradeSavedState = { offers: [], players: [] };
 let savedWrites = Promise.resolve();
@@ -481,10 +483,8 @@ async function copy(value: string, label: "Character name" | "Offer", event?: Mo
   showNotice(text, tone, sameOffer ? label : undefined);
 }
 
-function showNotice(text: string, tone: "success" | "warning" | "error" = "success", copyFor?: "Character name" | "Offer"): void {
-  if (noticeTimer) clearTimeout(noticeTimer);
-  notice.value = { text, tone, ...(copyFor ? { copyFor } : {}) };
-  noticeTimer = tone === "success" ? window.setTimeout(() => { notice.value = null; }, 3_000) : null;
+function showNotice(text: string, tone: TradeNotice["tone"] = "success", copyFor?: "Character name" | "Offer"): void {
+  show({ text, tone, ...(copyFor ? { copyFor } : {}) });
 }
 
 function offerSaved(message: TradeMessage): boolean {
@@ -822,7 +822,6 @@ onBeforeUnmount(() => {
   stopEvents?.();
   stopWhispers?.();
   if (clock) clearInterval(clock);
-  if (noticeTimer) clearTimeout(noticeTimer);
   void props.host.unsubscribe();
 });
 

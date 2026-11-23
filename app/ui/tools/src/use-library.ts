@@ -44,12 +44,13 @@ import {
   type Team,
 } from "./model";
 import { createLibraryStore } from "./use-library-store";
+import { useNotice } from "./use-notice";
 
 type Notice = Readonly<{
   tone: "success" | "warning" | "error";
   message: string;
   persistent: boolean;
-}> | null;
+}>;
 type ApplyStatusDetail = Readonly<{
   member: string;
   skills: readonly string[];
@@ -107,7 +108,8 @@ export function useLibrary(host: ToolsHost) {
   const loading = ref(true);
   const saving = ref(false);
   const error = ref<string | null>(null);
-  const notice = ref<Notice>(null);
+  // A success fades after 4.5 seconds; a warning or error stays until it is dismissed.
+  const { notice, show, dismiss: dismissNotice } = useNotice<Notice>((each) => each.persistent ? null : 4_500);
   const skillProblem = ref<string | null>(null);
   const applyStatus = ref<ApplyStatus>(null);
   const applying = ref(false);
@@ -115,7 +117,6 @@ export function useLibrary(host: ToolsHost) {
   const selectedId = ref("");
   const query = ref("");
   const tag = ref<string | null>(null);
-  let noticeTimer: ReturnType<typeof setTimeout> | null = null;
   const catalogueLookup = (skill: Build["skills"][number]) =>
     skill !== null && host.skills.has(skill)
       ? {
@@ -133,24 +134,8 @@ export function useLibrary(host: ToolsHost) {
 
   const showNotice = (
     message: string,
-    tone: NonNullable<Notice>["tone"] = "success",
-  ) => {
-    if (noticeTimer) clearTimeout(noticeTimer);
-    noticeTimer = null;
-    const persistent = tone !== "success";
-    notice.value = { message, tone, persistent };
-    if (!persistent) {
-      noticeTimer = setTimeout(() => {
-        notice.value = null;
-        noticeTimer = null;
-      }, 4_500);
-    }
-  };
-  const dismissNotice = () => {
-    if (noticeTimer) clearTimeout(noticeTimer);
-    noticeTimer = null;
-    notice.value = null;
-  };
+    tone: Notice["tone"] = "success",
+  ) => show({ message, tone, persistent: tone !== "success" });
 
   const selectedBuild = computed(() =>
     kind.value === "build" && library.value

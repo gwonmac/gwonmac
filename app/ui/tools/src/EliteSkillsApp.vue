@@ -14,6 +14,7 @@ import { attributeLabel } from "../../../shared/builds/presentation";
 import { skillId, type Profession } from "../../../shared/builds/library";
 import type { SkillCatalogue, SkillPresentation } from "./skill-catalog";
 import { useEliteTracking, type EliteTrackingHost } from "./use-elite-tracking";
+import { useNotice } from "./use-notice";
 import SkillDetails from "./components/SkillDetails.vue";
 import EliteFilters from "./components/EliteFilters.vue";
 import EliteCaptureLocation from "./components/EliteCaptureLocation.vue";
@@ -151,11 +152,9 @@ const scene = computed<EliteMarkerScene>(() => ({
 watch(scene, (value) => props.present?.(value), { immediate: true });
 
 // ---------- Notices ----------
-const notice = ref<{ title: string; kind: "captured" | "info"; details: readonly string[] } | null>(null);
-let noticeTimer: ReturnType<typeof setTimeout> | undefined;
+const { notice, show: showNotice, dismiss: dismissNotice } = useNotice<{ title: string; kind: "captured" | "info"; details: readonly string[]; ms: number }>((each) => each.ms);
 function announce(title: string, kind: "captured" | "info", details: readonly string[], ms = 6000) {
-  notice.value = { title, kind, details };
-  clearTimeout(noticeTimer); noticeTimer = setTimeout(() => { notice.value = null; }, ms);
+  showNotice({ title, kind, details, ms });
 }
 /**
  * A capture is a Hunt list skill that was open in the last observation of the
@@ -366,7 +365,7 @@ const rowMeta = (value: SkillPresentation, locations: readonly EliteLocation[]) 
   locations.length === 1 ? guildWarsMapName(locations[0]!.mapId) : `${locations.length} bosses`,
 ].filter(Boolean).join(" · ");
 const myClasses = computed(() => party.value.player?.professions?.filter((value): value is Profession => value !== null).join("/") ?? "");
-watch(character, () => { selectedId.value = null; preview.value = null; notice.value = null; setOpen(false, false, false); });
+watch(character, () => { selectedId.value = null; preview.value = null; dismissNotice(); setOpen(false, false, false); });
 watch([() => Boolean(props.view.world), loaded], ([world, isReady], [previous]) => {
   if (!world && previous) setOpen(false, false, false);
   else if (world && isReady) setOpen(preferences.value.panelOpen, false, false);
@@ -374,7 +373,7 @@ watch([() => Boolean(props.view.world), loaded], ([world, isReady], [previous]) 
 watch(() => props.view.mission, (value, previous) => {
   if (!value && previous) { preview.value = null; if (!props.view.world) setOpen(false, false, false); }
 });
-onBeforeUnmount(() => { keepPreview(); clearTimeout(noticeTimer); plan.dispose(); });
+onBeforeUnmount(() => { keepPreview(); plan.dispose(); });
 defineExpose({ find, close, pointer, activate });
 </script>
 <template>
@@ -405,7 +404,7 @@ defineExpose({ find, close, pointer, activate });
       <div v-if="notice" class="elite-notice elite-notice-inline" :data-kind="notice.kind" role="status">
         <strong>{{ notice.title }}</strong>
         <span v-for="detail in notice.details" :key="detail">{{ detail }}</span>
-        <button class="ui-button elite-preview-close" aria-label="Dismiss" @click="notice = null"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+        <button class="ui-button elite-preview-close" aria-label="Dismiss" @click="dismissNotice"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
       </div>
       <div v-if="problem" class="elite-message" role="alert">
         <p>{{ problem }}</p><button class="ui-button" :disabled="busy" @click="plan.retry">Retry</button>
@@ -515,7 +514,7 @@ defineExpose({ find, close, pointer, activate });
     <div v-if="notice && !open" class="ui-frame elite-notice" :data-kind="notice.kind" role="status">
       <strong>{{ notice.title }}</strong>
       <span v-for="detail in notice.details" :key="detail">{{ detail }}</span>
-      <button class="ui-button elite-preview-close" aria-label="Dismiss" @click="notice = null"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+      <button class="ui-button elite-preview-close" aria-label="Dismiss" @click="dismissNotice"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
     </div>
   </div>
 </template>
