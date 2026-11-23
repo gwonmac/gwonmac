@@ -6,6 +6,7 @@
  */
 import { isHubShortcuts, isLibraryHubShortcut, LIBRARY_UNAVAILABLE, type HubShortcut } from '../shared/hub-preferences.js';
 import type { HubSource } from '../shared/hub.js';
+import { safelyRead } from './contained.js';
 
 type ShortcutOwner = NonNullable<HubSource['shortcuts']>;
 
@@ -20,7 +21,8 @@ export function settingsHubShortcuts(): readonly HubShortcut[] {
  */
 export function createHubShortcutStore(owners: () => readonly ShortcutOwner[]) {
   return Object.freeze({
-    get: (): readonly HubShortcut[] => [...settingsHubShortcuts(), ...owners().flatMap(owner => owner.get())],
+    // A source whose list cannot be read adds none; the others still show (contained.ts).
+    get: (): readonly HubShortcut[] => [...settingsHubShortcuts(), ...owners().flatMap(owner => safelyRead('a Hub source', () => owner.get(), []))],
     async save(value: readonly HubShortcut[]) {
       const libraryEntries = value.filter(entry => isLibraryHubShortcut(entry.id));
       const settingsEntries = value.filter(entry => !isLibraryHubShortcut(entry.id));

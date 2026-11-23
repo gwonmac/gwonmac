@@ -29,6 +29,7 @@ import { HUB_FALLBACK, hubAtHome, hubInitialState, hubKey, hubReduce, hubRunning
 import { createHoverSelection } from '../shared/ui/hover-selection.js';
 import { FEATURES, FEATURE_SELECTION_POLICIES } from '../shared/feature-contracts.js';
 import { featureOn } from './feature-on.js';
+import { safely, safelyRead } from './contained.js';
 import type { PartOwner, RunningPart } from '../features/parts.js';
 import { HUB_LOCATED_DESTINATIONS, hubMatch, isHubCalculation, parseHubQuery, normaliseHubQuery, type HubAction, type HubDestination, type HubRow, type HubSource, type HubSummary, type HubTask, type HubViewAction, type HubViewFooter, type HubViewMount } from '../shared/hub.js';
 import { hubRowPaintsSame, type EmbeddedHubView, type HubFocusTarget, type HubMenuItem, type HubPrimary, type HubViewModel } from '../shared/ui/hub-view.js';
@@ -121,8 +122,16 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     return !!feature && featureOn(feature.id);
   };
   const enabledSources = () => [...sources.keys()].filter(sourceEnabled);
+  /**
+   * Every call into a source goes through `ask` or `tell`: a source that throws answers nothing
+   * and logs one line, and the other sources still answer, so one broken Feature never breaks
+   * the Hub (contained.ts).
+   */
+  const ask = <T>(read: () => T, fallback: T): T => safelyRead('a Hub source', read, fallback);
+  const tell = (run: () => void) => { safely('a Hub source', run); };
+  const setVisible = (source: HubSource, visible: boolean) => tell(() => source.setVisible(visible));
   /** The cards of the sources turned on, and whether a row is one of theirs. */
-  const cards = () => enabledSources().flatMap(source => source.card ? [source.card] : []);
+  const cards = () => enabledSources().flatMap(source => { const card = source.card; return card ? [{ ...card, is: (row: HubRow) => ask(() => card.is(row), false) }] : []; });
   type RowScope = Readonly<{ title: string; rows: () => readonly HubRow[]; summary?: HubSummary; destination?: HubDestination; owner?: HubSource }>;
   type MountedView = { title: string; mount: HubViewMount<HTMLElement>; available?: () => boolean; destination?: HubDestination; owner?: HubSource };
   type Place = HubPlace<RowScope, MountedView>;
@@ -228,18 +237,18 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
   const showStatus = (line: HubStatusLine | null) => { if (line) { put('status', line); paintBusy(); } };
   const report = (message: string, receipt = false) => showStatus(status.report(message, receipt));
   /** The rows sources leave the Hub to match: they follow every result (HubSource `commands`). */
-  const commandRows = (query = state.query) => enabledSources().flatMap(source => source.commands?.(query) ?? []);
+  const commandRows = (query = state.query) => enabledSources().flatMap(source => ask(() => source.commands?.(query) ?? [], []));
   /** Where each saved phrase and pin lives is hub-shortcuts.ts's to decide. */
   const savedShortcuts = createHubShortcutStore(() => enabledSources().flatMap(source => source.shortcuts ?? []));
   const shortcuts = savedShortcuts.get;
-  const lookup = (id: string): HubRow | undefined => enabledSources().map(source => source.lookup?.(id)).find(Boolean)
+  const lookup = (id: string): HubRow | undefined => enabledSources().map(source => ask(() => source.lookup?.(id), undefined)).find(Boolean)
     ?? commandRows().find(row => row.id === id);
   /**
    * The other result a root search for this phrase already finds by its exact name or alias. A
    * search phrase equal to it would hide it or make both ambiguous, so the editor refuses it (HUB-062).
    */
   function exactlyNamed(phrase: string, id: string): HubRow | undefined {
-    const found = [...enabledSources().flatMap(source => source.search(phrase)), ...commandRows(phrase)];
+    const found = [...enabledSources().flatMap(source => ask(() => source.search(phrase), [])), ...commandRows(phrase)];
     return found.find(row => row.id !== id && hubMatch(row.title, phrase, row.aliases) === 'exact');
   }
   const shortcutStore = { get: () => shortcuts(), lookup, save: saveShortcuts, exactlyNamed };
@@ -354,9 +363,9 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
   function paintSourceFacts() {
     const view = state.place.view;
     const located = view ? !!view.destination && HUB_LOCATED_DESTINATIONS.includes(view.destination) : !state.place.scope && !state.query.trim();
-    const context = located ? enabledSources().flatMap(source => source.context?.() ?? []) : [];
+    const context = located ? enabledSources().flatMap(source => ask(() => source.context?.() ?? [], [])) : [];
     put('context', context.join(' · '));
-    const lifecycleText = state.place.view ? '' : enabledSources().map(source => source.lifecycle?.()).find(Boolean) ?? '';
+    const lifecycleText = state.place.view ? '' : enabledSources().map(source => ask(() => source.lifecycle?.(), null)).find(Boolean) ?? '';
     patch('lifecycle', { text: lifecycleText, hidden: !lifecycleText, ...((model.lifecycle.title ?? '') !== lifecycleText ? { title: lifecycleText } : {}) });
   }
   function paintNavigation() {
@@ -378,7 +387,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     put('scope', { text: query.scope ?? '', hidden: !!state.place.scope || !query.scope || !!state.place.view || commandRows().some(row => normaliseHubQuery(row.title) === normaliseHubQuery(state.query)) });
     // The page title leads, so a screen reader that lands in search after Back hears where it is.
     patch('search', { description: `${currentTitle}: ${state.place.scope ? 'search actions' : query.scope ? `search ${query.scope}` : 'search tools or use a command example'}` });
-    const hint = !state.place.scope && !query.scope && state.query.trim() ? enabledSources().map(source => source.hint?.(state.query)).find(Boolean) ?? '' : '';
+    const hint = !state.place.scope && !query.scope && state.query.trim() ? enabledSources().map(source => ask(() => source.hint?.(state.query), null)).find(Boolean) ?? '' : '';
     put('hint', { text: hint, title: hint, hidden: !hint || !!state.place.view });
   }
   /**
@@ -453,7 +462,8 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     paintNavigation();
     const previousRows = rows;
     const scoped = !!state.place.scope;
-    const found = state.place.scope ? state.place.scope.rows() : enabledSources().flatMap(source => source.search(state.query));
+    const scope = state.place.scope;
+    const found = scope ? ask(() => scope.rows(), []) : enabledSources().flatMap(source => ask(() => source.search(state.query), []));
     const composed = composeHubResults({ scoped, query: state.query, found, shortcuts: shortcuts(), lookup, commands: commandRows(), cards: cards() });
     rows = composed.rows;
     const message = composed.count;
@@ -586,7 +596,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
   function close(message?: string) {
     if (root.open) frame = ui.layout.frame();
     step({ type: 'close' });
-    resetView(); modal.close(); for (const source of sources.keys()) source.setVisible(false);
+    resetView(); modal.close(); for (const source of sources.keys()) setVisible(source, false);
     report(''); put('announce', '');
     cancelAnimationFrame(refreshFrame); refreshFrame = 0;
     clearTimeout(announceTimer); resultAnnouncement = '';
@@ -618,7 +628,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     frame = ui.layout.frame();
     step({ type: 'suspend', scroll: ui.layout.scrollPlace(), focus: focusTarget() });
     modal.close();
-    for (const source of sources.keys()) source.setVisible(false);
+    for (const source of sources.keys()) setVisible(source, false);
   }
   /**
    * Resumes a suspended page. Suspending hides the Hub without unmounting it, so a page still
@@ -680,7 +690,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
     modal.show();
     const opened = step({ type: 'show', fresh });
     window.dispatchEvent(new Event('gw:hub-visible'));
-    for (const source of sources.keys()) source.setVisible(sourceEnabled(source));
+    for (const source of sources.keys()) setVisible(source, sourceEnabled(source));
     apply(opened);
   }
   input.addEventListener('input', entry(() => { step({ type: 'type', query: input.value }); showStatus(status.moved()); refresh(true); }));
@@ -743,7 +753,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
         try { await saveShortcuts(old ? entries.map(entry => entry.id === row.id ? edited : entry) : [...entries, edited]); const receipt = pinned ? `Unpinned ${row.title}.` : `Pinned ${row.title}.`; if (task.live()) report(receipt); else task.done(receipt); }
         catch { task.fail(new Error('Could not update the pin. Try again.')); }
       } });
-      for (const source of enabledSources()) for (const entry of source.personalize?.(row) ?? []) entries.push({ label: entry.label, section: 'Personalize', run: entry.run });
+      for (const source of enabledSources()) for (const entry of ask(() => source.personalize?.(row) ?? [], [])) entries.push({ label: entry.label, section: 'Personalize', run: entry.run });
     }
     return entries;
   }
@@ -790,7 +800,7 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
   primary.onclick = entry((event: MouseEvent) => { if (event.detail > 1) return; if (viewFooter) void runViewAction(viewFooter.primary ?? done, event); else send({ type: 'activate' }); });
   root.addEventListener('close', entry(() => { if (!root.open && !state.suspended) close(); }));
   const onSettings = entry(() => {
-    for (const source of sources.keys()) source.setVisible(root.open && sourceEnabled(source));
+    for (const source of sources.keys()) setVisible(source, root.open && sourceEnabled(source));
     withdrawPages();
   });
   window.addEventListener('gw:tools-settings', onSettings);
@@ -841,9 +851,9 @@ export function createHub(parent: HTMLElement, embedded: EmbeddedHubView) {
         const owner = state.place.scope?.owner;
         if (owner && owner !== next) { if (root.open) paintSourceFacts(); return; }
         scheduleRefresh();
-      }))); next.setVisible(root.open && sourceEnabled(next)); refresh();
+      }))); setVisible(next, root.open && sourceEnabled(next)); refresh();
       return entry(() => {
-        sources.get(next)?.(); sources.delete(next); next.setVisible(false);
+        tell(() => sources.get(next)?.()); sources.delete(next); setVisible(next, false);
         withdrawPages();
       });
     }),
