@@ -87,6 +87,11 @@ const SURFACES: readonly Surface[] = [
         await page.locator(".hub-search input").press("Enter");
         await page.waitForTimeout(400);
       } },
+      { name: "no-matches", path: "/?hub", open: async (page: Page) => {
+        await hubView("")(page);
+        await page.locator(".hub-search input").fill("qqqq");
+        await page.waitForTimeout(400);
+      } },
       { name: "trade", path: "/?trade=1" },
       // The floating Tools windows outside the Hub: their window headers are part of the pattern set.
       { name: "build-library", path: "/" },

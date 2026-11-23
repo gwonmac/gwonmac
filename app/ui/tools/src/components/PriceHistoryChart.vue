@@ -267,13 +267,13 @@ function formatTableTime(timestamp: number): string {
         <button v-if="isZoomed" class="ui-link" type="button" @click="resetView">Reset view</button>
       </span>
     </div>
-    <div v-if="loading" class="price-chart-state" role="status">
-      <span class="trade-skeleton" /><span class="trade-skeleton" />
-      Loading price history…
+    <div v-if="loading" class="ui-empty price-chart-state" role="status">
+      <span class="ui-skeleton" /><span class="ui-skeleton" />
+      <p>Loading price history…</p>
     </div>
-    <div v-else-if="!points.length" class="price-chart-state">
+    <div v-else-if="!points.length" class="ui-empty price-chart-state">
       <strong>No price history</strong>
-      <span>Kamadan has no quotes for this item in the selected range.</span>
+      <p>Kamadan has no quotes for this item in the selected range.</p>
     </div>
     <svg
       v-else

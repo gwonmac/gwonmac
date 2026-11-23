@@ -1242,6 +1242,28 @@ button.ui-chip[aria-disabled="true"] {
   text-wrap: pretty;
 }
 
+/* Loading is a .ui-empty too: these bars pulse above a line that names what loads
+ * ("Loading trader prices…"). The one loading animation in the Tools and the Hub. */
+.ui-skeleton {
+  display: block;
+  width: min(320px, 76%);
+  height: 22px;
+  border-radius: var(--ui-radius-sm);
+  background: var(--ui-hover);
+  animation: ui-skeleton 1.2s ease-in-out infinite alternate;
+}
+.ui-skeleton:nth-child(2) { width: min(270px, 64%); }
+.ui-skeleton:nth-child(3) { width: min(300px, 70%); }
+
+@keyframes ui-skeleton {
+  from { opacity: 0.34; }
+  to { opacity: 0.78; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-skeleton { animation: none; }
+}
+
 /* Feedback for a thing that already happened. Tinted by tone rather than
  * filled, for the same reason as the chips. */
 .ui-toast {

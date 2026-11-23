@@ -310,9 +310,9 @@ useClassicFrame(panel);
         <button class="ui-button" @click="controller.retrySkills">Retry skill data</button>
       </div>
 
-      <div v-if="controller.loading.value" class="loading-layout" aria-label="Loading build library">
-        <div class="skeleton skeleton--rail" />
-        <div class="skeleton skeleton--detail" />
+      <div v-if="controller.loading.value" class="ui-empty library-loading" role="status">
+        <span class="ui-skeleton" /><span class="ui-skeleton" /><span class="ui-skeleton" />
+        <p>Loading build library…</p>
       </div>
 
       <div v-else-if="controller.error.value" class="fatal-state" role="alert">

@@ -314,13 +314,13 @@ function relativeAge(timestamp: number): string {
         <div class="trader-catalogue-columns" aria-hidden="true">
           <span>Item</span><span>Buy</span><span>Sell</span>
         </div>
-        <div v-if="quotesLoading" class="trader-catalogue-state" role="status">
-          <span class="trade-skeleton" /><span class="trade-skeleton" /><span class="trade-skeleton" />
-          Loading trader prices…
+        <div v-if="quotesLoading" class="ui-empty trader-catalogue-state" role="status">
+          <span class="ui-skeleton" /><span class="ui-skeleton" /><span class="ui-skeleton" />
+          <p>Loading trader prices…</p>
         </div>
-        <div v-else-if="!visibleItems.length" class="trader-catalogue-state">
+        <div v-else-if="!visibleItems.length" class="ui-empty trader-catalogue-state">
           <strong>No matching prices</strong>
-          <span>Try another item name or category.</span>
+          <p>Try another item name or category.</p>
         </div>
         <div v-else ref="catalogue" class="trader-catalogue-list ui-scroll" role="listbox" aria-label="Trader items" @keydown="onCatalogueKeydown">
           <button

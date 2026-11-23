@@ -95,8 +95,9 @@ has the job. `pnpm ui:sweep` checks the rules marked *swept*
   control inside a field is not an `overlap`.
 - **Empty and loading.** Empty is `.ui-empty`: a short title ("No saved teams
   yet", "No matching prices"), one sentence that says what to do, and an
-  action when one helps. Loading names what loads ("Loading trader prices…");
-  the Hub shows it as a result row and the bar under its search.
+  action when one helps. Loading is a `.ui-empty` too: pulsing `.ui-skeleton`
+  bars above a line that names what loads ("Loading trader prices…"). The Hub
+  shows loading as a result row and the bar under its search.
 
 ## Accounts in the launcher
 

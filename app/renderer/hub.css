@@ -54,7 +54,6 @@
 .hub-legend .ui-kbd { min-width:20px; margin-right:2px; padding:0 4px; }
 .hub-count { margin-right:auto; color:var(--ui-text-muted); font:var(--ui-type-caption-size)/var(--ui-type-caption-line) var(--ui-font-reading); white-space:nowrap; }
 .hub-footer kbd { font:var(--ui-type-caption-size)/var(--ui-type-caption-line) var(--ui-font-interface); }
-.hub-empty { margin:0; padding:16px; color:var(--ui-text-muted); font-family:var(--ui-font-reading); }
 /* One status line: a report replaces the lifecycle line while it shows. */
 .hub-status:not(:empty) + .hub-lifecycle { display:none; }
 .hub-view { min-height:0; overflow:auto; flex:1; }
@@ -344,7 +343,7 @@
 .hub-search-glyphs img { position:absolute; top:50%; height:1.15em; object-fit:contain; transform:translate(-50%,-50%); }
 
 /* Empty results keep their old list position without becoming a listbox child. */
-.hub-empty { flex:1; min-height:0; padding-inline:24px; }
+.hub-empty { flex:1; min-height:0; align-content:center; }
 
 /* Reserve the preview for any list with a preview, so moving the selection never resizes the list. */
 .hub-results.hub-preview-list:not([hidden]) ~ .hub-preview { flex:0 0 144px; height:144px; max-height:144px; }

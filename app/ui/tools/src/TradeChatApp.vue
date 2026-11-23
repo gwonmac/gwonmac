@@ -967,7 +967,7 @@ useClassicFrame(panel);
         </div>
         <div
           v-if="searching && (current.status === 'reconnecting' || current.status === 'unavailable')"
-          class="trade-state"
+          class="ui-empty trade-state"
           role="status"
         >
           <strong>Waiting for {{ sourceLabel }} to reconnect</strong>
@@ -976,13 +976,13 @@ useClassicFrame(panel);
         </div>
         <div
           v-else-if="playerSearching || searching || (!visibleMessages.length && (current.status === 'connecting' || current.status === 'reconnecting'))"
-          class="trade-state"
+          class="ui-empty trade-state"
           role="status"
         >
-          <div class="trade-skeleton" /><div class="trade-skeleton" /><div class="trade-skeleton" />
+          <span class="ui-skeleton" /><span class="ui-skeleton" /><span class="ui-skeleton" />
           <p>{{ loadingLabel }}</p>
         </div>
-        <div v-else-if="!visibleMessages.length" class="trade-state">
+        <div v-else-if="!visibleMessages.length" class="ui-empty trade-state">
           <strong>{{ emptyHeading }}</strong>
           <p v-if="playerProblem">{{ playerProblem }}</p>
           <p v-else-if="searchProblem">{{ searchProblem }}</p>

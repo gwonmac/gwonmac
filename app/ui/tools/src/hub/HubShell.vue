@@ -52,7 +52,7 @@ defineExpose({ root, focus });
       </section>
       <HubSearchBar :search="model.search" :scope="model.scope" :glyphs="model.glyphs" />
       <HubResultList :results="model.results" :busy="model.busy?.list" />
-      <p class="hub-empty" :hidden="model.empty.hidden">No matches</p>
+      <div class="ui-empty hub-empty" :hidden="model.empty.hidden"><strong>No matches</strong><p>Check the spelling, or try a shorter word.</p></div>
       <pre class="hub-preview ui-scroll" :hidden="model.preview.hidden" v-text="model.preview.text"></pre>
       <div ref="view" class="hub-view" :hidden="model.view.hidden" :aria-busy="model.busy?.view"></div>
       <div class="hub-footer-status">
