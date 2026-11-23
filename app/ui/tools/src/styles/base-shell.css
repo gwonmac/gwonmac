@@ -37,7 +37,8 @@ body[data-tools-standalone="true"] {
     linear-gradient(165deg, var(--ui-line), var(--ui-well) 70%);
 }
 
-.tools-stage button,
+/* The shared × keeps the size components.css gives it. */
+.tools-stage button:not(.ui-window-close),
 .tools-stage input,
 .tools-stage select,
 .tools-stage textarea {

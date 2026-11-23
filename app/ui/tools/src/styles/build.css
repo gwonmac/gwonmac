@@ -631,6 +631,8 @@
 }
 
 @container detail-pane (max-width: 390px) {
+  /* A phone-narrow pane keeps its height for the skill catalogue. */
+  .authoring-tabs { margin-block: var(--ui-space-1); }
   .authoring-tabs .ui-chip { display: none; }
   .authoring-bar {
     width: auto;
