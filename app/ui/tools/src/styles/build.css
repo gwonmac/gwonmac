@@ -275,13 +275,12 @@
 
 .authoring-tabs {
   display: flex;
-  min-height: 38px;
-  margin-top: var(--ui-space-2);
-  align-items: end;
-  gap: var(--ui-space-1);
+  margin-block: var(--ui-space-2);
+  align-items: center;
+  gap: var(--ui-space-2);
 }
 
-.authoring-tabs .ui-chip { margin: 0 0 var(--ui-space-2) auto; }
+.authoring-tabs .ui-chip { margin-left: auto; }
 
 .authoring-scroll {
   min-height: 0;

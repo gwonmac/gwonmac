@@ -301,30 +301,30 @@ defineExpose({
         </button>
       </div>
 
-      <div
-        class="authoring-tabs ui-tabs"
-        role="tablist"
-        aria-label="Build view"
-        @keydown="navigateTabs"
-      >
-        <button
-          id="build-view-tab"
-          class="ui-tab"
-          role="tab"
-          aria-controls="build-view-panel"
-          :aria-selected="view === 'build'"
-          :tabindex="view === 'build' ? 0 : -1"
-          @click="view = 'build'"
-        >Build</button>
-        <button
-          id="build-details-tab"
-          class="ui-tab"
-          role="tab"
-          aria-controls="build-details-panel"
-          :aria-selected="view === 'details'"
-          :tabindex="view === 'details' ? 0 : -1"
-          @click="view = 'details'"
-        >Details</button>
+      <div class="authoring-tabs">
+        <div
+          class="ui-segment"
+          role="tablist"
+          aria-label="Build view"
+          @keydown="navigateTabs"
+        >
+          <button
+            id="build-view-tab"
+            role="tab"
+            aria-controls="build-view-panel"
+            :aria-selected="view === 'build'"
+            :tabindex="view === 'build' ? 0 : -1"
+            @click="view = 'build'"
+          >Build</button>
+          <button
+            id="build-details-tab"
+            role="tab"
+            aria-controls="build-details-panel"
+            :aria-selected="view === 'details'"
+            :tabindex="view === 'details' ? 0 : -1"
+            @click="view = 'details'"
+          >Details</button>
+        </div>
         <span v-if="editor.usage.value.length" class="ui-chip" data-level="info">
           {{ editor.usage.value.length }}
           {{ editor.usage.value.length === 1 ? "linked team" : "linked teams" }}

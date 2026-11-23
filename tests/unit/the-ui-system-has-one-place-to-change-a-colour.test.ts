@@ -278,10 +278,6 @@ test("persistent interaction states do not leak into neutral controls", () => {
   assert.doesNotMatch(rule(components, ".ui-button[data-icon]"), /--ui-shadow-selected/u);
   assert.doesNotMatch(rule(components, ".ui-slot"), /--ui-shadow-selected/u);
   assert.doesNotMatch(rule(toolsShell, ".window-brand"), /--ui-shadow-selected/u);
-  assert.match(
-    rule(components, '.ui-tab[aria-selected="true"]'),
-    /inset 0 -2px 0 var\(--ui-selection-marker\)/u,
-  );
   assert.match(rule(components, '.ui-button[data-variant="quiet"]'), /background: transparent/u);
   assert.doesNotMatch(rule(components, '.ui-row'), /--ui-row-fill/u);
 });
@@ -295,7 +291,6 @@ test("shared interaction feedback owns disabled, active, and error presentation"
     '.ui-button[aria-disabled="true"]',
     ".ui-input:disabled",
     ".ui-segment button:disabled",
-    ".ui-tab:disabled",
     '.ui-row[aria-disabled="true"]',
     'button.ui-chip[aria-disabled="true"]',
   ]) {
@@ -303,7 +298,6 @@ test("shared interaction feedback owns disabled, active, and error presentation"
   }
   for (const selector of [
     ".ui-segment button:active:not(:disabled)",
-    ".ui-tab:active:not(:disabled)",
     '.ui-row:active:not([aria-disabled="true"])',
   ]) {
     assert.ok(components.includes(selector), `${selector} has pointer feedback`);
