@@ -1,5 +1,5 @@
 /**
- * Every tool's one entry from its manifest (`tool` and `hub`, app/features): the Hub's Tools rows, their
+ * Every tool's one entry from its manifest (`tool` and `hub`, app/features): the Hub's Features rows, their
  * order on a root search, the Commands page's shortcut rows and the shortcut each row shows,
  * and how each tool command opens its tool (app/renderer/commands.ts): its Feature's link
  * `toggle` (app/features/links.ts), or the renderer event its manifest names for a tool the
@@ -24,13 +24,13 @@ const hubTools = FEATURES.flatMap((feature) => "hub" in feature ? [feature] : []
 })
   .sort((left, right) => left.hub.order - right.hub.order);
 
-/** A Tools row's id: the command its tool's manifest names, or Core's own Accounts row. */
+/** A Features row's id: the command its tool's manifest names, or Core's own Accounts row. */
 export type HubToolCommand = (typeof hubTools)[number]["hub"]["command"] | "accounts";
 
-/** The Tools rows by their manifest order; Core's Switch Account row comes last. */
+/** The Features rows by their manifest order; Core's Switch Account row comes last. */
 export const HUB_TOOL_ORDER: readonly HubToolCommand[] = Object.freeze([...hubTools.map(({ hub }) => hub.command), "accounts"]);
 
-/** The shortcut a Hub Tools row, or its `key:` row on the Commands page, shows. */
+/** The shortcut a Hub Features row, or its `key:` row on the Commands page, shows. */
 export function hubToolShortcut(command: string): ShortcutAction | undefined {
   return hubTools.find(({ hub }) => hub.command === command)?.action;
 }
@@ -83,7 +83,7 @@ export type HubToolEntry = Readonly<{
   open: Extract<ToolOpen, { featurePage: true }> | (Exclude<ToolOpen, { featurePage: true }> & Readonly<{ link: ToolLinkTarget }>);
 }> & Omit<HubToolRow, "open">;
 
-/** The Tools rows Core draws, in their order. */
+/** The Features rows Core draws, in their order. */
 export const HUB_TOOL_ROWS: readonly HubToolEntry[] = Object.freeze(hubTools.flatMap(({ feature, name, tool, hub }): HubToolEntry[] => {
   if (!("row" in hub)) return [];
   const row: HubToolRow = hub.row;

@@ -34,17 +34,17 @@ const cases: readonly Case[] = [
     found: [row('setting:resign', 'Resign', { group: 'Settings' })], commands: [row('resign', 'Resign…', { group: 'Commands' })],
     ids: ['resign'], selected: 'resign', count: '1 result' },
   { name: 'HUB-008: a scoped query that is a command’s whole name answers with it', query: 'trade chat',
-    commands: [row('trade-chat', 'Trade Chat', { group: 'Tools' }), row('trade-quote', 'Trade quote', { group: 'Tools' })],
+    commands: [row('trade-chat', 'Trade Chat', { group: 'Features' }), row('trade-quote', 'Trade quote', { group: 'Features' })],
     ids: ['trade-chat'], selected: 'trade-chat', count: '1 result' },
   { name: 'HUB-056: a typed query starts on the first available answer, not a disabled one', query: 'char f',
     found: [row('character:mesmer', 'Char Fixture Mesmer', { unavailable: 'Not on this account.' }), row('character:ranger', 'Char Fixture Ranger')],
     ids: ['character:mesmer', 'character:ranger'], selected: 'character:ranger', count: '2 results' },
   { name: 'HUB-060: pins on an empty Home are no tie and keep a selection', query: '',
     shortcuts: ['travel', 'settings', 'maps'].map(id => ({ id, phrase: '', pinned: true })),
-    stored: [row('travel', 'Travel', { group: 'Tools' }), row('settings', 'Settings', { group: 'Tools' }), row('maps', 'Maps', { group: 'Tools' })],
+    stored: [row('travel', 'Travel', { group: 'Features' }), row('settings', 'Settings', { group: 'Features' }), row('maps', 'Maps', { group: 'Features' })],
     ids: ['travel', 'settings', 'maps'], selected: 'travel', count: '' },
   { name: 'D-13: a fresh Home never starts on a row that leaves the explorable area', query: '',
-    found: [row('place:1', 'Ascalon City', { leavesArea: true }), row('commands', 'Commands', { group: 'Tools' })],
+    found: [row('place:1', 'Ascalon City', { leavesArea: true }), row('commands', 'Commands', { group: 'Features' })],
     ids: ['place:1', 'commands'], selected: 'commands', count: '' },
   { name: 'a bare scope lists without a term, so Enter never acts on a consequential guess', query: 'travel ',
     found: [row('place:1', 'Ascalon City', { consequential: true }), row('place:all', 'All places', { group: 'Travel' })],
@@ -91,7 +91,7 @@ test('HUB-232: a loading row that goes away hands its selection on and clears on
 
 test('a setting that yields to its tool’s row arriving later hands the selection to it', () => {
   const setting = row('setting:build-library', 'Build Library', { group: 'Settings' });
-  const tool = row('build-library', 'Build Library', { group: 'Tools' });
+  const tool = row('build-library', 'Build Library', { group: 'Features' });
   assert.equal(choose({ query: 'build library', rows: [tool], previous: [setting], selected: setting.id }).selected, tool.id);
 });
 

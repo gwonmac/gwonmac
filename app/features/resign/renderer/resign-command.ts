@@ -72,7 +72,7 @@ function startResign(configure: (enabled: number) => unknown, enqueue: () => num
 function unavailable(): string | null {
   const context = window.gwCharacterSwitch?.context;
   if (context !== "outpost" && context !== "pve-explorable") {
-    return "Resign is available with Tools enabled in a PvE area.";
+    return "Resign is available in a PvE area with Features on.";
   }
   const field = document.getElementById("osk-input-text");
   if (field instanceof HTMLInputElement && field.value !== "") {

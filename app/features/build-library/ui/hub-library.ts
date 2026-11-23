@@ -341,7 +341,7 @@ export function createHubLibrary(controller: LibraryController, host: ToolsHost,
   }
   /** Reads the template files, then opens them, unless the player moved on or closed the Hub meanwhile (HUB-004). */
   async function openTemplates(task: HubTask) { try { await readTemplates(); } catch { templateProblem = 'Could not read templates.'; } if (task.live()) browseTemplates(); }
-  const libraryRow = (): HubRow => ({ id: 'builds', iconKind: 'builds', title: TOOL_PRESENTATION['build-management'].label, detail: 'Browse saved builds and teams', aliases: ['library', 'lib', 'bu', 'build', 'builds', 'team', 'teams', 'skills', 'templates'], keywords: 'templates skills folders builds teams', group: 'Tools', action: 'Browse builds', navigate() { browseLibrary(); }, run: () => browseLibrary() });
+  const libraryRow = (): HubRow => ({ id: 'builds', iconKind: 'builds', title: TOOL_PRESENTATION['build-management'].label, detail: 'Browse saved builds and teams', aliases: ['library', 'lib', 'bu', 'build', 'builds', 'team', 'teams', 'skills', 'templates'], keywords: 'templates skills folders builds teams', group: 'Features', action: 'Browse builds', navigate() { browseLibrary(); }, run: () => browseLibrary() });
   function browseLibrary(query = '') {
     hub.showRows('Build Library', () => {
       const items = all();

@@ -88,7 +88,7 @@ export function createHubAccounts(hub: AccountsHub, api: { get(): Promise<HubAcc
         ...(unavailable ? { unavailable } : { navigate: choose }), run: choose };
     });
   };
-  const accountRow = (): HubRow => ({ id: 'accounts', iconKind: 'accounts', title: 'Switch Account', detail: 'Open another saved account or switch to it', group: 'Tools', action: 'Browse accounts', navigate: showAccounts, run: showAccounts });
+  const accountRow = (): HubRow => ({ id: 'accounts', iconKind: 'accounts', title: 'Switch Account', detail: 'Open another saved account or switch to it', group: 'Features', action: 'Browse accounts', navigate: showAccounts, run: showAccounts });
   return {
     searchNames: { Accounts: 'accounts' },
     lookup: id => id === 'accounts' ? accountRow() : undefined,

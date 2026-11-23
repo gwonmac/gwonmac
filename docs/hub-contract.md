@@ -17,7 +17,7 @@ the modal, and applies the engine's effects. It names no source: each source say
 `HubSource` fields in `app/shared/hub.ts`. The built-in sources (accounts, the
 calculator, commands, Hub preferences and Settings) attach from the one Core
 list in `app/renderer/hub-builtins.ts`, the way a feature attaches its own. A
-tool's Tools row, its open event and its place among the Tools rows live in its
+tool's Features row, its open event and its place among the Features rows live in its
 manifest's top-level `hub` field (`app/features/define.ts`); `app/shared/hub-tools.ts`
 derives, from one entry per tool, the rows Core draws, their order, the Commands
 page's shortcut rows, the shortcut each row shows and the event each tool
@@ -121,8 +121,8 @@ these rows; Home's empty search shows none.
 
 Conflicting stored exact phrases require a choice. Both stores remain intact.
 A row without its own art draws the icon its source names (`iconKind`, from the
-family in `app/shared/ui/hub-icon.ts`); a Core Tools row's comes from its manifest,
-and a tool's shortcut row on the Commands page draws its Tools row's icon.
+family in `app/shared/ui/hub-icon.ts`); a Core Features row's comes from its manifest,
+and a tool's shortcut row on the Commands page draws its Features row's icon.
 Tool labels come from `app/shared/tool-presentation.ts`. Settings copy comes from
 `app/shared/setting-copy.ts`. Neither surface owns another copy of those labels.
 

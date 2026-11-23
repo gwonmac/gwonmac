@@ -199,21 +199,29 @@ export const HUB_WORKSPACE_ACTION = 'Open in Build Library';
  * the best answer of all, and a card (`answers`) answers its own grammar. A typed query that
  * names a tool or command as well as places answers with the tool: the Hub has a few of those
  * and hundreds of places (`ma` is Maps before Maguuma Stade). Everyday game actions stay ahead
- * of account management (the Tools rows keep their manifests' `order`, HUB_TOOL_ORDER), and
+ * of account management (the Features rows keep their manifests' `order`, HUB_TOOL_ORDER), and
  * Commands, the way into everything else, leads the commands (HUB-185). An off Feature's reason
- * row (Features) follows the live Tools and Commands that answer as well. A scoped page keeps its source's order within each group.
+ * row (hubFeatureReasonId) shares the Features group but never lifts it: the group's best answer
+ * and its typed-first place come from its live rows, and a group of reason rows alone ranks by
+ * its best answer in the usual order after Commands. Within the group a reason row follows the
+ * live rows that answer as well (its id is not in HUB_TOOL_ORDER). A scoped page keeps its
+ * source's order within each group.
  */
-const HUB_GROUP_ORDER = ["Pinned", "Calculator", "Teams", "Folders", "Characters", "Builds", "Targets", "Current build", "Accounts", "In your party", "Unlocked heroes", "Heroes", "People", "Places", "Friends", "Continue", "Tools", "Commands", "Features", "Settings", "Sources", "Trade", "Calculate", "Keys & shortcuts"];
-const HUB_TYPED_FIRST = ['Tools', 'Commands'];
+const HUB_GROUP_ORDER = ["Pinned", "Calculator", "Teams", "Folders", "Characters", "Builds", "Targets", "Current build", "Accounts", "In your party", "Unlocked heroes", "Heroes", "People", "Places", "Friends", "Continue", "Features", "Commands", "Settings", "Sources", "Trade", "Calculate", "Keys & shortcuts"];
+const HUB_TYPED_FIRST = ['Features', 'Commands'];
+/** The id of an off Feature's reason row (app/renderer/hub-features.ts). */
+export const hubFeatureReasonId = (feature: string) => `feature:${feature}`;
+const isHubFeatureReason = (row: HubRow) => row.id.startsWith(hubFeatureReasonId(''));
 export function rankHubRows(rows: readonly HubRow[], query: string, options: Readonly<{ scoped: boolean; phrases: ReadonlySet<string>; answers(row: HubRow): boolean }>): readonly HubRow[] {
   const parsed = parseHubQuery(query);
   const ranked = !options.scoped && !parsed.scope && !!parsed.term;
   const tierOf = (row: HubRow) => options.phrases.has(row.id) ? -1 : options.answers(row) ? 0 : hubTier(row, parsed.term) ?? 3;
+  const live = new Set(rows.filter(row => !isHubFeatureReason(row)).map(row => row.group));
   const best = new Map<string, number>();
-  if (ranked) for (const row of rows) best.set(row.group, Math.min(best.get(row.group) ?? Infinity, tierOf(row)));
+  if (ranked) for (const row of rows) if (live.has(row.group) === !isHubFeatureReason(row)) best.set(row.group, Math.min(best.get(row.group) ?? Infinity, tierOf(row)));
   const typedFirst = ranked ? HUB_TYPED_FIRST : [];
-  const groupIndex = (group: string) => { const first = typedFirst.indexOf(group); if (first >= 0) return first - typedFirst.length; const index = HUB_GROUP_ORDER.indexOf(group); return index < 0 ? HUB_GROUP_ORDER.length : index; };
-  const priority = (row: HubRow) => { if (options.scoped) return 0; if (row.group === 'Commands') return row.id === 'commands' ? -1 : 0; if (row.group !== 'Tools') return 0; const index = HUB_TOOL_ORDER.findIndex(command => command === row.id); return index < 0 ? HUB_TOOL_ORDER.length : index; };
+  const groupIndex = (group: string) => { const first = live.has(group) ? typedFirst.indexOf(group) : -1; if (first >= 0) return first - typedFirst.length; const index = HUB_GROUP_ORDER.indexOf(group); return index < 0 ? HUB_GROUP_ORDER.length : index; };
+  const priority = (row: HubRow) => { if (options.scoped) return 0; if (row.group === 'Commands') return row.id === 'commands' ? -1 : 0; if (row.group !== 'Features') return 0; const index = HUB_TOOL_ORDER.findIndex(command => command === row.id); return index < 0 ? HUB_TOOL_ORDER.length : index; };
   return [...rows].sort((a, b) => (ranked ? best.get(a.group)! - best.get(b.group)! : 0) || groupIndex(a.group) - groupIndex(b.group)
     || (ranked ? tierOf(a) - tierOf(b) : 0) || priority(a) - priority(b));
 }
