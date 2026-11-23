@@ -2,7 +2,6 @@
  * Serializes atomic per-character Travel history updates. Corrupt convenience
  * data is quarantined without affecting settings or Travel preferences.
  */
-import { readFile } from "node:fs/promises";
 import {
   DEFAULT_TRAVEL_HISTORY,
   EMPTY_TRAVEL_HISTORY,
@@ -15,24 +14,12 @@ import {
   type TravelHistoryDocument,
 } from "../../../shared/travel-history.js";
 import { travelMapIdFromReleasedStorage } from "../../../shared/travel-map-id.js";
-import { writeAtomicJson } from "../../../main/core/atomic-file.js";
-import { quarantineCorruptDocument } from "../../../main/core/corrupt-document.js";
+import { jsonDocument } from "../../json-document.js";
 
-async function readDocument(path: string): Promise<TravelHistoryDocument> {
-  let text: string;
-  try {
-    text = await readFile(path, "utf8");
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return DEFAULT_TRAVEL_HISTORY;
-    throw error;
-  }
-  try {
-    return parseTravelHistoryDocument(runtimeHistory(JSON.parse(text) as unknown));
-  } catch {
-    await quarantineCorruptDocument(path);
-    return DEFAULT_TRAVEL_HISTORY;
-  }
-}
+const historyDocument = jsonDocument({
+  parse: (value) => parseTravelHistoryDocument(runtimeHistory(value)),
+  empty: DEFAULT_TRAVEL_HISTORY,
+});
 
 function runtimeHistory(value: unknown): unknown {
   if (value === null || typeof value !== "object" || Array.isArray(value)) return value;
@@ -71,37 +58,24 @@ function updateCharacter(
 
 export class TravelHistoryStore {
   readonly #path: string;
-  #tail: Promise<void> = Promise.resolve();
 
   constructor(path: string) {
     this.#path = path;
   }
 
-  #enqueue<T>(operation: () => Promise<T>): Promise<T> {
-    const result = this.#tail.then(operation);
-    this.#tail = result.then(() => undefined, () => undefined);
-    return result;
-  }
-
   get(characterKey: TravelCharacterKey): Promise<TravelHistory> {
-    return this.#enqueue(async () =>
-      (await readDocument(this.#path)).characters[characterKey] ?? EMPTY_TRAVEL_HISTORY
-    );
+    return historyDocument.run(this.#path, async (document) =>
+      document.characters[characterKey] ?? EMPTY_TRAVEL_HISTORY);
   }
 
   record(characterKey: TravelCharacterKey, mapId: number): Promise<TravelHistory> {
-    return this.#enqueue(async () => {
-      const document = await readDocument(this.#path);
+    return historyDocument.run(this.#path, async (document, save) => {
       const next = recordVisitedTravel(
         document.characters[characterKey] ?? EMPTY_TRAVEL_HISTORY,
         mapId,
       );
-      await writeAtomicJson(
-        this.#path,
-        updateCharacter(document, characterKey, next),
-      );
+      await save(updateCharacter(document, characterKey, next));
       return next;
     });
   }
-
 }

@@ -1,5 +1,10 @@
 /**
- * Owns Trade renderer-to-main channels and their feature gate.
+ * Owns Trade renderer-to-main channels.
+ *
+ * The saved document goes through the part's file gate (`run`, given in through
+ * getTradeSaved and setTradeSaved). The feed and network calls are refused the
+ * same way while Trade Chat is off, but stay outside that gate: every settings
+ * change waits for it to drain, and must not wait on the network.
  *
  * Trade lifecycle cleanup remains beside subscription registration so a
  * destroyed renderer cannot retain a process-wide feed subscription.
@@ -24,7 +29,9 @@ import { nothing, one } from "../../../main/ipc-values.js";
 export interface TradeIpcContext {
   tradeChat: TradeChatService;
   isFeatureEnabled(feature: "tradeChat"): boolean;
+  /** Reads the saved document behind the file gate, which refuses while Trade Chat is off. */
   getTradeSaved: () => Promise<TradeSavedState>;
+  /** Writes the saved document behind the file gate, which refuses while Trade Chat is off. */
   setTradeSaved: (value: TradeSavedState) => Promise<TradeSavedState>;
 }
 
@@ -59,15 +66,9 @@ export function tradeChannelDefinitions(
       ctx.tradeChat.unsubscribe(win.webContents.id);
     }),
 
-    tradeSavedGet: channel(nothing, async () => {
-      requireEnabled();
-      return ctx.getTradeSaved();
-    }),
+    tradeSavedGet: channel(nothing, () => ctx.getTradeSaved()),
 
-    tradeSavedSet: channel(one(parseTradeSavedState), async (_win, value) => {
-      requireEnabled();
-      return ctx.setTradeSaved(value);
-    }),
+    tradeSavedSet: channel(one(parseTradeSavedState), (_win, value) => ctx.setTradeSaved(value)),
 
     marketRatesGet: channel(nothing, async () => {
       requireEnabled();

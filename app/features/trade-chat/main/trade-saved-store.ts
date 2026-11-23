@@ -2,49 +2,31 @@
  * Owns the one durable, bounded document of starred offers and players.
  * Feed history remains transient; only explicit player choices reach disk.
  */
-import { readFile } from "node:fs/promises";
 import {
   EMPTY_TRADE_SAVED_STATE,
   parseTradeSavedState,
   type TradeSavedState,
 } from "../../../shared/trade-chat.js";
-import { writeAtomicJson } from "../../../main/core/atomic-file.js";
-import { quarantineCorruptDocument } from "../../../main/core/corrupt-document.js";
-import { Mutex } from "../../../main/core/mutex.js";
+import { jsonDocument } from "../../json-document.js";
+
+const savedDocument = jsonDocument({ parse: parseTradeSavedState, empty: EMPTY_TRADE_SAVED_STATE });
 
 export class TradeSavedStore {
-  private readonly mutex = new Mutex();
-  private readonly path: string;
+  readonly #path: string;
 
   constructor(path: string) {
-    this.path = path;
+    this.#path = path;
   }
 
   get(): Promise<TradeSavedState> {
-    return this.mutex.run(() => load(this.path));
+    return savedDocument.run(this.#path, async (saved) => saved);
   }
 
   set(value: TradeSavedState): Promise<TradeSavedState> {
-    return this.mutex.run(async () => {
+    return savedDocument.run(this.#path, async (_stored, save) => {
       const saved = parseTradeSavedState(value);
-      await writeAtomicJson(this.path, saved, 0o600);
+      await save(saved);
       return saved;
     });
-  }
-}
-
-async function load(path: string): Promise<TradeSavedState> {
-  let text: string;
-  try {
-    text = await readFile(path, "utf8");
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return EMPTY_TRADE_SAVED_STATE;
-    throw error;
-  }
-  try {
-    return parseTradeSavedState(JSON.parse(text) as unknown);
-  } catch {
-    await quarantineCorruptDocument(path);
-    return EMPTY_TRADE_SAVED_STATE;
   }
 }
