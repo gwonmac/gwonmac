@@ -516,7 +516,8 @@ useClassicFrame(panel);
 .whisper-layout { display:flex; flex-direction:column; flex:1; min-height:0; background:transparent; }
 .whisper-chat-pane { display:contents; }
 .whisper-avatar,.whisper-compose-icon { display:none; }
-.whisper-hints { display:flex; justify-content:space-between; gap:12px; padding:0 10px 6px; color:var(--ui-text-faint); font-size:11px; line-height:1.4; }
+/* The right padding clears the 36px resize corner. */
+.whisper-hints { display:flex; justify-content:space-between; gap:12px; padding:0 36px 6px 10px; color:var(--ui-text-faint); font-size:11px; line-height:1.4; }
 .ui-reading-surface { color: var(--ui-text); font: 14px/1.5 var(--ui-font-reading); font-synthesis: none; text-shadow: none; color-scheme: dark; }
 .ui-reading-surface *, .ui-reading-surface *::before, .ui-reading-surface *::after { box-sizing: border-box; text-shadow: none; }
 .ui-reading-surface svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }

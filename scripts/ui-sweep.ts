@@ -74,8 +74,8 @@ const SURFACES: readonly Surface[] = [
   {
     id: "hub",
     viewports: GAME_VIEWPORTS,
-    // The fixture's own buttons along the bottom edge stand in for the game, not the Hub.
-    ignore: ".hub-fixture-controls",
+    // The fixtures' own buttons along the bottom edge stand in for the game, not the Hub.
+    ignore: ".hub-fixture-controls, body > div[style*='position:fixed']",
     server: () => viteServer({ root: path.join(root, "app/ui/tools"), configFile: path.join(root, "app/ui/tools/vite.config.ts") }),
     scenes: [
       { name: "home", path: "/?hub", open: hubView("") },
@@ -83,6 +83,9 @@ const SURFACES: readonly Surface[] = [
       { name: "builds", path: "/?hub", open: hubView("builds") },
       { name: "party", path: "/?hub&party", open: hubView("team") },
       { name: "trade", path: "/?trade=1" },
+      // The floating Tools windows outside the Hub: their window headers are part of the pattern set.
+      { name: "build-library", path: "/" },
+      { name: "whispers", path: "/?whispers", open: async (page: Page) => { await page.locator(".whisper-launcher").click(); } },
     ],
   },
   {
