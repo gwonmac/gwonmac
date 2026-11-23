@@ -1,5 +1,11 @@
 <script setup lang="ts">
+/**
+ * One shortcut of a Feature: records a new key combination, clears it or restores the default,
+ * and asks before it takes a combination from another shortcut. The host's save status reports
+ * the save; this line says only what the recording needs.
+ */
 import type { InGameTools } from "../settings-host";
+import type { PerformSave } from "../save-status";
 import { computed, nextTick, onBeforeUnmount, ref } from "vue";
 import { Ellipsis } from "lucide-vue-next";
 import type { LauncherSnapshot } from "@shared/launcher-contracts";
@@ -10,7 +16,7 @@ const props = defineProps<{
   shortcuts: LauncherSnapshot["shortcuts"];
   api?: InGameTools | undefined;
   disabled?: boolean;
-  performSave?: ((action: () => Promise<unknown>) => Promise<void>) | undefined;
+  performSave: PerformSave;
 }>();
 const message = ref("");
 const capturing = ref(false);
@@ -24,11 +30,10 @@ async function save(binding: ShortcutBinding | null) {
   pending.value = null;
   try {
     if (!props.api) { message.value = "Shortcut editing is available in the app."; return; }
-    const action = () => props.api!.replaceShortcut({ action: props.action, binding });
-    if (props.performSave) await props.performSave(action);
-    else await action();
+    const api = props.api;
     message.value = "";
-  } catch { message.value = "The shortcut could not be saved. Try again."; }
+    await props.performSave(() => api.replaceShortcut({ action: props.action, binding }));
+  } catch { /* The save status reports it and offers Retry. */ }
 }
 
 /** Cancel and Escape answer a replace prompt alike; the keyboard returns to the shortcut it was about. */

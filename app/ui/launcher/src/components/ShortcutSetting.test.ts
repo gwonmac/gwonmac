@@ -11,10 +11,12 @@ function api() {
     replaceShortcut: vi.fn(async () => undefined),
   } satisfies LauncherNativeApi["tools"];
 }
+/** The host's save status, reduced to running the write. */
+const performSave = async (action: () => Promise<unknown>) => { await action(); };
 describe("Shortcut setting", () => {
   it("shows the Whispers default and permits clearing it", async () => {
     const tools = api();
-    const wrapper = mount(ShortcutSetting, { props: { action: "whispers.toggle", shortcuts: DEFAULT_SHORTCUTS, api: tools } });
+    const wrapper = mount(ShortcutSetting, { props: { action: "whispers.toggle", shortcuts: DEFAULT_SHORTCUTS, api: tools, performSave } });
     expect(wrapper.text()).toContain("⌘D");
     expect(tools.replaceShortcut).not.toHaveBeenCalled();
     await wrapper.get('[aria-label="Clear Whispers shortcut"]').trigger("click");
@@ -23,7 +25,7 @@ describe("Shortcut setting", () => {
   });
   it("starts Maps unassigned and can capture or clear a binding", async () => {
     const tools = api();
-    const wrapper = mount(ShortcutSetting, { props: { action: "cartography.grid.toggle", shortcuts: DEFAULT_SHORTCUTS, api: tools } });
+    const wrapper = mount(ShortcutSetting, { props: { action: "cartography.grid.toggle", shortcuts: DEFAULT_SHORTCUTS, api: tools, performSave } });
     expect(wrapper.text()).toContain("Not set");
     await wrapper.get(".secondary").trigger("click");
     await flushPromises();
@@ -34,7 +36,7 @@ describe("Shortcut setting", () => {
   });
   it("asks before restoring a default that another action owns", async () => {
     const tools = api();
-    const wrapper = mount(ShortcutSetting, { props: { action: "character.switch", shortcuts: { ...DEFAULT_SHORTCUTS, "character.switch": null, "cartography.grid.toggle": DEFAULT_SHORTCUTS["character.switch"] }, api: tools } });
+    const wrapper = mount(ShortcutSetting, { props: { action: "character.switch", shortcuts: { ...DEFAULT_SHORTCUTS, "character.switch": null, "cartography.grid.toggle": DEFAULT_SHORTCUTS["character.switch"] }, api: tools, performSave } });
     await wrapper.get('[aria-label="Restore Switch Character default shortcut"]').trigger("click");
     expect(wrapper.text()).toContain("Already used by Exploration grid");
     expect(tools.replaceShortcut).not.toHaveBeenCalled();
@@ -44,7 +46,7 @@ describe("Shortcut setting", () => {
   it("does not save a capture after its settings surface closes", async () => {
     let finish!: (value: { status: "cleared" }) => void;
     const tools = { ...api(), captureShortcut: vi.fn(() => new Promise<{ status: "cleared" }>(resolve => { finish = resolve; })) };
-    const wrapper = mount(ShortcutSetting, { props: { action: "cartography.grid.toggle", shortcuts: DEFAULT_SHORTCUTS, api: tools } });
+    const wrapper = mount(ShortcutSetting, { props: { action: "cartography.grid.toggle", shortcuts: DEFAULT_SHORTCUTS, api: tools, performSave } });
     await wrapper.get(".secondary").trigger("click");
     wrapper.unmount();
     finish({ status: "cleared" });
@@ -53,7 +55,7 @@ describe("Shortcut setting", () => {
   });
   it("cancels a replace prompt with Escape and returns the keyboard to the shortcut", async () => {
     const tools = api();
-    const wrapper = mount(ShortcutSetting, { attachTo: document.body, props: { action: "character.switch", shortcuts: { ...DEFAULT_SHORTCUTS, "character.switch": null, "cartography.grid.toggle": DEFAULT_SHORTCUTS["character.switch"] }, api: tools } });
+    const wrapper = mount(ShortcutSetting, { attachTo: document.body, props: { action: "character.switch", shortcuts: { ...DEFAULT_SHORTCUTS, "character.switch": null, "cartography.grid.toggle": DEFAULT_SHORTCUTS["character.switch"] }, api: tools, performSave } });
     await wrapper.get('[aria-label="Restore Switch Character default shortcut"]').trigger("click");
     expect(wrapper.text()).toContain("Replace shortcut");
     // The Hub leaves its Settings page on any Escape it still sees, so the prompt claims the press (HUB-053).

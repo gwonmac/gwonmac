@@ -90,11 +90,8 @@
 .settings-view .settings-heading-row .primary { flex: 0 0 auto; margin-top: 8px; }
 .settings-view .settings-heading-row svg { width: 18px; }
 .settings-view .settings-subheading, .settings-view .appearance-heading { margin: 28px 0 8px; font-family: inherit; font-size: 15px; font-weight: 600; }
-.settings-view .settings-status { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; min-height: 40px; padding: 8px 32px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
-.settings-view .settings-status.save-failed { color: var(--danger-text); background: var(--danger-tint); }
-.settings-view .settings-status > .status-line, .settings-view .settings-status > .status-alert { flex: 1 1 260px; }
-/* The live region stays in the page while empty; it takes no room. */
-.settings-view .settings-status > .status-line:empty { flex: 0 0 0; margin-inline-end: -16px; }
+/* The status line's look is SaveStatus.vue's; the page places it. */
+.settings-view .settings-status { min-height: 40px; padding: 8px 32px; border-top: 1px solid var(--line); font-size: 13px; }
 
 /* Groups and rows. */
 .settings-view .setting-group { max-width: none; margin: 0 0 24px; overflow: visible; border: 0; border-radius: 0; background: transparent; }
@@ -149,7 +146,6 @@
 .settings-view .settings-reset { max-width: 840px; margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--line); }
 .settings-view .settings-reset summary { color: var(--danger-text); font-size: 14px; cursor: pointer; }
 .settings-view .settings-reset p { max-width: 65ch; font-size: 13px; }
-.settings-view .save-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 
 /* Texture packs. */
 .settings-view .texture-pack-note { max-width: 760px; padding: 0; color: var(--muted); font-size: 13px; }

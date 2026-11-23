@@ -10,15 +10,15 @@ import FeatureSwitch from "../FeatureSwitch.vue";
 import RangeControl from "../RangeControl.vue";
 
 const props = defineProps<{ settings: InGameSettings; save: (patch: InGamePatch) => Promise<void> }>();
-/** The page's save note reports a failure; the row keeps showing the saved value. */
-const change = (patch: InGamePatch) => props.save(patch).catch(() => undefined);
+/** The page's save status reports a failure; the row shows the saved value again (`undo`). */
+const change = (patch: InGamePatch, undo?: () => void) => props.save(patch).catch(() => undo?.());
 </script>
 
 <template>
   <div v-for="range in COMPASS_RANGE_INDICATORS" :key="range.id" class="row" :data-setting="range.enabledSetting">
     <span class="row-label"><span>{{ featureSettingText(range.enabledSetting).label }}</span><small :id="`option-${range.enabledSetting}-help`">{{ featureSettingText(range.opacitySetting).help }}</small></span>
     <span class="row-controls">
-      <RangeControl :data-setting="range.opacitySetting" :label="featureSettingText(range.opacitySetting).label" :value="settings[range.opacitySetting]" :min="0" :max="100" unit="%" @change="change({ [range.opacitySetting]: $event })" />
+      <RangeControl :data-setting="range.opacitySetting" :label="featureSettingText(range.opacitySetting).label" :value="settings[range.opacitySetting]" :min="0" :max="100" unit="%" @change="(value, undo) => change({ [range.opacitySetting]: value }, undo)" />
       <FeatureSwitch :checked="settings[range.enabledSetting]" :label="featureSettingText(range.enabledSetting).label" :describedby="`option-${range.enabledSetting}-help`" @change="change({ [range.enabledSetting]: $event })" />
     </span>
   </div>

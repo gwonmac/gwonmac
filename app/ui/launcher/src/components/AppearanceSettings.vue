@@ -1,4 +1,9 @@
 <script setup lang="ts">
+/**
+ * The Appearance section of Settings: panel style, font, text size and opacity for gwonmac panels
+ * in game, and the custom theme with its colours and shareable text. The page's save status
+ * reports each save; this section says only when pasted theme text is not valid.
+ */
 import type { InGamePatch, InGameSettings } from "../settings-host";
 import { computed, ref } from "vue";
 import { UI_FONTS, UI_PANEL_OPACITY_MIN, UI_PANEL_OPACITY_MAX, UI_STYLES, UI_TEXT_SIZE_MIN, UI_TEXT_SIZE_MAX, type UiFont } from "@shared/settings/core";
@@ -21,8 +26,9 @@ const colors: Record<UiThemeColorField, string> = {
   text: "Text", mutedText: "Secondary text", border: "Border",
 };
 async function persist(patch: InGamePatch) {
-  try { await props.save(patch); message.value = ""; return true; }
-  catch { message.value = "Appearance could not be saved. Try again."; return false; }
+  message.value = "";
+  try { await props.save(patch); return true; }
+  catch { return false; }
 }
 function updateTheme(patch: Partial<CustomUiTheme>) {
   return persist({ uiCustomTheme: { ...props.settings.uiCustomTheme, ...patch } });

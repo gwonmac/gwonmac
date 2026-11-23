@@ -135,7 +135,7 @@ describe("Settings page", () => {
     await flushPromises();
     await wrapper.get('[data-setting="autoCheckUpdates"] input').setValue(false);
     await flushPromises();
-    expect(wrapper.get('.settings-status [role="alert"]').text()).toContain("change shown is not saved");
+    expect(wrapper.get('.settings-status [role="alert"]').text()).toBe("Automatically check for launcher updates could not be saved.");
     expect(wrapper.get('.settings-status [role="status"]').text()).toBe("");
     expect(document.activeElement).toBe(wrapper.findAll(".save-actions button")[0]!.element);
     expect(wrapper.get(".settings-fields").attributes("disabled")).toBeDefined();
@@ -144,6 +144,8 @@ describe("Settings page", () => {
     expect(update.mock.calls).toEqual([[{ autoCheckUpdates: false }], [{ autoCheckUpdates: false }]]);
     expect(wrapper.get(".settings-fields").attributes("disabled")).toBeUndefined();
     expect(wrapper.find('.settings-status [role="alert"]').exists()).toBe(false);
+    // Retry removed itself: the keyboard goes back to the setting it saved.
+    expect(document.activeElement).toBe(wrapper.get('[data-setting="autoCheckUpdates"] input').element);
     wrapper.unmount();
   });
 

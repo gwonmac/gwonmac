@@ -34,11 +34,14 @@ does not change a setting in place.
 2. **Every setting says when it applies**, in the same words everywhere:
    no note when it applies now, "Applies when you next open or reload a game
    window.", or "Applies at the next login screen."
-3. **Changes save right away.** A change applies in every open game window. The
-   status line names the saved setting and when it applies. A failed save keeps
-   the change on screen and offers **Retry** and **Revert**. In the launcher's
-   Features tab, a Feature page's own note says what was saved, or that a change
-   could not be saved; its controls keep showing the saved value.
+3. **Changes save right away.** A change applies in every open game window. One
+   save status (`app/ui/launcher/src/save-status.ts`) reports every save: it
+   names the saved setting and when it applies, or the setting that could not
+   be saved, with **Retry**. On the Settings page a failed save keeps the change
+   on screen, holds the other controls and offers **Retry** and **Revert**;
+   leaving the section reverts it. In the launcher's Features tab, a Feature
+   page's controls keep showing the saved value, so its status bar offers only
+   **Retry**, and the next change replaces the failure.
 4. **Settings are found by their words.** Search on the Settings page (⌘F) and Hub
    search both use the catalogue.
 5. **A game window cannot reach launcher-only actions.** Updates, game files,

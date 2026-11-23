@@ -59,7 +59,7 @@ async function closeEditor() {
   customizeButton.value?.focus({ preventScroll: true });
 }
 
-/** The page's save note reports a failure; this says only what the style editor itself refused. */
+/** The page's save status reports a failure; this says only what the style editor itself refused. */
 async function persist(patch: InGamePatch) {
   status.value = "";
   try { await props.save(patch); return true; } catch { return false; }

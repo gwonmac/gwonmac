@@ -9,7 +9,7 @@ import type { InGamePatch, InGameSettings } from "../../settings-host";
 
 const props = defineProps<{ settings: InGameSettings; save: (patch: InGamePatch) => Promise<void> }>();
 const TEXT = featureSettingText("alcoholTimerPosition");
-/** The page's save note reports a failure. */
+/** The page's save status reports a failure. */
 const change = (patch: InGamePatch) => props.save(patch).catch(() => undefined);
 </script>
 
