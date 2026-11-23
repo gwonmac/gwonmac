@@ -402,9 +402,10 @@ function pickGroup(next: GroupBy) {
 .suggest { margin: 8px 0 0; padding-top: 16px; border-top: 1px solid var(--line); font-size: var(--fs-sm); }
 .suggest .text-link { padding: 0; font-size: inherit; }
 .features-alert { position: sticky; bottom: 0; margin: 16px 0 0; }
-/* The tab's save status: a bar pinned to the bottom of the page while there is something to say. */
-.features-page .features-status { position: sticky; bottom: 0; margin: 16px 0 0; padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-solid); font-size: var(--fs-sm); }
-.features-page .features-status.save-failed { background: linear-gradient(var(--danger-tint), var(--danger-tint)), var(--surface-solid); }
+/* The tab's save status: a bar at the end of the page. Only a failure, which needs Retry, is pinned
+   to the bottom; a pinned "Saved" note would cover the last controls on the page. */
+.features-page .features-status { margin: 16px 0 0; padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-solid); font-size: var(--fs-sm); }
+.features-page .features-status.save-failed { position: sticky; bottom: 0; background: linear-gradient(var(--danger-tint), var(--danger-tint)), var(--surface-solid); }
 .features-page .features-status.save-idle { margin: 0; padding: 0; border: 0; }
 @media (prefers-reduced-motion: reduce) {
   .card, .tile { transition: none; }
