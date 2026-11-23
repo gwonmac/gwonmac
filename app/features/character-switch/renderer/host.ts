@@ -4,8 +4,10 @@
  * installation may replace only the source, never shortcut ownership. The Core
  * companion installation builds that source with the controller exported here.
  * The part provides the Feature's link (../shared/link.ts) for its whole life, and
- * tells the game host when a switch starts, so Core's automatic return to a
- * character stops pressing keys (app/renderer/automatic-character-return.ts).
+ * publishes its host as `window.gwCharacterSwitchHost` while it runs: the Core
+ * companion installation attaches the certified source there, and the game host
+ * hears when a switch starts, so Core's automatic return to a character stops
+ * pressing keys (app/renderer/automatic-character-return.ts).
  */
 import { matchHubRows, parseHubQuery, type HubRow, type HubSource } from '../../../shared/hub.js';
 import { professionPresentation } from '../../../shared/profession-assets.js';
@@ -97,7 +99,7 @@ export default hubPagePart("characterSwitch", ({ parent, hub }): CharacterSwitch
     },
   };
   const detachHub = hub?.attach(hubSource);
-  return Object.freeze({
+  const host: CharacterSwitchHost = Object.freeze({
     attach(next: CharacterSwitchSource) {
       detachSource();
       source = next;
@@ -115,6 +117,11 @@ export default hubPagePart("characterSwitch", ({ parent, hub }): CharacterSwitch
       switchStartListeners.add(listener);
       return () => { switchStartListeners.delete(listener); };
     },
-    stop() { stopLink(); detachHub?.(); detachSource(); listeners.clear(); switchStartListeners.clear(); palette.dispose(); },
+    stop() {
+      if (window.gwCharacterSwitchHost === host) delete window.gwCharacterSwitchHost;
+      stopLink(); detachHub?.(); detachSource(); listeners.clear(); switchStartListeners.clear(); palette.dispose();
+    },
   });
+  window.gwCharacterSwitchHost = host;
+  return host;
 });

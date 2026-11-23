@@ -1,20 +1,19 @@
 // A feature's companion.ts does nothing until app/features/companion-parts.ts exports it, and a
 // part with another feature's id would be gated by the wrong manifest. A manifest that lists
 // "window" in `parts` opens nothing until app/features/window-parts.ts has its line: its link
-// answers "unavailable". A manifest that lists "hubPage" shows nothing until the game host
-// starts its renderer/host.ts, which it does by name (app/renderer/harness.ts) while the Hub has
-// no hubPage registry. None of these mistakes fails typecheck; only the CI Electron suites
-// would notice.
+// answers "unavailable". A manifest that lists "hubPage" shows nothing until
+// app/features/hub-page-parts.ts has its line: the game host starts only the parts listed there.
+// None of these mistakes fails typecheck; only the CI Electron suites would notice.
 import assert from "node:assert/strict";
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { pathToFileURL } from "node:url";
 import * as featureParts from "../../app/features/companion-parts.ts";
 import { SUBSTRATE_PARTS } from "../../app/renderer/tools-companion-substrates.ts";
 import { WINDOW_PARTS } from "../../app/features/window-parts.ts";
+import { HUB_PAGE_PARTS } from "../../app/features/hub-page-parts.ts";
 import { FEATURES } from "../../app/features/index.ts";
-import { folderForId } from "../../app/features/contract.ts";
 
 const PARTS = [...SUBSTRATE_PARTS, ...Object.values(featureParts)];
 
@@ -44,12 +43,8 @@ test("every feature whose manifest lists a window part has one window-parts line
   assert.deepEqual(WINDOW_PARTS.map((part) => part.id).sort(), declared);
 });
 
-test("the game host starts the hubPage part of every feature whose manifest lists one", () => {
-  const harness = readFileSync(path.resolve(import.meta.dirname, "../../app/renderer/harness.ts"), "utf8");
-  const declared = FEATURES.filter((feature) => (feature.parts as readonly string[]).includes("hubPage"));
+test("every feature whose manifest lists a hubPage part has one hub-page-parts line, and only those", () => {
+  const declared = FEATURES.filter((feature) => (feature.parts as readonly string[]).includes("hubPage")).map((feature) => feature.id).sort();
   assert.ok(declared.length > 0, "expected a feature with a hubPage part");
-  for (const feature of declared) {
-    const host = `../features/${folderForId(feature.id)}/renderer/host.js`;
-    assert.ok(harness.includes(`import('${host}')`), `app/renderer/harness.ts does not start ${feature.id}'s hubPage part (${host})`);
-  }
+  assert.deepEqual(HUB_PAGE_PARTS.map((part) => part.id).sort(), declared);
 });

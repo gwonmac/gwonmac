@@ -880,6 +880,9 @@ export type Hub = ReturnType<typeof createHub>;
  */
 export type HubPageContext = Readonly<{ parent: HTMLElement; hub: Pick<Hub, 'attach'> | null }>;
 
+/** A Feature's hubPage part as app/features/hub-page-parts.ts lists it. */
+export type HubPagePart = Readonly<{ kind: 'hubPage'; id: PartOwner<'hubPage'>; start(context: HubPageContext): RunningPart }>;
+
 /** Declares a Feature's hubPage part (app/features/parts.ts): the game host starts it with the Hub. */
 export const hubPagePart = <Id extends PartOwner<'hubPage'>, Running extends RunningPart>(id: Id, start: (context: HubPageContext) => Running) =>
   Object.freeze({ kind: 'hubPage' as const, id, start });
