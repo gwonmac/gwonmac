@@ -570,9 +570,11 @@ test("global map settings live in the launcher and survive restart", { tag: "@jo
     const settings = await openFeatures(first, "cartography");
     await expect(settings.locator(".feature-head").getByText("Off while you play the plain game.", { exact: true })).toBeVisible();
     await settings.evaluate(() => window.launcherNative.tools.setFeature({ tool: "maps", enabled: true }));
+    await openSettings(first, { section: "appearance" });
     await settings.getByRole("button", { name: "Customize style" }).click();
     await expect(settings.getByRole("region", { name: "Edit Cartographer custom" })).toBeVisible();
-    await settings.locator(".feature-page .back").click();
+    await openFeatures(first);
+    if (await settings.locator(".feature-page .back").count()) await settings.locator(".feature-page .back").click();
     const plain = settings.getByRole("switch", { name: "Play the plain game", exact: true });
     await plain.click();
     await expect(plain).not.toBeChecked();

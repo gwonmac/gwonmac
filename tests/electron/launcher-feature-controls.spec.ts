@@ -111,6 +111,8 @@ test("existing custom map styles can be selected, edited and extended", async ()
     await compass.click();
     await expect(compass).not.toBeChecked();
     await expect.poll(() => page.evaluate(async () => (await window.launcherNative.state.get()).settings)).toMatchObject({ cartographyCompassGridEnabled: false });
+    // The map style is shared by every map Feature, so it is in Settings › Appearance.
+    await openSettings(fixture, { section: "appearance" });
     const thickness = settings.getByRole("spinbutton", { name: "Terrain border thickness value" });
     await thickness.fill("4");
     await thickness.press("Tab");
@@ -125,7 +127,7 @@ test("existing custom map styles can be selected, edited and extended", async ()
     await settings.getByRole("textbox", { name: "Shaded area color hex" }).press("Tab");
     await expect.poll(() => page.evaluate(async () => (await window.launcherNative.state.get()).settings.cartographyPresetLibrary.customPresets[1]?.style.walkability.veilColor)).toBe("#112233");
     await settings.reload();
-    await openFeatures(fixture, "cartography");
+    await openSettings(fixture, { section: "appearance" });
     await settings.getByRole("button", { name: "Edit style" }).click();
     await settings.getByRole("textbox", { name: "Terrain border color hex" }).fill("334455");
     await settings.getByRole("textbox", { name: "Terrain border color hex" }).press("Tab");
@@ -145,8 +147,8 @@ test("map styles offer usable color and numeric controls at normal size and 200%
     await page.evaluate(async () => {
       await window.launcherNative.experience.completeSetup({ enableTools: false });
     });
-    const settings = await openFeatures(fixture, "cartography");
-    await settings.evaluate(() => window.launcherNative.tools.setMasterEnabled(true));
+    await page.evaluate(() => window.launcherNative.tools.setMasterEnabled(true));
+    const settings = await openSettings(fixture, { section: "appearance" });
     await settings.getByRole("button", { name: "Customize style" }).click();
     const hex = settings.getByRole("textbox", { name: "Shaded area color hex" });
     await hex.fill("ABCDEF");

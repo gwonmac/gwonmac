@@ -56,6 +56,7 @@ export default defineFeature({
       (value): CartographyPresetLibrary | undefined => normaliseCartographyPresetLibrary(value) ?? undefined,
       {
         hub: true,
+        appearance: true,
         launcherError: "cartography preset library is invalid",
         label: "Map style",
         help: "The colors of every map layer: Cartographer, Synthwave, Monochrome or a style of your own.",
@@ -70,17 +71,19 @@ export default defineFeature({
       { min: CARTOGRAPHY_CONTROL_IDLE_OPACITY_MIN, max: CARTOGRAPHY_CONTROL_IDLE_OPACITY_MAX },
       {
         hub: true,
+        appearance: true,
         label: "Compass control visibility",
         help: "How visible the closed Compass control is while you do not use it.",
         keywords: "compass opacity idle",
         unit: "%",
       },
     ),
-    /** Draw the two buttons beside the Compass; every choice they offer is also on the Maps page. */
+    /** Draw the two buttons beside the Compass; every choice they offer is also on the map Feature pages. */
     compassButtonsShown: setting.boolean(true, {
       hub: true,
+      appearance: true,
       label: "Show compass buttons",
-      help: "Shows the two buttons beside the Compass. Every choice they offer is also on this page.",
+      help: "Shows the two buttons beside the Compass. Every choice they offer is also on the map Feature pages.",
       keywords: "hide compass buttons controls map",
     }),
     /** How far the player dragged the Compass buttons from their place beside the Compass, in pixels. */
@@ -89,6 +92,7 @@ export default defineFeature({
       (value): OverlayOffset | undefined => readOverlayOffset(value),
       {
         ...MAP_LAYER,
+        appearance: true,
         error: "Compass buttons position is invalid",
         launcherError: "Compass buttons position is invalid",
         label: "Compass buttons position",

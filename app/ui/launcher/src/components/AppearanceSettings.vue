@@ -1,10 +1,16 @@
 <script setup lang="ts">
 /**
  * The Appearance section of Settings: panel style, font, text size and opacity for gwonmac panels
- * in game, and the custom theme with its colours and shareable text. The page's save status
- * reports each save; this section says only when pasted theme text is not valid.
+ * in game, the custom theme with its colours and shareable text, and the look every map Feature
+ * shares (the options their manifests mark `appearance`, drawn with the Feature page's rows).
+ * The page's save status reports each save; this section says only when pasted theme text is not valid.
  */
+import type { LauncherSnapshot } from "@shared/launcher-contracts";
+import type { ReleaseStage } from "@shared/release";
 import type { InGamePatch, InGameSettings } from "../settings-host";
+import type { PerformSave } from "../save-status";
+import { CARD_FEATURES } from "../features";
+import FeatureSettings, { appearanceFeatures } from "./FeatureSettings.vue";
 import { computed, ref } from "vue";
 import { UI_FONTS, UI_PANEL_OPACITY_MIN, UI_PANEL_OPACITY_MAX, UI_STYLES, UI_TEXT_SIZE_MIN, UI_TEXT_SIZE_MAX, type UiFont } from "@shared/settings/core";
 import { UI_THEME_COLOR_FIELDS, UI_THEME_MATERIALS, decodeCustomUiTheme, encodeCustomUiTheme, defaultCustomUiTheme, type CustomUiTheme, type UiThemeColorField } from "@shared/ui-theme";
@@ -15,7 +21,14 @@ import RangeControl from "./RangeControl.vue";
 import PanelStylePreview from "./PanelStylePreview.vue";
 import { saveChoice } from "../select-choice";
 
-const props = defineProps<{ settings: InGameSettings; save: (patch: InGamePatch) => Promise<void> }>();
+const props = defineProps<{
+  settings: InGameSettings;
+  save: (patch: InGamePatch) => Promise<void>;
+  stage: ReleaseStage;
+  shortcuts: LauncherSnapshot["shortcuts"];
+  performSave: PerformSave;
+}>();
+const mapLook = computed(() => appearanceFeatures(CARD_FEATURES, props.stage, props.settings));
 const message = ref("");
 const imported = ref("");
 const shared = computed(() => encodeCustomUiTheme(props.settings.uiCustomTheme));
@@ -66,6 +79,11 @@ async function importTheme() {
     </template>
   </div>
   <p v-if="message" role="status" class="inline-message">{{ message }}</p>
+  <template v-if="mapLook.length">
+    <h2 class="appearance-heading">Maps and Compass</h2>
+    <p>The map style and the Compass buttons apply to every map Feature: the Exploration grid, the Walking route, Compass ranges and the Elite Skill Planner.</p>
+    <FeatureSettings v-for="feature in mapLook" :key="feature.id" place="appearance" :feature="feature" :stage="stage" :settings="settings" :shortcuts="shortcuts" :save="save" :perform-save="performSave" />
+  </template>
 </template>
 
 <style scoped>

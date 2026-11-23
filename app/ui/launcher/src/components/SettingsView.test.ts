@@ -240,7 +240,7 @@ describe("Settings page", () => {
     // The game document carries no launcher tokens or modal styles on <body>.
     const library = addCartographyPreset(fixtureSnapshot.settings.cartographyPresetLibrary, { id: "test-style", name: "My map", style: CARTOGRAPHY_BUILTIN_PRESETS.cartographer.style })!;
     const settings = { ...fixtureSnapshot.settings, cartographyPresetLibrary: library };
-    const wrapper = mount(SettingsView, { props: { snapshot: hubSnapshot(settings), native: undefined, openInLauncher: vi.fn(), target: { section: "features", feature: "cartography" } } });
+    const wrapper = mount(SettingsView, { props: { snapshot: hubSnapshot(settings), native: undefined, openInLauncher: vi.fn(), target: { section: "appearance", control: "cartographyPresetLibrary" } } });
     await flushPromises();
     await wrapper.findAll("button").find(button => button.text() === "Delete custom style")!.trigger("click");
     await flushPromises();

@@ -15,6 +15,12 @@ Features tab, and the **Features** section of the Hub's Settings page. The
 launcher's own Settings page has no Features section, because Features is a tab
 of its own; the simple launcher, which has no tabs, keeps the section.
 
+A look setting several Features share, such as the map style, is marked
+`appearance` in its manifest. Settings › Appearance draws it under **Maps and
+Compass** with the same rows, and its Feature page does not, so a player finds
+it beside the other look settings and each map Feature's page keeps only its
+own choices.
+
 The Hub page shows three in-game sections: **Features**, **Appearance** and
 **Game**. You change them there, and the game updates at once. Five other
 sections need the launcher: **Texture packs**, **Game files**, **Updates**,
@@ -153,7 +159,8 @@ section but edits only the in-game ones; the others (↗) open the launcher.
    component under `app/ui/launcher/src/components/`, with
    `data-setting="<id>"`, using the copy from step 2. A feature setting draws
    itself on its Feature page by its type (switch, number, choice, position);
-   give it `choices`, `unit` or `dependsOn` in the declaration. A value no type
+   give it `choices`, `unit` or `dependsOn` in the declaration, and
+   `appearance` when several Features share it as a look setting. A value no type
    fits gets a control of its own in `components/feature-controls/`, listed in
    `FeatureSettings.vue`.
 
