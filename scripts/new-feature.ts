@@ -123,7 +123,7 @@ const readme = (name: string, folder: string) => `${name} does one thing for the
 1. Turn it on.
 
 ### Details
-- **Turn on:** :setting[${name}]{to="tools/tool:${folder}"}, off while you play the :setting[plain game]{to="tools/gwonmacTools"}. It is off by default.
+- **Turn on:** :setting[${name}]{to="features/tool:${folder}"}, off while you play the :setting[plain game]{to="features/gwonmacTools"}. It is off by default.
 - **Open:** always visible once on. It has no window or shortcut.
 
 > It works in PvE only.

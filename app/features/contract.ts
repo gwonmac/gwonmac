@@ -6,8 +6,8 @@
  * names a purpose, `requires` has no cycles, `uses` names only capabilities and stages the
  * verifier knows, a folder that imports a certified stage's contract names that stage in `uses`
  * (so a refused stage turns the Feature off with a reason), every link names a Feature that
- * offers the methods it calls, FEATURES lists each id once, `parts` lists `game` when the
- * folder has companion.ts, and a Feature with a switch of its own says in its README's
+ * offers the methods it calls, FEATURES lists each id once, `parts` and the part files agree in
+ * both directions (checkParts), and a Feature with a switch of its own says in its README's
  * `### Details` where to turn it on, and a staged option (`stage`) is a boolean that is not the switch, so
  * it reads as off where the build does not show it, and its README does not name it yet. Pure: the caller reads the folders
  * (tests/policy/feature-contract.test.ts runs it in `pnpm check`), so the same check can run on
@@ -17,7 +17,7 @@
 import { STAGE_USES, type StageUse } from "../shared/contracts.js";
 import { ENHANCEMENT_CAPABILITY_FIELDS } from "../shared/enhancement-contracts.js";
 import type { SettingSpec } from "../shared/settings/define.js";
-import type { FeatureDefinition } from "./define.js";
+import type { FeatureDefinition, FeaturePartKind } from "./define.js";
 
 /** One app/features/<folder>/ as the caller found it. */
 export type FeatureFolder = Readonly<{
@@ -123,15 +123,7 @@ function checkFolder({ folder, manifest, files, readme, changelog, imports }: Fe
     }
   }
 
-  if (files.includes("companion.ts") && !manifest.parts.includes("game")) {
-    problems.push(`${at}/feature.ts: the folder has companion.ts, so parts must list "game".`);
-  }
-  const hasMain = files.includes("main.ts");
-  if (manifest.parts.includes("main") !== hasMain) {
-    problems.push(hasMain
-      ? `${at}/feature.ts: the folder has main.ts, so parts must list "main".`
-      : `${at}/feature.ts: parts lists "main", but the folder has no main.ts.`);
-  }
+  problems.push(...checkParts(at, manifest, files));
   if ((manifest.network ?? []).length > 0 && !manifest.parts.includes("main")) {
     problems.push(`${at}/feature.ts: network hosts are reached only from a main part; add main.ts and "main" to parts.`);
   }
@@ -147,6 +139,36 @@ function checkFolder({ folder, manifest, files, readme, changelog, imports }: Fe
   }
   if (changelog === null) problems.push(`${at}/CHANGELOG.md: missing; start it with a "## Unreleased" heading.`);
   else if (!/^## Unreleased$/m.test(changelog)) problems.push(`${at}/CHANGELOG.md: no "## Unreleased" heading; the release script stamps it with the app version.`);
+  return problems;
+}
+
+/**
+ * Each part kind in `parts` has its file, and each part file its kind: `game` is companion.ts,
+ * `window` is renderer/window.ts, `main` is main.ts and `hubPage` is renderer/host.ts. Two game
+ * parts live elsewhere: a tool the input host runs (`tool.event`, Call Target in
+ * app/renderer/input.ts), and a hubPage Feature's renderer/host.ts, which the game host also
+ * builds its game code from (Character Switch). A kind without its file would pass typecheck and
+ * do nothing. That the game host starts each hubPage part is checked in
+ * tests/unit/every-companion-part-is-registered.test.ts.
+ */
+function checkParts(at: string, manifest: FeatureDefinition, files: readonly string[]): string[] {
+  const problems: string[] = [];
+  const lists = (kind: FeaturePartKind) => manifest.parts.includes(kind);
+  const hasCompanion = files.includes("companion.ts");
+  if (hasCompanion && !lists("game")) problems.push(`${at}/feature.ts: the folder has companion.ts, so parts must list "game".`);
+  if (lists("game") && !hasCompanion && manifest.tool?.event === undefined && !lists("hubPage")) {
+    problems.push(`${at}/feature.ts: parts lists "game", but the folder has no companion.ts; add the game part there (featurePart) or remove "game".`);
+  }
+  for (const [kind, file] of [["window", "renderer/window.ts"], ["main", "main.ts"]] as const) {
+    const has = files.includes(file);
+    if (lists(kind) === has) continue;
+    problems.push(has
+      ? `${at}/feature.ts: the folder has ${file}, so parts must list "${kind}".`
+      : `${at}/feature.ts: parts lists "${kind}", but the folder has no ${file}.`);
+  }
+  if (lists("hubPage") && !files.includes("renderer/host.ts")) {
+    problems.push(`${at}/feature.ts: parts lists "hubPage", but the folder has no renderer/host.ts.`);
+  }
   return problems;
 }
 
