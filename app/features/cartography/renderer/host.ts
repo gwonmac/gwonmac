@@ -47,7 +47,8 @@ export function installCartographyHost(options: Readonly<{
       canvas: options.canvas,
       settings,
       persist: (patch) => api.settings.set(patch),
-      exportEvidence: (capture) => api.cartography.exportEvidence(capture),
+      // The Live evidence panel and its export are a maintainer tool: development builds only.
+      exportEvidence: window.gwFeatureFacts?.()?.stage === "dev" ? (capture) => api.cartography.exportEvidence(capture) : null,
       getMapKnowledge: (kernelSha256) => api.cartography.getMapKnowledge(kernelSha256),
       recordMapKnowledge: (value) => api.cartography.recordMapKnowledge(value),
     });

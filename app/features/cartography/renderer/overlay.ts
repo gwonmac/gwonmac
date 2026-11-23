@@ -164,9 +164,8 @@ export function mountCartographyOverlay(options: Readonly<{
   questMarker(): CartographyQuestMarker | null;
   settings(): AppSettings;
   persist(patch: RendererSettingsPatch): Promise<AppSettings>;
-  exportEvidence(
-    capture: CartographyEvidenceCapture,
-  ): Promise<CartographyEvidenceExportResult>;
+  /** Null outside development builds: no Live evidence panel. */
+  exportEvidence: ((capture: CartographyEvidenceCapture) => Promise<CartographyEvidenceExportResult>) | null;
   initialMapKnowledge: readonly CartographyMapKnowledge[];
   recordMapKnowledge(
     value: CartographyMapKnowledge,
@@ -207,6 +206,7 @@ export function mountCartographyOverlay(options: Readonly<{
     cleanup.push(() => compassRangeControls.dispose());
     let previewGridOpacity: number | null = null;
     let previewWalkabilityOpacity: number | null = null;
+    const exportEvidence = options.exportEvidence;
     const controls = createCartographyOverlayControls({
       parent: options.parent,
       persist: options.persist,
@@ -214,7 +214,7 @@ export function mountCartographyOverlay(options: Readonly<{
         if (layer === "grid") previewGridOpacity = opacity;
         else previewWalkabilityOpacity = opacity;
       },
-      exportEvidence: () => options.exportEvidence(
+      exportEvidence: exportEvidence === null ? null : () => exportEvidence(
         captureCartographyEvidence(state, options.modelSources),
       ),
     });

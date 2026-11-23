@@ -317,6 +317,8 @@ export function createCartographyOverlayControls(options: Readonly<{
   exportStatus.setAttribute("role", "status");
   exportStatus.setAttribute("aria-live", "polite");
   qa.append(qaSummary, qaRows, exportButton, exportStatus);
+  // A maintainer tool: without an export (every player build) the panel has no Live evidence.
+  qa.hidden = exportEvidence === null;
   panel.append(heading, availabilityNotice, layers, fields, saveStatus, qa);
   root.append(trigger, panel);
   options.parent.append(root);
