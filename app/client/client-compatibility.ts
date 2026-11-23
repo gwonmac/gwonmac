@@ -7,7 +7,9 @@
  * has actually run. An ordinary restart leaves that marker in place so an
  * update that was downloaded but never tried remains the active candidate.
  * Renderer-crash recovery rolls the candidate back and records the rejected
- * fingerprint, so the same broken download is not served in a crash loop.
+ * fingerprint, so the same broken download is not served in a crash loop. It
+ * rolls back only to a previous generation that still verifies; without one
+ * the candidate stays, because it is the only generation left to play.
  *
  * Rejection is scoped to the host version that recorded it, so a fixed app is
  * allowed to try a generation an older one refused.
@@ -23,6 +25,11 @@ import {
 } from "../main/core/access-key.js";
 import { fingerprintClientGeneration } from "../main/core/client-fingerprint.js";
 import type { Manifest } from "../main/core/manifest.js";
+import { clientManifestPath } from "../main/core/paths.js";
+import {
+  readPublishedClientManifest,
+  verifyPublishedClientArtifacts,
+} from "./published-client.js";
 
 const CANDIDATE_MARKER = ".candidate.json";
 
@@ -56,6 +63,20 @@ async function exists(target: string): Promise<boolean> {
     () => true,
     () => false,
   );
+}
+
+/** Whether a generation directory holds artifacts that match its own manifest today. */
+async function generationVerifies(generation: string): Promise<boolean> {
+  try {
+    return (
+      (await verifyPublishedClientArtifacts(
+        generation,
+        await readPublishedClientManifest(clientManifestPath(generation)),
+      )) === true
+    );
+  } catch {
+    return false;
+  }
 }
 
 function parseFingerprint(value: unknown): string | null {
@@ -193,9 +214,11 @@ async function rollbackClientCandidate(options: {
     }
   }
   const fingerprint = parseCandidateMarker(marker)?.fingerprint ?? null;
+  // Verify the rollback target before anything moves: a decayed previous
+  // generation must not replace the candidate, which at least still runs.
   if (
     !(await exists(options.artifacts)) ||
-    !(await exists(paths.previous))
+    !(await generationVerifies(paths.previous))
   ) {
     return null;
   }

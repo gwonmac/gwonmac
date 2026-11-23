@@ -348,36 +348,38 @@ export class PatchClient {
   }
 
   /**
-   * The installed generation, read now. `valid` is not made redundant by the
-   * pre-swap verification in `update()`: that proves a generation was intact
-   * when it was promoted, while this is what is on disk today. It can differ
-   * because the generation was promoted by an alpha build that had no such
-   * gate, or because the bytes decayed since — the same reason `ChunkStore`
-   * verifies on read. An unverifiable generation must not become a rollback
-   * target, so `update()` keys `candidate` on this.
+   * An installed generation (the current one unless named), read now. `valid`
+   * is not made redundant by the pre-swap verification in `update()`: that
+   * proves a generation was intact when it was promoted, while this is what is
+   * on disk today. It can differ because the generation was promoted by an
+   * alpha build that had no such gate, or because the bytes decayed since —
+   * the same reason `ChunkStore` verifies on read. An unverifiable generation
+   * must not become a rollback target, so `update()` keys `candidate` on this.
    */
-  private async publishedGeneration(): Promise<{
+  private async publishedGeneration(generation = this.artifactsDir): Promise<{
     fingerprint: string | null;
     valid: boolean;
   }> {
     try {
       const manifest = parsePublishedClientManifest(
         JSON.parse(
-          await readFile(clientManifestPath(this.artifactsDir), "utf8"),
+          await readFile(clientManifestPath(generation), "utf8"),
         ),
       );
       return {
         fingerprint: manifest.clientFingerprint ?? null,
         valid:
-          (await verifyPublishedClientArtifacts(this.artifactsDir, manifest)) ===
-          true,
+          (await verifyPublishedClientArtifacts(generation, manifest)) === true,
       };
     } catch {
       return { fingerprint: null, valid: false };
     }
   }
 
-  private async recoverArtifactSwap(stage: string, backup: string): Promise<void> {
+  private async recoverArtifactSwap(
+    generations: ReturnType<typeof clientGenerationPaths>,
+  ): Promise<void> {
+    const { stage, previous: backup, failed } = generations;
     let currentExists = true;
     try {
       await stat(this.artifactsDir);
@@ -407,8 +409,12 @@ export class PatchClient {
       // state, not an interrupted swap. Keep both until confirmation or crash.
     } else if (backupExists) {
       await rename(backup, this.artifactsDir);
+      currentExists = true;
     }
     await rm(stage, { recursive: true, force: true });
+    // `failed` only holds a generation in the middle of a swap. Once a current
+    // generation is in place again, what is left there is dead weight.
+    if (currentExists) await rm(failed, { recursive: true, force: true });
   }
 
   private async stageExisting(source: string, target: string): Promise<void> {
@@ -429,7 +435,7 @@ export class PatchClient {
     const generations = clientGenerationPaths(this.artifactsDir);
     const stage = generations.stage;
     const backup = generations.previous;
-    await this.recoverArtifactSwap(stage, backup);
+    await this.recoverArtifactSwap(generations);
     signal?.throwIfAborted();
     await mkdir(this.chunksDir, { recursive: true });
 
@@ -599,10 +605,17 @@ export class PatchClient {
       } catch {
         hadCurrent = false;
       }
+      // The rollback target is whatever `backup` holds after the swap: the
+      // last confirmed generation while a candidate is pending, otherwise the
+      // generation being replaced. Superseding an unverifiable pending
+      // candidate must not drop a confirmed generation that still verifies.
+      const rollbackGeneration = pendingRollbackExists
+        ? await this.publishedGeneration(backup)
+        : previousGeneration;
       candidate =
         hadCurrent &&
-        previousGeneration.valid &&
-        previousGeneration.fingerprint !== fingerprint;
+        rollbackGeneration.valid &&
+        rollbackGeneration.fingerprint !== fingerprint;
       if (hadCurrent) {
         if (candidate) await markClientCandidate(stage, fingerprint);
         if (pendingRollbackExists) {
