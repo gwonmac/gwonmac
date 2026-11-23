@@ -16,7 +16,10 @@ test. `app/renderer/hub.ts` owns the sources, search, the closed-Hub receipt and
 the modal, and applies the engine's effects. It names no source: each source says what it adds through the optional
 `HubSource` fields in `app/shared/hub.ts`. Every call into a source is contained
 (`app/renderer/contained.ts`): a source that throws adds nothing and logs one
-line, and the other sources still answer. The built-in sources (accounts, the
+line, and the other sources still answer. `app/renderer/hub-shortcuts.ts` owns
+where saved search phrases and pins live: build and team entries with the
+account's library (a source's `shortcuts`), every other entry in the
+`hubShortcuts` setting. The built-in sources (accounts, the
 calculator, commands, Hub preferences and Settings) attach from the one Core
 list in `app/renderer/hub-builtins.ts`, the way a feature attaches its own. A
 tool's Features row, its open event and its place among the Features rows live in its

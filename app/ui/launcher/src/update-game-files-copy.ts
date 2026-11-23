@@ -1,3 +1,8 @@
+/**
+ * Owns the launcher's sentences for application updates, game files and the background download:
+ * each turns a state or failure code from main into a title, a detail and the one action the
+ * player can take. Main sends codes only (app/shared/contracts.ts).
+ */
 import type { AppUpdateState } from "@shared/contracts";
 import type { ErrorCode } from "@shared/errors";
 import type { LauncherBackgroundDownload, LauncherReadiness } from "@shared/launcher-contracts";

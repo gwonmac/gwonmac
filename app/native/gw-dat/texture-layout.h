@@ -1,5 +1,13 @@
 #pragma once
 
+/**
+ * Owns the bounds check of a Guild Wars texture header before the vendored
+ * decoder (vendor/gwdat/AtexReader.cpp) allocates anything: the width and
+ * height must be small non-zero multiples of 4, and every derived size must
+ * fit in size_t. It answers the layout, or nothing
+ * for a header the decoder must refuse.
+ */
+
 #include <cstddef>
 #include <cstdint>
 #include <cstring>

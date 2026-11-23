@@ -109,8 +109,9 @@ export type TemplateExportResult =
 /**
  * Why a ready client is not simply "ready": the launch took a fallback the
  * player may want to know about. A closed union for the same reason failure
- * codes are one: the sentence the player reads belongs to the renderer
- * (`app/renderer/failure-messages.ts`), where it can be tested.
+ * codes are one: the sentence the player reads belongs to the launcher
+ * (`playableNoticePresentation`, `app/ui/launcher/src/update-game-files-copy.ts`),
+ * where it can be tested.
  */
 export const NOTICE_CODES = [
   "cached-live-probe",
@@ -148,9 +149,10 @@ export interface DownloadActivity {
  * A client preparation that failed. The code is the entire payload: this used
  * to be a finished English sentence built in the main process, which put the
  * wording of a user-facing failure in the one place that cannot see the UI and
- * cannot be tested against it. `app/renderer/failure-messages.ts` is now the
- * only place that sentence is chosen, and a code is also the only thing the
- * diagnostics export is allowed to carry.
+ * cannot be tested against it. The launcher (`backgroundDownloadFailure`,
+ * `app/ui/launcher/src/update-game-files-copy.ts`) is now the only place that
+ * sentence is chosen, and a code is also the only thing the diagnostics export
+ * is allowed to carry.
  *
  * A separate member rather than a nullable field on the one above, so that a
  * failure without a code and a code without a failure are both build errors.
