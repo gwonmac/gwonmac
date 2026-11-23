@@ -12,6 +12,6 @@ Drag the window by its title bar and resize it from its corner; every game windo
 ### Details
 - **Turn on:** :setting[Trade Chat]{to="features/tool:trade-chat"}, off while you play the :setting[plain game]{to="features/gwonmacTools"}.
 - **Open:** <kbd>⌘</kbd> <kbd>K</kbd>, **View → Trade Chat**, the chat command `/trade`, or `trade` and an item in the Hub.
-- **Limits:** works outside PvP. When the feed drops, it shows “Waiting for Kamadan to reconnect” with a **Try again** button. **Whisper** in an offer needs [Whispers]($docs.whispers) on.
+- **Limits:** works outside PvP. When the feed drops, it shows “Waiting for Kamadan to reconnect” with a **Retry** button. **Whisper** in an offer needs [Whispers]($docs.whispers) on.
 
 > Trade Chat needs an internet connection. It reads a public trade feed from kamadan.gwtoolbox.com and ascalon.gwtoolbox.com.

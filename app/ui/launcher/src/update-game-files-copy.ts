@@ -77,7 +77,7 @@ function failedApplicationUpdate(
       title: "Update check paused",
       detail: "The update service asked us to wait. Try again in a few minutes.",
       action: "check",
-      actionLabel: "Try again",
+      actionLabel: "Retry",
     };
   }
   if (reason === "offline" || reason === "timeout") {
@@ -85,7 +85,7 @@ function failedApplicationUpdate(
       title: "Could not check for launcher updates",
       detail: "Check your internet connection, then try again.",
       action: "check",
-      actionLabel: "Try again",
+      actionLabel: "Retry",
     };
   }
   if (reason === "download-failed") {
@@ -100,7 +100,7 @@ function failedApplicationUpdate(
     title: "Could not verify launcher updates",
     detail: "The update service returned an unexpected response. Try again later.",
     action: "check",
-    actionLabel: "Try again",
+    actionLabel: "Retry",
   };
 }
 

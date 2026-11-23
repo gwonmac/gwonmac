@@ -227,7 +227,7 @@ The core Trade feature must not depend on this enhancement.
 | --- | --- |
 | Initial connection | Show a small progress state without replacing the window |
 | Live | Show the latest bounded feed and connection status |
-| Searching | Keep the submitted query visible and show progress in the result area; while the feed reconnects, say the search waits for it and offer **Try again** |
+| Searching | Keep the submitted query visible and show progress in the result area; while the feed reconnects, say the search waits for it and offer **Retry** |
 | No results | State that no recent messages matched; keep query and filters editable |
 | Reconnecting | Keep existing rows visible, mark them as possibly stale, and retry |
 | Offline | Keep existing rows visible with their real times and offer **Retry** |

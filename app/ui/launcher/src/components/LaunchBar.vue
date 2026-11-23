@@ -237,9 +237,9 @@ onBeforeUnmount(() => {
               <span class="profile-copy"><b>{{ profile.name }}</b><small><span v-if="profile.state === 'running'" class="profile-open-dot" aria-hidden="true" />{{ profileStatus(profile) }}</small></span>
             </button>
             <button v-if="profile.state === 'running'" class="secondary small profile-action" :aria-label="`Show ${profile.name}`" @click="emit('show', profile.id)">Show</button>
-            <button v-else-if="profile.state === 'ready' || profile.state === 'failed'" class="secondary small profile-action" :disabled="busy" :aria-label="`${snapshot.readiness.state === 'repair-required' ? 'Repair game files for' : profile.state === 'failed' ? 'Try again for' : 'Play'} ${profile.name}`" @click="play(profile.id)">
+            <button v-else-if="profile.state === 'ready' || profile.state === 'failed'" class="secondary small profile-action" :disabled="busy" :aria-label="`${snapshot.readiness.state === 'repair-required' ? 'Repair game files for' : profile.state === 'failed' ? 'Retry' : 'Play'} ${profile.name}`" @click="play(profile.id)">
               <RotateCcw v-if="profile.state === 'failed' || snapshot.readiness.state === 'repair-required'" aria-hidden="true" /><Play v-else aria-hidden="true" />
-              {{ snapshot.readiness.state === 'repair-required' ? 'Repair' : profile.state === 'failed' ? 'Try again' : 'Play' }}
+              {{ snapshot.readiness.state === 'repair-required' ? 'Repair' : profile.state === 'failed' ? 'Retry' : 'Play' }}
             </button>
             <button v-else-if="profile.state === 'queued'" class="secondary small profile-action" :aria-label="`Cancel waiting for ${profile.name}`" @click="emit('cancel', profile.id)"><X aria-hidden="true" />Cancel</button>
             <button v-else class="secondary small profile-action profile-waiting" disabled :aria-label="`${profile.name}: ${profileStatus(profile)}`"><Clock3 aria-hidden="true" />Opening</button>

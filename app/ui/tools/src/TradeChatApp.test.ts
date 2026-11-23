@@ -132,11 +132,11 @@ describe("TradeChatApp", () => {
     await wrapper.get(".trade-search").trigger("submit");
     await flushPromises();
     expect(search).not.toHaveBeenCalled();
-    // HUB-119: a search waiting through a reconnect says so and offers Try again.
+    // HUB-119: a search waiting through a reconnect says so and offers Retry.
     events.publish?.({ type: "status", source: "kamadan", status: "reconnecting" });
     await nextTick();
     expect(wrapper.get(".trade-state").text()).toContain("Waiting for Kamadan to reconnect");
-    expect(wrapper.get(".trade-state button").text()).toBe("Try again");
+    expect(wrapper.get(".trade-state button").text()).toBe("Retry");
     events.publish?.({ type: "status", source: "kamadan", status: "live" });
     await flushPromises();
     expect(wrapper.text()).toContain("Search could not finish");

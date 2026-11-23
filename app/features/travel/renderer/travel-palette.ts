@@ -64,7 +64,7 @@ export function createTravelPalette(parent: HTMLElement, command: TravelCommand)
       let unmount = () => {};
       const doc = target.ownerDocument;
       const message = doc.createElement('p'); message.className = 'hub-empty'; message.setAttribute('role', 'status');
-      const retry = doc.createElement('button'); retry.type = 'button'; retry.className = 'ui-button'; retry.textContent = 'Try again'; retry.hidden = true;
+      const retry = doc.createElement('button'); retry.type = 'button'; retry.className = 'ui-button'; retry.textContent = 'Retry'; retry.hidden = true;
       target.append(message, retry);
       const attempt = () => {
         message.textContent = 'Loading Travel…'; retry.hidden = true;
