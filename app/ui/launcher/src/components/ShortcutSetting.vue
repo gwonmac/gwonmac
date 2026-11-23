@@ -84,13 +84,15 @@ async function capture() {
 <template>
   <div class="shortcut-setting" :aria-label="`${label} shortcut`" @keydown.esc="onEscape">
     <span class="visually-hidden">Shortcut</span>
+    <div class="shortcut-controls">
     <button ref="value" class="secondary small shortcut-value" :disabled="disabled || capturing" :aria-label="`Change ${label} shortcut`" @click="capture"><span v-if="capturing">Press keys…</span><span v-else-if="!shortcuts[action]">Not set</span><span v-else class="shortcut-keycaps"><kbd v-for="cap in shortcutKeycaps(shortcuts[action])" :key="cap.name" :title="cap.name">{{ cap.label }}</kbd></span><span aria-hidden="true">Change</span></button>
     <details class="shortcut-options" @keydown.esc.prevent="($event.currentTarget as HTMLDetailsElement).open = false"><summary :aria-label="`${label} shortcut options`" title="Shortcut options"><Ellipsis /></summary><div class="shortcut-actions">
       <button class="text-link" :disabled="disabled || capturing || !shortcuts[action]" :aria-label="`Clear ${label} shortcut`" @click="save(null)">Clear</button>
       <button class="text-link" :disabled="disabled || capturing" :aria-label="`Restore ${label} default shortcut`" @click="choose(DEFAULT_SHORTCUTS[action])">Restore default</button>
     </div></details>
+    </div>
     <p v-if="message" role="status" class="inline-message">{{ message }}</p>
-    <div v-if="pending" class="shortcut-actions">
+    <div v-if="pending" class="shortcut-actions shortcut-replace">
       <button class="secondary small" @click="cancelReplace">Cancel</button>
       <button class="primary small" :disabled="disabled" @click="save(pending.binding)">Replace shortcut</button>
     </div>
@@ -98,7 +100,12 @@ async function capture() {
 </template>
 
 <style scoped>
-.shortcut-setting { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 6px; width: 172px; max-width: 100%; font-size: 13px; }
+/* The control sits in the row's second column; what recording says, and the replace question,
+   take a line of their own under the whole row instead of squeezing beside the keys. */
+.shortcut-setting { display: contents; font-size: 13px; }
+.shortcut-controls { grid-column: 2; display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
+.shortcut-setting > .inline-message { grid-column: 1 / -1; margin: 0; }
+.shortcut-setting > .shortcut-replace { grid-column: 1 / -1; justify-content: flex-end; }
 .shortcut-setting .shortcut-value { display: inline-flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 132px; }
 .shortcut-value > span { font-size: 12px; color: var(--muted); }
 .shortcut-options { position: relative; margin: 0; }
@@ -109,7 +116,6 @@ async function capture() {
 .shortcut-options .shortcut-actions { position: absolute; top: calc(100% + 4px); right: 0; z-index: 4; width: 176px; display: grid; gap: 0; padding: 4px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--surface-solid); }
 .shortcut-options .text-link { padding: 8px; border: 0; text-align: left; color: inherit; }
 .shortcut-options .text-link:hover { background: var(--surface-hover); }
-.shortcut-setting > .inline-message, .shortcut-setting > .shortcut-actions { flex-basis: 100%; }
 .shortcut-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .shortcut-keycaps { display:flex; gap:4px; }
 kbd { display:grid; place-items:center; min-width:23px; height:25px; border:1px solid var(--line-strong); border-radius:5px; background:var(--control); padding-inline:4px; font: inherit; font-variant-numeric: tabular-nums; }
