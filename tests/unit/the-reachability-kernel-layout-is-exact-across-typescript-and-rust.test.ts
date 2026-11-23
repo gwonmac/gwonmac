@@ -3,10 +3,19 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import {
   CARTOGRAPHY_REACHABILITY_ABI,
+  CARTOGRAPHY_REACHABILITY_HEADER_BYTES,
+  CARTOGRAPHY_REACHABILITY_MAGIC,
   CARTOGRAPHY_REACHABILITY_MAX_CELLS,
+  CARTOGRAPHY_REACHABILITY_MAX_TERRAIN_CELLS,
   CARTOGRAPHY_REACHABILITY_REGION_BYTES,
   CARTOGRAPHY_REACHABILITY_ROUTE_BYTES,
+  CARTOGRAPHY_REACHABILITY_ROUTE_HEADER_BYTES,
+  CARTOGRAPHY_REACHABILITY_ROUTE_MAGIC,
   CARTOGRAPHY_REACHABILITY_ROUTE_MAX_STEPS,
+  CARTOGRAPHY_REACHABILITY_ROUTE_STEP_FLOATS,
+  CARTOGRAPHY_REACHABILITY_STATUS_LAST,
+  CARTOGRAPHY_REACHABILITY_STATUS_READY,
+  CARTOGRAPHY_REACHABILITY_TERRAIN_BITS_OFFSET,
 } from "../../app/shared/cartography-reachability-kernel-contract.ts";
 
 // The Rust kernel writes two regions that the renderer decodes by hand. The
@@ -22,9 +31,23 @@ const typescriptSource = readFileSync(
   "utf8",
 );
 
+/** The contract's decoder constants, beside the Rust constant each mirrors. */
+const DECODER = Object.freeze({
+  MAGIC: CARTOGRAPHY_REACHABILITY_MAGIC,
+  ROUTE_MAGIC: CARTOGRAPHY_REACHABILITY_ROUTE_MAGIC,
+  HEADER_BYTES: CARTOGRAPHY_REACHABILITY_HEADER_BYTES,
+  VISUAL_BITS: CARTOGRAPHY_REACHABILITY_TERRAIN_BITS_OFFSET,
+  MAX_VISUAL_RASTER_CELLS: CARTOGRAPHY_REACHABILITY_MAX_TERRAIN_CELLS,
+  ROUTE_HEADER_BYTES: CARTOGRAPHY_REACHABILITY_ROUTE_HEADER_BYTES,
+  ROUTE_STEP_BYTES: CARTOGRAPHY_REACHABILITY_ROUTE_STEP_FLOATS * 4,
+  STATUS_READY: CARTOGRAPHY_REACHABILITY_STATUS_READY,
+  STATUS_LAST: CARTOGRAPHY_REACHABILITY_STATUS_LAST,
+});
+type Decoder = Readonly<Record<keyof typeof DECODER, number>>;
+
 /** Rust `publish` value → the name the TypeScript decoder reads it into. */
 const SNAPSHOT_HEADER = Object.freeze([
-  ["MAGIC", "MAGIC"],
+  ["MAGIC", "CARTOGRAPHY_REACHABILITY_MAGIC"],
   ["ABI", "CARTOGRAPHY_REACHABILITY_ABI"],
   ["REGION_BYTES", "CARTOGRAPHY_REACHABILITY_REGION_BYTES"],
   ["writing", "first"],
@@ -46,11 +69,11 @@ const SNAPSHOT_HEADER = Object.freeze([
 
 /** Rust `publish_route` word → its decoder name; null for words no decoder reads. */
 const ROUTE_HEADER = Object.freeze([
-  ["ROUTE_MAGIC", "ROUTE_MAGIC"],
+  ["ROUTE_MAGIC", "CARTOGRAPHY_REACHABILITY_ROUTE_MAGIC"],
   ["ABI", "CARTOGRAPHY_REACHABILITY_ABI"],
   ["ROUTE_BYTES", "CARTOGRAPHY_REACHABILITY_ROUTE_BYTES"],
   ["writing", "first"],
-  ["status", "READY"],
+  ["status", "CARTOGRAPHY_REACHABILITY_STATUS_READY"],
   ["map_id", "mapId"],
   ["area_epoch", "areaEpoch"],
   ["layout_id", null],
@@ -127,16 +150,6 @@ function rustConstants(source: string): Map<string, number> {
     // `u32::MAX` and float casts are not layout; everything else must evaluate.
     if (expression.includes("::")) continue;
     constants.set(name, evaluate(expression, constants));
-  }
-  return constants;
-}
-
-function typescriptConstants(source: string): Map<string, number> {
-  const constants = new Map<string, number>();
-  for (const [, name, literal] of source.matchAll(
-    /^const ([A-Z][A-Z0-9_]*) = (0x[0-9a-fA-F_]+|\d[\d_]*);/gmu,
-  )) {
-    if (name !== undefined && literal !== undefined) constants.set(name, integer(literal));
   }
   return constants;
 }
@@ -228,9 +241,8 @@ function assertHeader(
   }
 }
 
-function assertExactLayout(rust: string, typescript: string): void {
+function assertExactLayout(rust: string, typescript: string, decoder: Decoder = DECODER): void {
   const kernel = rustConstants(rust);
-  const decoder = typescriptConstants(typescript);
 
   assert.equal(constant(kernel, "ABI"), CARTOGRAPHY_REACHABILITY_ABI);
   assert.equal(constant(kernel, "MAX_CELLS"), CARTOGRAPHY_REACHABILITY_MAX_CELLS);
@@ -238,28 +250,19 @@ function assertExactLayout(rust: string, typescript: string): void {
   assert.equal(constant(kernel, "ROUTE_BYTES"), CARTOGRAPHY_REACHABILITY_ROUTE_BYTES);
   assert.equal(constant(kernel, "MAX_ROUTE_STEPS"), CARTOGRAPHY_REACHABILITY_ROUTE_MAX_STEPS);
 
-  assert.equal(constant(decoder, "MAGIC"), constant(kernel, "MAGIC"));
-  assert.equal(constant(decoder, "ROUTE_MAGIC"), constant(kernel, "ROUTE_MAGIC"));
-  assert.equal(constant(decoder, "READY"), constant(kernel, "STATUS_READY"));
   // The decoder reads the cell bits right after the header, the terrain bits
   // where the visual raster starts, and the route steps after their header.
-  assert.equal(constant(decoder, "HEADER_BYTES"), constant(kernel, "HEADER_BYTES"));
+  for (const [name, value] of Object.entries(decoder)) {
+    if (name !== "STATUS_LAST") assert.equal(value, constant(kernel, name), name);
+  }
   assert.equal(constant(kernel, "CELL_BITS"), constant(kernel, "HEADER_BYTES"));
-  assert.equal(constant(decoder, "WALKABLE_TERRAIN_BITS_OFFSET"), constant(kernel, "VISUAL_BITS"));
-  assert.equal(
-    constant(decoder, "MAX_TERRAIN_RASTER_CELLS"),
-    constant(kernel, "MAX_VISUAL_RASTER_CELLS"),
-  );
-  assert.equal(constant(decoder, "ROUTE_HEADER_BYTES"), constant(kernel, "ROUTE_HEADER_BYTES"));
   assert.equal(constant(kernel, "ROUTE_STEPS"), constant(kernel, "ROUTE_HEADER_BYTES"));
-  assert.equal(constant(decoder, "ROUTE_STEP_FLOATS") * 4, constant(kernel, "ROUTE_STEP_BYTES"));
 
-  // Status codes run 1..n; the snapshot decoder's upper bound must be one of them.
+  // Status codes run 1..n without a gap, and the decoder accepts exactly that range.
   const statuses = [...kernel].filter(([name]) => name.startsWith("STATUS_")).map(([, value]) => value);
   assert.deepEqual([...statuses].sort((a, b) => a - b), statuses.map((_, index) => index + 1));
+  assert.equal(decoder.STATUS_LAST, statuses.length, "the decoder's last status is Rust's last status");
   const decode = body(typescript, "function decode(");
-  const bound = Number(decode.match(/status < READY \|\| status > (\d+)/u)?.[1]);
-  assert.ok(statuses.includes(bound), `decoder status bound ${bound} is a Rust status`);
 
   assertHeader(
     SNAPSHOT_HEADER,
@@ -319,9 +322,11 @@ test("header swaps, moved regions, and new header words are rejected", () => {
     "outcome.map_or(0, |value| value.expanded),\n        outcome.map_or(0, |value| value.cost),",
   ), typescriptSource));
   // A changed magic on one side only.
-  assert.throws(() => assertExactLayout(rustSource, replaced(
-    typescriptSource,
-    "const ROUTE_MAGIC = 0x5452_4347;",
-    "const ROUTE_MAGIC = 0x5452_4348;",
-  )));
+  assert.throws(() => assertExactLayout(rustSource, typescriptSource, { ...DECODER, ROUTE_MAGIC: 0x5452_4348 }));
+  // A new Rust status the decoder would refuse.
+  assert.throws(() => assertExactLayout(replaced(
+    rustSource,
+    "const STATUS_VISUAL_RASTER_LIMIT: u32 = 10;",
+    "const STATUS_VISUAL_RASTER_LIMIT: u32 = 10;\nconst STATUS_ROUTE_LIMIT: u32 = 11;",
+  ), typescriptSource), /last status/u);
 });

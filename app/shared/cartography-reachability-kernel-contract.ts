@@ -12,6 +12,25 @@ export const CARTOGRAPHY_REACHABILITY_ROUTE_MAX_STEPS = 4_096;
 export const CARTOGRAPHY_REACHABILITY_RUNTIME_BYTES = 65_536;
 export const CARTOGRAPHY_REACHABILITY_RUNTIME_ALIGN = 16;
 
+/*
+ * The two regions the kernel writes and the renderer decodes
+ * (app/features/cartography/renderer/reachability-kernel.ts). Each value mirrors a
+ * constant in kernels/reachability/lib.rs, and
+ * tests/unit/the-reachability-kernel-layout-is-exact-across-typescript-and-rust.test.ts
+ * checks every one against it.
+ */
+export const CARTOGRAPHY_REACHABILITY_MAGIC = 0x5257_4347;
+export const CARTOGRAPHY_REACHABILITY_HEADER_BYTES = 72;
+/** Where the walkable-terrain bits start in the snapshot region (Rust `VISUAL_BITS`). */
+export const CARTOGRAPHY_REACHABILITY_TERRAIN_BITS_OFFSET = 552_008;
+export const CARTOGRAPHY_REACHABILITY_MAX_TERRAIN_CELLS = 262_144;
+export const CARTOGRAPHY_REACHABILITY_ROUTE_MAGIC = 0x5452_4347;
+export const CARTOGRAPHY_REACHABILITY_ROUTE_HEADER_BYTES = 64;
+export const CARTOGRAPHY_REACHABILITY_ROUTE_STEP_FLOATS = 6;
+/** The kernel's status codes run from READY (1) to LAST without a gap (Rust `STATUS_*`). */
+export const CARTOGRAPHY_REACHABILITY_STATUS_READY = 1;
+export const CARTOGRAPHY_REACHABILITY_STATUS_LAST = 10;
+
 export const CARTOGRAPHY_REACHABILITY_IMPORTS = Object.freeze([
   "env.__memory_base:global",
   "env.__stack_pointer:global",

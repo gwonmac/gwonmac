@@ -9,13 +9,22 @@
 import {
   CARTOGRAPHY_REACHABILITY_ABI,
   CARTOGRAPHY_REACHABILITY_EXPORTS,
+  CARTOGRAPHY_REACHABILITY_HEADER_BYTES,
   CARTOGRAPHY_REACHABILITY_IMPORTS,
+  CARTOGRAPHY_REACHABILITY_MAGIC,
   CARTOGRAPHY_REACHABILITY_MAX_CELLS,
+  CARTOGRAPHY_REACHABILITY_MAX_TERRAIN_CELLS,
   CARTOGRAPHY_REACHABILITY_REGION_BYTES,
   CARTOGRAPHY_REACHABILITY_ROUTE_BYTES,
+  CARTOGRAPHY_REACHABILITY_ROUTE_HEADER_BYTES,
+  CARTOGRAPHY_REACHABILITY_ROUTE_MAGIC,
   CARTOGRAPHY_REACHABILITY_ROUTE_MAX_STEPS,
+  CARTOGRAPHY_REACHABILITY_ROUTE_STEP_FLOATS,
   CARTOGRAPHY_REACHABILITY_RUNTIME_ALIGN,
   CARTOGRAPHY_REACHABILITY_RUNTIME_BYTES,
+  CARTOGRAPHY_REACHABILITY_STATUS_LAST,
+  CARTOGRAPHY_REACHABILITY_STATUS_READY,
+  CARTOGRAPHY_REACHABILITY_TERRAIN_BITS_OFFSET,
   cartographyReachabilitySignatureBytes,
 } from "../../../shared/cartography-reachability-kernel-contract.js";
 import {
@@ -25,14 +34,6 @@ import {
 } from "../../../shared/cartography-spike.js";
 import type { CartographyManifest } from "./cartography-manifest.js";
 
-const MAGIC = 0x5257_4347;
-const HEADER_BYTES = 72;
-const WALKABLE_TERRAIN_BITS_OFFSET = 552_008;
-const MAX_TERRAIN_RASTER_CELLS = 262_144;
-const READY = 1;
-const ROUTE_MAGIC = 0x5452_4347;
-const ROUTE_HEADER_BYTES = 64;
-const ROUTE_STEP_FLOATS = 6;
 
 export type CartographyReachabilitySnapshot = Readonly<{
   status: number;
@@ -177,7 +178,7 @@ function decode(
   if (region + CARTOGRAPHY_REACHABILITY_REGION_BYTES > memory.buffer.byteLength) {
     return null;
   }
-  const header = new DataView(memory.buffer, region, HEADER_BYTES);
+  const header = new DataView(memory.buffer, region, CARTOGRAPHY_REACHABILITY_HEADER_BYTES);
   const first = header.getUint32(12, true);
   if ((first & 1) !== 0) return null;
   const status = header.getUint32(16, true);
@@ -188,24 +189,24 @@ function decode(
   const height = header.getUint32(36, true);
   const cells = width * height;
   if (
-    header.getUint32(0, true) !== MAGIC
+    header.getUint32(0, true) !== CARTOGRAPHY_REACHABILITY_MAGIC
     || header.getUint32(4, true) !== CARTOGRAPHY_REACHABILITY_ABI
     || header.getUint32(8, true) !== CARTOGRAPHY_REACHABILITY_REGION_BYTES
-    || status < READY || status > 6 || areaEpoch === 0
+    || status < CARTOGRAPHY_REACHABILITY_STATUS_READY || status > CARTOGRAPHY_REACHABILITY_STATUS_LAST || areaEpoch === 0
     || !isCartographyLayoutId(layoutId)
     || !Number.isSafeInteger(cells)
     || cells <= 0 || cells > CARTOGRAPHY_REACHABILITY_MAX_CELLS
   ) return null;
   const wordCount = Math.ceil(cells / 32);
   const words = new Uint32Array(wordCount);
-  words.set(new Uint32Array(memory.buffer, region + HEADER_BYTES, wordCount));
+  words.set(new Uint32Array(memory.buffer, region + CARTOGRAPHY_REACHABILITY_HEADER_BYTES, wordCount));
   const terrainWidth = header.getUint32(60, true);
   const terrainHeight = header.getUint32(64, true);
   const terrainCells = terrainWidth * terrainHeight;
   const mapUnitsPerPixel = header.getFloat32(68, true);
   if (
     !Number.isSafeInteger(terrainCells)
-    || terrainCells <= 0 || terrainCells > MAX_TERRAIN_RASTER_CELLS
+    || terrainCells <= 0 || terrainCells > CARTOGRAPHY_REACHABILITY_MAX_TERRAIN_CELLS
     || !Number.isFinite(mapUnitsPerPixel) || mapUnitsPerPixel <= 0
     || !Number.isFinite(mapLeft) || !Number.isFinite(mapTop)
   ) return null;
@@ -213,10 +214,10 @@ function decode(
   const terrainWords = new Uint32Array(terrainWordCount);
   terrainWords.set(new Uint32Array(
     memory.buffer,
-    region + WALKABLE_TERRAIN_BITS_OFFSET,
+    region + CARTOGRAPHY_REACHABILITY_TERRAIN_BITS_OFFSET,
     terrainWordCount,
   ));
-  const second = new DataView(memory.buffer, region, HEADER_BYTES).getUint32(12, true);
+  const second = new DataView(memory.buffer, region, CARTOGRAPHY_REACHABILITY_HEADER_BYTES).getUint32(12, true);
   if (first !== second || (second & 1) !== 0) return null;
   const tailBits = cells % 32;
   if (tailBits !== 0 && ((words.at(-1) ?? 0) >>> tailBits) !== 0) return null;
@@ -253,29 +254,29 @@ function decode(
 /** Copies a published route; null for a failed search or a torn read. */
 function decodeRoute(memory: WebAssembly.Memory, region: number): CartographyRoute | null {
   if (region + CARTOGRAPHY_REACHABILITY_ROUTE_BYTES > memory.buffer.byteLength) return null;
-  const header = new DataView(memory.buffer, region, ROUTE_HEADER_BYTES);
+  const header = new DataView(memory.buffer, region, CARTOGRAPHY_REACHABILITY_ROUTE_HEADER_BYTES);
   const first = header.getUint32(12, true);
   const steps = header.getUint32(32, true);
   if (
     (first & 1) !== 0
-    || header.getUint32(0, true) !== ROUTE_MAGIC
+    || header.getUint32(0, true) !== CARTOGRAPHY_REACHABILITY_ROUTE_MAGIC
     || header.getUint32(4, true) !== CARTOGRAPHY_REACHABILITY_ABI
     || header.getUint32(8, true) !== CARTOGRAPHY_REACHABILITY_ROUTE_BYTES
-    || header.getUint32(16, true) !== READY
+    || header.getUint32(16, true) !== CARTOGRAPHY_REACHABILITY_STATUS_READY
     || steps < 1 || steps > CARTOGRAPHY_REACHABILITY_ROUTE_MAX_STEPS
   ) return null;
   const floats = new Float32Array(memory.buffer.slice(
-    region + ROUTE_HEADER_BYTES,
-    region + ROUTE_HEADER_BYTES + steps * ROUTE_STEP_FLOATS * 4,
+    region + CARTOGRAPHY_REACHABILITY_ROUTE_HEADER_BYTES,
+    region + CARTOGRAPHY_REACHABILITY_ROUTE_HEADER_BYTES + steps * CARTOGRAPHY_REACHABILITY_ROUTE_STEP_FLOATS * 4,
   ));
   const points = [44, 48, 52, 56].map((offset) => header.getFloat32(offset, true));
-  const second = new DataView(memory.buffer, region, ROUTE_HEADER_BYTES).getUint32(12, true);
+  const second = new DataView(memory.buffer, region, CARTOGRAPHY_REACHABILITY_ROUTE_HEADER_BYTES).getUint32(12, true);
   if (first !== second || !points.every(Number.isFinite) || !floats.every(Number.isFinite)) return null;
   const centres = new Float32Array(steps * 2);
   const edges = new Float32Array(steps * 4);
   for (let step = 0; step < steps; step += 1) {
-    centres.set(floats.subarray(step * ROUTE_STEP_FLOATS, step * ROUTE_STEP_FLOATS + 2), step * 2);
-    edges.set(floats.subarray(step * ROUTE_STEP_FLOATS + 2, step * ROUTE_STEP_FLOATS + 6), step * 4);
+    centres.set(floats.subarray(step * CARTOGRAPHY_REACHABILITY_ROUTE_STEP_FLOATS, step * CARTOGRAPHY_REACHABILITY_ROUTE_STEP_FLOATS + 2), step * 2);
+    edges.set(floats.subarray(step * CARTOGRAPHY_REACHABILITY_ROUTE_STEP_FLOATS + 2, step * CARTOGRAPHY_REACHABILITY_ROUTE_STEP_FLOATS + 6), step * 4);
   }
   const [startX = 0, startY = 0, endX = 0, endY = 0] = points;
   return Object.freeze({
@@ -293,12 +294,12 @@ function diagnostic(
   memory: WebAssembly.Memory,
   region: number,
 ): CartographyReachabilityDiagnostic | null {
-  if (region + HEADER_BYTES > memory.buffer.byteLength) return null;
-  const header = new DataView(memory.buffer, region, HEADER_BYTES);
+  if (region + CARTOGRAPHY_REACHABILITY_HEADER_BYTES > memory.buffer.byteLength) return null;
+  const header = new DataView(memory.buffer, region, CARTOGRAPHY_REACHABILITY_HEADER_BYTES);
   const first = header.getUint32(12, true);
   if (
     (first & 1) !== 0
-    || header.getUint32(0, true) !== MAGIC
+    || header.getUint32(0, true) !== CARTOGRAPHY_REACHABILITY_MAGIC
     || header.getUint32(4, true) !== CARTOGRAPHY_REACHABILITY_ABI
     || header.getUint32(8, true) !== CARTOGRAPHY_REACHABILITY_REGION_BYTES
   ) return null;
@@ -318,7 +319,7 @@ function diagnostic(
     terrainWidth: header.getUint32(60, true),
     terrainHeight: header.getUint32(64, true),
   });
-  const second = new DataView(memory.buffer, region, HEADER_BYTES).getUint32(12, true);
+  const second = new DataView(memory.buffer, region, CARTOGRAPHY_REACHABILITY_HEADER_BYTES).getUint32(12, true);
   return first === second && (second & 1) === 0 ? result : null;
 }
 
@@ -444,7 +445,7 @@ export async function installCartographyReachabilityKernel(
             release(candidate.raw);
             return null;
           }
-          new Uint8Array(memory.buffer, candidate.pointer, ROUTE_HEADER_BYTES).fill(0);
+          new Uint8Array(memory.buffer, candidate.pointer, CARTOGRAPHY_REACHABILITY_ROUTE_HEADER_BYTES).fill(0);
           routeRegion = candidate;
         }
         const began = performance.now();
@@ -452,8 +453,8 @@ export async function installCartographyReachabilityKernel(
           routeRegion.pointer, CARTOGRAPHY_REACHABILITY_ROUTE_BYTES, input.layoutId,
           input.mapId, input.areaEpoch, input.playerId, input.targetX, input.targetY,
         );
-        const result = status === READY ? decodeRoute(memory, routeRegion.pointer) : null;
-        const header = new DataView(memory.buffer, routeRegion.pointer, ROUTE_HEADER_BYTES);
+        const result = status === CARTOGRAPHY_REACHABILITY_STATUS_READY ? decodeRoute(memory, routeRegion.pointer) : null;
+        const header = new DataView(memory.buffer, routeRegion.pointer, CARTOGRAPHY_REACHABILITY_ROUTE_HEADER_BYTES);
         lastRoute = Object.freeze({
           status,
           steps: result === null ? 0 : result.centres.length / 2,
