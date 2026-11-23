@@ -1,0 +1,20 @@
+[
+  {
+    "surface": "hub",
+    "rule": "sideways-scroll",
+    "target": "travel-recent-grid",
+    "reason": "Open decision (2026-11-23): Recent as compact wrapping tiles like Favourites. Remove this entry when Recent stops scrolling sideways."
+  },
+  {
+    "surface": "hub",
+    "rule": "control-cut-off",
+    "target": "travel-recent",
+    "reason": "Same open decision: a Recent card half hidden in the sideways carousel."
+  },
+  {
+    "surface": "hub",
+    "rule": "overlap",
+    "target": "travel-close",
+    "reason": "The Customize Travel button sits inside the search field by design."
+  }
+]
