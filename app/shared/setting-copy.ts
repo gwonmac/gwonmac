@@ -5,7 +5,7 @@
  * A feature option's label and help come from its manifest (app/features/<folder>/feature.ts).
  */
 import { CARTOGRAPHY_REVEAL_MODE_LABELS, CARTOGRAPHY_REVEAL_MODES } from "./cartography-overlay.js";
-import { CONTROLLER_PROMPT_STYLES, RENDER_SCALES, type ControllerPromptStyle, type RenderScale } from "./settings/core.js";
+import { CONTROLLER_PROMPT_STYLES, PICTURE_SHAPES, RENDER_SCALES, type ControllerPromptStyle, type PictureShape, type RenderScale } from "./settings/core.js";
 
 /**
  * The value a select shows, found among the setting's allowed values. A select's
@@ -30,6 +30,7 @@ type Copy = Readonly<{ label: string; detail: string; applies: SettingApplies; k
 /** Settings › Game, in display order. */
 export const GAME_SETTINGS = {
   renderScale: { label: "Render quality", detail: "Higher quality uses more graphics power.", applies: "now", keywords: "graphics resolution scale sharp" },
+  pictureShape: { label: "Picture shape", detail: "16:9 keeps the game picture 16:9 with black bars, also in full screen. Useful for recording and streaming.", applies: "now", keywords: "aspect ratio 16:9 widescreen fullscreen letterbox black bars record stream obs" },
   autoRelogAfterReload: { label: "Return to character after reload", detail: "Sign in and return to the last character after reloading the game.", applies: "now", keywords: "relog login reload automatic" },
   controllerPromptStyle: { label: "Controller symbols", detail: "Button symbols shown for a game controller.", applies: "next-game", keywords: "gamepad playstation xbox buttons" },
   disableSteamLogin: { label: "Disable Steam login", detail: "Do not offer Steam as a way to sign in. The login screen then shows only the ArenaNet email and password form.", applies: "next-login", keywords: "steam login sign in account provider password email" },
@@ -44,6 +45,11 @@ const RENDER_SCALE_LABELS: Readonly<Record<RenderScale, string>> = {
   2: "Very high · 2×",
 };
 
+const PICTURE_SHAPE_LABELS: Readonly<Record<PictureShape, string>> = {
+  fill: "Fill the window",
+  "16:9": "16:9",
+};
+
 const CONTROLLER_SYMBOL_LABELS: Readonly<Record<ControllerPromptStyle, string>> = {
   "game-default": "Game default",
   playstation: "PlayStation",
@@ -51,6 +57,7 @@ const CONTROLLER_SYMBOL_LABELS: Readonly<Record<ControllerPromptStyle, string>> 
 
 /** Option lists follow the setting's own value list, so every stored value has exactly one option. */
 export const RENDER_SCALE_OPTIONS = RENDER_SCALES.map((value) => ({ value, label: RENDER_SCALE_LABELS[value] }));
+export const PICTURE_SHAPE_OPTIONS = PICTURE_SHAPES.map((value) => ({ value, label: PICTURE_SHAPE_LABELS[value] }));
 export const CONTROLLER_SYMBOL_OPTIONS = CONTROLLER_PROMPT_STYLES.map((value) => ({ value, label: CONTROLLER_SYMBOL_LABELS[value] }));
 
 export const REVEAL_MODE_OPTIONS = CARTOGRAPHY_REVEAL_MODES.map((value) => ({ value, ...CARTOGRAPHY_REVEAL_MODE_LABELS[value] }));

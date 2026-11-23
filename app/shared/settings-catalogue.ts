@@ -124,6 +124,7 @@ const ENTRIES: readonly SettingEntry[] = [
 
   { id: "hub", section: "game", label: "Hub", detail: "Search everything in game. Always on, also in the plain game.", keywords: `search command palette ${KEYS}` },
   game("renderScale"),
+  game("pictureShape"),
   game("autoRelogAfterReload"),
   game("controllerPromptStyle"),
   game("disableSteamLogin"),
