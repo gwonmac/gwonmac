@@ -144,7 +144,7 @@ test("minimum window and 200% zoom keep primary launcher controls reachable", as
     await expect(fixture.page.getByRole("heading", { name: "Features", level: 1 })).toBeVisible();
     await expectCurrentContentFitsHorizontally(fixture);
     await fixture.page.locator('[data-feature="cartography"] .card-link').click();
-    await expect(fixture.page.getByRole("heading", { name: "Maps", level: 1 })).toBeVisible();
+    await expect(fixture.page.getByRole("heading", { name: "Exploration grid", level: 1 })).toBeVisible();
     await expectCurrentContentFitsHorizontally(fixture);
 
     await fixture.page.locator(".titlebar").getByRole("button", { name: "Settings", exact: true }).click();

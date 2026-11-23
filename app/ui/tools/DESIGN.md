@@ -389,8 +389,9 @@ Whispers paints its background once across the complete frame interior. Its
 title is vertically centered, and conversation controls sit above the picker
 or transcript. There is no docking control or embedded Hub chat layout.
 
-Maps opens its Feature page in Settings › Features. There is no separate Maps page in the Hub.
-Maps pairs each native switch with its opacity control. Disabled layers retain
+Each map Feature (Exploration grid, Walking route, Compass ranges, Elite Skill Planner) opens its
+Feature page in Settings › Features. There is no separate map page in the Hub.
+A map page pairs each native switch with its opacity control. Disabled layers retain
 but disable opacity controls. External settings updates repaint the same view;
 failed writes restore saved state and show a recoverable inline error.
 

@@ -277,8 +277,8 @@ test("Character Switch and Maps follow the plain game and their own switch", () 
   assert.equal(switchedOn("characterSwitch", { ...DEFAULT_SETTINGS, gwonmacTools: true }), true);
   assert.equal(switchedOn("characterSwitch", { ...DEFAULT_SETTINGS, gwonmacTools: true, characterSwitchEnabled: false }), false);
   assert.equal(switchedOn("cartography", DEFAULT_SETTINGS), false);
-  assert.equal(switchedOn("cartography", { ...DEFAULT_SETTINGS, gwonmacTools: true }), true);
-  assert.equal(switchedOn("cartography", { ...DEFAULT_SETTINGS, gwonmacTools: true, cartographyEnabled: false }), false);
+  assert.equal(switchedOn("cartography", { ...DEFAULT_SETTINGS, gwonmacTools: true, cartographyGridEnabled: true }), true);
+  assert.equal(switchedOn("cartography", { ...DEFAULT_SETTINGS, gwonmacTools: true, cartographyGridEnabled: false }), false);
   assert.equal(featureRegionAllowsRequest("cartography", "pvp"), false);
   assert.equal(featureRegionAllowsRequest("characterSwitch", "unknown"), true);
 });

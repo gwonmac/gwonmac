@@ -1,6 +1,6 @@
 # Staged README lines
 
-Lines for Maps options that still have a `stage` in feature.ts, kept out of README.md so the
+Lines for Walking route options that still have a `stage` in feature.ts, kept out of README.md so the
 website and the launcher do not show them yet (docs/feature-contract.md#release-stages). When an
 option ships, move its lines back to the place named here and delete them from this file.
 

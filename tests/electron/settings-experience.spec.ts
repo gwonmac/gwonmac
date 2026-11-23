@@ -37,10 +37,10 @@ test("a refused map edit says so on the Maps page and keeps the saved choice at 
     });
     await writeFile(test.info().outputPath("save-failure-200.png"), Buffer.from(png, "base64"));
     // A switch shows the saved choice, so a refused change leaves it as it was.
-    const grid = settings.getByRole("switch", { name: "Exploration grid", exact: true });
-    await grid.click();
-    await expect(grid).not.toBeChecked();
-    expect((await page.evaluate(() => window.launcherNative.state.get())).settings.cartographyGridEnabled).toBe(false);
+    const markers = settings.getByRole("switch", { name: "Markers on Compass", exact: true });
+    await markers.click();
+    await expect(markers).not.toBeChecked();
+    expect((await page.evaluate(() => window.launcherNative.state.get())).settings.cartographyCompassGridEnabled).toBe(false);
   } finally { await closeOffline(fixture); }
 });
 

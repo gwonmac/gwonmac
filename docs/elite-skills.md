@@ -33,12 +33,14 @@ Account unlocks never imply that the current character learned a skill.
 
 ## Settings
 
-The **Maps** Feature page owns two app-wide settings. They apply only
-while **Maps** is enabled. In the game, the Hub's **Maps** row opens the same page.
+The planner is its own Feature, the **Elite Skill Planner**
+(`app/features/elite-skills/`), drawn by the map engine in
+`app/features/cartography/`. In the game, the Hub's **Elite Skill Planner** row
+opens its Feature page.
 
-- **Elite skill planner** (`eliteSkillsEnabled`, on by default) adds the planner
-  and its markers. Turning it off removes both without affecting other Maps
-  layers.
+- Its switch (`eliteSkillsEnabled`, on by default) adds the planner and its
+  markers. Turning it off removes both without affecting the other map
+  Features.
 - **Mission Map markers** (`eliteMissionMapMarkers`) chooses what the Mission
   Map shows while you play: **Hunt list** (default), **All planner matches**, or
   **Off**. Both marker modes include the target, even when planner filters
@@ -160,7 +162,7 @@ areas, transitions, and stale observations withdraw the affected markers.
 Known positions are spawn references, never observations of a living boss.
 Empty coordinates remain a notes-only capture target.
 
-Disabling Maps or the Elite skill planner removes the planner and its markers
+Turning the Elite Skill Planner off removes the planner and its markers
 and stops their frame reads. Changing the character clears learned status and
 loads that character's saved plan. Failed saves retain unsaved edits visibly and
 offer **Retry** or **Restore saved setup**.
@@ -188,5 +190,5 @@ a full-length list with synthetic skill names. It does not prove native
 alignment, panel coverage, game input, or capture behavior. Live game QA must
 check a known boss on both maps, a game panel dragged over a marker, native
 pan/zoom, an area transition, character switching, each Mission Map mode, and
-Maps and Elite skill planner off/on. Keep the standard live cartography checks
+Elite Skill Planner off/on. Keep the standard live cartography checks
 as the owner of native projection certification.

@@ -32,7 +32,7 @@ beforeEach(() => {
   if (document.pointerLockElement === undefined) Object.defineProperty(document, 'pointerLockElement', { configurable: true, value: null });
   localStorage.clear();
   document.body.replaceChildren();
-  settings = { ...DEFAULT_SETTINGS, gwonmacTools: true, tradeChat: true, whispersEnabled: true, xunlaiStorage: true, cartographyEnabled: true, characterSwitchEnabled: true };
+  settings = { ...DEFAULT_SETTINGS, gwonmacTools: true, tradeChat: true, whispersEnabled: true, xunlaiStorage: true, cartographyGridEnabled: true, characterSwitchEnabled: true };
   Object.assign(window, {
     gwSurfaces: installSurfaceController(document, { doubleClickMs: 400 }),
     gwToolsSettings: () => settings,

@@ -8,7 +8,7 @@ for (const tools of [false, true]) {
   test(`${tools ? "Tools" : "Core"} launch enforces Maps transport ownership`, { tag: "@journey" }, async () => {
     const fixture = await launchOffline("gw-tools-boundary-", {}, async (userData) => {
       await writeFile(path.join(userData, "settings.json"), JSON.stringify({
-        gwonmacTools: tools, cartographyEnabled: true,
+        gwonmacTools: tools, cartographyRouteEnabled: true,
       }), { mode: 0o600 });
     });
     try {

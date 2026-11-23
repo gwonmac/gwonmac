@@ -11,7 +11,9 @@ import callTarget from "./call-target/feature.js";
 import cartography from "./cartography/feature.js";
 import characterSwitch from "./character-switch/feature.js";
 import chatFilters from "./chat-filters/feature.js";
+import compassRanges from "./compass-ranges/feature.js";
 import effectTimers from "./effect-timers/feature.js";
+import eliteSkills from "./elite-skills/feature.js";
 import progress from "./progress/feature.js";
 import quickItemMove from "./quick-item-move/feature.js";
 import reminders from "./reminders/feature.js";
@@ -23,6 +25,7 @@ import teamApply from "./team-apply/feature.js";
 import tools from "./tools/feature.js";
 import tradeChat from "./trade-chat/feature.js";
 import travel from "./travel/feature.js";
+import walkingRoute from "./walking-route/feature.js";
 import whispers from "./whispers/feature.js";
 import xunlaiStorage from "./xunlai-storage/feature.js";
 import type { FeatureSwitchKey } from "./define.js";
@@ -35,12 +38,15 @@ export const FEATURES = [
   characterSwitch,
   buildLibrary,
   teamApply,
+  eliteSkills,
   travel,
   progress,
   xunlaiStorage,
   quickItemMove,
   tradeChat,
   cartography,
+  walkingRoute,
+  compassRanges,
   targetReadout,
   skillKeyLabels,
   skillCooldowns,

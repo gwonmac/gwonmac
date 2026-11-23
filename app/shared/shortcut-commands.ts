@@ -38,4 +38,12 @@ export const SHORTCUT_COMMANDS: Readonly<Record<ShortcutCommandAction, readonly 
 
 export const isMapLayerShortcut = (action: ShortcutAction): action is keyof typeof SHORTCUT_MAP_LAYERS => action in SHORTCUT_MAP_LAYERS;
 
+/**
+ * The settings a shortcut's Feature is checked against. A map layer shortcut may flip its own
+ * Feature's switch (Exploration grid, Walking route), so it is checked as if its layer were on:
+ * otherwise hiding a layer with its shortcut would leave no shortcut to show it again.
+ */
+export const shortcutGateSettings = <Settings extends object>(action: ShortcutAction, settings: Settings): Settings =>
+  isMapLayerShortcut(action) ? { ...settings, [SHORTCUT_MAP_LAYERS[action]]: true } : settings;
+
 export const isShortcutCommandAction = (action: string): action is ShortcutCommandAction => Object.hasOwn(SHORTCUT_COMMANDS, action);

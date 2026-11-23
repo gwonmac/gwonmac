@@ -27,7 +27,7 @@ import type { Feature, FeatureId } from "./index.js";
 /** The link each Feature offers, by id. */
 export type FeatureLinkApis = {
   buildLibrary: BuildLibraryLink;
-  cartography: CartographyLink;
+  eliteSkills: CartographyLink;
   characterSwitch: CharacterSwitchLink;
   resign: ResignLink;
   teamApply: TeamApplyLink;

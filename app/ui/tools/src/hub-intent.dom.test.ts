@@ -242,16 +242,16 @@ test('the phrase editor refuses a phrase that is already another result’s name
   await mountFixture();
   fill(search(), 'open xunlai storage'); press('Meta+j'); await flush();
   click(byRole('menuitem', 'Set search phrase')[0]!); await flush();
-  fill(phraseBox(), 'Maps'); press('Enter'); await flush();
+  fill(phraseBox(), 'Elite Skill Planner'); press('Enter'); await flush();
   expect([text('[role="alert"]'), caption(), localStorage.getItem('hub-fixture-shortcuts')])
-    .toEqual(['“maps” already finds Maps. Choose another phrase.', 'Search phrase', null]);
+    .toEqual(['“elite skill planner” already finds Elite Skill Planner. Choose another phrase.', 'Search phrase', null]);
   // A friend's name is a real result too.
   fill(phraseBox(), 'romi'); press('Enter'); await flush();
   expect(text('[role="alert"]')).toBe('“romi” already finds Romi. Choose another phrase.');
   press('Meta+Backspace'); await flush();
-  fill(search(), 'maps'); await flush();
-  // The Maps tool is the one answer; its setting rows only follow it.
-  expect([$$('#hub .hub-row:not([data-id^="setting"])').length, $('#hub .hub-row[aria-selected="true"]')?.dataset.id]).toEqual([1, 'maps']);
+  fill(search(), 'elite skill planner'); await flush();
+  // The planner is the one answer; its setting rows only follow it.
+  expect([$$('#hub .hub-row:not([data-id^="setting"])').length, $('#hub .hub-row[aria-selected="true"]')?.dataset.id]).toEqual([1, 'elite-skills']);
 });
 
 test('the phrase form names its error, submits with Command-Enter and keeps a draft through Esc (HUB-152)', async () => {
@@ -855,28 +855,28 @@ test('a Travel number key selects its favourite, a held one repeats nothing, and
 });
 
 test('editing a phrase preserves pin order and a delayed save cannot navigate a later page', async () => {
-  const kept = [{ id: 'maps', phrase: '', pinned: true }, { id: 'travel', phrase: '', pinned: true }];
+  const kept = [{ id: 'elite-skills', phrase: '', pinned: true }, { id: 'travel', phrase: '', pinned: true }];
   await mountFixture('&settings-ms=700', shortcuts(kept));
-  fill(search(), 'maps'); press('Meta+j'); await flush();
+  fill(search(), 'elite skill planner'); press('Meta+j'); await flush();
   click(byRole('menuitem', 'Set search phrase')[0]!); await flush();
   fill(phraseBox(), 'my map'); press('Enter'); await tick();
   press('Meta+Backspace'); await tick();
   fill(search(), 'commands'); press('Enter'); await flush();
   expect(caption()).toBe('Commands');
   await vi.advanceTimersByTimeAsync(1_500);
-  expect([stored(), caption(), document.activeElement === $('#hub input[role=combobox]')]).toEqual([[{ id: 'maps', phrase: 'my map', pinned: true }, kept[1]], 'Commands', true]);
+  expect([stored(), caption(), document.activeElement === $('#hub input[role=combobox]')]).toEqual([[{ id: 'elite-skills', phrase: 'my map', pinned: true }, kept[1]], 'Commands', true]);
 });
 
 test('pins keep each storage owner limit and preserve unresolved references while another owner changes (HUB-090)', async () => {
-  const global = [{ id: 'maps', phrase: '', pinned: true }, ...Array.from({ length: 63 }, (_, index) => ({ id: `place:${10000 + index}`, phrase: '', pinned: true }))];
+  const global = [{ id: 'elite-skills', phrase: '', pinned: true }, ...Array.from({ length: 63 }, (_, index) => ({ id: `place:${10000 + index}`, phrase: '', pinned: true }))];
   await mountFixture('', shortcuts(global));
   fill(search(), 'team gom afk'); press('Meta+j'); await flush();
   click(byRole('menuitem', 'Pin to Hub', true)[0]!); await flush();
   expect([text('#hub .hub-status'), stored()]).toEqual(['Pinned GOM AFK.', global]);
-  fill(search(), 'maps'); press('Meta+j'); await flush();
+  fill(search(), 'elite skill planner'); press('Meta+j'); await flush();
   click(byRole('menuitem', 'Set search phrase')[0]!); await flush();
   fill(phraseBox(), 'my map'); press('Enter'); await settle();
-  expect([text('#hub .hub-status'), stored()]).toEqual(['“my map” now finds Maps.', [{ id: 'maps', phrase: 'my map', pinned: true }, ...global.slice(1)]]);
+  expect([text('#hub .hub-status'), stored()]).toEqual(['“my map” now finds Elite Skill Planner.', [{ id: 'elite-skills', phrase: 'my map', pinned: true }, ...global.slice(1)]]);
 });
 
 test('existing global and Travel phrases that name different places require a choice everywhere (HUB-061)', async () => {

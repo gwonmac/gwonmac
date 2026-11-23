@@ -306,8 +306,8 @@ test("applies launcher settings to every open profile and reflects in-game chang
         tool: "quick-travel",
         enabled: true,
       });
+      await window.launcherNative.tools.setFeature({ tool: "maps", enabled: true });
       await window.launcherNative.settings.update({
-        cartographyGridEnabled: true,
         cartographyCompassGridEnabled: true,
         cartographyOverlayEnabled: true,
         cartographyGridOpacity: 42,
@@ -579,10 +579,10 @@ test("global map settings live in the launcher and survive restart", { tag: "@jo
     await plain.click();
     await expect(plain).not.toBeChecked();
     await settings.locator('[data-feature="cartography"] .card-link').click();
-    await expect(settings.getByRole("heading", { name: "Maps", level: 1 })).toBeVisible();
+    await expect(settings.getByRole("heading", { name: "Exploration grid", level: 1 })).toBeVisible();
     await expect(settings.locator(".feature-head").getByText("Starts the next time you open Guild Wars.", { exact: true })).toBeVisible();
     const beforeRestart = await first.page.evaluate(() => window.launcherNative.state.get());
-    expect(beforeRestart.settings.cartographyGridEnabled).toBe(true);
+    expect(beforeRestart.tools.features.maps.enabled).toBe(true);
     expect(beforeRestart.settings.cartographyPresetLibrary.activePreset.kind).toBe("custom");
     await stopElectron(first.app);
 
@@ -592,7 +592,6 @@ test("global map settings live in the launcher and survive restart", { tag: "@jo
     const afterRestart = await restarted.page.evaluate(() => window.launcherNative.state.get());
     expect(afterRestart.tools.configured).toBe(true);
     expect(afterRestart.tools.features.maps.enabled).toBe(true);
-    expect(afterRestart.settings.cartographyGridEnabled).toBe(true);
     expect(afterRestart.settings.cartographyPresetLibrary.activePreset).toEqual(
       beforeRestart.settings.cartographyPresetLibrary.activePreset,
     );

@@ -40,20 +40,20 @@ test("feature controls preserve preferences and validate native commands", async
     await settings.screenshot({ path: test.info().outputPath("resign-page.png") });
     await settings.locator(".feature-page .back").click();
     await openFeaturePage(settings, "cartography");
-    await expect(settings.getByRole("heading", { name: "Maps", exact: true, level: 1 })).toBeVisible();
+    await expect(settings.getByRole("heading", { name: "Exploration grid", exact: true, level: 1 })).toBeVisible();
     const shortcuts = await page.evaluate(async () => (await window.launcherNative.state.get()).shortcuts);
     expect(shortcuts["cartography.grid.toggle"]).toBeNull();
     expect(shortcuts["cartography.walkability.toggle"]).toBeNull();
-    await settings.getByRole("switch", { name: "Exploration grid", exact: true }).click();
-    await expect(settings.getByRole("switch", { name: "Exploration grid", exact: true })).toBeChecked();
+    await settings.getByRole("switch", { name: "Markers on Compass", exact: true }).click();
+    await expect(settings.getByRole("switch", { name: "Markers on Compass", exact: true })).toBeChecked();
     await settings.evaluate(() => window.launcherNative.tools.replaceShortcut({ action: "cartography.grid.toggle", binding: { key: "g", shift: false, option: false } }));
     await settings.screenshot({ path: test.info().outputPath("maps-page.png") });
-    // Turning Maps off keeps its page and every choice on it.
+    // Turning the grid off keeps its page and every choice on it.
     await settings.evaluate(() => window.launcherNative.tools.setFeature({ tool: "maps", enabled: false }));
-    await expect(settings.getByRole("heading", { name: "Maps", exact: true, level: 1 })).toBeVisible();
-    await expect(settings.getByRole("switch", { name: "Exploration grid", exact: true })).toBeChecked();
+    await expect(settings.getByRole("heading", { name: "Exploration grid", exact: true, level: 1 })).toBeVisible();
+    await expect(settings.getByRole("switch", { name: "Markers on Compass", exact: true })).toBeChecked();
     const snapshot = await page.evaluate(() => window.launcherNative.state.get());
-    expect(snapshot.settings.cartographyGridEnabled).toBe(true);
+    expect(snapshot.settings.cartographyCompassGridEnabled).toBe(true);
     expect(snapshot.shortcuts["cartography.grid.toggle"]?.key).toBe("g");
     for (const bad of [
       () => settings.evaluate(() => window.launcherNative.tools.captureShortcut("unknown" as "travel.open")),
@@ -105,14 +105,12 @@ test("existing custom map styles can be selected, edited and extended", async ()
     await settings.evaluate(() => window.launcherNative.tools.setMasterEnabled(true));
     const compass = settings.getByRole("switch", { name: "Markers on Compass", exact: true });
     await expect(compass).not.toBeChecked();
-    await expect(compass).toBeDisabled();
-    await settings.getByRole("switch", { name: "Exploration grid", exact: true }).click();
-    await expect(settings.getByRole("switch", { name: "Exploration grid", exact: true })).toBeChecked();
+    await settings.evaluate(() => window.launcherNative.tools.setFeature({ tool: "maps", enabled: true }));
     await compass.click();
     await expect(compass).toBeChecked();
     await compass.click();
     await expect(compass).not.toBeChecked();
-    await expect.poll(() => page.evaluate(async () => (await window.launcherNative.state.get()).settings)).toMatchObject({ cartographyGridEnabled: true, cartographyCompassGridEnabled: false });
+    await expect.poll(() => page.evaluate(async () => (await window.launcherNative.state.get()).settings)).toMatchObject({ cartographyCompassGridEnabled: false });
     const thickness = settings.getByRole("spinbutton", { name: "Terrain border thickness value" });
     await thickness.fill("4");
     await thickness.press("Tab");

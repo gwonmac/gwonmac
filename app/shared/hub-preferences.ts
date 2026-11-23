@@ -4,6 +4,7 @@
  */
 import { HUB_SCOPES, normaliseHubQuery, type HubScope } from './hub.js';
 import { CURRENCY_ALIASES, calculate, parseConversion } from './hub-calculator.js';
+import { HUB_TOOL_ORDER } from './hub-tools.js';
 /** First words that Hub's query grammar owns. */
 export const HUB_RESERVED_WORDS: readonly string[] = [...HUB_SCOPES, 'settings', 'hub', 'commands', 'help', 'titles', 'rates', 'launcher'];
 /** Whole phrases that the calculator reads as a unit. */
@@ -34,6 +35,7 @@ export const hubShortcutInScope = (id: string, scope: HubScope): boolean => id.s
  * Grammar words are refused only when a phrase is edited, so a phrase saved before a
  * new scope word or calculator unit keeps loading and simply stops matching.
  */
+const PINNABLE_ID = new RegExp(`^(${[...HUB_TOOL_ORDER, 'settings', 'commands'].join('|')}|place:\\d+|team:.+|build:.+)$`, 'u');
 export function isHubShortcuts(value: unknown): value is readonly HubShortcut[] {
   if (!Array.isArray(value) || value.length > HUB_SHORTCUT_LIMIT) return false;
   const ids = new Set<string>(); const phrases = new Set<string>();
@@ -41,7 +43,7 @@ export function isHubShortcuts(value: unknown): value is readonly HubShortcut[] 
     if (!entry || typeof entry !== 'object' || Object.keys(entry).some(key => !['id', 'phrase', 'pinned'].includes(key))) return false;
     if (!('id' in entry) || !('phrase' in entry) || !('pinned' in entry)) return false;
     const { id, phrase, pinned }: { id: unknown; phrase: unknown; pinned: unknown } = entry;
-    if (typeof id !== 'string' || id.length > 240 || !/^(travel|builds|trade|whispers|character|storage|maps|settings|commands|accounts|place:\d+|team:.+|build:.+)$/u.test(id)
+    if (typeof id !== 'string' || id.length > 240 || !PINNABLE_ID.test(id)
       || typeof phrase !== 'string' || phrase.length > 64 || /[\p{C}]/u.test(phrase) || typeof pinned !== 'boolean') return false;
     const term = normaliseHubQuery(phrase);
     if (ids.has(id) || (term && phrases.has(term))) return false;

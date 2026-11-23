@@ -1,7 +1,7 @@
 /**
- * Maps' one entry for the game host. The harness calls it once after the
- * official client is instantiated; from then on it follows resolve's answer
- * for Maps (app/renderer/feature-on.ts).
+ * The map engine's one entry for the game host. The harness calls it once after
+ * the official client is instantiated; from then on it runs while any map
+ * Feature is on (../shared/map-features.ts, app/renderer/feature-on.ts).
  *
  * Maps is not a companion part: its certified hooks come with every Tools
  * launch (the separate cartography stage), whether or not a companion manifest
@@ -12,6 +12,7 @@ import type { ToolsGwNativeApi } from "../../../shared/contracts.js";
 import type { AppSettings } from "../../../shared/settings/index.js";
 import { featureOn } from "../../../renderer/feature-on.js";
 import { createCartographyLifecycle } from "./cartography-lifecycle.js";
+import { anyMapFeatureOn } from "../shared/map-features.js";
 
 export type { CartographyGridStats, CartographyModelStats, CompassRangeStats } from "./overlay.js";
 export type { CartographyRouteDiagnostic } from "./reachability-kernel.js";
@@ -56,7 +57,7 @@ export function installCartographyHost(options: Readonly<{
   return Object.freeze({
     update() {
       const current = options.settings();
-      lifecycle.update(current !== null && featureOn("cartography"));
+      lifecycle.update(current !== null && anyMapFeatureOn(featureOn));
     },
     dispose: lifecycle.dispose,
   });

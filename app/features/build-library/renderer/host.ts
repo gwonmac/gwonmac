@@ -101,7 +101,7 @@ export async function startLibraryWindow(context: WindowContext<"buildLibrary">)
       library: {
         file: libraryFile(),
         show,
-        findElite: (skillId) => links.cartography?.findElite(skillId) ?? "unavailable",
+        findElite: (skillId) => links.eliteSkills?.findElite(skillId) ?? "unavailable",
       },
       readTemplates: async () => { const fs = templateFilesystem(); return fs ? exportEntries(fs) : []; },
       publishTemplate: templatePublishing ? publishTemplate : null,
