@@ -10,6 +10,7 @@ export default defineFeature({
   kind: "fight",
   presence: "screen",
   icon: "crosshair",
+  version: "1.0",
   settings: {
     /** Experimental live target distance/range readout. */
     targetReadout: featureSwitch(false, { tools: true }),

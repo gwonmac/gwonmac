@@ -27,6 +27,7 @@ export default defineFeature({
   kind: "fight",
   presence: "screen",
   icon: "radar",
+  version: "1.0",
   settings: {
     /** Compass ranges' switch: the standard Guild Wars ranges around the player on the Compass. Released apps stored it as a Maps layer. */
     compassRangeIndicatorsEnabled: featureSwitch(false, { rendererWritable: true, tools: true, keywords: "earshot shout cast casting spirit aggro rings" }),

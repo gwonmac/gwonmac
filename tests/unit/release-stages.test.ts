@@ -22,8 +22,8 @@ test("a build's stage comes from whether it is packaged and its version", () => 
   for (const [packaged, version, stage] of cases) assert.equal(buildStage(packaged, version), stage, `${packaged} ${version}`);
 });
 
-// Wrong behaviour: a Stable player sees, finds or runs something still in development.
-test("a Stable build shows no beta or dev item", () => {
+// Wrong behaviours: a Stable player sees, finds or runs a dev item; a Beta Feature we ship stays hidden.
+test("a Stable build ships beta items and shows no dev item", () => {
   const switches = Object.values(FEATURE_SELECTION_POLICIES).flatMap((policy) => policy.switch ?? []);
   const state = (stage: ReleaseStage): FeatureState => ({
     stage, toolsAtLaunch: true, program: "none", playRegion: "pve", features: provenChecks(),
@@ -31,14 +31,13 @@ test("a Stable build shows no beta or dev item", () => {
   });
   // No Feature is staged today, so the check plants one.
   const maps = FEATURES.find((feature) => feature.id === "cartography")!;
-  for (const stage of ["beta", "dev"] as const) {
-    const planted = Object.assign({}, maps, { stage });
-    assert.deepEqual(resolve(planted, state("stable")), { on: false, reason: "not-in-release" }, stage);
-    assert.deepEqual(resolve(planted, state("dev")), { on: true }, stage);
-  }
+  const planted = (stage: "beta" | "dev") => Object.assign({}, maps, { stage });
+  assert.deepEqual(resolve(planted("beta"), state("stable")), { on: true });
+  assert.deepEqual(resolve(planted("dev"), state("stable")), { on: false, reason: "not-in-release" });
+  assert.deepEqual(resolve(planted("dev"), state("dev")), { on: true });
 
-  // Every staged option, stored on: the game reads it as off, and Settings neither lists nor finds it.
-  const staged = [...SETTING_TABLE].flatMap(([key, spec]) => spec.stage === undefined ? [] : [{ key, label: spec.label ?? key }]);
+  // Every dev option, stored on: the game reads it as off, and Settings neither lists nor finds it.
+  const staged = [...SETTING_TABLE].flatMap(([key, spec]) => spec.stage === "dev" ? [{ key, label: spec.label ?? key }] : []);
   const stored = { ...DEFAULT_SETTINGS, ...Object.fromEntries(staged.map(({ key }) => [key, true])) };
   const found = new Set(settingsAt("stable").map((entry) => entry.id));
   const game = (stage: ReleaseStage): Readonly<Record<string, unknown>> => toolsSettings(stored, stage);

@@ -6,6 +6,7 @@ export default defineFeature({
   summary: "The optional extras GWonMac adds to Guild Wars, and how to play the plain game without them.",
   kind: "mode",
   icon: "sparkles",
+  version: "1.0",
   settings: {
     /**
      * The launch mode: true loads Features at the next start, false is the plain game (a Core

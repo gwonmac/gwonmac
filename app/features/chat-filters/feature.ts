@@ -10,6 +10,7 @@ export default defineFeature({
   kind: "chat",
   presence: "background",
   icon: "funnel",
+  version: "1.0",
   settings: {
     /** Enable the certified in-client filter for selected system chat notices. */
     chatFiltersEnabled: featureSwitch(false, { tools: true }),

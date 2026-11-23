@@ -11,6 +11,7 @@ export default defineFeature({
   kind: "chat",
   presence: "tool",
   icon: "message-circle",
+  version: "1.0",
   settings: {
     whispersEnabled: featureSwitch(false, { tools: true }),
     /** Draw the small unread icon; the panel still opens from its shortcut and the Hub. */

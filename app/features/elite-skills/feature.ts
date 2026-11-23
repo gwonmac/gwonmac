@@ -15,6 +15,7 @@ export default defineFeature({
   kind: "party",
   presence: "screen",
   icon: "star",
+  version: "1.0",
   settings: {
     /** The Elite Skill Planner's switch. Released apps stored it as a Maps layer. */
     eliteSkillsEnabled: featureSwitch(true, { rendererWritable: true, tools: true, keywords: "elite capture hunt boss signet" }),

@@ -20,6 +20,7 @@ export default defineFeature({
   kind: "around",
   presence: "screen",
   icon: "route",
+  version: "1.0",
   settings: {
     /** Walking route's switch. On by default: nothing draws until the player sets a target. Released apps stored it as a Maps layer. */
     cartographyRouteEnabled: featureSwitch(true, { rendererWritable: true, tools: true, keywords: "path navigate waypoint target keys shortcut hotkey keyboard" }),

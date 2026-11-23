@@ -7,6 +7,7 @@ export default defineFeature({
   kind: "party",
   presence: "tool",
   icon: "book-open",
+  version: "1.0",
   settings: {
     /**
      * Show the saved Build Library and allow its app shortcut. Stable releases

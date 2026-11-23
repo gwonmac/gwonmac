@@ -8,6 +8,7 @@ export default defineFeature({
   kind: "around",
   presence: "tool",
   icon: "list-checks",
+  version: "1.0",
   region: "pve",
   requires: ["travel"],
   /** Its page lives in Travel's Hub app, which gets the state through Travel's link. */

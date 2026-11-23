@@ -8,6 +8,7 @@ export default defineFeature({
   kind: "party",
   presence: "action",
   icon: "users",
+  version: "1.0",
   region: "pve",
   requires: ["buildLibrary"],
   uses: ["teamApply"],

@@ -27,6 +27,7 @@ export default defineFeature({
   kind: "around",
   presence: "screen",
   icon: "map",
+  version: "1.0",
   settings: {
     /** The Exploration grid's switch: the game's fixed cartography cells on the Mission Map and World Map. Released apps stored it as a Maps layer. */
     cartographyGridEnabled: featureSwitch(false, { rendererWritable: true, tools: true, keywords: "cartographer explore keys shortcut hotkey keyboard" }),

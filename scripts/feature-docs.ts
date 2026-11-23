@@ -56,11 +56,11 @@ const readmeOf = ({ manifest, readme }: FeatureDocSource): string => {
 /**
  * One page per Feature with a card, in Features tab order (kind, then FEATURES order). A Feature
  * without a switch of its own (Progress, Team Apply) is a section of the page of the Feature it
- * runs with, as on its Feature page in the launcher. Throws when a README is missing. The website
- * serves the Stable release, so a Feature with a manifest `stage` gets no page or section yet.
+ * runs with, as on its Feature page in the launcher. Throws when a README is missing. Beta
+ * Features ship in every release, so they get pages; a `dev` Feature gets no page or section yet.
  */
 export function featureDocPages(sources: readonly FeatureDocSource[]): FeatureDocPage[] {
-  const released = sources.filter(({ manifest }) => manifest.stage === undefined);
+  const released = sources.filter(({ manifest }) => manifest.stage !== "dev");
   const ownerOf = (manifest: FeatureDefinition) => manifest.kind === "mode" || hasSwitch(manifest)
     ? undefined
     : released.find((each) => (manifest.requires ?? []).includes(each.manifest.id) && hasSwitch(each.manifest))?.manifest.id;

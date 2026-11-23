@@ -81,6 +81,7 @@ export default defineFeature({
   kind: "${kind}",
   presence: "${presence}",
   icon: "sparkles",
+  version: "1.0",
   settings: {
     /** ${name}'s switch, off until the player turns it on. */
     ${id}Enabled: featureSwitch(false, { tools: true }),

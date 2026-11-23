@@ -99,12 +99,10 @@ export type ReleaseStage = "stable" | "beta" | "dev";
 /** The stage a manifest names; leaving it out means stable. */
 export type ManifestStage = Exclude<ReleaseStage, "stable">;
 
-const STAGE_ORDER: Readonly<Record<ReleaseStage, number>> = { stable: 0, beta: 1, dev: 2 };
-
 /**
  * The stage a build shows: every development build (`!app.isPackaged`) is `dev`, a packaged
  * prerelease (Beta, RC) is `beta`, and Stable, or a version this project would not publish, is
- * `stable`.
+ * `stable`. Only `dev` shows more (shownAt): Beta and Stable builds show the same Features.
  */
 export function buildStage(packaged: boolean, version: string): ReleaseStage {
   if (!packaged) return "dev";
@@ -112,9 +110,12 @@ export function buildStage(packaged: boolean, version: string): ReleaseStage {
   return parsed !== null && isPrerelease(parsed) ? "beta" : "stable";
 }
 
-/** Whether an item at `item` (absent: stable) shows in a build at `build`. */
+/**
+ * Whether an item at `item` (absent: stable) shows in a build at `build`: stable and `beta` items
+ * ship in every build (a beta one with its label), `dev` items only in development builds.
+ */
 export const shownAt = (item: ManifestStage | undefined, build: ReleaseStage): boolean =>
-  STAGE_ORDER[item ?? "stable"] <= STAGE_ORDER[build];
+  item !== "dev" || build === "dev";
 
 /** GitHub's release flag must describe the same stage as the canonical tag. */
 export function releaseMetadataMatchesStage(
