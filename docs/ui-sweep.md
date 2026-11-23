@@ -21,7 +21,7 @@ Playwright suites it may run on a Mac someone is using.
 | Surface | Scenes | Smallest size |
 | --- | --- | --- |
 | Launcher (`app/ui/launcher`, Vite fixture) | every `?fixture=` scene, and each tab | 900×640, the launcher window's minimum |
-| Hub (`app/ui/tools`, Vite fixture) | Home, Travel, Build Library, Party, Trade, and the Build Library and Whispers windows | 800×600, the game window's minimum |
+| Hub (`app/ui/tools`, Vite fixture) | Home, Travel, Build Library, a team review against the party, Trade, and the Build Library and Whispers windows | 800×600, the game window's minimum |
 | In-game panels (`tests/ui-sweep/overlays.ts`) | memory warning (low, critical), Quit or reload, Compass dock | 800×600 |
 
 The in-game panels run the production modules on the production markup from

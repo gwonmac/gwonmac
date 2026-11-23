@@ -81,7 +81,12 @@ const SURFACES: readonly Surface[] = [
       { name: "home", path: "/?hub", open: hubView("") },
       { name: "travel", path: "/?hub", open: hubView("travel") },
       { name: "builds", path: "/?hub", open: hubView("builds") },
-      { name: "party", path: "/?hub&party", open: hubView("team") },
+      // "team" opens the Build Library; Enter on its first team opens that team's review against the party.
+      { name: "party", path: "/?hub&party", open: async (page: Page) => {
+        await hubView("team")(page);
+        await page.locator(".hub-search input").press("Enter");
+        await page.waitForTimeout(400);
+      } },
       { name: "trade", path: "/?trade=1" },
       // The floating Tools windows outside the Hub: their window headers are part of the pattern set.
       { name: "build-library", path: "/" },
