@@ -11,8 +11,6 @@
   height: min(680px, calc(100vh - 64px));
 }
 
-.trade-brand { font-size: var(--ui-font-size-lg); }
-
 .trade-status {
   display: inline-flex;
   align-items: center;
@@ -421,7 +419,6 @@
   padding-top: var(--ui-gap);
 }
 
-.trade-brand .trade-icon { width: 20px; height: 20px; }
 .trader-prices-trigger { white-space: nowrap; }
 
 .trader-prices-toolbar {

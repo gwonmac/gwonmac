@@ -11,6 +11,7 @@
  * Pattern rules (DESIGN.md, "One pattern per job"):
  * - selection-stripe: a selected row or card marks itself with an edge stripe.
  * - selection-style: a selected row or card is drawn other than with the shared selection tokens.
+ * - header-tile: a window header carries a decorative icon tile beside its title.
  */
 export type AuditFinding = Readonly<{ rule: string; target: string; detail: string }>;
 
@@ -125,6 +126,15 @@ export function auditLayout(ignore: string): AuditFinding[] {
     const expected = probe(element.parentElement ?? document.body);
     if (style.backgroundImage !== expected.background || style.boxShadow !== expected.shadow) {
       findings.push({ rule: "selection-style", target: describe(element), detail: `background ${style.backgroundImage === expected.background ? "matches" : "differs"}, shadow ${style.boxShadow === expected.shadow ? "matches" : `is ${style.boxShadow.slice(0, 60)}`}` });
+    }
+  }
+  // Window headers: title, supporting line, window controls. No icon tile beside the title.
+  for (const head of document.body.querySelectorAll(".ui-window-head")) {
+    if (!visible(head)) continue;
+    for (const child of head.children) {
+      if (!visible(child) || child.matches(controls) || child.querySelector(controls) || child.getAttribute("aria-hidden") !== "true") continue;
+      const rect = child.getBoundingClientRect();
+      if (rect.width >= 16 && rect.height >= 16) findings.push({ rule: "header-tile", target: describe(child), detail: `${Math.round(rect.width)}×${Math.round(rect.height)}px decorative tile` });
     }
   }
   // Overlap: leaves that carry text, and controls, that are not inside one another.

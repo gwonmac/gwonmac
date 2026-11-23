@@ -301,7 +301,6 @@ useClassicFrame(panel);
     >
       <template v-if="workspaceMounted">
       <header class="ui-panel-head ui-window-head window-bar" @pointerdown="startDrag">
-        <div class="window-brand" aria-hidden="true">GW</div>
         <div class="window-identity">
           <h1 class="ui-panel-title">Build Library</h1>
           <p class="ui-field-hint">{{ host.label }}</p>

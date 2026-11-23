@@ -864,9 +864,6 @@ useClassicFrame(panel);
       @pointerdown.capture="onPanelPointerDown"
     >
       <header class="ui-panel-head ui-window-head window-bar" @pointerdown="startDrag">
-        <div class="window-brand trade-brand" aria-hidden="true">
-          <TradeIcon name="market" />
-        </div>
         <div class="window-identity">
           <h1 class="ui-panel-title">{{ view === "prices" ? "Trader Prices" : `${sourceLabel} Trade` }}</h1>
           <p class="ui-field-hint">{{ view === "prices" ? "Current Guild Wars trader quotes · history from Kamadan" : "Public trade feed · listings are posted in Guild Wars" }}</p>
