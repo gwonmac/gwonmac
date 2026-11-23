@@ -233,7 +233,10 @@
   --ui-selection-fill: linear-gradient(rgb(38 55 74 / 62%), rgb(22 36 52 / 62%));
   --ui-selection-hover-fill: linear-gradient(rgb(48 69 91 / 74%), rgb(28 45 64 / 74%));
   --ui-selection-ink: var(--ui-text-bright);
-  --ui-selection-marker: var(--ui-accent);
+  /* A selected row or card is a tonal fill inside a faint accent hairline, all
+   * the way round. Never an edge stripe (DESIGN.md, "One pattern per job"). */
+  --ui-selection-edge: color-mix(in srgb, var(--ui-accent) 40%, transparent);
+  --ui-selection-shadow: inset 0 0 0 1px var(--ui-selection-edge), var(--ui-shadow-selected);
   --ui-pressed-layer: rgb(0 0 0 / 24%);
   --ui-line: #6f6959;
   --ui-line-soft: rgb(217 210 192 / 18%);
@@ -433,7 +436,6 @@
   --ui-selection-fill: linear-gradient(oklch(0.3 0.035 78 / 0.82), oklch(0.27 0.025 78 / 0.82));
   --ui-selection-hover-fill: linear-gradient(oklch(0.35 0.04 78 / 0.9), oklch(0.3 0.03 78 / 0.9));
   --ui-selection-ink: var(--ui-text-bright);
-  --ui-selection-marker: var(--ui-accent);
   --ui-pressed-layer: oklch(0 0 0 / 0.22);
   --ui-line: oklch(0.48 0.025 78);
   --ui-line-soft: oklch(0.78 0.018 82 / 0.13);
@@ -494,7 +496,7 @@
   :root {
     --ui-focus: Highlight;
     --ui-focus-halo: Canvas;
-    --ui-selection-marker: Highlight;
+    --ui-selection-edge: Highlight;
     --ui-selection-fill: linear-gradient(Highlight, Highlight);
     --ui-selection-hover-fill: linear-gradient(Highlight, Highlight);
     --ui-selection-ink: HighlightText;

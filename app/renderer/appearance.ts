@@ -216,7 +216,6 @@ export const appearanceVariables = (
     variables["--ui-primary-fill"] = `linear-gradient(${theme.accent}, ${theme.accent})`;
     variables["--ui-primary-ink"] = accentInk;
     variables["--ui-focus"] = theme.accent;
-    variables["--ui-selection-marker"] = theme.accent;
     variables["--ui-ring-gold"] = `linear-gradient(${theme.accent}, ${theme.accent})`;
   }
   if (theme.border !== baseline.border) {

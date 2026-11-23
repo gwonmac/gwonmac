@@ -8,6 +8,9 @@
  * - offscreen: a visible panel reaches past the window edge.
  * - overlap: two pieces of text or controls draw over each other.
  * - truncated (note only): a label ends in an ellipsis; fine for long names, worth a look elsewhere.
+ * Pattern rules (DESIGN.md, "One pattern per job"):
+ * - selection-stripe: a selected row or card marks itself with an edge stripe.
+ * - selection-style: a selected row or card is drawn other than with the shared selection tokens.
  */
 export type AuditFinding = Readonly<{ rule: string; target: string; detail: string }>;
 
@@ -83,6 +86,45 @@ export function auditLayout(ignore: string): AuditFinding[] {
       const inView = rect.right > view.left && rect.left < view.right && rect.bottom > view.top && rect.top < view.bottom;
       const cut = Math.max(cutBox.left - rect.left, cutBox.top - rect.top, rect.right - cutBox.right, rect.bottom - cutBox.bottom);
       if (cut > 2 && inView) findings.push({ rule: "control-cut-off", target: describe(element), detail: `${Math.round(cut)}px of ${JSON.stringify((element.textContent ?? element.getAttribute("aria-label") ?? "").trim().slice(0, 30))} hidden` });
+    }
+  }
+  // Selection: one treatment, the shared tokens, and never an edge stripe. Segments and tabs are
+  // their own job (one choice from a short set), so they are not rows.
+  const selected = [...document.body.querySelectorAll("[aria-selected=true], [data-active], [data-selected=true], :is(.ui-row, [role=option])[aria-current=page], .ui-selection-region[data-selected], .setting-focus")]
+    .filter((element) => visible(element) && !element.matches("[role=tab], .ui-segment *, .ui-tab, .segmented *"));
+  const insetStripe = (shadow: string) => shadow.split(/,(?![^(]*\))/).some((part) => {
+    if (!part.includes("inset")) return false;
+    const [x = 0, y = 0, blur = 0] = (part.replace(/rgba?\([^)]*\)|oklch\([^)]*\)|color\([^)]*\)/g, "").match(/-?[\d.]+px/g) ?? []).map(parseFloat);
+    return blur === 0 && ((x !== 0 && y === 0) || (x === 0 && y !== 0));
+  });
+  const probe = (parent: Element) => {
+    const element = document.createElement("span");
+    element.style.cssText = "position:absolute;width:0;height:0;background:var(--ui-selection-fill);box-shadow:var(--ui-selection-shadow)";
+    parent.append(element);
+    const style = getComputedStyle(element);
+    const expected = { background: style.backgroundImage, shadow: style.boxShadow };
+    element.remove();
+    return expected;
+  };
+  for (const element of selected) {
+    const style = getComputedStyle(element);
+    const stripes = [
+      insetStripe(style.boxShadow) && "inset box-shadow",
+      Math.abs(parseFloat(style.borderLeftWidth) - parseFloat(style.borderRightWidth)) > 0.5 && style.borderLeftStyle !== "none" && "border-left",
+      ...(["::before", "::after"] as const).map((pseudo) => {
+        const mark = getComputedStyle(element, pseudo);
+        if (mark.content === "none" || mark.display === "none") return false;
+        const narrow = parseFloat(mark.width) <= 4 && (mark.backgroundColor !== "rgba(0, 0, 0, 0)" || mark.backgroundImage !== "none");
+        const edged = parseFloat(mark.borderLeftWidth) > 1 && mark.borderLeftStyle !== "none";
+        return (narrow || edged) && `${pseudo} bar`;
+      }),
+    ].filter(Boolean);
+    if (stripes.length) findings.push({ rule: "selection-stripe", target: describe(element), detail: stripes.join(", ") });
+    // Only the game's design system names the selection tokens; the launcher has its own.
+    if (!getComputedStyle(element).getPropertyValue("--ui-selection-fill").trim() || element.matches(".setting-focus")) continue;
+    const expected = probe(element.parentElement ?? document.body);
+    if (style.backgroundImage !== expected.background || style.boxShadow !== expected.shadow) {
+      findings.push({ rule: "selection-style", target: describe(element), detail: `background ${style.backgroundImage === expected.background ? "matches" : "differs"}, shadow ${style.boxShadow === expected.shadow ? "matches" : `is ${style.boxShadow.slice(0, 60)}`}` });
     }
   }
   // Overlap: leaves that carry text, and controls, that are not inside one another.

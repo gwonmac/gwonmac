@@ -553,8 +553,9 @@
 .progress-goal:hover { background: var(--ui-hover); }
 
 .progress-goal[aria-selected="true"] {
-  border-color: var(--ui-selection-marker);
+  border-color: transparent;
   background: var(--ui-selection-fill);
+  box-shadow: var(--ui-selection-shadow);
   color: var(--ui-selection-ink);
 }
 

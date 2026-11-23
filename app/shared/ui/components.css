@@ -900,7 +900,7 @@
 .ui-row[aria-current="page"] {
   border-color: transparent;
   background: var(--ui-selection-fill);
-  box-shadow: inset 2px 0 0 var(--ui-selection-marker);
+  box-shadow: var(--ui-selection-shadow);
   color: var(--ui-selection-ink);
 }
 .ui-row:is([aria-selected="true"], [aria-pressed="true"], [aria-current="page"]):hover {
@@ -914,7 +914,7 @@
  * persistent selection hierarchy as list options. */
 .ui-selection-region[data-selected] {
   background: var(--ui-selection-fill);
-  box-shadow: inset 2px 0 0 var(--ui-selection-marker);
+  box-shadow: var(--ui-selection-shadow);
   color: var(--ui-selection-ink);
 }
 

@@ -124,7 +124,7 @@ test('Home, Travel and Characters use one search box and glyph (HUB-145)',async(
 });
 
 
-test('Home, Travel and Characters share selection fill and a leading rail (HUB-148)',async({page})=>{
+test('Home, Travel and Characters share one selection fill and edge, with no stripe (HUB-148)',async({page})=>{
   await openHub(page);
   const baseline=await page.locator('.hub-row[aria-selected=true]').evaluate(el=>({fill:getComputedStyle(el).backgroundColor,shadow:getComputedStyle(el).boxShadow,rail:getComputedStyle(el,'::before').backgroundColor}));
   for(const [key,selector] of [['Meta+t','.travel-recent[data-active]'],['Meta+e','.character-switch-row[data-selected=true]']] as const){

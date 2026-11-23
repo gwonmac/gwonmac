@@ -584,7 +584,7 @@ useClassicFrame(panel);
 .whisper-latest { align-self: center; color: var(--ui-chat-incoming-accent); }
 .whisper-empty { max-width: 32ch; color: var(--ui-text-muted); margin: 8px 6px; font-size: 12px; line-height: 1.45; text-wrap: pretty; }
 .whisper-completion-hint { margin: 8px 6px 0; color: var(--ui-text-faint); font-size: 11px; }
-.whisper-suggestion[aria-selected="true"], .whisper-person-open[data-highlighted] { background: var(--whisper-incoming-fill); color: var(--ui-selection-ink); }
+.whisper-suggestion[aria-selected="true"], .whisper-person-open[data-highlighted] { background: var(--ui-selection-fill); box-shadow: var(--ui-selection-shadow); color: var(--ui-selection-ink); }
 .whisper-source-filters { display: flex; align-items: center; gap: 4px; min-width: 0; margin: 8px 6px 10px; color: var(--ui-text-muted); }
 .whisper-source-filters > span { margin-right: auto; font-size: 11px; }
 .whisper-source-toggle { min-height: 24px; padding: 2px 8px; font-size: 11px; }
