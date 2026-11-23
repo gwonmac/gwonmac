@@ -15,7 +15,7 @@ import { HUB_SECTIONS, SETTINGS, SETTINGS_GROUP_LABELS, SETTINGS_SECTIONS, searc
 import type { LauncherNativeApi, LauncherPreferencesPatch, LauncherSettingsPasteOutcome, LauncherSettingsPasteRefusal, LauncherSettingsPatch, LauncherSnapshot } from "@shared/launcher-contracts";
 import type { InGameNative, InGamePatch, InGameSnapshot } from "../settings-host";
 import type { CacheInfo } from "@shared/contracts";
-import { listIndexAfter, listKeyStep } from "@shared/ui/list-keys";
+import { navTarget } from "@shared/ui/keyboard-nav";
 import { revealSetting } from "../reveal-setting";
 import { useSaveStatus } from "../save-status";
 import AppearanceSettings from "./AppearanceSettings.vue";
@@ -220,10 +220,10 @@ async function open(target: SettingsTarget, takeFocus = true) {
 function onNavKey(event: KeyboardEvent) {
   const buttons = [...nav.value?.querySelectorAll<HTMLButtonElement>("button") ?? []];
   const current = buttons.indexOf(event.target as HTMLButtonElement);
-  const step = current < 0 || event.isComposing ? null : listKeyStep(event, buttons.length);
-  if (step === null) return;
+  const move = current < 0 || event.isComposing ? null : navTarget(event, { index: current, count: buttons.length }, { page: buttons.length });
+  if (!move) return;
   event.preventDefault();
-  const next = buttons[listIndexAfter(current, buttons.length, step)];
+  const next = buttons[move.index];
   if (!next || next === buttons[current]) return;
   const id = next.dataset.section as SettingsSection;
   if (!inLauncher(id)) next.click();

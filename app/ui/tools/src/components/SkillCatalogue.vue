@@ -13,7 +13,7 @@ import type { BuildDraftController } from "../use-build-draft";
 import type { SkillUnlockObservation } from "../../../../shared/builds/live-party";
 import { ATTRIBUTES } from "../../../../shared/builds/heroes";
 import { attributeLabel } from "../../../../shared/builds/presentation";
-import { listIndexAfter, listKeyStep, listPage } from "../../../../shared/ui/list-keys";
+import { listPage, navTarget, stepOut } from "../../../../shared/ui/keyboard-nav";
 import { presentSkillPlacement, type SkillPlacementPresentation } from "../skill-drop";
 import type { SkillDragSession } from "../use-skill-drag-session";
 import {
@@ -238,10 +238,10 @@ function onResultKeydown(
     useSkill(skill);
     return;
   }
-  const step = listKeyStep(event, listPage(resultList.value, resultButtons.value[index]));
-  if (step === null) return;
+  const move = navTarget(event, { index, count: visibleResults.value.length }, { page: listPage(resultList.value, resultButtons.value[index]) });
+  if (!move) return;
   event.preventDefault();
-  focusResult(listIndexAfter(index, visibleResults.value.length, step));
+  focusResult(move.index);
 }
 
 function onSearchKeydown(event: KeyboardEvent): void {
@@ -250,8 +250,7 @@ function onSearchKeydown(event: KeyboardEvent): void {
     return;
   }
   // A forward step leaves the search for the first result; the list keys take over there.
-  const step = listKeyStep(event, 1);
-  if (step === null || step <= 0 || step === Infinity || !visibleResults.value.length) return;
+  if (stepOut(event) !== 1 || !visibleResults.value.length) return;
   event.preventDefault();
   focusResult(0);
 }

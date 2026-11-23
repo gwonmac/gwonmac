@@ -5,7 +5,7 @@
  */
 import { computed, nextTick, onBeforeUnmount, ref, watch, type Ref } from "vue";
 import { HUB_SEARCH_GLYPH } from "../../../shared/ui/hub-search";
-import { listIndexAfter, listKeyStep, listPage } from "../../../shared/ui/list-keys";
+import { listPage, navTarget } from "../../../shared/ui/keyboard-nav";
 import { hubTier, normaliseHubQuery, type HubViewFooter } from "../../../shared/hub";
 import { isHubBackKey } from "../../../shared/keyboard-shortcuts";
 import {
@@ -214,28 +214,27 @@ const waitingText = computed(() => {
 const unknownText = computed(() => ready.value !== null && goals.value.length === 0
   ? "Guild Wars did not report this character's progress. Try again after the next map change." : null);
 
-async function moveActive(step: number): Promise<void> {
-  active.value = Math.max(0, listIndexAfter(active.value, rows.value.length, step));
+async function reveal(index: number): Promise<void> {
+  active.value = Math.max(0, index);
   await nextTick();
   root.value?.querySelector(`[data-row="${active.value}"]`)?.scrollIntoView({ block: "nearest" });
-}
-function stepGoal(direction: number): void {
-  const list = goals.value;
-  const index = list.findIndex((candidate) => candidate.id === goal.value?.id);
-  const next = list[Math.max(0, Math.min(list.length - 1, index + direction))];
-  if (next) chooseGoal(next.id);
 }
 function onKeydown(event: KeyboardEvent): void {
   if (event.isComposing) return;
   const plain = !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey;
-  const step = event.target === input.value
-    ? listKeyStep(event, listPage(root.value?.querySelector<HTMLElement>(".progress-list"), root.value?.querySelector<HTMLElement>("[data-row]")))
+  const move = event.target === input.value
+    ? navTarget(event, { index: active.value, count: rows.value.length }, { page: listPage(root.value?.querySelector<HTMLElement>(".progress-list"), root.value?.querySelector<HTMLElement>("[data-row]")) })
     : null;
-  if (step !== null) { event.preventDefault(); void moveActive(step); return; }
-  // ← → change the goal while the search is empty; with a query they move the caret.
-  if (plain && !hasQuery.value && (event.key === "ArrowLeft" || event.key === "ArrowRight") && event.target === input.value) {
+  if (move) { event.preventDefault(); void reveal(move.index); return; }
+  // ← → step the goal tabs, without wrapping, while the search is empty; with a query they move the caret.
+  const list = goals.value;
+  const goalMove = !hasQuery.value && event.target === input.value
+    ? navTarget(event, { index: list.findIndex((candidate) => candidate.id === goal.value?.id), count: list.length }, { vertical: "none", horizontal: true, ends: false })
+    : null;
+  if (goalMove) {
     event.preventDefault();
-    stepGoal(event.key === "ArrowLeft" ? -1 : 1);
+    const next = list[goalMove.index];
+    if (next) chooseGoal(next.id);
     return;
   }
   if (event.key === "Escape" || isHubBackKey(event)) {

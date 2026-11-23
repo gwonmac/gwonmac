@@ -6,6 +6,7 @@
  */
 import { restoreFloatingWindowPlacement, serializeFloatingWindowPlacement } from '../shared/ui/window-placement.js';
 import { installResizeGrip } from '../shared/ui/resize.js';
+import { arrowOffset } from '../shared/ui/keyboard-nav.js';
 
 export function installHubWindow(panel: HTMLElement, heading: HTMLElement, lock: HTMLButtonElement, grip: HTMLElement) {
   const storageKey = 'gwonmac.hub-window-placement';
@@ -71,12 +72,11 @@ export function installHubWindow(panel: HTMLElement, heading: HTMLElement, lock:
     heading.addEventListener('lostpointercapture', finish);
   };
   const moveWithKeys = (event: KeyboardEvent) => {
-    if (locked || !event.altKey || !event.key.startsWith('Arrow')) return;
+    const offset = locked || !event.altKey ? null : arrowOffset(event.key, event.shiftKey ? 48 : 16);
+    if (!offset) return;
     event.preventDefault(); event.stopPropagation();
     const box = panel.getBoundingClientRect();
-    const step = event.shiftKey ? 48 : 16;
-    place(box.left + (event.key === 'ArrowRight' ? step : event.key === 'ArrowLeft' ? -step : 0),
-      box.top + (event.key === 'ArrowDown' ? step : event.key === 'ArrowUp' ? -step : 0), box.width, box.height);
+    place(box.left + offset.x, box.top + offset.y, box.width, box.height);
     save();
   };
   const disposeResize = installResizeGrip(grip, {

@@ -7,7 +7,7 @@
  */
 import { inject, onBeforeUnmount, onMounted, onUpdated, type InjectionKey, type Ref } from 'vue';
 import { focusable, focusableElements } from '../../../../shared/ui/focusable';
-import { listIndexAfter, listKeyStep } from '../../../../shared/ui/list-keys';
+import { navTarget, rove } from '../../../../shared/ui/keyboard-nav';
 
 /**
  * How the zone moves: `horizontal` steps ← → along a toolbar, `list` takes the shared list
@@ -20,7 +20,7 @@ export type FocusZoneOptions = Readonly<{
   orientation?: FocusZoneOrientation;
   /** The zone's stops in order; its usable controls when absent. */
   controls?: () => readonly HTMLElement[];
-  /** Where ↑ or ↓ hands the keyboard to the next zone. */
+  /** Where ↑ or ↓ hands the keyboard to the next zone (keyboard-nav's region handoff). */
   exits?: Readonly<{ ArrowUp?: () => HTMLElement | null; ArrowDown?: () => HTMLElement | null }>;
   /** Where the keyboard goes when the zone's control goes away; the Hub's fallback when absent. */
   fallback?: () => HTMLElement | null;
@@ -67,7 +67,6 @@ export function findFocusKey(root: ParentNode, key: string): HTMLElement | null 
 const OWN_ARROWS = 'select,input[type="range"],input[role=combobox],textarea';
 /** A column ↑ ↓ stay inside: a nav, a scrolled well, or the launcher Settings page's scrolled body, beside its section nav. */
 const COLUMN = 'nav,.ui-scroll,.hub-settings-host .settings-content';
-const clamp = (index: number, count: number) => Math.max(0, Math.min(count - 1, index));
 
 export function useFocusZone(zone: Ref<HTMLElement | undefined>, options: FocusZoneOptions = {}) {
   const host = inject(FOCUS_ZONE_HOST, null);
@@ -75,7 +74,8 @@ export function useFocusZone(zone: Ref<HTMLElement | undefined>, options: FocusZ
   /** The zone's control that last took the keyboard, until the keyboard leaves the zone. */
   let held: HTMLElement | null = null;
 
-  function screenStep(target: HTMLElement, key: string) {
+  /** The control ↑ or ↓ reaches in screen order within the target's column; null where the target keeps its arrows. */
+  function screenStep(event: KeyboardEvent, target: HTMLElement) {
     const element = zone.value;
     if (!element || target.matches(OWN_ARROWS) || target.isContentEditable) return null;
     if (!target.matches('input,button,a[href],summary') && target.scrollHeight > target.clientHeight) return null;
@@ -85,7 +85,8 @@ export function useFocusZone(zone: Ref<HTMLElement | undefined>, options: FocusZ
       return left.top - right.top || left.left - right.left;
     });
     const index = ordered.indexOf(target);
-    return index < 0 ? null : ordered[clamp(index + (key === 'ArrowDown' ? 1 : -1), ordered.length)] ?? null;
+    const move = index < 0 ? null : navTarget(event, { index, count: ordered.length }, { ends: false });
+    return move ? ordered[move.index] ?? null : null;
   }
 
   function keydown(event: KeyboardEvent) {
@@ -93,25 +94,18 @@ export function useFocusZone(zone: Ref<HTMLElement | undefined>, options: FocusZ
     if (!target) return;
     if (options.orientation === 'list') {
       const items = controls();
-      const step = listKeyStep(event, items.length);
-      if (step === null) return;
-      event.preventDefault();
-      items[listIndexAfter(items.indexOf(target.ownerDocument.activeElement as HTMLElement), items.length, step)]?.focus();
+      rove(event, items, { page: items.length });
       return;
     }
     if (event.defaultPrevented || event.isComposing || event.metaKey || event.ctrlKey || event.altKey) return;
-    const exit = event.key === 'ArrowUp' || event.key === 'ArrowDown' ? options.exits?.[event.key] : undefined;
-    if (exit) { event.preventDefault(); exit()?.focus(); return; }
-    if (options.orientation === 'horizontal' && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
-      const stops = controls();
-      event.preventDefault();
-      stops[clamp(stops.indexOf(target) + (event.key === 'ArrowRight' ? 1 : -1), stops.length)]?.focus();
-    } else if (options.orientation === 'screen' && (event.key === 'ArrowUp' || event.key === 'ArrowDown')) {
-      const next = screenStep(target, event.key);
+    if (options.orientation === 'screen' && (event.key === 'ArrowUp' || event.key === 'ArrowDown')) {
+      const next = screenStep(event, target);
       if (!next) return;
       event.preventDefault();
       next.focus();
+      return;
     }
+    rove(event, options.orientation === 'horizontal' ? controls() : [], { vertical: 'none', horizontal: options.orientation === 'horizontal', ends: false, exits: options.exits });
   }
   const focusin = (event: FocusEvent) => { if (event.target instanceof HTMLElement) held = event.target; };
   // Focus that went nowhere (a removed or disabled control) stays held, so the zone can rescue it.

@@ -8,6 +8,7 @@
 import type { AppSettings } from "../shared/settings/index.js";
 import { memoryPanelCopy, memoryUsageCopy, memoryWarningCopy } from "./failure-messages.js";
 import { isolateFromGame } from "./non-activating-surface.js";
+import { arrowOffset } from "../shared/ui/keyboard-nav.js";
 
 export type MemoryWarningLevel = "low" | "critical";
 
@@ -128,15 +129,14 @@ export function bindMemoryWarning(
     place();
   });
   label.addEventListener("keydown", (event) => {
-    if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) return;
+    const offset = arrowOffset(event.key, event.shiftKey ? 1 : 10);
+    if (!offset) return;
     event.preventDefault();
     const box = root.getBoundingClientRect();
-    const step = event.shiftKey ? 1 : 10;
-    move(box.left + (event.key === "ArrowLeft" ? -step : event.key === "ArrowRight" ? step : 0),
-      box.top + (event.key === "ArrowUp" ? -step : event.key === "ArrowDown" ? step : 0));
+    move(box.left + offset.x, box.top + offset.y);
   });
   label.addEventListener("keyup", (event) => {
-    if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) savePosition();
+    if (arrowOffset(event.key, 0)) savePosition();
   });
   const observer = view && typeof view.ResizeObserver === "function" ? new view.ResizeObserver(place) : null;
   observer?.observe(root);

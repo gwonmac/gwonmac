@@ -33,7 +33,7 @@ import {
   type TradeSourceState,
 } from "./trade-ledger";
 import { useClassicFrame } from "./ui/use-classic-frame";
-import { listIndexAfter, listKeyStep, listPage } from "../../../shared/ui/list-keys";
+import { listPage, navTarget, rove, stepOut } from "../../../shared/ui/keyboard-nav";
 import { isHubBackKey } from "../../../shared/keyboard-shortcuts";
 import { characterKey } from "../../../shared/player-text";
 import { useFloatingWindow } from "./use-floating-window";
@@ -580,8 +580,7 @@ function onSearchKeydown(event: KeyboardEvent): void {
     event.preventDefault();
     return;
   }
-  const step = listKeyStep(event, 1);
-  if (step === null || step <= 0 || step === Infinity) return;
+  if (stepOut(event) !== 1) return;
   event.preventDefault();
   const target = rowElement(tabStop.value)
     ?? panel.value?.querySelector<HTMLElement>(".trade-state button");
@@ -616,14 +615,15 @@ function onListKeydown(event: KeyboardEvent): void {
     else whisper(message);
     return;
   }
-  const step = listKeyStep(event, listPage(list.value, row));
-  if (step !== null) {
+  const move = navTarget(event, { index, count: rows.length }, { page: listPage(list.value, row) });
+  if (move) {
     event.preventDefault();
-    if (step === -1 && index === 0) {
+    // ↑ from the first row hands the keyboard back to the search above.
+    if (move.leave === -1) {
       focusSearch();
       return;
     }
-    const next = rows[listIndexAfter(index, rows.length, step)]!;
+    const next = rows[move.index]!;
     select(next);
     rowElement(next.timestamp)?.focus();
     return;
@@ -698,11 +698,8 @@ function onActionsKeydown(event: KeyboardEvent): void {
 /** The menu's own keys: the shared list move over its items; Tab leaves it closed. */
 function onMenuKeydown(event: KeyboardEvent): void {
   const items = menuItems();
-  const step = listKeyStep(event, items.length);
-  if (step !== null) {
-    event.preventDefault();
-    items[listIndexAfter(items.indexOf(document.activeElement as HTMLElement), items.length, step)]?.focus();
-  } else if (event.key === "Tab") {
+  if (rove(event, items, { page: items.length })) return;
+  if (event.key === "Tab") {
     closeOfferActions(false);
   }
 }
