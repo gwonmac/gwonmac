@@ -4,8 +4,9 @@
  * (switch, number, choice, position), the few values with a control of their own (a map style,
  * Compass rings, colours, skill labels), and its shortcuts. One block for both hosts: the
  * launcher's Features tab and the Hub's Features section pass their own settings, save and
- * shortcut bridge, and an option shows only where that host may change it. The host's save
- * status reports each save; after a refused one, every control shows the saved value again.
+ * shortcut bridge, and an option shows only where that host may change it. Settings › Appearance
+ * draws the options marked `appearance` with the same rows (`place`). The host's save status
+ * reports each save; after a refused one, every control shows the saved value again.
  */
 import { computed, type Component } from "vue";
 import { COMPASS_RANGE_INDICATORS } from "@shared/compass-ranges";
@@ -15,6 +16,7 @@ import type { LauncherSnapshot } from "@shared/launcher-contracts";
 import type { ReleaseStage } from "@shared/release";
 import type { InGamePatch, InGameSettings, InGameTools } from "../settings-host";
 import type { PerformSave } from "../save-status";
+import type { OptionPlace } from "@shared/settings-catalogue";
 import { featureOptions, type CardFeature, type FeatureOption } from "../features";
 import FeatureSwitch from "./FeatureSwitch.vue";
 import RangeControl from "./RangeControl.vue";
@@ -49,9 +51,13 @@ const CONTROLS: Readonly<Partial<Record<string, Control>>> = {
 const claimed = new Set(Object.values(CONTROLS).flatMap((control) => control?.claims ?? []));
 
 /** The options this host may change; a value without a control has none here (Travel favourites live in Travel). */
-function settingOptions(feature: CardFeature, stage: ReleaseStage, settings: InGameSettings): FeatureOption[] {
-  return featureOptions(feature, stage).filter((option) => option.key in settings
+function settingOptions(feature: CardFeature, stage: ReleaseStage, settings: InGameSettings, place: OptionPlace = "page"): FeatureOption[] {
+  return featureOptions(feature, stage, place).filter((option) => option.key in settings
     && (CONTROLS[option.key] !== undefined || (!claimed.has(option.key) && option.kind !== "value")));
+}
+/** The Features with options Settings › Appearance draws, for this host and stage. */
+export function appearanceFeatures(features: readonly CardFeature[], stage: ReleaseStage, settings: InGameSettings): CardFeature[] {
+  return features.filter((feature) => settingOptions(feature, stage, settings, "appearance").length > 0);
 }
 /** Whether this host draws any setting for the Feature: its page shows a Settings tab only then. */
 export function hasFeatureSettings(feature: CardFeature, stage: ReleaseStage, settings: InGameSettings): boolean {
@@ -69,11 +75,13 @@ const props = withDefaults(defineProps<{
   api?: InGameTools | undefined;
   save: (patch: InGamePatch) => Promise<void>;
   performSave: PerformSave;
-}>(), { api: undefined });
+  /** Its page draws its own options and shortcuts; Appearance draws only its `appearance` options. */
+  place?: OptionPlace;
+}>(), { api: undefined, place: "page" });
 
 const values = computed<Readonly<Record<string, unknown>>>(() => props.settings);
-const options = computed(() => settingOptions(props.feature, props.stage, props.settings));
-const shortcutRows = computed(() => "shortcuts" in props.feature ? props.feature.shortcuts : []);
+const options = computed(() => settingOptions(props.feature, props.stage, props.settings, props.place));
+const shortcutRows = computed(() => props.place === "page" && "shortcuts" in props.feature ? props.feature.shortcuts : []);
 const dimmed = (option: FeatureOption) => option.dependsOn !== undefined && values.value[option.dependsOn] === false;
 const atFallback = (option: FeatureOption & { kind: "position" }) => JSON.stringify(values.value[option.key]) === JSON.stringify(option.fallback);
 
@@ -88,7 +96,7 @@ function choose(option: FeatureOption & { kind: "choice" }, event: Event) {
 
 <template>
   <section v-if="options.length || shortcutRows.length" class="feature-settings">
-    <p v-if="'settingsHelp' in feature" class="settings-help">{{ feature.settingsHelp }}</p>
+    <p v-if="place === 'page' && 'settingsHelp' in feature" class="settings-help">{{ feature.settingsHelp }}</p>
     <template v-for="option in options" :key="option.key">
       <template v-if="CONTROLS[option.key]">
         <div v-if="CONTROLS[option.key]!.labelled" class="control-block" :data-setting="option.key">

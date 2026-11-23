@@ -47,6 +47,11 @@ export type SettingOptions = SettingScope & SettingMessages & Readonly<{
   choices?: Readonly<Record<string, string>>;
   /** The unit a number reads in, such as `%`. */
   unit?: string;
+  /**
+   * A look setting every map Feature shares, such as the map style: Settings › Appearance draws it
+   * instead of its Feature's page, so a player finds it beside the other look settings.
+   */
+  appearance?: true;
   /** A switch in the same manifest this option works under; a settings page dims the option while that switch is off. `defineFeature` checks the key. */
   dependsOn?: string;
   /**

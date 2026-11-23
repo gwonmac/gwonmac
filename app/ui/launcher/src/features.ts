@@ -18,7 +18,7 @@ import type { GlobalTool, LauncherSnapshot } from "@shared/launcher-contracts";
 import { markdownInline, parseMarkdown, type MarkdownBlock, type MarkdownInline } from "@shared/launcher-markdown";
 import { shortcutDisplay, type ShortcutAction } from "@shared/keyboard-shortcuts";
 import type { ManifestStage, ReleaseStage } from "@shared/release";
-import { featureOptionKeys } from "@shared/settings-catalogue";
+import { featureOptionKeys, type OptionPlace } from "@shared/settings-catalogue";
 import { settingShown } from "@shared/settings/index";
 import type { SettingSpec } from "@shared/settings/define";
 import { guideLink } from "./guide";
@@ -159,9 +159,9 @@ export type FeatureOption = Readonly<{
 );
 
 /** The options a build at `stage` shows: an option with a later manifest `stage` is not in this release. */
-export function featureOptions(feature: CardFeature, stage: ReleaseStage): readonly FeatureOption[] {
+export function featureOptions(feature: CardFeature, stage: ReleaseStage, place: OptionPlace = "page"): readonly FeatureOption[] {
   const specs: Readonly<Record<string, SettingSpec<unknown>>> = "settings" in feature ? feature.settings : {};
-  return featureOptionKeys(feature).filter((key) => settingShown(key, stage)).map((key): FeatureOption => {
+  return featureOptionKeys(feature, place).filter((key) => settingShown(key, stage)).map((key): FeatureOption => {
     const spec = specs[key]!;
     const text = { key, label: spec.label ?? key, help: spec.help ?? "", ...(spec.dependsOn ? { dependsOn: spec.dependsOn } : {}),
       ...(spec.stage ? { stageLabel: STAGE_LABELS[spec.stage] } : {}) };

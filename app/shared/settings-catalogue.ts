@@ -65,14 +65,17 @@ const KEYS = "keys shortcut hotkey keyboard";
 const game = (key: keyof typeof GAME_SETTINGS): SettingEntry => ({ id: key, section: "game", ...GAME_SETTINGS[key] });
 
 const launcherKeys: ReadonlySet<string> = new Set(LAUNCHER_SETTINGS);
+/** Where a Feature's option is drawn: on its page, or in Settings › Appearance (`appearance` in its spec). */
+export type OptionPlace = "page" | "appearance";
 /**
- * A Feature's options, in manifest order: every setting it declares that a settings page draws,
- * except its switch, which the card and the page's header move.
+ * A Feature's options for one place, in manifest order: every setting it declares that a settings
+ * page draws, except its switch, which the card and the page's header move.
  */
-export function featureOptionKeys(feature: SwitchFeature): readonly FeatureSettingKey[] {
+export function featureOptionKeys(feature: SwitchFeature, place: OptionPlace = "page"): readonly FeatureSettingKey[] {
   const own = FEATURE_SELECTION_POLICIES[feature.id].switch;
   return Object.keys("settings" in feature ? feature.settings : {})
-    .filter((key): key is FeatureSettingKey => key !== own && launcherKeys.has(key));
+    .filter((key): key is FeatureSettingKey => key !== own && launcherKeys.has(key)
+      && (specs.get(key)?.appearance === true) === (place === "appearance"));
 }
 
 /** A Feature's switch: its card, and on its page the button in the header. */
@@ -80,17 +83,20 @@ const toolEntry = (tool: GlobalTool): SettingEntry => {
   const { label, description, action } = TOOL_PRESENTATION[tool];
   return { id: `tool:${tool}`, section: "features", feature: GLOBAL_TOOL_FEATURES[tool], label, detail: description, keywords: [TOOL_KEYWORDS[tool], action && KEYS].filter(Boolean).join(" ") };
 };
+/** A Feature's options for one place, each with its manifest words. */
+const optionEntries = (feature: SwitchFeature, place: OptionPlace): SettingEntry[] => featureOptionKeys(feature, place).flatMap((key): SettingEntry[] => {
+  const { label, help } = featureSettingText(key);
+  const keywords = specs.get(key)?.keywords;
+  const where = place === "page" ? { section: "features", feature: feature.id } as const : { section: "appearance" } as const;
+  const entry: SettingEntry = { id: key, ...where, label, detail: help, ...(keywords ? { keywords } : {}) };
+  // The terrain border is part of the map style, so it is found beside it.
+  return key === "cartographyPresetLibrary"
+    ? [entry, { id: "cartographyBoundaryWidth", ...where, label: "Terrain border thickness", keywords: "outline" }]
+    : [entry];
+});
 /** A Feature's options and its shortcuts, on its page. */
 const featureEntries = (feature: SwitchFeature): SettingEntry[] => [
-  ...featureOptionKeys(feature).flatMap((key): SettingEntry[] => {
-    const { label, help } = featureSettingText(key);
-    const keywords = specs.get(key)?.keywords;
-    const entry: SettingEntry = { id: key, section: "features", feature: feature.id, label, detail: help, ...(keywords ? { keywords } : {}) };
-    // The terrain border is part of the map style, so it is found beside it.
-    return key === "cartographyPresetLibrary"
-      ? [entry, { id: "cartographyBoundaryWidth", section: "features", feature: feature.id, label: "Terrain border thickness", keywords: "outline" }]
-      : [entry];
-  }),
+  ...optionEntries(feature, "page"),
   ...("shortcuts" in feature ? feature.shortcuts : []).map(({ action }): SettingEntry => ({
     id: `shortcut:${action}`, section: "features", feature: feature.id, label: `${SHORTCUT_LABELS[action]} shortcut`, keywords: KEYS,
   })),
@@ -114,6 +120,7 @@ const ENTRIES: readonly SettingEntry[] = [
   { id: "uiFont", section: "appearance", label: "Panel font", keywords: "text typeface" },
   { id: "uiTextSize", section: "appearance", label: "Text size", keywords: "scale zoom bigger larger" },
   { id: "uiPanelOpacity", section: "appearance", label: "Panel opacity", keywords: "transparency" },
+  ...SWITCH_FEATURES.flatMap((feature) => optionEntries(feature, "appearance")),
 
   { id: "hub", section: "game", label: "Hub", detail: "Search everything in game. Always on, also in the plain game.", keywords: `search command palette ${KEYS}` },
   game("renderScale"),

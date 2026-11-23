@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 import { writeFile } from "node:fs/promises";
 import { launchOffline, closeOffline, openFeatures, openSettings } from "./fixtures.mjs";
 
-test("a refused map edit says so on the Maps page and keeps the saved choice at 200%", async () => {
+test("a refused map edit says so on the Exploration grid page and keeps the saved choice at 200%", async () => {
   const fixture = await launchOffline("gw-settings-recovery-", { GW_TEST_RETURN_LAUNCHER: "1" });
   const page = fixture.page;
   try {
@@ -12,8 +12,6 @@ test("a refused map edit says so on the Maps page and keeps the saved choice at 
     });
     const settings = await openFeatures(fixture, "cartography");
     await expect(settings.locator(".feature-head").getByText("Off while you play the plain game.", { exact: true })).toBeVisible();
-    await settings.getByRole("button", { name: "Customize style", exact: true }).click();
-    await expect(settings.getByRole("textbox", { name: "Shaded area color hex" })).toBeVisible();
     await fixture.app.evaluate(({ ipcMain, BrowserWindow }) => {
       ipcMain.removeHandler("gw:launcher:settings:update");
       ipcMain.handle("gw:launcher:settings:update", () => { throw new Error("offline fixture save refusal"); });
@@ -21,8 +19,8 @@ test("a refused map edit says so on the Maps page and keeps the saved choice at 
       win.setSize(900, 640);
       win.webContents.setZoomFactor(2);
     });
-    const hex = settings.getByRole("textbox", { name: "Shaded area color hex" });
-    await hex.fill("112233"); await hex.press("Tab");
+    const opacity = settings.getByRole("spinbutton", { name: "Grid opacity value" });
+    await opacity.fill("40"); await opacity.press("Tab");
     // The Features tab's save status says the change was not saved and offers Retry; it has no Revert, because its controls show the saved value.
     const feedback = settings.locator(".features-status [role=alert]");
     await expect(feedback).toContainText("could not be saved");

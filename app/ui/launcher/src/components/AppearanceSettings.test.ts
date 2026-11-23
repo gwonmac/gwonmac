@@ -4,10 +4,13 @@ import AppearanceSettings from "./AppearanceSettings.vue";
 import { fixtureSnapshot } from "../fixtures";
 import { UI_THEME_COLOR_FIELDS } from "@shared/ui-theme";
 
+/** What the Settings page passes for the map look rows; these tests use the panel rows only. */
+const host = { stage: fixtureSnapshot.features.stage, shortcuts: fixtureSnapshot.shortcuts, performSave: async (action: () => Promise<unknown>) => { await action(); } };
+
 describe("in-game appearance settings", () => {
   it("keeps saved custom colors when switching the active style", async () => {
     const save = vi.fn(async () => undefined);
-    const wrapper = mount(AppearanceSettings, { props: { settings: fixtureSnapshot.settings, save } });
+    const wrapper = mount(AppearanceSettings, { props: { ...host, settings: fixtureSnapshot.settings, save } });
     await wrapper.get("select").setValue("custom");
     expect(save).toHaveBeenCalledWith({ uiStyle: "custom" });
     await wrapper.setProps({ settings: { ...fixtureSnapshot.settings, uiStyle: "custom" } });
@@ -17,7 +20,7 @@ describe("in-game appearance settings", () => {
   });
   it("rejects invalid theme text without saving", async () => {
     const save = vi.fn(async () => { throw new Error("disk"); });
-    const wrapper = mount(AppearanceSettings, { props: { settings: { ...fixtureSnapshot.settings, uiStyle: "custom" }, save } });
+    const wrapper = mount(AppearanceSettings, { props: { ...host, settings: { ...fixtureSnapshot.settings, uiStyle: "custom" }, save } });
     await wrapper.get('textarea[placeholder="Paste theme text"]').setValue("invalid theme");
     await wrapper.get(".theme-sharing .secondary").trigger("click");
     expect(save).not.toHaveBeenCalled();

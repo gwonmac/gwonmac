@@ -333,7 +333,7 @@ onBeforeUnmount(() => {
           <fieldset v-else :key="`${section}:${status.version.value}`" class="settings-fields" :disabled="locked" :aria-busy="status.state.value === 'saving'" @change.capture="status.identify" @click.capture="status.identify">
             <legend class="visually-hidden">Settings for every account</legend>
             <FeaturesView v-if="section === 'features'" v-model:feature="featurePage" :snapshot="featuresSnapshot" :native="native" :target="featuresTarget" :save="saveSettings" :perform-save="performSave" embedded @settings="open" />
-            <template v-else-if="section === 'appearance'"><h1>Appearance</h1><AppearanceSettings :settings="snapshot.settings" :save="saveSettings" /></template>
+            <template v-else-if="section === 'appearance'"><h1>Appearance</h1><AppearanceSettings :settings="snapshot.settings" :save="saveSettings" :stage="snapshot.features.stage" :shortcuts="snapshot.shortcuts" :perform-save="performSave" /></template>
             <GameSettings v-else-if="section === 'game'" :snapshot="snapshot" :save="quietSave" />
             <TexturePacksSettings v-else-if="section === 'texture-packs' && launcher" :texture-packs="launcher.snapshot.texturePacks" :perform-save="performSave" />
             <GameFilesSettings
