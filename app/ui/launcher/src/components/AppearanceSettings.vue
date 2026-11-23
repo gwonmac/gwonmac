@@ -43,7 +43,7 @@ async function importTheme() {
 
 <template>
   <h2 class="appearance-heading">In-game panels</h2>
-  <p>Style, font, and opacity update gwonmac panels in every open game window. Guild Wars menus keep their own appearance.</p>
+  <p>Style, font, and opacity update GWonMac panels in every open game window. Guild Wars menus keep their own appearance.</p>
   <div class="setting-group">
     <label data-setting="uiStyle"><span><strong>Panel style</strong></span><select :value="settings.uiStyle" @change="saveChoice($event, UI_STYLES, (uiStyle) => persist({ uiStyle }))"><option value="guild-wars">Guild Wars</option><option value="obsidian">Modern</option><option value="custom">Custom</option></select></label>
     <label data-setting="uiFont"><span><strong>Panel font</strong></span><select :value="settings.uiFont" @change="saveChoice($event, UI_FONTS, (uiFont) => persist({ uiFont }))"><option v-for="font in UI_FONTS" :key="font" :value="font">{{ fonts[font] }}</option></select></label>
