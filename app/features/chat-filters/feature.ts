@@ -24,7 +24,7 @@ export default defineFeature({
     chatFilterHallOfHeroes: setting.boolean(true, {
       ...OPTION,
       label: "Hide Hall of Heroes winner announcements",
-      help: "Hides the notice to everyone when a team wins the Hall of Heroes.",
+      help: "Hides the announcement sent to every player when a team wins the Hall of Heroes.",
       keywords: "chat filter spam",
     }),
     /** Hide player title-achievement announcements. */
