@@ -5,7 +5,7 @@ import {
   travelDestination,
   type TravelDestination,
 } from "../../../shared/travel";
-import { listIndexAfter, listKeyStep, listPage } from "../../../shared/ui/list-keys";
+import { listPage, navTarget } from "../../../shared/ui/keyboard-nav";
 
 const props = withDefaults(defineProps<{
   modelValue: number | null;
@@ -74,12 +74,12 @@ function onKeydown(event: KeyboardEvent): void {
     return;
   }
   // The shared list move, without wrapping.
-  const step = listKeyStep(event, listPage(details.value?.querySelector<HTMLElement>(".travel-destination-results"), details.value?.querySelector<HTMLElement>("[role=option]")));
-  if (step !== null) {
+  const move = navTarget(event, { index: active.value, count: results.value.length }, { page: listPage(details.value?.querySelector<HTMLElement>(".travel-destination-results"), details.value?.querySelector<HTMLElement>("[role=option]")) });
+  if (move) {
     event.preventDefault();
     event.stopPropagation();
     if (!results.value.length) return;
-    active.value = listIndexAfter(active.value, results.value.length, step);
+    active.value = move.index;
     void nextTick(() => details.value?.querySelector("[role=option][aria-selected=true]")?.scrollIntoView({ block: "nearest" }));
     return;
   }

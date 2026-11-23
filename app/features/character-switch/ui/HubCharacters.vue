@@ -11,7 +11,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { HUB_SEARCH_GLYPH } from '../../../shared/ui/hub-search';
 import { isHubBackKey } from '../../../shared/keyboard-shortcuts';
 import { normaliseHubQuery } from '../../../shared/hub';
-import { listIndexAfter, listKeyStep } from '../../../shared/ui/list-keys';
+import { navTarget, stepOut } from '../../../shared/ui/keyboard-nav';
 import { installSearchEditing, resumeSearchInput } from '../../../renderer/search-input';
 import { useFocusZone } from '../../../ui/tools/src/hub/focus-zone';
 import { usePageFocus } from '../../../ui/tools/src/hub/views/page';
@@ -69,13 +69,13 @@ function panelKeydown(event: KeyboardEvent) {
     if (event.repeat || closeDisclosure(event.target)) return;
     props.escape();
   } else if (props.view !== 'characters') return;
-  else if (event.key === 'ArrowDown' && event.target === queryInput.value) {
+  else if (event.target === queryInput.value && stepOut(event) === 1) {
     event.preventDefault();
     cardButton(props.selected)?.focus({ preventScroll: true });
     cardButton(props.selected)?.scrollIntoView({ block: 'nearest' });
   }
   // The search is the top of the view: ↑ there stays, like at the top of every list.
-  else if (event.key === 'ArrowUp' && event.target === queryInput.value) event.preventDefault();
+  else if (event.target === queryInput.value && stepOut(event) === -1) event.preventDefault();
   else {
     // A digit selects and reveals its card; only Enter switches (D-5, HUB-002).
     if (typed.value || event.target instanceof HTMLInputElement || !isDigit(event.key) || event.metaKey || event.ctrlKey || event.altKey) return;
@@ -93,15 +93,16 @@ function searchKeydown(event: KeyboardEvent) {
 function listKeydown(event: KeyboardEvent) {
   const card = rowOf(event);
   if (!card || props.view !== 'characters') return;
+  // The carousel is one row: ↑ from any card hands the keyboard back to the search above it.
   if (event.key === 'ArrowUp') {
     event.preventDefault(); event.stopPropagation(); queryInput.value?.focus({ preventScroll: true }); return;
   }
-  // The shared list move: arrows, ⌃N/⌃P, PgUp/PgDn by a visible page, Home/End; the carousel never wraps.
-  const step = listKeyStep(event, Math.max(1, props.cards.filter(isCard).length - 1), true);
-  if (step !== null) {
+  // The shared carousel move: arrows, ⌃N/⌃P, PgUp/PgDn by a visible page, Home/End; it never wraps.
+  const move = navTarget(event, { index: card.row, count: props.listed }, { horizontal: true, page: Math.max(1, props.cards.filter(isCard).length - 1) });
+  if (move) {
     event.preventDefault();
     event.stopPropagation();
-    props.choose(listIndexAfter(card.row, props.listed, step));
+    props.choose(move.index);
     return;
   }
   // Without a query a digit is a card number, never search text.

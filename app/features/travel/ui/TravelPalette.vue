@@ -24,7 +24,7 @@ import { TRAVEL_HISTORY_VISIBLE_LIMIT } from "../../../shared/travel-history";
 import { guildWarsMapName } from "../../../shared/guild-wars-map-names";
 import { isHubBackKey } from "../../../shared/keyboard-shortcuts";
 import { createHoverSelection } from "../../../shared/ui/hover-selection";
-import { gridIndexAfter, listIndexAfter, listKeyStep, listPage } from "../../../shared/ui/list-keys";
+import { listPage, navTarget, paintedBox } from "../../../shared/ui/keyboard-nav";
 import { hubMatch } from "../../../shared/hub";
 import type { HubViewFooter } from "../../../shared/hub";
 import { useTravelPreferences } from "./travel-preferences";
@@ -846,29 +846,27 @@ function moved(event: PointerEvent): boolean {
   return hover.selects(event);
 }
 
-/** The shared list move over the destinations it may choose; the ends hold. */
-async function moveActive(step: number): Promise<void> {
-  const entries = selectableDestinations.value;
-  const next = listIndexAfter(active.value, entries.length, step, (index) => selectable(entries[index]!));
-  if (next >= 0) await reveal(next);
-}
-
 /**
- * Favourites are a painted grid: ↑ ↓ go to the nearest row with a destination it may choose,
- * closest to the current column. ↑ from the top row returns to the places above the grid;
- * ↓ from the bottom row holds, as at the end of any list.
+ * The shared move over the destinations it may choose; the ends hold. Without a query the
+ * destinations are one painted grid, Recent (or Available) above Favourites: ↑ ↓ ⌃P ⌃N go to
+ * the nearest row with a destination it may choose, closest to the current column, so ↓ from
+ * the Recent carousel lands in Favourites and ↑ returns above the favourite it left. In the Hub
+ * ← → step one destination. Search results, Home, End and the page keys step the list.
  */
-async function moveInFavourites(direction: 1 | -1): Promise<void> {
+function moveActive(event: KeyboardEvent): boolean {
   const entries = selectableDestinations.value;
-  const leading = leadingDestinations.value.length;
-  const boxes = entries.slice(leading).map((_, offset) => {
-    const button = palette.value?.querySelector<HTMLElement>(`#travel-${resultId(leading + offset)}`);
-    return { top: button?.offsetTop ?? 0, left: button?.offsetLeft ?? 0 };
+  const grid = !hasQuery.value;
+  const element = (index: number) => palette.value?.querySelector<HTMLElement>(`#travel-${resultId(index)}`);
+  const boxes = grid ? entries.map((_, index) => { const button = element(index); return button ? paintedBox(button) : { top: 0, left: 0 }; }) : undefined;
+  const move = navTarget(event, { index: active.value, count: entries.length, usable: (index) => selectable(entries[index]!), boxes }, {
+    vertical: grid ? "row" : "step",
+    horizontal: props.inset && grid,
+    page: listPage(palette.value?.querySelector<HTMLElement>(".travel-body"), element(active.value)),
   });
-  const next = gridIndexAfter(boxes, active.value - leading, direction, offset => selectable(entries[leading + offset]!));
-  if (next !== null) return reveal(leading + next);
-  const above = direction < 0 ? listIndexAfter(leading, entries.length, -1, index => selectable(entries[index]!)) : -1;
-  if (above >= 0 && above < leading) await reveal(above);
+  if (!move) return false;
+  event.preventDefault();
+  if (move.index >= 0) void reveal(move.index);
+  return true;
 }
 
 /** Selects a destination by keyboard and scrolls it into view. */
@@ -897,20 +895,8 @@ function onKeydown(event: KeyboardEvent): void {
   if (!props.visible || event.isComposing) return;
   const plainArrow = !event.metaKey && !event.ctrlKey && !event.altKey && !event.shiftKey;
   const atStart = event.target === input.value && input.value?.selectionStart === 0 && input.value.selectionEnd === 0;
-  // The keyboard stays in search: the shared list keys move one selection without wrapping,
-  // and in the Hub ← → step the Recent carousel while there is no query.
-  const step = mode.value === "travel" && event.target === input.value
-    ? listKeyStep(event, listPage(palette.value?.querySelector<HTMLElement>(".travel-body"), palette.value?.querySelector<HTMLElement>(`#travel-${activeResultId.value}`)), props.inset && !hasQuery.value)
-    : null;
-  if (step !== null) {
-    event.preventDefault();
-    // ↑ ↓ (and ⌃P ⌃N) move through the favourites grid by row; every other move, and the
-    // recents and search results, keep the shared linear list movement.
-    const vertical = event.key === "ArrowDown" || event.key === "ArrowUp" || event.ctrlKey;
-    if (vertical && !hasQuery.value && active.value >= 0 && active.value >= leadingDestinations.value.length) void moveInFavourites(step > 0 ? 1 : -1);
-    else void moveActive(step);
-    return;
-  }
+  // The keyboard stays in search, which moves one selection over the destinations.
+  if (mode.value === "travel" && event.target === input.value && moveActive(event)) return;
   // In the Hub, ⌘⌫ leaves Customize like Esc; an open picker closes first, and from the
   // destination list the press is the Hub's own Back.
   if (props.inset && mode.value === "customize" && isHubBackKey(event)

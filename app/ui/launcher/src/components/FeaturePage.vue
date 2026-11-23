@@ -17,7 +17,7 @@ import type { LauncherExternalLink, LauncherFeedback, LauncherSnapshot } from "@
 import { RELEASE_REPO } from "@shared/project-identity";
 import type { ReleaseStage } from "@shared/release";
 import type { SettingsTarget } from "@shared/settings-catalogue";
-import { navigateTabs } from "@shared/ui/focusable";
+import { navigateTabs } from "@shared/ui/keyboard-nav";
 import type { InGamePatch, InGameSettings, InGameTools } from "../settings-host";
 import type { PerformSave } from "../save-status";
 import { REGION_WORDS, cardFeature, changelogOf, featureStageLabel, presenceTag, readmeBlocks, type CardFeature } from "../features";

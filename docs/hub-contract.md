@@ -68,9 +68,13 @@ states.
 
 ## Keyboard and actions
 
-List movement uses `app/shared/ui/list-keys.ts` and never wraps. Travel's
-favourites are a painted grid: ↑ ↓ move by row and keep the column, and ↑ from
-the top row returns to the places above. Enter runs the
+Every arrow-key move, in the launcher, the Tools and the Hub, goes through
+`app/shared/ui/keyboard-nav.ts`: lists, grids, carousels and toolbars never
+wrap, tab strips do, and a move that runs off an end tells its caller, which may
+hand the keyboard to the next region (a search hands ↓ to its list, the list's
+top hands ↑ back). Travel's destinations without a query are one painted grid,
+Recent or Available above Favourites: ↑ ↓ move to the nearest row and keep the
+column, so ↓ from Recent lands in Favourites and ↑ comes back. Enter runs the
 named footer primary. Modified Enter does not run it. Right opens a result page;
 text fields keep their caret keys. Command-J opens the existing Actions menu:
 the primary, then the row's own `actions()` in its source's order (Build

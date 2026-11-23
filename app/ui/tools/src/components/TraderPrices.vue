@@ -15,7 +15,7 @@ import {
   type TraderItem,
   type TraderProfession,
 } from "../../../../shared/trader-catalog";
-import { listIndexAfter, listKeyStep, listPage } from "../../../../shared/ui/list-keys";
+import { listPage, navTarget, stepOut } from "../../../../shared/ui/keyboard-nav";
 import PriceHistoryChart from "./PriceHistoryChart.vue";
 import TraderItemIcon from "./TraderItemIcon.vue";
 
@@ -205,12 +205,11 @@ function closeItem(): void {
 }
 
 /**
- * The shared list move over the visible items; the ends hold. From the catalogue the
- * keyboard follows the selected row; the detail's Previous and Next keep their place.
+ * Selects a visible item. From the catalogue the keyboard follows the selected row; the
+ * detail's Previous and Next keep their place.
  */
-function moveSelection(step: number, followRow = true): void {
-  const items = visibleItems.value;
-  const next = items[listIndexAfter(selectedIndex.value, items.length, step)];
+function selectItem(index: number, followRow = true): void {
+  const next = visibleItems.value[index];
   if (!next) return;
   selectedId.value = next.modelId;
   if (followRow) focusSelection(next);
@@ -229,8 +228,7 @@ function onSearchKeydown(event: KeyboardEvent): void {
     openItem(first);
     return;
   }
-  const step = listKeyStep(event, 1);
-  if (step === null || step <= 0 || step === Infinity) return;
+  if (stepOut(event) !== 1) return;
   event.preventDefault();
   if (selected.value) focusSelection(selected.value);
 }
@@ -247,10 +245,11 @@ function focusSelection(item: TraderItem): void {
 }
 
 function onCatalogueKeydown(event: KeyboardEvent): void {
-  const step = listKeyStep(event, listPage(catalogue.value, catalogue.value?.querySelector<HTMLElement>("[data-trader-id]")));
-  if (step === null) return;
+  // The shared list move over the visible items; the ends hold.
+  const move = navTarget(event, { index: selectedIndex.value, count: visibleItems.value.length }, { page: listPage(catalogue.value, catalogue.value?.querySelector<HTMLElement>("[data-trader-id]")) });
+  if (!move) return;
   event.preventDefault();
-  moveSelection(step);
+  selectItem(move.index);
 }
 
 function formatPrice(price: number | undefined): string {
@@ -352,10 +351,10 @@ function relativeAge(timestamp: number): string {
             <span>{{ CATEGORY_LABELS[selected.category] }} · Kamadan trader</span>
           </div>
           <div class="trader-item-navigation">
-            <button class="ui-button" data-icon type="button" aria-label="Previous item" :disabled="selectedIndex <= 0" @click="moveSelection(-1, false)">
+            <button class="ui-button" data-icon type="button" aria-label="Previous item" :disabled="selectedIndex <= 0" @click="selectItem(selectedIndex - 1, false)">
               <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m10 3-5 5 5 5"/></svg>
             </button>
-            <button class="ui-button" data-icon type="button" aria-label="Next item" :disabled="selectedIndex >= visibleItems.length - 1" @click="moveSelection(1, false)">
+            <button class="ui-button" data-icon type="button" aria-label="Next item" :disabled="selectedIndex >= visibleItems.length - 1" @click="selectItem(selectedIndex + 1, false)">
               <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3 5 5-5 5"/></svg>
             </button>
           </div>

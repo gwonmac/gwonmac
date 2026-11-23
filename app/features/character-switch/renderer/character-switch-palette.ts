@@ -19,7 +19,6 @@ import type {
 import { currentCharacterIndex } from "./character-switch-model.js";
 import { CONFIRMATION_ARMING_MS } from "../../../renderer/surface-controller.js";
 import { leaveAreaCopy } from "../../../renderer/leave-area.js";
-import { listIndexAfter } from "../../../shared/ui/list-keys.js";
 import { CHARACTER_SEARCH_LIMIT, type HubCharacterCard, type HubCharactersProps } from "../ui/characters-page.js";
 
 const failureMessage = (code: CharacterSwitchFailureCode): string => {
@@ -498,7 +497,8 @@ export function createCharacterSwitchPalette(
     } else if (detail === 0 || (detail === 2 && pressedKey === rows[row]?.character.characterKey)) requestSelected();
   }
   function step(direction: -1 | 1) {
-    selected = listIndexAfter(selected, rows.length, direction);
+    // The Previous and Next buttons hold at the ends, where they disable.
+    if (rows.length) selected = Math.max(0, Math.min(rows.length - 1, selected + direction));
     render();
     focusSelected();
   }

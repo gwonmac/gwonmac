@@ -23,7 +23,7 @@ import AttributeEditor from "./AttributeEditor.vue";
 import SkillBar from "./SkillBar.vue";
 import SkillCatalogue from "./SkillCatalogue.vue";
 import TagEditor from "./TagEditor.vue";
-import { navigateTabs } from "../../../../shared/ui/focusable";
+import { navigateTabs } from "../../../../shared/ui/keyboard-nav";
 import { presentSkillPlacement } from "../skill-drop";
 import { useSkillDragSession } from "../use-skill-drag-session";
 

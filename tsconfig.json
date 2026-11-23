@@ -39,5 +39,5 @@
   // renderer code that only app/renderer imports, so the renderer program checks them.
   // A feature's ui/ folder holds its views (Hub pages, window views) that the Tools program builds and checks.
   "exclude": ["node_modules", "out", "app/renderer", "app/ui", "app/preload",
-    "app/features/*/companion.ts", "app/features/companion-parts.ts", "app/features/window-parts.ts", "app/features/hub-page-parts.ts", "app/features/*/renderer/**", "app/features/*/ui/**", "app/shared/ui/resize.ts", "app/shared/ui/frame.ts", "app/shared/ui/elite-map-pointer.ts", "app/shared/ui/elite-marker-paint.ts", "app/shared/ui/hub-view.ts", "app/shared/ui/focusable.ts"]
+    "app/features/*/companion.ts", "app/features/companion-parts.ts", "app/features/window-parts.ts", "app/features/hub-page-parts.ts", "app/features/*/renderer/**", "app/features/*/ui/**", "app/shared/ui/resize.ts", "app/shared/ui/frame.ts", "app/shared/ui/elite-map-pointer.ts", "app/shared/ui/elite-marker-paint.ts", "app/shared/ui/hub-view.ts", "app/shared/ui/focusable.ts", "app/shared/ui/keyboard-nav.ts"]
 }

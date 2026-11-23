@@ -10,7 +10,7 @@
 import type { HubDestination } from '../shared/hub.js';
 import { isHubBackKey } from '../shared/keyboard-shortcuts.js';
 import type { HubFocusTarget, HubScrollPlace } from '../shared/ui/hub-view.js';
-import { listIndexAfter, listKeyStep } from '../shared/ui/list-keys.js';
+import { navTarget } from '../shared/ui/keyboard-nav.js';
 
 /**
  * A suspended page can be returned to for this long, by its own shortcut or by the surface that
@@ -286,11 +286,12 @@ export function hubReduce<S extends Located, V extends Located>(state: HubState<
     switch (where.at) {
       case 'search': {
         if (pressed.composing) return none;
-        const listStep = listKeyStep({ key: pressed.key, altKey: pressed.alt, metaKey: pressed.meta, shiftKey: pressed.shift, ctrlKey: pressed.ctrl }, where.page);
+        const move = navTarget({ key: pressed.key, altKey: pressed.alt, metaKey: pressed.meta, shiftKey: pressed.shift, ctrlKey: pressed.ctrl },
+          { index: where.rows.findIndex(row => row.id === from.selected), count: where.rows.length }, { page: where.page });
         // The list owns these keys even without results, so they never move the caret or drop a text selection.
-        if (listStep !== null) {
+        if (move) {
           if (!where.rows.length || hubRunning(from)) return claimed(none);
-          const target = where.rows[listIndexAfter(where.rows.findIndex(row => row.id === from.selected), where.rows.length, listStep)]!;
+          const target = where.rows[move.index]!;
           return claimed(step(from, { type: 'select', id: target.id, scroll: true, hover: 'release' }));
         }
         if (pressed.key === 'ArrowRight' && !pressed.repeat && where.caretAtEnd) {

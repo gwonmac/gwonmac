@@ -10,7 +10,7 @@ import {
 } from "lucide-vue-next";
 import type { LauncherNewsStory, LauncherPreferencesPatch, LauncherSnapshot } from "@shared/launcher-contracts";
 import { dailyDaysFrom, type DailyCategory, type DailyDay } from "@shared/daily-activities";
-import { navigateTabs } from "@shared/ui/focusable";
+import { navigateTabs } from "@shared/ui/keyboard-nav";
 import NewsFeed from "./NewsFeed.vue";
 import NewsSourceMark from "./NewsSourceMark.vue";
 

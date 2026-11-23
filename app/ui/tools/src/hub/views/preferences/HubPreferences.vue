@@ -7,7 +7,7 @@
  */
 import { computed, onMounted, onUpdated, ref } from 'vue';
 import type { HubPreferencesProps } from '../../../../../../shared/ui/hub-pages';
-import { listIndexAfter, listKeyStep } from '../../../../../../shared/ui/list-keys';
+import { navTarget } from '../../../../../../shared/ui/keyboard-nav';
 import { useFocusZone } from '../../focus-zone';
 import HubIcon from '../../HubIcon.vue';
 
@@ -31,10 +31,10 @@ function keydown(event: KeyboardEvent) {
   if (event.altKey && event.metaKey && !event.ctrlKey && !event.shiftKey && (event.key === 'ArrowUp' || event.key === 'ArrowDown')) {
     event.preventDefault(); props.move(event.key === 'ArrowUp' ? -1 : 1); return;
   }
-  const step = event.target === list.value ? listKeyStep(event, 5) : null;
-  if (step === null) return;
+  const move = event.target === list.value ? navTarget(event, { index: entries.value.findIndex(entry => entry.id === props.chosen), count: entries.value.length }, { page: 5 }) : null;
+  if (!move) return;
   event.preventDefault();
-  const target = entries.value[listIndexAfter(entries.value.findIndex(entry => entry.id === props.chosen), entries.value.length, step)];
+  const target = entries.value[move.index];
   if (target) props.choose(target.id);
 }
 // The chosen entry stays in view.

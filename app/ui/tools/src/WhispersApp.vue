@@ -8,7 +8,7 @@ import { WHISPER_LINE_UNITS, WHISPER_MESSAGE_UNITS } from "../../../shared/whisp
 import { presenceLabel, type TravelFriend } from "../../../shared/friends";
 import { useClassicFrame } from "./ui/use-classic-frame";
 import { isHubBackKey } from "../../../shared/keyboard-shortcuts";
-import { listIndexAfter, listKeyStep, listPage } from "../../../shared/ui/list-keys";
+import { arrowOffset, listPage, navTarget } from "../../../shared/ui/keyboard-nav";
 import { useFloatingWindow } from "./use-floating-window";
 import { captureCornerPosition, restoreCornerPosition, type CornerPosition } from "../../../shared/corner-position";
 import type { WhisperIconPlacement } from "../../../shared/tools-bundle-contracts";
@@ -173,10 +173,10 @@ function searchKeydown(event: KeyboardEvent) {
     event.preventDefault(); open(pickerOptions.value[suggestionIndex.value]!); return;
   }
   // The shared list move, without wrapping; the keyboard stays in the search.
-  const step = listKeyStep(event, listPage(panel.value?.querySelector<HTMLElement>(".whisper-picker"), panel.value?.querySelector<HTMLElement>(".whisper-person-open")));
-  if (step === null || !pickerOptions.value.length) return;
+  const move = navTarget(event, { index: suggestionIndex.value, count: pickerOptions.value.length }, { page: listPage(panel.value?.querySelector<HTMLElement>(".whisper-picker"), panel.value?.querySelector<HTMLElement>(".whisper-person-open")) });
+  if (!move || !pickerOptions.value.length) return;
   event.preventDefault();
-  suggestionIndex.value = listIndexAfter(suggestionIndex.value, pickerOptions.value.length, step);
+  suggestionIndex.value = move.index;
   void nextTick(() => document.getElementById(pickerOptionId(suggestionIndex.value))
     ?.scrollIntoView({ block: "nearest" }));
 }
@@ -374,10 +374,10 @@ function iconClick() {
   if ((props.toggle?.("toggle") ?? "unavailable") === "unavailable") props.session.setVisible(!visible.value);
 }
 function moveIcon(event: KeyboardEvent) {
-  if (!event.altKey || !event.key.startsWith("Arrow")) return;
+  const offset = event.altKey ? arrowOffset(event.key, 16) : null;
+  if (!offset) return;
   event.preventDefault();
-  icon.value = { left: icon.value.left + (event.key === "ArrowRight" ? 16 : event.key === "ArrowLeft" ? -16 : 0),
-    top: icon.value.top + (event.key === "ArrowDown" ? 16 : event.key === "ArrowUp" ? -16 : 0) }; fitIcon();
+  icon.value = { left: icon.value.left + offset.x, top: icon.value.top + offset.y }; fitIcon();
   persistIconPosition();
 }
 onMounted(() => {

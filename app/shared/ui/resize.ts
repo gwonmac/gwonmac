@@ -2,6 +2,8 @@
  * Owns pointer and keyboard resizing for browser UI frames.
  * Surface owners still decide their current size, bounds, and active styling.
  */
+import { arrowOffset } from "./keyboard-nav.js";
+
 export interface ResizeLimits {
   minWidth: number;
   minHeight: number;
@@ -69,14 +71,11 @@ export function installResizeGrip(
   };
 
   const keydown = (event: KeyboardEvent) => {
-    if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) return;
+    const offset = arrowOffset(event.key, event.shiftKey ? 48 : 16);
+    if (!offset) return;
     event.preventDefault();
     const size = options.size();
-    const step = event.shiftKey ? 48 : 16;
-    apply(
-      size.width + (event.key === "ArrowRight" ? step : event.key === "ArrowLeft" ? -step : 0),
-      size.height + (event.key === "ArrowDown" ? step : event.key === "ArrowUp" ? -step : 0),
-    );
+    apply(size.width + offset.x, size.height + offset.y);
   };
 
   handle.addEventListener("pointerdown", pointerdown);
