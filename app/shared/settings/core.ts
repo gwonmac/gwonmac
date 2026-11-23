@@ -18,6 +18,9 @@ export const CONTROLLER_PROMPT_STYLES = ["game-default", "playstation"] as const
 export type ControllerPromptStyle = (typeof CONTROLLER_PROMPT_STYLES)[number];
 export const RENDER_SCALES = [1, 1.5, 2] as const;
 export type RenderScale = (typeof RENDER_SCALES)[number];
+/** The shape of the game picture: the whole window, or 16:9 centred with black bars. */
+export const PICTURE_SHAPES = ["fill", "16:9"] as const;
+export type PictureShape = (typeof PICTURE_SHAPES)[number];
 export const UI_PANEL_OPACITY_MIN = 65;
 export const UI_PANEL_OPACITY_MAX = 100;
 export const UI_TEXT_SIZE_MIN = 100;
@@ -32,6 +35,12 @@ export const CORE_SETTINGS = {
     hub: true,
     error: "settings.renderScale has unknown type/value",
     launcherError: "render scale is invalid",
+  }),
+  /** Fixes the game picture to 16:9 (for recording) instead of the window's shape. */
+  pictureShape: setting.enum(PICTURE_SHAPES, "fill", {
+    hub: true,
+    error: "settings.pictureShape has unknown value",
+    launcherError: "Picture shape is invalid",
   }),
   /** The visual treatment applied to every GWonMac panel. */
   uiStyle: setting.enum(UI_STYLES, "guild-wars", {

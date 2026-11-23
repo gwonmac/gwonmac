@@ -39,6 +39,7 @@ describe("settings", () => {
   it("exposes the documented defaults", () => {
     const documented = {
       renderScale: 2,
+      pictureShape: "fill",
       uiStyle: "guild-wars",
       uiCustomTheme: DEFAULT_CUSTOM_UI_THEME,
       uiFont: "guild-wars",
@@ -553,6 +554,7 @@ describe("settings", () => {
       "lastUpdateCheckAt",
       "memoryWarningPosition",
       "pasteCleanup",
+      "pictureShape",
       "quickItemMove",
       "reminderAlcohol",
       "reminderAtEnd",

@@ -528,10 +528,13 @@ function applyFeatureFacts(next: import('../shared/feature-resolve.js').FeatureF
   }
 }
 window.gwApplySettings = (next) => {
-  const previousScale = appSettings?.renderScale;
+  const previous = appSettings;
   const updated = { ...next };
   appSettings = updated;
-  if (previousScale !== undefined && updated.renderScale !== previousScale) {
+  // harness.css draws the 16:9 shape; the client sizes its picture from the
+  // canvas box, so it only needs the resize signal to follow.
+  document.documentElement.dataset.pictureShape = updated.pictureShape;
+  if (previous && (updated.renderScale !== previous.renderScale || updated.pictureShape !== previous.pictureShape)) {
     scheduleClientResize();
   }
   window.gwDiagnostics?.setVisible(updated.showDiagnostics);
