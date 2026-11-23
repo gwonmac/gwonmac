@@ -69,8 +69,8 @@ const stageLabel = computed(() => featureStageLabel(props.feature));
         <p class="head-meta">{{ FEATURE_KIND_LABELS[feature.kind] }} · {{ REGION_WORDS[feature.region] }} · by the GWonMac project</p>
         <p id="feature-status" class="head-status" :class="status.resolution.on ? 'on' : status.tone">
           <template v-if="status.resolution.on"><Check aria-hidden="true" />On</template>
-          <template v-else-if="status.needs">Needs <button class="inline-link" @click="emit('open', status.needs.id)">{{ status.needs.name }}</button>. Turn it on first.</template>
-          <template v-else-if="reason === 'needs-update'">{{ status.text }} <button class="inline-link" @click="emit('settings', { section: 'updates' })">Check for updates</button></template>
+          <template v-else-if="status.needs">Needs <button class="text-link" @click="emit('open', status.needs.id)">{{ status.needs.name }}</button>. Turn it on first.</template>
+          <template v-else-if="reason === 'needs-update'">{{ status.text }} <button class="text-link" @click="emit('settings', { section: 'updates' })">Check for updates</button></template>
           <template v-else>{{ status.text }}</template>
         </p>
       </div>
@@ -118,13 +118,13 @@ const stageLabel = computed(() => featureStageLabel(props.feature));
         <dl>
           <div><dt>Status</dt><dd :class="status.resolution.on ? 'on' : status.tone">{{ status.resolution.on ? "On" : status.text }}</dd></div>
           <div><dt>Works in</dt><dd>{{ REGION_WORDS[feature.region] }}</dd></div>
-          <div><dt>Needs</dt><dd v-if="needs.length"><template v-for="(each, index) in needs" :key="each.id"><template v-if="index > 0">, </template><button class="inline-link" @click="emit('open', each.id)">{{ each.name }}</button></template></dd><dd v-else>Nothing else</dd></div>
+          <div><dt>Needs</dt><dd v-if="needs.length"><template v-for="(each, index) in needs" :key="each.id"><template v-if="index > 0">, </template><button class="text-link" @click="emit('open', each.id)">{{ each.name }}</button></template></dd><dd v-else>Nothing else</dd></div>
           <div v-if="'hub' in feature"><dt>In the Hub</dt><dd>Type <kbd>{{ feature.name.toLowerCase() }}</kbd></dd></div>
           <div v-if="versions.length"><dt>Version</dt><dd>Updated in GWonMac {{ versions[0]!.version }}</dd></div>
         </dl>
         <div v-if="!embedded" class="fact-links">
-          <button class="link-row" @click="emit('external', 'bugReport')"><Bug aria-hidden="true" />Report a problem</button>
-          <button class="link-row" @click="emit('external', 'github')"><Code aria-hidden="true" />View the source on GitHub</button>
+          <button class="text-link" @click="emit('external', 'bugReport')"><Bug aria-hidden="true" />Report a problem</button>
+          <button class="text-link" @click="emit('external', 'github')"><Code aria-hidden="true" />View the source on GitHub</button>
         </div>
       </aside>
     </div>
@@ -149,8 +149,8 @@ const stageLabel = computed(() => featureStageLabel(props.feature));
 .muted { color: var(--muted); }
 .warning { color: var(--warning); }
 .head-action .primary, .head-action .secondary { min-width: 132px; }
-.inline-link { display: inline; padding: 0; color: var(--gold-text); font: inherit; text-decoration: underline 1px var(--gold-line); text-underline-offset: 3px; }
-.inline-link:hover { text-decoration-color: var(--gold); }
+/* A text link inside a sentence takes no padding of its own. */
+.head-status .text-link, .facts dd .text-link { padding: 0; font: inherit; }
 
 .feature-layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 48px; align-items: start; }
 .feature-main { min-width: 0; display: flex; flex-direction: column; gap: 40px; }
@@ -180,10 +180,7 @@ const stageLabel = computed(() => featureStageLabel(props.feature));
 .facts dt { color: var(--muted); font-size: var(--fs-xs); }
 .facts dd { margin: 0; }
 .facts kbd { display: inline-grid; place-items: center; min-width: 24px; height: 22px; padding: 0 6px; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: var(--control); font: inherit; font-size: var(--fs-xs); }
-.fact-links { display: grid; padding: 4px 20px; }
-.link-row { display: flex; align-items: center; gap: 8px; padding: 9px 0; color: var(--text-soft); font-size: var(--fs-md); text-align: left; }
-.link-row:hover { color: var(--text); }
-.link-row svg { width: 16px; height: 16px; color: var(--muted); }
+.fact-links { display: grid; justify-items: start; padding: 4px 20px; }
 
 @media (max-width: 980px) {
   .feature-layout { grid-template-columns: minmax(0, 1fr); gap: 32px; }

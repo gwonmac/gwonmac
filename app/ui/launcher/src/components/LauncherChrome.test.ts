@@ -113,7 +113,7 @@ describe("launcher chrome", () => {
 
     expect(wrapper.get(".readiness").text()).toContain("Downloading game files");
     expect(wrapper.get(".readiness progress").attributes("value")).toBe("92");
-    await wrapper.get(".status-action").trigger("click");
+    await wrapper.get(".status-actions .secondary").trigger("click");
     expect(wrapper.emitted("gameFiles")).toHaveLength(1);
   });
 

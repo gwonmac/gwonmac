@@ -108,8 +108,7 @@
   resize: vertical;
 }
 
-.tag-filters,
-.tag-row {
+.tag-filters {
   display: flex;
   flex-wrap: wrap;
   gap: var(--ui-space-1);

@@ -299,44 +299,10 @@
 }
 
 
-.handoff-sheet {
-  margin-top: var(--ui-space-4);
-  padding: var(--ui-space-4);
-  border: 1px solid var(--ui-line);
-  border-radius: var(--ui-radius);
-  background: var(--ui-well-fill);
-}
-
-.handoff-sheet > ol {
-  display: grid;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.handoff-sheet li {
-  display: grid;
-  min-height: 44px;
-  padding: var(--ui-space-2);
-  grid-template-columns: 20px 150px 70px minmax(180px, 1fr);
-  align-items: center;
-  gap: var(--ui-space-2);
-  border-top: 1px solid var(--ui-line-soft);
-}
-
-.handoff-sheet li > span:nth-child(2) strong,
-.handoff-sheet li > span:nth-child(2) small {
-  display: block;
-}
-
 .team-notes {
   margin-top: var(--ui-space-4);
   padding-top: var(--ui-space-4);
   border-top: 1px solid var(--ui-line-soft);
-}
-
-.handoff-sheet li > span:nth-child(2) small {
-  color: var(--ui-text-faint);
 }
 
 /* --------------------------------------------------------------- states */
@@ -519,8 +485,6 @@
   }
 
   .detail-view { height: calc(100% - 36px); }
-  .handoff-sheet li { grid-template-columns: 20px 1fr auto; }
-  .handoff-sheet li > span:last-child { grid-column: 2 / -1; }
 
   .section-heading {
     align-items: stretch;

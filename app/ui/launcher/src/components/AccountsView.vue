@@ -40,10 +40,10 @@ const emit = defineEmits<{
         <div class="account-details"><h2>{{ profile.name }}</h2></div>
         <p class="account-state" :class="{ failed: profile.state === 'failed' }" :role="profile.state === 'opening' || profile.state === 'checking' ? 'status' : undefined"><span class="status-dot" :class="profile.state" aria-hidden="true" />{{ profileStatus(profile) }}</p>
         <div class="account-actions">
-          <button v-if="profile.state === 'running'" class="profile-action" :aria-label="`Show ${profile.name}`" @click="emit('show', profile.id)">Show</button>
-          <button v-else-if="profile.state === 'ready' || profile.state === 'failed'" class="profile-action" :aria-label="`${readiness.state === 'repair-required' ? 'Repair game files for' : profile.state === 'failed' ? 'Try again for' : 'Play'} ${profile.name}`" @click="emit('play', profile.id)"><RotateCcw v-if="profile.state === 'failed' || readiness.state === 'repair-required'" aria-hidden="true" /><Play v-else aria-hidden="true" />{{ readiness.state === 'repair-required' ? 'Repair' : profile.state === 'failed' ? 'Try again' : 'Play' }}</button>
-          <button v-else-if="profile.state === 'queued'" class="profile-action" :aria-label="`Cancel waiting for ${profile.name}`" @click="emit('cancel', profile.id)">Cancel</button>
-          <button v-else class="profile-action" disabled>Opening</button>
+          <button v-if="profile.state === 'running'" class="secondary small profile-action" :aria-label="`Show ${profile.name}`" @click="emit('show', profile.id)">Show</button>
+          <button v-else-if="profile.state === 'ready' || profile.state === 'failed'" class="secondary small profile-action" :aria-label="`${readiness.state === 'repair-required' ? 'Repair game files for' : profile.state === 'failed' ? 'Try again for' : 'Play'} ${profile.name}`" @click="emit('play', profile.id)"><RotateCcw v-if="profile.state === 'failed' || readiness.state === 'repair-required'" aria-hidden="true" /><Play v-else aria-hidden="true" />{{ readiness.state === 'repair-required' ? 'Repair' : profile.state === 'failed' ? 'Try again' : 'Play' }}</button>
+          <button v-else-if="profile.state === 'queued'" class="secondary small profile-action" :aria-label="`Cancel waiting for ${profile.name}`" @click="emit('cancel', profile.id)">Cancel</button>
+          <button v-else class="secondary small profile-action" disabled>Opening</button>
           <button class="quiet small account-appearance" :aria-label="`Edit ${profile.name}`" @click="emit('customize', profile)"><Pencil aria-hidden="true" /><span>Edit</span></button>
         </div>
       </article>

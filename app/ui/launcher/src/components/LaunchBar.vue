@@ -221,8 +221,8 @@ onBeforeUnmount(() => {
         <progress v-if="operationalStatus.progress !== undefined" :value="operationalStatus.progress" max="100" :aria-label="`${operationalStatus.progress}% complete`" />
       </div>
       <div v-if="operationalStatus.action || operationalStatus.dismiss" class="status-actions">
-        <button v-if="operationalStatus.dismiss === 'update'" class="status-quiet-action" @click="dismissStatus('update')">Later</button>
-        <button v-if="operationalStatus.action" class="status-action" @click="runStatusAction(operationalStatus.action)">{{ operationalStatus.actionLabel }}</button>
+        <button v-if="operationalStatus.dismiss === 'update'" class="quiet small" @click="dismissStatus('update')">Later</button>
+        <button v-if="operationalStatus.action" class="secondary small" @click="runStatusAction(operationalStatus.action)">{{ operationalStatus.actionLabel }}</button>
         <button v-if="operationalStatus.dismiss === 'error'" class="icon-button" aria-label="Dismiss error" @click="dismissStatus('error')"><X /></button>
       </div>
     </div>
@@ -236,13 +236,13 @@ onBeforeUnmount(() => {
               <span aria-hidden="true" class="checkbox" :class="{ checked: selected.includes(profile.id) }"><Check v-if="selected.includes(profile.id)" /></span>
               <span class="profile-copy"><b>{{ profile.name }}</b><small><span v-if="profile.state === 'running'" class="profile-open-dot" aria-hidden="true" />{{ profileStatus(profile) }}</small></span>
             </button>
-            <button v-if="profile.state === 'running'" class="profile-action" :aria-label="`Show ${profile.name}`" @click="emit('show', profile.id)">Show</button>
-            <button v-else-if="profile.state === 'ready' || profile.state === 'failed'" class="profile-action" :disabled="busy" :aria-label="`${snapshot.readiness.state === 'repair-required' ? 'Repair game files for' : profile.state === 'failed' ? 'Try again for' : 'Play'} ${profile.name}`" @click="play(profile.id)">
+            <button v-if="profile.state === 'running'" class="secondary small profile-action" :aria-label="`Show ${profile.name}`" @click="emit('show', profile.id)">Show</button>
+            <button v-else-if="profile.state === 'ready' || profile.state === 'failed'" class="secondary small profile-action" :disabled="busy" :aria-label="`${snapshot.readiness.state === 'repair-required' ? 'Repair game files for' : profile.state === 'failed' ? 'Try again for' : 'Play'} ${profile.name}`" @click="play(profile.id)">
               <RotateCcw v-if="profile.state === 'failed' || snapshot.readiness.state === 'repair-required'" aria-hidden="true" /><Play v-else aria-hidden="true" />
               {{ snapshot.readiness.state === 'repair-required' ? 'Repair' : profile.state === 'failed' ? 'Try again' : 'Play' }}
             </button>
-            <button v-else-if="profile.state === 'queued'" class="profile-action" :aria-label="`Cancel waiting for ${profile.name}`" @click="emit('cancel', profile.id)"><X aria-hidden="true" />Cancel</button>
-            <button v-else class="profile-action profile-waiting" disabled :aria-label="`${profile.name}: ${profileStatus(profile)}`"><Clock3 aria-hidden="true" />Opening</button>
+            <button v-else-if="profile.state === 'queued'" class="secondary small profile-action" :aria-label="`Cancel waiting for ${profile.name}`" @click="emit('cancel', profile.id)"><X aria-hidden="true" />Cancel</button>
+            <button v-else class="secondary small profile-action profile-waiting" disabled :aria-label="`${profile.name}: ${profileStatus(profile)}`"><Clock3 aria-hidden="true" />Opening</button>
           </div>
         </div>
         <button class="manage" @click="manage"><Settings />Manage accounts</button>
