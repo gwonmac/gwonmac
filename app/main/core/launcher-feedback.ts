@@ -1,7 +1,8 @@
 /**
  * Sends one player-written launcher report to the project's Basin form. The
- * destination is fixed, and the body holds only the validated report plus the
- * app and macOS versions, so the renderer cannot add data or redirect it.
+ * destination is fixed, and the body holds only the validated report (with the
+ * Feature it is about and whether it ran, when written on a Feature's page) plus
+ * the app and macOS versions, so the renderer cannot add data or redirect it.
  */
 import type { LauncherFeedback } from "../../shared/launcher-contracts.js";
 
@@ -21,6 +22,7 @@ export async function sendLauncherFeedback(
     kind: feedback.kind,
     message: feedback.message,
     ...(feedback.email ? { email: feedback.email } : {}),
+    ...(feedback.feature ? { feature: feedback.feature.id, featureState: feedback.feature.state } : {}),
     appVersion: context.appVersion,
     macosVersion: context.macosVersion,
   });

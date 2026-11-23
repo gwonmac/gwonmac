@@ -1,5 +1,5 @@
 /* The launcher's one button set: primary (gold), secondary (neutral), quiet (text only) and
-   danger, with .small for dense rows, plus icon buttons, text links and dialog actions.
+   danger, with .small for dense rows, plus icon buttons, text links, tabs and dialog actions.
    The launcher window and the Hub's Settings page both load it, and each rule has one branch
    for each. The launcher branch is one class, as weak as before, so a page's own rule for a
    button wins. The .settings-view branch is as strong as the page's own rules and so beats the
@@ -25,6 +25,12 @@
 :where(:root[data-launcher]) .form-actions, .settings-view .form-actions { display: flex; justify-content: flex-end; gap: 10px; }
 :where(:root[data-launcher]) .form-actions.spread, .settings-view .form-actions.spread { justify-content: initial; }
 :where(:root[data-launcher]) .form-actions.spread > span, .settings-view .form-actions.spread > span { flex: 1; }
+/* Tabs on one bar: Home's News and Dailies, and a Feature page's General, Settings and Feedback. */
+:where(:root[data-launcher]) .segmented, .settings-view .segmented { display: flex; padding: 4px; background: var(--sunken); border: 1px solid var(--line); border-radius: var(--radius-md); }
+:where(:root[data-launcher]) .segmented button, .settings-view .segmented button { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: var(--radius-sm); color: var(--muted); background: transparent; }
+:where(:root[data-launcher]) .segmented button:hover, .settings-view .segmented button:hover { color: var(--text); }
+:where(:root[data-launcher]) .segmented button[aria-selected="true"], .settings-view .segmented button[aria-selected="true"] { color: var(--text); background: var(--surface-selected); }
+:where(:root[data-launcher]) .segmented svg, .settings-view .segmented svg { width: 18px; height: 18px; }
 
 /* A small label beside a name: a Feature's region, a Beta news story or a Feature still in
    development. Both windows load it, so the Hub's Settings page draws the same label. */

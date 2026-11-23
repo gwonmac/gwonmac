@@ -10,7 +10,7 @@
 import { computed, nextTick, ref, watch } from "vue";
 import { AlertCircle, Check, LayoutGrid, List, Search } from "lucide-vue-next";
 import { featureSettingText, type FeatureId } from "@shared/feature-contracts";
-import type { LauncherExternalLink, LauncherSnapshot } from "@shared/launcher-contracts";
+import type { LauncherExternalLink, LauncherFeedback, LauncherSnapshot } from "@shared/launcher-contracts";
 import type { SettingsTarget } from "@shared/settings-catalogue";
 import type { InGameNative, InGamePatch, InGameSettings } from "../settings-host";
 import {
@@ -59,13 +59,16 @@ const props = withDefaults(defineProps<{
   performSave?: PerformSave | undefined;
   /** Drawn inside the Hub's Settings page. */
   embedded?: boolean;
-}>(), { target: null, save: undefined, performSave: undefined, embedded: false });
+  /** Sends a Feature page's feedback; absent (the Hub): the page has no Feedback tab. */
+  sendFeedback?: ((feedback: LauncherFeedback) => Promise<void>) | undefined;
+}>(), { target: null, save: undefined, performSave: undefined, embedded: false, sendFeedback: undefined });
 const feature = defineModel<FeatureId | null>("feature", { default: null });
 const emit = defineEmits<{
   /** Browser preview only: the change, for the host to show. */
   fixture: [change: FeaturesFixtureChange];
   settings: [target: SettingsTarget];
   external: [kind: LauncherExternalLink];
+  url: [url: string];
   link: [actionId: string];
 }>();
 
@@ -83,6 +86,7 @@ const groupBy = ref<GroupBy>("kind");
 /** Restart launcher is not a save: its failure has a line of its own. */
 const restartError = ref("");
 const page = ref<HTMLElement | null>(null);
+const pageView = ref<InstanceType<typeof FeaturePage> | null>(null);
 const searchField = ref<HTMLInputElement | null>(null);
 /** The tab's own save status, when the host has none. Its controls show the saved value, so it has no Revert. */
 const ownStatus = props.performSave ? null : useSaveStatus({ keepsChange: false, root: page });
@@ -191,6 +195,9 @@ async function reveal(target: SettingsTarget) {
     feature.value = target.feature ?? null;
   }
   await nextTick();
+  // An option lives on the page's Settings tab; the header switch is on every tab.
+  if (target.control && !target.control.startsWith("tool:")) pageView.value?.show("settings");
+  await nextTick();
   await nextTick();
   if (page.value && target.control) revealSetting(page.value, target.control, true);
 }
@@ -224,12 +231,15 @@ function pickGroup(next: GroupBy) {
       :app-version="snapshot.appVersion"
       :stage="stage"
       :embedded="embedded"
+      :send-feedback="sendFeedback"
+      ref="pageView"
       @back="feature = null"
       @toggle="toggle(shown, $event)"
       @turn-on="toggle($event, true)"
       @open="open"
       @settings="emit('settings', $event)"
       @external="emit('external', $event)"
+      @url="emit('url', $event)"
       @link="emit('link', $event)"
     />
     <div v-else class="catalog">
@@ -295,7 +305,7 @@ function pickGroup(next: GroupBy) {
               </div>
               <div class="card-foot">
                 <span class="chip">{{ REGION_WORDS[each.region] }}</span>
-                <span v-if="runsWith(each)" class="runs-with">Runs with {{ runsWith(each)!.name }}</span>
+                <span v-if="runsWith(each)" class="runs-with">Part of {{ runsWith(each)!.name }}</span>
                 <FeatureSwitch v-else :checked="statusOf(each).checked" :label="each.name" :locked="statusOf(each).locked" :describedby="showsReason(statusOf(each)) ? `reason-${each.id}` : undefined" @change="toggle(each, $event)" />
               </div>
             </template>
@@ -305,7 +315,7 @@ function pickGroup(next: GroupBy) {
                 <strong><button class="card-link" @click="open(each.id)">{{ each.name }}</button><span v-if="badges.get(each.id)" class="dot" :title="badges.get(each.id) ?? undefined"></span><span v-if="badges.get(each.id)" class="visually-hidden">{{ badges.get(each.id) }}</span></strong>
                 <small :id="`reason-${each.id}`" :class="showsReason(statusOf(each)) ? statusOf(each).tone : 'muted'">{{ showsReason(statusOf(each)) ? statusOf(each).text : each.summary }}</small>
               </span>
-              <span v-if="runsWith(each)" class="runs-with">Runs with {{ runsWith(each)!.name }}</span>
+              <span v-if="runsWith(each)" class="runs-with">Part of {{ runsWith(each)!.name }}</span>
               <FeatureSwitch v-else :checked="statusOf(each).checked" :label="each.name" :locked="statusOf(each).locked" :describedby="showsReason(statusOf(each)) ? `reason-${each.id}` : undefined" @change="toggle(each, $event)" />
             </template>
           </article>

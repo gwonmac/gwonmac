@@ -15,6 +15,9 @@ describe("launcher feedback", () => {
       { kind: "spam", message: "Hello" },
       { kind: "problem", message: "Hello", email: "not-an-email" },
       { kind: "problem", message: "Hello", accountName: "Main account" },
+      { kind: "problem", message: "Hello", feature: { id: "not-a-feature", state: "on" } },
+      { kind: "problem", message: "Hello", feature: { id: "travel", state: "broken" } },
+      { kind: "problem", message: "Hello", feature: { id: "travel", state: "on", settings: {} } },
     ];
     for (const value of refused) assert.throws(() => parseLauncherFeedback(value), Error, JSON.stringify(value));
     assert.deepEqual(
@@ -28,7 +31,7 @@ describe("launcher feedback", () => {
     await sendLauncherFeedback(async (url, init) => {
       calls.push({ url, init });
       return new Response("{}", { status: 200 });
-    }, { kind: "problem", message: "The launcher opened behind my game." }, context);
+    }, { kind: "problem", message: "The launcher opened behind my game.", feature: { id: "travel", state: "needs-update" } }, context);
 
     assert.equal(calls.length, 1);
     assert.equal(calls[0]!.url, FEEDBACK_URL);
@@ -38,6 +41,8 @@ describe("launcher feedback", () => {
     assert.deepEqual(Object.fromEntries(calls[0]!.init.body as URLSearchParams), {
       kind: "problem",
       message: "The launcher opened behind my game.",
+      feature: "travel",
+      featureState: "needs-update",
       appVersion: "1.0.0",
       macosVersion: "27.0",
     });

@@ -2,7 +2,7 @@
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
 import { expect, test } from "@playwright/test";
-import { closeOffline, launchOffline, openFeatures, openSettings } from "./fixtures.mjs";
+import { closeOffline, launchOffline, openFeaturePage, openFeatures, openSettings } from "./fixtures.mjs";
 
 test("feature controls preserve preferences and validate native commands", async () => {
   const fixture = await launchOffline("gw-launcher-features-", { GW_TEST_RETURN_LAUNCHER: "1" });
@@ -22,7 +22,7 @@ test("feature controls preserve preferences and validate native commands", async
       await window.launcherNative.tools.setFeature({ tool: "character-switch", enabled: true });
       await window.launcherNative.tools.replaceShortcut({ action: "character.switch", binding: { key: "j", shift: false, option: false } });
     });
-    await settings.locator('[data-feature="characterSwitch"] .card-link').click();
+    await openFeaturePage(settings, "characterSwitch");
     await expect(settings.locator(".feature-settings").getByText("⌘J", { exact: true })).toBeVisible();
     await settings.locator(".feature-page .back").click();
     await settings.evaluate(() => window.launcherNative.tools.setMasterEnabled(true));
@@ -33,7 +33,7 @@ test("feature controls preserve preferences and validate native commands", async
     await resign.click();
     await expect(resign).toBeChecked();
     await settings.evaluate(() => window.launcherNative.tools.replaceShortcut({ action: "game.resign", binding: { key: "j", shift: true, option: false } }));
-    await settings.locator('[data-feature="resign"] .card-link').click();
+    await openFeaturePage(settings, "resign");
     await expect(settings.getByRole("button", { name: "Change Resign shortcut", exact: true }).locator("kbd")).toHaveText(["⇧", "⌘", "J"]);
     await settings.getByRole("button", { name: "Turn off", exact: true }).click();
     await expect(settings.getByRole("button", { name: "Turn on", exact: true })).toBeVisible();
