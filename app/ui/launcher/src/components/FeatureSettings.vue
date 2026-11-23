@@ -107,7 +107,7 @@ function choose(option: FeatureOption & { kind: "choice" }, event: Event) {
         <button v-else-if="option.kind === 'position'" class="secondary small" :aria-describedby="`option-${option.key}`" :disabled="atFallback(option)" @click="set(option, option.fallback)">Put back</button>
       </div>
     </template>
-    <div v-for="shortcut in shortcutRows" :key="shortcut.action" class="row" :data-setting="`shortcut:${shortcut.action}`">
+    <div v-for="shortcut in shortcutRows" :key="shortcut.action" class="row shortcut-row" :data-setting="`shortcut:${shortcut.action}`">
       <span class="row-label"><span>{{ SHORTCUT_LABELS[shortcut.action] }} shortcut</span></span>
       <ShortcutSetting :action="shortcut.action" :shortcuts="shortcuts" :api="api" :perform-save="performSave" />
     </div>
@@ -123,6 +123,7 @@ function choose(option: FeatureOption & { kind: "choice" }, event: Event) {
 .feature-settings .row-label { display: grid; gap: 3px; font-size: var(--fs-md); }
 .feature-settings .row-label small { color: var(--muted); font-size: var(--fs-sm); line-height: 1.45; }
 .feature-settings .stage-label { margin-left: 8px; padding: 2px 8px; vertical-align: 1px; }
+.feature-settings .shortcut-row { row-gap: 10px; }
 .feature-settings .row-controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px 12px; }
 .feature-settings .control-block { display: grid; gap: 8px; padding: 14px 0 0; border-bottom: 1px solid var(--line); }
 </style>
