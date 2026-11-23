@@ -24,7 +24,7 @@ export default defineFeature({
         error: "Target Distance position is invalid",
         launcherError: "Target Distance position is invalid",
         label: "Target Distance position",
-        help: "Drag the readout in a game window to move it. Reset puts it back at the top centre.",
+        help: "Drag the readout in a game window to move it. Put back returns it to the top centre.",
         keywords: "move drag reset position",
       },
     ),

@@ -40,7 +40,9 @@ export function hubLegend(page: HubLegendInput): HubLegendEntry[] {
   const keys: HubLegendEntry[] = [];
   if (!page.view && page.rows > 1 && !page.running) keys.push([['↑', '↓'], 'Select']);
   if (!page.view && page.opens) keys.push([['→'], 'Open']);
-  keys.push([['⎋'], page.typed ? 'Clear' : page.parent ? 'Back' : 'Close']);
-  if (!page.home) keys.push([['⌘', '⌫'], 'Back']);
+  const escape = page.typed ? 'Clear' : page.parent ? 'Back' : 'Close';
+  keys.push([['⎋'], escape]);
+  // ⌘⌫ is named only where Esc does something else, so one line never says Back twice.
+  if (!page.home && escape !== 'Back') keys.push([['⌘', '⌫'], 'Back']);
   return keys;
 }

@@ -29,7 +29,7 @@ const emit = defineEmits<{
 <template>
   <section class="page accounts-page">
     <div class="page-head">
-      <div><h1>Accounts</h1><p>{{ activeProfiles.length }} accounts · {{ openCount }} open<span v-if="failedCount"> · {{ failedCount }} need attention</span></p></div>
+      <div><h1>Accounts</h1><p>{{ activeProfiles.length }} {{ activeProfiles.length === 1 ? "account" : "accounts" }} · {{ openCount }} open<span v-if="failedCount"> · {{ failedCount }} {{ failedCount === 1 ? "needs" : "need" }} attention</span></p></div>
       <button class="secondary" @click="emit('add')"><Plus />Add account</button>
     </div>
     <div class="accounts-list-heading"><span>Select accounts to open together.</span><span>Play or show one account</span></div>

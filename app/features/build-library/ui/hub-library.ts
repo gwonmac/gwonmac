@@ -157,12 +157,12 @@ export function createHubLibrary(controller: LibraryController, host: ToolsHost,
     const heroBuilds = checked.changes.filter(change => change.kind === 'hero-build').length;
     const behaviours = checked.changes.filter(change => change.kind === 'behaviour').length;
     return [
-      ...(removed.length ? [`Removes ${removed.join(', ')}`] : []),
+      ...(removed.length ? [`Remove ${removed.join(', ')}`] : []),
       ...checked.changes.flatMap(change => {
         switch (change.kind) {
           case 'remove-hero': return [];
-          case 'mode': return [`Switches to ${team.mode === 'hard' ? 'Hard' : 'Normal'} Mode`];
-          case 'rebuild-roster': return ['Rebuilds hero order'];
+          case 'mode': return [`Switch to ${team.mode === 'hard' ? 'Hard' : 'Normal'} Mode`];
+          case 'rebuild-roster': return ['Rebuild hero order'];
           case 'player-build': return ['Update your build'];
           case 'add-hero': return [`Add ${heroLabel(change.hero!)}`];
           case 'hero-build':
@@ -173,8 +173,10 @@ export function createHubLibrary(controller: LibraryController, host: ToolsHost,
       ...(behaviours ? [`Update ${behaviours} hero ${behaviours === 1 ? 'behaviour' : 'behaviours'}`] : []),
     ];
   };
+  /** A team's preview: what applying it would change, a blank line, then the team itself. */
+  const changesBlock = (changes: readonly string[]) => changes.length ? `${changes.join('\n')}\n\n` : '';
   const preview = (item: Item) => item.kind === 'build' ? buildPreview(item.value)
-    : `${teamChanges(item.value).join('\n')}\n${item.value.mode === 'none' ? 'Keep difficulty' : `${item.value.mode === 'hard' ? 'Hard' : 'Normal'} Mode`}\n` + item.value.slots.flatMap((slot, index) => {
+    : changesBlock(teamChanges(item.value)) + `${item.value.mode === 'none' ? 'Keep difficulty' : `${item.value.mode === 'hard' ? 'Hard' : 'Normal'} Mode`}\n` + item.value.slots.flatMap((slot, index) => {
       if (index > 0 && slot.hero === null && slot.build === null) return [];
       const build = controller.library.value?.builds.find(build => build.id === slot.build);
       return [`${index + 1}. ${index === 0 ? playerName() : slot.hero === null ? 'Unassigned hero' : heroLabel(slot.hero)} · ${build?.name ?? 'Keep build'}${slot.behaviour ? ` · ${slot.behaviour}` : ''}`];

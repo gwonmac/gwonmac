@@ -32,7 +32,7 @@ export default defineFeature({
         error: "Whispers icon position is invalid",
         launcherError: "Whispers icon position is invalid",
         label: "Whispers icon position",
-        help: "Drag the icon in a game window to move it. Reset puts it back at the top left.",
+        help: "Drag the icon in a game window to move it. Put back returns it to the top left.",
         keywords: "move drag reset whisper icon position",
       },
     ),

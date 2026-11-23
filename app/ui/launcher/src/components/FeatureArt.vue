@@ -26,6 +26,6 @@ const icon = computed(() => featureIcon(props.feature.icon));
 .tile { width: 40px; height: 40px; border-radius: var(--radius-md); }
 .head { width: 64px; height: 64px; border-radius: var(--radius-lg); box-shadow: inset 0 0 0 1px var(--glow); }
 .head svg { width: 30px; height: 30px; }
-.picture { width: 100%; aspect-ratio: 16 / 10; border-bottom: 1px solid var(--line); background: radial-gradient(90% 80% at 75% 0%, var(--glow), transparent 70%), linear-gradient(180deg, var(--tint) 0%, var(--picture-floor) 100%); }
+.picture { width: 100%; aspect-ratio: 16 / 10; max-height: 140px; border-bottom: 1px solid var(--line); background: radial-gradient(90% 80% at 75% 0%, var(--glow), transparent 70%), linear-gradient(180deg, var(--tint) 0%, var(--picture-floor) 100%); }
 .picture svg { width: 44px; height: 44px; stroke-width: 1.5; }
 </style>

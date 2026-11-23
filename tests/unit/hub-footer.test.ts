@@ -38,9 +38,10 @@ test('the legend names only the keys that act here and now', () => {
     ['a running action holds the selection', { ...home, running: true }, [[['⎋'], 'Close']]],
     ['a typed query clears first', { ...home, typed: true }, [[['↑', '↓'], 'Select'], [['⎋'], 'Clear']]],
     ['a row that opens a page', { ...home, opens: true }, [[['↑', '↓'], 'Select'], [['→'], 'Open'], [['⎋'], 'Close']]],
-    ['a page above another', { ...home, parent: true, home: false }, [[['↑', '↓'], 'Select'], [['⎋'], 'Back'], [['⌘', '⌫'], 'Back']]],
+    ['a page above another', { ...home, parent: true, home: false }, [[['↑', '↓'], 'Select'], [['⎋'], 'Back']]],
+    ['a typed page above another names ⌘⌫ for Back', { ...home, parent: true, home: false, typed: true }, [[['↑', '↓'], 'Select'], [['⎋'], 'Clear'], [['⌘', '⌫'], 'Back']]],
     ['a page opened directly closes on Esc', { ...home, home: false }, [[['↑', '↓'], 'Select'], [['⎋'], 'Close'], [['⌘', '⌫'], 'Back']]],
-    ['a view owns its arrows', { ...home, view: true, opens: true, home: false, parent: true }, [[['⎋'], 'Back'], [['⌘', '⌫'], 'Back']]],
+    ['a view owns its arrows', { ...home, view: true, opens: true, home: false, parent: true }, [[['⎋'], 'Back']]],
   ];
   for (const [name, input, expected] of cases) assert.deepEqual(hubLegend(input), expected, name);
 });

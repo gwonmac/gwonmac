@@ -90,7 +90,7 @@ export function createHubSettings(hub: Hub) {
   /** A setting row opens Settings at its control: in the Hub, or in the launcher for the launcher's sections. */
   const settingRow = (entry: SettingEntry): HubRow => {
     const inHub = HUB_SECTIONS.has(entry.section);
-    return { id: `setting:${entry.id}`, title: entry.label, keywords: `setting ${entry.keywords ?? ''}`, group: 'Settings',
+    return { id: `setting:${entry.id}`, iconKind: 'settings', title: entry.label, keywords: `setting ${entry.keywords ?? ''}`, group: 'Settings',
       detail: inHub ? `Settings › ${settingPlace(entry)}` : `Settings › ${settingPlace(entry)} in the launcher`, action: inHub ? 'Open setting' : 'Open in Launcher',
       run: open(settingTarget(entry)) };
   };
