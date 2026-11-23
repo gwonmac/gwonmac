@@ -354,17 +354,17 @@ test("applies launcher settings to every open profile and reflects in-game chang
     }
     await games[0]!.evaluate(() => window.gwNative.settings.set({ cartographyGridEnabled: false }));
     await expect.poll(() => fixture.page.evaluate(() => window.launcherNative.state.get())).toMatchObject({
-      settings: { cartographyGridEnabled: false },
+      tools: { features: { maps: { enabled: false } } },
     });
     // Assert the subscribed launcher UI too, not only its fresh snapshot API.
     await fixture.page.evaluate(async () => {
       await window.launcherNative.experience.completeSetup({ enableTools: false });
     });
     await openFeatures(fixture, "cartography");
-    const grid = settings.getByRole("switch", { name: "Exploration grid", exact: true });
-    await expect(grid).not.toBeChecked();
+    const head = settings.locator(".feature-head");
+    await expect(head.getByRole("button", { name: "Turn on", exact: true })).toBeVisible();
     await games[0]!.evaluate(() => window.gwNative.settings.set({ cartographyGridEnabled: true }));
-    await expect(grid).toBeChecked();
+    await expect(head.getByRole("button", { name: "Turn off", exact: true })).toBeVisible();
     await Promise.all(games.map(async game => {
       await expect.poll(() => game.evaluate(() => window.gwToolsSettings().cartographyGridEnabled)).toBe(true);
     }));
@@ -569,9 +569,7 @@ test("global map settings live in the launcher and survive restart", { tag: "@jo
     await first.page.getByRole("button", { name: "Play the plain game" }).click();
     const settings = await openFeatures(first, "cartography");
     await expect(settings.locator(".feature-head").getByText("Off while you play the plain game.", { exact: true })).toBeVisible();
-    const grid = settings.getByRole("switch", { name: "Exploration grid", exact: true });
-    await grid.click();
-    await expect(grid).toBeChecked();
+    await settings.evaluate(() => window.launcherNative.tools.setFeature({ tool: "maps", enabled: true }));
     await settings.getByRole("button", { name: "Customize style" }).click();
     await expect(settings.getByRole("region", { name: "Edit Cartographer custom" })).toBeVisible();
     await settings.locator(".feature-page .back").click();

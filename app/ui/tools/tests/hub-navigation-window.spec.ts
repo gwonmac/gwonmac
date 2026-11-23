@@ -38,7 +38,7 @@ test('Hub has a locked position, an always available corner grip and bounded mov
   const placement = await panel.boundingBox();
   await expect(grip).toBeVisible();
   const search = page.locator('.hub-search input');
-  await search.fill('maps'); await search.press('Enter');
+  await search.fill('elite skill planner'); await search.press('Enter');
   expect(await panel.boundingBox()).toEqual(placement);
   await expect(page.getByRole('navigation', { name: 'Hub breadcrumb' })).toContainText('Home');
   await page.screenshot({ path: info.outputPath('hub-maps-breadcrumb.png') });

@@ -331,7 +331,7 @@ test('the footer slots keep their place from page to page', async ({ page }) => 
     return [Math.round(box.y), Math.round(box.x), Math.round(box.width), Math.round((await primary(page).boundingBox())!.x + (await primary(page).boundingBox())!.width)];
   };
   const home = await slot();
-  for (const query of ['commands', 'hub preferences', 'switch account', 'build library', 'build smiter', 'team gom', 'romi', 'settings', 'maps', 'conversion rates']) {
+  for (const query of ['commands', 'hub preferences', 'switch account', 'build library', 'build smiter', 'team gom', 'romi', 'settings', 'elite skill planner', 'conversion rates']) {
     await page.keyboard.press('Meta+r');
     await enter(page, query);
     expect(await slot(), query).toEqual(home);

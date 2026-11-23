@@ -51,7 +51,7 @@ export function createToolsRuntime(input: Readonly<{
       getClientSession: input.getClientSession,
       isFeatureEnabled,
       run: (operation) => gate.run(async () => {
-        if (!isFeatureEnabled(part.feature)) {
+        if (!part.active(isFeatureEnabled)) {
           throw new AllowlistError(`${part.label} is disabled`);
         }
         return operation();
