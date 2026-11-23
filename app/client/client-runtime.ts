@@ -173,7 +173,8 @@ export class ClientRuntime {
   /**
    * The store the download is actually driving, kept beside its promise. After
    * a generation swap it is no longer `activeSlot.current.store`, and stopping
-   * the current one would stop the new client's prefetch instead.
+   * the current one would stop the new client's prefetch instead. The newest
+   * download owns this field; an older one still draining does not clear it.
    */
   private fullDownload: {
     store: ChunkStore;
@@ -903,8 +904,12 @@ export class ClientRuntime {
    * written in the main process at all.
    */
   downloadAll(): Promise<FullDownloadOutcome> {
-    if (this.fullDownload) return this.fullDownload.promise;
     const active = this.activeSlot.current;
+    // A download still draining a store that a generation swap stopped is not
+    // this generation's download: the new store gets its own.
+    if (this.fullDownload && this.fullDownload.store === active?.store) {
+      return this.fullDownload.promise;
+    }
     if (!active) {
       return Promise.resolve({ status: "failed", errorCode: "not_ready" });
     }
@@ -992,7 +997,7 @@ export class ClientRuntime {
         return { status: "failed", errorCode: code };
       })
       .finally(() => {
-        this.fullDownload = null;
+        if (this.fullDownload?.promise === promise) this.fullDownload = null;
       });
     this.fullDownload = { store: active.store, promise };
     return promise;
