@@ -65,7 +65,7 @@
 .elite-result[data-expanded="true"] { background: var(--ui-hover); }
 .elite-inline-detail { padding: var(--ui-space-2) var(--ui-space-3) var(--ui-space-3); font-size: var(--ui-font-size-sm); }
 .elite-inline-detail .inspector-identity { display: none; }
-.elite-inline-detail h3 { font-size: var(--ui-font-size-sm); margin: var(--ui-space-4) 0 var(--ui-space-1); color: var(--ui-text-muted); }
+.elite-inline-detail h3 { margin: var(--ui-space-4) 0 var(--ui-space-1); }
 .elite-inline-detail .skill-description p { margin: 0; }
 .elite-inline-detail .skill-description { font-family: var(--ui-font-reading); line-height: 1.5; }
 .elite-inline-detail .elite-location:first-of-type { border-top: 0; }
@@ -105,7 +105,7 @@
 .elite-tag[data-kind="captured"] { color: var(--ui-success); }
 .elite-tag[data-kind="here"] { color: var(--ui-accent); }
 .elite-result[data-captured] .elite-skill-icon img { filter: grayscale(.5); opacity: .7; }
-.elite-section-title { margin: var(--ui-space-3) var(--ui-space-3) var(--ui-space-1); color: var(--ui-text-muted); font-size: var(--ui-font-size-sm); font-weight: normal; letter-spacing: .06em; text-transform: uppercase; }
+.elite-section-title { margin: var(--ui-space-3) var(--ui-space-3) var(--ui-space-1); }
 .elite-clear-captured { margin: var(--ui-space-2) var(--ui-space-3); }
 /* Footer: target, then what the maps show. */
 .elite-current-target { display: grid; gap: 2px; font-size: var(--ui-font-size-sm); }

@@ -77,8 +77,10 @@ has the job. `pnpm ui:sweep` checks the rules marked *swept*
 - **Group labels.** In the Hub every group of results or tiles has the
   `.hub-group` label: display type, accent colour, body size; a count or key
   hint sits at the right in muted caption text. In a Tools window a section
-  heading is interface type at body size, semibold and bright; a count sits at
-  its right, a sentence of help below it. No uppercase labels, no eyebrows.
+  heading is `.ui-section-heading`: interface type at body size, semibold and
+  bright; a count sits at its right, a sentence of help below it. A pane's own
+  title is one step up, at `--ui-font-size-lg`. No uppercase labels, no
+  eyebrows.
 - **Rows and tiles.** A Hub row is icon, title, detail, then type or keys at
   the right (`.hub-row`); a Tools list row is `.ui-row`. A set of places or
   favourites is compact tiles that wrap (the Travel tile), and ↑ ↓ move by

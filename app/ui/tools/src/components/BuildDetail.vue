@@ -477,7 +477,7 @@ defineExpose({
       </section>
 
       <section>
-        <h2>Tags</h2>
+        <h2 class="ui-section-heading">Tags</h2>
         <TagEditor
           :tags="editor.draft.value.tags"
           :options="controller.tags.value"
@@ -498,7 +498,7 @@ defineExpose({
       </section>
 
       <section class="adapt-section">
-        <h2>Adapt from template code</h2>
+        <h2 class="ui-section-heading">Adapt from template code</h2>
         <p>Replace the draft’s professions, attributes, and bar while keeping its identity.</p>
         <textarea
           v-model="adaptCode"
@@ -514,7 +514,7 @@ defineExpose({
       </section>
 
       <section v-if="editor.usage.value.length" class="usage-section">
-        <h2>Used by</h2>
+        <h2 class="ui-section-heading">Used by</h2>
         <button
           v-for="team in editor.usage.value"
           :key="team.id"
@@ -534,7 +534,7 @@ defineExpose({
 
       <section v-if="merging && parent" class="inline-action">
         <div>
-          <h2>Make this the new {{ parent.name }}?</h2>
+          <h2 class="ui-section-heading">Make this the new {{ parent.name }}?</h2>
           <p>The original receives this build and linked teams move back to it.</p>
         </div>
         <div class="action-row">
@@ -555,7 +555,7 @@ defineExpose({
 
     <section v-if="editor.commitPending.value" class="shared-commit-sheet">
       <div>
-        <h2>This build is shared</h2>
+        <h2 class="ui-section-heading">This build is shared</h2>
         <p>Update every linked team, or move selected teams to a related variant.</p>
       </div>
       <div class="check-list">

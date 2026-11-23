@@ -239,10 +239,6 @@
 
 .apply-readiness h3,
 .apply-readiness p { margin: 0; }
-.apply-readiness h3 {
-  color: var(--ui-text-bright);
-  font-size: var(--ui-font-size);
-}
 .apply-readiness p {
   margin-top: 2px;
   color: var(--ui-text-muted);

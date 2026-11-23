@@ -1242,6 +1242,19 @@ button.ui-chip[aria-disabled="true"] {
   text-wrap: pretty;
 }
 
+/* A section heading inside a Tools window: interface type at body size, semibold and
+ * bright. A count sits at its right, a sentence of help below it; never uppercase. A pane's
+ * own title is one step up, at --ui-font-size-lg. */
+.ui-section-heading {
+  margin: 0;
+  color: var(--ui-text-bright);
+  font-family: var(--ui-font-interface);
+  font-size: var(--ui-font-size);
+  font-weight: var(--ui-font-weight-semibold);
+  letter-spacing: normal;
+  text-transform: none;
+}
+
 /* Loading is a .ui-empty too: these bars pulse above a line that names what loads
  * ("Loading trader prices…"). The one loading animation in the Tools and the Hub. */
 .ui-skeleton {
