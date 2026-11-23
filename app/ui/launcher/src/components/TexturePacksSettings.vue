@@ -1,9 +1,16 @@
 <script setup lang="ts">
+/**
+ * The Texture packs section of Settings, launcher only: adding a .tpf file, choosing the pack new
+ * game windows use, and removing one. Adding and removing report in this section's own line;
+ * the choice is a setting, so the page's save status (`performSave`, ../save-status.ts) reports
+ * it, with Retry and Revert after a refusal.
+ */
 import { nextTick, ref } from "vue";
 import { Trash2, Upload } from "lucide-vue-next";
 import type { TexturePackFailureCode, TexturePackSnapshot } from "@shared/texture-packs";
+import type { PerformSave } from "../save-status";
 
-defineProps<{ texturePacks: TexturePackSnapshot }>();
+const props = defineProps<{ texturePacks: TexturePackSnapshot; performSave: PerformSave }>();
 
 const busy = ref(false);
 const status = ref("");
@@ -60,18 +67,8 @@ async function importPack() {
 async function select(id: string | null) {
   const native = window.launcherNative;
   if (!native || busy.value) return;
-  busy.value = true;
-  status.value = "Saving your choice…";
-  try {
-    await native.texturePacks.select(id);
-    status.value = id
-      ? "Selected. You will see this texture pack the next time you open Guild Wars."
-      : "Selected. You will see the original Guild Wars look the next time you open the game.";
-  } catch {
-    status.value = "Could not select this texture pack. Try again.";
-  } finally {
-    busy.value = false;
-  }
+  status.value = "";
+  try { await props.performSave(() => native.texturePacks.select(id)); } catch { /* The page's save status owns this failure. */ }
 }
 
 async function remove(id: string) {
@@ -95,7 +92,7 @@ async function remove(id: string) {
     <button class="primary small" :disabled="busy" @click="importPack"><Upload />Add .tpf file</button>
   </div>
   <p class="texture-pack-note">Your choice is used for every account. If the game is open, close it and open it again to see the change.</p>
-  <fieldset class="texture-pack-list" :disabled="busy">
+  <fieldset class="texture-pack-list" data-setting="texture-packs" :disabled="busy">
     <legend class="visually-hidden">Active texture pack</legend>
     <div class="texture-pack-card" :class="{ selected: texturePacks.selectedPackId === null }">
       <label><input type="radio" name="texture-pack" :checked="texturePacks.selectedPackId === null" @change="select(null)" />

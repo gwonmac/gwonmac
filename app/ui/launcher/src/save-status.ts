@@ -11,7 +11,7 @@
  */
 import { computed, nextTick, ref, type Ref } from "vue";
 import { SETTING_APPLIES_NOTE } from "@shared/setting-copy";
-import { SETTINGS } from "@shared/settings-catalogue";
+import { SETTINGS, SETTINGS_SECTIONS } from "@shared/settings-catalogue";
 
 export type SaveState = "idle" | "saving" | "failed" | "saved";
 /** Wraps one bridge write so the status line reports it; rejects when the write fails. */
@@ -40,7 +40,8 @@ export function useSaveStatus(options: Readonly<{ keepsChange: boolean; root: Re
     if (!(control instanceof HTMLElement) || locked.value) return;
     const setting = control.closest<HTMLElement>("[data-setting]")?.dataset.setting;
     const entry = SETTINGS.find(candidate => candidate.id === setting);
-    const label = entry?.label ?? control.getAttribute("aria-label") ?? control.closest("label")?.querySelector("strong")?.textContent ?? "Settings";
+    // A section that is one choice (Texture packs) names its form by the section's id.
+    const label = entry?.label ?? SETTINGS_SECTIONS.find(section => section.id === setting)?.label ?? control.getAttribute("aria-label") ?? control.closest("label")?.querySelector("strong")?.textContent ?? "Settings";
     edited.value = { label, note: entry?.applies ? SETTING_APPLIES_NOTE[entry.applies] : "", setting };
     changed = control;
   }
