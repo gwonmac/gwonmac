@@ -44,7 +44,7 @@ Skills on the native maps run as the `cartography` companion part.
 
 Maps follows its manifest's region rule, PvE only. While the live play region
 is PvP or unknown, every Maps surface hides: the map overlays, the Compass
-terrain and reveal range, the range rings, both Compass controls, and the
+terrain and reveal range, the range rings, the Compass dock, and the
 Elite Skills markers. The settings stay as they are, and the surfaces return
 when the region is PvE again. The region is the one every PvE feature reads:
 when the `cartography` companion part activates, it hands the Maps stage a
@@ -119,8 +119,8 @@ on either map hides only that surface.
 Continent progress and guidance cover Tyria, Pre-Searing, Cantha, and Elona.
 The Battle Isles, Realm of Torment, dungeons, and other maps outside a campaign
 world map keep the local walkable-terrain layer but hide global exploration
-guidance. The compact control remains visible and explains this
-limited mode when opened. Settings remain intact and apply again automatically
+guidance. The Exploration grid's dock section stays and says that this area
+has no exploration progress. Settings remain intact and apply again automatically
 after travel to a fully supported area.
 
 The World Map projection comes from a complete native event context.
@@ -253,19 +253,35 @@ resampling during zoom for fewer CPU paints and GPU uploads.
 
 Compass ranges also work without opening the Mission Map. Their radii are
 1012, 1248, 2512, and 3500 Guild Wars units, projected from the certified
-5000-unit Compass edge. Click the separate circular control beside the Compass
-to open its menu. Use the menu to show or hide all ranges, choose individual
-ranges, and preview each ring's opacity. Turning the master off preserves those
-choices. The Compass ranges Feature page provides the same durable controls.
+5000-unit Compass edge. Turning the Feature off keeps the player's choice of
+rings and their opacities.
 
-The Cartography and Compass-range controls form one centred stack. A lone
-available control remains centred by itself. Both menus use the same size,
-spacing, idle visibility, and outward-facing placement.
-The player can hide the stack (`compassButtonsShown`) or drag either control to
-move both (`compassButtonsOffset`, a pixel offset from the stack's place beside
-the Compass). The stack keeps following the Compass at that offset; the range
-rings stay on the Compass. A drag of a few pixels or more is not a click, so it
-never opens a menu.
+## Compass dock
+
+One button beside the Compass opens one panel
+([`compass-dock.ts`](../app/features/cartography/renderer/compass-dock.ts)). The
+panel has a section for each map Feature that is on and can draw here, in this
+order: Exploration grid (opacity, reveal range), Walking route (how to set a
+target, walkable terrain and its opacity), Compass ranges (colours, each ring
+and its opacity), and in development builds Live evidence. With no section the
+button does not show. The Elite Skill Planner draws on the Mission Map only, so
+it has no section.
+
+The dock owns placement, the drag, idle visibility, opening and closing, and
+saving: one save runs at a time and the panel refuses input until it settles.
+Sections ([`map-dock-sections.ts`](../app/features/cartography/renderer/map-dock-sections.ts))
+only draw saved settings and ask the dock to save. They never turn a Feature on
+or off; its switch stays in the Hub, the launcher and its shortcut. A slider
+previews its opacity while it moves and saves once on release. The map style is
+not in the dock: it is a look every map Feature shares, so it lives in
+Settings › Appearance and the Hub.
+
+The button sits centred beside the Compass, on the side with room for the panel.
+The player can hide it (`compassButtonsShown`), set how visible it is while
+closed (`cartographyControlIdleOpacity`), or drag it (`compassButtonsOffset`, a
+pixel offset from its place beside the Compass). It keeps following the Compass
+at that offset; the range rings stay on the Compass. A drag of a few pixels or
+more is not a click, so it never opens the panel.
 
 ## Walking route
 

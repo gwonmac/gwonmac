@@ -81,7 +81,7 @@ async function importTheme() {
   <p v-if="message" role="status" class="inline-message">{{ message }}</p>
   <template v-if="mapLook.length">
     <h2 class="appearance-heading">Maps and Compass</h2>
-    <p>The map style and the Compass buttons apply to every map Feature: the Exploration grid, the Walking route, Compass ranges and the Elite Skill Planner.</p>
+    <p>The map style and the Compass button apply to every map Feature: the Exploration grid, the Walking route, Compass ranges and the Elite Skill Planner.</p>
     <FeatureSettings v-for="feature in mapLook" :key="feature.id" place="appearance" :feature="feature" :stage="stage" :settings="settings" :shortcuts="shortcuts" :save="save" :perform-save="performSave" />
   </template>
 </template>

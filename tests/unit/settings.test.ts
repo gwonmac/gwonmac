@@ -3,7 +3,6 @@ import assert from "node:assert/strict";
 import { chmod, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { RendererSettingsPatch } from "../../app/shared/contracts.js";
 import { DEFAULT_SETTINGS, TOOLS_SETTINGS, toolsSettings } from "../../app/shared/settings/index.js";
 import { LAST_UPDATE_CHECK_AT_MAX } from "../../app/shared/settings/core.js";
 import { DEFAULT_CUSTOM_UI_THEME } from "../../app/shared/ui-theme.js";
@@ -12,7 +11,6 @@ import type { FeatureDefinition } from "../../app/features/define.js";
 import { FEATURES } from "../../app/features/index.js";
 import {
   CARTOGRAPHY_BUILTIN_PRESETS,
-  type CartographyPresetRef,
 } from "../../app/shared/cartography-overlay.js";
 import {
   loadSettings,
@@ -38,20 +36,6 @@ const newerFeatureSettings = (named: Iterable<string>): string[] => {
 };
 
 describe("settings", () => {
-  it("makes preset selection and library replacement exclusive for renderer callers", () => {
-    const accepts = (patch: RendererSettingsPatch): RendererSettingsPatch => patch;
-    const selection: CartographyPresetRef = { kind: "builtin", id: "monochrome" };
-    assert.deepEqual(accepts({ cartographyPresetSelection: selection }), {
-      cartographyPresetSelection: selection,
-    });
-    const invalid: RendererSettingsPatch = {
-      cartographyPresetSelection: selection,
-      // @ts-expect-error A semantic selection cannot carry a stale library snapshot.
-      cartographyPresetLibrary: DEFAULT_SETTINGS.cartographyPresetLibrary,
-    };
-    assert.ok(invalid);
-  });
-
   it("exposes the documented defaults", () => {
     const documented = {
       renderScale: 2,
@@ -458,11 +442,6 @@ describe("settings", () => {
       cartographyRevealMode: "birds-eye",
     });
     assert.throws(() => parseRendererSettingsPatch({ cartographyRevealMode: "wide" }), /RevealMode is invalid/u);
-    assert.deepEqual(parseRendererSettingsPatch({
-      cartographyPresetSelection: { kind: "builtin", id: "synthwave" },
-    }), {
-      cartographyPresetSelection: { kind: "builtin", id: "synthwave" },
-    });
     assert.throws(
       () => parseRendererSettingsPatch({
         travelShortcuts: DEFAULT_SETTINGS.travelShortcuts,
@@ -478,16 +457,7 @@ describe("settings", () => {
       /cannot update "gwonmacTools"/u,
     );
     assert.throws(
-      () => parseRendererSettingsPatch({
-        cartographyPresetSelection: { kind: "builtin", id: "unknown" },
-      }),
-      /PresetSelection is invalid/u,
-    );
-    assert.throws(
-      () => parseRendererSettingsPatch({
-        cartographyPresetSelection: { kind: "builtin", id: "synthwave" },
-        cartographyPresetLibrary: DEFAULT_SETTINGS.cartographyPresetLibrary,
-      }),
+      () => parseRendererSettingsPatch({ cartographyPresetLibrary: DEFAULT_SETTINGS.cartographyPresetLibrary }),
       /cannot update "cartographyPresetLibrary"/u,
     );
   });

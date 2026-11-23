@@ -219,12 +219,12 @@ const inGameNames = declared(tokens);
  * test below keeps each entry true.
  */
 const IN_GAME_PROVIDED: Record<string, { setBy: string; reason: string }> = {
-  "--cartography-control-size": { setBy: "app/features/cartography/renderer/overlay-controls.ts", reason: "the trigger's size, from COMPASS_CONTROL_SIZE" },
-  "--cartography-panel-width": { setBy: "app/features/cartography/renderer/overlay-controls.ts", reason: "the panel's width, from PANEL_WIDTH" },
-  "--cartography-trigger-border": { setBy: "app/features/cartography/renderer/overlay-controls.ts", reason: "the active map style's boundary colour" },
-  "--compass-range-control-size": { setBy: "app/features/cartography/renderer/compass-range-controls.ts", reason: "the trigger's size, from COMPASS_CONTROL_SIZE" },
-  "--compass-range-panel-width": { setBy: "app/features/cartography/renderer/compass-range-controls.ts", reason: "the panel's width, from PANEL_WIDTH" },
-  "--compass-range-color": { setBy: "app/features/cartography/renderer/compass-range-controls.ts", reason: "each range's colour, from compass-ranges.ts" },
+  "--compass-dock-size": { setBy: "app/features/cartography/renderer/compass-dock.ts", reason: "the button's size, from COMPASS_DOCK_SIZE" },
+  "--compass-dock-gap": { setBy: "app/features/cartography/renderer/compass-dock.ts", reason: "the space between button and panel, from COMPASS_DOCK_GAP" },
+  "--compass-dock-panel-width": { setBy: "app/features/cartography/renderer/compass-dock.ts", reason: "the panel's width, from COMPASS_DOCK_PANEL_WIDTH" },
+  "--compass-dock-idle-opacity": { setBy: "app/features/cartography/renderer/compass-dock.ts", reason: "the player's Compass button visibility setting" },
+  "--compass-dock-accent": { setBy: "app/features/cartography/renderer/compass-dock.ts", reason: "the active map style's boundary colour" },
+  "--compass-range-color": { setBy: "app/features/cartography/renderer/map-dock-sections.ts", reason: "each range's colour, from compass-ranges.ts" },
   "--character-cards": { setBy: "app/features/character-switch/ui/HubCharacters.vue", reason: "the carousel's card count" },
 };
 const launcherTokens = declared(readFileSync(LAUNCHER_TOKENS, "utf8"));

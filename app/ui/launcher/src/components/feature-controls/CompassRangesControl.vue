@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * The Compass range rings on the Compass ranges Feature page: each ring's switch and opacity in one
- * row, as the in-game Compass control shows them. The words come from the manifest.
+ * row, as the Compass dock shows them in the game. The words come from the manifest.
  */
 import { COMPASS_RANGE_INDICATORS } from "@shared/compass-ranges";
 import { featureSettingText } from "@shared/feature-contracts";

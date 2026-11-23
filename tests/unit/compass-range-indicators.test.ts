@@ -1,13 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import {
-  projectCompassControlPosition,
-} from "../../app/features/cartography/renderer/compass-control-placement.js";
+import { placeCompassDock } from "../../app/features/cartography/renderer/compass-dock.js";
 import {
   compassRangeAtPoint,
   projectCompassRangeIndicators,
+  visibleCompassRanges,
 } from "../../app/features/cartography/renderer/compass-range-layer.js";
-import { visibleCompassRanges } from "../../app/features/cartography/renderer/compass-range-controls.js";
 import { COMPASS_RANGE_INDICATORS } from "../../app/shared/compass-ranges.js";
 import { DEFAULT_SETTINGS } from "../../app/shared/settings/index.js";
 
@@ -94,7 +92,7 @@ test("projects saved and preview opacity without changing range geometry", () =>
     { id: "spirit-extended", opacity: 95 },
   ]);
   assert.equal(
-    visibleCompassRanges(settings, (id) => id === "cast" ? 72 : null)[1]?.opacity,
+    visibleCompassRanges(settings, (key) => key === "compassRangeCastOpacity" ? 72 : null)[1]?.opacity,
     72,
   );
 });
@@ -113,25 +111,17 @@ test("offers a high-contrast monochrome theme without changing range geometry", 
   );
 });
 
-test("centers one control and the complete two-control stack", () => {
-  const box = { left: 900, top: 20, width: 245, height: 260 };
+// Wrong behaviours: the dock button drifts off the Compass's middle, opens its panel off-screen,
+// or is placed from a box the Compass snapshot could not measure.
+test("the dock button sits centred beside the Compass, on the side with room for its panel", () => {
   const viewport = { width: 1_440, height: 900 };
-  const single = projectCompassControlPosition(box, viewport, 204, { index: 0, count: 1 });
-  const first = projectCompassControlPosition(box, viewport, 204, { index: 0, count: 2 });
-  const second = projectCompassControlPosition(box, viewport, 204, { index: 1, count: 2 });
-  assert.ok(single && first && second);
-  assert.equal(single.top + 15, box.top + box.height / 2);
-  assert.equal((first.top + second.top + 30) / 2, box.top + box.height / 2);
-  assert.equal(second.top - first.top, 35);
-  assert.equal(first.left, second.left);
-});
-
-test("control placement validates slots and moves panels away from the viewport edge", () => {
-  const viewport = { width: 800, height: 600 };
-  assert.equal(projectCompassControlPosition(
-    { left: 100, top: 100, width: 245, height: 260 }, viewport, 204, { index: 2, count: 2 },
-  ), null);
-  assert.equal(projectCompassControlPosition(
-    { left: 10, top: 100, width: 245, height: 260 }, viewport, 204, { index: 0, count: 1 },
-  )?.panelSide, "right");
+  const box = { left: 900, top: 20, width: 245, height: 260 };
+  const right = placeCompassDock(box, viewport, 228);
+  assert.ok(right);
+  assert.equal(right.top + 15, box.top + box.height / 2);
+  assert.equal(right.panelSide, "left");
+  assert.equal(right.left, box.left - 30 - 5);
+  assert.equal(placeCompassDock({ ...box, left: 10 }, viewport, 228)?.panelSide, "right");
+  assert.equal(placeCompassDock({ ...box, width: 0 }, viewport, 228), null);
+  assert.equal(placeCompassDock({ ...box, top: -400 }, viewport, 228)?.top, 6);
 });

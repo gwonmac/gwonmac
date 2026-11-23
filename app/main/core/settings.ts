@@ -25,7 +25,6 @@ import {
   type AppSettings,
 } from "../../shared/settings/index.js";
 import { AppError } from "../../shared/errors.js";
-import { normaliseCartographyPresetRef } from "../../shared/cartography-overlay.js";
 import { writeAtomicJson } from "./atomic-file.js";
 import { preserveCorruptDocument, quarantineCorruptDocument } from "./corrupt-document.js";
 
@@ -95,30 +94,13 @@ export function parseRendererSettingsPatch(raw: unknown): RendererSettingsPatch 
     throw new AppError("bad_settings", "settings patch must be an object");
   }
   const src = raw as Record<string, unknown>;
-  const allowed = new Set<string>([
-    ...RENDERER_WRITABLE_SETTINGS,
-    "cartographyPresetSelection",
-  ]);
+  const allowed = new Set<string>(RENDERER_WRITABLE_SETTINGS);
   const unknownKey = Object.keys(src).find((key) => !allowed.has(key));
   if (unknownKey) {
     throw new AppError(
       "bad_settings",
       `game renderer cannot update ${JSON.stringify(unknownKey)}`,
     );
-  }
-  const hasSelection = Object.hasOwn(src, "cartographyPresetSelection");
-  if (hasSelection && Object.keys(src).length !== 1) {
-    throw new AppError(
-      "bad_settings",
-      "settings preset selection must be one atomic operation",
-    );
-  }
-  if (hasSelection) {
-    const selection = normaliseCartographyPresetRef(src.cartographyPresetSelection);
-    if (selection === null) {
-      throw new AppError("bad_settings", "settings.cartographyPresetSelection is invalid");
-    }
-    return { cartographyPresetSelection: selection };
   }
   const parsed = parseSettingsPatch(src);
   const patch: Partial<Pick<AppSettings, (typeof RENDERER_WRITABLE_SETTINGS)[number]>> = {};

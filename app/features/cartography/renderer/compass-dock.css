@@ -1,0 +1,313 @@
+/* The Compass dock beside the live Compass, and the Compass range hover label.
+ * Static presentation stays here; TypeScript owns only state and geometry (compass-dock.ts). */
+
+#compass-dock {
+  position: fixed;
+  z-index: var(--ui-z-status);
+  width: var(--compass-dock-size);
+  height: var(--compass-dock-size);
+  color: var(--ui-text-bright);
+  font: var(--ui-font-weight-semibold) var(--ui-type-caption-size) / 1.25 var(--ui-font-interface);
+  pointer-events: auto;
+  opacity: var(--compass-dock-idle-opacity, 0.35);
+  transition: opacity 140ms ease-out;
+}
+
+/* Closed, the button sits at the player's idle visibility; in use, it shows fully. */
+#compass-dock:hover,
+#compass-dock:focus-within,
+#compass-dock:has(.compass-dock-trigger[aria-expanded="true"]) {
+  opacity: 1;
+}
+
+#compass-dock[hidden],
+.compass-dock-panel[hidden],
+.compass-dock-notice[hidden],
+.compass-range-tooltip[hidden] {
+  display: none;
+}
+
+.compass-dock-trigger {
+  display: grid;
+  width: var(--compass-dock-size);
+  height: var(--compass-dock-size);
+  padding: 0;
+  place-items: center;
+  color: var(--ui-text-bright);
+  background: var(--ui-well-overlay-fill);
+  border: var(--ui-frame-width) solid var(--compass-dock-accent, var(--ui-edge-strong));
+  border-radius: var(--ui-radius-pill);
+  box-shadow: var(--ui-shadow-raised-soft);
+  cursor: pointer;
+}
+
+.compass-dock-trigger:active,
+.compass-dock-trigger[aria-expanded="true"] {
+  background: var(--ui-accent-well-fill);
+}
+
+.compass-dock-trigger:focus-visible,
+.compass-dock-panel :where(button, input, select, summary):focus-visible {
+  outline: var(--ui-border-width) solid var(--ui-focus);
+  outline-offset: var(--ui-frame-width);
+}
+
+.compass-dock-icon {
+  display: block;
+  width: 15px;
+  height: 15px;
+}
+
+.compass-dock-panel {
+  position: absolute;
+  width: var(--compass-dock-panel-width);
+  max-height: calc(100vh - 12px);
+  box-sizing: border-box;
+  overflow-y: auto;
+  padding: var(--ui-space-2);
+  color: var(--ui-text);
+  background: var(--ui-panel-fill);
+  border: var(--ui-frame-width) solid var(--ui-edge);
+  border-radius: var(--ui-radius-lg);
+  box-shadow: var(--ui-shadow);
+  backdrop-filter: blur(6px);
+}
+
+.compass-dock-panel[data-side="left"] {
+  right: calc(var(--compass-dock-size) + var(--compass-dock-gap));
+}
+
+.compass-dock-panel[data-side="right"] {
+  left: calc(var(--compass-dock-size) + var(--compass-dock-gap));
+}
+
+.compass-dock-sections {
+  display: grid;
+  gap: var(--ui-space-2);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.compass-dock-section {
+  display: grid;
+  gap: var(--ui-space-1);
+}
+
+.compass-dock-section + .compass-dock-section {
+  padding-top: var(--ui-space-2);
+  border-top: var(--ui-border-width) solid var(--ui-edge);
+}
+
+.compass-dock-section h3 {
+  margin: 0;
+  color: var(--ui-text-bright);
+  font: inherit;
+}
+
+.compass-dock-section > div {
+  display: grid;
+  gap: var(--ui-space-1);
+}
+
+.compass-dock-hint,
+.compass-dock-notice,
+.compass-dock-status,
+.compass-dock-evidence {
+  margin: 0;
+  font: var(--ui-font-weight-medium) 10px / 1.4 var(--ui-font-readable);
+}
+
+.compass-dock-hint {
+  color: var(--ui-text-faint);
+}
+
+.compass-dock-notice {
+  padding: var(--ui-space-1) var(--ui-space-2);
+  color: var(--ui-text-muted);
+  background: var(--ui-well-fill);
+  border: var(--ui-border-width) solid var(--ui-warning);
+  border-radius: var(--ui-radius-sm);
+}
+
+.compass-dock-status {
+  margin-top: var(--ui-space-1);
+  color: var(--ui-warning);
+}
+
+.compass-dock-status:empty {
+  display: none;
+}
+
+.compass-dock-toggle {
+  width: 100%;
+  height: var(--ui-control-height-compact);
+  padding: 0 var(--ui-space-1);
+  color: var(--ui-text-muted);
+  background: var(--ui-well-fill);
+  border: var(--ui-frame-width) solid var(--ui-edge);
+  border-radius: var(--ui-radius);
+  font: inherit;
+  cursor: pointer;
+}
+
+.compass-dock-toggle[aria-pressed="true"] {
+  color: var(--ui-text-bright);
+  background: var(--ui-accent-well-fill);
+  border-color: var(--ui-accent);
+}
+
+.compass-dock-panel :where(button, input, select):disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.compass-dock-field {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) 30px;
+  align-items: center;
+  gap: var(--ui-space-1);
+  color: var(--ui-text-muted);
+}
+
+.compass-dock-field[data-kind="choice"] {
+  grid-template-columns: 52px minmax(0, 1fr);
+}
+
+.compass-dock-field input[type="range"] {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  accent-color: var(--compass-range-color, var(--ui-accent));
+  cursor: pointer;
+}
+
+.compass-dock-field output {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.compass-dock-field select {
+  width: 100%;
+  min-width: 0;
+  height: 26px;
+  padding: 0 var(--ui-space-1);
+  color: var(--ui-text);
+  background: var(--ui-well-strong-fill);
+  border: var(--ui-frame-width) solid var(--ui-edge);
+  border-radius: var(--ui-radius-sm);
+  font: inherit;
+}
+
+.compass-dock-choices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--ui-space-1);
+}
+
+.compass-dock-ranges {
+  display: grid;
+  gap: var(--ui-space-1);
+}
+
+.compass-dock-range {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 96px;
+  align-items: center;
+  gap: var(--ui-space-1);
+}
+
+.compass-dock-range .compass-dock-field {
+  grid-template-columns: minmax(0, 1fr) 30px;
+}
+
+.compass-dock-range .compass-dock-toggle {
+  display: grid;
+  grid-template-columns: 10px 1fr;
+  align-items: center;
+  gap: var(--ui-space-1);
+  min-width: 0;
+  text-align: left;
+}
+
+.compass-dock-range .compass-dock-toggle[aria-pressed="true"] {
+  border-color: var(--compass-range-color);
+}
+
+.compass-dock-swatch {
+  width: 7px;
+  height: 7px;
+  background: var(--compass-range-color);
+  border-radius: var(--ui-radius-pill);
+  box-shadow: 0 0 0 1px var(--ui-edge-strong);
+}
+
+.compass-dock-evidence summary {
+  display: grid;
+  grid-template-columns: 8px auto 1fr;
+  align-items: center;
+  gap: var(--ui-space-1);
+  color: var(--ui-text-muted);
+  cursor: pointer;
+  list-style: none;
+}
+
+.compass-dock-evidence summary::-webkit-details-marker {
+  display: none;
+}
+
+.compass-dock-evidence summary strong {
+  overflow: hidden;
+  color: var(--ui-text-bright);
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compass-dock-evidence-indicator {
+  width: 7px;
+  height: 7px;
+  background: var(--ui-danger);
+  border-radius: var(--ui-radius-pill);
+}
+
+.compass-dock-evidence[data-tone="ready"] .compass-dock-evidence-indicator {
+  background: var(--ui-success);
+}
+
+.compass-dock-evidence:is([data-tone="loading"], [data-tone="limited"]) .compass-dock-evidence-indicator {
+  background: var(--ui-warning);
+}
+
+.compass-dock-evidence dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px var(--ui-space-2);
+  margin: var(--ui-space-2) 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.compass-dock-evidence dt {
+  color: var(--ui-text-faint);
+}
+
+.compass-dock-evidence dd {
+  min-width: 0;
+  margin: 0;
+  color: var(--ui-text-muted);
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.compass-range-tooltip {
+  position: absolute;
+  z-index: var(--ui-z-status);
+  padding: 2px 5px;
+  color: var(--ui-text-bright);
+  background: var(--ui-panel-fill);
+  border-radius: var(--ui-radius-sm);
+  font: var(--ui-font-weight-semibold) 11px / 1.2 var(--ui-font-interface);
+  white-space: nowrap;
+  pointer-events: none;
+}

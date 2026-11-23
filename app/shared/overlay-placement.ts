@@ -1,7 +1,7 @@
 /**
  * Owns the stored shapes of a dragged game overlay's place: a distance from the
  * nearest game-window corner (Target Distance), or a pixel offset from the place
- * an overlay normally takes (the compass buttons, which follow the compass).
+ * an overlay normally takes (the Compass dock, which follows the Compass).
  * Main and the game renderer share these bounded readers, so a place dragged in
  * one game window is the place in every window and after a restart.
  */

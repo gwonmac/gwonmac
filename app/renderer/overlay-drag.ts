@@ -1,6 +1,6 @@
 /**
  * Owns the one drag gesture that the movable game overlays share: Target Distance and the
- * compass buttons. An overlay is always draggable: a press that travels a few pixels moves
+ * Compass dock. An overlay is always draggable: a press that travels a few pixels moves
  * it live and commits once on release, and a press that does not travel stays an ordinary
  * click. Nothing here decides where an overlay may sit or how its position is stored; each
  * overlay owns that.

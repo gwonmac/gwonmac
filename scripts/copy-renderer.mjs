@@ -26,7 +26,7 @@ const ASSETS = [
 // A feature keeps its stylesheet in its own folder. It lands where Rollup
 // writes that folder's modules, so index.html names it by the same path.
 const FEATURE_ASSETS = [
-  "cartography/renderer/cartography-overlay-controls.css",
+  "cartography/renderer/compass-dock.css",
   "character-switch/renderer/character-switch.css",
 ];
 

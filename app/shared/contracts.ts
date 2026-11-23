@@ -33,7 +33,6 @@ import type {
   VisualCaptureStage,
 } from "./visual-capture.js";
 import type { TravelUserPreferences } from "./travel.js";
-import type { CartographyPresetRef } from "./cartography-overlay.js";
 import type { AppSettings, RendererWritableSetting } from "./settings/index.js";
 import { RELEASE_REPO } from "./project-identity.js";
 import { TRADE_SOURCE_URLS } from "./trade-chat.js";
@@ -294,26 +293,8 @@ export type DiagnosticProfile = (typeof DIAGNOSTIC_PROFILES)[number];
 
 export type AppSettingsPatch = Partial<AppSettings>;
 
-/**
- * Settings fields the sandboxed game renderer may write through generic IPC.
- * Preset selection is an operation rather than a stored field: main applies it
- * to the latest library under the preferences lock, so a compact-map choice
- * cannot overwrite edits made in the full Settings window.
- */
-type RendererStoredSettingsPatch = Readonly<
-  Partial<Pick<AppSettings, RendererWritableSetting>>
-> & Readonly<{
-  cartographyPresetSelection?: never;
-}>;
-
-type RendererPresetSelectionPatch = Readonly<{
-  cartographyPresetSelection: CartographyPresetRef;
-}>;
-
-/** A renderer write may replace the library or select from it, never both. */
-export type RendererSettingsPatch =
-  | RendererStoredSettingsPatch
-  | RendererPresetSelectionPatch;
+/** Settings fields the sandboxed game renderer may write through generic IPC. */
+export type RendererSettingsPatch = Readonly<Partial<Pick<AppSettings, RendererWritableSetting>>>;
 
 export type SettingsResetOutcome =
   | Readonly<{

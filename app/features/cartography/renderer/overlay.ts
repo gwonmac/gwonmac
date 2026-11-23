@@ -47,19 +47,12 @@ import {
   projectMissionMapContentBox,
 } from "./map-projections.js";
 import { captureCartographyEvidence } from "./evidence-capture.js";
-import {
-  createCartographyOverlayControls,
-  type CartographyQaStatus,
-} from "./overlay-controls.js";
-import {
-  createCompassRangeControls,
-  visibleCompassRanges,
-} from "./compass-range-controls.js";
-import type { CompassRangeId } from "../../../shared/compass-ranges.js";
-import type { OverlayOffset } from "../../../shared/overlay-placement.js";
-import { installOverlayDrag } from "../../../renderer/overlay-drag.js";
+import { createCompassDock, type CompassDockSection } from "./compass-dock.js";
+import { createLiveEvidenceSection, type CartographyQaStatus } from "./live-evidence.js";
+import { createMapDockSections, type MapOpacityKey } from "./map-dock-sections.js";
 import {
   createCompassRangeLayer,
+  visibleCompassRanges,
   type CompassRangeLayerSnapshot,
 } from "./compass-range-layer.js";
 import {
@@ -194,54 +187,24 @@ export function mountCartographyOverlay(options: Readonly<{
     cleanup.push(() => worldRouteLayer.dispose());
     const compassRangeLayer = createCompassRangeLayer(options.parent);
     cleanup.push(() => compassRangeLayer.dispose());
-    const previewRangeOpacity = new Map<CompassRangeId, number>();
-    const compassRangeControls = createCompassRangeControls({
-      parent: options.parent,
-      persist: options.persist,
-      previewOpacity(id, opacity) {
-        if (opacity === null) previewRangeOpacity.delete(id);
-        else previewRangeOpacity.set(id, opacity);
+    // A dock slider shows its opacity live while it moves; the saved value takes over on release.
+    const previewOpacity = new Map<MapOpacityKey, number>();
+    const opacity = (settings: AppSettings, key: MapOpacityKey): number => previewOpacity.get(key) ?? settings[key];
+    const dock = createCompassDock({ parent: options.parent, persist: options.persist });
+    cleanup.push(() => dock.dispose());
+    const sections = createMapDockSections({
+      document,
+      save: (patch) => dock.save(patch),
+      preview(key, value) {
+        if (value === null) previewOpacity.delete(key);
+        else previewOpacity.set(key, value);
       },
     });
-    cleanup.push(() => compassRangeControls.dispose());
-    let previewGridOpacity: number | null = null;
-    let previewWalkabilityOpacity: number | null = null;
     const exportEvidence = options.exportEvidence;
-    const controls = createCartographyOverlayControls({
-      parent: options.parent,
-      persist: options.persist,
-      previewOpacity(layer, opacity) {
-        if (layer === "grid") previewGridOpacity = opacity;
-        else previewWalkabilityOpacity = opacity;
-      },
-      exportEvidence: exportEvidence === null ? null : () => exportEvidence(
-        captureCartographyEvidence(state, options.modelSources),
-      ),
+    const evidence = exportEvidence === null ? null : createLiveEvidenceSection({
+      document,
+      exportEvidence: () => exportEvidence(captureCartographyEvidence(state, options.modelSources)),
     });
-
-    cleanup.push(() => controls.dispose());
-    // A drag shows its offset before the saved setting catches up with it.
-    let previewButtonsOffset: OverlayOffset | null = null;
-    const buttonsOffset = () => previewButtonsOffset ?? options.settings().compassButtonsOffset;
-    // Either Compass button moves both: a press that travels is a drag, one that does not is its click.
-    for (const trigger of [controls.trigger, compassRangeControls.trigger]) {
-      let start: Readonly<{ offset: OverlayOffset; left: number; top: number }> | null = null;
-      cleanup.push(installOverlayDrag(trigger, {
-        origin() {
-          const box = trigger.getBoundingClientRect();
-          start = { offset: buttonsOffset(), left: box.left, top: box.top };
-          return { left: box.left, top: box.top };
-        },
-        move(left, top) {
-          if (start) previewButtonsOffset = { x: Math.round(start.offset.x + left - start.left), y: Math.round(start.offset.y + top - start.top) };
-        },
-        commit() {
-          if (previewButtonsOffset) void options.persist({ compassButtonsOffset: previewButtonsOffset }).catch(() => { previewButtonsOffset = null; });
-          start = null;
-        },
-        cancel() { start = null; previewButtonsOffset = null; },
-      }));
-    }
 
     let animationFrame = 0;
     let startupTimer = 0;
@@ -523,8 +486,7 @@ export function mountCartographyOverlay(options: Readonly<{
     };
 
     const gate = createCartographyOverlayGate((): void => {
-      controls.hide();
-      compassRangeControls.hide();
+      dock.hide();
       compassRangeLayer.update(null, [], options.settings().compassRangeTheme);
       safe("compass", () => options.nativeCompassRanges.update(null, 0));
       terrainKey = "";
@@ -572,7 +534,9 @@ export function mountCartographyOverlay(options: Readonly<{
             options.settings().cartographyRevealMode === "birds-eye" ? 3 : 1,
           );
         }
-        controls.updateQaStatus(modelStats());
+        const stats = modelStats();
+        sections.grid.setAvailability(stats);
+        evidence?.update(stats);
         nextModelPoll = now + MODEL_POLL_MS;
       }
       presentation = readCartographyPresentation(state, options.modelSources);
@@ -589,27 +553,19 @@ export function mountCartographyOverlay(options: Readonly<{
         || options.nativeMapGraphics.available("mission") || options.nativeMapGraphics.available("world");
       compassRangeLayer.update(rangesAvailable ? controlBox : null, visibleCompassRanges(
         settings,
-        (id) => previewRangeOpacity.get(id) ?? null,
+        (key) => previewOpacity.get(key) ?? null,
       ), settings.compassRangeTheme);
       safe("compass", () => options.nativeCompassRanges.update(compassRangeLayer.image(), compass?.generation ?? 0));
-      const savedOffset = settings.compassButtonsOffset;
-      if (previewButtonsOffset?.x === savedOffset.x && previewButtonsOffset.y === savedOffset.y) previewButtonsOffset = null;
-      const offset = buttonsOffset();
-      // The buttons follow the Compass at the player's offset; the range rings stay on the Compass.
-      const buttonBox = controlBox === null || !settings.compassButtonsShown ? null
-        : { ...controlBox, left: controlBox.left + offset.x, top: controlBox.top + offset.y };
-      if (buttonBox === null) {
-        controls.hide();
-        compassRangeControls.hide();
-      } else if (style === null || !mapsAvailable) {
-        controls.hide();
-        if (rangesAvailable) compassRangeControls.update(buttonBox, settings, { index: 0, count: 1 });
-        else compassRangeControls.hide();
-      } else {
-        controls.update(buttonBox, settings, { index: 0, count: rangesAvailable ? 2 : 1 });
-        if (rangesAvailable) compassRangeControls.update(buttonBox, settings, { index: 1, count: 2 });
-        else compassRangeControls.hide();
-      }
+      // The dock holds a section for each map Feature that is on and can draw here; with none it hides.
+      const mapsShown = style !== null && mapsAvailable;
+      const docked: CompassDockSection[] = [];
+      if (mapsShown && settings.cartographyGridEnabled) docked.push(sections.grid);
+      if (mapsShown && settings.cartographyRouteEnabled) docked.push(sections.route);
+      if (rangesAvailable && settings.compassRangeIndicatorsEnabled) docked.push(sections.ranges);
+      if (mapsShown && evidence !== null) docked.push(evidence);
+      if (controlBox === null || !settings.compassButtonsShown) dock.hide();
+      // The saved settings, not the per-frame copy above: the dock redraws only when they change.
+      else dock.update({ compass: controlBox, settings: saved, accent: style?.walkability.boundaryColor ?? null, sections: docked });
       const disposition = cartographyOverlayDisposition(state, playRegion);
       if (disposition !== "layers") {
         terrainKey = "";
@@ -636,9 +592,8 @@ export function mountCartographyOverlay(options: Readonly<{
       routeView = currentInstance.status === "ready" && presentation.player !== null
         ? routeTracker.update({ now, target: routeLead?.target ?? null, player: presentation.player })
         : null;
-      const gridOpacity = previewGridOpacity ?? settings.cartographyGridOpacity;
-      const walkabilityOpacity = previewWalkabilityOpacity
-        ?? settings.cartographyWalkabilityOpacity;
+      const gridOpacity = opacity(settings, "cartographyGridOpacity");
+      const walkabilityOpacity = opacity(settings, "cartographyWalkabilityOpacity");
       const revealRadius = settings.cartographyRevealMode === "birds-eye" ? 3 : 1;
       const reachRadius = settings.cartographyRevealMode === "off" ? 0 : revealRadius;
       const explorationKey = `${state.continent.status === "ready"
