@@ -8,7 +8,7 @@ export default defineFeature({
   name: "Trade Chat",
   summary: "Browse Kamadan and Pre-Searing trade offers and trader prices.",
   kind: "chat",
-  purpose: "talk",
+  presence: "tool",
   icon: "coins",
   settings: {
     /** Show the read-only Trade Chat surface and allow its app shortcut. */

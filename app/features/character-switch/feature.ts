@@ -8,7 +8,7 @@ export default defineFeature({
   name: "Switch Character",
   summary: "Search every character and switch to one without logging out.",
   kind: "party",
-  purpose: "characters",
+  presence: "tool",
   icon: "arrow-left-right",
   settings: {
     /** Character Switch's own switch; the plain game (`gwonmacTools` off) stops it too. */

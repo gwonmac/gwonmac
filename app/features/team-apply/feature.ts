@@ -6,7 +6,7 @@ export default defineFeature({
   name: "Team Apply",
   summary: "Load a saved team onto your heroes. Each step is checked in the game before the next.",
   kind: "party",
-  purpose: "characters",
+  presence: "action",
   icon: "users",
   region: "pve",
   requires: ["buildLibrary"],

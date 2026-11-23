@@ -5,7 +5,7 @@
  * (one export line). The result passes the contract checks as written
  * (tests/policy/new-feature-scaffold.test.ts).
  *
- *   pnpm new-feature <id> [--kind <kind>] [--purpose <purpose>] [--dry-run]
+ *   pnpm new-feature <id> [--kind <kind>] [--presence <presence>] [--dry-run]
  *
  * `newFeatureFiles` is pure: it takes a reader for the two registry files and returns every
  * file to write, so the test runs the same code without touching the repository.
@@ -14,7 +14,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { folderForId } from "../app/features/contract.ts";
-import { FEATURE_KINDS, FEATURE_PURPOSES, type FeatureKind, type FeaturePurpose } from "../app/features/define.ts";
+import { FEATURE_KINDS, FEATURE_PRESENCES, type FeatureKind } from "../app/features/define.ts";
 
 export const REGISTRY = "app/features/index.ts";
 export const PART_REGISTRY = "app/features/companion-parts.ts";
@@ -22,18 +22,9 @@ export const PART_REGISTRY = "app/features/companion-parts.ts";
 /** The card kinds a new Feature can take; `mode` is the launch mode, which exists once. */
 type CardKind = Exclude<FeatureKind, "mode">;
 const CARD_KINDS = FEATURE_KINDS.filter((kind): kind is CardKind => kind !== "mode");
-/** The purpose a kind usually serves; --purpose picks another. */
-const PURPOSE_FOR_KIND: Readonly<Record<CardKind, FeaturePurpose>> = {
-  maps: "around",
-  combat: "fight",
-  party: "characters",
-  chat: "talk",
-  items: "inventory",
-  helpers: "fight",
-};
 const CAMEL_ID = /^[a-z][a-z0-9]*(?:[A-Z][a-z0-9]+)*$/;
 
-export type NewFeatureOptions = Readonly<{ id: string; kind?: string; purpose?: string }>;
+export type NewFeatureOptions = Readonly<{ id: string; kind?: string; presence?: string }>;
 /** Every file to write, by path from the repository root, with its full new text. */
 export type NewFeatureFiles = ReadonlyMap<string, string>;
 
@@ -50,13 +41,13 @@ export function newFeatureFiles(options: NewFeatureOptions, read: (file: string)
   if (!CAMEL_ID.test(id)) {
     throw new Error(`"${id}" is not a Feature id: use camelCase letters and digits, starting with a lowercase letter, such as "quickNote".`);
   }
-  const kind = options.kind ?? "helpers";
+  const kind = options.kind ?? "fight";
   if (!(CARD_KINDS as readonly string[]).includes(kind)) {
     throw new Error(`--kind "${kind}" is not a card kind; use one of ${CARD_KINDS.join(", ")} (FEATURE_KINDS in app/features/define.ts).`);
   }
-  const purpose = options.purpose ?? PURPOSE_FOR_KIND[kind as CardKind];
-  if (!(FEATURE_PURPOSES as readonly string[]).includes(purpose)) {
-    throw new Error(`--purpose "${purpose}" is not a purpose; use one of ${FEATURE_PURPOSES.join(", ")} (FEATURE_PURPOSES in app/features/define.ts).`);
+  const presence = options.presence ?? "screen";
+  if (!(FEATURE_PRESENCES as readonly string[]).includes(presence)) {
+    throw new Error(`--presence "${presence}" is not a presence; use one of ${FEATURE_PRESENCES.join(", ")} (FEATURE_PRESENCES in app/features/define.ts).`);
   }
   const folder = folderForId(id);
   const at = `app/features/${folder}`;
@@ -70,7 +61,7 @@ export function newFeatureFiles(options: NewFeatureOptions, read: (file: string)
 
   const name = nameForId(id);
   return new Map([
-    [`${at}/feature.ts`, manifest(id, name, kind, purpose)],
+    [`${at}/feature.ts`, manifest(id, name, kind, presence)],
     [`${at}/companion.ts`, gamePart(id, name)],
     [`${at}/README.md`, readme(name, folder)],
     [`${at}/CHANGELOG.md`, "## Unreleased\n"],
@@ -80,7 +71,7 @@ export function newFeatureFiles(options: NewFeatureOptions, read: (file: string)
   ]);
 }
 
-const manifest = (id: string, name: string, kind: string, purpose: string) => `import { defineFeature, featureSwitch } from "../define.js";
+const manifest = (id: string, name: string, kind: string, presence: string) => `import { defineFeature, featureSwitch } from "../define.js";
 
 // Every field: docs/feature-contract.md. The checks: app/features/contract.ts.
 export default defineFeature({
@@ -88,7 +79,7 @@ export default defineFeature({
   name: "${name}",
   summary: "Say in one plain sentence what ${name} shows or does.",
   kind: "${kind}",
-  purpose: "${purpose}",
+  presence: "${presence}",
   icon: "sparkles",
   settings: {
     /** ${name}'s switch, off until the player turns it on. */
@@ -159,23 +150,23 @@ function registerPart(text: string, id: string, specifier: string): string {
 function parseArguments(argv: readonly string[]): NewFeatureOptions & { dryRun: boolean } {
   const [id, ...rest] = argv;
   if (id === undefined || id.startsWith("--")) {
-    throw new Error("usage: pnpm new-feature <id> [--kind <kind>] [--purpose <purpose>] [--dry-run]");
+    throw new Error("usage: pnpm new-feature <id> [--kind <kind>] [--presence <presence>] [--dry-run]");
   }
   let kind: string | undefined;
-  let purpose: string | undefined;
+  let presence: string | undefined;
   let dryRun = false;
   for (let index = 0; index < rest.length; index += 1) {
     const flag = rest[index];
     if (flag === "--dry-run") dryRun = true;
-    else if (flag === "--kind" || flag === "--purpose") {
+    else if (flag === "--kind" || flag === "--presence") {
       const value = rest[index + 1];
       if (value === undefined) throw new Error(`${flag} needs a value.`);
       if (flag === "--kind") kind = value;
-      else purpose = value;
+      else presence = value;
       index += 1;
-    } else throw new Error(`unknown option ${flag}; usage: pnpm new-feature <id> [--kind <kind>] [--purpose <purpose>] [--dry-run]`);
+    } else throw new Error(`unknown option ${flag}; usage: pnpm new-feature <id> [--kind <kind>] [--presence <presence>] [--dry-run]`);
   }
-  return { id, dryRun, ...(kind === undefined ? {} : { kind }), ...(purpose === undefined ? {} : { purpose }) };
+  return { id, dryRun, ...(kind === undefined ? {} : { kind }), ...(presence === undefined ? {} : { presence }) };
 }
 
 if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) {

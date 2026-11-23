@@ -19,8 +19,8 @@ const manifest = (id: string, more: Partial<FeatureDefinition> = {}): FeatureDef
   id,
   name: "Example",
   summary: "Does one thing.",
-  kind: "helpers",
-  purpose: "fight",
+  kind: "fight",
+  presence: "screen",
   icon: "bell",
   settings: { [`${id}Enabled`]: aSwitch },
   region: "pve",
@@ -39,7 +39,7 @@ const folder = (feature: FeatureDefinition, more: Partial<FeatureFolder> = {}): 
   imports: [],
   ...more,
 });
-const withoutPurpose = ({ purpose, ...rest }: FeatureDefinition): FeatureDefinition => (void purpose, rest);
+const withoutPresence = ({ presence, ...rest }: FeatureDefinition): FeatureDefinition => (void presence, rest);
 const label = { label: "Example", help: "Turns Example on." };
 const option = <const More extends object>(more: More) => ({ kind: "boolean" as const, fallback: false, read: () => false, ...more });
 
@@ -73,7 +73,7 @@ const cases: readonly Case[] = [
   },
   {
     check: "the launch mode's switch names itself",
-    folders: [folder(withoutPurpose(manifest("quickNote", { kind: "mode", settings: { quickNoteEnabled: { ...aSwitch, help: "Turns off every feature." } } })))],
+    folders: [folder(withoutPresence(manifest("quickNote", { kind: "mode", settings: { quickNoteEnabled: { ...aSwitch, help: "Turns off every feature." } } })))],
     message: "app/features/quick-note/feature.ts: setting quickNoteEnabled has no label; players see it as a row name.",
   },
   {
@@ -180,14 +180,14 @@ const cases: readonly Case[] = [
     message: "app/features/quick-note/feature.ts: parts lists \"main\", but the folder has no main.ts.",
   },
   {
-    check: "a card names a purpose",
-    folders: [folder(withoutPurpose(manifest("quickNote")))],
-    message: "app/features/quick-note/feature.ts: no purpose; the Features tab groups every card by it (one of FEATURE_PURPOSES in app/features/define.ts).",
+    check: "a card names a presence",
+    folders: [folder(withoutPresence(manifest("quickNote")))],
+    message: "app/features/quick-note/feature.ts: no presence; its card tag says how players meet it (one of FEATURE_PRESENCES in app/features/define.ts).",
   },
   {
-    check: "the launch mode names no purpose",
+    check: "the launch mode names no presence",
     folders: [folder(manifest("quickNote", { kind: "mode", settings: { quickNoteEnabled: { ...aSwitch, ...label } } }))],
-    message: "app/features/quick-note/feature.ts: the launch mode is the plain-game strip, not a card; remove purpose.",
+    message: "app/features/quick-note/feature.ts: the launch mode is the plain-game strip, not a card; remove presence.",
   },
   {
     check: "README: says where to turn it on",

@@ -35,35 +35,27 @@ export type HubToolRow = Readonly<{
 }>;
 
 /**
- * How the Features tab groups a feature (Group by: Kind). `mode` is the launch mode
- * itself (the `tools` feature): the plain-game strip, not a card.
+ * The Features tab's groups: what the player is doing when they use a Feature. `mode` is the
+ * launch mode itself (the `tools` feature): the plain-game strip, not a card.
  */
-export const FEATURE_KINDS = ["maps", "combat", "party", "chat", "items", "helpers", "mode"] as const;
+export const FEATURE_KINDS = ["around", "fight", "party", "chat", "inventory", "mode"] as const;
 export type FeatureKind = (typeof FEATURE_KINDS)[number];
 /** The group heading players see for each card kind, in the order the Features tab lists them. */
 export const FEATURE_KIND_LABELS: Readonly<Record<Exclude<FeatureKind, "mode">, string>> = {
-  maps: "Maps & travel",
-  combat: "Combat",
+  around: "Getting around",
+  fight: "Fighting",
   party: "Party & builds",
   chat: "Chat & trade",
-  items: "Items",
-  helpers: "Helpers",
+  inventory: "Inventory",
 };
 
 /**
- * How the Features tab groups a feature by player goal (Group by: Purpose). Every card names one;
- * the launch mode does not. The player test (docs/feature-platform-plan.md, step 6.4) keeps either
- * Kind or Purpose and deletes the other.
+ * How a player meets a Feature once it is on, shown as a tag on its card: `screen` draws
+ * something in the game, `tool` is a panel or page they open, `action` does one thing in the game
+ * when they ask, and `background` works on its own. Every card names one; the launch mode does not.
  */
-export const FEATURE_PURPOSES = ["around", "fight", "talk", "inventory", "characters"] as const;
-export type FeaturePurpose = (typeof FEATURE_PURPOSES)[number];
-export const FEATURE_PURPOSE_LABELS: Readonly<Record<FeaturePurpose, string>> = {
-  around: "Get around",
-  fight: "Fight",
-  talk: "Chat and trade",
-  inventory: "Inventory",
-  characters: "Characters",
-};
+export const FEATURE_PRESENCES = ["screen", "tool", "action", "background"] as const;
+export type FeaturePresence = (typeof FEATURE_PRESENCES)[number];
 
 /**
  * What runs: `game` in the game host, `hubPage` a page of its own in the Hub, `window`
@@ -106,8 +98,8 @@ export type FeatureDefinition = Readonly<{
   /** One plain sentence under the name: card line, Feature page. */
   summary: string;
   kind: FeatureKind;
-  /** The player goal it serves; every feature but the launch mode names one (./contract.ts). */
-  purpose?: FeaturePurpose;
+  /** How a player meets it once it is on; every feature but the launch mode names one (./contract.ts). */
+  presence?: FeaturePresence;
   /** A Lucide icon name in kebab case, from lucide-vue-next, the set the launcher uses. */
   icon: string;
   /** Settings this feature owns: its switch (`featureSwitch`), and options, each with a label and help. */
