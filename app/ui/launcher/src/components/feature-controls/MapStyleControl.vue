@@ -3,7 +3,8 @@
  * Maps' style on its Feature page: the active built-in or custom style, its terrain border, a
  * preview, the editor for a custom style, and sharing, importing and deleting styles. The whole
  * library is one setting (`cartographyPresetLibrary`); app/shared/cartography-presets.ts owns
- * every change to it.
+ * every change to it. The page's save status reports each save; after a refused one, every
+ * control shows the saved value again (docs/settings.md rule 3).
  */
 import { computed, nextTick, ref } from "vue";
 import { featureSettingText } from "@shared/feature-contracts";
@@ -59,18 +60,29 @@ async function closeEditor() {
   customizeButton.value?.focus({ preventScroll: true });
 }
 
-/** The page's save status reports a failure; this says only what the style editor itself refused. */
-async function persist(patch: InGamePatch) {
+/**
+ * The page's save status reports a failure, and `undo` shows the saved value in the control the
+ * player changed; `status` says only what the style editor itself refused.
+ */
+async function persist(patch: InGamePatch, undo?: () => void) {
   status.value = "";
-  try { await props.save(patch); return true; } catch { return false; }
+  try { await props.save(patch); return true; } catch { undo?.(); return false; }
+}
+/** Puts a select or a text field back to the saved value; take it while its change event runs. */
+function restore(event: Event, saved: () => string | undefined): () => void {
+  const control = event.currentTarget;
+  return () => {
+    const value = saved();
+    if (value !== undefined && (control instanceof HTMLSelectElement || control instanceof HTMLInputElement)) control.value = value;
+  };
 }
 
-async function selectPreset(value: string) {
+async function selectPreset(value: string, undo?: () => void) {
   const [kind, id] = value.split(":");
   if (kind !== "builtin" && kind !== "custom") return;
   if (kind === "builtin" && !isCartographyBuiltinPresetId(id)) return;
   const next = selectCartographyPreset(library.value, kind === "builtin" && isCartographyBuiltinPresetId(id) ? { kind, id } : { kind: "custom", id: id ?? "" });
-  if (next) await persist({ cartographyPresetLibrary: next });
+  if (next) await persist({ cartographyPresetLibrary: next }, undo);
 }
 
 async function customize() {
@@ -82,11 +94,11 @@ async function customize() {
   if (await persist({ cartographyPresetLibrary: next })) { editing.value = true; await revealEditor(); }
 }
 
-async function rename(value: string) {
+async function rename(value: string, undo: () => void) {
   const current = active.value?.custom;
   if (!current) return;
   const next = renameCartographyPreset(library.value, current.id, value);
-  if (next) await persist({ cartographyPresetLibrary: next });
+  if (next) await persist({ cartographyPresetLibrary: next }, undo);
   else status.value = "Enter a style name from 1 to 40 characters.";
 }
 
@@ -107,30 +119,33 @@ async function importPreset() {
   if (await persist({ cartographyPresetLibrary: next })) importValue.value = "";
 }
 
-async function saveStyle(style: CartographyPresetStyle) {
+async function saveStyle(style: CartographyPresetStyle, undo: () => void) {
   const source = active.value;
   if (!source) return;
   const next = source.custom
     ? replaceCartographyPresetStyle(library.value, source.custom.id, style)
     : addCartographyPreset(library.value, { id: `preset-${crypto.randomUUID()}`, name: `${source.name} custom`, style });
-  if (next) await persist({ cartographyPresetLibrary: next });
-  else status.value = "The style could not be changed. Delete an unused custom style and try again.";
+  if (next) await persist({ cartographyPresetLibrary: next }, undo);
+  else {
+    undo();
+    status.value = "The style could not be changed. Delete an unused custom style and try again.";
+  }
 }
-async function updateLine(key: keyof typeof lineLabels, patch: Partial<CartographyLineStyle>) {
+async function updateLine(key: keyof typeof lineLabels, patch: Partial<CartographyLineStyle>, undo: () => void) {
   const source = active.value?.style;
-  if (source) await saveStyle({ ...source, grid: { ...source.grid, [key]: { ...source.grid[key], ...patch } } });
+  if (source) await saveStyle({ ...source, grid: { ...source.grid, [key]: { ...source.grid[key], ...patch } } }, undo);
 }
-async function updateWalkability(patch: Partial<CartographyPresetStyle["walkability"]>) {
+async function updateWalkability(patch: Partial<CartographyPresetStyle["walkability"]>, undo: () => void) {
   const source = active.value?.style;
-  if (source) await saveStyle({ ...source, walkability: { ...source.walkability, ...patch } });
+  if (source) await saveStyle({ ...source, walkability: { ...source.walkability, ...patch } }, undo);
 }
-async function updateGrid(value: CartographyColor) {
+async function updateGrid(value: CartographyColor, undo: () => void) {
   const source = active.value?.style;
-  if (source) await saveStyle({ ...source, grid: { ...source.grid, casingColor: value } });
+  if (source) await saveStyle({ ...source, grid: { ...source.grid, casingColor: value } }, undo);
 }
-async function updateUnseen(patch: Partial<CartographyPresetStyle["grid"]["unseen"]>) {
+async function updateUnseen(patch: Partial<CartographyPresetStyle["grid"]["unseen"]>, undo: () => void) {
   const source = active.value?.style;
-  if (source) await saveStyle({ ...source, grid: { ...source.grid, unseen: { ...source.grid.unseen, ...patch } } });
+  if (source) await saveStyle({ ...source, grid: { ...source.grid, unseen: { ...source.grid.unseen, ...patch } } }, undo);
 }
 </script>
 
@@ -138,7 +153,7 @@ async function updateUnseen(patch: Partial<CartographyPresetStyle["grid"]["unsee
   <div class="row" data-setting="cartographyPresetLibrary">
     <span class="row-label"><span id="option-cartographyPresetLibrary">{{ TEXT.label }}</span><small id="option-cartographyPresetLibrary-help">{{ TEXT.help }}</small></span>
     <span class="row-controls">
-      <select aria-labelledby="option-cartographyPresetLibrary" aria-describedby="option-cartographyPresetLibrary-help" :value="`${library.activePreset.kind}:${library.activePreset.id}`" @change="selectPreset(($event.currentTarget as HTMLSelectElement).value)">
+      <select aria-labelledby="option-cartographyPresetLibrary" aria-describedby="option-cartographyPresetLibrary-help" :value="`${library.activePreset.kind}:${library.activePreset.id}`" @change="selectPreset(($event.currentTarget as HTMLSelectElement).value, restore($event, () => `${library.activePreset.kind}:${library.activePreset.id}`))">
         <optgroup label="Built in"><option v-for="(preset, id) in CARTOGRAPHY_BUILTIN_PRESETS" :key="id" :value="`builtin:${id}`">{{ preset.name }}</option></optgroup>
         <optgroup v-if="library.customPresets.length" label="My styles"><option v-for="preset in library.customPresets" :key="preset.id" :value="`custom:${preset.id}`">{{ preset.name }}</option></optgroup>
       </select>
@@ -147,33 +162,33 @@ async function updateUnseen(patch: Partial<CartographyPresetStyle["grid"]["unsee
   </div>
   <div v-if="active" class="row" data-setting="cartographyBoundaryWidth">
     <span class="row-label"><span>Terrain border thickness</span><small>0 hides the border. Changing a built-in style saves a custom copy.</small></span>
-    <RangeControl label="Terrain border thickness" :value="active.style.walkability.boundaryWidth" :min="0" :max="4" unit="px" @change="updateWalkability({ boundaryWidth: $event })" />
+    <RangeControl label="Terrain border thickness" :value="active.style.walkability.boundaryWidth" :min="0" :max="4" unit="px" @change="(value, undo) => updateWalkability({ boundaryWidth: value }, undo)" />
   </div>
   <MapStylePreview v-if="active" class="map-style-preview" :style="active.style" :grid-opacity="settings.cartographyGridOpacity" :terrain-opacity="settings.cartographyWalkabilityOpacity" />
 
   <div v-if="editing && active?.custom" ref="styleEditor" class="map-style-editor" tabindex="-1" data-focus-target role="region" :aria-label="`Edit ${active.name}`">
     <div class="row"><span class="row-label"><span>Edit {{ active.name }}</span><small>Changes save automatically.</small></span><button class="secondary small" @click="closeEditor">Done</button></div>
     <h3>Walkable terrain</h3>
-    <div class="row"><span class="row-label"><span>Shaded area color</span></span><ColorControl label="Shaded area color" :value="active.style.walkability.veilColor" @change="updateWalkability({ veilColor: $event })" /></div>
-    <div class="row"><span class="row-label"><span>Terrain border color</span></span><ColorControl label="Terrain border color" :value="active.style.walkability.boundaryColor" @change="updateWalkability({ boundaryColor: $event })" /></div>
-    <div class="row"><span class="row-label"><span>Border outline color</span></span><ColorControl label="Border outline color" :value="active.style.walkability.boundaryCasingColor" @change="updateWalkability({ boundaryCasingColor: $event })" /></div>
+    <div class="row"><span class="row-label"><span>Shaded area color</span></span><ColorControl label="Shaded area color" :value="active.style.walkability.veilColor" @change="(value, undo) => updateWalkability({ veilColor: value }, undo)" /></div>
+    <div class="row"><span class="row-label"><span>Terrain border color</span></span><ColorControl label="Terrain border color" :value="active.style.walkability.boundaryColor" @change="(value, undo) => updateWalkability({ boundaryColor: value }, undo)" /></div>
+    <div class="row"><span class="row-label"><span>Border outline color</span></span><ColorControl label="Border outline color" :value="active.style.walkability.boundaryCasingColor" @change="(value, undo) => updateWalkability({ boundaryCasingColor: value }, undo)" /></div>
     <h3>Grid</h3>
     <div class="row"><span class="row-label"><span>Grid outline color</span></span><ColorControl label="Grid outline color" :value="active.style.grid.casingColor" @change="updateGrid" /></div>
-    <div class="row"><span class="row-label"><span>Unseen cell color</span></span><ColorControl label="Unseen cell color" :value="active.style.grid.unseen.color" @change="updateUnseen({ color: $event })" /></div>
-    <label class="row"><span class="row-label"><span>Unseen cell marker</span></span><select :value="active.style.grid.unseen.marker" @change="saveChoice($event, CARTOGRAPHY_UNSEEN_MARKERS, (marker) => updateUnseen({ marker }))"><option v-for="marker in CARTOGRAPHY_UNSEEN_MARKERS" :key="marker" :value="marker">{{ marker }}</option></select></label>
+    <div class="row"><span class="row-label"><span>Unseen cell color</span></span><ColorControl label="Unseen cell color" :value="active.style.grid.unseen.color" @change="(value, undo) => updateUnseen({ color: value }, undo)" /></div>
+    <label class="row"><span class="row-label"><span>Unseen cell marker</span></span><select :value="active.style.grid.unseen.marker" @change="saveChoice($event, CARTOGRAPHY_UNSEEN_MARKERS, (marker) => updateUnseen({ marker }, restore($event, () => active?.style.grid.unseen.marker)))"><option v-for="marker in CARTOGRAPHY_UNSEEN_MARKERS" :key="marker" :value="marker">{{ marker }}</option></select></label>
     <details class="advanced-map-lines"><summary>Inspection outlines</summary>
       <fieldset v-for="(label, key) in lineLabels" :key="key" class="map-line-editor">
         <legend>{{ label }}</legend>
-        <div class="row"><span class="row-label"><span>Color</span></span><ColorControl :label="`${label} color`" :value="active.style.grid[key].color" @change="updateLine(key, { color: $event })" /></div>
-        <div class="row"><span class="row-label"><span>Width</span></span><RangeControl :label="`${label} width`" :value="active.style.grid[key].width" :min="0" :max="4" unit="px" @change="updateLine(key, { width: $event })" /></div>
-        <label class="row"><span class="row-label"><span>Pattern</span></span><select :aria-label="`${label} pattern`" :value="active.style.grid[key].pattern" @change="saveChoice($event, CARTOGRAPHY_LINE_PATTERNS, (pattern) => updateLine(key, { pattern }))"><option v-for="pattern in CARTOGRAPHY_LINE_PATTERNS" :key="pattern" :value="pattern">{{ pattern }}</option></select></label>
+        <div class="row"><span class="row-label"><span>Color</span></span><ColorControl :label="`${label} color`" :value="active.style.grid[key].color" @change="(value, undo) => updateLine(key, { color: value }, undo)" /></div>
+        <div class="row"><span class="row-label"><span>Width</span></span><RangeControl :label="`${label} width`" :value="active.style.grid[key].width" :min="0" :max="4" unit="px" @change="(value, undo) => updateLine(key, { width: value }, undo)" /></div>
+        <label class="row"><span class="row-label"><span>Pattern</span></span><select :aria-label="`${label} pattern`" :value="active.style.grid[key].pattern" @change="saveChoice($event, CARTOGRAPHY_LINE_PATTERNS, (pattern) => updateLine(key, { pattern }, restore($event, () => active?.style.grid[key].pattern)))"><option v-for="pattern in CARTOGRAPHY_LINE_PATTERNS" :key="pattern" :value="pattern">{{ pattern }}</option></select></label>
       </fieldset>
     </details>
   </div>
 
   <div class="map-library">
     <template v-if="active?.custom">
-      <label class="row"><span class="row-label"><span>Style name</span></span><input :value="active.name" maxlength="40" @change="rename(($event.currentTarget as HTMLInputElement).value)" /></label>
+      <label class="row"><span class="row-label"><span>Style name</span></span><input :value="active.name" maxlength="40" @change="rename(($event.currentTarget as HTMLInputElement).value, restore($event, () => active?.name))" /></label>
       <button class="text-link" @click="confirmDelete = true">Delete custom style</button>
     </template>
     <details><summary>Import or share a style</summary>

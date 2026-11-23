@@ -335,7 +335,7 @@ onBeforeUnmount(() => {
             <FeaturesView v-if="section === 'features'" v-model:feature="featurePage" :snapshot="featuresSnapshot" :native="native" :target="featuresTarget" :save="saveSettings" :perform-save="performSave" embedded @settings="open" />
             <template v-else-if="section === 'appearance'"><h1>Appearance</h1><AppearanceSettings :settings="snapshot.settings" :save="saveSettings" /></template>
             <GameSettings v-else-if="section === 'game'" :snapshot="snapshot" :save="quietSave" />
-            <TexturePacksSettings v-else-if="section === 'texture-packs' && launcher" :texture-packs="launcher.snapshot.texturePacks" />
+            <TexturePacksSettings v-else-if="section === 'texture-packs' && launcher" :texture-packs="launcher.snapshot.texturePacks" :perform-save="performSave" />
             <GameFilesSettings
               v-else-if="section === 'game-files' && launcher"
               :readiness="launcher.snapshot.readiness"

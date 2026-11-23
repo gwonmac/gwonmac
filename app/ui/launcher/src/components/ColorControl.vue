@@ -1,12 +1,22 @@
 <script setup lang="ts">
+/**
+ * A colour setting as a picker with a hex field beside it. A value that is not six hex digits is
+ * refused here with its reason; a valid one is emitted with `undo`, which a host whose save was
+ * refused calls to show the saved colour again.
+ */
 import { ref, useId, watch } from "vue";
 
 const props = defineProps<{ label: string; value: string }>();
-const emit = defineEmits<{ change: [value: `#${string}`] }>();
+const emit = defineEmits<{ change: [value: `#${string}`, undo: () => void] }>();
 const errorId = useId();
 const draft = ref(props.value);
 const error = ref("");
 watch(() => props.value, value => { draft.value = value; error.value = ""; });
+/** Shows the saved colour again, after a save the host refused; the redraw puts the picker back too. */
+function undo() {
+  draft.value = props.value;
+  error.value = "";
+}
 
 function commit(value: string) {
   const hex = value.trim().replace(/^#?/, "#").toLowerCase();
@@ -16,7 +26,7 @@ function commit(value: string) {
   }
   draft.value = hex;
   error.value = "";
-  emit("change", hex as `#${string}`);
+  emit("change", hex as `#${string}`, undo);
 }
 </script>
 

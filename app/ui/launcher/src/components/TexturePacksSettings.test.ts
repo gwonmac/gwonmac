@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { LauncherNativeApi } from "@shared/launcher-contracts";
 import type { TexturePackSnapshot } from "@shared/texture-packs";
 import TexturePacksSettings from "./TexturePacksSettings.vue";
+import type { PerformSave } from "../save-status";
 
 const pack = {
   id: "0123456789abcdef0123456789abcdef",
@@ -16,6 +17,7 @@ const pack = {
 };
 
 const snapshot: TexturePackSnapshot = { selectedPackId: null, packs: [pack] };
+const performSave: PerformSave = async (action) => { await action(); };
 
 function installTexturePackNative(texturePacks: LauncherNativeApi["texturePacks"]): void {
   Object.defineProperty(window, "launcherNative", {
@@ -36,7 +38,7 @@ describe("texture pack settings", () => {
       select,
       remove: vi.fn(async () => undefined),
     });
-    const wrapper = mount(TexturePacksSettings, { props: { texturePacks: snapshot }, attachTo: document.body });
+    const wrapper = mount(TexturePacksSettings, { props: { texturePacks: snapshot, performSave }, attachTo: document.body });
 
     await wrapper.get(".settings-heading-row button").trigger("click");
     await flushPromises();
@@ -53,7 +55,7 @@ describe("texture pack settings", () => {
       select: vi.fn(async () => undefined),
       remove: vi.fn(async () => undefined),
     });
-    const wrapper = mount(TexturePacksSettings, { props: { texturePacks: snapshot } });
+    const wrapper = mount(TexturePacksSettings, { props: { texturePacks: snapshot, performSave } });
 
     expect(wrapper.get(".settings-heading-row").text()).toContain("Add a .tpf file you downloaded");
     expect(wrapper.get(".settings-heading-row button").text()).toBe("Add .tpf file");
@@ -69,7 +71,7 @@ describe("texture pack settings", () => {
       select,
       remove,
     });
-    const wrapper = mount(TexturePacksSettings, { props: { texturePacks: snapshot } });
+    const wrapper = mount(TexturePacksSettings, { props: { texturePacks: snapshot, performSave } });
 
     await wrapper.findAll('input[type="radio"]')[1]!.trigger("change");
     await flushPromises();

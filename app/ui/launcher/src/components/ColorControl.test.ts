@@ -6,9 +6,9 @@ describe("color controls", () => {
   it("accepts the picker and normalizes typed hex with or without a hash", async () => {
     const wrapper = mount(ColorControl, { props: { label: "Veil color", value: "#112233" } });
     await wrapper.get('input[type="color"]').setValue("#abcdef");
-    expect(wrapper.emitted("change")?.at(-1)).toEqual(["#abcdef"]);
+    expect(wrapper.emitted("change")?.at(-1)?.[0]).toBe("#abcdef");
     await wrapper.get('input[type="text"]').setValue("  AABBCC  ");
-    expect(wrapper.emitted("change")?.at(-1)).toEqual(["#aabbcc"]);
+    expect(wrapper.emitted("change")?.at(-1)?.[0]).toBe("#aabbcc");
     await wrapper.setProps({ value: "#445566" });
     expect(wrapper.get<HTMLInputElement>('input[type="text"]').element.value).toBe("#445566");
     expect(wrapper.get<HTMLInputElement>('input[type="color"]').element.value).toBe("#445566");
