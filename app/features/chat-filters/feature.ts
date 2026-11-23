@@ -18,18 +18,21 @@ export default defineFeature({
       ...OPTION,
       label: "Hide other party members' item drops",
       help: "Hides the notice when an item drops for another party member.",
+      keywords: "chat filter spam",
     }),
     /** Hide global Hall of Heroes winner announcements. */
     chatFilterHallOfHeroes: setting.boolean(true, {
       ...OPTION,
       label: "Hide Hall of Heroes winner announcements",
       help: "Hides the notice to everyone when a team wins the Hall of Heroes.",
+      keywords: "chat filter spam",
     }),
     /** Hide player title-achievement announcements. */
     chatFilterTitleAchievements: setting.boolean(true, {
       ...OPTION,
       label: "Hide player title achievements",
       help: "Hides the notice when another player earns a title.",
+      keywords: "chat filter spam",
     }),
   },
   region: "non-pvp",

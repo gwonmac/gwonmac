@@ -19,6 +19,7 @@ export default defineFeature({
       tools: true,
       label: "Show the Whispers icon",
       help: "Draws the small unread icon. The shortcut and the Hub still open Whispers.",
+      keywords: "hide whisper button icon unread",
     }),
     /** Where the player dragged the unread icon, as a distance from the nearest corner; null is its default place. */
     whispersIconPosition: setting.position(
@@ -32,6 +33,7 @@ export default defineFeature({
         launcherError: "Whispers icon position is invalid",
         label: "Whispers icon position",
         help: "Drag the icon in a game window to move it. Reset puts it back at the top left.",
+        keywords: "move drag reset whisper icon position",
       },
     ),
     /** Where the player moved and sized the Whispers panel, normalized to the game window; null is its default place. */

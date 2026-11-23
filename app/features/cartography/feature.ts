@@ -34,7 +34,7 @@ const rangeOpacity = (range: string) => setting.integer(
 const cartographyOpacity = (fallback: number, label: string, help: string) => setting.integer(
   fallback,
   { min: CARTOGRAPHY_OPACITY_MIN, max: CARTOGRAPHY_OPACITY_MAX },
-  { ...MAP_LAYER, label, help, unit: "%" },
+  { ...MAP_LAYER, label, help, keywords: "transparency", unit: "%" },
 );
 
 export default defineFeature({
@@ -53,6 +53,7 @@ export default defineFeature({
       tools: true,
       label: "Walkable terrain",
       help: "Shades the areas you cannot walk on, on the Compass and the Mission Map.",
+      keywords: "walkability keys shortcut hotkey keyboard",
     }),
     /** Draw the game's fixed cartography cells over both native map surfaces. */
     cartographyGridEnabled: setting.boolean(false, {
@@ -60,6 +61,7 @@ export default defineFeature({
       tools: true,
       label: "Exploration grid",
       help: "Shows remaining exploration on the Mission Map and World Map.",
+      keywords: "cartographer explore keys shortcut hotkey keyboard",
     }),
     /** Draw the walking route to the point the player sets on the Mission Map or World Map. On by
      * default: nothing draws until the player sets a target. */
@@ -68,6 +70,7 @@ export default defineFeature({
       tools: true,
       label: "Walking route",
       help: "Draws a line along walkable ground to the point you set. Right-click the Mission Map or World Map to set or remove it.",
+      keywords: "path navigate waypoint target keys shortcut hotkey keyboard",
     }),
     /** Without the player's own target, lead the walking route to the active quest's marker. In
      * development: a tester found it unpolished, so only development builds show it; its README
@@ -78,6 +81,7 @@ export default defineFeature({
       tools: true,
       label: "Route to quest",
       help: "Without your own target, the walking route leads to your active quest.",
+      keywords: "quest objective marker path",
       dependsOn: "cartographyRouteEnabled",
     }),
     /** Include the Compass in exploration-grid presentation; off by default. */
@@ -85,6 +89,7 @@ export default defineFeature({
       hub: true,
       label: "Markers on Compass",
       help: "Adds nearby unexplored cells to the Compass.",
+      keywords: "unexplored cells",
       dependsOn: "cartographyGridEnabled",
     }),
     /** Draw standard Guild Wars ranges around the player on the Compass. */
@@ -93,6 +98,7 @@ export default defineFeature({
       tools: true,
       label: "Compass ranges",
       help: "Draws range rings around you on the Compass.",
+      keywords: "earshot shout cast casting spirit aggro rings",
     }),
     compassRangeEarshotEnabled: rangeShown("Shout"),
     compassRangeCastEnabled: rangeShown("Cast"),
@@ -108,6 +114,7 @@ export default defineFeature({
       launcherError: "Compass range theme is invalid",
       label: "Range colors",
       help: "Color gives each ring its own color. Monochrome draws every ring in white.",
+      keywords: "compass ranges rings appearance monochrome",
       choices: { color: "Color", monochrome: "Monochrome" },
     }),
     /** Persistent Compass footprint; Mission Map hover uses Shift or Option+Shift. */
@@ -116,6 +123,7 @@ export default defineFeature({
       launcherError: "cartography reveal mode is invalid",
       label: "Reveal range",
       help: "Shows on the Compass the area your position reveals: Normal 3×3 or Bird’s Eye 7×7.",
+      keywords: "explore stand diamonds",
       choices: {
         off: CARTOGRAPHY_REVEAL_MODE_LABELS.off.label,
         normal: CARTOGRAPHY_REVEAL_MODE_LABELS.normal.label,
@@ -131,6 +139,7 @@ export default defineFeature({
         launcherError: "cartography preset library is invalid",
         label: "Map style",
         help: "The colors of every map layer: Cartographer, Synthwave, Monochrome or a style of your own.",
+        keywords: "colors theme cartographer",
       },
     ),
     /** Walkability veil and boundary strength, as a whole percentage. */
@@ -145,6 +154,7 @@ export default defineFeature({
         hub: true,
         label: "Compass control visibility",
         help: "How visible the closed Compass control is while you do not use it.",
+        keywords: "compass opacity idle",
         unit: "%",
       },
     ),
@@ -153,6 +163,7 @@ export default defineFeature({
       hub: true,
       label: "Show compass buttons",
       help: "Shows the two buttons beside the Compass. Every choice they offer is also on this page.",
+      keywords: "hide compass buttons controls map",
     }),
     /** How far the player dragged the Compass buttons from their place beside the Compass, in pixels. */
     compassButtonsOffset: setting.position(
@@ -164,6 +175,7 @@ export default defineFeature({
         launcherError: "Compass buttons position is invalid",
         label: "Compass buttons position",
         help: "Drag a button in a game window to move both. Reset puts them back beside the Compass.",
+        keywords: "move drag reset compass buttons",
       },
     ),
     /** Show the Elite Skills planner and its map markers while Maps are on. */
@@ -172,6 +184,7 @@ export default defineFeature({
       tools: true,
       label: "Elite skill planner",
       help: "Adds the planner to the World Map and your Hunt list to the Mission Map.",
+      keywords: "elite capture hunt boss signet",
     }),
     /** Capture locations that the Mission Map shows during play. */
     eliteMissionMapMarkers: setting.enum(ELITE_MISSION_MAP_MARKERS, "saved", {
@@ -180,6 +193,7 @@ export default defineFeature({
       launcherError: "Mission Map markers are invalid",
       label: "Mission Map markers",
       help: "Which boss markers the Mission Map shows: your Hunt list, all planner matches, or none.",
+      keywords: "elite hunt",
       choices: ELITE_MISSION_MAP_MARKER_LABELS,
       dependsOn: "eliteSkillsEnabled",
     }),

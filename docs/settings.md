@@ -134,8 +134,8 @@ section but edits only the in-game ones; the others (↗) open the launcher.
    `AppSettings` type, the defaults, the file reader, the launcher patch parser
    and every scope list from it. Never write a second list by hand.
 2. **Name it.** A feature setting names itself in its declaration with `label`
-   and `help`; the contract check fails without them, and setting-copy and the
-   catalogue read both through `featureSettingText`, so a Settings row, its
+   and `help`; the contract check fails without them, and the catalogue and the
+   Feature page read both through `featureSettingText`, so a Settings row, its
    search result and the Feature page use the same words. A Feature's switch
    names nothing (see [Feature switches](#feature-switches)). A core setting gets
    its label, detail and "when it applies" note in
@@ -145,7 +145,7 @@ section but edits only the in-game ones; the others (↗) open the launcher.
    `app/shared/settings-catalogue.ts` with its section and keywords. A feature
    setting needs none: the catalogue lists every option a Feature declares with
    the `launcher` or `hub` scope, on that Feature's page, with its label and help
-   from the manifest. Extra search words go in `OPTION_KEYWORDS`.
+   from the manifest. Extra search words go in the option's own `keywords`.
 4. **Draw the control.** A core setting's control goes in its section's
    component under `app/ui/launcher/src/components/`, with
    `data-setting="<id>"`, using the copy from step 2. A feature setting draws

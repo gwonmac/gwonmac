@@ -36,6 +36,7 @@ import type { TravelUserPreferences } from "./travel.js";
 import type { CartographyPresetRef } from "./cartography-overlay.js";
 import type { AppSettings, RendererWritableSetting } from "./settings/index.js";
 import { RELEASE_REPO } from "./project-identity.js";
+import { TRADE_SOURCE_URLS } from "./trade-chat.js";
 
 export type BuildKind = "jspi";
 
@@ -385,8 +386,8 @@ export const EXTERNAL_URLS: Record<ExternalLinkKind, string> = {
   releases: `https://github.com/${RELEASE_REPO}/releases`,
   // Official ArenaNet store, for players who do not own the game yet.
   store: "https://store.guildwars.com/en-us",
-  kamadanTrade: "https://kamadan.gwtoolbox.com",
-  preSearingTrade: "https://ascalon.gwtoolbox.com",
+  kamadanTrade: TRADE_SOURCE_URLS.kamadan.website,
+  preSearingTrade: TRADE_SOURCE_URLS["pre-searing"].website,
 };
 
 /**

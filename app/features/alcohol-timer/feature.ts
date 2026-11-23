@@ -26,6 +26,7 @@ export default defineFeature({
         launcherError: "Alcohol timer position is invalid",
         label: "Alcohol Timer position",
         help: "Drag the timer in a game window to move it. Show to place shows it while you are sober.",
+        keywords: "move reset position",
       },
     ),
   },

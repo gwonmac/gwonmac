@@ -1,5 +1,6 @@
 import { readFloatingWindowPlacement, type FloatingWindowPlacement } from "../../shared/ui/window-placement.js";
 import { setting } from "../../shared/settings/define.js";
+import { TRADE_HOSTS, TRADE_SOURCES } from "../../shared/trade-chat.js";
 import { defineFeature, featureSwitch } from "../define.js";
 
 export default defineFeature({
@@ -29,8 +30,8 @@ export default defineFeature({
   },
   region: "non-pvp",
   programs: ["toolbox-foundation", "toolbox-commands", "xunlai-storage"],
-  /** The public trade feeds, TRADE_SOURCE_URLS in app/shared/trade-chat.ts. */
-  network: ["kamadan.gwtoolbox.com", "ascalon.gwtoolbox.com"],
+  /** The public trade feeds' hosts, which its main part connects to. */
+  network: TRADE_SOURCES.map((source) => TRADE_HOSTS[source]),
   tool: {
     id: "trade-chat",
     keywords: "kamadan prices trading market trader",

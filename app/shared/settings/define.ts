@@ -41,6 +41,8 @@ export type SettingOptions = SettingScope & SettingMessages & Readonly<{
   label?: string;
   /** One line under the label that says what the setting does. Every feature setting has one. */
   help?: string;
+  /** Extra words Settings search matches for a feature option, beyond its label and help. */
+  keywords?: string;
   /** The words for each value of a choice, in the order of its values. */
   choices?: Readonly<Record<string, string>>;
   /** The unit a number reads in, such as `%`. */

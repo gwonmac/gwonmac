@@ -55,17 +55,21 @@ export type TraderPriceHistoryResult =
   | Readonly<{ status: "ok"; points: readonly TraderQuote[] }>
   | Readonly<{ status: "error"; problem: TraderPriceHistoryProblem }>;
 
+/**
+ * The one host of each feed: the only internet hosts Trade Chat reaches. Its manifest's `network`
+ * (what players read as "Connects to …"), the URLs below and the website links all derive from it.
+ */
+export const TRADE_HOSTS: Readonly<Record<TradeSource, string>> = Object.freeze({
+  kamadan: "kamadan.gwtoolbox.com",
+  "pre-searing": "ascalon.gwtoolbox.com",
+});
+
+const feedUrls = (host: string) => Object.freeze({ websocket: `wss://${host}`, website: `https://${host}` });
 export const TRADE_SOURCE_URLS: Readonly<
   Record<TradeSource, { readonly websocket: string; readonly website: string }>
 > = Object.freeze({
-  kamadan: Object.freeze({
-    websocket: "wss://kamadan.gwtoolbox.com",
-    website: "https://kamadan.gwtoolbox.com",
-  }),
-  "pre-searing": Object.freeze({
-    websocket: "wss://ascalon.gwtoolbox.com",
-    website: "https://ascalon.gwtoolbox.com",
-  }),
+  kamadan: feedUrls(TRADE_HOSTS.kamadan),
+  "pre-searing": feedUrls(TRADE_HOSTS["pre-searing"]),
 });
 
 export type TradeConnectionState =
