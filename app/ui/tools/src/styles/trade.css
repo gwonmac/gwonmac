@@ -247,30 +247,7 @@
 }
 .load-more { margin: var(--ui-space-3) auto; }
 
-.trade-state {
-  display: grid;
-  min-height: 150px;
-  flex: 1;
-  align-content: center;
-  justify-items: center;
-  gap: var(--ui-space-2);
-  padding: var(--ui-space-4);
-  color: var(--ui-text-muted);
-  text-align: center;
-}
-.trade-state p { max-width: 62ch; margin: 0; }
-.trade-state p { font-family: var(--ui-font-reading); }
-.trade-state strong { color: var(--ui-text-bright); font-size: var(--ui-font-size-lg); }
-
-.trade-skeleton {
-  width: min(560px, 82%);
-  height: 22px;
-  border-radius: var(--ui-radius-sm);
-  background: var(--ui-hover);
-  animation: trade-skeleton 1.2s ease-in-out infinite alternate;
-}
-.trade-skeleton:nth-child(2) { width: min(470px, 70%); }
-.trade-skeleton:nth-child(3) { width: min(520px, 76%); }
+.trade-state { min-height: 150px; flex: 1; align-content: center; }
 
 .trade-inspector {
   display: flex;
@@ -319,7 +296,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: var(--ui-space-4);
 }
 .inspector-primary {
@@ -533,18 +510,7 @@
 .trader-price-value[data-side="sell"] { color: var(--ui-info); }
 
 .trader-catalogue-state,
-.trader-price-error {
-  display: flex;
-  min-height: 180px;
-  flex: 1;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--ui-space-2);
-  color: var(--ui-text-muted);
-  text-align: center;
-}
-.trader-catalogue-state .trade-skeleton { width: min(240px, 72%); }
+.trader-price-error { min-height: 180px; flex: 1; align-content: center; }
 
 .trader-price-detail {
   display: flex;
@@ -650,18 +616,7 @@
 .price-chart-tooltip i[data-series="buy"] { background: var(--ui-accent); }
 [data-series="sell"] i,
 .price-chart-tooltip i[data-series="sell"] { background: var(--ui-info); }
-.price-chart-state {
-  display: flex;
-  height: 100%;
-  min-height: 260px;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--ui-space-2);
-  color: var(--ui-text-muted);
-  text-align: center;
-}
-.price-chart-state .trade-skeleton { width: min(300px, 70%); }
+.price-chart-state { height: 100%; min-height: 260px; align-content: center; }
 .price-chart-plot {
   display: block;
   width: 100%;
@@ -731,11 +686,6 @@
 .price-chart-data tbody th { color: var(--ui-text-muted); font-weight: var(--ui-font-weight-medium); }
 .price-chart-data td { color: var(--ui-text-bright); font-family: var(--ui-font-data); }
 
-@keyframes trade-skeleton {
-  from { opacity: 0.34; }
-  to { opacity: 0.78; }
-}
-
 @container (max-width: 700px) {
   .trade-window { min-width: 0; }
   /* Two toolbar rows and two-line rows keep four offers in view beside the game (HUB-126). */
@@ -800,7 +750,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .trade-skeleton { animation: none; }
   .saved-drawer-enter-active,
   .saved-drawer-leave-active { transition: opacity 120ms linear; }
   .saved-drawer-enter-from,

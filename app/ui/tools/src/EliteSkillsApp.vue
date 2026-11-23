@@ -424,7 +424,7 @@ defineExpose({ find, close, pointer, activate });
         </div>
         <div class="elite-results">
           <template v-for="section in (preferences.mode === 'browse' ? [{ key: 'all', title: '', entries: matchingSkills }] : [{ key: 'open', title: `To capture · ${huntOpen.length}`, entries: huntOpen }, { key: 'done', title: `Captured · ${huntDone.length}`, entries: huntDone }])" :key="section.key">
-            <h3 v-if="section.title && section.entries.length" class="elite-section-title">{{ section.title }}</h3>
+            <h3 v-if="section.title && section.entries.length" class="ui-section-heading elite-section-title">{{ section.title }}</h3>
             <div v-for="result in section.entries" :key="result.skill.id" class="elite-result" :data-expanded="selectedId === result.skill.id" :data-captured="captured(result.skill.id) || undefined">
               <div class="elite-result-heading">
                 <button class="elite-result-main" :data-skill-id="result.skill.id" :aria-expanded="selectedId === result.skill.id" :aria-controls="`elite-detail-${result.skill.id}`"
@@ -442,7 +442,7 @@ defineExpose({ find, close, pointer, activate });
               </div>
               <div v-if="selectedId === result.skill.id" :id="`elite-detail-${result.skill.id}`" class="elite-inline-detail">
                 <SkillDetails :skill="result.skill" :rank="rankOf(result.skill)" />
-                <h3>Capture from</h3>
+                <h3 class="ui-section-heading">Capture from</h3>
                 <EliteCaptureLocation v-for="location in detailLocations(result.skill.id)" :key="location.id" :location="location" :active="isTarget(location)" :here="location.mapId === view.mapId"
                   :learned="captured(result.skill.id)" :disabled="blocked" @target="setTarget(location)" @wiki="showWiki(location, 'boss')" />
                 <div class="elite-detail-links"><button v-if="preferences.mode === 'browse' && preferences.focusedSkill === null" class="ui-link" :disabled="!ready" @click="focusSkill(result.skill.id)">Show only this skill</button>

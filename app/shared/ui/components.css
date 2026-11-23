@@ -646,6 +646,19 @@
   opacity: 1;
 }
 
+/* Every search field in a Tools window starts with this magnifier (SEARCH_GLYPH in
+ * app/shared/ui/hub-search.ts); at most one control follows the input. */
+.ui-input-group > .ui-search-glyph {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-inline-start: var(--ui-space-1);
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 1.75;
+}
+
 /* Label above, control below, hint under that. The hint is the reason this is
  * a component: an explanation styled like body text competes with its label. */
 .ui-field {
@@ -1227,6 +1240,41 @@ button.ui-chip[aria-disabled="true"] {
   max-width: 48ch;
   margin: 0;
   text-wrap: pretty;
+}
+
+/* A section heading inside a Tools window: interface type at body size, semibold and
+ * bright. A count sits at its right, a sentence of help below it; never uppercase. A pane's
+ * own title is one step up, at --ui-font-size-lg. */
+.ui-section-heading {
+  margin: 0;
+  color: var(--ui-text-bright);
+  font-family: var(--ui-font-interface);
+  font-size: var(--ui-font-size);
+  font-weight: var(--ui-font-weight-semibold);
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+/* Loading is a .ui-empty too: these bars pulse above a line that names what loads
+ * ("Loading trader prices…"). The one loading animation in the Tools and the Hub. */
+.ui-skeleton {
+  display: block;
+  width: min(320px, 76%);
+  height: 22px;
+  border-radius: var(--ui-radius-sm);
+  background: var(--ui-hover);
+  animation: ui-skeleton 1.2s ease-in-out infinite alternate;
+}
+.ui-skeleton:nth-child(2) { width: min(270px, 64%); }
+.ui-skeleton:nth-child(3) { width: min(300px, 70%); }
+
+@keyframes ui-skeleton {
+  from { opacity: 0.34; }
+  to { opacity: 0.78; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-skeleton { animation: none; }
 }
 
 /* Feedback for a thing that already happened. Tinted by tone rather than

@@ -4,5 +4,11 @@
     "rule": "overlap",
     "target": "travel-customize",
     "reason": "The Customize Travel button sits inside the search field by design."
+  },
+  {
+    "surface": "hub",
+    "rule": "overlap",
+    "target": "skill-slot-number",
+    "reason": "The slot number sits on the skill icon's corner by design; the initials under it show only when the icon fails to load."
   }
 ]

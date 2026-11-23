@@ -73,28 +73,36 @@ has the job. `pnpm ui:sweep` checks the rules marked *swept*
   bare ×. Launcher modals use `.icon-button` with the X icon.
 - **One choice from a short set** (switch a view, filter by two to five
   values): `.ui-segment`, with `role=tablist` when it switches panels. No
-  underline tabs. The launcher uses `.segmented`.
+  underline tabs. The launcher uses `.segmented`, and `.pill` toggles
+  (`aria-pressed`) for filters above a list. Their selected state is neutral
+  (`--surface-selected` or `--control`), never gold.
 - **Group labels.** In the Hub every group of results or tiles has the
   `.hub-group` label: display type, accent colour, body size; a count or key
   hint sits at the right in muted caption text. In a Tools window a section
-  heading is interface type at body size, semibold and bright; a count sits at
-  its right, a sentence of help below it. No uppercase labels, no eyebrows.
+  heading is `.ui-section-heading`: interface type at body size, semibold and
+  bright; a count sits at its right, a sentence of help below it. A pane's own
+  title is one step up, at `--ui-font-size-lg`. No uppercase labels, no
+  eyebrows.
 - **Rows and tiles.** A Hub row is icon, title, detail, then type or keys at
   the right (`.hub-row`); a Tools list row is `.ui-row`. A set of places or
   favourites is compact tiles that wrap (the Travel tile), and ↑ ↓ move by
   painted row. Nothing scrolls sideways. *Swept:* `sideways-scroll`.
 - **Footer action bar.** Status or key hints at the left, actions at the right;
   Cancel sits left of the action it cancels, and the completion action is the
-  primary. In game windows the primary shows its ↵ key; the Hub keeps Actions
-  (⌘J) right of the primary.
+  primary, the rightmost button. In game windows the primary shows its ↵ key;
+  where a bar has an Actions menu (⌘J: the Hub, the Trade inspector), it sits
+  right of the primary. *Swept:* `footer-order`.
 - **Search field.** The search glyph at the left, the input, then at most one
   control inside the field at the right: a `/` key hint, a clear button, or the
-  view's settings gear. The Hub uses `.ui-hub-search`, Tools use
-  `.ui-input-group`. *Swept:* a control inside a field is not an `overlap`.
+  view's settings gear. The Hub uses `.ui-hub-search` with the Hub's diamond;
+  Tools use `.ui-input-group` with the magnifier (`.ui-search-glyph`). Both
+  glyphs live in `app/shared/ui/hub-search.ts`. *Swept:* `search-glyph`; a
+  control inside a field is not an `overlap`.
 - **Empty and loading.** Empty is `.ui-empty`: a short title ("No saved teams
   yet", "No matching prices"), one sentence that says what to do, and an
-  action when one helps. Loading names what loads ("Loading trader prices…");
-  the Hub shows it as a result row and the bar under its search.
+  action when one helps. Loading is a `.ui-empty` too: pulsing `.ui-skeleton`
+  bars above a line that names what loads ("Loading trader prices…"). The Hub
+  shows loading as a result row and the bar under its search.
 
 ## Accounts in the launcher
 

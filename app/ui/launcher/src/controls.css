@@ -31,6 +31,10 @@
 :where(:root[data-launcher]) .segmented button:hover, .settings-view .segmented button:hover { color: var(--text); }
 :where(:root[data-launcher]) .segmented button[aria-selected="true"], .settings-view .segmented button[aria-selected="true"] { color: var(--text); background: var(--surface-selected); }
 :where(:root[data-launcher]) .segmented svg, .settings-view .segmented svg { width: 18px; height: 18px; }
+/* Filter pills above a list (News kinds, Feature states): toggle buttons with aria-pressed. */
+:where(:root[data-launcher]) .pill { padding: 6px 12px; border: 1px solid transparent; border-radius: var(--radius-pill); color: var(--muted); background: transparent; font-size: var(--fs-xs); }
+:where(:root[data-launcher]) .pill:hover { color: var(--text); }
+:where(:root[data-launcher]) .pill[aria-pressed="true"] { color: var(--text); background: var(--control); border-color: var(--line); }
 
 /* A small label beside a name: a Feature's region, a Beta news story or a Feature still in
    development. Both windows load it, so the Hub's Settings page draws the same label. */

@@ -239,10 +239,6 @@
 
 .apply-readiness h3,
 .apply-readiness p { margin: 0; }
-.apply-readiness h3 {
-  color: var(--ui-text-bright);
-  font-size: var(--ui-font-size);
-}
 .apply-readiness p {
   margin-top: 2px;
   color: var(--ui-text-muted);
@@ -348,29 +344,7 @@
   transform: translateY(8px);
 }
 
-.loading-layout {
-  display: grid;
-  min-height: 0;
-  flex: 1;
-  grid-template-columns: 310px 1fr;
-  gap: 1px;
-  background: var(--ui-line-soft);
-}
-
-.skeleton {
-  background: linear-gradient(
-    100deg,
-    var(--ui-panel-fill) 30%,
-    var(--ui-raised-fill) 45%,
-    var(--ui-panel-fill) 60%
-  );
-  background-size: 240% 100%;
-  animation: skeleton 1.4s linear infinite;
-}
-
-@keyframes skeleton {
-  to { background-position: -240% 0; }
-}
+.library-loading { min-height: 0; flex: 1; align-content: center; }
 
 .fatal-state {
   display: grid;

@@ -358,7 +358,7 @@ defineExpose({
     <div class="detail-scroll team-scroll">
       <div class="section-heading team-roster-heading">
         <div>
-          <h2 id="team-title">Team composition</h2>
+          <h2 id="team-title" class="ui-section-heading">Team composition</h2>
         </div>
         <label v-if="lockedHeroes.length" class="show-locked-heroes ui-check">
           <input v-model="showLockedHeroes" type="checkbox">
@@ -556,7 +556,7 @@ defineExpose({
       >
         <div class="apply-readiness-heading">
           <div>
-            <h3 id="apply-readiness-title">Before you can apply</h3>
+            <h3 id="apply-readiness-title" class="ui-section-heading">Before you can apply</h3>
             <p>
               {{ applyAssessment.issues.length }}
               {{ applyAssessment.issues.length === 1 ? "issue needs" : "issues need" }} attention.

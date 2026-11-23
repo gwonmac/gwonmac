@@ -20,8 +20,8 @@ Playwright suites it may run on a Mac someone is using.
 
 | Surface | Scenes | Smallest size |
 | --- | --- | --- |
-| Launcher (`app/ui/launcher`, Vite fixture) | every `?fixture=` scene, and each tab | 900×640, the launcher window's minimum |
-| Hub (`app/ui/tools`, Vite fixture) | Home, Travel, Build Library, Party, Trade, and the Build Library and Whispers windows | 800×600, the game window's minimum |
+| Launcher (`app/ui/launcher`, Vite fixture) | every `?fixture=` scene, each tab, and Help's Report a problem form | 900×640, the launcher window's minimum |
+| Hub (`app/ui/tools`, Vite fixture) | Home, Travel, Build Library, a team review against the party, a search with no matches, Trade, and the Build Library (a team and a build) and Whispers windows | 800×600, the game window's minimum |
 | In-game panels (`tests/ui-sweep/overlays.ts`) | memory warning (low, critical), Quit or reload, Compass dock | 800×600 |
 
 The in-game panels run the production modules on the production markup from
@@ -42,8 +42,10 @@ The in-game panels run the production modules on the production markup from
 | `selection-stripe` | a selected row, option or tile marked with an edge bar | the 2 px gold stripe on Hub, Trade and Build Library rows |
 | `selection-style` | a selected item not drawn with the shared selection tokens | Hub, Trade and Build Library rows, each with its own shadow |
 | `header-tile` | a decorative icon tile beside a window title | the "GW" and market tiles in the Build Library and Trade headers |
+| `search-glyph` | a search field with no search glyph at its left | the Library's text "⌕" and the Trade and Whispers searches with no glyph |
+| `footer-order` | an action bar with a button right of its primary, other than an Actions menu | Build Detail's Export after Save; Trade's Show listings after Whisper |
 
-The last three check the pattern rules in [DESIGN.md](../DESIGN.md#one-pattern-per-job); each
+The last five check the pattern rules in [DESIGN.md](../DESIGN.md#one-pattern-per-job); each
 failed on `main` before the change that fixed it.
 
 A list that scrolls up and down is normal: rows half scrolled out of it are not findings. While a

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { SEARCH_GLYPH } from "../../../shared/ui/hub-search";
 import BuildAttributes from "./components/BuildAttributes.vue";
 import ProfessionIcon from "./components/ProfessionIcon.vue";
 import {
@@ -309,9 +310,9 @@ useClassicFrame(panel);
         <button class="ui-button" @click="controller.retrySkills">Retry skill data</button>
       </div>
 
-      <div v-if="controller.loading.value" class="loading-layout" aria-label="Loading build library">
-        <div class="skeleton skeleton--rail" />
-        <div class="skeleton skeleton--detail" />
+      <div v-if="controller.loading.value" class="ui-empty library-loading" role="status">
+        <span class="ui-skeleton" /><span class="ui-skeleton" /><span class="ui-skeleton" />
+        <p>Loading build library…</p>
       </div>
 
       <div v-else-if="controller.error.value" class="fatal-state" role="alert">
@@ -386,7 +387,7 @@ useClassicFrame(panel);
             </div>
 
             <label class="ui-input-group">
-              <span aria-hidden="true">⌕</span>
+              <svg class="ui-search-glyph" viewBox="0 0 20 20" aria-hidden="true" v-html="SEARCH_GLYPH"></svg>
               <span class="ui-sr-only">Search library</span>
               <input
                 ref="search"

@@ -258,14 +258,6 @@
   gap: var(--ui-space-4);
 }
 
-.section-heading h2,
-.detail-scroll h2 {
-  margin: 0;
-  color: var(--ui-text-bright);
-  font-size: var(--ui-font-size);
-  font-weight: var(--ui-font-weight-semibold);
-}
-
 .section-heading p { margin-left: 0; }
 
 .authoring-header {

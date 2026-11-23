@@ -12,6 +12,8 @@
  * - selection-stripe: a selected row or card marks itself with an edge stripe.
  * - selection-style: a selected row or card is drawn other than with the shared selection tokens.
  * - header-tile: a window header carries a decorative icon tile beside its title.
+ * - search-glyph: a search field has no search glyph at its left.
+ * - footer-order: an action bar has a button right of its primary (other than an Actions menu).
  */
 export type AuditFinding = Readonly<{ rule: string; target: string; detail: string }>;
 
@@ -70,7 +72,7 @@ export function auditLayout(ignore: string): AuditFinding[] {
       // Every clipping box decides whether the control is in view at all; only the axes a box does
       // not scroll can cut it, since a row half scrolled out of a list is normal.
       let view = { left: 0, top: 0, right: width, bottom: height };
-      let cutBox = { ...view };
+      let cutBox = { left: -Infinity, top: -Infinity, right: Infinity, bottom: Infinity };
       // Once a box scrolls in an axis, it decides what shows in that axis; frames around it do not.
       let scrolledX = false;
       let scrolledY = false;
@@ -84,6 +86,9 @@ export function auditLayout(ignore: string): AuditFinding[] {
         if (!scrolledX) cutBox = { ...cutBox, left: Math.max(cutBox.left, r.left), right: Math.min(cutBox.right, r.right) };
         if (!scrolledY) cutBox = { ...cutBox, top: Math.max(cutBox.top, r.top), bottom: Math.min(cutBox.bottom, r.bottom) };
       }
+      // The window is the outermost frame: it cuts only in an axis no box scrolls.
+      if (!scrolledX) cutBox = { ...cutBox, left: Math.max(cutBox.left, 0), right: Math.min(cutBox.right, width) };
+      if (!scrolledY) cutBox = { ...cutBox, top: Math.max(cutBox.top, 0), bottom: Math.min(cutBox.bottom, height) };
       const inView = rect.right > view.left && rect.left < view.right && rect.bottom > view.top && rect.top < view.bottom;
       const cut = Math.max(cutBox.left - rect.left, cutBox.top - rect.top, rect.right - cutBox.right, rect.bottom - cutBox.bottom);
       if (cut > 2 && inView) findings.push({ rule: "control-cut-off", target: describe(element), detail: `${Math.round(cut)}px of ${JSON.stringify((element.textContent ?? element.getAttribute("aria-label") ?? "").trim().slice(0, 30))} hidden` });
@@ -135,6 +140,29 @@ export function auditLayout(ignore: string): AuditFinding[] {
       if (!visible(child) || child.matches(controls) || child.querySelector(controls) || child.getAttribute("aria-hidden") !== "true") continue;
       const rect = child.getBoundingClientRect();
       if (rect.width >= 16 && rect.height >= 16) findings.push({ rule: "header-tile", target: describe(child), detail: `${Math.round(rect.width)}×${Math.round(rect.height)}px decorative tile` });
+    }
+  }
+  // Search fields: the glyph at the left of the input, inside the same field.
+  for (const input of document.body.querySelectorAll("input[type=search], input[role=combobox], [role=search] input")) {
+    if (!visible(input)) continue;
+    const field = input.closest(".ui-input-group, .ui-hub-search, label") ?? input;
+    // Where the typed text starts: a glyph may sit beside the input or over its left padding.
+    const left = input.getBoundingClientRect().left + parseFloat(getComputedStyle(input).paddingLeft);
+    const glyph = [...field.querySelectorAll("svg")].some((svg) => visible(svg) && svg.getBoundingClientRect().right <= left + 1);
+    if (!glyph) findings.push({ rule: "search-glyph", target: describe(input), detail: JSON.stringify(input.getAttribute("placeholder") ?? input.getAttribute("aria-label") ?? "") });
+  }
+  // Action bars: the primary is the rightmost button on its row; only an Actions menu sits right of it.
+  for (const bar of document.body.querySelectorAll("footer, .detail-actions, .action-row, .form-actions")) {
+    if (!visible(bar)) continue;
+    const buttons = [...bar.querySelectorAll("button, summary.ui-button")].filter((button) => visible(button) && !button.closest("[role=menu]"));
+    const primary = buttons.find((button) => button.matches("[data-variant=primary], .primary"));
+    if (!primary) continue;
+    const p = primary.getBoundingClientRect();
+    for (const button of buttons) {
+      const r = button.getBoundingClientRect();
+      const sameRow = r.top < p.bottom && r.bottom > p.top;
+      if (button === primary || !sameRow || r.left <= p.left || button.getAttribute("aria-haspopup") === "menu") continue;
+      findings.push({ rule: "footer-order", target: describe(button), detail: `${JSON.stringify(button.textContent?.trim().slice(0, 30))} sits right of the primary ${JSON.stringify(primary.textContent?.trim().slice(0, 30))}` });
     }
   }
   // Overlap: leaves that carry text, and controls, that are not inside one another.

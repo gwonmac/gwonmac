@@ -31,7 +31,7 @@ function shortDate(value: string): string { return new Date(value).toLocaleDateS
   </div>
   <p v-if="!heading && news.status === 'offline'" class="offline-note page-offline-note">Saved news · offline</p>
   <div class="news-filters" role="group" aria-label="Filter news">
-    <button v-for="item in filters" :key="item.id" :class="{ active: filter === item.id }" :aria-pressed="filter === item.id" @click="filter = item.id">{{ item.label }}</button>
+    <button v-for="item in filters" :key="item.id" class="pill" :aria-pressed="filter === item.id" @click="filter = item.id">{{ item.label }}</button>
   </div>
   <div v-if="news.status === 'loading' && news.stories.length === 0" class="news-status" role="status"><span class="news-spinner" />Checking for news…</div>
   <div v-else-if="news.stories.length === 0" class="news-status">{{ news.status === "offline" ? "No news yet. Connect to the internet to refresh your news." : "No news yet." }}</div>
@@ -55,9 +55,6 @@ function shortDate(value: string): string { return new Date(value).toLocaleDateS
 .offline-note { color: var(--muted); font-size: var(--fs-2xs); }
 .page-offline-note { margin: 0 0 10px; }
 .news-filters { display: flex; gap: 5px; padding-bottom: 13px; border-bottom: 1px solid var(--line); }
-.news-filters button { padding: 6px 12px; border: 1px solid transparent; border-radius: var(--radius-pill); color: var(--muted); background: transparent; font-size: var(--fs-xs); }
-.news-filters button:hover { color: var(--text); }
-.news-filters button.active { color: var(--text); background: var(--control); border-color: var(--line); }
 .news-feed-list { display: grid; }
 .news-row { position: relative; display: grid; grid-template-columns: 118px minmax(0, 1fr) auto; gap: 14px; width: 100%; padding: 18px 3px; color: inherit; text-align: left; background: transparent; border-bottom: 1px solid var(--line); }
 .news-row:hover, .news-row:focus-visible { background: linear-gradient(90deg, var(--gold-tint), transparent); }

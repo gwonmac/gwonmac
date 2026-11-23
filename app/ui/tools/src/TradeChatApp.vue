@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { SEARCH_GLYPH } from "../../../shared/ui/hub-search";
 import {
   computed,
   nextTick,
@@ -891,6 +892,7 @@ useClassicFrame(panel);
         </div>
         <form class="trade-search" role="search" @submit.prevent="runSearch()">
           <label class="ui-input-group">
+            <svg class="ui-search-glyph" viewBox="0 0 20 20" aria-hidden="true" v-html="SEARCH_GLYPH"></svg>
             <span class="ui-sr-only">Search offers or character names</span>
             <input
               ref="searchInput"
@@ -965,7 +967,7 @@ useClassicFrame(panel);
         </div>
         <div
           v-if="searching && (current.status === 'reconnecting' || current.status === 'unavailable')"
-          class="trade-state"
+          class="ui-empty trade-state"
           role="status"
         >
           <strong>Waiting for {{ sourceLabel }} to reconnect</strong>
@@ -974,13 +976,13 @@ useClassicFrame(panel);
         </div>
         <div
           v-else-if="playerSearching || searching || (!visibleMessages.length && (current.status === 'connecting' || current.status === 'reconnecting'))"
-          class="trade-state"
+          class="ui-empty trade-state"
           role="status"
         >
-          <div class="trade-skeleton" /><div class="trade-skeleton" /><div class="trade-skeleton" />
+          <span class="ui-skeleton" /><span class="ui-skeleton" /><span class="ui-skeleton" />
           <p>{{ loadingLabel }}</p>
         </div>
-        <div v-else-if="!visibleMessages.length" class="trade-state">
+        <div v-else-if="!visibleMessages.length" class="ui-empty trade-state">
           <strong>{{ emptyHeading }}</strong>
           <p v-if="playerProblem">{{ playerProblem }}</p>
           <p v-else-if="searchProblem">{{ searchProblem }}</p>
@@ -1097,19 +1099,19 @@ useClassicFrame(panel);
           <footer class="inspector-actions">
             <span class="inspector-primary">
               <button
+                v-if="!playerName"
+                class="ui-button inspector-listings"
+                :aria-label="`Show listings from ${selected.sender}`"
+                @click="$event.detail <= 1 && openPlayer(selected.sender, selected.timestamp)"
+              >Show listings<kbd class="ui-kbd" aria-hidden="true" :data-hidden="rowFocused ? undefined : ''">⌘↵</kbd></button>
+              <span v-if="!whispersEnabled" id="trade-whisper-reason" class="inspector-reason">Whispers is off</span>
+              <button
                 class="ui-button inspector-whisper"
                 data-variant="primary"
                 :disabled="!whispersEnabled"
                 :aria-describedby="whispersEnabled ? undefined : 'trade-whisper-reason'"
                 @click="whisper(selected, $event)"
               ><bdi>Whisper {{ selected.sender }}</bdi><kbd class="ui-kbd" aria-hidden="true" :data-hidden="rowFocused ? undefined : ''">↵</kbd></button>
-              <span v-if="!whispersEnabled" id="trade-whisper-reason" class="inspector-reason">Whispers is off</span>
-              <button
-                v-if="!playerName"
-                class="ui-button inspector-listings"
-                :aria-label="`Show listings from ${selected.sender}`"
-                @click="$event.detail <= 1 && openPlayer(selected.sender, selected.timestamp)"
-              >Show listings<kbd class="ui-kbd" aria-hidden="true" :data-hidden="rowFocused ? undefined : ''">⌘↵</kbd></button>
             </span>
             <details ref="offerActions" class="offer-actions">
               <summary class="ui-button" aria-haspopup="menu" @click.prevent="onActionsClick" @keydown="onActionsKeydown">Actions <kbd class="ui-kbd" aria-hidden="true">⌘J</kbd></summary>
