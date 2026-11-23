@@ -124,8 +124,6 @@ body[data-tools-standalone="true"] {
 .window-identity .ui-panel-title { font-size: var(--ui-font-size-lg); }
 .window-identity .ui-field-hint { margin: 0; }
 
-.window-close { font-size: var(--ui-font-size-lg); }
-
 .ui-dialog {
   position: fixed;
   z-index: var(--ui-z-toast);

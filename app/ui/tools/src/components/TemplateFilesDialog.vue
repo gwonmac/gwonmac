@@ -96,7 +96,7 @@ function confirm() {
           <h2 id="template-files-title">Guild Wars template files</h2>
           <p>Move skill and equipment templates between this Mac and other Guild Wars installations.</p>
         </div>
-        <button type="button" class="ui-button" data-icon aria-label="Close" @click="emit('close')">×</button>
+        <button type="button" class="ui-window-close" aria-label="Close" @click="emit('close')">×</button>
       </header>
 
       <p class="template-files-status" role="status" aria-live="polite">{{ status }}</p>

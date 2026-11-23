@@ -291,8 +291,7 @@ useClassicFrame(panel);
         <span v-if="controller.saving.value" class="ui-chip" data-level="warn" role="status">Saving…</span>
         <button
           v-if="mode === 'embedded'"
-          class="ui-window-close window-close"
-          data-icon
+          class="ui-window-close"
           aria-label="Close Build Library"
           @click="requestClose"
         >
@@ -641,7 +640,7 @@ useClassicFrame(panel);
               </p>
               <p v-else>Start empty, then assign library builds to its eight slots.</p>
             </div>
-            <button type="button" class="ui-button" data-icon aria-label="Close" @click="composer = null">
+            <button type="button" class="ui-window-close" aria-label="Close" @click="composer = null">
               ×
             </button>
           </header>

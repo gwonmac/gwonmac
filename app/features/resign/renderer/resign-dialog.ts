@@ -35,9 +35,7 @@ export function createResignDialog(
   root.innerHTML = `<section class="ui-frame resign-panel">
     <header class="ui-panel-head ui-window-head">
       <h2 class="ui-panel-title" id="resign-title">Resign?</h2>
-      <button type="button" class="ui-button" data-icon aria-label="Close Resign">
-        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m3 3 10 10M13 3 3 13" /></svg>
-      </button>
+      <button type="button" class="ui-window-close" aria-label="Close Resign">×</button>
     </header>
     <div class="ui-panel-body">
       <p id="resign-description">Sends /resign to your party. When everyone has resigned, the party returns to the outpost and this attempt ends.</p>
@@ -48,7 +46,7 @@ export function createResignDialog(
       <button type="button" class="ui-button" data-variant="danger" data-confirm>Resign <kbd aria-hidden="true">↵</kbd></button>
     </footer>
   </section>`;
-  const closeButton = root.querySelector<HTMLButtonElement>("[data-icon]")!;
+  const closeButton = root.querySelector<HTMLButtonElement>(".ui-window-close")!;
   const cancelButton = root.querySelector<HTMLButtonElement>("[data-cancel]")!;
   const confirmButton = root.querySelector<HTMLButtonElement>("[data-confirm]")!;
   const error = root.querySelector<HTMLParagraphElement>("[role=alert]")!;
