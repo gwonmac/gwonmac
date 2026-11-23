@@ -33,7 +33,7 @@ The in-game panels run the production modules on the production markup from
 
 | Rule | Catches | Example it caught |
 | --- | --- | --- |
-| `sideways-scroll` | a box that hides part of itself behind a sideways scrollbar | Quit or reload panel; Hub Recent carousel |
+| `sideways-scroll` | a box that hides part of itself behind a sideways scrollbar | Quit or reload panel; the old Hub Recent carousel |
 | `control-cut-off` | a button, link or field cut by a frame or the window | "Reload Guild Wars" cut off by 93 px at 800×600 |
 | `text-spill` | text running out of its box without an ellipsis | |
 | `offscreen` | a panel reaching past the window edge | |

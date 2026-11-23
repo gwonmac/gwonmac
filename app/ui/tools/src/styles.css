@@ -107,7 +107,7 @@
   box-shadow: none;
 }
 
-.travel-header-actions .travel-close {
+.travel-header-actions :is(.travel-customize, .travel-close) {
   width: 34px;
   min-width: 34px;
   min-height: 34px;
@@ -117,11 +117,11 @@
   box-shadow: none;
 }
 
-.travel-header-actions .travel-close:hover:not(:disabled) {
+.travel-header-actions :is(.travel-customize, .travel-close):hover:not(:disabled) {
   background: var(--ui-hover);
 }
 
-.travel-close svg {
+:is(.travel-customize, .travel-close) svg {
   width: 16px;
   height: 16px;
   fill: none;
