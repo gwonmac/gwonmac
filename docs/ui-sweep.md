@@ -39,6 +39,12 @@ The in-game panels run the production modules on the production markup from
 | `offscreen` | a panel reaching past the window edge | |
 | `overlap` | text or controls drawn over each other | |
 | `truncated` | a label ending in an ellipsis (a note, never a failure) | |
+| `selection-stripe` | a selected row, option or tile marked with an edge bar | the 2 px gold stripe on Hub, Trade and Build Library rows |
+| `selection-style` | a selected item not drawn with the shared selection tokens | Hub, Trade and Build Library rows, each with its own shadow |
+| `header-tile` | a decorative icon tile beside a window title | the "GW" and market tiles in the Build Library and Trade headers |
+
+The last three check the pattern rules in [DESIGN.md](../DESIGN.md#one-pattern-per-job); each
+failed on `main` before the change that fixed it.
 
 A list that scrolls up and down is normal: rows half scrolled out of it are not findings. While a
 modal is open, only the modal is checked. Each rule was proved to fail, on a page broken on purpose
@@ -54,7 +60,7 @@ says so and says when to remove it; delete it in the change that makes the decis
 
 | Claim | Who checks it |
 | --- | --- |
-| Patterns are consistent across surfaces (selection marks, icon sizes, headers) | Opus reads the contact sheet for every interface change; no rule judges taste |
+| The pattern rules without a sweep rule (group labels, footers, search fields, empty states) | Opus reads the contact sheet for every interface change; no rule judges taste |
 | Keyboard, focus and pointer behaviour | the Hub Playwright suite and vitest (`docs/hub-contract.md`) |
 | Panels over the real game: game art, the real Compass position, input feel | a person, in the play check |
 | The loading screen, character switch, Whispers pop-out, Settings dialogs, the Classic theme and larger text | not yet in the sweep; add a scene when one of them changes |
