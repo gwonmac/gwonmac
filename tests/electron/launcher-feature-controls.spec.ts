@@ -39,7 +39,7 @@ test("feature controls preserve preferences and validate native commands", async
     await expect(settings.getByRole("button", { name: "Turn on", exact: true })).toBeVisible();
     await settings.screenshot({ path: test.info().outputPath("resign-page.png") });
     await settings.locator(".feature-page .back").click();
-    await settings.locator('[data-feature="cartography"] .card-link').click();
+    await openFeaturePage(settings, "cartography");
     await expect(settings.getByRole("heading", { name: "Maps", exact: true, level: 1 })).toBeVisible();
     const shortcuts = await page.evaluate(async () => (await window.launcherNative.state.get()).shortcuts);
     expect(shortcuts["cartography.grid.toggle"]).toBeNull();
