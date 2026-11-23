@@ -1,6 +1,6 @@
 /**
  * Owns error containment for the renderer's direct-call fan-out: a loop that calls each part,
- * listener or session in turn. DOM events already keep one listener's throw from the next one;
+ * listener, session or Hub source in turn. DOM events already keep one listener's throw from the next one;
  * a plain loop does not, so one throw would skip every later entry, teardown included.
  */
 
@@ -16,4 +16,11 @@ export function safely(label: string, run: () => void): boolean {
     console.error(`[err] ${label} failed`);
     return false;
   }
+}
+
+/** Runs `read` and answers its value, or `fallback` when it throws, logged as `safely` logs it. */
+export function safelyRead<T>(label: string, read: () => T, fallback: T): T {
+  let value = fallback;
+  safely(label, () => { value = read(); });
+  return value;
 }
