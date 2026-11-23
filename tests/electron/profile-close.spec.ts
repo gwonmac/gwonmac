@@ -114,7 +114,7 @@ test("keeps an account open until an incomplete save is resolved explicitly", as
           if (command?.type === "filesystem.sync") {
             queueMicrotask(() => ipcMain.emit(
               "gw:renderer:commandDone",
-              { sender: win.webContents },
+              { sender: win.webContents, senderFrame: win.webContents.mainFrame },
               id,
               "failed",
             ));

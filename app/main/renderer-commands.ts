@@ -4,14 +4,15 @@
  *
  * Commands are typed values, never JavaScript source built by interpolation,
  * and the window they may address is the one `renderer-trust.ts` recognises —
- * the same rule `ipc.ts` applies to traffic coming the other way, so the two
- * directions cannot drift into different ideas of what the renderer is. Only
- * the renderer a command was sent to may complete it.
+ * the same sender proof `ipc-channel-registry.ts` applies to every channel
+ * coming the other way (this module's completion channel is registered in
+ * game-ipc/renderer-command.ts), so the two directions cannot drift into different
+ * ideas of what the renderer is. Only the renderer a command was sent to may
+ * complete it.
  */
-import { ipcMain, type BrowserWindow } from "electron";
+import type { BrowserWindow } from "electron";
 import { GAME_CHANNELS } from "../shared/ipc/game.js";
 import {
-  RENDERER_COMMAND_COMPLETIONS,
   type TextEditCommand,
   type RendererCommand,
   type RendererCommandCompletion,
@@ -31,20 +32,20 @@ let lastCommandId = 0;
 export const RENDERER_COMMAND_TIMEOUT_MS = 5_000;
 export const VISUAL_CAPTURE_COMMAND_TIMEOUT_MS = 60_000;
 
-ipcMain.on(GAME_CHANNELS.rendererCommandDone.channel, (event, id: unknown, outcome: unknown) => {
-  if (
-    typeof id !== "number"
-    || !RENDERER_COMMAND_COMPLETIONS.includes(
-      outcome as RendererCommandCompletion,
-    )
-  ) {
-    return;
-  }
+/**
+ * Settles the pending command `id` with the renderer's outcome. Only the
+ * renderer the command was sent to may complete it; any other sender, or an id
+ * that is no longer pending, is ignored.
+ */
+export function completeRendererCommand(
+  webContentsId: number,
+  id: number,
+  outcome: RendererCommandCompletion,
+): void {
   const entry = pending.get(id);
-  // Only the renderer the command was sent to may complete it.
-  if (!entry || entry.webContentsId !== event.sender.id) return;
-  entry.settle(outcome as RendererCommandCompletion);
-});
+  if (!entry || entry.webContentsId !== webContentsId) return;
+  entry.settle(outcome);
+}
 
 /**
  * Resolves with the renderer's truthful completion, failure when the page that

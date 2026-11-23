@@ -1,5 +1,6 @@
 /**
- * Owns typed, authorized registration for every renderer-to-main invoke.
+ * Owns typed, authorized registration for every renderer-to-main channel: the
+ * invokes (`register`) and the sends that get no answer (`registerSend`).
  *
  * A handler pairs the parser that turns one invoke's arguments into the
  * declared argument tuple with the function that answers it. `Handlers<Table>`
@@ -9,8 +10,8 @@
  * time that every channel of a table has exactly one owner. `BOUNDARIES` binds
  * each boundary to its window role and tables once, so a part registers by
  * boundary name and cannot pair a role with another role's table. This
- * boundary proves the sender once, for every channel, and reports refused
- * arguments.
+ * boundary proves the sender once, for every channel of both kinds, and
+ * reports refused arguments.
  */
 import { ipcMain, type BrowserWindow } from "electron";
 import type {
@@ -19,6 +20,7 @@ import type {
   EventSpec,
   InvokeKey,
   ResultOf,
+  SendKey,
   UnionToIntersection,
 } from "../shared/ipc/channel-table.js";
 import { GAME_CHANNELS } from "../shared/ipc/game.js";
@@ -79,6 +81,11 @@ export type HandlerFor<Spec> = ChannelDef<ArgsOf<Spec>, ResultOf<Spec>>;
 /** One handler per channel main answers in `Table`. */
 export type Handlers<Table extends ChannelTable> = {
   readonly [Key in InvokeKey<Table>]: HandlerFor<Table[Key]>;
+};
+
+/** One handler per send channel of `Table`; a send has no answer, so its handler returns nothing. */
+export type SendHandlers<Table extends ChannelTable> = {
+  readonly [Key in SendKey<Table>]: ChannelDef<ArgsOf<Table[Key]>, void>;
 };
 
 /** The channels one owner answers: any subset of a table, each correctly typed. */
@@ -180,6 +187,38 @@ export function register<Boundary extends ChannelBoundary, Part extends object>(
   }
 }
 
+/**
+ * Registers the send channels (`ipcRenderer.send`, no answer) one owner
+ * returned, behind the same sender proof as `register`. A refused sender or
+ * refused arguments drop the message: there is no caller to throw to, and a
+ * throw inside `ipcMain.on` would surface as an uncaught main-process error.
+ */
+export function registerSend<Boundary extends ChannelBoundary, Part extends object>(
+  windows: WindowRegistry,
+  boundary: Boundary,
+  handlers: Part & Readonly<Partial<SendHandlers<BoundaryTable<Boundary>>>> & {
+    readonly [Key in Exclude<keyof Part, SendKey<BoundaryTable<Boundary>>>]: never;
+  },
+): void {
+  const { role, tables } = BOUNDARIES[boundary];
+  const specs: readonly ChannelTable[] = tables;
+  const answers: Readonly<Record<string, RegisteredHandler | undefined>> = handlers;
+  for (const [key, handler] of Object.entries(answers)) {
+    const spec = specs.map((table) => table[key]).find((entry) => entry !== undefined);
+    if (!handler || spec?.kind !== "send") throw new Error(`${key} is not a send channel of ${boundary}`);
+    ipcMain.on(spec.channel, (event, ...args: unknown[]) => {
+      try {
+        const win = assertSender(windows, event, role);
+        void Promise.resolve(
+          handler.answer(win, args, (error) => REJECTED[role](windows, win, key, error)),
+        ).catch(() => undefined);
+      } catch {
+        // Not a trusted sender, or the answer threw synchronously: drop it.
+      }
+    });
+  }
+}
+
 /** Sends one table event to a window that is still alive; false when it is gone. */
 export function emit<Payload extends readonly unknown[]>(
   win: BrowserWindow,
@@ -197,7 +236,7 @@ export function emit<Payload extends readonly unknown[]>(
 
 function assertSender(
   registry: WindowRegistry,
-  event: Electron.IpcMainInvokeEvent,
+  event: Pick<Electron.IpcMainInvokeEvent, "sender" | "senderFrame">,
   role: ChannelRole,
 ): BrowserWindow {
   const win = registry.windowForWebContents(event.sender.id);

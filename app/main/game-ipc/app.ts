@@ -35,21 +35,10 @@ const asRevealKind = one((value: unknown): RevealKind => {
 });
 
 const asExternalLinkKind = one((value: unknown): ExternalLinkKind => {
-  if (
-    value !== "github" &&
-    value !== "bugReport" &&
-    value !== "featureRequest" &&
-    value !== "discord" &&
-    value !== "arenaNetSupport" &&
-    value !== "donate" &&
-    value !== "releases" &&
-    value !== "store" &&
-    value !== "kamadanTrade" &&
-    value !== "preSearingTrade"
-  ) {
+  if (typeof value !== "string" || !Object.hasOwn(EXTERNAL_URLS, value)) {
     throw new ValidationError("invalid external link kind");
   }
-  return value;
+  return value as ExternalLinkKind;
 });
 
 /** No argument opens the last Settings section; one names a section or control. */

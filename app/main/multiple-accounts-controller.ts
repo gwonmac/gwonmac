@@ -7,7 +7,6 @@ import { dialog, session, type BrowserWindow } from "electron";
 import { mkdir, rm } from "node:fs/promises";
 import type {
   AccountProfileCreateRequest,
-  AccountProfileUpdateRequest,
   AccountTemplateLibrary,
   AccountsState,
 } from "../shared/accounts-contracts.js";
@@ -38,7 +37,6 @@ import {
   removeArchivedMultiProfile,
   restoreMultiProfile,
   saveMultiWorkspace,
-  updateMultiProfile,
 } from "./core/multiple-accounts.js";
 import { Mutex } from "./core/mutex.js";
 import type { NativeKeychain } from "./core/native-keychain.js";
@@ -352,7 +350,8 @@ export class MultipleAccountsController {
     return failures;
   }
 
-  create(request: AccountProfileCreateRequest): Promise<AccountsState> {
+  /** Creates the profile and returns its id; the new state is published to every listener. */
+  create(request: AccountProfileCreateRequest): Promise<ProfileId> {
     return this.accountsLock.run(async () => {
       const workspace = this.activeWorkspace();
       const { paths } = this.options;
@@ -374,7 +373,7 @@ export class MultipleAccountsController {
       }
       this.workspace = next as AccountWorkspace;
       this.publish();
-      return this.state();
+      return next.profiles.at(-1)!.id;
     });
   }
 
@@ -393,31 +392,6 @@ export class MultipleAccountsController {
       this.workspace = { ...next, legacyPrimaryProfileId: this.workspace.legacyPrimaryProfileId };
       const win = windowRegistry.profileWindow(profileId);
       if (win) setOwnedWindowTitle(win, `Guild Wars Reforged — ${name}`);
-      this.publish();
-      return this.state();
-    });
-  }
-
-  update(request: AccountProfileUpdateRequest): Promise<AccountsState> {
-    return this.accountsLock.run(async () => {
-      const workspace = this.activeWorkspace();
-      if (request.id === workspace.legacyPrimaryProfileId) {
-        throw new Error("The adopted Main account keeps its existing storage");
-      }
-      const current = this.profileFor(request.id);
-      if (
-        windowRegistry.profileWindow(request.id)
-        && (current.builds !== request.builds || current.templates !== request.templates)
-      ) {
-        throw new Error("Close this account before changing sharing");
-      }
-      const next = updateMultiProfile(workspace, request.id, request);
-      await saveMultiWorkspace(this.options.paths.multiWorkspace, next);
-      this.workspace = next as AccountWorkspace;
-      const profileWindow = windowRegistry.profileWindow(request.id);
-      if (profileWindow) {
-        setOwnedWindowTitle(profileWindow, `Guild Wars Reforged — ${request.name}`);
-      }
       this.publish();
       return this.state();
     });

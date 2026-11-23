@@ -66,14 +66,15 @@ export function socketFailureCode(error: unknown): SocketFailureCode {
 export function parseDestination(destination: string): {
   host: string;
   port: number;
-  family: 4 | 6;
+  family: 4;
 } {
   const parsed = parseAllowedDestination(destination);
   assertPublicDestination(parsed.host, parsed.port);
   return {
     host: parsed.host,
     port: parsed.port,
-    family: parsed.host.includes(":") ? 6 : 4,
+    // Destinations parse as IPv4 text only (allowlists.ts).
+    family: 4,
   };
 }
 
@@ -247,7 +248,7 @@ export class SocketManager {
     return id;
   }
 
-  async send(socketId: number, data: Uint8Array, ownerId?: number): Promise<void> {
+  async send(socketId: number, data: Uint8Array, ownerId: number): Promise<void> {
     const entry = this.require(socketId, ownerId);
     if (!entry.opened || entry.closed) {
       throw new ValidationError(`socket ${socketId} is not open`);
@@ -287,7 +288,7 @@ export class SocketManager {
     });
   }
 
-  async close(socketId: number, ownerId?: number): Promise<void> {
+  async close(socketId: number, ownerId: number): Promise<void> {
     const entry = this.require(socketId, ownerId);
     if (entry.closed) return;
     entry.socket.destroy();

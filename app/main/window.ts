@@ -6,6 +6,7 @@
  * transition of window state is written here and a menu handler can only ask
  * for one.
  */
+import { HARDENED_WEB_PREFERENCES, lockDownWebContents } from "./hardened-web-contents.js";
 import {
   app,
   BrowserWindow,
@@ -357,7 +358,7 @@ async function closeProfileWindowOnce(win: BrowserWindow): Promise<void> {
           "Keep the account open and retry, or close it knowing that recent game files may be lost.",
       })).response;
     } catch (error) {
-      console.error("profile close confirmation failed", error);
+      console.error("profile close confirmation failed", errorCode(error));
       return;
     }
     if (response === 0) continue;
@@ -372,7 +373,7 @@ async function closeProfileWindowOnce(win: BrowserWindow): Promise<void> {
       { k: "window.stateSaveFailed" },
       diagnosticOwnerId,
     );
-    console.error("profile window state save failed", error);
+    console.error("profile window state save failed", errorCode(error));
   }
   if (!win.isDestroyed()) win.destroy();
 }
@@ -480,14 +481,7 @@ export function createMainWindow(
       // Keep game simulation, network delivery, and enabled background audio
       // running when macOS fully covers or minimizes this window.
       backgroundThrottling: false,
-      nodeIntegration: false,
-      contextIsolation: true,
-      sandbox: true,
-      webSecurity: true,
-      webviewTag: false,
-      spellcheck: false,
-      allowRunningInsecureContent: false,
-      experimentalFeatures: false,
+      ...HARDENED_WEB_PREFERENCES,
       ...(options.session ? { session: options.session } : {}),
     },
   });
@@ -627,10 +621,14 @@ export function createMainWindow(
   win.on("resized", () => logEvent({ k: "window.resized" }, diagnosticOwnerId));
   win.on("moved", () => logEvent({ k: "window.moved" }, diagnosticOwnerId));
 
-  win.webContents.setWindowOpenHandler(() => {
-    logEvent({ k: "security.windowOpenBlocked" }, diagnosticOwnerId);
-    return { action: "deny" };
-  });
+  lockDownWebContents(win.webContents, (action) => {
+    switch (action) {
+      case "popup": logEvent({ k: "security.windowOpenBlocked" }, diagnosticOwnerId); break;
+      case "webview": logEvent({ k: "security.webviewBlocked" }, diagnosticOwnerId); break;
+      case "navigation": logEvent({ k: "security.navigationBlocked" }, diagnosticOwnerId); break;
+      case "redirect": logEvent({ k: "security.redirectBlocked" }, diagnosticOwnerId); break;
+    }
+  }, isCanonicalRendererUrl);
 
   // App shortcuts are decided in the main process before the page sees the key.
   //
@@ -668,7 +666,7 @@ export function createMainWindow(
           if (!featureOn(SHORTCUT_FEATURES[action], settings, win)) return;
           const key = SHORTCUT_MAP_LAYERS[action];
           return host.updateSettings({ [key]: !settings[key] });
-        }).catch((error) => console.error("Map layer shortcut failed", error));
+        }).catch((error) => console.error("Map layer shortcut failed", errorCode(error)));
       } else void runShortcut(win, action);
     },
     edit(command) {
@@ -690,20 +688,6 @@ export function createMainWindow(
     logEvent({ k: "settings.loadFailed", code: errorCode(error) });
   });
 
-  win.webContents.on("will-navigate", (event, url) => {
-    if (!isCanonicalRendererUrl(url)) {
-      event.preventDefault();
-      logEvent({ k: "security.navigationBlocked" }, diagnosticOwnerId);
-    }
-  });
-
-  win.webContents.on("will-redirect", (event, url) => {
-    if (!isCanonicalRendererUrl(url)) {
-      event.preventDefault();
-      logEvent({ k: "security.redirectBlocked" }, diagnosticOwnerId);
-    }
-  });
-
   const mayLockPointer = (
     webContents: Electron.WebContents | null,
     permission: string,
@@ -722,11 +706,6 @@ export function createMainWindow(
     (webContents, permission, _origin, details) =>
       mayLockPointer(webContents, permission, details.isMainFrame),
   );
-  win.webContents.on("will-attach-webview", (event) => {
-    event.preventDefault();
-    logEvent({ k: "security.webviewBlocked" }, diagnosticOwnerId);
-  });
-
   win.webContents.on("destroyed", () => {
     logEvent({ k: "webContents.destroyed" }, diagnosticOwnerId);
     host.sockets.closeAll(rendererId);

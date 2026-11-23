@@ -4,10 +4,6 @@ import type { BrowserWindow } from "electron";
 import { setInputTraceEnabled } from "../../app/main/input-trace.js";
 import { DEFAULT_SETTINGS } from "../../app/shared/settings/index.js";
 import {
-  captureWindowShortcut,
-  captureWindowSkillKey,
-  captureWindowSkillKeyPointer,
-  cancelWindowSkillKeyCapture,
   installWindowShortcuts,
   releaseWindowShortcutKey,
   updateWindowShortcuts,
@@ -175,7 +171,7 @@ describe("window shortcut input", () => {
     assert.equal(press("KeyL"), true);
     assert.deepEqual(actions, ["hub.toggle", "hub.toggle", "cartography.grid.toggle", "cartography.walkability.toggle"]);
   });
-  it("runs one Command action, preserves Control, and contains capture repeats", async () => {
+  it("runs one Command action, preserves Control, and contains Command repeats", async () => {
     const { win, dispatch: beforeInput } = fakeWindow();
     const actions: string[] = [];
     const edits: string[] = [];
@@ -285,101 +281,6 @@ describe("window shortcut input", () => {
     assert.equal(dispatch({
       ...keyDown("KeyQ", "q"), type: "keyUp", meta: false,
     }), false);
-
-    const capture = captureWindowShortcut(win);
-    assert.equal(dispatch(keyDown("KeyK", "k", { shift: true })), true);
-    assert.deepEqual(await capture, {
-      status: "captured",
-      binding: { key: "k", shift: true, option: false },
-    });
-    assert.equal(dispatch(keyDown("KeyK", "k", {
-      shift: true,
-      isAutoRepeat: true,
-    })), true);
-    assert.deepEqual(actions, ["tools.toggle"]);
-    dispatch({
-      ...keyDown("MetaLeft", "Meta"),
-      type: "keyUp",
-      meta: false,
-    });
-    assert.equal(dispatch(keyDown("KeyK", "k", {
-      meta: false,
-      shift: true,
-      isAutoRepeat: true,
-    })), true);
-    assert.equal(dispatch({
-      ...keyDown("KeyK", "k", { shift: true }),
-      type: "keyUp",
-      meta: false,
-    }), true);
-    assert.equal(dispatch(keyDown("KeyK", "k", { shift: true })), false);
-
-    const secondCapture = captureWindowShortcut(win);
-    assert.equal(dispatch(keyDown("KeyW", "w")), true);
-    assert.deepEqual(await secondCapture, {
-      status: "captured",
-      binding: { key: "w", shift: false, option: false },
-    });
-    // AppKit consumes this release, so the shortcut controller must receive
-    // the same exact code through the native normalization route.
-    releaseWindowShortcutKey(win, "KeyW");
-    assert.equal(dispatch(keyDown("KeyW", "w", { isAutoRepeat: true })), false);
-
-    const skillCapture = captureWindowSkillKey(win);
-    assert.equal(dispatch(keyDown("ShiftLeft", "Shift", {
-      meta: false, control: false, shift: true,
-    })), true);
-    assert.equal(dispatch(keyDown("F12", "F12", {
-      meta: true, control: true, shift: true, alt: true,
-    })), true);
-    assert.deepEqual(await skillCapture, {
-      status: "captured",
-      binding: {
-        input: { kind: "keyboard", code: "F12" },
-        modifiers: { control: true, option: true, shift: true, command: true },
-      },
-    });
-    assert.deepEqual(actions, ["tools.toggle"]);
-    assert.equal(dispatch({
-      ...keyDown("F12", "F12", {
-        meta: false, control: false, shift: false, alt: false,
-      }),
-      type: "keyUp",
-    }), true);
-    assert.equal(dispatch({
-      ...keyDown("ShiftLeft", "Shift", {
-        meta: false, control: false, shift: false,
-      }),
-      type: "keyUp",
-    }), true);
-
-    const pointerCapture = captureWindowSkillKey(win);
-    const pointerBinding = {
-      input: { kind: "mouse-button" as const, button: 4 },
-      modifiers: { control: false, option: true, shift: false, command: false },
-    };
-    assert.equal(captureWindowSkillKeyPointer(win, pointerBinding), true);
-    assert.equal(captureWindowSkillKeyPointer(win, pointerBinding), false);
-    assert.deepEqual(await pointerCapture, {
-      status: "captured",
-      binding: pointerBinding,
-    });
-    assert.equal(dispatch(keyDown("KeyQ", "q", {
-      meta: false, control: false, shift: false, alt: false,
-    })), false, "a later keyboard event cannot replace the pointer winner");
-
-    const mouseRace = captureWindowSkillKey(win);
-    assert.equal(dispatch(keyDown("AltLeft", "Alt", {
-      meta: false, control: false, shift: false, alt: true,
-    })), true);
-    cancelWindowSkillKeyCapture(win);
-    assert.deepEqual(await mouseRace, { status: "cancelled" });
-    assert.equal(dispatch({
-      ...keyDown("AltLeft", "Alt", {
-        meta: false, control: false, shift: false, alt: false,
-      }),
-      type: "keyUp",
-    }), true);
 
     updateWindowShortcuts(win, {
       ...DEFAULT_SETTINGS,

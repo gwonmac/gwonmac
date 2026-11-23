@@ -49,15 +49,12 @@ export const GUILD_WARS_DISPLAY_FONT = {
   spaceWidth: 13,
 } as const satisfies GameFontStrike;
 
-export const GUILD_WARS_LATIN_FONT_FILE_ID = GUILD_WARS_BODY_FONT.fileId;
-
 const ALPHA = Uint8Array.of(
   0x00, 0x66, 0x79, 0x8d, 0x97, 0xa5, 0xaf, 0xbd,
   0xc6, 0xce, 0xd6, 0xde, 0xe7, 0xef, 0xf7, 0xff,
 );
 const FIRST_CHARACTER = 0x21;
 const LAST_CHARACTER = 0x7e;
-export const GUILD_WARS_FONT_METRICS = GUILD_WARS_BODY_FONT;
 const MAX_RECTANGLES_PER_GLYPH = 2_048;
 const MAX_TOTAL_RECTANGLES = 65_536;
 const UNITS_PER_EM = 1024;

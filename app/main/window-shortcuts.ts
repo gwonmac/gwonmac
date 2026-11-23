@@ -1,6 +1,8 @@
 /**
- * Window-scoped shortcut interception and recording before Guild Wars sees a key.
+ * Window-scoped shortcut interception before Guild Wars sees a key.
  * Settings stay durable elsewhere; this controller owns only the live input state.
+ * Recording a new shortcut belongs to launcher-shortcut-capture.ts, which this
+ * controller yields to while a capture is active.
  */
 import { isAppShortcutCaptureActive } from "./launcher-shortcut-capture.js";
 import type { BrowserWindow } from "electron";
@@ -14,18 +16,11 @@ import {
   SHORTCUT_ACTIONS,
   SHORTCUT_FEATURES,
   hubShortcutAvailable,
-  shortcutFromInput,
   shortcutMatches,
   type ShortcutAction,
   type ShortcutBinding,
-  type ShortcutCaptureResult,
 } from "../shared/keyboard-shortcuts.js";
 import { recordMainInput } from './input-trace.js';
-import {
-  isSkillKeyKeyboardCode,
-  type SkillKeyBinding,
-  type SkillKeyCaptureResult,
-} from "../shared/skill-key-bindings.js";
 
 const tracedKey = (key: string) => {
   if (["Meta", "Control", "Shift", "Alt"].includes(key)) return 'modifier' as const;
@@ -51,16 +46,10 @@ interface ShortcutActions {
  * (Command-Q, Resign). A Guild Wars edit command names the edit whose
  * translated Control chord may reuse the key.
  */
-type ClaimedKey = 'capture' | 'skill-capture' | 'shortcut' | 'quit' | 'sheet' | GameTextEditCommand;
-
-const claimedDecision = (claim: ClaimedKey): 'capture' | 'shortcut' =>
-  claim === 'capture' || claim === 'skill-capture' ? 'capture' : 'shortcut';
+type ClaimedKey = 'shortcut' | 'quit' | 'sheet' | GameTextEditCommand;
 
 const isTextEditClaim = (claim: ClaimedKey): claim is GameTextEditCommand =>
-  claim !== 'capture' && claim !== 'skill-capture' && claim !== 'shortcut' && claim !== 'quit' && claim !== 'sheet';
-
-const isModifierCode = (code: string): boolean =>
-  /^(?:Meta|Control|Shift|Alt)(?:Left|Right)$/u.test(code);
+  claim !== 'shortcut' && claim !== 'quit' && claim !== 'sheet';
 
 const commandChord = (key: string, shift = false): ShortcutBinding => ({ key, shift, option: false });
 /** The macOS Edit chords, matched like every app shortcut by the letter the layout types. */
@@ -92,8 +81,6 @@ class WindowShortcuts {
    */
   #shortcuts = resolveShortcuts({});
   #enabled = new Set<ShortcutAction>();
-  #capture: ((result: ShortcutCaptureResult) => void) | null = null;
-  #skillCapture: ((result: SkillKeyCaptureResult) => void) | null = null;
   #claimedCodes = new Map<string, ClaimedKey>();
   readonly #win: BrowserWindow;
 
@@ -118,7 +105,7 @@ class WindowShortcuts {
         recordMainInput(win, {
           source: 'main', kind: 'native-key', phase: 'up',
           key: tracedKey(input.key), repeat: false,
-          decision: decision ? claimedDecision(decision) : 'forwarded',
+          decision: decision ? 'shortcut' : 'forwarded',
         });
         if (decision) {
           this.#claimedCodes.delete(input.code);
@@ -153,59 +140,12 @@ class WindowShortcuts {
         recordMainInput(win, {
           source: 'main', kind: 'native-key', phase: 'down',
           key: tracedKey(input.key), repeat: input.isAutoRepeat,
-          decision: claimedDecision(claimed),
+          decision: 'shortcut',
         });
         event.preventDefault();
         if (claimed === 'quit') {
           this.#recordCommandQ("repeat-contained", "none");
         }
-        return;
-      }
-      if (this.#capture) {
-        if (["Meta", "Control", "Shift", "Alt"].includes(input.key)) return;
-        if (input.key === "Tab" && !input.meta && !input.control && !input.alt) return;
-        event.preventDefault();
-        recordMainInput(win, {
-          source: 'main', kind: 'native-key', phase: 'down',
-          key: tracedKey(input.key), repeat: input.isAutoRepeat, decision: 'capture',
-        });
-        this.#claimedCodes.set(input.code, 'capture');
-        if (input.key === "Escape" && !input.meta && !input.control && !input.shift && !input.alt) {
-          this.#finish({ status: "cancelled" });
-          return;
-        }
-        if ((input.key === "Backspace" || input.key === "Delete") && !input.meta && !input.control && !input.shift && !input.alt) {
-          this.#finish({ status: "cleared" });
-          return;
-        }
-        const binding = shortcutFromInput(input);
-        this.#finish(binding
-          ? { status: "captured", binding }
-          : { status: "invalid" });
-        return;
-      }
-      if (this.#skillCapture) {
-        event.preventDefault();
-        recordMainInput(win, {
-          source: 'main', kind: 'native-key', phase: 'down',
-          key: tracedKey(input.key), repeat: input.isAutoRepeat, decision: 'capture',
-        });
-        this.#claimedCodes.set(input.code, 'skill-capture');
-        if (isModifierCode(input.code) || input.isAutoRepeat) return;
-        this.#finishSkillCapture(isSkillKeyKeyboardCode(input.code)
-          ? {
-              status: "captured",
-              binding: {
-                input: { kind: "keyboard", code: input.code },
-                modifiers: {
-                  control: input.control,
-                  option: input.alt,
-                  shift: input.shift,
-                  command: input.meta,
-                },
-              },
-            }
-          : { status: "invalid" });
         return;
       }
       const edit = textEditCommand(input);
@@ -289,47 +229,14 @@ class WindowShortcuts {
         key: tracedKey(input.key), repeat: input.isAutoRepeat, decision: 'forwarded',
       });
     });
-    win.on("blur", () => this.cancelCapture());
-    win.on("closed", () => this.cancelCapture());
+    win.on("blur", () => this.#claimedCodes.clear());
+    win.on("closed", () => this.#claimedCodes.clear());
   }
 
   update(settings: FeatureSwitchSettings & Pick<AppSettings, "shortcutOverrides">): void {
     this.#hubAvailable = hubShortcutAvailable(settings.shortcutOverrides);
     this.#shortcuts = resolveShortcuts(settings.shortcutOverrides);
     this.#enabled = new Set(SHORTCUT_ACTIONS.filter((action) => featureOn(SHORTCUT_FEATURES[action], settings, this.#win)));
-  }
-
-  capture(): Promise<ShortcutCaptureResult> {
-    this.cancelCapture();
-    return new Promise((resolve) => {
-      this.#capture = resolve;
-    });
-  }
-
-  captureSkillKey(): Promise<SkillKeyCaptureResult> {
-    this.cancelCapture();
-    return new Promise((resolve) => {
-      this.#skillCapture = resolve;
-    });
-  }
-
-  cancelCapture(): void {
-    this.#claimedCodes.clear();
-    this.#finish({ status: "cancelled" });
-    this.#finishSkillCapture({ status: "cancelled" });
-  }
-
-  cancelSkillCapture(): void {
-    // Keep already claimed physical codes until their key-up arrives. A mouse
-    // or wheel can win the renderer race while modifiers are still held, and
-    // leaking those releases into Guild Wars would create an unmatched edge.
-    this.#finishSkillCapture({ status: "cancelled" });
-  }
-
-  captureSkillPointer(binding: SkillKeyBinding): boolean {
-    if (!this.#skillCapture) return false;
-    this.#finishSkillCapture({ status: "captured", binding });
-    return true;
   }
 
   release(code: string): void {
@@ -350,21 +257,6 @@ class WindowShortcuts {
       // Observation must never alter shortcut containment or rearming.
     }
   }
-
-  #finish(result: ShortcutCaptureResult): void {
-    const resolve = this.#capture;
-    if (!resolve) return;
-    this.#capture = null;
-    resolve(result);
-  }
-
-
-  #finishSkillCapture(result: SkillKeyCaptureResult): void {
-    const resolve = this.#skillCapture;
-    if (!resolve) return;
-    this.#skillCapture = null;
-    resolve(result);
-  }
 }
 
 const controllers = new WeakMap<BrowserWindow, WindowShortcuts>();
@@ -381,39 +273,6 @@ export function updateWindowShortcuts(
   settings: AppSettings,
 ): void {
   controllers.get(win)?.update(settings);
-}
-
-export function captureWindowShortcut(
-  win: BrowserWindow,
-): Promise<ShortcutCaptureResult> {
-  const controller = controllers.get(win);
-  return controller
-    ? controller.capture()
-    : Promise.resolve({ status: "cancelled" });
-}
-
-export function cancelWindowShortcutCapture(win: BrowserWindow): void {
-  controllers.get(win)?.cancelCapture();
-}
-
-export function captureWindowSkillKey(
-  win: BrowserWindow,
-): Promise<SkillKeyCaptureResult> {
-  const controller = controllers.get(win);
-  return controller
-    ? controller.captureSkillKey()
-    : Promise.resolve({ status: "cancelled" });
-}
-
-export function captureWindowSkillKeyPointer(
-  win: BrowserWindow,
-  binding: SkillKeyBinding,
-): boolean {
-  return controllers.get(win)?.captureSkillPointer(binding) ?? false;
-}
-
-export function cancelWindowSkillKeyCapture(win: BrowserWindow): void {
-  controllers.get(win)?.cancelSkillCapture();
 }
 
 /** Forget a release that AppKit consumed before `before-input-event`. */

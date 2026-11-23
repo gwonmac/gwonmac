@@ -5,7 +5,9 @@
  * coordinator. This module owns only construction, trust, and local renderer
  * recovery so a launcher failure never closes a running game.
  */
+import { HARDENED_WEB_PREFERENCES, denyAllPermissions, lockDownWebContents } from "./hardened-web-contents.js";
 import { app, BrowserWindow, screen, session } from "electron";
+import { errorCode } from "../shared/errors.js";
 import { BACKGROUND_LAUNCH } from "./background-launch.js";
 import { isQuitting, onAppQuit } from "./lifecycle.js";
 import { gamePaths, launcherPreloadPath } from "./paths.js";
@@ -32,7 +34,7 @@ export async function prepareLauncherWindowState(): Promise<void> {
     if (saved) launcherPlacement = fitWindowStateToDisplays(saved,
       screen.getAllDisplays().map(display => display.workArea), screen.getPrimaryDisplay().workArea);
   } catch (error) {
-    console.error("Launcher window placement could not be restored", error);
+    console.error("Launcher window placement could not be restored", errorCode(error));
   }
 }
 
@@ -97,8 +99,7 @@ export function createLauncherWindow(
     installLauncherProtocolHandlerForSession(owner, deps);
     protocolInstalled = true;
   }
-  owner.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
-  owner.setPermissionCheckHandler(() => false);
+  denyAllPermissions(owner);
   const restored = launcherPlacement ? fitWindowStateToDisplays(launcherPlacement,
     screen.getAllDisplays().map(display => display.workArea), screen.getPrimaryDisplay().workArea) : null;
   const win = new BrowserWindow({
@@ -114,14 +115,7 @@ export function createLauncherWindow(
     webPreferences: {
       session: owner,
       preload: launcherPreloadPath(),
-      nodeIntegration: false,
-      contextIsolation: true,
-      sandbox: true,
-      webSecurity: true,
-      webviewTag: false,
-      spellcheck: false,
-      allowRunningInsecureContent: false,
-      experimentalFeatures: false,
+      ...HARDENED_WEB_PREFERENCES,
     },
   });
   windowRegistry.register(win, { role: "launcher" });
@@ -140,7 +134,7 @@ export function createLauncherWindow(
     saveTimer = undefined;
     const value = launcherPlacement;
     if (value) placementWrites = placementWrites.then(() => saveWindowState(gamePaths().launcherWindowState, value))
-      .catch(error => { console.error("Launcher window placement could not be saved", error); });
+      .catch(error => { console.error("Launcher window placement could not be saved", errorCode(error)); });
     return placementWrites;
   }
   function schedulePlacement() {
@@ -162,11 +156,7 @@ export function createLauncherWindow(
   win.on("closed", () => {
     void persistPlacement().finally(removeCleanup);
   });
-  win.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
-  win.webContents.on("will-navigate", (event, url) => {
-    if (url !== LAUNCHER_URL) event.preventDefault();
-  });
-  win.webContents.on("will-attach-webview", (event) => event.preventDefault());
+  lockDownWebContents(win.webContents, () => undefined, (url) => url === LAUNCHER_URL);
   win.once("ready-to-show", () => {
     if (restored?.mode === "maximized") win.maximize();
     if (restored?.mode === "fullscreen") win.setFullScreen(true);

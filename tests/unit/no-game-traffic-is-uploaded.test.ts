@@ -160,9 +160,9 @@ describe("no game traffic is uploaded: what the recorder may hear", () => {
     const { sockets, socket, events } = manager();
     const id = await sockets.connect(1, "203.0.113.10:6112");
     socket.open();
-    await sockets.send(id, payload);
+    await sockets.send(id, payload, 1);
     socket.emit("data", payload);
-    await sockets.close(id);
+    await sockets.close(id, 1);
     return events;
   }
 

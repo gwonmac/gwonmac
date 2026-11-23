@@ -61,8 +61,12 @@ type KeysOfKind<Table extends ChannelTable, Kind extends AnySpec["kind"]> = {
 /** The channels main answers with `ipcMain.handle`. */
 export type InvokeKey<Table extends ChannelTable> = KeysOfKind<Table, "invoke">;
 export type EventKey<Table extends ChannelTable> = KeysOfKind<Table, "event">;
+/** The channels main listens to with `ipcMain.on`, which carry no answer. */
+export type SendKey<Table extends ChannelTable> = KeysOfKind<Table, "send">;
 
-export type ArgsOf<Spec> = Spec extends InvokeSpec<infer Args, unknown> ? Args : never;
+export type ArgsOf<Spec> = Spec extends InvokeSpec<infer Args, unknown>
+  ? Args
+  : Spec extends SendSpec<infer Args> ? Args : never;
 export type ResultOf<Spec> = Spec extends InvokeSpec<readonly unknown[], infer Result> ? Result : never;
 export type PayloadOf<Spec> = Spec extends EventSpec<infer Payload> ? Payload : never;
 

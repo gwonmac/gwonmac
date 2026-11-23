@@ -6,7 +6,6 @@
  * The launcher preload exposes this vocabulary; game preloads never receive it.
  */
 import { app, clipboard, dialog, net, shell as electronShell, type BrowserWindow } from "electron";
-import { writeFile } from "node:fs/promises";
 import type { ClientRuntime } from "../client/client-runtime.js";
 import { EXTERNAL_URLS } from "../shared/contracts.js";
 import type { InvokeKey } from "../shared/ipc/channel-table.js";
@@ -42,6 +41,7 @@ import { nothing, one } from "./ipc-values.js";
 import type { LauncherOrchestrator } from "./launcher-orchestrator.js";
 import { captureLauncherShortcut } from "./launcher-shortcut-capture.js";
 import type { MultipleAccountsController } from "./multiple-accounts-controller.js";
+import { requestFullGameFilesReset } from "./settings-actions.js";
 import type { GamePaths } from "./paths.js";
 import type { ToolsRuntime } from "./tools-runtime.js";
 import type { UpdaterService } from "./updater-service.js";
@@ -114,17 +114,10 @@ function profiles({ accounts, launcherNews, orchestrator }: LauncherIpcInput) {
         }
         return orchestrator.snapshot();
       }),
-      profilesCreate: channel(profileCreate, async (_win, { name, appearance }) => {
-        const previousIds = new Set(accounts.state().profiles.map((profile) => profile.id));
-        const next = await accounts.create({ name });
-        const created = next.profiles.find((profile) => !previousIds.has(profile.id));
-        if (!created) throw new Error("Created account was not published");
-        if (appearance) await orchestrator.updateAppearance(created.id, appearance);
+      profilesCreate: channel(profileCreate, async (_win, input) => {
+        await orchestrator.createProfile(input);
       }),
-      profilesUpdate: channel(profileUpdate, async (_win, { id, name, icon, color }) => {
-        await accounts.rename(id, name);
-        await orchestrator.updateAppearance(id, { icon, color });
-      }),
+      profilesUpdate: channel(profileUpdate, (_win, update) => orchestrator.updateProfile(update)),
       profilesSetSelection: channel(profileIds, (_win, ids) => orchestrator.setSelection(ids)),
       profilesPlay: channel(profileIds, (_win, ids) => orchestrator.play(ids)),
       profilesShow: channel(profileId, (_win, id) => orchestrator.show(id)),
@@ -163,7 +156,7 @@ function experience({ shell, orchestrator }: LauncherIpcInput) {
 
 /** Settings, Tools and shortcut writes, and the confirmed reset. */
 function settings(input: LauncherIpcInput) {
-  const { shell, orchestrator, toolsRuntime, launcherState, texturePacks } = input;
+  const { shell, orchestrator, launcherState } = input;
   const { preferences } = shell;
   const currentSettings = () => shell.currentSettings() ?? input.settings;
   return {
@@ -181,11 +174,8 @@ function settings(input: LauncherIpcInput) {
           detail: "This resets launcher and game preferences, Tools, shortcuts, custom map styles, and custom panel colors. Original textures will be selected. Accounts, saved logins, game files, imported texture packs, builds, templates, screenshots, and chat logs are kept.",
         });
         if (response !== 0) return;
-        await (toolsRuntime?.resetSettings() ?? preferences.resetCoreSettings());
-        await launcherState.resetPresentation();
-        await texturePacks.select(null);
+        await orchestrator.resetSettings();
         logEvent({ k: "settings.reset" });
-        orchestrator.publish();
       }),
       settingsCopy: channel(nothing, async () => {
         clipboard.writeText(settingsToText(await preferences.getSettings(), launcherState.get().preferences.content));
@@ -259,7 +249,7 @@ function gameFiles({ clientRuntime, paths }: LauncherIpcInput) {
           detail: "Accounts, saved logins, settings, Tools, shortcuts, builds, templates, screenshots, and chat logs are kept.",
         });
         if (response !== 0) return;
-        await writeFile(paths.cacheClearRequest, "launcher-full-reset-v1", { mode: 0o600 });
+        await requestFullGameFilesReset(paths);
         relaunch();
       }),
     } satisfies LauncherHandlers,

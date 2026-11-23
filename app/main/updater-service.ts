@@ -154,7 +154,9 @@ export function createUpdaterService(input: Readonly<{
       }
     };
     const scheduleAutomaticAppUpdateCheck = () => {
-      void maybeCheckForAppUpdates();
+      // Silent by contract, like the periodic tick: an unreadable settings file
+      // already surfaces on the next explicit settings read.
+      void maybeCheckForAppUpdates().catch(() => undefined);
     };
     attachSchedule(scheduleAutomaticAppUpdateCheck);
     // The same persisted due-time governs launch and background checks. A player

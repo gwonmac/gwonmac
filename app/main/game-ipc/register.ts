@@ -1,17 +1,19 @@
 /**
- * Registers every Core game channel: each owner part's channels, checked at
+ * Registers every Core game channel (invokes, then the send that completes a
+ * renderer command): each owner part's channels, checked at
  * compile time so that every channel of GAME_CHANNELS has exactly one owner.
  * Adding a Core capability is its table entry, its owner's channel, and its
  * preload line.
  */
 import type { GameChannels } from "../../shared/ipc/game.js";
 import type { InvokeKey } from "../../shared/ipc/channel-table.js";
-import { ownedOnce, register } from "../ipc-channel-registry.js";
+import { ownedOnce, register, registerSend } from "../ipc-channel-registry.js";
 import app from "./app.js";
 import client from "./client.js";
 import clipboard from "./clipboard.js";
 import diagnostics from "./diagnostics.js";
 import network from "./network.js";
+import rendererCommand from "./renderer-command.js";
 import type { GameIpcInput } from "./part.js";
 import secrets from "./secrets.js";
 import settings from "./settings.js";
@@ -30,5 +32,6 @@ export function registerGameIpc(input: GameIpcInput): { drainSecrets(): Promise<
     templates(input),
   ]);
   for (const part of parts) register(input.windows, "game", part.channels);
+  registerSend(input.windows, "game", rendererCommand);
   return { drainSecrets: () => secretParts.drain() };
 }
