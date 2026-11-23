@@ -364,45 +364,10 @@ Use only the layers the feature needs:
 | Calling another feature | The caller's manifest `links` (`{ whispers: ["open"] }`), the target's `offers` and its `shared/link.ts`, one line in [`FeatureLinkApis`](../app/features/links.ts) | A part gets `links.whispers`, typed from the target's declaration and null while `resolve` has the target off; a call while the target's part is not running answers `"unavailable"`. The target provides its link while its part runs ([registry](../app/renderer/feature-links.ts)). Features never call each other through window events. |
 | Composition and safety order | [`installCertifiedCompanion`](../app/renderer/certified-companion-installation.ts) | Allocate and validate first, enable the game hook last, disable it first, and tear down in explicit dependency-safe phases. |
 
-A feature folder holds every file that only that feature uses:
-
-```
-app/features/<id>/
-  feature.ts     manifest v2 (all processes): name, summary, kind, icon, region, uses, requires,
-                 network, settings (each with label and help), tool (its `tool:<id>` switch control and search keywords), hub, shortcuts,
-                 shots, parts; app/features/define.ts documents each field
-  README.md      what it does, for players, in the Markdown subset app/features/contract.ts allows;
-                 the launcher's Feature page and the website page /docs/<folder> both show it
-  CHANGELOG.md   one "- " bullet per player-facing change under "## Unreleased"; pnpm release:notes
-                 stamps the version and builds the release notes (docs/releasing.md#feature-notes)
-  media/         shot-1.webp … one per `shots` caption (.gitkeep while empty)
-  companion.ts   the game-host part (renderer)
-  main.ts        the main-process part (mainPart)
-  renderer/      renderer-only modules: DOM, game host, overlays, stylesheets (no Node.js)
-  renderer/host.ts  the one entry for a feature the game host starts itself (Maps, Character Switch's
-                 hubPage part)
-  renderer/window.ts  its window part (windowPart): the link that opens it and the lazy start of its view
-  ui/            the feature's own views, built into the Tools bundle: its window view's and Hub
-                 source's modules, and its Hub pages (Vue components the kit draws, their props
-                 and an index.ts that names them)
-  main/          main-process-only modules: stores, files, IPC parsing
-  shared/        contracts and pure logic that two processes use
-  shared/ipc.ts  the feature's channel table and its window.gwNative namespace
-  shared/link.ts the types of the link it offers other features (manifest `offers`)
-```
-
-The folder name is the feature id in kebab case (`alcohol-timer` holds
-`alcoholTimer`). The id stays camelCase because it keys the runtime policy, which
-tests name by id, one of them the "Must stay" `tests/certification/feature-region-gating.test.ts`. [`tests/policy/feature-contract.test.ts`](../tests/policy/feature-contract.test.ts)
-runs [the contract checks](../app/features/contract.ts) on every folder in `pnpm check`;
-[Feature contract](feature-contract.md#the-manifest) lists which check guards each field.
-
-The website builds one docs page per feature from its README
-([`scripts/feature-docs.ts`](../scripts/feature-docs.ts), run before every website
-dev, check and build), so the README is the only place a feature's player docs
-live. [`tests/policy/feature-docs.test.ts`](../tests/policy/feature-docs.test.ts)
-fails when a feature has no page, a hand-written docs page takes a feature's
-address, or a `$docs.<page>` link names no page.
+A feature folder holds every file that only that feature uses.
+[Feature contract](feature-contract.md#the-folder) owns its layout, the manifest
+fields with the check that guards each one, and the README the website builds the
+Feature's docs page from.
 
 A tool opens through its Feature's link `toggle` (`ToolLink` in
 [`links.ts`](../app/features/links.ts)): its shortcut, game menu item and Hub
@@ -438,16 +403,10 @@ without loading the view, and its view gets the same part in its mount options
 (`LibraryWindow`). Another Feature or the Hub that needs saved builds names the
 link; none reads the file or the channels itself.
 
-Code that several features use stays where it is: the capability registry and
-the proofs in `app/client/certification/`, the kernels, the shared substrates,
-`app/shared/`, and the shared Vue kit in `app/ui/tools/`. A feature's own views
-live in its `ui/` folder (Travel's palette and Hub source, the Library's Hub
-source, Character Switch's Hub page). Tests stay in `tests/`, and the Tools
-UI's tests in `app/ui/tools/src`.
-When shared code uses part of a feature, the parts
-[contract](../app/renderer/tools-companion-part.ts) names that narrow surface
-(for example `FriendTravel`); shared code imports the contract, never a feature
-file. ESLint enforces this for `app/renderer/`: inside a feature folder it
+Tests stay in `tests/`, and the Tools UI's tests in `app/ui/tools/src`.
+When shared code uses part of a feature, it calls the feature's typed link
+([`links.ts`](../app/features/links.ts)) or reads a building block; it never
+imports a feature file. ESLint enforces this for `app/renderer/`: inside a feature folder it
 reaches only the manifest (`feature.ts`), `renderer/host.ts`, and `shared/`.
 `shared/` is open because it holds the contracts the feature's main and
 renderer halves both read; re-exporting them through the host would be a
