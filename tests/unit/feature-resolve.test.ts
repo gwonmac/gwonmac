@@ -43,6 +43,8 @@ test("resolve names the first reason a feature is off", () => {
     ["Tools off", "whispers", playing({}, { gwonmacTools: false }), { on: false, reason: "plain-game" }],
     ["Tools off before the own switch", "whispers", playing({}, { gwonmacTools: false, whispersEnabled: false }), { on: false, reason: "plain-game" }],
     ["Tools switched on after the start", "whispers", playing({ toolsAtLaunch: false }), { on: false, reason: "needs-restart" }],
+    ["own switch off while waiting for a restart", "whispers", playing({ toolsAtLaunch: false }, { whispersEnabled: false }), { on: false, reason: "switched-off" }],
+    ["Progress without Travel while waiting for a restart", "progress", playing({ toolsAtLaunch: false }, { travelPalette: false }), { on: false, reason: "needs", feature: "travel" }],
     ["own switch off", "whispers", playing({}, { whispersEnabled: false }), { on: false, reason: "switched-off" }],
     ["Progress without Travel", "progress", playing({}, { travelPalette: false }), { on: false, reason: "needs", feature: "travel" }],
     ["Apply team without Build Library", "teamApply", playing({}, { buildLibrary: false }), { on: false, reason: "needs", feature: "buildLibrary" }],

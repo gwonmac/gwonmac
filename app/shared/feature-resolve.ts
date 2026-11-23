@@ -8,8 +8,8 @@
  *
  * Reasons are checked in the order FeatureOffReason lists them, and the first that
  * applies wins: whether the Feature is in this release at all, then what the player can
- * change (a switch, another feature) before what an update changes, before where the
- * character stands. A required feature that is off
+ * change (a switch, another feature) before what a restart or an update changes, before
+ * where the character stands. A required feature that is off
  * for a reason the player cannot switch passes that reason on.
  */
 import type { FeatureDefinition } from "../features/define.js";
@@ -46,12 +46,15 @@ export type FeatureOffReason =
    * switch waits as stored. Player text: "Off while you play the plain game."
    */
   | "plain-game"
+  /** Another feature this one builds on is switched off (`feature` names it). */
+  | "needs"
+  /**
+   * The feature's own switch is off. It outranks a pending restart: a feature the player
+   * switched off does not start at the next start either.
+   */
+  | "switched-off"
   /** Optional features were turned on after the game started; they load at the next start. */
   | "needs-restart"
-  /** Another feature this one builds on is not running (`feature` names it). */
-  | "needs"
-  /** The feature's own switch is off. */
-  | "switched-off"
   /** This Guild Wars build changed what the feature relies on; a GWonMac update brings it back. */
   | "needs-update"
   /** GWonMac could not check or start what the feature relies on; it tries again at next start. */
@@ -137,20 +140,23 @@ export function resolve(feature: Feature, state: FeatureState): FeatureResolutio
   const programSelects = state.program !== "none"
     && "programs" in feature && feature.programs.some((program) => program === state.program);
   if (!programSelects && state.settings[LAUNCH_MODE_SWITCH] !== true) return off("plain-game");
-  if (!state.toolsAtLaunch) return off("needs-restart");
+  let waitsFor: FeatureResolution | null = null;
   for (const required of "requires" in feature ? feature.requires : []) {
     const resolution = resolve(featureOf(required), state);
     if (resolution.on) continue;
-    // "Needs X" asks the player to turn X on; anything else X waits for, this one waits for too.
+    // "Needs X" asks the player to turn X on; anything else X waits for, this one waits for
+    // too, once the player's own switch is checked.
     if (resolution.reason === "switched-off" || resolution.reason === "needs") {
       return Object.freeze({ on: false, reason: "needs", feature: required });
     }
-    return resolution;
+    waitsFor ??= resolution;
   }
   // The plain-game switch was checked above, so only the feature's own switch is left; a feature
   // without one runs while the features it requires run.
   const own = FEATURE_SELECTION_POLICIES[feature.id].switch;
   if (own !== null && !programSelects && state.settings[own] !== true) return off("switched-off");
+  if (!state.toolsAtLaunch) return off("needs-restart");
+  if (waitsFor !== null) return waitsFor;
   const capability = capabilityReason("uses" in feature ? feature.uses : [], state.features);
   if (capability !== null) return off(capability);
   if (!featureRegionAllowsRequest(feature.id, state.playRegion)) return off("wrong-area");
