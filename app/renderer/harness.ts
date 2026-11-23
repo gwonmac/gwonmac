@@ -182,19 +182,6 @@ let hostOnlyToolsInstallationStarted = false;
 let rendererUnloading = false;
 let crashRecorded = false;
 
-/**
- * How many client launches have crashed this app run. Main's flight recorder
- * owns the tally (it survives the account-local page reload a Retry performs and
- * dies with the process), so the renderer records the crash first and then
- * reads the count back — browser storage is deliberately not used anywhere
- * in this app. A count that cannot be read degrades to the first-crash
- * presentation, never worse than showing no count at all.
- */
-async function escalateRepeatedCrash(): Promise<void> {
-  const { counters } = await native().diagnostics.current();
-  const count = counters['wasm.crashes'] || 0;
-  if (count > 1) window.gwLoading?.failCrash(count);
-}
 let disposeSocketHost = () => {};
 let disposeHostOnlyTools = () => {};
 let cartographyHost: import('../features/cartography/renderer/host.js').CartographyHost | null = null;
@@ -356,14 +343,6 @@ function maybeInstallEnhancements(): void {
       if (init.enhancementSelection.tools) installHostOnlyTools();
     });
 }
-
-window.gwLog = (on = true) => {
-  const el = document.getElementById('log');
-  if (!el) return false;
-  el.style.display = on ? 'block' : 'none';
-  if (on) { el.textContent = logBuf.join('\n'); el.scrollTop = el.scrollHeight; }
-  return on;
-};
 
 /**
  * The memory warning. The client's WASM memory is capped by its own build
@@ -980,10 +959,6 @@ Module = {
     })();
   },
   setBuildInfo(info) {
-    window.gwBuildInfo = Object.freeze({
-      programId: Number(info.programId),
-      buildId: Number(info.buildId),
-    });
     milestone('build.info', {
       programId: info.programId,
       buildId: info.buildId,
@@ -1007,8 +982,8 @@ Module = {
   onAbort(reason) {
     log('[err] WASM aborted:', reason);
     // Emscripten can abort more than once while unwinding; only the first
-    // call presents and records — a repeat would reset the escalated copy
-    // back to first-crash and steal focus again. The prose never crosses
+    // call presents and records — a repeat would count the same death twice
+    // and steal focus again. The prose never crosses
     // IPC — it collapses into the closed reason vocabulary plus a
     // fingerprint, and stays readable on the overlay's disclosure.
     if (crashRecorded) return;
@@ -1017,9 +992,7 @@ Module = {
     // it.
     heapWarning?.hide();
     const heapBytes = wasmHeapBytes();
-    // The overlay first, with the first-crash presentation; the recorded
-    // count upgrades it below once main has counted this crash.
-    window.gwLoading?.failCrash(1, crashTechnicalDetail(reason, heapBytes));
+    window.gwLoading?.failCrash(crashTechnicalDetail(reason, heapBytes));
     void (async () => {
       const { classifyWasmAbortReason, wasmAbortFingerprint } =
         await import('./wasm-abort-reason.js');
@@ -1032,7 +1005,6 @@ Module = {
           heapBytes,
         },
       );
-      await escalateRepeatedCrash();
     })().catch(() => {});
   },
   onExit(code) {
@@ -1046,8 +1018,8 @@ Module = {
       });
     } else {
       // An abort that unwinds into a non-zero exit was already presented and
-      // counted by onAbort; re-running this branch would reset the copy to
-      // first-crash and count the same death twice.
+      // counted by onAbort; re-running this branch would count the same death
+      // twice.
       if (crashRecorded) return;
       crashRecorded = true;
       heapWarning?.hide();
@@ -1058,17 +1030,13 @@ Module = {
         typeof code === 'number' && Number.isSafeInteger(code) ? code : -1;
       const heapBytes = wasmHeapBytes();
       window.gwLoading?.failCrash(
-        1,
         crashTechnicalDetail(`client exit code ${exitCode}`, heapBytes),
       );
-      void (async () => {
-        await native().diagnostics.recordRendererMilestone(
-          'wasm.exit',
-          performance.now() * 1000,
-          { code: exitCode, heapBytes },
-        );
-        await escalateRepeatedCrash();
-      })().catch(() => {});
+      void native().diagnostics.recordRendererMilestone(
+        'wasm.exit',
+        performance.now() * 1000,
+        { code: exitCode, heapBytes },
+      ).catch(() => {});
     }
   },
 };
@@ -1513,7 +1481,6 @@ function loadGlue(isProxyRouteLabel: (route: string) => boolean) {
     });
     imageSource = source;
     Module.image = source.image;
-    window.gwEvictMemory = source.evictMemory;
     window.gwSnapshotState = source.state;
     window.gwStats = () => {
       const image = source.stats();
