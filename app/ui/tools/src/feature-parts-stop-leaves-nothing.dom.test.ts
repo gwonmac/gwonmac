@@ -31,7 +31,7 @@ import { DEFAULT_SETTINGS, type AppSettings } from '../../../shared/settings/ind
 import { installLeakLedger, type Leak, type LeakLedger } from '../../../../tests/helpers/leak-ledger';
 import { fixtureFacts } from './fixture-facts';
 // eslint-disable-next-line no-restricted-imports
-import characterSwitchHub from '../../../features/character-switch/renderer/host';
+import { HUB_PAGE_PARTS, startHubPageParts } from '../../../features/hub-page-parts';
 // eslint-disable-next-line no-restricted-imports
 import { installCartographyHost } from '../../../features/cartography/renderer/host';
 import { mountHubView } from './hub/embedded';
@@ -292,13 +292,13 @@ test('every game part stops without leaving anything after its feature was switc
   expect(await page.leftOver()).toEqual([]);
 });
 
-test('Character Switch\'s host stops without leaving anything, after its page opened', async () => {
+test('every hubPage part stops without leaving anything, after its page opened', async () => {
   settings = { ...DEFAULT_SETTINGS, ...ALL_ON };
   const page = await baseline();
-  const host = characterSwitchHub.start({ parent: document.body, hub: window.gwHub ?? null });
-  toggleTool('characterSwitch', 'toggle');
+  const stop = startHubPageParts({ parent: document.body, hub: window.gwHub ?? null });
+  for (const part of HUB_PAGE_PARTS) toggleTool(part.id, 'toggle');
   await settle();
-  host.stop();
+  stop();
   expect(await page.leftOver()).toEqual([]);
 });
 

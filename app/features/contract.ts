@@ -148,8 +148,8 @@ function checkFolder({ folder, manifest, files, readme, changelog, imports }: Fe
  * parts live elsewhere: a tool the input host runs (`tool.event`, Call Target in
  * app/renderer/input.ts), and a hubPage Feature's renderer/host.ts, which the game host also
  * builds its game code from (Character Switch). A kind without its file would pass typecheck and
- * do nothing. That the game host starts each hubPage part is checked in
- * tests/unit/every-companion-part-is-registered.test.ts.
+ * do nothing. That each hubPage part has its line in app/features/hub-page-parts.ts, which the game
+ * host starts, is checked in tests/unit/every-companion-part-is-registered.test.ts.
  */
 function checkParts(at: string, manifest: FeatureDefinition, files: readonly string[]): string[] {
   const problems: string[] = [];

@@ -212,11 +212,8 @@ let automaticCharacterReturn:
   | import('./automatic-character-return.js').AutomaticCharacterReturn
   | null = null;
 let loginStatus: import('./login-status.js').LoginStatus | null = null;
-let characterSwitchHost:
-  | import('../features/character-switch/renderer/host.js').CharacterSwitchHost
-  | null = null;
-let characterSwitchPart:
-  typeof import('../features/character-switch/renderer/host.js').default;
+let startHubPageParts: typeof import('../features/hub-page-parts.js').startHubPageParts;
+let stopHubPageParts = (): void => {};
 const diagnosticProfile = native().init.diagnosticProfile;
 const glOverridesEnabled = diagnosticProfile === 'standard';
 const presentationPath = diagnosticProfile === 'direct-canvas'
@@ -634,9 +631,8 @@ addEventListener('beforeunload', () => {
   disposeFeatureFacts();
   automaticCharacterReturn?.dispose();
   loginStatus?.dispose();
-  characterSwitchHost?.stop();
-  characterSwitchHost = null;
-  delete window.gwCharacterSwitchHost;
+  stopHubPageParts();
+  stopHubPageParts = () => {};
   delete window.gwVirtualGamepad;
   delete window.gwControllerPromptTextureStats;
 });
@@ -1155,18 +1151,10 @@ function loadGlue(isProxyRouteLabel: (route: string) => boolean) {
     () => inputHost?.traceState(),
   );
   gamepadTrace = host.installGamepadTrace(inputTrace);
-  // Character switching is a Feature: a host that cannot start leaves the plain game starting.
-  try {
-    characterSwitchHost = characterSwitchPart.start({ parent: document.body, hub: window.gwHub ?? null });
-    // A switch drives the pre-game screens itself, so the automatic return stops pressing keys.
-    characterSwitchHost.onSwitchStart(() => automaticCharacterReturn?.cancelForCharacterSwitch());
-    window.gwCharacterSwitchHost = characterSwitchHost;
-  } catch {
-    const started = characterSwitchHost;
-    characterSwitchHost = null;
-    try { started?.stop(); } catch { /* reported below */ }
-    log('[err] the character-switch host could not start; the game starts without it');
-  }
+  // Hub page parts are Features: a part that cannot start stays off, and the game starts without it.
+  stopHubPageParts = startHubPageParts({ parent: document.body, hub: window.gwHub ?? null });
+  // A character switch drives the pre-game screens itself, so the automatic return stops pressing keys.
+  window.gwCharacterSwitchHost?.onSwitchStart(() => automaticCharacterReturn?.cancelForCharacterSwitch());
   native().inputTrace.onEntry((entry) => inputTrace?.record(entry));
   window.addEventListener('gw:input-trace', (event) => {
     if (!(event instanceof CustomEvent) || typeof event.detail !== 'boolean') return;
@@ -1312,7 +1300,7 @@ function loadGlue(isProxyRouteLabel: (route: string) => boolean) {
       virtualGamepad,
       controllerPromptTexture,
       texturePackModule,
-      characterSwitch,
+      hubPagePartsModule,
       settingsTable,
     ] = await Promise.all([
       import('./platform-capabilities.js'),
@@ -1337,7 +1325,7 @@ function loadGlue(isProxyRouteLabel: (route: string) => boolean) {
       import('./virtual-gamepad.js'),
       import('./controller-prompt-texture.js'),
       import('./texture-pack.js'),
-      import('../features/character-switch/renderer/host.js'),
+      import('../features/hub-page-parts.js'),
       import('../shared/settings/index.js'),
     ]);
     projectToolsSettings = settingsTable.toolsSettings;
@@ -1378,7 +1366,7 @@ function loadGlue(isProxyRouteLabel: (route: string) => boolean) {
       log('[err] the Hub could not load; the game starts without it');
     }
     window.dispatchEvent(new Event('gw:surfaces-ready'));
-    characterSwitchPart = characterSwitch.default;
+    startHubPageParts = hubPagePartsModule.startHubPageParts;
     createClientHealthConfirmation =
       clientHealth.createClientHealthConfirmation;
     applyAppearance = appearance.applyAppearance;

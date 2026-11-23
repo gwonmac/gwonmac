@@ -101,7 +101,7 @@ the shapes; [`app/features/contract.ts`](../app/features/contract.ts) checks the
 | `requires` | Features that must be on for this one to run | contract: ids exist, no cycles |
 | `tool` | `{ id: "<folder>" }`: the stable id its switch control is searched and pinned under (`tool:<id>`); a released id never changes, even where it differs from the folder | TypeScript; contract: the Feature has a switch of its own |
 | `shots` | Captions for `media/shot-N.webp` | contract: one file per caption, no file without one |
-| `parts` | The part kinds it has; group A has `["game"]` | contract, both ways: `game` exactly when `companion.ts` exists (except a tool the input host runs through `tool.event`, and a `hubPage` Feature, whose `renderer/host.ts` carries its game code), `window` exactly when `renderer/window.ts` exists, `main` exactly when `main.ts` exists, `hubPage` needs `renderer/host.ts`; a unit test checks the registries (`companion-parts.ts`, `window-parts.ts`, and the game host for `hubPage`); TypeScript: each part builder builds only for a Feature that lists its kind |
+| `parts` | The part kinds it has; group A has `["game"]` | contract, both ways: `game` exactly when `companion.ts` exists (except a tool the input host runs through `tool.event`, and a `hubPage` Feature, whose `renderer/host.ts` carries its game code), `window` exactly when `renderer/window.ts` exists, `main` exactly when `main.ts` exists, `hubPage` needs `renderer/host.ts`; a unit test checks the registries (`companion-parts.ts`, `window-parts.ts`, `hub-page-parts.ts`); TypeScript: each part builder builds only for a Feature that lists its kind |
 | `links`, `offers` | Calls between Features (below) | contract and [`links.ts`](../app/features/links.ts) types |
 | `network`, `hub`, `shortcuts`, `programs`, `optInWithTools` | Not used by group A | see `define.ts` |
 
@@ -266,7 +266,7 @@ capability, and a product setting cannot either.
   the file and what to change;
 - `tests/unit/every-companion-part-is-registered.test.ts`: a `companion.ts` with no line in
   `companion-parts.ts` (it prints the line to add) or with another Feature's id, a `window`
-  part with no line in `window-parts.ts`, and a `hubPage` part the game host does not start;
+  part with no line in `window-parts.ts`, and a `hubPage` part with no line in `hub-page-parts.ts`;
 - `tests/policy/feature-docs.test.ts`: the website page and `$docs.<page>` links;
 - ESLint import boundaries: renderer code outside the folder reaches only `feature.ts`,
   `renderer/host.ts` and `shared/`;

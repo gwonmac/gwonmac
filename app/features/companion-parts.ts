@@ -9,8 +9,8 @@
  * Renderer only, and Tools only: certified-companion-tools-installation.ts is
  * the one importer, behind Core's dynamic import (tests/policy/core-tools-launch-boundary).
  * Some features have no line here: Build Library lives in the Tools window, Call
- * Target's fixed key chord needs the input host's held keys (input.ts), and Character Switch is started by the
- * game host through its renderer/host.ts. Maps has both: its line here draws
+ * Target's fixed key chord needs the input host's held keys (input.ts), and Character Switch is a hubPage part the
+ * game host starts from ./hub-page-parts.ts. Maps has both: its line here draws
  * Elite Skills in the native maps and keeps the player state, and its
  * renderer/host.ts installs the certified cartography stage.
  */

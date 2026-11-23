@@ -9,11 +9,12 @@
  *   when the player first opens it, and stops it when the window goes (`windowPart` and
  *   `WindowContext`, app/renderer/window-part.ts);
  * - hubPage: the game host starts it with the Hub and stops it at teardown; the Hub hides its
- *   rows while resolve has it off (`hubPagePart` and `HubPageContext`, app/renderer/hub.ts);
+ *   rows while resolve has it off (`hubPagePart` and `HubPageContext`, app/renderer/hub.ts;
+ *   one line in ./hub-page-parts.ts);
  * - main: the Tools runtime runs `start` while resolve has the feature on (`mainPart`,
  *   app/main/tools-main-part.ts).
  *
- * The renderer kinds get the links their manifest names (./links.ts). A game part or window part
+ * The renderer kinds get the links their manifest names (./links.ts). A game, window or hubPage part
  * whose `start` throws stays off and logs one line; the other parts run on.
  */
 import type { FeaturePartKind } from "./define.js";

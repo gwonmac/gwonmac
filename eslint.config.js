@@ -233,7 +233,7 @@ export default tseslint.config(
   },
   {
     // A feature's renderer half never reaches into the main process.
-    files: ["app/features/*/companion.ts", "app/features/companion-parts.ts", "app/features/window-parts.ts", "app/features/*/renderer/**/*.ts"],
+    files: ["app/features/*/companion.ts", "app/features/companion-parts.ts", "app/features/window-parts.ts", "app/features/hub-page-parts.ts", "app/features/*/renderer/**/*.ts"],
     rules: {
       "no-restricted-imports": [
         "error",
@@ -350,7 +350,7 @@ export default tseslint.config(
     files: ["app/main/**/*.ts", "app/client/**/*.ts", "app/shared/**/*.ts", "app/tools-cli/**/*.ts", "app/features/**/*.ts"],
     // A feature's renderer half belongs to tsconfig.renderer.json, which the service does not reach;
     // its views (ui/) belong to the Tools program.
-    ignores: ["app/features/*/companion.ts", "app/features/companion-parts.ts", "app/features/window-parts.ts", "app/features/*/renderer/**/*.ts", "app/features/*/ui/**/*.ts"],
+    ignores: ["app/features/*/companion.ts", "app/features/companion-parts.ts", "app/features/window-parts.ts", "app/features/hub-page-parts.ts", "app/features/*/renderer/**/*.ts", "app/features/*/ui/**/*.ts"],
     languageOptions: {
       parserOptions: {
         projectService: true,
@@ -374,7 +374,7 @@ export default tseslint.config(
     // tsconfig.renderer.json, which the service does not reach from the root
     // tsconfig.json, and neither rule needs type information.
     // app/preload is bundled the same way and held to the same two rules.
-    files: ["app/renderer/**/*.ts", "app/preload/**/*.ts", "app/features/*/companion.ts", "app/features/companion-parts.ts", "app/features/window-parts.ts", "app/features/*/renderer/**/*.ts"],
+    files: ["app/renderer/**/*.ts", "app/preload/**/*.ts", "app/features/*/companion.ts", "app/features/companion-parts.ts", "app/features/window-parts.ts", "app/features/hub-page-parts.ts", "app/features/*/renderer/**/*.ts"],
     rules: {
       "@typescript-eslint/no-unused-vars": [
         "error",
