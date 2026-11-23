@@ -1,6 +1,7 @@
 // The website's Feature pages come from each Feature's README.md (scripts/feature-docs.ts):
-// every Feature has exactly one page, no page exists without a README, and no hand-written
-// docs page or broken docs link stands beside them.
+// every Feature with a switch has exactly one page, a Feature without one is a section of the
+// page of the Feature it runs with, no page exists without a README, and no hand-written docs page
+// or broken docs link stands beside them.
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
@@ -8,6 +9,7 @@ import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { folderForId } from "../../app/features/contract.ts";
 import { FEATURES } from "../../app/features/index.ts";
+import { runsWith, SWITCH_FEATURES, type SwitchFeature } from "../../app/shared/feature-status.ts";
 import { FEATURE_DOCS_DIRECTORY, GENERATED_PAGE, featureDocPages, repositoryFeatureSources } from "../../scripts/feature-docs.ts";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
@@ -18,15 +20,23 @@ const handWritten = readdirSync(docsDirectory).filter((file) => file.endsWith(".
 /** A docs file's entry name, which `$docs.<name>` links use: `5.templates.de.md` is `templates`. */
 const entryName = (file: string) => file.replace(/^\d+\./u, "").replace(/(\.[a-z]{2})?\.md$/u, "");
 
-test("every Feature has one page built from its README, titled with its manifest name, summary and icon", () => {
-  assert.deepEqual(pages.map((page) => page.name).sort(), FEATURES.map((feature) => folderForId(feature.id)).sort());
+const ownerOf = new Map<string, SwitchFeature>(SWITCH_FEATURES.flatMap((feature) => { const owner = runsWith(feature); return owner ? [[feature.id, owner] as const] : []; }));
+const asWebsite = (text: string) => text.trim().replace(/<kbd>([^<]+)<\/kbd>/gu, ":kbd[$1]");
+
+test("every Feature has one page built from its README, titled with its manifest name, summary and icon; a part is a section of its owner's page", () => {
+  assert.deepEqual(pages.map((page) => page.name).sort(), FEATURES.filter((feature) => !ownerOf.has(feature.id)).map((feature) => folderForId(feature.id)).sort());
   for (const feature of FEATURES) {
     const folder = folderForId(feature.id);
-    const page = pages.find((each) => each.name === folder);
+    const owner = ownerOf.get(feature.id);
+    const page = pages.find((each) => each.name === folderForId(owner?.id ?? feature.id));
     assert.ok(page, folder);
+    if (owner) {
+      assert.ok(page.text.includes(`\n\n## ${feature.name}\n\n${asWebsite(readme(folder))}`), `${folder}: a section of ${owner.name}'s page`);
+      continue;
+    }
     assert.match(page.file, GENERATED_PAGE);
     assert.ok(page.text.startsWith(`---\ntitle: ${JSON.stringify(feature.name)}\ndescription: ${JSON.stringify(feature.summary)}\nicon: "lucide:${feature.icon}"\n`), folder);
-    assert.ok(page.text.endsWith(`\n---\n\n${readme(folder).trim().replace(/<kbd>([^<]+)<\/kbd>/gu, ":kbd[$1]")}\n`), `${folder}: the page text is its README, with keys as :kbd`);
+    assert.ok(page.text.includes(`\n---\n\n${asWebsite(readme(folder))}`), `${folder}: the page text starts with its README, with keys as :kbd`);
   }
 });
 

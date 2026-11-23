@@ -7,7 +7,7 @@ The Build Library keeps your skill builds and hero teams in one place, so you ca
 
 **Copy code** gives a code that anyone can paste into Guild Wars. **Template files** imports and exports the template files Guild Wars uses on Windows. [Build templates]($docs.templates) explains each step.
 
-Right after a Guild Wars update, **Save to Guild Wars** can be unavailable for a short time while GWonMac checks the new client. The build stays saved in your library. A saved team goes onto your heroes with [Team Apply]($docs.team-apply).
+Right after a Guild Wars update, **Save to Guild Wars** can be unavailable for a short time while GWonMac checks the new client. The build stays saved in your library. A saved team goes onto your heroes with Team Apply, below.
 
 ### Details
 - **Turn on:** :setting[Build Library]{to="features/tool:build-management"}, off while you play the :setting[plain game]{to="features/gwonmacTools"}.

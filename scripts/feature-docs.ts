@@ -44,18 +44,35 @@ const quoted = (value: string) => JSON.stringify(value);
 /** The website's Markdown shows raw HTML as text, so a README's `<kbd>` keys become the site's `:kbd[...]` component. */
 const websiteMarkdown = (readme: string) => readme.replace(/<kbd>([^<]+)<\/kbd>/gu, ":kbd[$1]");
 
+const hasSwitch = (manifest: FeatureDefinition) =>
+  Object.values(manifest.settings ?? {}).some((spec) => "switch" in spec && spec.switch === true);
+const readmeOf = ({ manifest, readme }: FeatureDocSource): string => {
+  if (readme === null || readme.trim() === "") {
+    throw new Error(`app/features/${folderForId(manifest.id)}/README.md: missing or empty; the website builds the Feature's page from it.`);
+  }
+  return readme.trim();
+};
+
 /**
- * One page per Feature, in Features tab order (kind, then FEATURES order). Throws when a README is missing.
- * The website serves the Stable release, so a Feature with a manifest `stage` gets no page yet.
+ * One page per Feature with a card, in Features tab order (kind, then FEATURES order). A Feature
+ * without a switch of its own (Progress, Team Apply) is a section of the page of the Feature it
+ * runs with, as on its Feature page in the launcher. Throws when a README is missing. The website
+ * serves the Stable release, so a Feature with a manifest `stage` gets no page or section yet.
  */
 export function featureDocPages(sources: readonly FeatureDocSource[]): FeatureDocPage[] {
-  const ordered = KIND_ORDER.flatMap((kind) => sources.filter(({ manifest }) => manifest.kind === kind && manifest.stage === undefined));
+  const released = sources.filter(({ manifest }) => manifest.stage === undefined);
+  const ownerOf = (manifest: FeatureDefinition) => manifest.kind === "mode" || hasSwitch(manifest)
+    ? undefined
+    : released.find((each) => (manifest.requires ?? []).includes(each.manifest.id) && hasSwitch(each.manifest))?.manifest.id;
+  const partsOf = (id: string) => released.filter(({ manifest }) => ownerOf(manifest) === id);
+  const ordered = KIND_ORDER.flatMap((kind) => released.filter(({ manifest }) => manifest.kind === kind && ownerOf(manifest) === undefined));
   const sectioned = new Set<string>();
-  return ordered.map(({ manifest, readme, updated }, index) => {
+  return ordered.map((source, index) => {
+    const { manifest } = source;
     const name = folderForId(manifest.id);
-    if (readme === null || readme.trim() === "") {
-      throw new Error(`app/features/${name}/README.md: missing or empty; the website builds the Feature's page from it.`);
-    }
+    const parts = partsOf(manifest.id);
+    const body = [readmeOf(source), ...parts.map((part) => `## ${part.manifest.name}\n\n${readmeOf(part)}`)].join("\n\n");
+    const times = [source, ...parts].flatMap(({ updated }) => updated ? [updated.getTime()] : []);
     const section = manifest.kind === "mode" || sectioned.has(manifest.kind) ? undefined : FEATURE_KIND_LABELS[manifest.kind];
     if (section !== undefined) sectioned.add(manifest.kind);
     const fields = [
@@ -68,8 +85,8 @@ export function featureDocPages(sources: readonly FeatureDocSource[]): FeatureDo
     return {
       name,
       file: `${FIRST_FEATURE_DOC + index}.${name}.md`,
-      text: `---\n${fields.join("\n")}\n---\n\n${websiteMarkdown(readme.trim())}\n`,
-      updated: updated ?? null,
+      text: `---\n${fields.join("\n")}\n---\n\n${websiteMarkdown(body)}\n`,
+      updated: times.length ? new Date(Math.max(...times)) : null,
     };
   });
 }

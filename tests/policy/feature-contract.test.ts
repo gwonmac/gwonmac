@@ -72,6 +72,11 @@ const cases: readonly Case[] = [
     message: "app/features/quick-note/feature.ts: no switch; declare one with featureSwitch, or list in requires the features it runs with.",
   },
   {
+    check: "a part has no options of its own",
+    folders: [folder(manifest("quickNote", { requires: ["noteBoard"], settings: { quickNoteSound: option(label) } })), folder(manifest("noteBoard"))],
+    message: "app/features/quick-note/feature.ts: quickNoteSound have no page to show on; a feature without a switch is a section of the one it runs with, so its options belong there.",
+  },
+  {
     check: "the launch mode's switch names itself",
     folders: [folder(withoutPresence(manifest("quickNote", { kind: "mode", settings: { quickNoteEnabled: { ...aSwitch, help: "Turns off every feature." } } })))],
     message: "app/features/quick-note/feature.ts: setting quickNoteEnabled has no label; players see it as a row name.",

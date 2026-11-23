@@ -9,6 +9,9 @@ export const redirects: Redirect[] = [
   { from: '/docs', to: '/docs/install' },
   // The old German docs address goes straight to the first German page (/de/docs would add a second hop).
   { from: '/de/dokumentation', to: '/de/docs/installation' },
+  // Progress and Team Apply became sections of the Feature they run with (2026-11).
+  { from: '/docs/progress', to: '/docs/travel#progress' },
+  { from: '/docs/team-apply', to: '/docs/build-library#team-apply' },
   { from: '/docs/guides/install', to: '/docs/install' },
   { from: '/docs/guides/accounts', to: '/docs/accounts' },
   { from: '/docs/guides/play-guild-wars-on-mac', to: '/docs/play-guild-wars-on-mac' },

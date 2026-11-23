@@ -1,7 +1,8 @@
 <script setup lang="ts">
 /**
  * One Feature's page: a header with its status and switch, then tabs. General holds its
- * README, what it uses and what's new, with the facts beside them; Settings
+ * README, a section for each part that runs with it (Team Apply in the Build Library), what it
+ * and its parts use and what's new, with the facts beside them; Settings
  * (./FeatureSettings.vue) appears when this host draws an option or shortcut for it; Feedback
  * (./FeedbackForm.vue) sends a report that names the Feature. Reading happens here, on a page
  * with a way back (DESIGN.md). The launcher's Features tab and the Hub's Features section both
@@ -11,7 +12,7 @@
 import { computed, ref, watch } from "vue";
 import { Check, ChevronLeft, Code, Eye, MousePointerClick, PenLine, Globe, ShieldCheck } from "lucide-vue-next";
 import { folderForId, type FeatureId } from "@shared/feature-contracts";
-import { featureUses } from "@shared/feature-uses";
+import { featureUses, type FeatureUses } from "@shared/feature-uses";
 import type { LauncherExternalLink, LauncherFeedback, LauncherSnapshot } from "@shared/launcher-contracts";
 import { RELEASE_REPO } from "@shared/project-identity";
 import type { ReleaseStage } from "@shared/release";
@@ -20,7 +21,7 @@ import { navigateTabs } from "@shared/ui/focusable";
 import type { InGamePatch, InGameSettings, InGameTools } from "../settings-host";
 import type { PerformSave } from "../save-status";
 import { REGION_WORDS, cardFeature, changelogOf, featureStageLabel, readmeBlocks, type CardFeature } from "../features";
-import { runsWith, switchOf, type FeatureStatus } from "@shared/feature-status";
+import { switchOf, type FeatureStatus } from "@shared/feature-status";
 import DiscordIcon from "./DiscordIcon.vue";
 import FeatureArt from "./FeatureArt.vue";
 import FeatureSettings, { hasFeatureSettings } from "./FeatureSettings.vue";
@@ -43,7 +44,9 @@ const props = withDefaults(defineProps<{
   embedded?: boolean;
   /** Sends the Feedback tab's report; absent: no Feedback tab. */
   sendFeedback?: ((feedback: LauncherFeedback) => Promise<void>) | undefined;
-}>(), { api: undefined, embedded: false, sendFeedback: undefined });
+  /** The Features without a switch of their own that run with this one (Team Apply in the Build Library), each a section of General. */
+  parts?: readonly Readonly<{ feature: CardFeature; status: FeatureStatus }>[];
+}>(), { api: undefined, embedded: false, sendFeedback: undefined, parts: () => [] });
 const emit = defineEmits<{
   back: [];
   toggle: [on: boolean];
@@ -72,11 +75,20 @@ function show(next: Tab) { chosen.value = next; }
 defineExpose({ show });
 
 const reason = computed(() => props.status.resolution.on ? null : props.status.resolution.reason);
-/** A Feature without a switch of its own (Progress) is part of the one it runs with (Travel). */
-const partOf = computed(() => runsWith(props.feature));
 const readme = computed(() => readmeBlocks(props.feature, !props.embedded));
 const versions = computed(() => changelogOf(props.feature, !props.embedded));
-const uses = computed(() => featureUses(props.feature));
+/** Each part's README; its reason shows only when this Feature runs and the part does not (a check it failed). */
+const partSections = computed(() => props.parts.map(({ feature, status }) => ({
+  feature,
+  readme: readmeBlocks(feature, !props.embedded),
+  reason: props.status.resolution.on && !status.resolution.on ? status : null,
+})));
+/** What the Feature and its parts use, each line once. */
+const uses = computed(() => {
+  const all = [props.feature, ...props.parts.map((part) => part.feature)].map(featureUses);
+  const merged = (pick: (each: FeatureUses) => readonly string[]) => [...new Set(all.flatMap(pick))];
+  return { sees: merged((each) => each.sees), draws: merged((each) => each.draws), does: merged((each) => each.does), network: merged((each) => each.network) };
+});
 const usesGame = computed(() => uses.value.sees.length + uses.value.draws.length + uses.value.does.length > 0);
 const needs = computed(() => ("requires" in props.feature ? props.feature.requires : []).flatMap((id) => cardFeature(id) ?? []));
 /** The switch the header button moves; Settings search opens the page at it. */
@@ -89,7 +101,7 @@ const feedbackFeature = computed(() => ({
   id: props.feature.id,
   name: props.feature.name,
   state: props.status.resolution.on ? "on" as const : props.status.resolution.reason,
-  status: props.status.resolution.on ? (partOf.value ? `On, part of ${partOf.value.name}` : "On") : props.status.text,
+  status: props.status.resolution.on ? "On" : props.status.text,
 }));
 </script>
 
@@ -103,13 +115,13 @@ const feedbackFeature = computed(() => ({
         <h1 tabindex="-1">{{ feature.name }}<span v-if="stageLabel" class="chip accent stage-label">{{ stageLabel }}</span></h1>
         <p class="head-summary">{{ feature.summary }}</p>
         <p id="feature-status" class="head-status" :class="status.resolution.on ? 'on' : status.tone">
-          <template v-if="status.resolution.on"><Check aria-hidden="true" />On<span v-if="partOf" class="part-of"> · part of <button class="text-link" @click="emit('open', partOf.id)">{{ partOf.name }}</button></span></template>
+          <template v-if="status.resolution.on"><Check aria-hidden="true" />On</template>
           <template v-else-if="status.needs">Needs <button class="text-link" @click="emit('open', status.needs.id)">{{ status.needs.name }}</button>. Turn it on first.</template>
           <template v-else-if="reason === 'needs-update'">{{ status.text }} <button class="text-link" @click="emit('settings', { section: 'updates' })">Check for updates</button></template>
           <template v-else>{{ status.text }}</template>
         </p>
       </div>
-      <div v-if="status.needs || !partOf" class="head-action">
+      <div class="head-action">
         <button v-if="status.needs" class="primary" @click="emit('turnOn', status.needs)">Turn on {{ status.needs.name }}</button>
         <button v-else :class="status.checked ? 'secondary' : 'primary'" :disabled="status.locked" :data-setting="switchSetting" aria-describedby="feature-status" @click="emit('toggle', !status.checked)">{{ status.checked ? "Turn off" : "Turn on" }}</button>
       </div>
@@ -124,6 +136,12 @@ const feedbackFeature = computed(() => ({
         <section aria-labelledby="about-title">
           <h2 id="about-title">About</h2>
           <MarkdownBody class="readme" :blocks="readme" @link="emit('link', $event)" />
+        </section>
+
+        <section v-for="part in partSections" :key="part.feature.id" :aria-labelledby="`part-${part.feature.id}`">
+          <h2 :id="`part-${part.feature.id}`">{{ part.feature.name }}</h2>
+          <p v-if="part.reason" class="part-reason" :class="part.reason.tone">{{ part.reason.text }}</p>
+          <MarkdownBody class="readme" :blocks="part.readme" @link="emit('link', $event)" />
         </section>
 
         <section aria-labelledby="uses-title">
@@ -199,7 +217,7 @@ const feedbackFeature = computed(() => ({
 .head-status { font-size: var(--fs-sm); }
 .head-status svg { width: 16px; height: 16px; margin-right: 6px; vertical-align: -3px; }
 .on { color: var(--success); font-weight: 600; }
-.part-of { color: var(--muted); font-weight: 400; }
+.part-reason { margin: 0 0 10px; font-size: var(--fs-sm); }
 .warning { color: var(--warning); }
 .head-action .primary, .head-action .secondary { min-width: 132px; }
 /* A text link inside a sentence takes no padding of its own. */
