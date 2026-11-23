@@ -83,20 +83,22 @@ test('consecutive Escapes pop one level each and never close the Hub early (HUB-
   expect(await page.evaluate(() => (window as typeof window & { acceptanceCancels: boolean[] }).acceptanceCancels)).not.toContain(false);
 });
 
-test('list stages keep focus in search: ↓ moves one selection, Tab never lands on the list, ↓ steps from a hovered row (HUB-045, HUB-047)', async ({ page }) => {
+test('list stages keep focus in search: the next key moves one selection, Tab never lands on the list, it steps from a hovered row (HUB-045, HUB-047)', async ({ page }) => {
   await openHub(page);
+  // Each stage's key for the next item in order: ↓ in a list; → in Travel, whose ↓ goes to the row below.
   const stages = [
     { name: 'Home', search: hubSearch(page), options: '#hub-results [role="option"]', enter: async () => {} },
     { name: 'Commands', search: hubSearch(page), options: '#hub-results [role="option"]', enter: async () => { await hubSearch(page).fill('commands'); await page.keyboard.press('Enter'); } },
     { name: 'Heroes', search: hubSearch(page), options: '#hub-results [role="option"]', enter: async () => { await page.keyboard.press('Meta+r'); await hubSearch(page).fill('build smiter'); await page.keyboard.press('Enter'); await hubSearch(page).fill('hero'); await page.keyboard.press('Enter'); } },
     { name: 'Smiter', search: hubSearch(page), options: '#hub-results [role="option"]', enter: async () => { await page.keyboard.press('Meta+r'); await hubSearch(page).fill('build smiter'); await page.keyboard.press('Enter'); } },
-    { name: 'Travel', search: page.getByRole('combobox', { name: 'Destination, phrase, or friend' }), options: '#travel-panel [role="option"]:visible', enter: async () => { await page.keyboard.press('Meta+Backspace'); await page.keyboard.press('Meta+t'); } },
+    { name: 'Travel', search: page.getByRole('combobox', { name: 'Destination, phrase, or friend' }), options: '#travel-panel [role="option"]:visible', next: 'ArrowRight', enter: async () => { await page.keyboard.press('Meta+Backspace'); await page.keyboard.press('Meta+t'); } },
   ];
   const activeId = () => page.evaluate(() => document.activeElement?.id || document.activeElement?.tagName);
   for (const stage of stages) {
     await stage.enter();
     await expect(page.locator('.hub-caption')).toHaveText(stage.name);
     const { search } = stage;
+    const next = stage.next ?? 'ArrowDown';
     const options = page.locator(stage.options);
     const selected = page.locator(`${stage.options.replace(':visible', '')}[aria-selected="true"]`);
     const expectOneSelection = async () => {
@@ -109,7 +111,7 @@ test('list stages keep focus in search: ↓ moves one selection, Tab never lands
     for (let press = 0; press < 2; press++) {
       const ids = await enabled();
       const before = ids.indexOf((await search.getAttribute('aria-activedescendant')) ?? '');
-      await page.keyboard.press('ArrowDown');
+      await page.keyboard.press(next);
       // The ends hold: the two-row Smiter page stays on its last row.
       await expect(search).toHaveAttribute('aria-activedescendant', ids[Math.min(before + 1, ids.length - 1)]!);
       await expectOneSelection();
@@ -139,7 +141,7 @@ test('list stages keep focus in search: ↓ moves one selection, Tab never lands
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 8 });
     await expect(page.locator(`#${hovered}`)).toHaveAttribute('aria-selected', 'true');
     await expectOneSelection();
-    await page.keyboard.press('ArrowDown');
+    await page.keyboard.press(next);
     await expect(search).toHaveAttribute('aria-activedescendant', ids[ids.indexOf(hovered) + 1]!);
     await expectOneSelection();
     // Park the pointer outside the Hub so the next stage opens without a resting hover.
@@ -155,6 +157,31 @@ test('Travel keeps the active result in view after End (HUB-044)', async ({ page
   await travel.fill('a');
   await page.keyboard.press('End');
   await expect(page.locator(`#${await travel.getAttribute('aria-activedescendant')}`)).toBeInViewport();
+  await expect(travel).toBeFocused();
+});
+
+test('Travel ↓ ↑ cross between the Recent carousel and Favourites by painted column, not along the carousel', async ({ page }) => {
+  await openHub(page);
+  await page.keyboard.press('Meta+t');
+  const travel = page.getByRole('combobox', { name: 'Destination, phrase, or friend' });
+  await expect(travel).toBeFocused();
+  const selected = async () => page.locator(`#${await travel.getAttribute('aria-activedescendant')}`);
+  const centre = async () => { const box = (await (await selected()).boundingBox())!; return box.x + box.width / 2; };
+  await page.keyboard.press('ArrowRight');
+  const recent = await travel.getAttribute('aria-activedescendant');
+  expect(recent).toMatch(/^travel-recent-/u);
+  const column = await centre();
+  await page.keyboard.press('ArrowDown');
+  await expect(travel).toHaveAttribute('aria-activedescendant', /^travel-favorite-/u);
+  // The favourite below is the one nearest the recent's column among those it may choose.
+  const favourites = await page.locator('#travel-panel .travel-favorite:not(:disabled)').evaluateAll(buttons =>
+    buttons.map(button => { const box = button.getBoundingClientRect(); return { id: button.id, top: Math.round(box.top), centre: box.left + box.width / 2 }; }));
+  const top = Math.min(...favourites.map(favourite => favourite.top));
+  const nearest = favourites.filter(favourite => favourite.top === top)
+    .reduce((best, favourite) => Math.abs(favourite.centre - column) < Math.abs(best.centre - column) ? favourite : best);
+  await expect(travel).toHaveAttribute('aria-activedescendant', nearest.id);
+  await page.keyboard.press('ArrowUp');
+  await expect(travel).toHaveAttribute('aria-activedescendant', /^travel-recent-/u);
   await expect(travel).toBeFocused();
 });
 
