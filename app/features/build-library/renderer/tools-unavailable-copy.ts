@@ -32,12 +32,6 @@ const OBSERVATION: ReasonCopy = {
   "check-failed": `${BUILD_CHECK_FAILED} Saved builds and teams still work.`,
 };
 
-const STORAGE: ReasonCopy = {
-  "game-update": "Storage is unavailable after this Guild Wars update.",
-  "preparation-failed": "Storage didn’t start. Restart GWonMac to try again.",
-  "check-failed": `Storage is unavailable. ${BUILD_CHECK_FAILED}`,
-};
-
 // Null keeps the Tools bundle's own copy for an update.
 const PUBLISH: ReasonCopy = {
   "game-update": null,
@@ -53,13 +47,12 @@ function byReason(status: OptionalFeatureStatus | undefined, copy: ReasonCopy): 
 /** The statuses this copy reads, from the session's compatibility. */
 export type ToolsCopyFeatures = Pick<
   ClientCompatibility["features"],
-  "teamApply" | "partyObservation" | "xunlaiAction" | "gameFileSaving"
+  "teamApply" | "partyObservation" | "gameFileSaving"
 >;
 
 export type ToolsUnavailableCopy = Readonly<{
   apply: string | null;
   observation: string | null;
-  storage: string | null;
   publish: string | null;
 }>;
 
@@ -70,12 +63,11 @@ export type ToolsUnavailableCopy = Readonly<{
  */
 export function toolsUnavailableCopy(
   features: ToolsCopyFeatures | undefined,
-  present: Readonly<{ teamApply: boolean; storage: boolean; publish: boolean }>,
+  present: Readonly<{ teamApply: boolean; publish: boolean }>,
 ): ToolsUnavailableCopy {
   return {
     apply: present.teamApply ? null : byReason(features?.teamApply, APPLY) ?? APPLY_OFF,
     observation: byReason(features?.partyObservation, OBSERVATION),
-    storage: present.storage ? null : byReason(features?.xunlaiAction, STORAGE),
     publish: present.publish ? null : byReason(features?.gameFileSaving, PUBLISH),
   };
 }

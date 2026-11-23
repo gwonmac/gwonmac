@@ -516,7 +516,8 @@ useClassicFrame(panel);
 .whisper-layout { display:flex; flex-direction:column; flex:1; min-height:0; background:transparent; }
 .whisper-chat-pane { display:contents; }
 .whisper-avatar,.whisper-compose-icon { display:none; }
-.whisper-hints { display:flex; justify-content:space-between; gap:12px; padding:0 10px 6px; color:var(--ui-text-faint); font-size:11px; line-height:1.4; }
+/* The right padding clears the 36px resize corner. */
+.whisper-hints { display:flex; justify-content:space-between; gap:12px; padding:0 36px 6px 10px; color:var(--ui-text-faint); font-size:11px; line-height:1.4; }
 .ui-reading-surface { color: var(--ui-text); font: 14px/1.5 var(--ui-font-reading); font-synthesis: none; text-shadow: none; color-scheme: dark; }
 .ui-reading-surface *, .ui-reading-surface *::before, .ui-reading-surface *::after { box-sizing: border-box; text-shadow: none; }
 .ui-reading-surface svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
@@ -583,7 +584,7 @@ useClassicFrame(panel);
 .whisper-latest { align-self: center; color: var(--ui-chat-incoming-accent); }
 .whisper-empty { max-width: 32ch; color: var(--ui-text-muted); margin: 8px 6px; font-size: 12px; line-height: 1.45; text-wrap: pretty; }
 .whisper-completion-hint { margin: 8px 6px 0; color: var(--ui-text-faint); font-size: 11px; }
-.whisper-suggestion[aria-selected="true"], .whisper-person-open[data-highlighted] { background: var(--whisper-incoming-fill); color: var(--ui-selection-ink); }
+.whisper-suggestion[aria-selected="true"], .whisper-person-open[data-highlighted] { background: var(--ui-selection-fill); box-shadow: var(--ui-selection-shadow); color: var(--ui-selection-ink); }
 .whisper-source-filters { display: flex; align-items: center; gap: 4px; min-width: 0; margin: 8px 6px 10px; color: var(--ui-text-muted); }
 .whisper-source-filters > span { margin-right: auto; font-size: 11px; }
 .whisper-source-toggle { min-height: 24px; padding: 2px 8px; font-size: 11px; }

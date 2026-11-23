@@ -37,7 +37,8 @@ body[data-tools-standalone="true"] {
     linear-gradient(165deg, var(--ui-line), var(--ui-well) 70%);
 }
 
-.tools-stage button,
+/* The shared × keeps the size components.css gives it. */
+.tools-stage button:not(.ui-window-close),
 .tools-stage input,
 .tools-stage select,
 .tools-stage textarea {
@@ -123,24 +124,6 @@ body[data-tools-standalone="true"] {
 .window-identity { flex: 1; min-width: 0; }
 .window-identity .ui-panel-title { font-size: var(--ui-font-size-lg); }
 .window-identity .ui-field-hint { margin: 0; }
-
-.window-brand {
-  display: grid;
-  width: 32px;
-  height: 32px;
-  flex: 0 0 32px;
-  place-items: center;
-  border: var(--ui-border-width) solid transparent;
-  border-radius: var(--ui-radius-sm);
-  background: var(--ui-accent-fill) padding-box, var(--ui-ring-gold) border-box;
-  box-shadow: var(--ui-shadow-raised);
-  color: var(--ui-accent);
-  font-family: var(--ui-font-display);
-  font-size: var(--ui-font-size-sm);
-  font-weight: var(--ui-font-weight-semibold);
-}
-
-.window-close { font-size: var(--ui-font-size-lg); }
 
 .ui-dialog {
   position: fixed;

@@ -102,15 +102,6 @@
     #e7e5d4 100%
   );
   --gw-ring-bone: linear-gradient(180deg, #f4efe2, #a79e8b 50%, #6f6959);
-  --gw-ring-gold: linear-gradient(
-    90deg,
-    #f6e3a8 0%,
-    #dcc267 8%,
-    #8a7433 30%,
-    #8a7433 70%,
-    #dcc267 92%,
-    #f6e3a8 100%
-  );
 
   /* Fixed geometry: one coherent client-like scale. */
   --ui-radius: 8px;
@@ -233,7 +224,10 @@
   --ui-selection-fill: linear-gradient(rgb(38 55 74 / 62%), rgb(22 36 52 / 62%));
   --ui-selection-hover-fill: linear-gradient(rgb(48 69 91 / 74%), rgb(28 45 64 / 74%));
   --ui-selection-ink: var(--ui-text-bright);
-  --ui-selection-marker: var(--ui-accent);
+  /* A selected row or card is a tonal fill inside a faint accent hairline, all
+   * the way round. Never an edge stripe (DESIGN.md, "One pattern per job"). */
+  --ui-selection-edge: color-mix(in srgb, var(--ui-accent) 40%, transparent);
+  --ui-selection-shadow: inset 0 0 0 1px var(--ui-selection-edge), var(--ui-shadow-selected);
   --ui-pressed-layer: rgb(0 0 0 / 24%);
   --ui-line: #6f6959;
   --ui-line-soft: rgb(217 210 192 / 18%);
@@ -254,7 +248,6 @@
   --ui-frame: var(--gw-ring-bone);
   --ui-frame-top: var(--gw-bone-hi);
   --ui-ring-gilt: var(--gw-ring-gilt);
-  --ui-ring-gold: var(--gw-ring-gold);
   --ui-ring-quiet: linear-gradient(180deg, rgb(217 210 192 / 34%), rgb(0 0 0 / 50%));
   --ui-ring-empty: linear-gradient(180deg, rgb(217 210 192 / 24%), rgb(0 0 0 / 50%));
   --ui-ring-mark: linear-gradient(180deg, rgb(255 255 255 / 50%), rgb(0 0 0 / 60%));
@@ -433,7 +426,6 @@
   --ui-selection-fill: linear-gradient(oklch(0.3 0.035 78 / 0.82), oklch(0.27 0.025 78 / 0.82));
   --ui-selection-hover-fill: linear-gradient(oklch(0.35 0.04 78 / 0.9), oklch(0.3 0.03 78 / 0.9));
   --ui-selection-ink: var(--ui-text-bright);
-  --ui-selection-marker: var(--ui-accent);
   --ui-pressed-layer: oklch(0 0 0 / 0.22);
   --ui-line: oklch(0.48 0.025 78);
   --ui-line-soft: oklch(0.78 0.018 82 / 0.13);
@@ -453,7 +445,6 @@
   --ui-frame: transparent;
   --ui-frame-top: transparent;
   --ui-ring-gilt: transparent;
-  --ui-ring-gold: transparent;
   --ui-ring-quiet: transparent;
   --ui-ring-empty: transparent;
   --ui-ring-mark: transparent;
@@ -494,7 +485,7 @@
   :root {
     --ui-focus: Highlight;
     --ui-focus-halo: Canvas;
-    --ui-selection-marker: Highlight;
+    --ui-selection-edge: Highlight;
     --ui-selection-fill: linear-gradient(Highlight, Highlight);
     --ui-selection-hover-fill: linear-gradient(Highlight, Highlight);
     --ui-selection-ink: HighlightText;

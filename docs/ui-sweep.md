@@ -21,7 +21,7 @@ Playwright suites it may run on a Mac someone is using.
 | Surface | Scenes | Smallest size |
 | --- | --- | --- |
 | Launcher (`app/ui/launcher`, Vite fixture) | every `?fixture=` scene, and each tab | 900×640, the launcher window's minimum |
-| Hub (`app/ui/tools`, Vite fixture) | Home, Travel, Build Library, Party, Trade | 800×600, the game window's minimum |
+| Hub (`app/ui/tools`, Vite fixture) | Home, Travel, Build Library, Party, Trade, and the Build Library and Whispers windows | 800×600, the game window's minimum |
 | In-game panels (`tests/ui-sweep/overlays.ts`) | memory warning (low, critical), Quit or reload, Compass dock | 800×600 |
 
 The in-game panels run the production modules on the production markup from
@@ -33,12 +33,18 @@ The in-game panels run the production modules on the production markup from
 
 | Rule | Catches | Example it caught |
 | --- | --- | --- |
-| `sideways-scroll` | a box that hides part of itself behind a sideways scrollbar | Quit or reload panel; Hub Recent carousel |
+| `sideways-scroll` | a box that hides part of itself behind a sideways scrollbar | Quit or reload panel; the old Hub Recent carousel |
 | `control-cut-off` | a button, link or field cut by a frame or the window | "Reload Guild Wars" cut off by 93 px at 800×600 |
 | `text-spill` | text running out of its box without an ellipsis | |
 | `offscreen` | a panel reaching past the window edge | |
 | `overlap` | text or controls drawn over each other | |
 | `truncated` | a label ending in an ellipsis (a note, never a failure) | |
+| `selection-stripe` | a selected row, option or tile marked with an edge bar | the 2 px gold stripe on Hub, Trade and Build Library rows |
+| `selection-style` | a selected item not drawn with the shared selection tokens | Hub, Trade and Build Library rows, each with its own shadow |
+| `header-tile` | a decorative icon tile beside a window title | the "GW" and market tiles in the Build Library and Trade headers |
+
+The last three check the pattern rules in [DESIGN.md](../DESIGN.md#one-pattern-per-job); each
+failed on `main` before the change that fixed it.
 
 A list that scrolls up and down is normal: rows half scrolled out of it are not findings. While a
 modal is open, only the modal is checked. Each rule was proved to fail, on a page broken on purpose
@@ -54,7 +60,7 @@ says so and says when to remove it; delete it in the change that makes the decis
 
 | Claim | Who checks it |
 | --- | --- |
-| Patterns are consistent across surfaces (selection marks, icon sizes, headers) | Opus reads the contact sheet for every interface change; no rule judges taste |
+| The pattern rules without a sweep rule (group labels, footers, search fields, empty states) | Opus reads the contact sheet for every interface change; no rule judges taste |
 | Keyboard, focus and pointer behaviour | the Hub Playwright suite and vitest (`docs/hub-contract.md`) |
 | Panels over the real game: game art, the real Compass position, input feel | a person, in the play check |
 | The loading screen, character switch, Whispers pop-out, Settings dialogs, the Classic theme and larger text | not yet in the sweep; add a scene when one of them changes |

@@ -136,12 +136,15 @@ tracking behavior belong in
   `aria-pressed`; do not simulate them with the primary variant.
 - Focus is keyboard position, not selection. It uses the focus ring only.
 - Danger is reserved for destructive actions and always names the consequence.
-- Classic gold is an inset selection marker or ornament, never the full
-  perimeter of a routine command. Focus has a separate two-pixel perimeter and
-  dark halo. It never reuses selection paint.
-- Hover is temporary tone, pressed is temporary depth/displacement, navigation
-  selection uses a leading rail or underline, and content selection includes a
-  persistent text or icon marker. Selected + hover has its own stronger tone.
+- A selected row, option or card is the selection fill inside a faint gold
+  hairline all the way round (`--ui-selection-fill`, `--ui-selection-shadow`).
+  Never an edge stripe, and never the gold perimeter of a routine command.
+  Focus has a separate two-pixel perimeter and dark halo. It never reuses
+  selection paint. The root `DESIGN.md` ("One pattern per job") owns the rule.
+- Hover is temporary tone, pressed is temporary depth/displacement, and
+  selection is the one treatment above. A current place or character is named
+  in text ("Current"), not drawn as a second outline. Selected + hover has its
+  own stronger tone.
 - Quiet controls are transparent at rest. They gain a surface only on hover or
   focus.
 

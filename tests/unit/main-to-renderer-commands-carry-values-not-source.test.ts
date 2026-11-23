@@ -358,7 +358,7 @@ const TOGGLE_ONLY: { [Target in ToolLinkTarget]: (toggle: ToolLink["toggle"]) =>
   tradeChat: (toggle) => ({ toggle, search: () => "unavailable", marketRates: () => "unavailable", traderQuotes: () => "unavailable" }),
   travel: (toggle) => ({ toggle, friendTripBlocked: () => "unavailable", toFriend: () => "unavailable", showProgress: () => "unavailable" }),
   whispers: (toggle) => ({ toggle, open: () => "unavailable", people: () => "unavailable" }),
-  xunlaiStorage: (toggle) => ({ toggle, blocked: () => "unavailable" }),
+  xunlaiStorage: (toggle) => ({ toggle }),
 };
 const provideToggle = <Target extends ToolLinkTarget>(target: Target, toggle: ToolLink["toggle"]) =>
   provideLink(target, TOGGLE_ONLY[target](toggle));

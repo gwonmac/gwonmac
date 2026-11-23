@@ -49,6 +49,53 @@ macOS supplies interaction.
 - Keep motion short and functional. Reduced-motion mode removes nonessential
   transitions and animation.
 
+## One pattern per job
+
+Each job below has one look in the game's panels, the Hub and the Tools
+windows. `app/shared/ui/components.css` and `app/shared/ui/tokens.css` own each
+pattern, so a surface follows by using the class, not by copying values. The
+launcher keeps its own token set (above) but follows the same rules where it
+has the job. `pnpm ui:sweep` checks the rules marked *swept*
+([UI sweep](docs/ui-sweep.md)); Opus reads the contact sheet for the rest.
+
+- **Selection.** A selected row, option, tile or card is the selection fill
+  inside a faint gold hairline all the way round: `--ui-selection-fill`,
+  `--ui-selection-shadow`, `--ui-selection-ink`. Never an edge stripe, a
+  border-only mark, or a feature's own fill. A current place or character is
+  named in text ("Current"), not drawn as a second outline. Focus stays the
+  separate focus ring. In the launcher, selection is `--gold-tint` without a
+  stripe. *Swept:* `selection-stripe`, `selection-style`.
+- **Window header.** The title (`.ui-panel-title`), at most one supporting line
+  (`.ui-field-hint`), then the window controls (lock, close). No icon tile
+  beside the title, and no button that opens a different tool: each tool opens
+  from its own shortcut, menu item and Hub row. *Swept:* `header-tile`.
+- **Close.** Every window, dialog and drawer closes with `.ui-window-close`, a
+  bare ×. Launcher modals use `.icon-button` with the X icon.
+- **One choice from a short set** (switch a view, filter by two to five
+  values): `.ui-segment`, with `role=tablist` when it switches panels. No
+  underline tabs. The launcher uses `.segmented`.
+- **Group labels.** In the Hub every group of results or tiles has the
+  `.hub-group` label: display type, accent colour, body size; a count or key
+  hint sits at the right in muted caption text. In a Tools window a section
+  heading is interface type at body size, semibold and bright; a count sits at
+  its right, a sentence of help below it. No uppercase labels, no eyebrows.
+- **Rows and tiles.** A Hub row is icon, title, detail, then type or keys at
+  the right (`.hub-row`); a Tools list row is `.ui-row`. A set of places or
+  favourites is compact tiles that wrap (the Travel tile), and ↑ ↓ move by
+  painted row. Nothing scrolls sideways. *Swept:* `sideways-scroll`.
+- **Footer action bar.** Status or key hints at the left, actions at the right;
+  Cancel sits left of the action it cancels, and the completion action is the
+  primary. In game windows the primary shows its ↵ key; the Hub keeps Actions
+  (⌘J) right of the primary.
+- **Search field.** The search glyph at the left, the input, then at most one
+  control inside the field at the right: a `/` key hint, a clear button, or the
+  view's settings gear. The Hub uses `.ui-hub-search`, Tools use
+  `.ui-input-group`. *Swept:* a control inside a field is not an `overlap`.
+- **Empty and loading.** Empty is `.ui-empty`: a short title ("No saved teams
+  yet", "No matching prices"), one sentence that says what to do, and an
+  action when one helps. Loading names what loads ("Loading trader prices…");
+  the Hub shows it as a result row and the bar under its search.
+
 ## Accounts in the launcher
 
 There is no Single or Multiple Accounts mode. The launcher always opens first

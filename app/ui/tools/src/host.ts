@@ -16,7 +16,6 @@ import type {
   TeamApplyPlan,
   TeamApplyResult,
 } from "../../../shared/builds/team-apply";
-import type { StorageCommand } from "../../../shared/storage-command";
 import type {
   LibraryWindow,
   PublishedTemplate,
@@ -95,8 +94,6 @@ export interface ToolsHost {
    */
   readonly applyUnavailable: string | null;
   readonly observationUnavailable: string | null;
-  openStorage(): Promise<void>;
-  readonly storageUnavailable: string | null;
   /** Shows the Library as its own window over the game, out of an open Hub. */
   openWindow(): void;
   /** Opens Maps' Elite Skills planner on a skill's capture locations (Maps' link). */
@@ -196,7 +193,6 @@ export function createDemoHost(storage: Storage | null = null): ToolsHost {
     // The fixture host answers its own apply, so it has nothing to refuse.
     applyUnavailable: null,
     observationUnavailable: null,
-    storageUnavailable: null,
     publishUnavailable: null,
     openWindow: () => {},
     findElite: () => "unavailable",
@@ -231,9 +227,6 @@ export function createDemoHost(storage: Storage | null = null): ToolsHost {
       await new Promise((resolve) => setTimeout(resolve, 180));
       return { commandId: 1, completedChanges: 0, skippedSkills: [] };
     },
-    async openStorage() {
-      await new Promise((resolve) => setTimeout(resolve, 120));
-    },
     cancelApply() {},
     async reset() {
       storage?.removeItem(STORAGE_KEY);
@@ -249,7 +242,6 @@ export function createDemoHost(storage: Storage | null = null): ToolsHost {
  * this bundle and is deliberately not on the protocol's shared-module
  * allowlist, so the encoding happens here and the host receives a string.
  */
-const STORAGE_AFTER_UPDATE = "Storage is unavailable after this Guild Wars update.";
 
 /** A host made without the Library's window part (tests): no file, no window of its own, no Maps. */
 const NO_LIBRARY_FILE = (): never => { throw new Error("The Build Library file is not available here."); };
@@ -271,22 +263,20 @@ export function createNativeHost(
    * into a party lives here, beside the domain.
    */
   readCommands: () => TeamApplyCommands | null,
-  storage: StorageCommand | null,
   applyUnavailable: string | null,
   development = false,
   observationUnavailable: string | null = null,
   readTemplates?: ToolsHost["loadTemplates"],
   templateFiles: TemplateFiles | null = null,
   /**
-   * Why the renderer has no storage command or no template publisher, in its
-   * words. Only the renderer knows the client's reason; null keeps the copy
-   * for a Guild Wars update.
+   * Why the renderer has no template publisher, in its words. Only the
+   * renderer knows the client's reason; null keeps the copy for a Guild Wars
+   * update.
    */
-  missing: Readonly<{ storage: string | null; publish: string | null }> = { storage: null, publish: null },
+  missing: Readonly<{ publish: string | null }> = { publish: null },
   /** What the Library's window part gives it: the saved library file, its own window, and Maps. */
   library: LibraryWindow = NO_LIBRARY_WINDOW,
 ): ToolsHost {
-  const storageMissing = missing.storage ?? STORAGE_AFTER_UPDATE;
   const party = ref(unavailableParty());
   // One counter per session, so a result can be tied to the request that asked
   // for it in a log where several ran.
@@ -403,9 +393,6 @@ export function createNativeHost(
     party,
     applyUnavailable,
     observationUnavailable,
-    get storageUnavailable() {
-      return storage === null ? storageMissing : storage.unavailable();
-    },
     publishUnavailable: publishTemplate === null ? missing.publish ?? PUBLISH_UNAVAILABLE : null,
     openWindow: library.show,
     findElite: library.findElite,
@@ -471,12 +458,6 @@ export function createNativeHost(
       : [{ hero: null, build: null, behaviour: null }, { hero, build, behaviour: null }] }, onEvent, { build, hero }),
     async loadTemplates() { return readTemplates ? readTemplates() : (await api.profileTemplates.loadTemplates())?.entries ?? []; },
     templateFiles,
-    async openStorage() {
-      if (storage === null) {
-        throw new Error(storageMissing);
-      }
-      storage.open();
-    },
     cancelApply() {
       if (activeApply !== null) {
         readCommands()?.cancelPending();

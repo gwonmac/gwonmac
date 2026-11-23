@@ -35,7 +35,6 @@ test("the storage controller owns policy, its link, deduplication, and teardown"
   });
   assert.deepEqual(configurations, [[256, 0], [256, 1]]);
 
-  assert.equal(controller.link.blocked(), null);
   assert.equal(controller.link.toggle("toggle"), "shown");
   assert.equal(opens, 1);
 
@@ -44,9 +43,8 @@ test("the storage controller owns policy, its link, deduplication, and teardown"
     playRegion: "pve",
     state: accessible,
   });
-  // Switched off, the controller stays mounted: its link refuses and says why.
+  // Switched off, the controller stays mounted: its link refuses.
   assert.equal(controller.link.toggle("show"), "unavailable");
-  assert.match(String(controller.link.blocked()), /turned off/);
   assert.equal(opens, 1);
 
   controller.dispose();
@@ -82,7 +80,6 @@ test("storage fails closed without a confirmed character access proof", () => {
     state: accessible,
   });
   assert.equal(controller.link.toggle("show"), "unavailable");
-  assert.match(String(controller.link.blocked()), /during PvP play/);
   controller.update({
     enabled: true,
     playRegion: "pve",

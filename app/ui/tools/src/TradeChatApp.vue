@@ -864,17 +864,13 @@ useClassicFrame(panel);
       @pointerdown.capture="onPanelPointerDown"
     >
       <header class="ui-panel-head ui-window-head window-bar" @pointerdown="startDrag">
-        <div class="window-brand trade-brand" aria-hidden="true">
-          <TradeIcon name="market" />
-        </div>
         <div class="window-identity">
           <h1 class="ui-panel-title">{{ view === "prices" ? "Trader Prices" : `${sourceLabel} Trade` }}</h1>
           <p class="ui-field-hint">{{ view === "prices" ? "Current Guild Wars trader quotes · history from Kamadan" : "Public trade feed · listings are posted in Guild Wars" }}</p>
         </div>
         <button
           v-if="mode === 'embedded'"
-          class="ui-window-close window-close"
-          data-icon
+          class="ui-window-close"
           aria-label="Close Trade Chat"
           @click="emit('close')"
         >×</button>
@@ -1162,7 +1158,7 @@ useClassicFrame(panel);
               <strong>Saved</strong>
               <span>{{ savedCount }} {{ savedCount === 1 ? "item" : "items" }}</span>
             </div>
-            <button ref="savedClose" class="ui-button" data-icon aria-label="Close Saved" @click="closeSaved()">×</button>
+            <button ref="savedClose" class="ui-window-close" aria-label="Close Saved" @click="closeSaved()">×</button>
           </header>
           <div class="ui-segment saved-tabs" data-fill role="group" aria-label="Saved item type">
             <button :aria-pressed="savedTab === 'offers'" @click="savedTab = 'offers'">Offers {{ saved.offers.length }}</button>

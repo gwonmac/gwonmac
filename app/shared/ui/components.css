@@ -19,7 +19,7 @@
  *
  * `ui-` prefixed and flat, matching the `--ui-` token namespace. No
  * nesting-dependent selectors except where a component genuinely owns its
- * children (`.ui-tabs > .ui-tab`), because a component that only works inside
+ * children (`.ui-segment > button`), because a component that only works inside
  * another component is not one.
  *
  * ## Consumers
@@ -219,9 +219,7 @@
 .ui-select:focus-visible,
 .ui-textarea:focus-visible,
 .ui-range:focus-visible,
-.ui-tab:focus-visible,
 .ui-row:focus-visible,
-.ui-rail button:focus-visible,
 .ui-slot:focus-visible,
 .ui-check input:focus-visible,
 .ui-segment label:has(input:focus-visible),
@@ -834,75 +832,6 @@
   opacity: 0.72;
 }
 
-/* ================================================================ tabs == */
-
-.ui-tabs {
-  display: flex;
-  gap: 2px;
-  padding: 0 var(--ui-space-3);
-  border-bottom: 1px solid var(--ui-edge);
-}
-
-.ui-tab {
-  padding: var(--ui-space-2) var(--ui-space-3);
-  border: 1px solid transparent;
-  /* Two flat corners is what makes a tab read as attached to its panel. */
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-  color: var(--ui-text-muted);
-  font: var(--ui-font-size) / var(--ui-line-height) var(--ui-font);
-  cursor: pointer;
-}
-
-.ui-tab:hover {
-  background: var(--ui-hover);
-  color: var(--ui-text-bright);
-}
-
-.ui-tab:active:not(:disabled) {
-  filter: brightness(0.86);
-}
-
-.ui-tab:disabled {
-  cursor: default;
-  opacity: 0.45;
-}
-
-.ui-tab[aria-selected="true"] {
-  background: var(--ui-selection-fill);
-  box-shadow: inset 0 -2px 0 var(--ui-selection-marker);
-  color: var(--ui-selection-ink);
-}
-
-/* A vertical rail, for a dialog with more sections than a tab strip can hold.
- * The selected marker is an edge rather than a fill, because a rail is
- * navigation: it should not look like the primary action on the screen. */
-.ui-rail {
-  display: flex;
-  flex: none;
-  flex-direction: column;
-  padding: var(--ui-space-2) 0;
-  border-right: 1px solid var(--ui-line-soft);
-  background: var(--ui-region-fill);
-}
-
-/* A fixed 1px marker, deliberately not `--ui-border-width`: that preference is
- * about the panel's physical edge, and a player who sets it to 0 wants a
- * frameless panel, not a settings rail that stops showing which section they
- * are in. */
-.ui-rail button {
-  padding: var(--ui-space-3) var(--ui-space-4);
-  border: 0;
-  border-left: 1px solid transparent;
-  border-radius: 0;
-  background: transparent;
-  color: var(--ui-text-muted);
-  font: var(--ui-font-size) / var(--ui-line-height) var(--ui-font);
-  cursor: pointer;
-  text-align: left;
-}
-
 /* One semantic status line for autosave, progress, and failure feedback.
  * Consumers own the words and lifetime; the design system owns what each
  * outcome looks like so success can never silently inherit an error colour. */
@@ -921,25 +850,6 @@
 .ui-status-line[data-tone="warning"] { color: var(--ui-warning); }
 .ui-status-line[data-tone="error"] { color: var(--ui-danger); }
 
-.ui-rail button:hover {
-  background: var(--ui-hover);
-  color: var(--ui-text-bright);
-}
-
-.ui-rail button:active:not(:disabled) {
-  filter: brightness(0.86);
-}
-
-.ui-rail button:disabled {
-  cursor: default;
-  opacity: 0.45;
-}
-
-.ui-rail button[aria-selected="true"] {
-  border-left-color: var(--ui-selection-marker);
-  background: var(--ui-selection-fill);
-  color: var(--ui-selection-ink);
-}
 
 /* =============================================================== lists == */
 
@@ -990,7 +900,7 @@
 .ui-row[aria-current="page"] {
   border-color: transparent;
   background: var(--ui-selection-fill);
-  box-shadow: inset 2px 0 0 var(--ui-selection-marker);
+  box-shadow: var(--ui-selection-shadow);
   color: var(--ui-selection-ink);
 }
 .ui-row:is([aria-selected="true"], [aria-pressed="true"], [aria-current="page"]):hover {
@@ -1004,7 +914,7 @@
  * persistent selection hierarchy as list options. */
 .ui-selection-region[data-selected] {
   background: var(--ui-selection-fill);
-  box-shadow: inset 2px 0 0 var(--ui-selection-marker);
+  box-shadow: var(--ui-selection-shadow);
   color: var(--ui-selection-ink);
 }
 
@@ -1021,38 +931,6 @@
   font-weight: 400;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-/* A form-backed, full-row choice. The native radio owns the value and
- * keyboard behavior; the row owns the same selection and focus language as
- * list options without turning a settings section into cards. */
-.ui-choice-row {
-  position: relative;
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--ui-text);
-  cursor: pointer;
-}
-
-.ui-choice-row:hover { background: var(--ui-hover); }
-
-.ui-choice-row:has(input:checked) {
-  background: var(--ui-selection-fill);
-  box-shadow: inset 2px 0 0 var(--ui-selection-marker);
-  color: var(--ui-selection-ink);
-}
-
-.ui-choice-row:has(input:focus-visible) {
-  outline: 2px solid var(--ui-focus);
-  outline-offset: 2px;
-  box-shadow: 0 0 0 4px var(--ui-focus-halo);
-}
-
-.ui-choice-row > input[type="radio"] {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
 }
 
 /* An indented child row with a stem, for a variant under the build it forked
@@ -1446,7 +1324,8 @@ button.ui-chip[aria-disabled="true"] {
   display:inline-flex; align-items:center; justify-content:center; padding:0; flex:none;
   cursor:pointer; font:inherit; min-width:28px; min-height:28px;
 }
-.ui-window-head > .ui-window-close { font:22px/1 var(--ui-font-reading); }
+/* Every window, dialog and drawer closes with this one bare × (DESIGN.md, "One pattern per job"). */
+.ui-window-close { font:22px/1 var(--ui-font-reading); }
 .ui-window-close:hover, .ui-window-lock:hover, .hub-crumb:hover { color:var(--ui-text-bright); }
 .ui-window-close:focus-visible, .ui-window-lock:focus-visible, .hub-crumb:focus-visible { outline:1px solid var(--ui-focus); outline-offset:-2px; }
 .ui-window-lock svg { width:15px; height:15px; fill:none; stroke:currentColor; stroke-width:1.6; }

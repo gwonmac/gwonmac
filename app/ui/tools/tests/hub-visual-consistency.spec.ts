@@ -124,7 +124,7 @@ test('Home, Travel and Characters use one search box and glyph (HUB-145)',async(
 });
 
 
-test('Home, Travel and Characters share selection fill and a leading rail (HUB-148)',async({page})=>{
+test('Home, Travel and Characters share one selection fill and edge, with no stripe (HUB-148)',async({page})=>{
   await openHub(page);
   const baseline=await page.locator('.hub-row[aria-selected=true]').evaluate(el=>({fill:getComputedStyle(el).backgroundColor,shadow:getComputedStyle(el).boxShadow,rail:getComputedStyle(el,'::before').backgroundColor}));
   for(const [key,selector] of [['Meta+t','.travel-recent[data-active]'],['Meta+e','.character-switch-row[data-selected=true]']] as const){
@@ -135,12 +135,11 @@ test('Home, Travel and Characters share selection fill and a leading rail (HUB-1
   }
 });
 
-test('recent destination overflow has an edge cue and top-aligned content (HUB-155)',async({page})=>{
+test('recent destinations wrap as tiles, every one in view, never scrolling sideways (HUB-155)',async({page})=>{
   await openHub(page);await page.keyboard.press('Meta+t');
   const list=page.locator('.travel-history .travel-recent-grid');await expect(list).toBeVisible();
-  expect(await list.evaluate(el=>el.scrollWidth>el.clientWidth)).toBe(true);
-  await expect(list).not.toHaveCSS('mask-image','none');
-  await expect(page.locator('.travel-history .travel-recent').first()).toHaveCSS('justify-content','flex-start');
+  expect(await list.evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
+  for(const tile of await page.locator('.travel-history .travel-recent').all())await expect(tile).toBeInViewport({ratio:1});
   await page.setViewportSize({ width: 390, height: 800 });
   await page.keyboard.press('Meta+e');
   const characters = page.locator('.character-switch-list');

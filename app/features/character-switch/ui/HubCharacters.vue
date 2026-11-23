@@ -195,9 +195,9 @@ onBeforeUnmount(() => { stopEditing(); observer?.disconnect(); window.removeEven
           data-focus-key="Character Switch settings" :aria-pressed="String(settings)" :hidden="confirming" :disabled="switching" @click="toggleSettings()"
         ><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2Z"/><circle cx="12" cy="12" r="3"/></svg></button>
         <button
-          class="ui-button character-switch-head-action character-switch-close" type="button" aria-label="Close Switch Character"
+          class="ui-window-close character-switch-head-action character-switch-close" type="button" aria-label="Close Switch Character"
           data-focus-key="Close Switch Character" @click="close()"
-        ><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m3 3 10 10M13 3 3 13"/></svg></button>
+        >×</button>
       </header>
       <div class="character-switch-carousel" :hidden="browsing">
         <button

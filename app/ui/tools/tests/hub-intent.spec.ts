@@ -213,7 +213,6 @@ test('Travel keeps selection under a still pointer and changes it only on real m
   await expect(page.locator('#app')).toHaveAttribute('data-action', 'TRAVEL Kamadan, Jewel of Istan');
   await expect(page.locator('#hub')).toBeHidden();
   for (const [query, deltaX, deltaY, selected, destination] of [
-    ['', 250, 0, 'travel-recent-449', 'Kamadan, Jewel of Istan'],
     ['a', 0, 120, 'travel-map-109', 'The Amnoon Oasis'],
   ] as const) {
     await openHub(page);

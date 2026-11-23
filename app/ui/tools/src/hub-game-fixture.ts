@@ -102,7 +102,6 @@ export function createHubGameFixture(record: (action: string) => void, options: 
     },
     async applyTeam(plan, onEvent) { record('apply-team'); return runTeamApply(plan, { ...environment(), ...(onEvent ? { onEvent } : {}) }, 1); },
     async applyBuild(build, id, onEvent) { record('apply-build'); return runBuildApply(build, id, { ...environment(), ...(onEvent ? { onEvent } : {}) }, 2); },
-    async openStorage() { throw new Error('Synthetic storage refusal'); },
   };
   let unobserved = false;
   let region: CompanionPlayRegionState = { status: 'ready', sequence: 1, mapId: 55, instanceType: 0, playRegion: 'pve', travelContext: 'world',

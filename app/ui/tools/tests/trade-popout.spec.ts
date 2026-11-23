@@ -464,8 +464,7 @@ test('beside the game Trade shows at least four offers, and a short window keeps
   await page.setViewportSize({ width: 672, height: 552 });
   const trade = await openTrade(page);
   expect((await trade.boundingBox())!.width).toBe(608);
-  await expect(trade.locator('.trade-brand svg')).toBeVisible();
-  expect(await trade.locator('.trade-brand svg').evaluate(node => ({width:node.getBoundingClientRect().width,height:node.getBoundingClientRect().height}))).toEqual({width:20,height:20});
+  await expect(trade.locator('.ui-window-head [aria-hidden=true]:not(button)')).toHaveCount(0);
   for (const glyph of await trade.locator('.saved-trigger > svg, .trader-prices-trigger > svg').all()) {
     const size = await glyph.evaluate(node => ({width:node.getBoundingClientRect().width,height:node.getBoundingClientRect().height,font:parseFloat(getComputedStyle(node).fontSize)}));
     expect(size.font).toBe(14);

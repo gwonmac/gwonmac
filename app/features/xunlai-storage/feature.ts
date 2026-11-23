@@ -28,11 +28,8 @@ export default defineFeature({
     row: { detail: "Open your storage chest", iconKind: "storage", aliases: ["Open Xunlai Storage"], open: { closesHub: true } },
   },
   shortcuts: [{ action: "storage.open", binding: { key: "s", shift: false, option: false }, menuItem: "open-xunlai-storage" }],
-  /**
-   * Its shortcut, menu item and Hub row open the chest through `toggle`; the Build Library's
-   * storage button reads why it cannot open through `blocked` (shared/link.ts).
-   */
-  offers: ["toggle", "blocked"],
+  /** Its shortcut, menu item and Hub row open the chest through `toggle` (shared/link.ts). */
+  offers: ["toggle"],
   shots: [],
   parts: ["game"],
 });

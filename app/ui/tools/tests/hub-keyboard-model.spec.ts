@@ -160,7 +160,7 @@ test('Travel keeps the active result in view after End (HUB-044)', async ({ page
   await expect(travel).toBeFocused();
 });
 
-test('Travel ↓ ↑ cross between the Recent carousel and Favourites by painted column, not along the carousel', async ({ page }) => {
+test('Travel ↓ ↑ move by painted row through the Recent tiles into Favourites, keeping the column', async ({ page }) => {
   await openHub(page);
   await page.keyboard.press('Meta+t');
   const travel = page.getByRole('combobox', { name: 'Destination, phrase, or friend' });
@@ -171,6 +171,11 @@ test('Travel ↓ ↑ cross between the Recent carousel and Favourites by painted
   const recent = await travel.getAttribute('aria-activedescendant');
   expect(recent).toMatch(/^travel-recent-/u);
   const column = await centre();
+  // Recent wraps into rows of tiles: ↓ first reaches the recent below, in the same column.
+  await page.keyboard.press('ArrowDown');
+  await expect(travel).toHaveAttribute('aria-activedescendant', /^travel-recent-/u);
+  expect(await travel.getAttribute('aria-activedescendant')).not.toBe(recent);
+  expect(Math.abs(await centre() - column)).toBeLessThan(2);
   await page.keyboard.press('ArrowDown');
   await expect(travel).toHaveAttribute('aria-activedescendant', /^travel-favorite-/u);
   // The favourite below is the one nearest the recent's column among those it may choose.

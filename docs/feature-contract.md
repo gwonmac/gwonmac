@@ -215,8 +215,7 @@ tool offers `toggle`; a Hub row never opens through an event.
 
 Shortcuts, menu items and Hub rows open a tool through `toggleTool` in
 [`feature-links.ts`](../app/renderer/feature-links.ts), never the link itself; a Feature that
-names `toggle` in its manifest `links` calls it there and words its own refusal (the Build
-Library's storage button opens [Xunlai Storage](../app/features/xunlai-storage/shared/link.ts)). It answers
+names `toggle` in its manifest `links` calls it there and words its own refusal. It answers
 `ToolAnswer`: `"shown"`, `"hidden"`, or why the tool did not open, as `resolve`'s own off
 value (`{ on: false, reason }`). While resolve has the Feature off, that is resolve's reason
 (off in settings, needs an update, needs another Feature, …). While the Feature is on but its
