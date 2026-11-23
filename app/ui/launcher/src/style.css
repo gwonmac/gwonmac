@@ -39,7 +39,8 @@ p { color: var(--muted); line-height: 1.5; }
 /* Shell: title bar, page, launch bar. */
 .app-shell { width: 100%; min-width: 0; height: 100%; display: grid; grid-template-rows: 78px minmax(0, 1fr) auto; overflow: hidden; background: radial-gradient(circle at 85% 0%, var(--glow), transparent 35%), var(--bg); }
 .titlebar { -webkit-app-region: drag; display: grid; grid-template-columns: minmax(220px, 1fr) auto minmax(220px, 1fr); align-items: center; gap: 24px; padding: 16px 30px 12px; border-bottom: 1px solid var(--line); background: var(--chrome); backdrop-filter: blur(22px); }
-.brand { justify-self: start; display: flex; align-items: center; gap: 10px; padding: 0; background: transparent; }
+/* margin-left keeps the window's close, minimise and zoom buttons clear of the logo. */
+.brand { justify-self: start; margin-left: 64px; display: flex; align-items: center; gap: 10px; padding: 0; background: transparent; }
 .brand img { width: 36px; height: 36px; }
 .brand span { color: var(--text); font: 22px/1 var(--font-display); letter-spacing: -.01em; }
 /* Scoped to the title bar: Settings has its own nav in its sidebar. */

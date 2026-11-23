@@ -378,6 +378,8 @@ function pickGroup(next: GroupBy) {
 .card:has(.card-link:focus-visible), .tile:has(.card-link:focus-visible) { outline: 2px solid var(--focus); outline-offset: 2px; }
 .card-link { padding: 0; color: inherit; font: inherit; text-align: left; }
 .card-link::after { content: ""; position: absolute; inset: 0; }
+/* A pressed button scales, and a transform or filter would shrink the cover to the name, so the release misses it. */
+.card-link:active { transform: none; filter: none; }
 .card-link:focus-visible { outline: none; }
 .card { display: flex; flex-direction: column; overflow: hidden; border-radius: var(--radius-lg); background: var(--surface-solid); }
 .badge { position: absolute; top: 10px; left: 10px; padding: 3px 8px; border-radius: var(--radius-pill); color: var(--on-gold); background: var(--gold); font-size: var(--fs-2xs); font-weight: 700; }
